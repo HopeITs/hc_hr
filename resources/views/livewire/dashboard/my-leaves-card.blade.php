@@ -9,15 +9,24 @@
 
     <div class="grid grid-cols-1 items-center gap-10 px-8 pb-6 md:grid-cols-2 md:gap-6">
 
-        <div class="flex items-end space-x-6">
+        {{-- flex-wrap + gap (not space-x): below ~sm the number block and the
+             breakdown need ~377px but only ~278px is available, so the breakdown
+             wraps onto its own line instead of being crushed or overflowing. At
+             sm and up everything still sits on one row exactly as before. --}}
+        <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
             <div class="flex items-end -mb-3">
                 <span class="text-[125px] font-extrabold text-secondary-medium leading-none">{{$remainingDays}}</span>
                 <span class="mb-4 text-h2 font-semibold text-secondary-medium">/{{$totalDays}}</span>
             </div>
 
-            <div class="border-l border-secondary-medium h-26"></div>
+            {{-- The divider only reads as a divider when the two blocks are
+                 side by side; once they stack it is a stray vertical line. --}}
+            <div class="hidden sm:block border-l border-secondary-medium h-26"></div>
 
-            <div class="flex flex-col justify-between min-w-full">
+            {{-- min-w-0, not min-w-full: this is a flex child with two siblings,
+                 so `min-width:100%` forced the row past the container width and
+                 pushed ~195px of horizontal overflow onto the whole page. --}}
+            <div class="flex flex-col justify-between min-w-0">
                 <h4 class="font-bold text-secondary-medium text-md">
                     {{ $title ?? __('general.annual-leave') }}
                 </h4>
