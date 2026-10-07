@@ -172,7 +172,7 @@
                         </div>
                         <div>
                             <x-forms.input-label for="gender" required>{{ __('general.gender') }}</x-forms.input-label>
-                            <x-forms.select2-input id="gender" wire:model="employee.gender" :hideSearch="true">
+                            <x-forms.select2-input id="gender" wire:model="employee.gender">
                                 <option value="">{{ __('recruitment.choose') }}</option>
                                 <option value="{{ Gender::Male }}">{{ __('general.male') }}</option>
                                 <option value="{{ Gender::Female }}">{{ __('general.female') }}</option>
@@ -181,7 +181,7 @@
                         </div>
                         <div>
                             <x-forms.input-label for="maritalStatus" required>{{ __('general.marital_status') }}</x-forms.input-label>
-                            <x-forms.select2-input id="maritalStatus" wire:model="employee.maritalStatus" :hideSearch="true">
+                            <x-forms.select2-input id="maritalStatus" wire:model="employee.maritalStatus">
                                 <option value="">{{ __('recruitment.choose') }}</option>
                                 @foreach (MaritalStatus::getValues() as $value)
                                     <option value="{{ $value }}">{{ MaritalStatus::getLocalizedName($value)['value'] }}</option>
@@ -226,7 +226,7 @@
                     <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.conversions.contract_section') }}</h2>
                     <div class="max-w-xs">
                         <x-forms.input-label for="sessionDuration" required>{{ __('recruitment-applicant.conversions.session_duration') }}</x-forms.input-label>
-                        <x-forms.select2-input id="sessionDuration" wire:model="sessionDuration" :hideSearch="true">
+                        <x-forms.select2-input id="sessionDuration" wire:model="sessionDuration">
                             <option value="">{{ __('recruitment.choose') }}</option>
                             @foreach ([SessionDuration::Hour, SessionDuration::HourAndHalf, SessionDuration::TwoHours] as $value)
                                 <option value="{{ $value }}">{{ SessionDuration::getLocalizedName($value)['value'] }}</option>

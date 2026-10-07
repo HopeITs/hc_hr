@@ -638,6 +638,10 @@ class RecruitmentJobOfferTest extends TestCase
         }
         $this->assertSame(substr_count($html, '<select'), substr_count($html, '<select x-ref="select"'), 'No plain select is left.');
         $this->assertStringContainsString('initSelect2()', $html);
+
+        // Searchable, as on the Leaves page: the component's search box is never switched off.
+        $this->assertSame(5, substr_count($html, 'minimumResultsForSearch: 0'));
+        $this->assertStringNotContainsString('minimumResultsForSearch: Infinity', $html);
     }
 
     /** security: there is no public offer endpoint; if one comes later it needs its own token, not an id. */

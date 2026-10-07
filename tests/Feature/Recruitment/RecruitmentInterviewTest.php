@@ -536,6 +536,25 @@ class RecruitmentInterviewTest extends TestCase
             ->assertDontSee(__('recruitment-applicant.interviews.join_meeting'));
     }
 
+    /** The interview form's dropdowns are the project's Select2, searchable as on the Leaves page — on create and on edit. */
+    public function test_the_interview_form_uses_searchable_select2_for_every_dropdown(): void
+    {
+        $application = $this->shortlisted();
+        $this->actingAs($this->hr);
+
+        foreach ([
+            Livewire::test(Form::class, ['applicationId' => $application->id])->html(),
+            Livewire::test(Form::class, ['interviewId' => $this->schedule($application)->id])->html(),
+        ] as $html) {
+            foreach (['type', 'duration', 'locationType', 'newParticipantId', 'newParticipantRole'] as $id) {
+                $this->assertMatchesRegularExpression('/<select x-ref="select"[^>]*id="'.$id.'"/', $html, $id.' is a Select2 dropdown');
+            }
+            $this->assertSame(substr_count($html, '<select'), substr_count($html, '<select x-ref="select"'), 'No plain select is left.');
+            $this->assertSame(5, substr_count($html, 'minimumResultsForSearch: 0'));
+            $this->assertStringNotContainsString('minimumResultsForSearch: Infinity', $html);
+        }
+    }
+
     /** [15] An inactive employee cannot be added; one who becomes inactive stays on but is no longer notified. */
     public function test_inactive_participants(): void
     {

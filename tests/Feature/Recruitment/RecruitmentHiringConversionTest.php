@@ -341,6 +341,10 @@ class RecruitmentHiringConversionTest extends TestCase
             $this->assertMatchesRegularExpression('/<select x-ref="select"[^>]*id="'.$id.'"/', $html, $id.' is a Select2 dropdown');
         }
         $this->assertSame(substr_count($html, '<select'), substr_count($html, '<select x-ref="select"'), 'No plain select is left.');
+
+        // Searchable, as on the Leaves page: the component's search box is never switched off.
+        $this->assertSame(4, substr_count($html, 'minimumResultsForSearch: 0'));
+        $this->assertStringNotContainsString('minimumResultsForSearch: Infinity', $html);
     }
 
     /** scope: pay per session needs the session length the offer does not carry. */
