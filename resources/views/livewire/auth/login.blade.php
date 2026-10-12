@@ -54,7 +54,6 @@
                         autocomplete="current-password"
                     />
 
-                    <x-forms.input-error field="password" input-id="password" />
                 </div>
 
                 <div class="flex items-center justify-between text-body text-secondary-medium">
@@ -62,7 +61,7 @@
                     {{ __('auth.remember-me') }}
                     </x-forms.checkbox-input>
 
-                    @if (request()->has('password.request'))
+                    @if (Route::has('password.request'))
                         <a href="{{ route('password.request') }}" class="text-primary hover:underline">
                             {{ __('auth.forgot-password') }}
                         </a>

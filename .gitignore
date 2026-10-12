@@ -27,3 +27,4 @@ graphify-out
 .htaccess
 /public/.htaccess
 .impeccable
+chrome-headless-shell

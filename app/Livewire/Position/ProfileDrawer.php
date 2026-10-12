@@ -28,9 +28,10 @@ class ProfileDrawer extends Component
     #[Locked]
     public ?int $employeeId = null;
 
-    public bool $open = false;
-
-    /** Open the drawer for an employee (dispatched from any card on the page). */
+    /**
+     * Load an employee into the drawer (dispatched from any card on the page).
+     * Showing and hiding the drawer happens client-side on the same event.
+     */
     #[On('open-profile')]
     public function openProfile(int $employeeId): void
     {
@@ -39,18 +40,11 @@ class ProfileDrawer extends Component
         // // Deny before disclosing anything, including whether the id exists.
         // if (! $employee || Gate::denies('view', $employee)) {
         //     $this->employeeId = null;
-        //     $this->open = false;
 
         //     abort(403);
         // }
 
         $this->employeeId = $employee->id;
-        $this->open = true;
-    }
-
-    public function close(): void
-    {
-        $this->open = false;
     }
 
     /** The employee being shown, with avatar + home city loaded. */
