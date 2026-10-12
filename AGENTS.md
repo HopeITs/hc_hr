@@ -2,6 +2,12 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## Designer / design-only AI tasks
+
+For designer work or any task described as design-only, read and follow
+`DESIGN_ONLY.md` before editing. It permits CSS and safe presentation edits in
+Blade/Volt templates while protecting all application logic and behavior.
+
 HC-HR is an HR management system for "Christian Hope Center" (multi-city Syrian NGO).
 Stack: Laravel 12, Livewire 3 (+ Volt + Flux), Tailwind CSS 4, MySQL. Bilingual EN/AR with RTL.
 

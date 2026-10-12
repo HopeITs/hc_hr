@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+For designer work or any task described as design-only, read and follow
+`DESIGN_ONLY.md` before editing. Change appearance only, including safe Blade
+presentation edits; preserve all application logic and behavior.
+
 HC-HR is an HR management system for "Christian Hope Center" (multi-city Syrian NGO).
 Stack: PHP 8.5, Laravel 13, Livewire 4 (+ Volt + Flux), Tailwind CSS 4, Vite 8, MySQL. Bilingual EN/AR with RTL.
 
