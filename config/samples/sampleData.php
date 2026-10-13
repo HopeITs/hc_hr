@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ContractPlace;
+use App\Enums\ContractType;
 use App\Enums\Gender;
 use App\Enums\LeaveType;
 use App\Enums\MaritalStatus;

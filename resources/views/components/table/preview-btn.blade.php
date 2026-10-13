@@ -3,7 +3,7 @@
      check so the print layout can be checked without matching permissions. --}}
 <a {{
     $attributes->merge([
-        'class' => 'cursor-pointer p-2 text-neutral-500 inline-flex items-center',
+        'class' => 'cursor-pointer p-2 text-amber-500 inline-flex items-center',
         'target' => '_blank',
         'title' => __('general.export').' (dev preview)',
     ])

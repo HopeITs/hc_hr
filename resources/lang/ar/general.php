@@ -189,7 +189,6 @@ return [
     'deliver-by' => 'التسليم بواسطة',
     'centers' => 'المراكز',
     'center-name' => 'اسم المركز',
-    'center-manager' => 'مدير المركز',
     'center-city' => 'المدينة',
     'logo' => 'الشعار',
     'search' => 'بحث',

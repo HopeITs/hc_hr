@@ -8,7 +8,7 @@
         {{ __('general.my-account') }}
     </h1>
 
-    <div class="w-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] border border-neutral-200 p-9 max-w-3xl">
+    <div class="w-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] border border-neutral-200 p-9 max-w-3xl">
 
         <form wire:submit.prevent="updatePassword" class="space-y-8">
 
@@ -63,7 +63,7 @@
 
                 <x-action-message
                     on="password-updated"
-                    class="text-body text-neutral-600 ms-4 self-center">
+                    class="text-body text-green-600 ms-4 self-center">
                     {{ __('general.profile.got-saved') }}
                 </x-action-message>
             </div>

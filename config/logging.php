@@ -73,18 +73,6 @@ return [
             'replace_placeholders' => true,
         ],
 
-        // Monitoring events (App\Services\Monitoring\SecurityMonitor): failed
-        // submissions, upload and scan failures, rate limits, denied access,
-        // large exports, repeated downloads, public endpoint abuse. Kept apart
-        // from laravel.log so a shipper or an alert can watch it alone.
-        'security' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/security.log'),
-            'level' => env('SECURITY_LOG_LEVEL', 'info'),
-            'days' => env('SECURITY_LOG_DAYS', 90),
-            'replace_placeholders' => true,
-        ],
-
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

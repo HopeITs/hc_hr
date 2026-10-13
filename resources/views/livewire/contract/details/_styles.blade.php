@@ -7,7 +7,7 @@
         background: #fff url('{{ asset('assets/img/Header.svg') }}') no-repeat top center;
         background-size:93%;
         padding: 35mm 10mm 10mm 10mm ;
-        box-shadow: 0 8px 24px rgba(88,89,91,.06);
+        box-shadow: 0 8px 24px rgba(0,0,0,.06);
         background-position: center 8mm;
         border-radius: 16px;
         position: relative;
@@ -63,7 +63,7 @@
         opacity: .7;
     }
 
-    .h-label { color:#be1f24; font-weight:700; }
+    .h-label { color:#d11f2f; font-weight:700; }
     .tight p{ margin:0 0 .45rem 0; }
 
     .dual-row{
@@ -155,8 +155,8 @@
         }
 
     :root{
-        --main:#58595b;
-        --red:#be1f24;
+        --main:#414042;
+        --red:#c2151c;
     }
 
     .contract-a4{
@@ -174,7 +174,7 @@
         background-position:center 12mm, center calc(100% - 12mm);
         background-size:93% auto, 93% auto;
         padding: 41mm 10mm 20mm 10mm;
-        box-shadow:0 8px 24px rgba(88,89,91,.06);
+        box-shadow:0 8px 24px rgba(0,0,0,.06);
         border-radius:16px;
         position:relative;
         direction:ltr;

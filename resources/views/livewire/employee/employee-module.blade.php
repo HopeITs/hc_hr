@@ -38,7 +38,7 @@
                     <x-table.cell>{{ $item->actual_dob }}</x-table.cell>
                     <x-table.cell>{{ $item->account?->email }}</x-table.cell>
                     <x-table.cell>
-                        <x-badge :color="$item->is_active ? 'secondary-dark' : 'primary'">
+                        <x-badge :color="$item->is_active ? 'green' : 'red'">
                             {{ $item->is_active ? __('general.active') : __('general.inactive') }}
                         </x-badge>
                     </x-table.cell>

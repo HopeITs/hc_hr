@@ -1,5 +1,5 @@
 <div
-    class="w-full h-full rounded-surface bg-white border border-neutral-200 shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
+    class="w-full h-full rounded-surface bg-white border border-neutral-200 shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
 
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-h4 font-semibold text-secondary-medium flex items-center gap-2">
@@ -24,7 +24,7 @@
             const jobLevels = @json($jobLevelLabels);
             const employees = @json($employeeCounts);
 
-            const primaryColor = "#be1f24";
+            const primaryColor = "#c2151c";
             const gridColor    = "#dcddde";
 
             new Chart(ctx, {
@@ -66,7 +66,7 @@
 
                         tooltip: {
                             enabled: true,
-                            backgroundColor: "#58595b",
+                            backgroundColor: "#1f2937",
                             titleColor: "#fff",
                             bodyColor: "#fff",
                             padding: 10,
@@ -82,7 +82,7 @@
                         x: {
                             grid: { display: false },
                             ticks: {
-                                color: "#6d6e71",
+                                color: "#6b7280",
                                 font: { size: 12, family: "SomarSans" },
                                 padding: 10
                             }
@@ -95,7 +95,7 @@
                                 drawBorder: false
                             },
                             ticks: {
-                                color: "#6d6e71",
+                                color: "#6b7280",
                                 font: { size: 12, family: "SomarSans" },
                                 padding: 6,
                                 callback: (value) =>

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +25,11 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    public function profile(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
     /**
      * Include the application's active-role flag whenever roles are eager loaded.
      *
@@ -33,36 +37,6 @@ class User extends Authenticatable
      * this override, activeRole() cannot inspect is_active on a loaded roles
      * collection and may incorrectly fall back to the first assigned role.
      */
-    /**
-     * Answers derived from this user's roles and grants, kept for the life of
-     * this instance (one request). A profile page asks the same policy
-     * questions hundreds of times; each used to go back to the database.
-     */
-    private array $requestMemo = [];
-
-    /** The registrar generation the memo and loaded roles/permissions belong to. */
-    private ?int $memoGeneration = null;
-
-    public function profile(): BelongsTo
-    {
-        return $this->belongsTo(Employee::class, 'employee_id');
-    }
-
-    /** @template T @param \Closure(): T $resolve @return T */
-    public function remember(string $key, Closure $resolve): mixed
-    {
-        $this->dropStaleAccess();
-
-        return array_key_exists($key, $this->requestMemo)
-            ? $this->requestMemo[$key]
-            : $this->requestMemo[$key] = $resolve();
-    }
-
-    public function forgetRemembered(): void
-    {
-        $this->requestMemo = [];
-    }
-
     public function roles(): BelongsToMany
     {
         $registrar = app(PermissionRegistrar::class);
@@ -127,18 +101,17 @@ class User extends Authenticatable
 
     public function activeRole(): ?Role
     {
-        // Loaded once; setActiveRole() and Spatie's assign/remove keep the
-        // loaded relation current, so this never outlives a role change.
-        $this->dropStaleAccess();
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->firstWhere(fn ($r) => (bool) ($r->pivot->is_active ?? false));
+        }
 
-        return $this->loadMissing('roles')->roles
-            ->firstWhere(fn ($r) => (bool) ($r->pivot->is_active ?? false));
+        return $this->roles()->wherePivot('is_active', true)->first();
     }
 
     public function myRole(): ?string
     {
         return $this->activeRole()?->name
-            ?? $this->roles->first()?->name
+            ?? $this->roles()->first()?->name
             ?? null;
     }
 
@@ -223,23 +196,7 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->hasExplicitPermission($permission);
-    }
-
-    /**
-     * The same check without the administrator bypass: a direct grant or the
-     * active role's own permission, and nothing else.
-     *
-     * For acts that must be granted on purpose to whoever performs them —
-     * exporting candidate data, erasing it — where "administrator" cannot mean
-     * "may do this". Salary is the precedent (canViewSalary refuses
-     * super-admin by name); this generalises it to a permission.
-     */
-    public function hasExplicitPermission(string $permission): bool
-    {
-        $this->dropStaleAccess();
-
-        if ($this->loadMissing('permissions')->permissions->contains('name', $permission)) {
+        if ($this->permissions()->where('name', $permission)->exists()) {
             return true;
         }
 
@@ -269,25 +226,6 @@ class User extends Authenticatable
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
-    }
-
-    /**
-     * The role's own city — the one named after "HR-" — or null when the role
-     * sees every city. Recruitment routing needs the single home governorate;
-     * for access checks use activeCityIds() / canAccessCity(), which also
-     * cover the extra cities a regional role administers.
-     */
-    public function activeCityId(): ?int
-    {
-        $roleName = strtoupper(trim($this->myRole() ?? ''));
-
-        if (! Str::startsWith($roleName, 'HR-') || $roleName === 'HR-SYR') {
-            return null;
-        }
-
-        $slug = Str::after($roleName, 'HR-');
-
-        return $this->remember('city-id:'.$slug, fn (): ?int => City::where('slug', $slug)->value('id'));
     }
 
     /** May the active role read and write records belonging to $cityId? */
@@ -330,7 +268,6 @@ class User extends Authenticatable
             }
 
             $this->roles()->updateExistingPivot($roleId, ['is_active' => true]);
-            $this->forgetRemembered();
 
             if ($this->relationLoaded('roles')) {
                 $this->roles->each(function ($r) use ($roleId) {
@@ -372,21 +309,5 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    /**
-     * A grant or revocation anywhere clears Spatie's cache; from then on the
-     * memo and the loaded roles and permissions may describe the old state.
-     */
-    private function dropStaleAccess(): void
-    {
-        $generation = \App\Support\Permissions\PermissionCacheGeneration::current();
-
-        if ($this->memoGeneration !== $generation) {
-            $this->memoGeneration = $generation;
-            $this->requestMemo = [];
-            $this->unsetRelation('roles');
-            $this->unsetRelation('permissions');
-        }
     }
 }

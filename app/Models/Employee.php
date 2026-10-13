@@ -154,15 +154,8 @@ class Employee extends Model implements HasMedia
         // Reuse the eager-loaded `contracts` relation when present so callers
         // that iterate many employees don't trigger one query per row.
         $contract = $this->relationLoaded('contracts')
-            ? $this->contracts->sortBy([
-                ['start_date', 'desc'],
-                ['id', 'desc'],
-            ])->first()
-            : $this->contracts()
-                ->with(['position.department', 'leaveBalances'])
-                ->orderByDesc('start_date')
-                ->orderByDesc('id')
-                ->first();
+            ? $this->contracts->sortByDesc('created_at')->first()
+            : $this->contracts()->with(['position.department', 'leaveBalances'])->latest()->first();
 
         $this->latestActiveContractResolved = true;
 

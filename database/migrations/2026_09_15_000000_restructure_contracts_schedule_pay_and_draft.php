@@ -16,11 +16,6 @@ return new class extends Migration
      * and the three survivors are renamed to the category names the
      * composer now uses everywhere.
      *
-     * recruitment_request_position_details (created by the 2026_09_15_000001
-     * migration below) also FK-references contract_types; on a host where
-     * that migration already ran, deleting 2/4/6 fails until those rows are
-     * remapped too, so the same remap runs there when the table exists.
-     *
      * Consolidating destroys which of the two original rows a contract used
      * to point at, so down() cannot restore the exact original assignment —
      * it recreates 2, 4 and 6 as best-effort duplicates of 1, 3 and 5 (same
@@ -39,16 +34,6 @@ return new class extends Migration
     {
         foreach (self::MERGES as $from => $to) {
             DB::table('contracts')->where('contract_type_id', $from)->update(['contract_type_id' => $to]);
-
-            // recruitment_request_position_details is created by the
-            // 2026_09_15_000001 migration that follows this one, but on a
-            // host where that migration already ran in an earlier deploy the
-            // table (and its FK to contract_types) already exists here.
-            if (Schema::hasTable('recruitment_request_position_details')) {
-                DB::table('recruitment_request_position_details')
-                    ->where('contract_type_id', $from)
-                    ->update(['contract_type_id' => $to]);
-            }
         }
 
         DB::table('contract_types')->whereIn('id', array_keys(self::MERGES))->delete();

@@ -3,7 +3,6 @@
 @import '../../vendor/livewire/flux/dist/flux.css';
 
 @import "flowbite/src/themes/default";
-@import './palette-lock.css';
 
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
@@ -121,10 +120,6 @@
 body {
     font-family: 'SomarSans', sans-serif;
 
-    /* Without this, text with no colour utility falls back to the browser's
-       pure black, which is not a brand colour. */
-    color: var(--color-secondary-dark);
-
     /* The type scale's base. Without this, any element that carries no
        size utility falls back to the browser's 16px, which is a step
        the scale does not contain. */
@@ -132,82 +127,54 @@ body {
     line-height: 1.55;
 }
 
-/* Colours the browser paints on its own — blue by default in every engine. */
-:root {
-    accent-color: var(--color-primary); /* native checkbox / radio / range / progress */
-}
-
-:focus-visible {
-    outline-color: var(--color-primary);
-}
-
-::selection {
-    background-color: var(--color-secondary-soft);
-    color: var(--color-secondary-dark);
-}
-
 @theme {
     --font-sans: 'SomarSans', 'Lato', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
 
-    /* ── Visual identity ─────────────────────────────────────────────
-       These five values (plus white) are the ONLY colours this UI may
-       use. Every other colour token below is derived from them — a
-       tint toward white or a mix of two brand colours — so no new hue
-       can enter the palette. Never add a raw hex anywhere else. */
-    --color-primary: #be1f24; /* HOPE brand primary red */
+    --color-accent: #414042;
+    --color-accent-content: #414042;
+    --color-accent-foreground: var(--color-white);
+
+    --color-primary: #c2151c; /* HOPE brand primary red */
+    --color-primary-hover: #a51218; /* one step darker, for button hover */
     --color-secondary-dark: #58595b;
     --color-secondary-medium: #6d6e71;
     --color-secondary-light: #939598;
     --color-secondary-soft: #dcddde;
 
-    /* Button hover: the red pulled one step toward the brand's dark grey. */
-    --color-primary-hover: color-mix(in srgb, var(--color-primary) 85%, var(--color-secondary-dark));
+    --color-neutral-50: #f5f5f6;
+    --color-neutral-100: #eeeff0;
+    --color-neutral-200: #dcddde;
+    /* soft */
+    --color-neutral-300: #bcbec0;
+    --color-neutral-400: #939598;
+    /* light */
+    --color-neutral-500: #808184;
+    --color-neutral-600: #6d6e71;
+    /* medium */
+    --color-neutral-700: #575759;
+    --color-neutral-800: #414042;
+    /* dark */
+    --color-neutral-900: #2b2a2c;
+    --color-neutral-950: #171718;
 
-    --color-accent: var(--color-secondary-dark);
-    --color-accent-content: var(--color-secondary-dark);
-    --color-accent-foreground: var(--color-white);
 
-    /* Neutral ramp, built only from the four brand greys. The brand has
-       no grey darker than secondary-dark, so 700 and up hold at it. */
-    --color-neutral-50: color-mix(in srgb, var(--color-secondary-soft) 25%, var(--color-white));
-    --color-neutral-100: color-mix(in srgb, var(--color-secondary-soft) 50%, var(--color-white));
-    --color-neutral-200: var(--color-secondary-soft);
-    --color-neutral-300: color-mix(in srgb, var(--color-secondary-soft) 50%, var(--color-secondary-light));
-    --color-neutral-400: var(--color-secondary-light);
-    --color-neutral-500: color-mix(in srgb, var(--color-secondary-light) 50%, var(--color-secondary-medium));
-    --color-neutral-600: var(--color-secondary-medium);
-    --color-neutral-700: var(--color-secondary-dark);
-    --color-neutral-800: var(--color-secondary-dark);
-    --color-neutral-900: var(--color-secondary-dark);
-    --color-neutral-950: var(--color-secondary-dark);
+    --color-black: #414042;
+    --tag-remove-btn-bg--hover: #c2151c;
 
-    --color-black: var(--color-secondary-dark);
-    --tag-remove-btn-bg--hover: var(--color-primary);
+    /* Simple-Modern: lighter, cleaner elevation ramp */
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 1px 4px 0 rgba(0, 0, 0, 0.07);
+    --shadow-lg: 0 6px 16px -6px rgba(0, 0, 0, 0.12);
 
-    /* Simple-Modern: lighter, cleaner elevation ramp. Tinted with
-       secondary-dark (88 89 91) instead of pure black. Kept as a literal
-       rgb() because Tailwind rewrites shadow colours for shadow-* modifiers. */
-    --shadow-xs: 0 1px 2px 0 rgb(88 89 91 / 0.06);
-    --shadow-sm: 0 1px 3px 0 rgb(88 89 91 / 0.1);
-    --shadow-md: 0 1px 4px 0 rgb(88 89 91 / 0.09);
-    --shadow-lg: 0 6px 16px -6px rgb(88 89 91 / 0.16);
-    --shadow: 0 1px 3px 0 rgb(88 89 91 / 0.1), 0 1px 2px -1px rgb(88 89 91 / 0.1);
-    --shadow-2xs: 0 1px rgb(88 89 91 / 0.05);
-    --shadow-inner: inset 0 2px 4px 0 rgb(88 89 91 / 0.05);
-    --shadow-xl: 0 20px 25px -5px rgb(88 89 91 / 0.1), 0 8px 10px -6px rgb(88 89 91 / 0.1);
-    --shadow-2xl: 0 25px 50px -12px rgb(88 89 91 / 0.25);
-    --inset-shadow-2xs: inset 0 1px rgb(88 89 91 / 0.05);
-    --inset-shadow-xs: inset 0 1px 1px rgb(88 89 91 / 0.05);
-    --inset-shadow-sm: inset 0 2px 4px rgb(88 89 91 / 0.05);
-
-    /* Subtle neutral sidebar surface */
-    --color-sidebar-surface: color-mix(in srgb, var(--color-secondary-soft) 15%, var(--color-white));
-    --color-app-surface: color-mix(in srgb, var(--color-secondary-soft) 30%, var(--color-white));
+    /* Subtle warm-neutral sidebar surface */
+    --color-sidebar-surface: #f9fafb;
+    --color-app-surface: #f4f5f7;
 
     /* Selected-state fill. Never tint the brand red down for this — a
-       low-opacity primary reads as pink, which is not allowed in this UI. */
-    --color-selection: color-mix(in srgb, var(--color-secondary-soft) 70%, var(--color-white));
+       low-opacity #c2151c reads as pink, which is not allowed in this UI. */
+    --color-selection: #e6e7e8;
 
     /* Critically damped easing — reaches the target quickly, settles without
        overshoot. Used for chrome that resizes (sidebar collapse) so the panel
@@ -235,7 +202,7 @@ body {
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-neutral-200, currentColor);
+        border-color: var(--color-gray-200, currentColor);
     }
 }
 :root {
@@ -243,8 +210,8 @@ body {
     --livewire-progress-bar-color: var(--color-primary);
 
     /* Custom overlay scrollbar (public/js/custom-scrollbar.js) */
-    --csb-color: var(--color-neutral-300);
-    --csb-hover: var(--color-secondary-light);
+    --csb-color: #bcbec0;
+    --csb-hover: #a7a9ac;
 
 }
 [data-flux-field]:not(ui-radio, ui-checkbox) {
@@ -308,23 +275,15 @@ input[type="date"]::-moz-focus-inner {
 /* Font family/size are left untouched — only colours change.          */
 /* ------------------------------------------------------------------ */
 select option {
-    background-color: var(--color-white);
-    color: var(--color-secondary-dark);
+    background-color: #ffffff;
+    color: #58595b;
 }
 
 select option:hover,
 select option:focus,
 select option:checked {
-    background-color: var(--color-secondary-dark);
-    color: var(--color-white);
-}
-
-/* Public recruitment choices use the Hope Center neutral hover state. */
-select.public-career-select option:hover,
-select.public-career-select option:focus,
-select.public-career-select option:checked {
-    background-color: var(--color-selection);
-    color: var(--color-secondary-dark);
+    background-color: #58595b;
+    color: #ffffff;
 }
 
 div:where(.swal2-icon).swal2-question {
@@ -337,56 +296,15 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
 }
 
 @layer components {
-    /* Recruitment labels stay aligned even when their text changes by status
-       or locale. The width is sized for the longest workflow label. */
-    .recruitment-badge {
-        display: inline-flex;
-        min-width: 9rem;
-        min-height: 1.75rem;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    .recruitment-action {
-        display: inline-flex;
-        min-width: 10rem;
-        height: 1.75rem;
-        min-height: 1.75rem;
-        align-items: center;
-        justify-content: center;
-        padding-top: 0;
-        padding-bottom: 0;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    .recruitment-applicants-page button:not(:disabled),
-    .recruitment-applicants-page [role='button'],
-    .recruitment-applicants-page summary,
-    .recruitment-applicants-page select:not(:disabled),
-    .recruitment-applicants-page a[href],
-    .recruitment-applicants-page input[type='checkbox']:not(:disabled),
-    .recruitment-applicants-page input[type='radio']:not(:disabled) {
-        cursor: pointer;
-    }
-
-    .recruitment-applicants-page button:disabled,
-    .recruitment-applicants-page select:disabled,
-    .recruitment-applicants-page input:disabled {
-        cursor: not-allowed;
-    }
-
     clock-timepicker {
         display: block;
         width: 100%;
         --clock-timepicker-accent-color: var(--color-primary);
         --clock-timepicker-font-family: 'SomarSans', 'Lato', ui-sans-serif, system-ui, sans-serif;
-        --clock-timepicker-popup-background: var(--color-white);
+        --clock-timepicker-popup-background: #ffffff;
         --clock-timepicker-popup-border: 1px solid var(--color-neutral-200);
         --clock-timepicker-popup-border-radius: 0.375rem;
-        --clock-timepicker-popup-shadow: var(--shadow-e2);
+        --clock-timepicker-popup-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         --clock-timepicker-popup-size: 240px;
         --clock-timepicker-face-color: var(--color-neutral-100);
         --clock-timepicker-face-hover-color: var(--color-neutral-200);
@@ -394,8 +312,8 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         --clock-timepicker-outer-numbers-color: var(--color-neutral-800);
         --clock-timepicker-inner-numbers-color: var(--color-neutral-500);
         --clock-timepicker-header-background: var(--color-primary);
-        --clock-timepicker-header-font-color: var(--color-white);
-        --clock-timepicker-header-selection-background: color-mix(in srgb, var(--color-white) 25%, transparent);
+        --clock-timepicker-header-font-color: #ffffff;
+        --clock-timepicker-header-selection-background: rgba(255, 255, 255, 0.25);
         --clock-timepicker-button-color: var(--color-primary);
         --clock-timepicker-button-ok-color: var(--color-primary);
         --clock-timepicker-button-font-size: 0.875rem;
@@ -408,17 +326,17 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         padding: 0.5rem 2.5rem 0.5rem 0.75rem;
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: var(--color-secondary-dark);
-        background-color: var(--color-white);
-        border: 1px solid var(--color-neutral-300);
+        color: #111827;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
         border-radius: 0.375rem;
-        box-shadow: var(--shadow-xs);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         cursor: pointer;
     }
 
     clock-timepicker > input::placeholder {
-        color: var(--color-secondary-light);
+        color: #9ca3af;
     }
 
     clock-timepicker > input:hover:not(:disabled) {
@@ -475,13 +393,13 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         height: 37.6px !important;
         padding: 0.5rem 0.75rem !important;
         font-size: 0.875rem !important;
-        color: var(--color-secondary-dark) !important;
-        background-color: var(--color-white) !important;
-        border: 1px solid var(--color-neutral-300) !important;
+        color: #111827 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #d1d5db !important;
         border-radius: 0.375rem !important;
 
 
-        box-shadow: var(--shadow-sm) !important;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
 
         display: flex !important;
         align-items: center !important;
@@ -496,27 +414,6 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         width: 100%;
     }
 
-    .request-field--locked .select2-container {
-        cursor: not-allowed !important;
-        pointer-events: none;
-    }
-
-    .request-field--locked .select2-container--default .select2-selection--single {
-        color: var(--color-neutral-700) !important;
-        background-color: var(--color-white) !important;
-        border-color: var(--color-neutral-300) !important;
-        box-shadow: none !important;
-        cursor: not-allowed !important;
-    }
-
-    .request-field--locked .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: var(--color-neutral-700) !important;
-    }
-
-    .request-field--locked .select2-container--default .select2-selection--single .select2-selection__arrow {
-        opacity: 0.45;
-    }
-
 
     .select2-container--default.select2-container--focus .select2-selection--single,
     .select2-container--default.select2-container--open .select2-selection--single {
@@ -526,66 +423,24 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
     }
 
 
-    /* Result option — default (no hover): white bg, secondary-dark text */
+    /* Result option — default (no hover): white bg, #58595b text */
     .select2-container--default .select2-results__option {
-        background-color: var(--color-white) !important;
-        color: var(--color-secondary-dark) !important;
+        background-color: #ffffff !important;
+        color: #58595b !important;
         padding-inline-start: 12px !important; /* double the default 6px start padding */
     }
 
-    /* Hover / keyboard-highlighted option: secondary-dark bg, white text */
+    /* Hover / keyboard-highlighted option: #58595b bg, white text */
     .select2-container--default .select2-results__option--highlighted,
     .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
-        background-color: var(--color-secondary-dark) !important;
-        color: var(--color-white) !important;
+        background-color: #58595b !important;
+        color: #ffffff !important;
     }
 
     /* Currently-selected option (when not hovered) follows the default look */
     .select2-container--default .select2-results__option--selected {
-        background-color: var(--color-white) !important;
-        color: var(--color-secondary-dark) !important;
-    }
-
-    /* select2's own stylesheet paints greys, a black focus border and blue
-       highlights of its own. Re-point every one of them at the brand. */
-    .select2-dropdown,
-    .select2-container--default .select2-search--dropdown .select2-search__field {
-        border-color: var(--color-neutral-300) !important;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__placeholder,
-    .select2-container--default .select2-results__option--disabled {
-        color: var(--color-secondary-light) !important;
-    }
-
-    .select2-container--default.select2-container--disabled .select2-selection--single,
-    .select2-container--default.select2-container--disabled .select2-selection--multiple {
-        background-color: var(--color-neutral-50) !important;
-    }
-
-    .select2-container--default .select2-selection--multiple {
-        border-color: var(--color-neutral-300) !important;
-    }
-
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: var(--color-primary) !important;
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: var(--color-neutral-100) !important;
-        border-color: var(--color-neutral-300) !important;
-        color: var(--color-secondary-dark) !important;
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        color: var(--color-secondary-medium) !important;
-        border-color: var(--color-neutral-300) !important;
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
-        color: var(--color-primary) !important;
-        background-color: var(--color-neutral-50) !important;
+        background-color: #ffffff !important;
+        color: #58595b !important;
     }
 
     /* Only when the results list actually scrolls (flagged with .results--scroll
@@ -594,50 +449,6 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
        edge stays put; inline flow + dir handle RTL (scrollbar side flips too). */
     .select2-container--default .select2-results__options.results--scroll .select2-results__option--highlighted {
         width: 95% !important;
-    }
-
-    .public-career-select-wrap .select2-container--default .select2-selection--single {
-        height: 44px !important;
-        border-color: var(--color-neutral-300) !important;
-        border-radius: var(--radius-control) !important;
-        box-shadow: var(--shadow-e1) !important;
-        font-size: var(--text-body) !important;
-        cursor: pointer !important;
-    }
-
-    .public-career-select-wrap .select2-container--default.select2-container--focus .select2-selection--single,
-    .public-career-select-wrap .select2-container--default.select2-container--open .select2-selection--single,
-    .public-career-select-wrap .select2-selection--single:focus-visible {
-        border-color: var(--color-primary) !important;
-        outline: 2px solid var(--color-primary) !important;
-        outline-offset: 2px !important;
-    }
-
-    .select2-dropdown.public-career-dropdown {
-        overflow: hidden !important;
-        border: 1px solid var(--color-neutral-300) !important;
-        border-radius: var(--radius-control) !important;
-        box-shadow: var(--shadow-e2) !important;
-    }
-
-    .select2-container--default .public-career-dropdown .select2-results__option {
-        display: flex;
-        min-height: 44px;
-        align-items: center;
-        padding: 0.625rem 0.75rem !important;
-        background-color: var(--color-white) !important;
-        color: var(--color-secondary-dark) !important;
-        white-space: normal;
-    }
-
-    .select2-container--default .public-career-dropdown .select2-results__option--highlighted,
-    .select2-container--default .public-career-dropdown .select2-results__option--highlighted.select2-results__option--selectable {
-        background-color: var(--color-selection) !important;
-        color: var(--color-secondary-dark) !important;
-    }
-
-    .select2-container--default .public-career-dropdown .select2-results__options.results--scroll .select2-results__option--highlighted {
-        width: 100% !important;
     }
 
     /* Employee-chart range select — match its Select2 box to the original native
@@ -650,7 +461,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         border: 1px solid var(--color-neutral-300) !important;
         border-radius: var(--radius-surface) !important;
         box-shadow: var(--shadow-e1) !important;
-        background-color: var(--color-white) !important;
+        background-color: #ffffff !important;
         font-size: var(--text-small) !important;
         color: var(--color-neutral-700) !important;
     }
@@ -674,15 +485,15 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         border: 1px solid var(--color-neutral-200) !important;
         border-radius: var(--radius-control) !important;
         box-shadow: var(--shadow-e1) !important;
-        background-color: var(--color-white) !important;
+        background-color: #ffffff !important;
         font-size: var(--text-small) !important;
-        color: var(--color-secondary-dark) !important;
+        color: #000000 !important;
     }
 
     .perpage-select-box .select2-container--default .select2-selection--single .select2-selection__rendered {
         padding: 0 !important;
         line-height: 1.5 !important;
-        color: var(--color-secondary-dark) !important;
+        color: #000000 !important;
     }
 
     /* Filter selects (city/program) — match the Reset Filters button's
@@ -691,11 +502,10 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         border-radius: var(--radius-surface) !important;
     }
 
-    /* Calendar "today" circle — gradient fill from the brand asset
-       (white top-right to secondary-dark bottom-left), replacing the flat grey.
-       SVG data URIs cannot read CSS variables, so the stops are literal. */
+    /* Calendar "today" circle — exact gradient fill from the brand asset
+       (white top-right to dark bottom-left), replacing the flat grey. */
     .calendar-today-fill {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38.85 38.85'%3e%3cdefs%3e%3clinearGradient id='g' x1='45.72' y1='-43.78' x2='-1.01' y2='68.54' gradientUnits='userSpaceOnUse'%3e%3cstop offset='.11' stop-color='%23fff'/%3e%3cstop offset='1' stop-color='%2358595b'/%3e%3c/linearGradient%3e%3c/defs%3e%3ccircle cx='19.43' cy='19.43' r='19.43' fill='url(%23g)'/%3e%3c/svg%3e");
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38.85 38.85'%3e%3cdefs%3e%3clinearGradient id='g' x1='45.72' y1='-43.78' x2='-1.01' y2='68.54' gradientUnits='userSpaceOnUse'%3e%3cstop offset='.11' stop-color='%23fff'/%3e%3cstop offset='1' stop-color='%23231f20'/%3e%3c/linearGradient%3e%3c/defs%3e%3ccircle cx='19.43' cy='19.43' r='19.43' fill='url(%23g)'/%3e%3c/svg%3e");
         background-size: 100% 100%;
         background-repeat: no-repeat;
     }
@@ -706,7 +516,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
 
 
     .select2-container--default .select2-selection--single .select2-selection__arrow {
-        background-image: url("data:image/svg+xml,%3csvg aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 10 6'%3e %3cpath stroke='%236d6e71' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 4 4 4-4'/%3e %3c/svg%3e") !important;
+        background-image: url("data:image/svg+xml,%3csvg aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 10 6'%3e %3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 4 4 4-4'/%3e %3c/svg%3e") !important;
         background-repeat: no-repeat !important;
         background-size: 0.75em 0.75em !important;
         height: 100% !important;
@@ -735,10 +545,10 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
 
         flex-shrink: 0;
         overflow: hidden;
-        border: 1px solid var(--color-neutral-200);
+        border: 1px solid #e5e7eb;
         border-radius: 0.5cqw;
-        background: var(--color-white);
-        box-shadow: 0 0.1cqw 0.3cqw rgb(88 89 91 / 20%);
+        background: #ffffff;
+        box-shadow: 0 0.1cqw 0.3cqw rgb(65 64 66 / 20%);
         text-align: center;
         transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
     }
@@ -768,13 +578,13 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
 
     .org-id-card--manager {
         border-color: var(--color-secondary-light);
-        box-shadow: 0 4cqw 8cqw rgb(88 89 91 / 20%);
+        box-shadow: 0 4cqw 8cqw rgb(65 64 66 / 20%);
     }
 
     .org-id-card--vacant {
         border-style: dashed;
-        border-color: var(--color-neutral-300);
-        background: var(--color-neutral-50);
+        border-color: #d1d5db;
+        background: #f9fafb;
         box-shadow: none;
     }
 
@@ -784,7 +594,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         width: 100%;
         aspect-ratio: 4 / 3;
         overflow: hidden;
-        background: var(--color-white);
+        background: #ffffff;
     }
 
     .org-id-card__bar {
@@ -838,7 +648,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         border-radius: 20%;
         background-color: var(--color-secondary-light);
         padding: 1px 4px;
-        color: var(--color-white);
+        color: #ffffff;
         font-size: 6.5cqw;
         font-weight: 400;
         line-height: 1.2;
@@ -851,7 +661,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: var(--color-white);
+        color: white;
         padding-inline: 5px;
         padding-block: 1px;
         border-radius: 10%;
@@ -909,7 +719,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         width: 100%;
         max-height: calc(7cqw * 1.25 * 2 + 0.5cqw);
         padding-bottom: 0.08em;
-        color: var(--color-black);
+        color: var(--color-black, #414042);
         font-size: 7cqw;
         font-weight: 700;
         line-height: 1.25;
@@ -925,7 +735,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: var(--color-black);
+        color: var(--color-black, #414042);
         font-size: 4.4cqw;
         font-weight: 700;
         line-height: 1.05;
@@ -947,7 +757,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         border: 1px dashed var(--color-secondary-dark);
         background: var(--color-secondary-light);
         padding: 0.8cqw 1.4cqw;
-        color: var(--color-white);
+        color:white;
         font-size: 3.6cqw;
         font-weight: 400;
 
@@ -968,7 +778,7 @@ div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
         width: 70%;
         height: max(1px, 0.4cqw);
         margin-top: auto;
-        background: var(--color-neutral-300);
+        background: #bcbec0;
     }
 }
 
@@ -1076,7 +886,7 @@ li:has(> ul:not(.hidden)) .nav-chevron {
 /* Increased contrast: solid background behind a defined edge. */
 @media (prefers-contrast: more) {
     .sidebar-material {
-        background-color: var(--color-white);
+        background-color: #ffffff;
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
         border-inline-end-color: var(--color-neutral-700);

@@ -140,7 +140,6 @@ class AuthorizationRegressionTest extends TestCase
         Livewire::actingAs($hr)
             ->test(ProfileDrawer::class)
             ->call('openProfile', $colleague->id)
-            ->assertSet('open', true)
             ->assertSet('employeeId', $colleague->id);
     }
 

@@ -53,13 +53,6 @@ class SecurityHeaders
     private function contentSecurityPolicy(string $nonce): string
     {
         $directives = config('security-headers.csp.directives');
-
-        // Browsers ignore this directive in report-only policies and log it as
-        // an error. Keep it for enforced production CSP, where it is useful.
-        if (config('security-headers.csp.report_only')) {
-            unset($directives['upgrade-insecure-requests']);
-        }
-
         $directives['script-src'][] = "'nonce-{$nonce}'";
 
         return collect($directives)

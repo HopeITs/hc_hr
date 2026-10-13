@@ -33,7 +33,6 @@ class DatabaseSeeder extends Seeder
             EducationFieldSeeder::class,
             CourseCategorySeeder::class,
             TerminationReasonSeeder::class,
-            RecruitmentWorkflowSeeder::class,
         ]);
 
         //    $user = User::factory()->create([

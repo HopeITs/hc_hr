@@ -35,7 +35,6 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("object-src 'none'", $policy);
         $this->assertStringContainsString("frame-ancestors 'none'", $policy);
         $this->assertMatchesRegularExpression("/script-src [^;]*'nonce-[^']+'/", $policy);
-        $this->assertStringNotContainsString('upgrade-insecure-requests', $policy);
     }
 
     public function test_csp_can_be_enforced_after_report_only_rollout(): void
@@ -48,9 +47,7 @@ class SecurityHeadersTest extends TestCase
         $response = $this->get('/up');
 
         $response->assertHeaderMissing('Content-Security-Policy-Report-Only');
-        $policy = $response->headers->get('Content-Security-Policy');
-        $this->assertNotNull($policy);
-        $this->assertStringContainsString('upgrade-insecure-requests', $policy);
+        $this->assertNotNull($response->headers->get('Content-Security-Policy'));
         $response->assertHeaderMissing('Strict-Transport-Security');
     }
 }

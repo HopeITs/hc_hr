@@ -49,9 +49,9 @@
                             <td class="ps-6 pe-2 py-4 text-body">
                                 <span class="px-2 py-1 inline-flex text-small ltr:-ms-2 rtl:text-right font-medium rounded-full
                                     @if(strtolower($item->display_status) === 'delivered')
-                                        bg-neutral-100 text-neutral-700
+                                        bg-green-100 text-green-700
                                     @elseif(strtolower($item->display_status) === 'on hold')
-                                        bg-neutral-100 text-neutral-700
+                                        bg-yellow-100 text-yellow-700
                                     @else
                                         bg-neutral-100 text-neutral-800
                                     @endif">

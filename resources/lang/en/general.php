@@ -190,7 +190,6 @@ return [
     'deliver-by' => 'Deliver By',
     'centers' => 'Centers',
     'center-name' => 'Center Name',
-    'center-manager' => 'Center Manager',
     'center-city' => 'City',
     'logo' => 'Logo',
     'search' => 'Search',

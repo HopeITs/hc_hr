@@ -50,7 +50,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
-        <x-badge color="primary">
+        <x-badge color="red">
             {{ $contract->contractType?->name
                 ?? $contract->contractType?->name
                 ?? __('general.na') }}

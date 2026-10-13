@@ -6,18 +6,23 @@
     $reports = $this->directReports;
 @endphp
 
-<div x-data="{ show: @entangle('open') }"
+{{-- Visibility is owned by Alpine, not the server: every card dispatches the
+     browser event 'open-profile', which opens the drawer on the spot while the
+     #[On] listener loads the employee. Entangling a server `open` flag made each
+     re-open depend on a client/server sync that could leave the drawer shut. --}}
+<div x-data="{ show: false }"
      x-cloak
      x-show="show"
      x-effect="document.body.classList.toggle('overflow-hidden', show)"
-     x-on:livewire:navigating.window="document.body.classList.remove('overflow-hidden')"
+     x-on:open-profile.window="show = true"
+     x-on:livewire:navigating.window="show = false; document.body.classList.remove('overflow-hidden')"
      x-on:keydown.escape.window="show = false"
      class="fixed inset-0 z-50">
 
     {{-- Backdrop --}}
     <div class="absolute inset-0 bg-secondary-dark/40 backdrop-blur-[1px]"
          x-show="show" x-transition.opacity
-         wire:click="close"></div>
+         x-on:click="show = false"></div>
 
     {{-- Panel: right drawer on desktop, bottom sheet on mobile --}}
     <div class="absolute inset-x-0 bottom-0 flex max-h-[92dvh] min-h-0 flex-col rounded-t-3xl bg-white shadow-e3
@@ -36,7 +41,7 @@
             {{-- Header --}}
             <div class="relative px-6 pt-6 pb-4 overflow-hidden text-white shrink-0 bg-gradient-to-b from-secondary-dark to-secondary-light">
 
-                <button type="button" wire:click="close"
+                <button type="button" x-on:click="show = false"
                         class="absolute z-20 flex items-center justify-center transition rounded-surface end-4 top-4 size-8 text-white/80 hover:bg-white/10 hover:text-white">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
@@ -160,7 +165,7 @@
 
             {{-- Footer action stays visible while the details scroll. --}}
             @if(filled($employee->username))
-                <div class="shrink-0 border-t border-neutral-100 bg-white/95 px-4 py-4 shadow-[0_-12px_24px_-18px_rgba(88,89,91,0.45)] backdrop-blur sm:px-6">
+                <div class="shrink-0 border-t border-neutral-100 bg-white/95 px-4 py-4 shadow-[0_-12px_24px_-18px_rgba(15,23,42,0.45)] backdrop-blur sm:px-6">
                     <a href="{{ route('employees.show', ['employee' => $employee->username]) }}" wire:navigate
                        class="flex items-center justify-center gap-2 rounded-surface bg-primary px-4 py-2 text-body font-semibold text-white transition hover:bg-primary focus:outline-none focus:ring-2 focus:ring-secondary-light focus:ring-offset-2">
                         @lang('general.view-full-profile')
@@ -168,6 +173,11 @@
                     </a>
                 </div>
             @endif
+        @else
+            {{-- The drawer opens before the first employee has loaded. --}}
+            <div class="flex items-center justify-center flex-1 p-8">
+                <x-icons.spinner class="size-6 animate-spin text-primary" />
+            </div>
         @endif
     </div>
 </div>

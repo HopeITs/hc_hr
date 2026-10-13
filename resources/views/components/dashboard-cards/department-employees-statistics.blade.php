@@ -29,8 +29,8 @@
         const employees = [8, 4, 15, 6, 5, 9, 7, 3, 2, 4];
 
         const barColor = getComputedStyle(document.documentElement)
-            .getPropertyValue("--color-primary").trim() || "#be1f24";
-        const neutralGrid = "rgba(88,89,91,0.06)";
+            .getPropertyValue("--color-primary").trim();
+        const neutralGrid = "rgba(0,0,0,0.06)";
 
         new Chart(ctx, {
             type: "bar",
@@ -58,7 +58,7 @@
                     title: {
                         display: true,
                         text: "Employee Distribution by Department",
-                        color: "#58595b",
+                        color: "var(--color-neutral-700)",
                         font: {
                             family: "SomarSans",
                             size: 16,
@@ -70,8 +70,8 @@
                         enabled: true,
                         mode: "index",
                         intersect: false,
-                        backgroundColor: "#58595b",
-                        borderColor: "#58595b",
+                        backgroundColor: "var(--color-neutral-900)",
+                        borderColor: "var(--color-neutral-700)",
                         borderWidth: 1,
                         titleColor: "#ffffff",
                         bodyColor: "#ffffff",
@@ -93,7 +93,7 @@
                     x: {
                         grid: { display: false },
                         ticks: {
-                            color: "#6d6e71",
+                            color: "#6b7280",
                             font: { size: 12, family: "SomarSans" },
                             padding: 8,
                             maxRotation: 80,
@@ -105,7 +105,7 @@
                         beginAtZero: true,
                         grid: { color: neutralGrid, drawBorder: false },
                         ticks: {
-                            color: "#6d6e71",
+                            color: "#6b7280",
                             font: { size: 12, family: "SomarSans" },
                             padding: 6
                         }

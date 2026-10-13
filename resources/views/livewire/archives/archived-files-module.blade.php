@@ -11,7 +11,7 @@
 
         <div class="flex items-center flex-shrink-0 gap-2">
             @if ($canManageCurrentFolder)
-                <button type="button" wire:click="$set('showCreateFolderModal', true)" class="inline-flex items-center justify-center px-4 py-2 text-body font-semibold text-white transition rounded-control shadow-e1 bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <button type="button" wire:click="$set('showCreateFolderModal', true)" class="inline-flex items-center justify-center px-4 py-2 text-body font-semibold text-white transition rounded-control shadow-e1 bg-[#c2151c] hover:bg-[#a51b20] focus:outline-none focus:ring-2 focus:ring-[#c2151c]/30">
                     <x-icons.plus class="w-5 h-5 me-1" />
                     {{ __('general.new_folder') }}
                 </button>
@@ -32,10 +32,10 @@
                         <input x-ref="fileInput" id="file-upload" wire:model.live="filesToUpload" type="file" class="sr-only" multiple accept=".jpg,.jpeg,.png,.svg,.pdf,.docx,.xlsx,.pptx">
                     </label>
                     <div x-show="uploading" class="mt-2 w-full bg-neutral-200 rounded-full h-2.5">
-                        <div class="bg-primary h-2.5 rounded-full" :style="`width: ${progress}%`"></div>
+                        <div class="bg-[#c2151c] h-2.5 rounded-full" :style="`width: ${progress}%`"></div>
                     </div>
                     @error('filesToUpload')
-                        <p class="mt-2 text-small font-semibold text-primary">{{ $message }}</p>
+                        <p class="mt-2 text-small font-semibold text-[#c2151c]">{{ $message }}</p>
                     @enderror
                 </div>
             @endif
@@ -57,12 +57,12 @@
         "
         @endif
         class="relative p-4 mt-6 transition border border-neutral-200 shadow-e1 bg-neutral-50/80 sm:rounded-surface"
-        @if ($currentFolder && $canManageCurrentFolder) :class="dragging ? 'border-primary bg-neutral-100 ring-2 ring-primary/20' : ''" @endif
+        @if ($currentFolder && $canManageCurrentFolder) :class="dragging ? 'border-[#c2151c] bg-neutral-100 ring-2 ring-[#c2151c]/20' : ''" @endif
     >
         @if ($currentFolder && $canManageCurrentFolder)
-            <div x-show="dragging" x-transition class="absolute inset-3 z-10 flex items-center justify-center border-2 border-dashed rounded-surface pointer-events-none border-primary bg-white/80" style="display: none;">
+            <div x-show="dragging" x-transition class="absolute inset-3 z-10 flex items-center justify-center border-2 border-dashed rounded-surface pointer-events-none border-[#c2151c] bg-white/80" style="display: none;">
                 <div class="text-center">
-                    <x-icons.upload class="mx-auto size-10 text-primary" />
+                    <x-icons.upload class="mx-auto size-10 text-[#c2151c]" />
                     <p class="mt-2 text-body font-semibold text-neutral-900">Drop files here to upload</p>
                     <p class="text-small text-secondary-medium">JPG, PNG, SVG, PDF, DOCX, XLSX and PPTX files are supported</p>
                 </div>
@@ -72,9 +72,9 @@
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             @forelse($folders as $folder)
             <div class="relative group ">
-                <a href="{{ $isShared ? route('shared-folders.index', ['folderId' => $folder->id]) : route('my-folders.index', ['folderId' => $folder->id]) }}" class="flex flex-col items-center justify-center h-40 p-4 text-center transition bg-white border border-neutral-200 rounded-surface shadow-e1 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-e3">
-                    <span class="flex items-center justify-center rounded-surface size-16 bg-transparent ring-1 ring-transparent group-hover:bg-primary group-hover:ring-primary">
-                        <x-icons.folder class="w-10 h-10 text-primary group-hover:text-white" />
+                <a href="{{ $isShared ? route('shared-folders.index', ['folderId' => $folder->id]) : route('my-folders.index', ['folderId' => $folder->id]) }}" class="flex flex-col items-center justify-center h-40 p-4 text-center transition bg-white border border-neutral-200 rounded-surface shadow-e1 hover:-translate-y-0.5 hover:border-[#c2151c]/50 hover:shadow-e3">
+                    <span class="flex items-center justify-center rounded-surface size-16 bg-transparent ring-1 ring-transparent group-hover:bg-[#c2151c] group-hover:ring-[#c2151c]">
+                        <x-icons.folder class="w-10 h-10 text-[#c2151c] group-hover:text-white" />
                     </span>
                     <span class="w-full mt-3 text-body font-semibold text-neutral-900 truncate">{{ $folder->name }}</span>
                     @if ($folder->user_id === auth()->id())
@@ -135,12 +135,12 @@
 
             @foreach ($files as $file)
             <div class="relative group">
-                <button type="button" wire:click="previewFile({{ $file->id }})" class="flex flex-col items-center justify-center w-full h-40 p-4 text-center transition bg-white border border-neutral-200 rounded-surface shadow-e1 cursor-pointer hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-e3">
+                <button type="button" wire:click="previewFile({{ $file->id }})" class="flex flex-col items-center justify-center w-full h-40 p-4 text-center transition bg-white border border-neutral-200 rounded-surface shadow-e1 cursor-pointer hover:-translate-y-0.5 hover:border-[#c2151c]/50 hover:shadow-e3">
                     @if (in_array(strtolower($file->extension ?? ''), ['jpg', 'jpeg', 'png'], true))
                     <img src="{{ route('folder-files.preview', ['media' => $file->id]) }}" alt="{{ $file->name }}" class="object-cover w-16 h-16 rounded-surface ring-1 ring-neutral-200" />
                     @else
-                    <span class="flex items-center justify-center rounded-surface size-16 bg-transparent ring-1 ring-transparent group-hover:bg-primary group-hover:ring-primary">
-                        <x-icons.document-text class="w-10 h-10 text-primary group-hover:text-white" />
+                    <span class="flex items-center justify-center rounded-surface size-16 bg-transparent ring-1 ring-transparent group-hover:bg-[#c2151c] group-hover:ring-[#c2151c]">
+                        <x-icons.document-text class="w-10 h-10 text-[#c2151c] group-hover:text-white" />
                     </span>
                     @endif
                     <span class="w-full mt-3 text-body font-semibold text-neutral-900 truncate">{{ $file->name }}</span>
@@ -202,14 +202,14 @@
                 <h3 class="text-h4 font-medium leading-6 text-neutral-900">{{ __('general.create_new_folder') }}</h3>
                 <div class="mt-4">
                     <label for="folderName" class="block text-body font-medium text-neutral-800">{{ __('general.folder_name') }}</label>
-                    <input type="text" id="folderName" wire:model.defer="newFolderName" wire:keydown.enter="createFolder" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-primary focus:border-primary sm:text-body">
+                    <input type="text" id="folderName" wire:model.defer="newFolderName" wire:keydown.enter="createFolder" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-[#c2151c] focus:border-[#c2151c] sm:text-body">
                     @error('newFolderName')
-                    <span class="block mt-2 text-body text-primary">{{ $message }}</span>
+                    <span class="block mt-2 text-body text-[#c2151c]">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3 px-6 py-4 mt-4 rounded-b-lg bg-neutral-50">
-                <button type="button" wire:click="createFolder" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30">{{ __('general.create') }}</button>
+                <button type="button" wire:click="createFolder" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20] focus:outline-none focus:ring-2 focus:ring-[#c2151c]/30">{{ __('general.create') }}</button>
                 <button type="button" wire:click="$set('showCreateFolderModal', false)" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-neutral-800 bg-white border border-neutral-300 rounded-control hover:bg-neutral-50">{{ __('general.cancel') }}</button>
             </div>
         </div>
@@ -223,7 +223,7 @@
             <div class="px-6 pt-6">
                 <div class="flex items-start">
                     <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 bg-neutral-100 rounded-full">
-                        <x-icons.exclamation-triangle class="w-6 h-6 text-primary" />
+                        <x-icons.exclamation-triangle class="w-6 h-6 text-[#c2151c]" />
                     </div>
                     <div class="text-left ms-4">
                         <h3 class="text-h4 font-medium text-neutral-900">{{ __('general.delete_item') }}</h3>
@@ -234,7 +234,7 @@
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3 px-6 py-4 mt-4 rounded-b-lg bg-neutral-50">
-                <button type="button" wire:click="deleteItem" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-white bg-primary rounded-control hover:bg-primary-hover focus:outline-none">{{ __('general.delete') }}</button>
+                <button type="button" wire:click="deleteItem" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-white bg-[#c2151c] rounded-control hover:bg-[#a51b20] focus:outline-none">{{ __('general.delete') }}</button>
                 <button type="button" wire:click="$set('showDeleteConfirmationModal', false)" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-neutral-800 bg-white border border-neutral-300 rounded-control hover:bg-neutral-50">{{ __('general.cancel') }}</button>
             </div>
         </div>
@@ -249,14 +249,14 @@
                 <h3 class="text-h4 font-medium text-neutral-900">{{ __('general.edit_folder') }}</h3>
                 <div class="mt-4">
                     <label for="editingFolderName" class="...">{{ __('general.folder_name') }}</label>
-                    <input type="text" id="editingFolderName" wire:model.defer="editingFolderName" wire:keydown.enter="saveEditedFolder" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-primary focus:border-primary sm:text-body">
+                    <input type="text" id="editingFolderName" wire:model.defer="editingFolderName" wire:keydown.enter="saveEditedFolder" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-[#c2151c] focus:border-[#c2151c] sm:text-body">
                     @error('editingFolderName')
-                    <span class="block mt-2 text-body text-primary">{{ $message }}</span>
+                    <span class="block mt-2 text-body text-[#c2151c]">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3 px-6 py-4 mt-4 rounded-b-lg bg-neutral-50">
-                <button type="button" wire:click="saveEditedFolder" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30">{{ __('general.save') }}</button>
+                <button type="button" wire:click="saveEditedFolder" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20] focus:outline-none focus:ring-2 focus:ring-[#c2151c]/30">{{ __('general.save') }}</button>
                 <button wire:click="$set('editingFolderId', null)" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-neutral-800 bg-white border rounded-control hover:bg-neutral-50">{{ __('general.cancel') }}</button>
             </div>
         </div>
@@ -271,14 +271,14 @@
                 <h3 class="...">{{ __('general.edit_file_name') }}</h3>
                 <div class="mt-4">
                     <label for="editingFileName" class="...">{{ __('general.file_name') }}</label>
-                    <input type="text" id="editingFileName" wire:model.defer="editingFileName" wire:keydown.enter="saveEditedFile" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-primary focus:border-primary sm:text-body">
+                    <input type="text" id="editingFileName" wire:model.defer="editingFileName" wire:keydown.enter="saveEditedFile" class="block w-full mt-1 border-neutral-300 rounded-control shadow-e1 focus:ring-[#c2151c] focus:border-[#c2151c] sm:text-body">
                     @error('editingFileName')
-                    <span class="block mt-2 text-body text-primary">{{ $message }}</span>
+                    <span class="block mt-2 text-body text-[#c2151c]">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3 px-6 py-4 mt-4 rounded-b-lg bg-neutral-50">
-                <button type="button" wire:click="saveEditedFile" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30">{{ __('general.save') }}</button>
+                <button type="button" wire:click="saveEditedFile" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20] focus:outline-none focus:ring-2 focus:ring-[#c2151c]/30">{{ __('general.save') }}</button>
                 <button wire:click="$set('editingFileId', null)" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-neutral-800 bg-white border rounded-control hover:bg-neutral-50">{{ __('general.cancel') }}</button>
             </div>
         </div>
@@ -300,7 +300,7 @@
                     <p class="mt-1 text-small text-secondary-medium">{{ strtoupper($previewFile->extension) }} · {{ $previewFile->size >= 1048576 ? number_format($previewFile->size / 1048576, 1).' MB' : number_format($previewFile->size / 1024, 1).' KB' }}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-3 py-2 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover">
+                    <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-3 py-2 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20]">
                         Download
                     </button>
                     <button type="button" wire:click="closePreviewModal" class="inline-flex items-center justify-center text-secondary-medium transition rounded-control size-9 hover:bg-neutral-100 hover:text-neutral-900">
@@ -348,13 +348,13 @@
                         <div class="flex items-center justify-center min-h-[55vh]">
                             <div class="max-w-lg p-8 text-center bg-white border border-neutral-200 rounded-surface shadow-e1">
                                 <span class="inline-flex items-center justify-center mx-auto rounded-surface size-16 bg-neutral-100 ring-1 ring-neutral-200">
-                                    <x-icons.document-text class="size-9 text-primary" />
+                                    <x-icons.document-text class="size-9 text-[#c2151c]" />
                                 </span>
                                 <h4 class="mt-4 text-body font-bold text-neutral-950">{{ $previewFile->name }}</h4>
                                 <p class="mt-2 text-body leading-6 text-secondary-medium">
                                     {{ $officePreviewData['message'] ?? 'A local preview could not be generated for this Office file.' }}
                                 </p>
-                                <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover">
+                                <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20]">
                                     Download file
                                 </button>
                             </div>
@@ -364,13 +364,13 @@
                     <div class="flex items-center justify-center min-h-[55vh]">
                         <div class="max-w-lg p-8 text-center bg-white border border-neutral-200 rounded-surface shadow-e1">
                             <span class="inline-flex items-center justify-center mx-auto rounded-surface size-16 bg-neutral-100 ring-1 ring-neutral-200">
-                                <x-icons.document-text class="size-9 text-primary" />
+                                <x-icons.document-text class="size-9 text-[#c2151c]" />
                             </span>
                             <h4 class="mt-4 text-body font-bold text-neutral-950">{{ $previewFile->name }}</h4>
                             <p class="mt-2 text-body leading-6 text-secondary-medium">
                                 A full local Office preview needs LibreOffice or Microsoft Office available on the server. Until then, this file can be downloaded and opened in its native app.
                             </p>
-                            <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover">
+                            <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20]">
                                 Download file
                             </button>
                         </div>
@@ -379,11 +379,11 @@
                     <div class="flex items-center justify-center min-h-[55vh]">
                         <div class="max-w-md p-8 text-center bg-white border border-neutral-200 rounded-surface shadow-e1">
                             <span class="inline-flex items-center justify-center mx-auto rounded-surface size-16 bg-neutral-100 ring-1 ring-neutral-200">
-                                <x-icons.document-text class="size-9 text-primary" />
+                                <x-icons.document-text class="size-9 text-[#c2151c]" />
                             </span>
                             <h4 class="mt-4 text-body font-bold text-neutral-950">{{ $previewFile->name }}</h4>
                             <p class="mt-2 text-body text-secondary-medium">Preview is available for images, PDF, Word, Excel and PowerPoint files. Download this file to open it in its native app.</p>
-                            <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover">
+                            <button type="button" wire:click="downloadFile({{ $previewFile->id }})" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20]">
                                 Download file
                             </button>
                         </div>
@@ -404,7 +404,7 @@
                         <h3 class="text-h4 font-bold text-neutral-950">{{ __('general.assign_permissions', ['folder' => $folderForPermissions?->name]) }}</h3>
                         <p class="mt-1 text-body text-secondary-medium">{{ __('general.select_employees') }}</p>
                     </div>
-                    <span class="inline-flex items-center justify-center flex-shrink-0 text-primary bg-white border border-neutral-200 rounded-surface shadow-e1 size-10">
+                    <span class="inline-flex items-center justify-center flex-shrink-0 text-[#c2151c] bg-white border border-neutral-200 rounded-surface shadow-e1 size-10">
                         <x-icons.cog class="size-5" />
                     </span>
                 </div>
@@ -418,7 +418,7 @@
                         </span>
                         <input type="text" wire:model.live.debounce.300ms="userSearch"
                                placeholder="{{ __('general.search_employees') }}"
-                               class="block w-full border-neutral-300 rounded-surface shadow-e1 ps-12 focus:ring-primary focus:border-primary sm:text-body">
+                               class="block w-full border-neutral-300 rounded-surface shadow-e1 ps-12 focus:ring-[#c2151c] focus:border-[#c2151c] sm:text-body">
                     </div>
                 </div>
 
@@ -427,7 +427,7 @@
                     <div class="flex items-center justify-between">
                         <span class="text-small font-semibold tracking-wide text-secondary-medium uppercase">{{ __('general.filter_by_category') }}</span>
                         @if (!empty($activeFilters))
-                            <button type="button" wire:click="clearFilters" class="text-small font-semibold text-secondary-medium transition hover:text-primary">
+                            <button type="button" wire:click="clearFilters" class="text-small font-semibold text-secondary-medium transition hover:text-[#c2151c]">
                                 {{ __('general.clear_all') }}
                             </button>
                         @endif
@@ -435,7 +435,7 @@
 
                     <div class="flex flex-col gap-2 mt-2 sm:flex-row">
                         <select wire:model.live="permissionFilterType"
-                                class="block w-full py-2 text-body border-neutral-300 rounded-control sm:w-1/2 focus:ring-primary focus:border-primary">
+                                class="block w-full py-2 text-body border-neutral-300 rounded-control sm:w-1/2 focus:ring-[#c2151c] focus:border-[#c2151c]">
                             <option value="">{{ __('general.select_category') }}</option>
                             @foreach($this->permissionFilterCategories as $key => $label)
                                 <option value="{{ $key }}">{{ $label }}</option>
@@ -444,7 +444,7 @@
 
                         @if (!empty($permissionFilterOptions))
                             <select wire:model.live="permissionFilterValue"
-                                    class="block w-full py-2 text-body border-neutral-300 rounded-control sm:w-1/2 focus:ring-primary focus:border-primary">
+                                    class="block w-full py-2 text-body border-neutral-300 rounded-control sm:w-1/2 focus:ring-[#c2151c] focus:border-[#c2151c]">
                                 <option value="">{{ __('general.select_value') }}</option>
                                 @foreach($permissionFilterOptions as $id => $name)
                                     <option value="{{ $id }}">{{ $name }}</option>
@@ -459,7 +459,7 @@
                             <span class="inline-flex items-center rounded-full bg-neutral-100 border border-neutral-200 ps-3 pe-2 py-1 text-small font-semibold text-neutral-800">
                                 {{ $filter['type_label'] }}: {{ $filter['value_label'] }}
                                 <button type="button" wire:click="removeFilter({{ $index }})"
-                                        class="inline-flex items-center justify-center w-4 h-4 text-primary transition rounded-full ms-2 hover:bg-neutral-200">
+                                        class="inline-flex items-center justify-center w-4 h-4 text-[#c2151c] transition rounded-full ms-2 hover:bg-neutral-200">
                                     <span class="sr-only">Remove</span>
                                     <svg viewBox="0 0 14 14" class="w-3 h-3 stroke-current"><path d="M4 4l6 6m0-6l-6 6" stroke-width="1.6"/></svg>
                                 </button>
@@ -475,10 +475,10 @@
                         <p class="text-body text-secondary-medium">
                             <span class="font-semibold text-neutral-800">{{ $allUsers->count() }}</span> {{ trans_choice('general.employee', $allUsers->count()) }}
                             <span class="mx-1 text-secondary-light">&middot;</span>
-                            <span class="font-semibold text-primary">{{ count($selectedUsers) }}</span> {{ __('general.selected') }}
+                            <span class="font-semibold text-[#c2151c]">{{ count($selectedUsers) }}</span> {{ __('general.selected') }}
                         </p>
                         @if ($allUsers->isNotEmpty())
-                            <button wire:click="toggleSelectAllVisible" type="button" class="text-body font-semibold transition text-primary hover:underline">
+                            <button wire:click="toggleSelectAllVisible" type="button" class="text-body font-semibold transition text-[#c2151c] hover:underline">
                                 {{ $allVisibleUsersSelected ? __('general.deselect_all_visible') : __('general.select_all_visible') }}
                             </button>
                         @endif
@@ -487,7 +487,7 @@
             </div>
             <div class="relative mx-6 mt-4 overflow-y-auto border border-neutral-200 rounded-surface h-72" wire:loading.class="opacity-40" wire:target="permissionFilterType, permissionFilterValue, userSearch, clearFilters, removeFilter, toggleSelectAllVisible">
                 <div wire:loading wire:target="permissionFilterType, permissionFilterValue, userSearch, clearFilters, removeFilter, toggleSelectAllVisible" class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 rounded-surface">
-                    <x-icons.spinner class="w-8 h-8 text-primary" />
+                    <x-icons.spinner class="w-8 h-8 text-[#c2151c]" />
                 </div>
 
                 @if($allUsers && $allUsers->isNotEmpty())
@@ -495,11 +495,11 @@
                     {{-- ── HAS ACCESS ─────────────────────────────────────── --}}
                     @if($hasAccessUsers->isNotEmpty())
                     <div class="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-white border-b border-neutral-200">
-                        <svg class="size-3.5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="size-3.5 text-[#c2151c] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd"/>
                         </svg>
                         <span class="text-caption font-bold tracking-widest uppercase text-secondary-medium">{{ __('general.has_access') }}</span>
-                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-2 text-caption font-bold text-white rounded-full bg-primary">{{ $hasAccessUsers->count() }}</span>
+                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-2 text-caption font-bold text-white rounded-full bg-[#c2151c]">{{ $hasAccessUsers->count() }}</span>
                     </div>
                     @foreach ($hasAccessUsers as $user)
                         @php
@@ -509,12 +509,12 @@
                         <button type="button"
                                 wire:key="perm-user-{{ $user->id }}"
                                 @if(!$isCreator) wire:click="toggleUser({{ $user->id }})" @endif
-                                class="flex items-center w-full gap-3 px-4 py-2 text-start border-s-[3px] border-primary transition-colors @if($isCreator) cursor-default bg-neutral-50/60 @else hover:bg-neutral-50 bg-white @endif">
+                                class="flex items-center w-full gap-3 px-4 py-2 text-start border-s-[3px] border-[#c2151c] transition-colors @if($isCreator) cursor-default bg-neutral-50/60 @else hover:bg-neutral-50 bg-white @endif">
                             <span class="flex-1 min-w-0">
                                 <span class="block text-body font-semibold text-neutral-800 truncate">{{ $uName }}</span>
                                 @if($isCreator)<span class="text-caption text-secondary-light">{{ __('general.me_creator') }}</span>@endif
                             </span>
-                            <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-primary border-primary text-white">
+                            <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-[#c2151c] border-[#c2151c] text-white">
                                 <svg class="size-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
                             </span>
                         </button>
@@ -551,7 +551,7 @@
                 @endif
             </div>
             <div class="grid grid-cols-2 gap-3 px-6 py-4 mt-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" wire:click="savePermissions" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30">{{ __('general.save_permissions') }}</button>
+                <button type="button" wire:click="savePermissions" class="inline-flex justify-center w-full px-4 py-2 text-body font-semibold text-white transition rounded-control bg-[#c2151c] hover:bg-[#a51b20] focus:outline-none focus:ring-2 focus:ring-[#c2151c]/30">{{ __('general.save_permissions') }}</button>
                 <button type="button" wire:click="closePermissionsModal" class="inline-flex justify-center w-full px-4 py-2 text-body font-medium text-neutral-800 bg-white border border-neutral-300 rounded-control hover:bg-neutral-50">{{ __('general.cancel') }}</button>
             </div>
         </div>

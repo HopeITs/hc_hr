@@ -18,10 +18,6 @@
         </include>
     </source>
     <php>
-        <!-- The whole suite runs in one process and its peak sits above PHP's
-             128M default, so the run died part-way through with a memory
-             exhaustion at whichever allocation happened to be last. -->
-        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
@@ -32,9 +28,6 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="RECRUITMENT_SCANNER" value="disabled"/>
-        <env name="SECURITY_LOG_CHANNEL" value="null"/>
-        <env name="RECRUITMENT_CV_ANALYSIS" value="false"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
     </php>

@@ -44,7 +44,6 @@ class CenterExport implements FromCollection, ShouldAutoSize, WithHeadings, With
             $headers[] = match ($code) {
                 'id' => 'ID',
                 'name_en', 'name_ar' => __('general.center-name'),
-                'center_manager' => __('general.center-manager'),
                 'open_at' => __('general.working-hours', [], 'en'),
                 'city_name_en', 'city_name_ar' => trans_choice('general.city', 1, [], 'en'),
                 'address' => __('general.address', [], 'en'),
@@ -65,7 +64,6 @@ class CenterExport implements FromCollection, ShouldAutoSize, WithHeadings, With
             $mappedRow[] = match ($code) {
                 'id' => $row->id,
                 'name_en', 'name_ar' => $row->name,
-                'center_manager' => $row->managerNames(),
                 'open_at' => $row->open_at_formatted.' - '.$row->close_at_formatted,
 
                 'city_name_en', 'city_name_ar' => $row->city?->name_en ?? '',

@@ -40,10 +40,6 @@ return [
 
     'component_layout' => 'components.layouts.app',
 
-    // Livewire 4 uses this key for full-page components. Keep it aligned
-    // with the existing component layout used throughout the application.
-    'component_layout' => 'components.layouts.app',
-
     /*
     |---------------------------------------------------------------------------
     | Lazy Loading Placeholder

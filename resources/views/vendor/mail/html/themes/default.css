@@ -1,313 +1,295 @@
-/* Christian Hope Center email theme.
- *
- * Laravel inlines these rules into every element before sending, which is what
- * Outlook and Gmail need. Keep selectors simple (tags, classes, descendants) and
- * values physical: Outlook's Word engine knows no `start`/`end`, no custom
- * properties and no web fonts. Direction-dependent alignment is set inline by
- * the components from the message locale. */
-
 /* Base */
 
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    position: relative;
+}
+
 body {
+    -webkit-text-size-adjust: none;
+    background-color: #ffffff;
+    color: #718096;
+    height: 100%;
+    line-height: 1.4;
     margin: 0;
     padding: 0;
     width: 100% !important;
-    height: 100%;
-    background-color: #dcddde;
-    color: #58595b;
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, Tahoma, sans-serif;
-    -webkit-text-size-adjust: none;
-    -ms-text-size-adjust: 100%;
 }
 
-table, td, th, p, a, h1, h2, h3, li, span, div {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, Tahoma, sans-serif;
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.4;
+    text-align: left;
 }
 
-table {
-    border-collapse: separate;
-    mso-table-lspace: 0pt;
-    mso-table-rspace: 0pt;
+a {
+    color: #3869d4;
 }
 
-td {
-    mso-line-height-rule: exactly;
-}
-
-img {
-    border: 0;
-    outline: none;
-    text-decoration: none;
-    -ms-interpolation-mode: bicubic;
-    max-width: 100%;
+a img {
+    border: none;
 }
 
 /* Typography */
 
 h1 {
-    margin: 0 0 16px;
-    color: #58595b;
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 30px;
+    color: #3d4852;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
 }
 
 h2 {
-    margin: 0 0 12px;
-    color: #58595b;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 26px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
 }
 
 h3 {
-    margin: 0 0 8px;
-    color: #58595b;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 24px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
 }
 
 p {
-    margin: 0 0 16px;
-    color: #58595b;
-    font-size: 15px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 1.5em;
+    margin-top: 0;
+    text-align: left;
 }
 
-strong {
-    color: #58595b;
-    font-weight: 700;
+p.sub {
+    font-size: 12px;
 }
 
-a {
-    color: #be1f24;
-    text-decoration: underline;
+img {
+    max-width: 100%;
 }
 
-ul, ol {
-    margin: 0 0 16px;
-    padding: 0 24px;
+/* Layout */
+
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #edf2f7;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 
-li {
-    margin: 0 0 4px;
-    color: #58595b;
-    font-size: 15px;
-    line-height: 24px;
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 
-hr {
-    margin: 28px 0;
-    border: 0;
-    border-top: 1px solid #dcddde;
-    height: 0;
+/* Header */
+
+.header {
+    padding: 25px 0;
+    text-align: center;
 }
 
-.break-all {
+.header a {
+    color: #3d4852;
+    font-size: 19px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* Logo */
+
+.logo {
+    height: 75px;
+    max-height: 75px;
+    width: 75px;
+}
+
+/* Body */
+
+.body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #edf2f7;
+    border-bottom: 1px solid #edf2f7;
+    border-top: 1px solid #edf2f7;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.inner-body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    background-color: #ffffff;
+    border-color: #e8e5ef;
+    border-radius: 2px;
+    border-width: 1px;
+    box-shadow: 0 2px 0 rgba(0, 0, 150, 0.025), 2px 4px 0 rgba(0, 0, 150, 0.015);
+    margin: 0 auto;
+    padding: 0;
+    width: 570px;
+}
+
+.inner-body a {
     word-break: break-all;
 }
 
-/* Frame */
-
-.wrapper {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background-color: #dcddde;
-}
-
-.wrapper-cell {
-    padding: 32px 16px;
-}
-
-.card {
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.card-frame {
-    background-color: #ffffff;
-    border: 1px solid #dcddde;
-    border-top: 3px solid #be1f24;
-    border-radius: 8px;
-}
-
-.header {
-    padding: 36px 40px 4px;
-    text-align: center;
-}
-
-.logo {
-    display: block;
-    width: 176px;
-    max-width: 176px;
-    height: auto;
-    margin: 0 auto;
-    color: #be1f24;
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.content-cell {
-    padding: 28px 40px 36px;
-}
-
-.footer {
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.footer-cell {
-    padding: 24px 24px 8px;
-}
-
-.footer-cell p {
-    margin: 0 0 6px;
-    color: #6d6e71;
-    font-size: 12px;
-    line-height: 18px;
-    text-align: center;
-}
-
-.footer-cell a {
-    color: #6d6e71;
-}
-
-/* Subcopy: the button's fallback link */
+/* Subcopy */
 
 .subcopy {
-    margin-top: 8px;
-    border-top: 1px solid #dcddde;
+    border-top: 1px solid #e8e5ef;
+    margin-top: 25px;
+    padding-top: 25px;
 }
 
-.subcopy-cell {
-    padding-top: 20px;
-}
-
-.subcopy-cell p {
-    margin: 0;
-    color: #6d6e71;
-    font-size: 12px;
-    line-height: 18px;
-}
-
-/* Button */
-
-.action {
-    margin: 8px 0 24px;
-}
-
-.button-cell {
-    background-color: #be1f24;
-    border-radius: 6px;
-    mso-padding-alt: 12px 28px;
-}
-
-.button {
-    display: inline-block;
-    padding: 12px 28px;
-    background-color: #be1f24;
-    border-radius: 6px;
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 20px;
-    text-decoration: none;
-    mso-padding-alt: 0;
-}
-
-/* Warning note (security messages) */
-
-.notice {
-    margin: 8px 0 24px;
-}
-
-.notice-content {
-    padding: 16px 20px 8px;
-    background-color: #dcddde;
-    border-radius: 4px;
-}
-
-.notice-content p {
-    margin: 0 0 8px;
-    color: #58595b;
+.subcopy p {
     font-size: 14px;
-    line-height: 22px;
 }
 
-.notice-content .notice-title {
-    color: #be1f24;
-    font-weight: 700;
+/* Footer */
+
+.footer {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+    width: 570px;
 }
 
-/* One-time code */
-
-.code {
-    margin: 8px 0 24px;
-}
-
-.code-box {
-    background-color: #ffffff;
-    border: 1px solid #dcddde;
-    border-radius: 8px;
-}
-
-.code-value {
-    /* The extra start padding offsets the letter-spacing trailing the last digit. */
-    padding: 22px 16px 22px 26px;
-    color: #58595b;
-    font-family: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    font-size: 34px;
-    font-weight: 700;
-    line-height: 40px;
-    letter-spacing: 10px;
+.footer p {
+    color: #b0adc5;
+    font-size: 12px;
     text-align: center;
 }
 
-.code-expires {
-    margin: 12px 0 0;
-    color: #6d6e71;
-    font-size: 13px;
-    line-height: 20px;
-    text-align: center;
+.footer a {
+    color: #b0adc5;
+    text-decoration: underline;
 }
 
-/* Panel */
-
-.panel {
-    margin: 0 0 24px;
-}
-
-.panel-content {
-    padding: 16px 20px 0;
-    background-color: #ffffff;
-    border: 1px solid #dcddde;
-    border-radius: 6px;
-}
-
-/* Markdown tables */
+/* Tables */
 
 .table table {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
     width: 100%;
-    margin: 0 0 24px;
-    border-collapse: collapse;
 }
 
 .table th {
-    padding: 8px 10px;
-    border-bottom: 2px solid #dcddde;
-    color: #58595b;
-    font-size: 13px;
-    font-weight: 700;
+    border-bottom: 1px solid #edeff2;
+    margin: 0;
+    padding-bottom: 8px;
 }
 
 .table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid #dcddde;
-    color: #58595b;
-    font-size: 14px;
-    line-height: 20px;
+    color: #74787e;
+    font-size: 15px;
+    line-height: 18px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.content-cell {
+    max-width: 100vw;
+    padding: 32px;
+}
+
+/* Buttons */
+
+.action {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+    float: unset;
+}
+
+.button {
+    -webkit-text-size-adjust: none;
+    border-radius: 4px;
+    color: #fff;
+    display: inline-block;
+    overflow: hidden;
+    text-decoration: none;
+}
+
+.button-blue,
+.button-primary {
+    background-color: #2d3748;
+    border-bottom: 8px solid #2d3748;
+    border-left: 18px solid #2d3748;
+    border-right: 18px solid #2d3748;
+    border-top: 8px solid #2d3748;
+}
+
+.button-green,
+.button-success {
+    background-color: #48bb78;
+    border-bottom: 8px solid #48bb78;
+    border-left: 18px solid #48bb78;
+    border-right: 18px solid #48bb78;
+    border-top: 8px solid #48bb78;
+}
+
+.button-red,
+.button-error {
+    background-color: #e53e3e;
+    border-bottom: 8px solid #e53e3e;
+    border-left: 18px solid #e53e3e;
+    border-right: 18px solid #e53e3e;
+    border-top: 8px solid #e53e3e;
+}
+
+/* Panels */
+
+.panel {
+    border-left: #2d3748 solid 4px;
+    margin: 21px 0;
+}
+
+.panel-content {
+    background-color: #edf2f7;
+    color: #718096;
+    padding: 16px;
+}
+
+.panel-content p {
+    color: #718096;
+}
+
+.panel-item {
+    padding: 0;
+}
+
+.panel-item p:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Utilities */
+
+.break-all {
+    word-break: break-all;
 }

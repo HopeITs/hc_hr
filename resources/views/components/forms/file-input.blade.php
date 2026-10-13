@@ -104,7 +104,7 @@
             the markup and contradict whatever the user had just picked.
         --}}
         <input {{ $attributes->merge([
-            'class' => 'block w-full text-body text-neutral-500 px-4 file:me-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-body file:font-semibold file:bg-secondary-light file:text-white hover:file:bg-secondary-medium',
+            'class' => 'block w-full text-body text-slate-500 px-4 file:me-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-body file:font-semibold file:bg-secondary-light file:text-white hover:file:bg-secondary-medium',
             'type' => 'file',
         ]) }}/>
         {{--

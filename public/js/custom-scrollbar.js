@@ -11,7 +11,7 @@
  *   (optional) set window.CustomScrollbarConfig = {...} BEFORE the tag to tune it.
  *
  * THEMING (pure CSS, no JS needed) — override the colour anywhere:
- *   :root { --csb-color: #dcddde; --csb-hover: #939598; }
+ *   :root { --csb-color: #bcbec0; --csb-hover: #a7a9ac; }
  *
  * API
  *   CustomScrollbar.refresh()      re-scan + reposition (call after big DOM changes)
@@ -26,8 +26,8 @@
 
   /* ---------- Config (override via window.CustomScrollbarConfig before load) ---------- */
   var DEFAULTS = {
-    color:       "#dcddde", // thumb + track outline (also settable via --csb-color)
-    hoverColor:  "#939598", // thumb on hover/drag   (also settable via --csb-hover)
+    color:       "#bcbec0", // thumb + track outline (also settable via --csb-color)
+    hoverColor:  "#a7a9ac", // thumb on hover/drag   (also settable via --csb-hover)
     trackWidth:  8,         // overlay / track width (px)
     thumbWidth:  3,         // thumb width (px)
     trackBorder: 1,         // track outline thickness (px)

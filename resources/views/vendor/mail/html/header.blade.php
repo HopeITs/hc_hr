@@ -1,10 +1,12 @@
 @props(['url'])
-{{-- The logo is embedded in the message itself (App\Listeners\EmbedMailLogo), so
-     Outlook and Gmail show it without asking to load remote images. --}}
 <tr>
-<td class="header" align="center">
-<a href="{{ $url }}" target="_blank" rel="noopener" style="display: inline-block;">
-<img src="cid:{{ App\Listeners\EmbedMailLogo::NAME }}" class="logo" width="176" height="47" alt="{{ trim($slot) }}">
+<td class="header">
+<a href="{{ $url }}" style="display: inline-block;">
+@if (trim($slot) === 'Laravel')
+<img src="https://laravel.com/img/notification-logo.png" class="logo" alt="Laravel Logo">
+@else
+{!! $slot !!}
+@endif
 </a>
 </td>
 </tr>

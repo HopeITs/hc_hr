@@ -62,7 +62,7 @@
                     <td class="p-0"
                         x-bind:class="~selected.indexOf('{{ $item->getKey() }}')
                                 ? 'bg-secondary-soft group-odd:bg-secondary-soft group-hover:bg-secondary-light dark:bg-secondary-dark dark:group-odd:bg-secondary-dark dark:group-hover:bg-secondary-dark'
-                                : 'bg-neutral-100 group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'">
+                                : 'bg-[#f1f2f2] group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'">
                         <div class="mx-3">
                             <input type="checkbox" wire:model.live="selected" value="{{ $item->getKey() }}" class="size-4">
                         </div>
@@ -88,7 +88,7 @@
                         @endif
                         x-bind:class="~selected.indexOf('{{ $item->getKey() }}')
                                 ? 'bg-secondary-soft group-odd:bg-secondary-soft group-hover:bg-secondary-light dark:bg-secondary-dark dark:group-odd:bg-secondary-dark dark:group-hover:bg-secondary-dark'
-                                : 'bg-neutral-100 group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'"
+                                : 'bg-[#f1f2f2] group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'"
                     >
                         @includeWhen($column->isCopyable(), 'livewire-table::columns.buttons.copy')
                         <div x-ref="content">

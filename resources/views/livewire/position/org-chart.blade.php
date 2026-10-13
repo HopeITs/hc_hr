@@ -216,7 +216,7 @@
             @if($this->isSearching)
                 {{-- Flat search results grid (hierarchy is not meaningful while searching). --}}
                 @php($results = $this->searchResults)
-                <div class="min-h-[680px] w-full bg-[radial-gradient(circle_at_center,_var(--color-secondary-soft)_1px,_transparent_1px)] [background-size:22px_22px]">
+                <div class="min-h-[680px] w-full bg-[radial-gradient(circle_at_center,_#e5e7eb_1px,_transparent_1px)] [background-size:22px_22px]">
                     <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-200 bg-white/80">
                         <span class="text-body font-semibold text-secondary-medium">
                             {{ trans_choice('general.search-results-count', $results->count(), ['count' => $results->count()]) }}
@@ -370,7 +370,7 @@
                 @pointerup="onPointerUp($event)"
                 @pointercancel="onPointerUp($event)"
                 x-on:reset-pan.window="resetPan()"
-                class="relative min-h-[min(72vh,820px)] w-full touch-none overflow-hidden overscroll-none select-none bg-[radial-gradient(circle_at_center,_var(--color-secondary-soft)_1px,_transparent_1px)] [background-size:22px_22px]"
+                class="relative min-h-[min(72vh,820px)] w-full touch-none overflow-hidden overscroll-none select-none bg-[radial-gradient(circle_at_center,_#e5e7eb_1px,_transparent_1px)] [background-size:22px_22px]"
                 :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
             >
                 <p class="pointer-events-none absolute bottom-3 start-3 z-10 rounded-surface border border-neutral-200/80 bg-white/90 px-2 py-1 text-caption font-medium text-secondary-light shadow-e1 backdrop-blur-sm">

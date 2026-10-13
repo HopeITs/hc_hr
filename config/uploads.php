@@ -49,16 +49,6 @@ return [
             'quality' => 90,
         ],
 
-        'recruitment_document' => [
-            'max_bytes' => 10 * 1024 * 1024,
-            'max_width' => 8000,
-            'max_height' => 8000,
-            'max_pixels' => 32_000_000,
-            'max_aspect_ratio' => 10.0,
-            'output' => 'preserve',
-            'quality' => 90,
-        ],
-
     ],
 
     /*

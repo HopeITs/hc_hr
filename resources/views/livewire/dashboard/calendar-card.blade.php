@@ -1,4 +1,4 @@
-<div class="mx-auto h-full w-full max-w-3xl rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)]">
+<div class="mx-auto h-full w-full max-w-3xl rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
     <x-dashboard-cards.card-header :title="__('general.calendar')">
         <x-slot:icon>
             <svg class="block size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

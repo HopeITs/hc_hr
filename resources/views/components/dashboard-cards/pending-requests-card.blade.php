@@ -1,4 +1,4 @@
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
     <x-dashboard-cards.card-header :title="__('general.pending-delivers')" :count="$pendingRequests->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/pending-delivers.svg') }}" alt="">
@@ -20,7 +20,7 @@
                     {{ ucfirst($req['item']) }}
                 </p>
 
-                <span class="text-[11px] text-[#939598]">
+                <span class="text-[11px] text-[#888]">
                     {{ $req['request_date'] }}
                 </span>
             </div>

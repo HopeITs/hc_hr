@@ -41,6 +41,7 @@ class Index extends Component
         $programId = $this->contract->position->program_id ?? null;
 
         $birthdays = Employee::query()
+            ->where('is_active', true)
             ->whereNotNull('dob')
             ->whereDay('dob', $today->day)
             ->whereMonth('dob', $today->month)
@@ -164,6 +165,7 @@ class Index extends Component
         $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
 
         return Employee::query()
+            ->where('is_active', true)
             ->whereNotNull('dob')
             ->get()
             ->filter(function ($emp) use ($start, $end) {
@@ -261,6 +263,8 @@ class Index extends Component
 
         $members = collect();
 
+        // The CEO and the Deputy CEO always head the list. Everyone else below
+        // must be active and hold a contract running today.
         $ceo = Employee::query()
             ->where('id', 1)
             ->with(['media', 'contracts.position.jobLevel'])
@@ -271,6 +275,31 @@ class Index extends Component
             $ceo->positionTitle = 'Chief Executive Officer';
             $members->push($ceo);
         }
+
+        // The deputies (Deputy CEO, Second Deputy CEO) are found by position —
+        // executive grade + "deputy" title, as the org chart does — from any
+        // contract, so they stay even without a current one.
+        $deputies = Contract::query()
+            ->whereHas('position', fn ($query) => $query
+                ->whereHas('jobLevel', fn ($level) => $level->where('grade', 1))
+                ->where(fn ($title) => $title
+                    ->where('title_en', 'like', '%deputy%')
+                    ->orWhere('title_ar', 'like', '%نائب%')))
+            ->when($ceo, fn ($query) => $query->where('employee_id', '!=', $ceo->id))
+            ->with(['position', 'employee.media'])
+            ->latest('start_date')
+            ->get()
+            ->unique('employee_id')
+            ->sortBy('position_id')
+            ->filter(fn (Contract $contract) => $contract->employee)
+            ->map(function (Contract $contract) use ($titleCol) {
+                $contract->employee->positionTitle = $contract->position?->$titleCol ?? '—';
+
+                return $contract->employee;
+            })
+            ->values();
+
+        $members->push(...$deputies);
 
         $directManager = null;
         if ($position?->direct_manager_id) {
@@ -285,6 +314,10 @@ class Index extends Component
 
                 $directManager = $activeContract?->employee;
 
+                if ($directManager && ! $directManager->is_active) {
+                    $directManager = null;
+                }
+
                 if ($directManager) {
                     $directManager->positionTitle = $activeContract?->position?->$titleCol ?? '—';
                 }
@@ -298,12 +331,15 @@ class Index extends Component
         $nameCol = "name_{$locale}";
 
         $excludeIds = collect([$this->employee?->id, $ceo?->id, $directManager?->id])
+            ->merge($deputies->pluck('id'))
             ->filter()
             ->unique()
             ->all();
 
         $sameCityEmployees = Employee::query()
             ->where('city_id', $this->employee?->city_id)
+            ->where('is_active', true)
+            ->whereHas('contracts')
             ->whereNotIn('id', $excludeIds)
             ->whereNotNull('username')
             ->with(['contracts.position.jobLevel'])

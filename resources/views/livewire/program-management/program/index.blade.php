@@ -19,7 +19,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach ($items as $program)
-                <div class="rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] border border-neutral-200 hover:shadow-e2 transition flex flex-col h-full">
+                <div class="rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] border border-neutral-200 hover:shadow-e2 transition flex flex-col h-full">
 
                     <!-- Smaller Header Section -->
                     <div class="p-4 border-b border-neutral-100 flex-shrink-0">

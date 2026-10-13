@@ -438,37 +438,11 @@ class AccessManagementTest extends TestCase
                 ->call('saveRolePermissions')
                 ->assertHasNoErrors();
 
-            // Everything except what no role may hold, which is granted per user.
             $this->assertEqualsCanonicalizing(
-                Permission::query()->whereNotIn('name', AccessPermissionCatalog::personLevelNames())->pluck('name')->all(),
+                Permission::query()->pluck('name')->all(),
                 $role->fresh()->permissions()->pluck('name')->all(),
             );
         }
-    }
-
-    public function test_no_role_save_attaches_a_permission_reserved_for_individual_users(): void
-    {
-        $administrator = $this->createUserWithActiveRole('super-admin');
-        $reserved = Permission::findOrCreate('recruitment-applicants.export', 'web');
-        $custom = Role::findOrCreate('data-officer', 'web');
-
-        foreach ([Role::findOrCreate('HR-SYR', 'web'), $custom] as $role) {
-            Livewire::actingAs($administrator)
-                ->test(Index::class)
-                ->call('selectRole', $role->id)
-                ->call('selectAllRolePermissions')
-                ->assertNotSet('rolePermissionIds', fn (array $ids): bool => in_array($reserved->id, $ids, true))
-                ->set('rolePermissionIds', [$reserved->id])
-                ->call('saveRolePermissions')
-                ->assertHasNoErrors();
-
-            $this->assertFalse($role->fresh()->hasPermissionTo($reserved), "{$role->name} picked up a per-user permission.");
-        }
-
-        // Granting it to a person is what the per-user panel is for.
-        $officer = $this->createUserWithActiveRole('employee');
-        $officer->givePermissionTo($reserved);
-        $this->assertTrue($officer->fresh()->hasExplicitPermission('recruitment-applicants.export'));
     }
 
     public function test_custom_role_permissions_can_be_replaced_without_removing_external_permissions(): void
@@ -512,7 +486,7 @@ class AccessManagementTest extends TestCase
             ->call('showAssignedUsers')
             ->assertSet('showAssignedUsersModal', true)
             ->assertSeeHtml('class="fixed inset-0 z-50 overflow-y-auto"')
-            ->assertSeeHtml('class="fixed inset-0 z-0 transform bg-neutral-500/75 transition-all"')
+            ->assertSeeHtml('class="fixed inset-0 z-0 transform bg-gray-500/75 transition-all"')
             ->assertSeeHtml('class="pointer-events-none relative z-10 flex min-h-full items-center justify-center p-4 sm:p-6"')
             ->assertViewHas('selectedRoleUsers', fn ($users): bool => $users->count() === 2
                 && $users->contains('id', $firstUser->id)

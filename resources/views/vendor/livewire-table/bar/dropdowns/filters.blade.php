@@ -12,7 +12,7 @@
             class="flex gap-2 px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
             <span class="me-auto">@lang('Filters')</span>
             @if ($this->canClearFilters())
-                <a href="#" class="text-primary" x-on:click="show = false" wire:click.prevent="clearFilters">
+                <a href="#" class="text-red-500" x-on:click="show = false" wire:click.prevent="clearFilters">
                     @lang('Clear')
                 </a>
             @endif

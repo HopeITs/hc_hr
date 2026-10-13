@@ -18,10 +18,10 @@ final class ChecklistItemOrder extends Enum
     {
 
         $val = match ($value) {
-            self::ProbationContract => ['text' => ['en' => 'Probation Contract', 'ar' => 'عقد تجريبي'], 'color' => 'secondary-dark'],
-            self::AnnualContract => ['text' => ['en' => 'Annual Contract', 'ar' => 'عقد سنوي (بعد التثبيت)'], 'color' => 'secondary-medium'],
+            self::ProbationContract => ['text' => ['en' => 'Probation Contract', 'ar' => 'عقد تجريبي'], 'color' => 'green'],
+            self::AnnualContract => ['text' => ['en' => 'Annual Contract', 'ar' => 'عقد سنوي (بعد التثبيت)'], 'color' => 'blue'],
             self::Resignation => ['text' => ['en' => 'Resignation / End of Service', 'ar' => 'استقالة / إنهاء خدمة'], 'color' => 'primary'],
-            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'secondary-light'],
+            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'gray'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],

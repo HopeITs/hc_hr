@@ -6,7 +6,6 @@
 /storage/*.key
 /storage/fonts
 /storage/pail
-/storage/media-library
 /vendor
 .env
 .env.backup
@@ -27,3 +26,4 @@ graphify-out
 .htaccess
 /public/.htaccess
 .impeccable
+chrome-headless-shell

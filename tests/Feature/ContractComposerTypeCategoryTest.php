@@ -7,6 +7,7 @@ use App\Livewire\Contract\ContractCreate;
 use App\Models\Center;
 use App\Models\ContractType;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;

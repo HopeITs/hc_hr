@@ -12,11 +12,11 @@
         <x-auth-card class="space-y-6 w-96">
 
             <div class="space-y-1 text-center">
-                <h1 class="text-2xl font-bold text-neutral-900">{{ __('auth.sign-in') }}</h1>
-                <p class="text-sm text-neutral-500">{{ __('auth.sign-in-text') }}</p>
+                <h1 class="text-2xl font-bold text-gray-900">{{ __('auth.sign-in') }}</h1>
+                <p class="text-sm text-gray-500">{{ __('auth.sign-in-text') }}</p>
             </div>
 
-            <x-auth-session-status class="mb-2 text-center text-neutral-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="mb-2 text-center text-green-600 text-body" :status="session('status')" />
 
             <form
                 x-data
@@ -54,7 +54,6 @@
                         autocomplete="current-password"
                     />
 
-                    <x-forms.input-error field="password" input-id="password" />
                 </div>
 
                 <div class="flex items-center justify-between text-body text-secondary-medium">
@@ -62,7 +61,7 @@
                     {{ __('auth.remember-me') }}
                     </x-forms.checkbox-input>
 
-                    @if (request()->has('password.request'))
+                    @if (Route::has('password.request'))
                         <a href="{{ route('password.request') }}" class="text-primary hover:underline">
                             {{ __('auth.forgot-password') }}
                         </a>

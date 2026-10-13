@@ -90,6 +90,32 @@ class EmployeeCreate extends Component
         $this->activeTab = 'information';
     }
 
+    /**
+     * Which tab to show so a validation failure is visible: stays on the
+     * current tab if it already accounts for at least one of the failing
+     * fields, otherwise jumps to the other one.
+     */
+    private function tabForErrors(array $errors): string
+    {
+        $contactFields = ['username', 'email', 'work_phone', 'personal_phone'];
+
+        $failingFields = collect(array_keys($errors))
+            ->map(fn (string $key): string => str($key)->after('infoForm.')->toString());
+
+        $hasContactError = $failingFields->intersect($contactFields)->isNotEmpty();
+        $hasProfileError = $failingFields->diff($contactFields)->isNotEmpty();
+
+        if ($this->activeTab === 'contact' && $hasContactError) {
+            return 'contact';
+        }
+
+        if ($this->activeTab !== 'contact' && $hasProfileError) {
+            return $this->activeTab;
+        }
+
+        return $hasContactError ? 'contact' : 'information';
+    }
+
     /** Whether the acting user may point the draft-position cascade at a city other than the employee's own. */
     public function canPickAnyDraftCity(): bool
     {
@@ -205,31 +231,5 @@ class EmployeeCreate extends Component
             'employeeChecklistItems' => collect(),
             'canManageBadges' => false,
         ]);
-    }
-
-    /**
-     * Which tab to show so a validation failure is visible: stays on the
-     * current tab if it already accounts for at least one of the failing
-     * fields, otherwise jumps to the other one.
-     */
-    private function tabForErrors(array $errors): string
-    {
-        $contactFields = ['username', 'email', 'work_phone', 'personal_phone'];
-
-        $failingFields = collect(array_keys($errors))
-            ->map(fn (string $key): string => str($key)->after('infoForm.')->toString());
-
-        $hasContactError = $failingFields->intersect($contactFields)->isNotEmpty();
-        $hasProfileError = $failingFields->diff($contactFields)->isNotEmpty();
-
-        if ($this->activeTab === 'contact' && $hasContactError) {
-            return 'contact';
-        }
-
-        if ($this->activeTab !== 'contact' && $hasProfileError) {
-            return $this->activeTab;
-        }
-
-        return $hasContactError ? 'contact' : 'information';
     }
 }

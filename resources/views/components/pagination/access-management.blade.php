@@ -5,15 +5,15 @@
 @endphp
 
 <nav
-    class="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-neutral-200 bg-neutral-50/70 px-3 py-2.5"
+    class="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-gray-200 bg-gray-50/70 px-3 py-2.5"
     role="navigation"
     aria-label="{{ __('access.pagination.label') }}"
 >
-    <p class="whitespace-nowrap text-xs font-semibold text-neutral-500">
+    <p class="whitespace-nowrap text-xs font-semibold text-gray-500">
         @if ($paginator->total() > 0)
-            <span class="tabular-nums text-neutral-800">{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</span>
+            <span class="tabular-nums text-gray-800">{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</span>
             {{ __('access.pagination.of') }}
-            <span class="tabular-nums text-neutral-800">{{ $paginator->total() }}</span>
+            <span class="tabular-nums text-gray-800">{{ $paginator->total() }}</span>
             <span class="hidden @sm/directory:inline">{{ __('access.pagination.employees') }}</span>
         @else
             {{ __('access.pagination.no-results') }}
@@ -24,7 +24,7 @@
         <div class="flex items-center gap-1.5">
             @if ($paginator->onFirstPage())
                 <span
-                    class="inline-flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-300"
+                    class="inline-flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-300"
                     aria-hidden="true"
                 >
                     <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -36,7 +36,7 @@
                     type="button"
                     wire:click="previousPage('{{ $pageName }}')"
                     wire:loading.attr="disabled"
-                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 transition hover:border-neutral-300 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24] disabled:pointer-events-none disabled:opacity-50"
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24] disabled:pointer-events-none disabled:opacity-50"
                     aria-label="{{ __('access.pagination.previous') }}"
                 >
                     <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -60,13 +60,13 @@
                             $nextTick(() => document.getElementById('access-page-option-{{ $currentPage }}')?.scrollIntoView({ block: 'nearest' }));
                         }
                     "
-                    class="inline-flex min-h-9 w-[4.25rem] items-center justify-between rounded-lg border border-neutral-200 bg-white px-2.5 text-sm font-bold tabular-nums text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]"
+                    class="inline-flex min-h-9 w-[4.25rem] items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 text-sm font-bold tabular-nums text-gray-800 transition hover:border-gray-300 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]"
                     aria-label="{{ __('access.pagination.page') }}"
                     aria-haspopup="listbox"
                     x-bind:aria-expanded="open"
                 >
                     <span>{{ $currentPage }}</span>
-                    <svg class="size-3.5 text-neutral-500 transition-transform" x-bind:class="{ 'rotate-180': open }"
+                    <svg class="size-3.5 text-gray-500 transition-transform" x-bind:class="{ 'rotate-180': open }"
                         viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z"
@@ -83,7 +83,7 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="translate-y-0 opacity-100"
                     x-transition:leave-end="translate-y-1 opacity-0"
-                    class="absolute bottom-[calc(100%+0.375rem)] start-0 z-30 max-h-[11.25rem] w-[4.25rem] overflow-y-auto overscroll-contain rounded-lg border border-neutral-200 bg-white shadow-lg"
+                    class="absolute bottom-[calc(100%+0.375rem)] start-0 z-30 max-h-[11.25rem] w-[4.25rem] overflow-y-auto overscroll-contain rounded-lg border border-gray-200 bg-white shadow-lg"
                     role="listbox"
                     aria-labelledby="access-employees-page"
                 >
@@ -97,7 +97,7 @@
                             @class([
                                 'flex h-9 w-full items-center justify-center text-sm font-bold tabular-nums transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#be1f24]',
                                 'bg-[#be1f24] text-white' => $page === $currentPage,
-                                'bg-white text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900' => $page !== $currentPage,
+                                'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900' => $page !== $currentPage,
                             ])
                             role="option"
                             aria-selected="{{ $page === $currentPage ? 'true' : 'false' }}"
@@ -108,7 +108,7 @@
                 </div>
             </div>
 
-            <span class="whitespace-nowrap text-xs font-semibold tabular-nums text-neutral-500">
+            <span class="whitespace-nowrap text-xs font-semibold tabular-nums text-gray-500">
                 {{ __('access.pagination.of') }} {{ $lastPage }}
             </span>
 
@@ -117,7 +117,7 @@
                     type="button"
                     wire:click="nextPage('{{ $pageName }}')"
                     wire:loading.attr="disabled"
-                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 transition hover:border-neutral-300 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24] disabled:pointer-events-none disabled:opacity-50"
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24] disabled:pointer-events-none disabled:opacity-50"
                     aria-label="{{ __('access.pagination.next') }}"
                 >
                     <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -126,7 +126,7 @@
                 </button>
             @else
                 <span
-                    class="inline-flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-300"
+                    class="inline-flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-300"
                     aria-hidden="true"
                 >
                     <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

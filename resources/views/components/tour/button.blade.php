@@ -17,6 +17,6 @@
     </svg>
 
     <span x-show="!$store.tour.seen"
-          class="absolute top-1.5 end-1.5 size-2 rounded-full bg-primary ring-2 ring-neutral-50"
+          class="absolute top-1.5 end-1.5 size-2 rounded-full bg-primary ring-2 ring-[#f6f6f6]"
           aria-hidden="true"></span>
 </button>

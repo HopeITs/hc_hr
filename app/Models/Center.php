@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -48,20 +47,6 @@ class Center extends Model
     }
 
     /**
-     * The current contracts of this center's managers: anyone holding an active
-     * contract on a Project Manager position located at the center.
-     */
-    public function managerContracts(): HasManyThrough
-    {
-        return $this->contracts()
-            ->activeNow()
-            ->whereIn(
-                'positions.job_level_id',
-                JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
-            );
-    }
-
-    /**
      * The distinct people with a current contract assignment at this center.
      *
      * Both the center headline and its employee directory use this query so a
@@ -77,21 +62,6 @@ class Center extends Model
                 ->activeNow()
                 ->atCenter($centerId),
         );
-    }
-
-    /**
-     * Names of the people currently managing the center, or a dash when none.
-     * An employee holding two manager positions here is listed once.
-     */
-    public function managerNames(): string
-    {
-        $names = $this->managerContracts
-            ->pluck('employee')
-            ->filter()
-            ->unique('id')
-            ->map(fn (Employee $employee): string => $employee->name);
-
-        return $names->isEmpty() ? '—' : $names->implode(', ');
     }
 
     public function getActivitylogOptions(): LogOptions

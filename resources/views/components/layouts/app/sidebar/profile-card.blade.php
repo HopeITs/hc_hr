@@ -22,7 +22,7 @@
                 <img class="size-14 border border-1 border-primary rounded-full object-cover"
                      src="{{ $user->profile->avatar_url }}" alt="user"/>
                 <span
-                    class="absolute bottom-1.5 {{ $isRtl ? 'left-1.5' : 'right-1.5' }} size-2 rounded-full bg-neutral-500 ring-2 ring-white"></span>
+                    class="absolute bottom-1.5 {{ $isRtl ? 'left-1.5' : 'right-1.5' }} size-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
             </span>
 
             <div class="min-w-0 text-start">
@@ -161,8 +161,8 @@
                     @csrf
                     <button type="submit"
                             class="w-full flex items-center gap-3 px-3 py-2 rounded-surface text-body font-semibold
-                               text-primary hover:bg-neutral-50/80 hover:shadow-e1 focus:outline-none
-                               focus-visible:ring-2 focus-visible:ring-primary/50 transition">
+                               text-red-600 hover:bg-red-50/80 hover:shadow-e1 focus:outline-none
+                               focus-visible:ring-2 focus-visible:ring-red-500/50 transition">
                         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                             <path d="M10 17l5-5-5-5"/>

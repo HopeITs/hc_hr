@@ -281,7 +281,7 @@ class Index extends Component
             ->map(fn ($id): int => (int) $id)
             ->all();
         $permissionIds = $this->isAdministratorRole($role)
-            ? Permission::query()->whereNotIn('name', AccessPermissionCatalog::personLevelNames())->pluck('id')->all()
+            ? Permission::query()->pluck('id')->all()
             : array_values(array_unique([
                 ...$externalPermissionIds,
                 // Anything already on the role is preserved even if the actor
@@ -301,13 +301,6 @@ class Index extends Component
                     ->intersect(array_map('intval', $this->rolePermissionIds))
                     ->all(),
             ]));
-
-        // never_granted_to_roles is enforced here, whatever was ticked or
-        // held before: no save leaves a role carrying one of them.
-        $permissionIds = array_values(array_diff(
-            array_map('intval', $permissionIds),
-            Permission::query()->whereIn('name', AccessPermissionCatalog::personLevelNames())->pluck('id')->map(fn ($id): int => (int) $id)->all(),
-        ));
 
         $role->syncPermissions($permissionIds);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -330,7 +323,7 @@ class Index extends Component
     {
         $this->authorizePermission('access-management.manage-permissions');
         $this->rolePermissionIds = Permission::query()
-            ->whereIn('name', AccessPermissionCatalog::roleGrantableNames())
+            ->whereIn('name', AccessPermissionCatalog::names())
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
@@ -450,11 +443,6 @@ class Index extends Component
             ),
             'roles' => $roles,
             'permissionGroups' => AccessPermissionCatalog::forDisplay($permissions),
-            // Person-level permissions are granted to users only, so the role
-            // panel never offers them.
-            'rolePermissionGroups' => AccessPermissionCatalog::forDisplay(
-                $permissions->reject(fn (Permission $permission): bool => in_array($permission->name, AccessPermissionCatalog::personLevelNames(), true)),
-            ),
             'selectedUser' => $selectedUser,
             'selectedRole' => $selectedRole,
             'selectedRoleUsers' => $selectedRoleUsers,

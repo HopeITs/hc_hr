@@ -58,9 +58,9 @@ function initSalaryTypeScatter() {
                 y: {
                     beginAtZero: true,
                     suggestedMax,
-                    grid: { color: "#dcddde" },
+                    grid: { color: "#e5e7eb" },
                     ticks: {
-                        color: "#6d6e71",
+                        color: "#6b7280",
                         font: {
                             size: 12,
                             family: "SomarSans"

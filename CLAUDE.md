@@ -75,12 +75,7 @@ No `app/Http/Kernel.php`. Middleware aliases, routing, and exceptions are config
 - `AppServiceProvider` registers query Builder macros (`whereLikeAny`, `search`) and the `@glyph` Blade directive (Arabic glyph shaping).
 
 ### Brand / theming
-Brand palette is `--color-primary` `#be1f24` plus four greys (`--color-secondary-dark/medium/light/soft`) — the only colours allowed; every other token (neutral ramp, surfaces, hover) is derived from them in `resources/css/app.css` (Tailwind 4 `@theme`).
-- **No other hue is allowed anywhere — no green, yellow, blue, orange, purple, not even for statuses or charts.** `resources/css/palette-lock.css` redefines every Tailwind/Flowbite colour family in terms of the brand tokens (red/rose → primary, everything else → the neutral step of the same number), so a stray `bg-green-600` can only paint grey. Don't rely on it: write brand classes (`bg-primary`, `text-secondary-dark`, `bg-neutral-100`…).
-- Statuses are told apart by brand tone, not hue: solid red for the active/positive state, a red outline (`ring-1 ring-inset ring-primary`) for its sibling, then the greys from dark to soft for final/negative states (see `RecruitmentInterviewStatus::classes()` / `dotClasses()`).
-- JS that reads colours from CSS must read only the five brand variables; the derived tokens are `color-mix()` expressions chart libraries can't parse.
-
-Fonts: SomarSans (with Lato fallback), preloaded in `resources/views/partials/head.blade.php`. Required form fields are marked with a red star via the `required` prop on `<x-forms.input-label>`.
+Brand primary red is `#c2151c`, defined as `--color-primary` plus a full ramp in `resources/css/app.css` (Tailwind 4 `@theme`). Fonts: SomarSans (with Lato fallback), preloaded in `resources/views/partials/head.blade.php`. Required form fields are marked with a red star via the `required` prop on `<x-forms.input-label>`.
 
 ### Routes
 `routes/web.php` is the locale-wrapped entry point and `require`s the domain route files: `basic-project.php`, `projects-management.php`, `employees-management.php`, and `auth.php`.

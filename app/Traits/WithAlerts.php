@@ -30,14 +30,4 @@ trait WithAlerts
             ->position($position)
             ->show();
     }
-
-    /** Display a failure in the same unobtrusive alert style as a success. */
-    public function errorToast($message, $position = 'top-start')
-    {
-        LivewireAlert::title(__($message))
-            ->error()
-            ->toast()
-            ->position($position)
-            ->show();
-    }
 }

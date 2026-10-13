@@ -22,9 +22,9 @@
                             };
 
                             $statusColor = match ($status) {
-                                __('general.received') => 'bg-neutral-100 text-neutral-700',
-                                __('general.delivered') => 'bg-neutral-100 text-neutral-700',
-                                default => 'bg-neutral-100 text-neutral-700',
+                                __('general.received') => 'bg-blue-100 text-blue-700',
+                                __('general.delivered') => 'bg-green-100 text-green-700',
+                                default => 'bg-yellow-100 text-yellow-700',
                             };
                         @endphp
                         <tr>

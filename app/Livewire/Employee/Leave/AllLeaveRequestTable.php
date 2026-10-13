@@ -212,7 +212,9 @@ class AllLeaveRequestTable extends LivewireTable
             Column::make(__('general.status'), function (mixed $value, Model $model): string {
                 $status = LeaveRequestStatus::getLocalizedName($value->status);
 
-                return Blade::render('<x-badge :color="$color">{{ $text }}</x-badge>', ['color' => $status['color'], 'text' => $status['value']]);
+                return "<span class='px-2 py-1 text-xs font-semibold rounded-md bg-{$status['color']}-100 text-{$status['color']}-800'>
+                    {$status['value']}
+                </span>";
             })->asHtml(),
             DateColumn::make(__('general.request_date'), 'created_at')
                 ->format('d-m-Y H:i') // keep it; used for default/export/sort context

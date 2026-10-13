@@ -2,7 +2,7 @@
     {{ __('auth.forgot-password') }}
 </x-slot:title>
 
-<section class="min-h-[90dvh] rtl text-right bg-neutral-100 flex items-center justify-center px-4">
+<section class="min-h-[90dvh] rtl:text-right bg-neutral-100 flex items-center justify-center px-4">
     <x-auth-card-wrapper>
 
         {{-- Logo --}}
@@ -21,7 +21,7 @@
             </div>
 
             {{-- Status --}}
-            <x-auth-session-status class="text-center text-neutral-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="text-center text-green-600 text-body" :status="session('status')" />
 
             {{-- Form --}}
             <form wire:submit.prevent="sendPasswordResetLink" class="space-y-4">

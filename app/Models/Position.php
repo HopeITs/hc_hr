@@ -32,16 +32,6 @@ class Position extends Model
         return $this->hasMany(Contract::class, 'position_id');
     }
 
-    public function vacancies(): HasMany
-    {
-        return $this->hasMany(Vacancy::class);
-    }
-
-    public function recruitmentRequests(): HasMany
-    {
-        return $this->hasMany(RecruitmentRequest::class, 'target_position_id');
-    }
-
     /**
      * Active contracts on this position. Employees may hold multiple positions
      * simultaneously; each position lists every active contract here. For the
@@ -184,7 +174,8 @@ class Position extends Model
      * Positions reachable from the given city: either assigned directly to the
      * city, or assigned to a center that belongs to it. Single source of truth
      * for city scoping; keep contract create/edit filters aligned with it.
-     *
+     */
+    /**
      * @param  int|array<int, int>  $cityIds  one city, or every city a role covers
      */
     public function scopeInCity($query, int|array $cityIds)
@@ -198,18 +189,6 @@ class Position extends Model
             $q->whereIn($q->qualifyColumn('city_id'), $cityIds)
                 ->orWhereHas('center', fn ($c) => $c->whereIn($c->qualifyColumn('city_id'), $cityIds));
         });
-    }
-
-    /**
-     * The same rule for several governorates at once. Delegates to inCity()
-     * rather than restating it: a second copy of "city_id or the centre's
-     * city_id" is how the two drift apart.
-     *
-     * @param  array<int, int>  $cityIds
-     */
-    public function scopeInCities($query, array $cityIds)
-    {
-        return $this->scopeInCity($query, $cityIds);
     }
 
     // --------------------------------------------

@@ -1,7 +1,5 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5percent from "@amcharts/amcharts5/percent";
-import { brandColors, brandPalette } from "./charts/brand-colors.js";
-import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
 
 function initEmployeesByPayType() {
     const host = document.getElementById("salaryTypePieChart");
@@ -14,11 +12,7 @@ function initEmployeesByPayType() {
     const seriesData = JSON.parse(host.dataset.series || "[]");
     const percentValue = parseInt(host.dataset.percentage || "0", 10);
 
-    const brand = brandColors();
-    const palette = brandPalette();
-
     const root = am5.Root.new("salaryTypePieChart");
-    applyBrandInterfaceColors(root);
     root._logo?.dispose();
 
     const chart = root.container.children.push(
@@ -35,8 +29,8 @@ function initEmployeesByPayType() {
     );
 
     series.set("colors", am5.ColorSet.new(root, {
-        colors: seriesData.map((s, index) => am5.color(s.color || palette[index % palette.length])),
-        reuse: true
+        colors: seriesData.map(s => am5.color(s.color)),
+        reuse: false
     }));
 
     series.slices.template.setAll({
@@ -61,7 +55,7 @@ function initEmployeesByPayType() {
             text: percentValue + "%",
             fontSize: 20,
             fontWeight: "600",
-            fill: am5.color(brand.secondaryDark),
+            fill: am5.color("#4a4a4a"),
             centerX: am5.p50,
             centerY: am5.p50,
             textAlign: "center"

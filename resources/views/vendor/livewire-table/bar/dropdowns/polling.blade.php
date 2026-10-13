@@ -16,7 +16,7 @@
                     @lang('Refresh records')
                 </span>
                 <select
-                    class="w-full border border-neutral-200 rounded-md shadow-xs outline-hidden bg-white text-black focus:border-secondary-medium me-auto px-3 py-2 font-normal transition ease-in-out dark:bg-neutral-900 dark:border-neutral-700 dark:focus:border-neutral-600 dark:text-white"
+                    class="w-full border border-neutral-200 rounded-md shadow-xs outline-hidden bg-white text-black focus:border-secondary-medium me-auto px-3 py-2 font-normal transition ease-in-out dark:bg-neutral-900 dark:border-neutral-700 dark:focus:border-blue-600 dark:text-white"
                     wire:model.live="polling">
                     @foreach($pollingOptions as $key => $value)
                         <option wire:key="{{ $key }}" value="{{ $key }}">@lang($value)</option>

@@ -47,7 +47,7 @@
                         : 'bg-white hover:bg-neutral-50' }}">
 
             {{-- Unread accent bar --}}
-            <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-primary' : 'bg-transparent' }}"
+            <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-[#c2151c]' : 'bg-transparent' }}"
                   x-bind:style="clicked ? 'background-color: transparent' : ''"></span>
 
             {{-- Text --}}
@@ -68,7 +68,7 @@
             </div>
 
             {{-- Unread dot (fades + shrinks out on read) --}}
-            <span class="mt-2 size-2 shrink-0 rounded-full bg-primary transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
+            <span class="mt-2 size-2 shrink-0 rounded-full bg-[#c2151c] transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
                   x-bind:style="clicked ? 'opacity: 0; transform: scale(0)' : ''"></span>
         </a>
     @empty

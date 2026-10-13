@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Position;
 use Illuminate\Console\Command;
+use App\Models\Position;
 
 class FixPositionEmployeeCounts extends Command
 {
@@ -41,11 +41,12 @@ class FixPositionEmployeeCounts extends Command
 
                 // Only update if the current value is incorrect to save DB queries
                 if ($position->exist_emp !== $position->contracts_count) {
-                    $max = $position->contracts_count > $position->max_emp ? $position->contracts_count : $position->max_emp;
+                $max =  $position->contracts_count > $position->max_emp ?  $position->contracts_count : $position->max_emp;
+
 
                     $position->update([
                         'exist_emp' => $position->contracts_count,
-                        'max_emp' => $max,
+                        'max_emp' => $max
                     ]);
 
                     $fixedCount++;

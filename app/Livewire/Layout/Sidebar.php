@@ -3,7 +3,6 @@
 namespace App\Livewire\Layout;
 
 use App\Models\Checklist;
-use App\Services\RecruitmentApproverEligibility;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -54,8 +53,6 @@ class Sidebar extends Component
         $user = Auth::user();
 
         return view('livewire.layout.sidebar', [
-            'canSeeRecruitmentApprovals' => $user !== null
-                && app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user),
             'user' => $user,
             'employee' => $employee,
             'employeeId' => $employeeId,

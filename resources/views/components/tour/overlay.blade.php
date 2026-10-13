@@ -39,7 +39,7 @@
                  tabindex="-1"
                  x-transition:enter="transition duration-200 ease-out motion-reduce:transition-none"
                  x-transition:enter-start="opacity-0 translate-y-1"
-                 class="absolute w-[min(22rem,calc(100vw-1.5rem))] rounded-surface bg-white p-5 shadow-[0_25px_80px_-20px_rgba(88,89,91,0.35)] ring-1 ring-black/5
+                 class="absolute w-[min(22rem,calc(100vw-1.5rem))] rounded-surface bg-white p-5 shadow-[0_25px_80px_-20px_rgba(2,6,23,0.35)] ring-1 ring-black/5
                         duration-300 ease-fluid motion-reduce:transition-none focus:outline-none"
                  :class="settled ? 'transition-[top,left]' : 'opacity-0'"
                  :style="cardStyle">

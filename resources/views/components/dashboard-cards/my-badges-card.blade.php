@@ -4,9 +4,9 @@
 
     $badgeColors = [
         'unknown' => 'text-[#58595B]',
-        'reward' => 'text-neutral-600',
+        'reward' => 'text-green-600',
         'warning' => 'text-primary',
-        'bonus' => 'text-neutral-600',
+        'bonus' => 'text-blue-600',
     ];
 
     $badgeTypes = [
@@ -17,7 +17,7 @@
     ];
 @endphp
 
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
     <x-dashboard-cards.card-header :title="__('general.badges-warnings')" :count="$myBadges->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/badges.svg') }}" alt="">
@@ -43,7 +43,7 @@
                     {{ $badge->reason ?: \App\Enums\BadgeSubtype::getLocalizedName($badge->subtype) }}
                 </p>
 
-                <span class="text-[11px] text-[#939598]">
+                <span class="text-[11px] text-[#888]">
                     {{ optional($badge->date)->format('d/m/Y') }}
                 </span>
             </div>

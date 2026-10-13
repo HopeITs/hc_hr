@@ -13,7 +13,7 @@
 
 
 
-<div x-data="{ open: false, selected: null }" class="relative flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)]">
+<div x-data="{ open: false, selected: null }" class="relative flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
     <x-dashboard-cards.card-header :title="__('general.news')" :count="$newsItems->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/news.svg') }}" alt="">
@@ -29,7 +29,7 @@
                 $description = $news->localizedDescription();
             @endphp
             <div class="pb-3 border-b border-b-secondary-light last:border-b-0 last:pb-0">
-                <p class="text-[10px] font-light text-neutral-400">
+                <p class="text-[10px] font-light text-gray-400">
                     {{ $news->published_at?->diffForHumans() ?? 'Just Now' }}
                 </p>
                 <p class="text-sm font-bold text-[#58595B]">
@@ -148,14 +148,14 @@
     }
     .custom-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: rgba(88, 89, 91, 0.22) transparent;
+        scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
         scrollbar-gutter: stable;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(88, 89, 91, 0.22);
+        background-color: rgba(0, 0, 0, 0.22);
         border-radius: 999px;
     }
 </style>

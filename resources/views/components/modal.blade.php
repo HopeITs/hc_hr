@@ -65,7 +65,7 @@
     class="fixed inset-0 z-50 overflow-y-auto"
     style="display: none;"
 >
-    <div x-show="show" class="fixed inset-0 z-0 transform bg-neutral-500/75 transition-all"
+    <div x-show="show" class="fixed inset-0 z-0 transform bg-gray-500/75 transition-all"
          x-on:click="show = false"
          x-transition:enter="ease-out duration-300"
          x-transition:enter-start="opacity-0"
