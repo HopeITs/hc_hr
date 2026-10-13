@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasTranslation;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,12 @@ class ContractType extends Model
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /** @return Builder<ContractType> */
+    public function scopeRecruitmentOptions(Builder $query): Builder
+    {
+        return $query->whereIn('name_en', config('recruitment.request_form.contract_types', []));
     }
 
     protected function name(): Attribute

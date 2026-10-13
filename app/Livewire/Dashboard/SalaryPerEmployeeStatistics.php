@@ -16,12 +16,12 @@ class SalaryPerEmployeeStatistics extends Component
      * separate arrays that had to be kept in sync by hand.
      *
      * Colours are unchanged from the original implementation; the middle entry
-     * is the brand primary (#c2151c).
+     * is the brand primary (#be1f24).
      */
     private const SALARY_PER_META = [
-        1 => ['key' => 'per_month', 'label' => 'Per Month', 'color' => '#c2151c'],
-        3 => ['key' => 'per_session', 'label' => 'Per Session', 'color' => '#4b4b4b'],
-        2 => ['key' => 'per_hour', 'label' => 'Per Hour', 'color' => '#cdcdcd'],
+        1 => ['key' => 'per_month', 'label' => 'Per Month', 'color' => '#be1f24'],
+        3 => ['key' => 'per_session', 'label' => 'Per Session', 'color' => '#58595b'],
+        2 => ['key' => 'per_hour', 'label' => 'Per Hour', 'color' => '#dcddde'],
     ];
 
     public array $series = [];

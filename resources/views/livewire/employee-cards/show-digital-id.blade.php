@@ -12,9 +12,9 @@
 <div class="digital-id-page">
     <style>
         .digital-id-page {
-            --id-primary: var(--color-primary, #c2151c);
-            --id-black: var(--color-black, #414042);
-            --id-icon: #414042;
+            --id-primary: var(--color-primary, #be1f24);
+            --id-black: var(--color-black, #58595b);
+            --id-icon: #58595b;
             --id-card-width: min(88vw, 21rem, 43dvh);
             min-height: 100vh;
             min-height: 100dvh;
@@ -49,7 +49,7 @@
             overflow: hidden;
             border-radius: calc(var(--id-card-width) * 0.095);
             background: #ffffff;
-            box-shadow: 0 calc(var(--id-card-width) * 0.04) calc(var(--id-card-width) * 0.08) rgb(65 64 66 / 22%);
+            box-shadow: 0 calc(var(--id-card-width) * 0.04) calc(var(--id-card-width) * 0.08) rgb(88 89 91 / 22%);
             container-type: inline-size;
         }
 
@@ -138,7 +138,7 @@
             width: 70%;
             height: max(1px, 0.45cqw);
             margin-top: 4.4cqw;
-            background: #bcbec0;
+            background: #dcddde;
         }
 
         .digital-id-icons {

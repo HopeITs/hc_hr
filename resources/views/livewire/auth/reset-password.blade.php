@@ -2,7 +2,7 @@
     {{ __('auth.reset-password') }}
 </x-slot:title>
 
-<section class="min-h-[90dvh] rtl:text-right bg-neutral-100 flex items-center justify-center px-4">
+<section class="min-h-[90dvh] rtl text-right bg-neutral-100 flex items-center justify-center px-4">
     <x-auth-card-wrapper>
 
         {{-- Logo --}}
@@ -19,13 +19,11 @@
                 </p>
             </div>
 
-            <x-auth-session-status class="text-center text-green-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="text-center text-neutral-600 text-body" :status="session('status')" />
 
             <form wire:submit.prevent="resetPassword" class="space-y-4">
                 {{-- Hidden Email --}}
                 <input type="hidden" wire:model="email" />
-                {{-- The email field is hidden, so an expired or invalid link would otherwise fail silently --}}
-                <x-forms.input-error field="email" />
 
                 {{-- New Password --}}
                 <div>
@@ -52,6 +50,7 @@
                         {{ __('auth.password-text') }}
                     </p>
 
+                    <x-forms.input-error field="password" />
                 </div>
 
                 {{-- Confirm Password --}}
@@ -63,6 +62,7 @@
                         placeholder="••••••••"
                         autocomplete="new-password"
                     />
+                    <x-forms.input-error field="password_confirmation" />
                 </div>
 
                 {{-- Submit --}}

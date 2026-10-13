@@ -87,13 +87,7 @@ return [
     'not_in' => 'The selected :attribute is invalid.',
     'not_regex' => 'The :attribute format is invalid.',
     'numeric' => 'The :attribute must be a number.',
-    'password' => [
-        'letters' => 'The :attribute must contain at least one letter.',
-        'mixed' => 'The :attribute must contain at least one uppercase and one lowercase letter.',
-        'numbers' => 'The :attribute must contain at least one number.',
-        'symbols' => 'The :attribute must contain at least one symbol.',
-        'uncompromised' => 'This :attribute has appeared in a data leak. Please choose a different :attribute.',
-    ],
+    'password' => 'The password is incorrect.',
     'present' => 'The :attribute field must be present.',
     'regex' => 'The :attribute format is invalid.',
     'required' => 'The :attribute field is required.',
@@ -124,6 +118,15 @@ return [
     'captcha' => 'CAPTCHA verification failed. Please try again.',
 
     'custom' => [
+        // The generic "format is invalid" says nothing about what to type.
+        // These two fields reject the other alphabet, so they say so.
+        'data.title_en' => [
+            'regex' => 'The English title takes English letters and spaces only.',
+        ],
+        'data.title_ar' => [
+            'regex' => 'The Arabic title takes Arabic letters and spaces only.',
+        ],
+
         'image' => [
             'width' => 'Image width must be :val px',
             'height' => 'Image height must be :val px',
@@ -215,5 +218,14 @@ return [
         'too_big' => 'The image must not exceed :width x :height pixels.',
         'too_many_pixels' => 'The image resolution is too high. Please resize it before uploading.',
         'aspect_ratio' => 'The image is too elongated. Its longest side may be at most :ratio times the shortest.',
+    ],
+
+    'recruitment_file' => [
+        'unsupported' => 'This file type is not allowed for this field.',
+        'unreadable' => 'The file could not be read. Please upload it again.',
+        'too_large' => 'The file must not be larger than 10 MB.',
+        'too_many' => 'The maximum number of files for this field has been reached.',
+        'executable' => 'Executable or scripted files are not allowed.',
+        'content_mismatch' => 'The file contents do not match its extension.',
     ],
 ];

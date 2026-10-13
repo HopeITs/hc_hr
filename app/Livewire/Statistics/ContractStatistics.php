@@ -87,7 +87,7 @@ class ContractStatistics extends Component
                 $this->cards[] = [
                     'name' => $center->name,
                     'centers' => null,
-                    'color' => 'bg-green-500',
+                    'color' => 'bg-neutral-500',
                     'center_id' => $center->id,
                 ] + $this->getCardBreakdown($contractsQuery);
             }
@@ -134,7 +134,7 @@ class ContractStatistics extends Component
                 $this->cards[] = [
                     'name' => $center->name,
                     'centers' => null,
-                    'color' => 'bg-green-500',
+                    'color' => 'bg-neutral-500',
                     'center_id' => $center->id,
                 ] + $this->getCardBreakdown($contractsQuery);
             }

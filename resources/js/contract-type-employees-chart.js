@@ -2,28 +2,27 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import * as am5percent from "@amcharts/amcharts5/percent";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import { brandColors, brandPalette } from "./charts/brand-colors.js";
+import { applyBrandInterfaceColors, brandColorSet } from "./charts/amcharts-brand.js";
 
 // The presence check that used to guard this block now lives in
 // charts/lazy-charts.js, which is also what triggers the dynamic import.
 export default function initContractTypeChart() {
     am5.ready(function () {
 
-        const rootStyle = getComputedStyle(document.documentElement);
-        const primaryColor = am5.color(rootStyle.getPropertyValue("--color-primary").trim() || "#2563eb");
-        const secondaryColor = am5.color(rootStyle.getPropertyValue("--color-secondary-medium").trim() || "#fbbf24");
-        const neutralColor = am5.color(rootStyle.getPropertyValue("--color-neutral-300").trim() || "#9ca3af");
+        const brand = brandColors();
+        const colors = brandPalette().map((color) => am5.color(color));
 
         var data = JSON.parse(
             document.getElementById("chartdiv").dataset.chart
         );
 
         data.forEach((item, index) => {
-            const colors = [primaryColor, secondaryColor, neutralColor];
-
             item.sliceSettings = { fill: colors[index % colors.length] };
         });
 
         var root = am5.Root.new("chartdiv");
+        applyBrandInterfaceColors(root);
         root.setThemes([am5themes_Animated.new(root)]);
 
         // ============================
@@ -57,7 +56,8 @@ export default function initContractTypeChart() {
         var pieSeries = pieChart.series.push(
             am5percent.PieSeries.new(root, {
                 valueField: "value",
-                categoryField: "category"
+                categoryField: "category",
+                colors: brandColorSet(root)
             })
         );
 
@@ -98,7 +98,8 @@ export default function initContractTypeChart() {
                 panY: false,
                 wheelX: "none",
                 wheelY: "none",
-                layout: root.verticalLayout
+                layout: root.verticalLayout,
+                colors: brandColorSet(root)
             })
         );
 
@@ -114,7 +115,7 @@ export default function initContractTypeChart() {
 
         xAxis.get("renderer").labels.template.setAll({
             fontSize: 9,
-            fill: am5.color("#555"),
+            fill: am5.color(brand.secondaryDark),
             textAlign: "center",
             dy: 4
         });
@@ -140,7 +141,7 @@ export default function initContractTypeChart() {
 
         yAxis.get("renderer").labels.template.setAll({
             fontSize: 11,
-            fill: am5.color("#777")
+            fill: am5.color(brand.secondaryMedium)
         });
 
         // Invisible line series (only bullets)
@@ -164,7 +165,7 @@ export default function initContractTypeChart() {
                     radius: 4,
                     stroke: am5.color("#ffffff"),
                     strokeWidth: 2,
-                    fill: dataItem.dataContext._dotColor || am5.color("#c2151c")
+                    fill: dataItem.dataContext._dotColor || colors[0]
                 })
             });
         });

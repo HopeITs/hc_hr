@@ -15,7 +15,7 @@
                 </a>
 
                 <div class="flex flex-col gap-6">
-                    <div class="rounded-surface border bg-white dark:bg-stone-950 dark:border-stone-800 text-stone-800 shadow-e1">
+                    <div class="rounded-surface border bg-white dark:bg-neutral-950 dark:border-neutral-800 text-neutral-800 shadow-e1">
                         <div class="px-12 py-8">{{ $slot }}</div>
                     </div>
                 </div>

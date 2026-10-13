@@ -4,6 +4,39 @@ return [
     'administrator_roles' => ['super-admin', 'HR-SYR'],
 
     /*
+    |--------------------------------------------------------------------------
+    | Permissions no role may ever hold
+    |--------------------------------------------------------------------------
+    |
+    | These identify a specific person rather than a job, so a role carrying
+    | one would hand that person's authority to everybody who holds the role.
+    | They are created and displayed like any other permission and granted per
+    | user from Access Management.
+    |
+    | Every bulk grant reads AccessPermissionCatalog::roleGrantableNames(),
+    | which subtracts this list — the automatic grant for new administrator and
+    | HR roles in App\Models\Role included. See config/recruitment.php for what
+    | each one means.
+    |
+    */
+
+    'never_granted_to_roles' => [
+        'recruitment-requests.approve-finance',
+        'recruitment-requests.submit-without-manager',
+        // Not person-identifying, but held back from every bulk grant for the
+        // same reason: candidate export and erasure are answerable acts, so a
+        // new HR role must not arrive able to do either. They are read with
+        // User::hasExplicitPermission(), which also refuses the administrator
+        // bypass — an administrator is granted them like anyone else.
+        'recruitment-applicants.export',
+        'recruitment-applicants.request-erasure',
+        // Rewrites what "met" means on every applicant's screen, so a new HR
+        // role must not arrive able to. Administrator roles pass without it;
+        // anyone else is granted it per user from Access Management.
+        'recruitment-indicators.manage',
+    ],
+
+    /*
      * Regional HR roles that cover more than their own city, by city slug.
      * A regional role not listed here covers exactly the city whose slug
      * follows "HR-" in its name.
@@ -36,6 +69,17 @@ return [
             'checklists.manage', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            // Recruitment: the CEO and his deputy hold this role, so they both
+            // raise requests and approve their direct reports' requests.
+            'recruitment-requests.view', 'recruitment-requests.manage',
+            'recruitment-requests.submit', 'recruitment-requests.cancel',
+            'recruitment-requests.approve', 'recruitment-requests.reject',
+            'recruitment-requests.request-changes', 'recruitment-requests.export',
+            'recruitment-vacancies.view', 'recruitment-campaigns.view',
+            'recruitment-job-posts.view', 'recruitment-forms.view',
+            'recruitment-links.view',
+            // General managers endorse applicants for their campaigns.
+            'recruitment-applicants.view', 'recruitment-applicants.endorse',
         ],
         'manager' => [
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
@@ -44,6 +88,18 @@ return [
             'checklists.view-own', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            // Recruitment: the same role covers both sides of the first step —
+            // a manager raises his own requests and approves his direct
+            // reports'. Holding 'approve' is never sufficient on its own; the
+            // workflow still checks that this user is the assigned approver for
+            // that step.
+            'recruitment-requests.view', 'recruitment-requests.manage',
+            'recruitment-requests.submit', 'recruitment-requests.cancel',
+            'recruitment-requests.approve', 'recruitment-requests.reject',
+            'recruitment-requests.request-changes', 'recruitment-requests.export',
+            // Managers see and endorse applicants for their campaigns.
+            'recruitment-vacancies.view', 'recruitment-campaigns.view',
+            'recruitment-applicants.view', 'recruitment-applicants.endorse',
         ],
         'employee' => [
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
@@ -68,6 +124,69 @@ return [
         'archives' => ['view', 'create', 'update', 'delete', 'share', 'download'],
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
+
+        /*
+         * Recruitment module. Two of these are never attached to a role:
+         * 'approve-finance' identifies the single organization-wide financial
+         * approver, and 'submit-without-manager' marks the handful of people at
+         * the top of the org chart who have no manager to approve their own
+         * requests. Both are granted per user from Access Management — granting
+         * either to a role would silently turn every holder of that role into a
+         * financial approver, or let anyone skip manager approval. See
+         * config/recruitment.php:user_level_permissions.
+         */
+        'recruitment-requests' => [
+            'view', 'manage', 'submit', 'cancel',
+            'approve', 'reject', 'request-changes',
+            'direct-open', 'export',
+            'approve-finance', 'submit-without-manager',
+        ],
+        'recruitment-vacancies' => ['view', 'manage'],
+        'recruitment-campaigns' => ['view', 'manage'],
+        'recruitment-job-posts' => ['view', 'manage'],
+        'recruitment-forms' => ['view', 'manage'],
+        'recruitment-links' => ['view', 'manage'],
+        // The rules behind the matching indicators shown on every application.
+        'recruitment-indicators' => ['manage'],
+
+        /*
+         * Applicant records. Each sensitive act is its own permission rather
+         * than riding on 'view': seeing a list must never imply reading a CV,
+         * and writing a note must never imply moving an application. Tagging
+         * one record, tagging many at once, and editing the tag list itself
+         * are separate for the same reason. Accepting is a hiring decision
+         * layered on top of change-status, and rejecting many at once (which
+         * emails every one of them) is a grant of its own. 'manage' covers
+         * campaign invites.
+         */
+        'recruitment-applicants' => [
+            'view', 'manage', 'download-cv', 'add-notes', 'delete-notes', 'archive-cv', 'change-status', 'endorse',
+            'tag', 'bulk-tag', 'manage-tags', 'accept', 'bulk-reject',
+            // Phase 2 Task 7: create / edit / reschedule / cancel interviews
+            // and record their outcome. Participants need no permission.
+            'schedule-interviews',
+            // Phase 2 Task 8: the aggregated view of every reviewer's
+            // evaluation, and correcting / withdrawing someone else's.
+            // Writing one's own evaluation needs none: it comes from being on
+            // the interview.
+            'view-evaluations', 'correct-evaluations',
+            // Phase 2 Task 9: follow job offers / write them. Writing also
+            // needs User::canViewSalary(), checked by the policy.
+            'view-offers', 'manage-offers',
+            // The pay figure of a sent offer, for the manager who requested
+            // the position (RecruitmentJobOfferPolicy::viewSalary). Granted on
+            // purpose — to the manager role or to one user — never by default.
+            'view-offer-salary',
+            // Phase 2 Task 10: turn an accepted offer into an employee and a
+            // contract. The policy also needs contracts.create and
+            // canViewSalary(), and the employee side is checked against
+            // EmployeePolicy.
+            'convert-hires',
+            // Phase 2 Task 11: take candidate data out of the system as a
+            // file, and anonymize an applicant who asked to be forgotten.
+            // Neither is attached to any role — see never_granted_to_roles.
+            'export', 'request-erasure',
+        ],
     ],
 
     /*
@@ -76,6 +195,16 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
+        'recruitment.requests.create' => ['save' => 'recruitment-requests.manage'],
+        'recruitment.campaigns.index' => [
+            'create' => 'recruitment-campaigns.manage',
+            'beginScheduleEdit' => 'recruitment-campaigns.manage',
+            'updateSchedule' => 'recruitment-campaigns.manage',
+            'openCampaign' => 'recruitment-campaigns.manage',
+            'closeCampaign' => 'recruitment-campaigns.manage',
+            'beginDisable' => 'recruitment-campaigns.manage',
+            'disableCampaign' => 'recruitment-campaigns.manage',
+        ],
         'access-management.index' => [
             'saveEmployeeAccess' => 'access-management.manage-employees',
             'saveRolePermissions' => 'access-management.manage-permissions',
@@ -180,6 +309,41 @@ return [
             'renewWithEdit' => 'contracts.create',
         ],
         'contract.contracts-table' => ['delete' => 'contracts.delete', 'exportExcel' => 'contracts.export'],
+        // The permission map is the coarse HTTP boundary. Each action also
+        // runs JobPostPolicy so governorate HR remains inside its city scope.
+        'recruitment.job-posts.editor' => [
+            'saveDraft' => 'recruitment-job-posts.manage',
+            'publish' => 'recruitment-job-posts.manage',
+            'unpublish' => 'recruitment-job-posts.manage',
+            'reloadLatest' => 'recruitment-job-posts.manage',
+            'resetFromApprovedRequest' => 'recruitment-job-posts.manage',
+        ],
+        'recruitment.application-forms.editor' => [
+            'addField' => 'recruitment-forms.manage',
+            'addCustomField' => 'recruitment-forms.manage',
+            'applyReferenceTemplate' => 'recruitment-forms.manage',
+            'applyPublishedTemplate' => 'recruitment-forms.manage',
+            'removeField' => 'recruitment-forms.manage',
+            'moveField' => 'recruitment-forms.manage',
+            'addOption' => 'recruitment-forms.manage',
+            'removeOption' => 'recruitment-forms.manage',
+            'setPreviewSection' => 'recruitment-forms.manage',
+            'toggleSection' => 'recruitment-forms.manage',
+            'setPreviewLocale' => 'recruitment-forms.manage',
+            'saveDraft' => 'recruitment-forms.manage',
+            'publish' => 'recruitment-forms.manage',
+            'reloadLatest' => 'recruitment-forms.manage',
+        ],
+        'recruitment.public-links.manager' => [
+            'generate' => 'recruitment-links.manage',
+            'disable' => 'recruitment-links.manage',
+            'addInvite' => 'recruitment-links.manage',
+            'cancelInvite' => 'recruitment-links.manage',
+        ],
+        // Team 2's invite screen (also embedded in the publishing page). Each
+        // action also runs RecruitmentCampaignInvitePolicy (campaign scope).
+        'recruitment.campaigns.invites' => ['add' => 'recruitment-applicants.manage'],
+        'recruitment.campaigns.invite-table' => ['cancelInvite' => 'recruitment-applicants.manage'],
         'news.news-table' => ['delete' => 'news.delete'],
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
@@ -245,6 +409,73 @@ return [
         ],
         // Streams the whole org directory to CSV; had no check of its own.
         'position.directory' => ['exportCsv' => 'positions.export'],
+
+        // Each method re-resolves its record through the applicant scope and
+        // asks the policy again; the permission here is only the outer wall.
+        'recruitment.applicants.show' => [
+            'endorse' => 'recruitment-applicants.endorse',
+            'retractEndorsement' => 'recruitment-applicants.endorse',
+            'beginStatusChange' => 'recruitment-applicants.change-status',
+            'changeStatus' => 'recruitment-applicants.change-status',
+            'beginArchive' => 'recruitment-applicants.archive-cv',
+            'archiveCv' => 'recruitment-applicants.archive-cv',
+        ],
+        // The selection is re-scoped in RecruitmentApplicationStatusService,
+        // which also asks the bulkReject policy itself.
+        'recruitment.applicants.bulk-reject' => [
+            'open' => 'recruitment-applicants.bulk-reject',
+            'apply' => 'recruitment-applicants.bulk-reject',
+        ],
+        'recruitment.indicators.rules' => [
+            'save' => 'recruitment-indicators.manage',
+            'resetToDefaults' => 'recruitment-indicators.manage',
+        ],
+        'recruitment.applicants.notes' => [
+            'addNote' => 'recruitment-applicants.add-notes',
+            'confirmDelete' => 'recruitment-applicants.delete-notes',
+            'deleteNote' => 'recruitment-applicants.delete-notes',
+        ],
+        // Phase 2 Task 7. Each method re-resolves the interview through
+        // RecruitmentInterview::visibleTo() and asks the policy (manage /
+        // schedule, scope included) again; the service authorizes a third time.
+        'recruitment.interviews.form' => ['save' => 'recruitment-applicants.schedule-interviews'],
+        'recruitment.interviews.show' => [
+            'beginCancel' => 'recruitment-applicants.schedule-interviews',
+            'cancelInterview' => 'recruitment-applicants.schedule-interviews',
+            'beginOutcome' => 'recruitment-applicants.schedule-interviews',
+            'recordOutcome' => 'recruitment-applicants.schedule-interviews',
+        ],
+        // Phase 2 Task 8. Each method re-resolves the interview and the
+        // evaluation through the scoped query and asks the policy again; the
+        // service authorizes a third time.
+        'recruitment.interviews.evaluation-summary' => [
+            'beginCorrect' => 'recruitment-applicants.correct-evaluations',
+            'saveCorrection' => 'recruitment-applicants.correct-evaluations',
+            'beginWithdraw' => 'recruitment-applicants.correct-evaluations',
+            'withdraw' => 'recruitment-applicants.correct-evaluations',
+            'closeEvaluations' => 'recruitment-applicants.schedule-interviews',
+        ],
+        // Phase 2 Task 9. Each method re-resolves the offer through the scoped
+        // query and asks the policy (manage: permission + scope +
+        // canViewSalary) again; the service authorizes a third time.
+        'recruitment.offers.form' => ['save' => 'recruitment-applicants.manage-offers'],
+        'recruitment.offers.revise' => ['save' => 'recruitment-applicants.manage-offers'],
+        'recruitment.offers.show' => [
+            'beginSend' => 'recruitment-applicants.manage-offers',
+            'send' => 'recruitment-applicants.manage-offers',
+            'beginResponse' => 'recruitment-applicants.manage-offers',
+            'recordResponse' => 'recruitment-applicants.manage-offers',
+            'beginCancel' => 'recruitment-applicants.manage-offers',
+            'cancelOffer' => 'recruitment-applicants.manage-offers',
+        ],
+        // Phase 2 Task 10. save() re-resolves the offer through the scoped
+        // query and asks the policy (convert) again; the service authorizes a
+        // third time, and again for the employee it creates or links.
+        // confirmHire() only asks first (a LivewireAlert question that runs save()).
+        'recruitment.offers.convert' => [
+            'confirmHire' => 'recruitment-applicants.convert-hires',
+            'save' => 'recruitment-applicants.convert-hires',
+        ],
     ],
 
     /*
@@ -270,6 +501,43 @@ return [
     */
 
     'livewire_exempt' => [
+        // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
+        'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
+        // Close an open panel; they clear component state and touch no record.
+        'recruitment.applicants.show' => ['cancelStatusChange', 'cancelArchive'],
+        // refreshNotes only re-renders, through the same scoped query as the first render.
+        'recruitment.applicants.notes' => ['cancelDelete', 'refreshNotes'],
+        // Re-render through the same scoped query; they write nothing.
+        // selectTable() reads ids through the same scoped, filtered query.
+        // executeAction/executeItemAction authorize their action code by policy.
+        'recruitment.applicants.application-table' => [
+            'refreshDecisions', 'selectTable', 'executeAction', 'executeItemAction',
+        ],
+        'recruitment.applicants.bulk-reject' => ['cancel'],
+        // Phase 2 Task 7. Form-only state: the participant list is validated
+        // user by user (exists, active) by the scheduling service on save,
+        // which is the mapped action. closePanel clears component state only.
+        'recruitment.interviews.form' => ['addParticipant', 'removeParticipant'],
+        // dismissPanel closes the action popup: component state only.
+        'recruitment.interviews.show' => ['dismissPanel'],
+        // Month navigation; re-renders through the same visibleTo() query.
+        'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth'],
+        // Phase 2 Task 8. save() writes the caller's OWN evaluation, which
+        // needs no permission — the grant is being a current participant in a
+        // reviewer role, checked by the evaluate policy in the component and
+        // again, under a row lock, in RecruitmentInterviewEvaluationService.
+        // reload() only re-reads the caller's own row.
+        'recruitment.interviews.evaluation-form' => ['save', 'reload'],
+        // dismissPanel closes the action popup (component state only);
+        // refreshEvaluations re-renders through the same scoped query and
+        // writes nothing.
+        'recruitment.interviews.evaluation-summary' => ['dismissPanel', 'refreshEvaluations'],
+        // Phase 2 Task 9. Clears panel state only.
+        'recruitment.offers.show' => ['closePanel'],
+        // Phase 2 Task 10. The post-hire message's buttons: redirects only,
+        // after re-resolving the offer through the scoped query; the employee
+        // and contract edit pages check their own permissions.
+        'recruitment.offers.convert' => ['openEmployee', 'openContract'],
 
         // --- Authentication -------------------------------------------------
         // Reached before a session exists, or acting only on the caller's own
@@ -291,6 +559,7 @@ return [
         // is the mapped one (delete / toggleItemStatusConfirmed), and that is
         // where the permission and the policy check live.
         'badges.badges-table' => ['confirmDelete'],
+        'recruitment.campaigns.invite-table' => ['confirmCancel'],
         'basics.annual-leave-rule-table' => ['confirmDelete'],
         'basics.checklist-item-table' => ['confirmDelete'],
         'basics.city-table' => ['confirmToggleItemStatus'],

@@ -44,9 +44,9 @@
         const ctx = canvas.getContext("2d");
 
         const styles = getComputedStyle(document.documentElement);
-        const primary   = styles.getPropertyValue("--color-primary").trim();
-        const secondary = styles.getPropertyValue("--color-secondary-medium").trim();
-        const neutral   = styles.getPropertyValue("--color-neutral-300").trim();
+        const primary   = styles.getPropertyValue("--color-primary").trim() || "#be1f24";
+        const secondary = styles.getPropertyValue("--color-secondary-medium").trim() || "#6d6e71";
+        const neutral   = styles.getPropertyValue("--color-secondary-light").trim() || "#939598";
 
         async function fetchData(mode = "monthly") {
             const res = await fetch(`/employee-statistics/${mode}`);
@@ -106,9 +106,9 @@
                         mode: "index",
                         intersect: false,
                         backgroundColor: "#fff",
-                        titleColor: "#111",
-                        bodyColor: "#444",
-                        borderColor: "rgba(0,0,0,0.1)",
+                        titleColor: "#58595b",
+                        bodyColor: "#58595b",
+                        borderColor: "rgba(88,89,91,0.1)",
                         borderWidth: 1,
                         padding: 10,
                         cornerRadius: 6,
@@ -124,7 +124,7 @@
                             drawOnChartArea: true
                         },
                         ticks: {
-                            color: "#6b7280",
+                            color: "#6d6e71",
                             font: {
                                 size: 12,
                                 family: "SomarSans",
@@ -140,7 +140,7 @@
                         },
                         ticks: {
                             stepSize: 1,
-                            color: "#6b7280",
+                            color: "#6d6e71",
                             font: {
                                 size: 12,
                                 family: "SomarSans",

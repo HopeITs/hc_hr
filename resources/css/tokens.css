@@ -121,12 +121,12 @@
        buttons only (96 uses today, all legitimately circular). */
     --radius-round: 9999px;
 
-    /* Elevation. Tinted with the brand's own dark neutral (#414042)
+    /* Elevation. Tinted with the brand's secondary-dark (#58595b)
        instead of pure black, so shadows sit in the same colour family
        as the rest of the UI. Light source is directly above. */
-    --shadow-e1: 0 1px 2px 0 rgb(65 64 66 / 0.06); /* resting: cards, table container */
-    --shadow-e2: 0 2px 8px -2px rgb(65 64 66 / 0.1); /* raised: dropdowns, popovers, sticky bars */
-    --shadow-e3: 0 8px 24px -8px rgb(65 64 66 / 0.16); /* overlay: modals, drawers, dialogs */
+    --shadow-e1: 0 1px 2px 0 rgb(88 89 91 / 0.06); /* resting: cards, table container */
+    --shadow-e2: 0 2px 8px -2px rgb(88 89 91 / 0.1); /* raised: dropdowns, popovers, sticky bars */
+    --shadow-e3: 0 8px 24px -8px rgb(88 89 91 / 0.16); /* overlay: modals, drawers, dialogs */
 
     /* One border width everywhere. The 2px focus ring is the single
        deliberate exception, because it must survive over any surface. */
@@ -137,7 +137,7 @@
     /* ==============================================================
        4. COLOUR — 60 / 30 / 10 by surface area
        --------------------------------------------------------------
-       Every value below already exists in app.css. Nothing new.
+       Every value below references a brand token from app.css. Nothing new.
 
        The ratio governs SURFACES. Text colour is a separate ink
        scale — ink is not part of the 60/30/10 budget, or every
@@ -145,31 +145,31 @@
        ============================================================== */
 
     /* --- 60% — the canvas ---------------------------------------- */
-    --surface-base: #f4f5f7; /* = --color-app-surface : page background   */
+    --surface-base: var(--color-app-surface); /* page background */
 
     /* --- 30% — surfaces sitting on the canvas -------------------- */
-    --surface-raised: #ffffff; /* cards, tables, forms, modals              */
-    --surface-chrome: #f9fafb; /* = --color-sidebar-surface : nav, toolbars */
-    --surface-sunken: #eeeff0; /* = --color-neutral-100 : wells, table head */
-    --surface-selected: #e6e7e8; /* = --color-selection : selected / hover fill */
+    --surface-raised: var(--color-white); /* cards, tables, forms, modals              */
+    --surface-chrome: var(--color-sidebar-surface); /* nav, toolbars */
+    --surface-sunken: var(--color-neutral-100); /* wells, table head */
+    --surface-selected: var(--color-selection); /* selected / hover fill */
 
     /* --- 10% — accent, rationed ---------------------------------- */
     /* Allowed uses ONLY: primary CTA, active navigation item, focus
        ring, destructive confirmation, required-field marker.
        Never as a page background, never as a decorative fill. */
-    --accent: #c2151c; /* = --color-primary      */
-    --accent-hover: #a51218; /* = --color-primary-hover */
-    --accent-on: #ffffff; /* text/icon on top of accent */
+    --accent: var(--color-primary);
+    --accent-hover: var(--color-primary-hover);
+    --accent-on: var(--color-white); /* text/icon on top of accent */
 
     /* --- Ink (outside the ratio) --------------------------------- */
-    --ink-strong: #2b2a2c; /* = --color-neutral-900 : headings          */
-    --ink-body: #414042; /* = --color-black       : body, table text  */
-    --ink-muted: #6d6e71; /* = --color-secondary-medium : labels       */
-    --ink-subtle: #939598; /* = --color-secondary-light : placeholders  */
+    --ink-strong: var(--color-secondary-dark); /* headings */
+    --ink-body: var(--color-secondary-dark); /* body, table text */
+    --ink-muted: var(--color-secondary-medium); /* labels */
+    --ink-subtle: var(--color-secondary-light); /* placeholders */
 
     /* --- Lines --------------------------------------------------- */
-    --line-hairline: #e6e7e8; /* dividers, table rows, card edges          */
-    --line-control: #bcbec0; /* = --color-neutral-300 : input borders     */
+    --line-hairline: var(--color-selection); /* dividers, table rows, card edges          */
+    --line-control: var(--color-neutral-300); /* input borders */
 }
 
 /* ==================================================================

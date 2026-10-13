@@ -12,6 +12,22 @@ return [
             'report' => false,
         ],
 
+        'recruitment-quarantine' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/recruitment-quarantine'),
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
+        ],
+
+        'recruitment-files' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/recruitment-files'),
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

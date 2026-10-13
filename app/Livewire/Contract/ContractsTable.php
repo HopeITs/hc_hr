@@ -10,7 +10,6 @@ use App\Models\ContractType;
 use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\Position;
-use App\Models\Program;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -130,7 +129,6 @@ class ContractsTable extends LivewireTable
             ->with([
                 'employee',
                 'position.department',
-                'position.program',
                 'position.jobLevel',
                 'position.city',
                 'position.center.city',
@@ -194,10 +192,6 @@ class ContractsTable extends LivewireTable
                         }
                     });
                 }),
-                     SelectColumn::make(trans_choice('general.program', 1), 'position.program.slug')
-                ->options(Program::orderBy('slug')->pluck('slug', 'slug')->toArray())
-                ->sortable()->searchable(),
-
             SelectColumn::make(trans_choice('general.positions', 1), 'position.'.$title)
                 ->options(Position::orderBy($title)->pluck($title, $title)->toArray())
                 ->sortable()->searchable(),
@@ -219,7 +213,6 @@ class ContractsTable extends LivewireTable
             SelectColumn::make(trans_choice('general.department', 1), 'position.department.name')
                 ->options(Department::orderBy('name')->pluck('name', 'name')->toArray())
                 ->sortable()->searchable(),
-
 
             SelectColumn::make(trans_choice('general.job-level', 1), 'position.jobLevel.'.$name)
                 ->options(JobLevel::orderBy('grade')->pluck($name, $name)->toArray())
@@ -265,7 +258,7 @@ class ContractsTable extends LivewireTable
                     $per = SalaryPer::getLocalizedName($value);
 
                     return Blade::render('<x-badge :color="$color">{{$text}}</x-badge>', [
-                        'color' => $per['color'] ?? 'gray',
+                        'color' => $per['color'] ?? 'secondary-light',
                         'text' => $per['value'] ?? $value,
                     ]);
                 })

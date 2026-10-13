@@ -82,8 +82,8 @@ class ContractPdfRenderer
      */
 
     /**
- * A directory the web user owns, for Chrome's config and the rendered file.
- */
+     * A directory the web user owns, for Chrome's config and the rendered file.
+     */
     public function workDir(): string
     {
         $dir = storage_path('app/chrome');
@@ -92,40 +92,41 @@ class ContractPdfRenderer
 
         return $dir;
     }
- public function renderHtml(string $html): string
-{
-    $target = $this->workDir().'/'.Str::random(16).'.pdf';
 
-    // Use a 40-character random string to make the URL unguessable
-    $tempHtmlName = Str::random(40) . '.html';
-    $tempHtmlPath = public_path('temp/' . $tempHtmlName);
+    public function renderHtml(string $html): string
+    {
+        $target = $this->workDir().'/'.Str::random(16).'.pdf';
 
-    // Ensure the public/temp directory exists
-    File::ensureDirectoryExists(public_path('temp'));
-    File::put($tempHtmlPath, $html);
+        // Use a 40-character random string to make the URL unguessable
+        $tempHtmlName = Str::random(40).'.html';
+        $tempHtmlPath = public_path('temp/'.$tempHtmlName);
 
-    $pdf = '';
+        // Ensure the public/temp directory exists
+        File::ensureDirectoryExists(public_path('temp'));
+        File::put($tempHtmlPath, $html);
 
-    try {
-        // Generate a real HTTP URL that Browserless can access
-        // e.g. https://hr.hcsyria-apps.org/temp/a1b2c3...html
-        $publicUrl = url('temp/' . $tempHtmlName);
+        $pdf = '';
 
-        $this->browsershot($publicUrl)->savePdf($target);
+        try {
+            // Generate a real HTTP URL that Browserless can access
+            // e.g. https://hr.hcsyria-apps.org/temp/a1b2c3...html
+            $publicUrl = url('temp/'.$tempHtmlName);
 
-        $pdf = is_file($target) ? (string) file_get_contents($target) : '';
-    } finally {
-        // Always clean up both files immediately
-        File::delete($target);
-        File::delete($tempHtmlPath);
+            $this->browsershot($publicUrl)->savePdf($target);
+
+            $pdf = is_file($target) ? (string) file_get_contents($target) : '';
+        } finally {
+            // Always clean up both files immediately
+            File::delete($target);
+            File::delete($tempHtmlPath);
+        }
+
+        if (! str_starts_with($pdf, '%PDF-')) {
+            throw new RuntimeException('Chrome did not write a PDF.');
+        }
+
+        return $pdf;
     }
-
-    if (! str_starts_with($pdf, '%PDF-')) {
-        throw new RuntimeException('Chrome did not write a PDF.');
-    }
-
-    return $pdf;
-}
 
     public function browsershot(string $url): InspectableBrowsershot
     {

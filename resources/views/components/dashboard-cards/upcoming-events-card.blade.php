@@ -1,6 +1,6 @@
 @props(['upcomingEvents' => collect()])
 
-<div class="w-full h-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] ring-1 ring-[var(--color-neutral-200)] overflow-hidden flex flex-col">
+<div class="w-full h-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] ring-1 ring-[var(--color-neutral-200)] overflow-hidden flex flex-col">
     <x-dashboard-cards.card-header :title="__('general.upcoming-events')" :count="$upcomingEvents->count()">
         <x-slot:icon>
             <x-icons.event class="size-full"/>

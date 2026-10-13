@@ -8,7 +8,7 @@
     use Illuminate\Support\Str;
 
     $baseClass = match($theme) {
-        'settings' => 'text-body text-red-600 dark:text-red-400 mt-1',
+        'settings' => 'text-body text-primary dark:text-primary mt-1',
         default    => 'text-primary text-body mt-1',
     };
 

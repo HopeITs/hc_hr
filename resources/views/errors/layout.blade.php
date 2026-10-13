@@ -8,8 +8,8 @@
 
     <style>
         html, body {
-            background-color: #f3f4f6;
-            color: #333;
+            background-color: #ffffff;
+            color: #58595b;
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
             "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
@@ -25,7 +25,7 @@
 
         .message {
             font-size: 18px;
-            color: #666;
+            color: #6d6e71;
             margin: 5px 0 25px 0;
 
             width: 100%;
@@ -40,7 +40,7 @@
         .btn-home {
             display: inline-block;
             padding: 10px 20px;
-            color: #c2151c;
+            color: #be1f24;
             border-radius: 8px;
             font-weight:400;
             font-size: 11px;

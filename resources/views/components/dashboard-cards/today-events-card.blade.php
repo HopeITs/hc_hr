@@ -95,12 +95,12 @@
         .js-today-events .swiper-pagination-bullet {
             width: 6px;
             height: 6px;
-            background: #d1d5db;
+            background: #dcddde;
             opacity: 1;
         }
 
         .js-today-events .swiper-pagination-bullet-active {
-            background: #6b7280;
+            background: #6d6e71;
         }
     </style>
 </div>

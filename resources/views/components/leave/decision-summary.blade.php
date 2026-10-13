@@ -3,9 +3,9 @@
 @php
     $status = \App\Enums\LeaveRequestStatus::getLocalizedName($leaveRequest->status);
     $statusClasses = match ($leaveRequest->status) {
-        \App\Enums\LeaveRequestStatus::Accepted => 'bg-green-100 text-green-800 ring-green-200',
-        \App\Enums\LeaveRequestStatus::Rejected => 'bg-red-100 text-red-800 ring-red-200',
-        default => 'bg-amber-100 text-amber-800 ring-amber-200',
+        \App\Enums\LeaveRequestStatus::Accepted => 'bg-neutral-100 text-neutral-800 ring-neutral-200',
+        \App\Enums\LeaveRequestStatus::Rejected => 'bg-neutral-100 text-primary-hover ring-neutral-200',
+        default => 'bg-neutral-100 text-neutral-800 ring-neutral-200',
     };
 @endphp
 
@@ -38,17 +38,17 @@
     </dl>
 
     @if ($leaveRequest->status === \App\Enums\LeaveRequestStatus::Rejected)
-        <div class="rounded-2xl border border-red-200 bg-red-50 p-5" role="alert">
+        <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5" role="alert">
             <div class="flex items-start gap-3">
-                <span class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <span class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-primary-hover">
                     <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 16ZM8.22 7.22a.75.75 0 0 1 1.06 0L10 7.94l.72-.72a.75.75 0 1 1 1.06 1.06l-.72.72.72.72a.75.75 0 1 1-1.06 1.06L10 10.06l-.72.72a.75.75 0 0 1-1.06-1.06L8.94 9l-.72-.72a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
                     </svg>
                 </span>
 
                 <div class="min-w-0">
-                    <h3 class="font-semibold text-red-900">@lang('general.reject-reason')</h3>
-                    <p class="mt-1 whitespace-pre-line break-words text-sm leading-6 text-red-800">
+                    <h3 class="font-semibold text-primary-hover">@lang('general.reject-reason')</h3>
+                    <p class="mt-1 whitespace-pre-line break-words text-sm leading-6 text-primary-hover">
                         {{ $leaveRequest->reject_reason ?: '—' }}
                     </p>
                 </div>

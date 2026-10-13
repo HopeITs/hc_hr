@@ -126,7 +126,7 @@ class BadgesTable extends LivewireTable
                     '<button
                         type="button"
                         wire:click="$dispatch(\'open-badge-modal\', { id: {{ $id }} })"
-                        class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
                         title="{{ __(\'general.view\') }}">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"

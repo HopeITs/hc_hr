@@ -28,9 +28,9 @@
                 <div class="min-w-0 w-full flex-1 min-[900px]:basis-[calc(100%-11.5rem)]">
                     <div class="mb-2 flex flex-wrap items-center gap-2 sm:mb-3 sm:gap-2">
                         <span
-                            class="inline-flex items-center rounded-full px-2 py-1 text-caption font-bold sm:px-3 sm:py-1 sm:text-small {{ $employee->is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-neutral-100 text-secondary-medium ring-1 ring-neutral-200' }}">
+                            class="inline-flex items-center rounded-full px-2 py-1 text-caption font-bold sm:px-3 sm:py-1 sm:text-small {{ $employee->is_active ? 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200' : 'bg-neutral-100 text-secondary-medium ring-1 ring-neutral-200' }}">
                             <span
-                                class="me-1 h-1.5 w-1.5 rounded-full sm:me-2 sm:h-2 sm:w-2 {{ $employee->is_active ? 'bg-emerald-500' : 'bg-neutral-400' }}"></span>
+                                class="me-1 h-1.5 w-1.5 rounded-full sm:me-2 sm:h-2 sm:w-2 {{ $employee->is_active ? 'bg-neutral-500' : 'bg-neutral-400' }}"></span>
                             {{ $employee->is_active ? __('general.active') : __('general.inactive') }}
                         </span>
                         @if ($employee->is_board_member)
@@ -132,7 +132,7 @@
                                         </p>
                                     </div>
                                     <span
-                                        class="shrink-0 rounded-full px-3 py-1 text-small font-bold {{ $contract->is_active && !$contract->terminated_at ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-secondary-medium' }}">
+                                        class="shrink-0 rounded-full px-3 py-1 text-small font-bold {{ $contract->is_active && !$contract->terminated_at ? 'bg-neutral-50 text-neutral-700' : 'bg-neutral-100 text-secondary-medium' }}">
                                         {{ $contract->is_active && !$contract->terminated_at ? __('general.active') : __('general.inactive') }}
                                     </span>
                                 </div>

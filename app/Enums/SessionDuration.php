@@ -17,10 +17,10 @@ final class SessionDuration extends Enum
     public static function getLocalizedName(int $value): array
     {
         $val = match ($value) {
-            self::Hour => ['text' => ['en' => 'Hour', 'ar' => 'ساعة'], 'color' => 'green'],
-            self::HourAndHalf => ['text' => ['en' => 'Hour and a Half', 'ar' => 'ساعة ونصف'], 'color' => 'blue'],
-            self::TwoHours => ['text' => ['en' => 'Two Hours', 'ar' => 'ساعتان'], 'color' => 'yellow'],
-            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'gray'],
+            self::Hour => ['text' => ['en' => 'Hour', 'ar' => 'ساعة'], 'color' => 'secondary-dark'],
+            self::HourAndHalf => ['text' => ['en' => 'Hour and a Half', 'ar' => 'ساعة ونصف'], 'color' => 'secondary-medium'],
+            self::TwoHours => ['text' => ['en' => 'Two Hours', 'ar' => 'ساعتان'], 'color' => 'secondary-medium'],
+            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'secondary-light'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],

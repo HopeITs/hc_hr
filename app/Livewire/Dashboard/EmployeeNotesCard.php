@@ -74,7 +74,7 @@ class EmployeeNotesCard extends Component
             'content' => $content,
             'is_done' => false,
             'order' => ($this->notesQuery()->max('order') ?? 0) + 1,
-            'color' => '#111827',
+            'color' => '#58595b',
         ]);
     }
 

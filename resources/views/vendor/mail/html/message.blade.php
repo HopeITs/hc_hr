@@ -1,4 +1,5 @@
-<x-mail::layout>
+@props(['preheader' => null])
+<x-mail::layout :preheader="$preheader">
 {{-- Header --}}
 <x-slot:header>
 <x-mail::header :url="config('app.url')">
@@ -21,7 +22,9 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('app.name') }}. {{ __('All rights reserved.') }}
+{{ __('mail.automated', ['app' => config('app.name')]) }}
+
+{{ __('mail.copyright', ['year' => date('Y'), 'organization' => __('mail.organization')]) }}
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

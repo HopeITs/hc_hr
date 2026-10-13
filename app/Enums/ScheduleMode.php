@@ -15,9 +15,9 @@ final class ScheduleMode extends Enum
     public static function getLocalizedName(int $value): array
     {
         $val = match ($value) {
-            self::Fixed => ['text' => ['en' => 'Fixed', 'ar' => 'ثابت'], 'color' => 'green'],
-            self::Flexible => ['text' => ['en' => 'Flexible', 'ar' => 'مرن'], 'color' => 'blue'],
-            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'gray'],
+            self::Fixed => ['text' => ['en' => 'Fixed', 'ar' => 'ثابت'], 'color' => 'secondary-dark'],
+            self::Flexible => ['text' => ['en' => 'Flexible', 'ar' => 'مرن'], 'color' => 'secondary-medium'],
+            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'secondary-light'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],

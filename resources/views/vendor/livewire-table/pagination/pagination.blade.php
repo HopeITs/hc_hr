@@ -105,7 +105,7 @@
                                         @else
                                             <button type="button"
                                                     wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')"
-                                                    class="relative inline-flex items-center px-4 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                                    class="relative inline-flex items-center px-4 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-neutral-600 dark:active:bg-neutral-900 dark:active:text-white"
                                                     aria-label="{{ __('Go to page :page', ['page' => $page]) }}">
                                                 {{ $page }}
                                             </button>
@@ -122,7 +122,7 @@
                                         wire:click="nextPage('{{ $paginator->getPageName() }}')"
                                         dusk="nextPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.after"
                                         rel="next"
-                                        class="relative inline-flex items-center px-2 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-blue-300 active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-blue-600 dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                        class="relative inline-flex items-center px-2 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-neutral-300 active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-neutral-600 dark:text-neutral-300 dark:hover:text-white dark:focus:border-neutral-600 dark:active:bg-neutral-900 dark:active:text-white"
                                         aria-label="@lang('pagination.next')">
                                     <!-- Icon "chevron-right" (outline) from https://heroicons.com -->
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">

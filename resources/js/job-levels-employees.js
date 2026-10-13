@@ -1,21 +1,8 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-
-const chartPalette = () => {
-    const rootStyle = getComputedStyle(document.documentElement);
-
-    return [
-        rootStyle.getPropertyValue("--color-primary").trim(),
-        rootStyle.getPropertyValue("--color-secondary-dark").trim(),
-        rootStyle.getPropertyValue("--color-secondary-medium").trim(),
-        rootStyle.getPropertyValue("--color-secondary-light").trim(),
-        rootStyle.getPropertyValue("--color-secondary-soft").trim(),
-        rootStyle.getPropertyValue("--color-neutral-600").trim(),
-        rootStyle.getPropertyValue("--color-neutral-400").trim(),
-        rootStyle.getPropertyValue("--color-neutral-800").trim(),
-    ].map((color) => color || "#c2151c");
-};
+import { brandColors, brandPalette } from "./charts/brand-colors.js";
+import { applyBrandInterfaceColors, brandColorSet } from "./charts/amcharts-brand.js";
 
 // Read the Livewire-published globals on every call rather than once at module
 // evaluation. A module body runs a single time, so the previous top-level
@@ -24,7 +11,7 @@ const chartPalette = () => {
 const buildChartData = () => {
     const dynamicLabels = window.jobLevelLabels || [];
     const dynamicCounts = window.employeeCounts || [];
-    const palette = chartPalette();
+    const palette = brandPalette();
 
     return dynamicLabels.map((label, index) => ({
         category: label,
@@ -44,6 +31,7 @@ export default function initJobLevelsChart() {
 
     am5.ready(function () {
         const root = am5.Root.new("jobLevelsChart");
+        applyBrandInterfaceColors(root);
 
         root.setThemes([am5themes_Animated.new(root)]);
 
@@ -57,7 +45,8 @@ export default function initJobLevelsChart() {
                 paddingTop: 10,
                 paddingBottom: 10,
                 paddingLeft: 0,
-                paddingRight: 10
+                paddingRight: 10,
+                colors: brandColorSet(root)
             })
         );
 
@@ -71,7 +60,7 @@ export default function initJobLevelsChart() {
         });
         yRenderer.labels.template.setAll({
             fontSize: 13,
-            fill: am5.color(0x333333),
+            fill: am5.color(brandColors().secondaryDark),
             oversizedBehavior: "wrap",
             textAlign: "left",
         });
@@ -118,19 +107,29 @@ export default function initJobLevelsChart() {
 
         series.data.setAll(data);
 
-        series.bullets.push(() =>
-            am5.Bullet.new(root, {
-                locationX: 0.5,
-                sprite: am5.Label.new(root, {
-                    text: "{valueX}",
-                    fill: am5.color(0xffffff),
-                    centerY: am5.percent(50),
-                    centerX: am5.percent(50),
-                    fontSize: 13,
-                    populateText: true,
-                }),
-            })
-        );
+        // White reads on the red and the darker greys; the two lightest bars
+        // need the dark grey instead.
+        const { secondaryDark, secondaryLight, secondarySoft } = brandColors();
+        const lightBars = [secondaryLight, secondarySoft].map((c) => c.toLowerCase());
+
+        series.bullets.push(() => {
+            const label = am5.Label.new(root, {
+                text: "{valueX}",
+                fill: am5.color(0xffffff),
+                centerY: am5.percent(50),
+                centerX: am5.percent(50),
+                fontSize: 13,
+                populateText: true,
+            });
+
+            label.adapters.add("fill", (fill, target) =>
+                lightBars.includes(target.dataItem?.dataContext?.color?.toCSSHex?.().toLowerCase())
+                    ? am5.color(secondaryDark)
+                    : fill
+            );
+
+            return am5.Bullet.new(root, { locationX: 0.5, sprite: label });
+        });
 
         series.appear(1000);
         chart.appear(1000, 100);

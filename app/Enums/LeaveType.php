@@ -20,9 +20,9 @@ class LeaveType
     {
 
         $val = match ($status) {
-            self::GENDER_MALE => ['text' => ['en' => 'Male', 'ar' => 'ذكر'], 'color' => 'blue'],
-            self::GENDER_FEMALE => ['text' => ['en' => 'Female', 'ar' => 'انثى'], 'color' => 'yellow'],
-            default => ['text' => ['en' => 'All', 'ar' => 'الكل '], 'color' => 'green'],
+            self::GENDER_MALE => ['text' => ['en' => 'Male', 'ar' => 'ذكر'], 'color' => 'secondary-medium'],
+            self::GENDER_FEMALE => ['text' => ['en' => 'Female', 'ar' => 'انثى'], 'color' => 'secondary-medium'],
+            default => ['text' => ['en' => 'All', 'ar' => 'الكل '], 'color' => 'secondary-dark'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],
@@ -37,9 +37,9 @@ class LeaveType
     {
 
         $val = match ($status) {
-            self::MARITAL_STATUS_SINGLE => ['text' => ['en' => 'Single', 'ar' => 'أعزب'], 'color' => 'yellow'],
-            self::MARITAL_STATUS_MARRIED => ['text' => ['en' => 'Married', 'ar' => 'متزوج'], 'color' => 'gray'],
-            default => ['text' => ['en' => 'All', 'ar' => 'الكل '], 'color' => 'green'],
+            self::MARITAL_STATUS_SINGLE => ['text' => ['en' => 'Single', 'ar' => 'أعزب'], 'color' => 'secondary-medium'],
+            self::MARITAL_STATUS_MARRIED => ['text' => ['en' => 'Married', 'ar' => 'متزوج'], 'color' => 'secondary-light'],
+            default => ['text' => ['en' => 'All', 'ar' => 'الكل '], 'color' => 'secondary-dark'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],

@@ -154,7 +154,7 @@ class EmployeeTable extends LivewireTable
 
                     return $src
                         ? '<img src="'.e($src).'" alt="'.e($m->name).'" class="size-[38px] max-w-none shrink-0 rounded-full border border-primary bg-white object-cover" />'
-                        : '<div class="bg-gray-200 rounded-full size-[38px]"></div>';
+                        : '<div class="bg-neutral-200 rounded-full size-[38px]"></div>';
                 })->asHtml(),
 
             // Column::make(trans('general.name'), transColumn('name'))

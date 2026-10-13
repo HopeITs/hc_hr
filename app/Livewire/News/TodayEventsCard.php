@@ -20,8 +20,7 @@ class TodayEventsCard extends Component
     {
         $today = Carbon::today();
 
-        $birthdays = Employee::where('is_active', true)
-            ->whereNotNull('actual_dob')
+        $birthdays = Employee::whereNotNull('actual_dob')
             ->get()
             ->filter(fn ($e) => optional($e->actual_dob)->format('m-d') === $today->format('m-d'))
             ->map(fn ($employee) => [

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
 
@@ -10,17 +9,9 @@ class RolesPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Roles:
-        Role::create(['name' => 'super-admin']);
-        Role::create(['name' => 'general-manager']);
-        Role::create(['name' => 'HR-SYR']);
-        Role::create(['name' => 'HR-ALP']);
-        Role::create(['name' => 'HR-HMS']);
-        Role::create(['name' => 'HR-DMS']);
-        Role::create(['name' => 'HR-LAT']);
-        Role::create(['name' => 'HR-TAR']);
-        Role::create(['name' => 'manager']);
-        Role::create(['name' => 'employee']);
+        foreach (config('access-control.system_roles', []) as $roleName) {
+            Role::findOrCreate($roleName, 'web');
+        }
 
         // Here we can assign permissions to each role when we know it:
         //     $superAdminPermissions = [];

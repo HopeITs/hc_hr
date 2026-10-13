@@ -33,6 +33,9 @@ class ContractsExpiringAutoRenewWarning extends Notification
             ])
             ->values()
             ->all();
+
+        // The email is written in Arabic: frame it right-to-left, in Arabic.
+        $this->locale = 'ar';
     }
 
     public function via(object $notifiable): array
@@ -57,7 +60,7 @@ class ContractsExpiringAutoRenewWarning extends Notification
         $count = count($this->contracts);
 
         return [
-           'title' => [
+            'title' => [
                 'en' => $count === 1 ? 'Contract renewal reminder' : 'Contract renewal reminders',
                 'ar' => $count === 1 ? 'تذكير بتجديد عقد' : 'تذكير بتجديد عقود',
             ],

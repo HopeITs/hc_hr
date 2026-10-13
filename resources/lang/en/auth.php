@@ -14,8 +14,8 @@ return [
     'throttle_ip' => 'Too many sign-in attempts from this network. Please try again in :seconds seconds.',
 
     'reset-password' => 'Reset Password',
-    'reset-password-text' => 'Choose a new password for your account.',
-    'password-text' => 'Use at least 12 characters. A phrase of several words is easy to remember and hard to guess.',
+    'reset-password-text' => 'The new password must be different from previously used passwords.',
+    'password-text' => 'Use 8 or more characters with a mix of letters, numbers, and symbols.',
     'confirm-password' => 'Confirm Password',
     'confirm' => 'Confirm',
     'back-to' => 'Back to',

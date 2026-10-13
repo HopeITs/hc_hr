@@ -35,7 +35,7 @@
                 </svg>
             </button>
             {{-- Island 1: language segmented (EN | AR) --}}
-            <div class="flex items-center shrink-0 rounded-[18px] bg-[#f6f6f6] p-0.5 sm:p-1">
+            <div class="flex items-center shrink-0 rounded-[18px] bg-neutral-50 p-0.5 sm:p-1">
                 <a href="{{ $enUrl }}"
                     class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-white text-neutral-900 shadow-e1' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
                     aria-label="English" @if($curr === 'en') aria-current="true" @endif>EN</a>
@@ -45,7 +45,7 @@
             </div>
 
             {{-- Island 2: utility icons grouped in one capsule --}}
-            <div class="flex items-center shrink-0 gap-0.5 rounded-[18px] bg-[#f6f6f6] p-0.5 sm:p-1">
+            <div class="flex items-center shrink-0 gap-0.5 rounded-[18px] bg-neutral-50 p-0.5 sm:p-1">
                 <x-tour.button/>
 
                 <a href="https://docs.google.com/document/d/1AcrvWNBzoD-bTem3Gy_35EtDgwD-SXST/edit?usp=sharing&ouid=105248334092459549739&rtpof=true&sd=true"
@@ -82,14 +82,14 @@
 
                             <span
                                 class="absolute bottom-0.5 {{ $isRtl ? 'start-0.5' : 'end-0.5' }}
-                                         size-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                                         size-2 rounded-full bg-neutral-500 ring-2 ring-white"></span>
                         </span>
                     </button>
 
                     <div x-cloak x-show="open" x-transition.duration.160ms.origin.bottom @click.outside="open=false"
                         :class="$store.dir.rtl ? 'end-0' : 'end-0'"
                         class="z-50 absolute top-full mt-2 w-[250px] rounded-surface border bg-white
-                                shadow-[0_25px_80px_-20px_rgba(2,6,23,0.35)] ring-1 ring-black/5"
+                                shadow-[0_25px_80px_-20px_rgba(88,89,91,0.35)] ring-1 ring-black/5"
                         role="menu">
 
                         <div class="relative px-4 pt-4 pb-4">
@@ -177,7 +177,7 @@
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit"
-                                    class="flex items-center w-full gap-3 px-3 py-2 text-body font-semibold text-red-600 transition rounded-surface hover:bg-red-50/80 hover:shadow-e1">
+                                    class="flex items-center w-full gap-3 px-3 py-2 text-body font-semibold text-primary transition rounded-surface hover:bg-neutral-50/80 hover:shadow-e1">
                                     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="1.8">
                                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />

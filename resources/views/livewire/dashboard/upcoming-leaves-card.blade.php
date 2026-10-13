@@ -2,7 +2,7 @@
     use App\Enums\LeaveRequestStatus;
 @endphp
 <div
-        class="w-full h-full  bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] ring-1 ring-[var(--color-neutral-200)] overflow-hidden flex flex-col">
+        class="w-full h-full  bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] ring-1 ring-[var(--color-neutral-200)] overflow-hidden flex flex-col">
     <x-dashboard-cards.card-header :title="__('general.upcoming-leaves')" :count="$upcomingLeaves->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/upcoming-leaves.svg') }}" alt="">

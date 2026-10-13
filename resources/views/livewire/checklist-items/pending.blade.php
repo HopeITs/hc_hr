@@ -6,7 +6,7 @@
     <div class="flex justify-between items-center">
         <x-heading-label>{{ __('general.pending_checklist_requests') }}</x-heading-label>
         @if (session()->has('message'))
-            <span class="text-green-600 text-body font-medium">{{ session('message') }}</span>
+            <span class="text-neutral-600 text-body font-medium">{{ session('message') }}</span>
         @endif
     </div>
 
@@ -37,11 +37,11 @@
                                     wire:model.defer="notes.{{ $item->id }}"
                                     wire:key="note-input-{{ $item->id }}"
                                     placeholder="{{ __('general.add_note') }}"
-                                    class="w-full rounded-control border-red-500 text-body focus:border-red-600 focus:ring-red-600">
+                                    class="w-full rounded-control border-primary text-body focus:border-primary focus:ring-primary">
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <button wire:click="markDelivered({{ $item->id }})"
-                                    class="inline-flex items-center px-3 py-2 bg-red-600 text-white text-small font-semibold rounded-control hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition">
+                                    class="inline-flex items-center px-3 py-2 bg-primary text-white text-small font-semibold rounded-control hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
                                     {{ __('general.mark_as_delivered') }}
                                 </button>
                             </td>

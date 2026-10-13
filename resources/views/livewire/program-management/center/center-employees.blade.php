@@ -85,7 +85,7 @@
                                     @else
                                         <span class="flex size-12 items-center justify-center rounded-full bg-neutral-100 text-small font-black uppercase text-primary outline outline-1 outline-neutral-200 dark:bg-neutral-800 dark:outline-neutral-700">{{ $initials ?: '—' }}</span>
                                     @endif
-                                    <span class="absolute bottom-0 end-0 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-neutral-900" title="{{ __('general.active') }}"></span>
+                                    <span class="absolute bottom-0 end-0 size-3 rounded-full border-2 border-white bg-neutral-500 dark:border-neutral-900" title="{{ __('general.active') }}"></span>
                                 </div>
 
                                 <div class="min-w-0 flex-1">

@@ -12,8 +12,10 @@ class Role extends SpatieRole
     protected static function booted(): void
     {
         static::created(function (Role $role): void {
+            // roleGrantableNames(), never names(): a handful of permissions
+            // identify a person and must not arrive with a role.
             $permissions = Permission::query()
-                ->whereIn('name', AccessPermissionCatalog::names())
+                ->whereIn('name', AccessPermissionCatalog::roleGrantableNames())
                 ->get();
 
             if (in_array($role->name, config('access-control.administrator_roles', []), true)) {

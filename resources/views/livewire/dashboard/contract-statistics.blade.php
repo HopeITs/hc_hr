@@ -82,7 +82,7 @@
         @forelse ($cards as $card)
 
             <article data-tour="contract-stats.card" class="border border-secondary-soft rounded-surface bg-white
-                            shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] hover:shadow-e2 transition-all duration-200
+                            shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] hover:shadow-e2 transition-all duration-200
                             hover:-translate-y-1 flex flex-col">
 
 
@@ -94,7 +94,7 @@
 
                         <span class="text-body text-secondary-dark mt-2">
                             {{ trans_choice('general.employee', 2) }}:
-                            <span class="font-bold text-[#414141]">{{ $card['employees'] }}</span>
+                            <span class="font-bold text-[#58595b]">{{ $card['employees'] }}</span>
                         </span>
                     </div>
 
@@ -167,7 +167,7 @@
 
                                 <div class="border-t border-neutral-200 pt-1 mt-1 flex justify-between">
                                     <span class="text-neutral-600">@lang('general.total')</span>
-                                    <span class="font-bold text-[#414141]">{{ $total }}</span>
+                                    <span class="font-bold text-[#58595b]">{{ $total }}</span>
                                 </div>
 
                             </div>

@@ -18,7 +18,7 @@
     </div>
 
     {{-- Card list --}}
-    <div class="overflow-hidden rounded-surface border border-neutral-100 bg-white shadow-[0_25px_80px_-40px_rgba(2,6,23,0.35)] ring-1 ring-black/5">
+    <div class="overflow-hidden rounded-surface border border-neutral-100 bg-white shadow-[0_25px_80px_-40px_rgba(88,89,91,0.35)] ring-1 ring-black/5">
         @forelse ($notifications as $notification)
             @php
                 $isUnread = is_null($notification->read_at);
@@ -50,7 +50,7 @@
                             : 'bg-white hover:bg-neutral-50' }}">
 
                 {{-- Unread accent bar --}}
-                <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-[#c2151c]' : 'bg-transparent' }}"
+                <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-primary' : 'bg-transparent' }}"
                       x-bind:style="clicked ? 'background-color: transparent' : ''"></span>
 
                 {{-- Icon bubble --}}
@@ -75,7 +75,7 @@
                 </div>
 
                 {{-- Unread dot (fades + shrinks out on read) --}}
-                <span class="mt-2 size-2 shrink-0 rounded-full bg-[#c2151c] transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
+                <span class="mt-2 size-2 shrink-0 rounded-full bg-primary transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
                       x-bind:style="clicked ? 'opacity: 0; transform: scale(0)' : ''"></span>
             </a>
         @empty

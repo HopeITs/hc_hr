@@ -12,7 +12,12 @@ return new class extends Migration
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $permissions = collect(AccessPermissionCatalog::names())
+        // Every catalog permission is created; only the role-grantable ones are
+        // handed out below. The rest are granted per user.
+        collect(AccessPermissionCatalog::names())
+            ->each(fn (string $name): Permission => Permission::findOrCreate($name, 'web'));
+
+        $permissions = collect(AccessPermissionCatalog::roleGrantableNames())
             ->map(fn (string $name): Permission => Permission::findOrCreate($name, 'web'));
 
         foreach (config('access-control.administrator_roles', []) as $roleName) {

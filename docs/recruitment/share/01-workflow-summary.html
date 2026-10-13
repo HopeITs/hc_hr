@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملخص الـ Workflow — موديول التوظيف</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#fbf9f9;--surface:#fff;--surface2:#f5f1f1;--ink:#1a1416;--ink2:#443a3d;
+--muted:#6d6165;--line:#e6dfe0;--line2:#d3c8ca;--accent:#c2151c;--accent-soft:#fdf0f0;
+--ok:#1f6f4a;--ok-soft:#e8f3ed;--warn:#9a6510;--warn-soft:#fbf1e0;--stop:#8f1015;--stop-soft:#fbeaea}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;padding-inline:20px;padding-block:0 56px;
+font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin-inline:auto}
+code,.mono{font-family:"IBM Plex Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+code{font-size:.84em;background:var(--surface2);color:var(--ink2);padding:.08em .36em;
+border-radius:3px;border:1px solid var(--line);direction:ltr;display:inline-block}
+header{padding-block:40px 22px;border-bottom:3px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.15em;
+text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 12px}
+h1{font-size:clamp(24px,5.5vw,34px);margin:0 0 10px;font-weight:700;letter-spacing:-.015em}
+.sub{color:var(--ink2);margin:0;font-weight:300;max-width:56ch}
+.meta{margin-top:16px;font-size:12.5px;color:var(--muted)}
+section{padding-block:30px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+h2{font-size:19px;margin:0 0 14px;font-weight:600;display:flex;align-items:baseline;gap:10px}
+h2::before{content:attr(data-n);font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);font-weight:600}
+h3{font-size:15.5px;margin:22px 0 8px;font-weight:600}
+p{max-width:62ch;margin:10px 0}
+.tw{overflow-x:auto;margin-block:14px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:440px}
+th{text-align:right;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+font-weight:600;padding:10px 13px;background:var(--surface2);border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink)}
+td.id{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent);white-space:nowrap;font-size:12.5px}
+td.n{font-family:"IBM Plex Mono",monospace;text-align:center;width:1%}
+.flow{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:18px;margin-block:16px;overflow-x:auto}
+.flow ol{list-style:none;margin:0;padding:0}
+.flow li{display:flex;gap:12px;padding:9px 0;align-items:flex-start}
+.flow li+li{border-top:1px dashed var(--line)}
+.sn{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;width:24px;height:24px;
+border-radius:50%;flex:none;display:grid;place-items:center;margin-top:2px;
+background:var(--accent-soft);color:var(--stop);border:1px solid rgba(194,21,28,.28)}
+.st{font-weight:600;font-size:14.5px;color:var(--ink)}
+.sd{font-size:13px;color:var(--muted);margin-top:1px}
+.note{background:var(--surface);border:1px solid var(--line);border-right:3px solid var(--line2);
+padding:13px 17px;margin-block:16px;border-radius:0 7px 7px 0;font-size:14px;color:var(--ink2)}
+.note.alert{border-right-color:var(--accent);background:var(--accent-soft)}
+.note.good{border-right-color:var(--ok);background:var(--ok-soft)}
+.note p{margin:0;max-width:none}
+.note p+p{margin-top:8px}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:16px;
+overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.85;
+margin-block:16px;color:var(--ink2);direction:ltr;text-align:left}
+ul{padding-inline-start:19px;margin-block:10px;max-width:62ch}
+li{margin-bottom:5px;color:var(--ink2)}
+li::marker{color:var(--accent)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;line-height:1.7}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-stop{background:var(--stop-soft);color:var(--stop)}
+footer{padding-top:26px;font-size:12.5px;color:var(--muted);text-align:center}
+@media print{body{background:#fff}.tw,.flow,pre{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">موديول التوظيف &middot; المرحلة الأولى &middot; المهمة 1</p>
+  <h1>ملخص الـ Workflow</h1>
+  <p class="sub">مسار الموافقات المعتمد بعد ست جولات مراجعة ومطابقة الـ ERD. المسار الوارد في خطة التنفيذ &mdash; خمس خطوات مع تصعيد &mdash; <strong>لم يُعتمد</strong>.</p>
+  <p class="meta">15 أيلول 2026 &middot; نسخة 2 &mdash; بعد مطابقة الـ ERD</p>
+</header>
+
+<section>
+  <h2 data-n="01">المسار المعتمد</h2>
+<pre>مُقدِّم الطلب  (PM / ProjM / DeptM / CEO)
+      │
+      ▼
+1. Manager Approval          المدير المباشر لمنصب مُقدِّم الطلب
+      │
+      ▼
+2. Senior Finance Manager    مركزي — منصب واحد على مستوى المنظمة
+      │
+      ▼
+3. Governorate HR            حسب خريطة إسناد المحافظات
+      │
+      ▼
+   Approved  ──►  Applied</pre>
+
+  <div class="tw"><table>
+    <thead><tr><th class="n">#</th><th>الخطوة</th><th>من</th><th>تُتجاوز؟</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td><code>ManagerApproval</code></td><td><code>direct_manager_id</code> من <strong>منصب مُقدِّم الطلب</strong> &mdash; موافِق واحد</td><td>استثناء CEO فقط</td></tr>
+      <tr><td class="n">2</td><td><code>FinanceApproval</code></td><td>Senior Financial Manager &mdash; منصب واحد</td><td><span class="pill p-stop">لا</span></td></tr>
+      <tr><td class="n">3</td><td><code>GovernorateHrApproval</code></td><td>حسب خريطة الإسناد &mdash; القسم 04</td><td><span class="pill p-stop">لا</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note alert"><p><strong>HR Syria و CEO ليسا خطوتين.</strong> لا ينتظرهما الطلب ولا يحتاج تأشيرهما &mdash; يحصلان على اطلاع على مستوى المنظمة فقط. يدخل أحدهما موافِقاً <em>فقط</em> إذا كان مدير مُقدِّم الطلب أو HR المحافظة المستهدفة، وعندها لا يُطلب منه قرار مطابق مرة ثانية.</p></div>
+</section>
+
+<section>
+  <h2 data-n="02">من يُقدِّم الطلب</h2>
+  <p>الأهلية تُشتق من <strong>الدرجة الوظيفية للمنصب</strong> لا من دور يُمنح يدوياً:</p>
+  <div class="tw"><table>
+    <thead><tr><th class="n">grade</th><th>المسمى</th><th class="n">مناصب</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td>Program Manager</td><td class="n">10</td></tr>
+      <tr><td class="n">3</td><td>Project Manager</td><td class="n">21</td></tr>
+      <tr><td class="n">5</td><td>Department Manager</td><td class="n">9</td></tr>
+      <tr><td class="n">&mdash;</td><td>Chief Executive Officer</td><td class="n">1</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>41 منصباً مؤهلاً.</strong> ترقية موظف تؤهله تلقائياً، وانتقاله من منصب إداري يسحب الأهلية &mdash; بلا تدخل أدمن ولا صيانة قائمة يدوية.</p>
+</section>
+
+<section>
+  <h2 data-n="03">خطوة المدير</h2>
+  <p><strong>موافِق واحد:</strong> المدير المباشر لمنصب مُقدِّم الطلب، من <code>positions.direct_manager_id</code>.</p>
+
+  <div class="note"><p>كان مقترحاً أن تحمل الخطوة موافقة المدير المباشر والفني معاً بالتوازي، و<strong>عُدل عن ذلك تبسيطاً</strong>. <code>tech_manager_id</code> لا يُستخدم في مسار الموافقات، و<code>workflow_instance_steps</code> بقراره الواحد صحيح كما هو بلا تعديل.</p></div>
+
+  <p>في البيانات: <strong>163</strong> منصباً من 165 له مدير مباشر. المنصبان الباقيان تُطبَّق عليهما قاعدة <code>WF-R1</code> &mdash; تصعيد أو تجاوز موثّق بسبب <code>NoManagerOnPosition</code>.</p>
+
+  <h2 data-n="04">قواعد التوجيه</h2>
+  <div class="tw"><table>
+    <thead><tr><th class="n">#</th><th>القاعدة</th><th>التفصيل</th></tr></thead>
+    <tbody>
+      <tr><td class="id">WF-R1</td><td>لا موافقة ذاتية</td><td>إن كان المُقدِّم هو الموافِق المطلوب، <strong>تُصعَّد</strong> لمديره الأعلى عبر <code>direct_manager_id</code> &mdash; لا تُتجاوز.<br><strong>استثناء CEO:</strong> لا مدير أعلى له &rarr; تُتجاوز خطوة المدير وحدها بسبب <code>TopLevelRequester</code>. المالية و HR تبقيان إلزاميتين.</td></tr>
+      <tr><td class="id">WF-R2</td><td>غياب المدير المالي</td><td>لا بديل تلقائي ولا تفويض لمدراء المحافظات. <strong>تبقى الخطوة نشطة بلا موافِق مُسنَد</strong> والطلب <code>under_review</code> كأي طلب ينتظر، ويُنبَّه HR. <strong>لا توجد حالة <code>blocked</code></strong> &mdash; أُلغيت لندرتها.</td></tr>
+      <tr><td class="id">WF-R3</td><td><strong>خريطة إسناد HR</strong></td><td>حلب &larr; <code>HR-SYR</code> &middot; طرطوس &larr; <code>HR-LAT</code> &middot; أي محافظة بلا HR معيَّن &larr; <code>HR-SYR</code>.<br>القواعد الخاصة تسبق الاحتياط العام. <strong>الطلب لا يتوقف بسبب غياب HR للمحافظة إطلاقاً.</strong></td></tr>
+      <tr><td class="id">WF-R4</td><td>تثبيت نسخة التعريف</td><td>كل Instance يحمل <code>definition_version_id</code>. تعديل التعريف يُنشئ نسخة جديدة ولا يمس Instance قائماً.</td></tr>
+      <tr><td class="id">WF-R5</td><td>لا موافِق مؤهل</td><td>لا تُتجاوز خطوة إلزامية بصمت ولا تُعتبر موافَقاً عليها &mdash; تبقى نشطة بلا موافِق مُسنَد ويُنبَّه HR. التجاوز الصامت ثغرة تصعيد صلاحيات.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note alert"><p><strong>لماذا خريطة الإسناد ضرورية:</strong> <code>HR-ALP</code> و<code>HR-TAR</code> معرَّفان في النظام بلا أي مستخدم يحملهما، وحلب فيها 46 منصباً. بدون الخريطة كانت طلبات المحافظتين ستتوقف يوم الإطلاق.</p></div>
+
+  <h2 data-n="05">مسار <code>direct_hr</code> &mdash; الفتح المباشر</h2>
+  <div class="note alert"><p><strong>ميزة جديدة خارج خطة التنفيذ.</strong> الغرض: حالات نُسِّقت مسبقاً خارج النظام &mdash; تختصر الزمن دون خسارة التوثيق.</p></div>
+
+  <div class="tw"><table>
+    <thead><tr><th>البند</th><th>القرار</th></tr></thead>
+    <tbody>
+      <tr><td>من يملكها</td><td>HR المحافظة ضمن نطاقه + <code>HR-SYR</code>، بصلاحية مستقلة <code>recruitment-requests.direct-open</code></td></tr>
+      <tr><td>الآلية</td><td>نفس جدول <code>recruitment_requests</code> بحقل <code>mode</code>. لا يمر الطلب بالمسار الثلاثي.</td></tr>
+      <tr><td><strong>الموافقة</strong></td><td><strong>HR Syria يُنشئ</strong> &larr; لا موافقة إضافية، ينتقل مباشرة إلى <code>approved</code>.<br><strong>HR المحافظة يُنشئ</strong> &larr; يُنشأ <strong>Workflow Instance بخطوة واحدة</strong> هي <code>HR-SYR</code>، والطلب <code>under_review</code> حتى يوافق.</td></tr>
+      <tr><td>توثيق الطلب</td><td>من طلب فعلياً &middot; منصبه &middot; سبب الحاجة &middot; مستخدم HR الذي سجّل وتاريخه</td></tr>
+      <tr><td>التأكيدات</td><td>ثلاثة أسطر <strong>مُولَّدة تلقائياً</strong> تعكس المسار (المدير المباشر &middot; المالي الأول &middot; HR المحافظة). كل سطر: <code>Approved</code> أو <code>NotApplicable</code> + الطريقة (Phone / Email / Meeting / Other) + التاريخ + ملاحظات + مرفق اختياري. <strong>قابلة للتوسيع</strong> &mdash; يستطيع HR إضافة أسطر</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note alert"><p><strong>قاعدة حاسمة:</strong> تُسجَّل هذه كـ Manual / External Confirmations لا كـ Workflow Approvals إلكترونية. يجب ألا يظهر في الخط الزمني أن شخصاً ضغط &laquo;موافقة&raquo; داخل النظام وهو لم يفعل. تُعرض بصيغة &laquo;HR سجّل تأكيداً خارجياً من فلان عبر الهاتف بتاريخ كذا&raquo;.</p></div>
+
+  <div class="note"><p>استُخدم <strong>Workflow Instance بخطوة واحدة</strong> لموافقة HR Syria عمداً بدل حقول خاصة على الطلب: نفس الجداول ونفس الخدمات ونفس الخط الزمني، ويظهر الطلب تلقائياً في شاشة &laquo;طلبات بانتظار موافقتي&raquo; بلا كود إضافي.</p></div>
+</section>
+
+<section>
+  <h2 data-n="06">إبطال الموافقات عند التعديل</h2>
+  <div class="tw"><table>
+    <thead><tr><th>الفئة</th><th>الحقول</th><th>الأثر</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill p-stop">جوهرية</span></td><td><code>position_id</code> &middot; <code>program_id</code> &middot; <code>city_id</code> &middot; <code>department_id</code> &middot; <code>job_level_id</code> &middot; الملاك &middot; نوع الطلب</td><td>إبطال <strong>كل</strong> الموافقات &mdash; من الخطوة الأولى</td></tr>
+      <tr><td><span class="pill p-warn">مالية</span></td><td><code>salary_amount</code> &middot; <code>currency</code> &middot; <code>salary_per</code> &middot; <code>contract_type_id</code></td><td>إبطال المالية وما بعدها &mdash; يستأنف من خطوة Finance</td></tr>
+      <tr><td><span class="pill p-ok">وصفية</span></td><td>المبررات &middot; الأسباب &middot; المؤهلات &middot; المهام &middot; التواريخ &middot; العناوين</td><td>لا تُبطل شيئاً &mdash; يستأنف من حيث توقّف</td></tr>
+    </tbody>
+  </table></div>
+  <p>إذا تغيّر حقل من أكثر من فئة، <strong>تسود الفئة الأشد</strong>.</p>
+
+  <div class="note"><p><strong>الإشعار مستقل عن الإبطال.</strong> أي تعديل مهما كان نوعه يولّد إشعاراً يوضح: أي الحقول تغيّرت <em>بقيمها القديمة والجديدة</em>، ومن عدّل ومتى. إشعار يقول &laquo;تم تعديل الطلب&raquo; دون تفصيل غير مقبول.</p></div>
+
+  <h3>قواعد أخرى</h3>
+  <ul>
+    <li><strong>فشل التحقق النهائي</strong> لحظة الموافقة الأخيرة &rarr; الطلب يعود إلى <code>ChangesRequested</code> بسبب يولّده النظام</li>
+    <li><strong>المنصب أصبح غير فعّال أو أُغلق الشاغر</strong> أثناء المراجعة &rarr; إيقاف فوري للـ Workflow + إشعار. <strong>لا</strong> يُحوَّل إلى <code>Cancelled</code> &mdash; الإلغاء قرار المُقدِّم وحده</li>
+  </ul>
+</section>
+
+<section>
+  <h2 data-n="07">الإشعارات</h2>
+  <div class="tw"><table>
+    <thead><tr><th>يُشعَر</th><th>لا يُشعَر</th></tr></thead>
+    <tbody>
+      <tr><td>مُقدِّم الطلب</td><td>الموافقون الذين لم يصلهم الدور بعد</td></tr>
+      <tr><td>كل موافِق سبق أن اتخذ قراراً</td><td><code>HR-SYR</code> و CEO افتراضياً</td></tr>
+      <tr><td>الموافِق أو الموافقون الحاليون</td><td></td></tr>
+      <tr><td><strong>HR المحافظة المستهدفة دائماً</strong></td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p>الإشعار يُرسَل <strong>بعد</strong> نجاح المعاملة، وفشل الإرسال لا يغيّر حالة الطلب.</p>
+</section>
+
+<section>
+  <h2 data-n="08">ما يعنيه هذا للـ ERD</h2>
+  <p class="lede">بعد المطابقة: <strong>لا يُحذف أي جدول</strong>. جدولان يُضافان وجدولان تُعدَّل أعمدتهما.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>الجدول</th><th>الإجراء</th></tr></thead>
+    <tbody>
+      <tr><td>جداول تعريف الـ Workflow الثلاثة</td><td><span class="pill p-ok">تبقى كما هي</span> واجهة تعديل الخطوات تتأجل للنسخة الثانية، لكن البنية جاهزة</td></tr>
+      <tr><td><code>workflow_instance_steps</code></td><td><span class="pill p-ok">بلا تعديل</span> قرار واحد لكل خطوة &mdash; صحيح كما هو</td></tr>
+      <tr><td><code>recruitment_workflow_instances</code></td><td><span class="pill p-ok">بلا تعديل</span> قيَم الحالة الأربع في الـ ERD مطابقة &mdash; أُلغيت حالة <code>blocked</code> لندرتها</td></tr>
+      <tr><td><code>recruitment_requests</code></td><td><span class="pill p-warn">تُعدَّل</span> الحالات من 7 إلى <strong>10</strong> (<code>resubmitted</code> · <code>cancelled</code> · <code>failed_application</code>) + <code>mode</code> + 5 حقول توثيق <code>direct_hr</code></td></tr>
+      <tr><td><code>recruitment_request_position_details</code></td><td><span class="pill p-warn">تُعدَّل</span> <code>currency</code> و<code>salary_per</code> بجانب <code>salary_amount</code></td></tr>
+      <tr><td><code>recruitment_request_events</code></td><td><span class="pill p-warn">جديد</span> خط زمني بحقول منظّمة &mdash; إلى جانب <code>activity_log</code> لا بدلاً منه</td></tr>
+      <tr><td><code>recruitment_request_external_confirmations</code></td><td><span class="pill p-warn">جديد</span> تأكيدات <code>direct_hr</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <p><strong>19 جدولاً للمرحلة الأولى</strong> بدل 17.</p>
+
+  <h2 data-n="09">ثلاثة بنود تحتاج قراراً</h2>
+  <div class="tw"><table>
+    <thead><tr><th class="n">#</th><th>السؤال</th></tr></thead>
+    <tbody>
+      <tr><td class="id">1</td><td><strong>هل تُتجاوز المراجعة المالية أبداً؟</strong> الخطة تتيح تجاوزها لـ <code>FillVacancy</code> ضمن ميزانية معتمدة. المسار المعتمد يجعلها إلزامية دائماً &mdash; أي أن كل طلب توظيف في المنظمة يمر بشخص واحد، وإن غاب فكل الطلبات تنتظر عنده.</td></tr>
+      <tr><td class="id">2</td><td>هل يمر <code>CloseVacancy</code> و<code>ClosePosition</code> بالمراجعة المالية رغم غياب الأثر المالي المباشر؟</td></tr>
+      <tr><td class="id">3</td><td><strong>مسار الرفض بعد قرار المدير</strong> &mdash; إغلاق نهائي <code>rejected</code>، أم إرجاع للتعديل <code>changes_requested</code>، أم يختار الموافِق؟</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note good"><p><strong>ما كان مصنَّفاً &laquo;قبل الإطلاق&raquo; أُغلق:</strong> مشكلة حلب وطرطوس بلا مسؤول HR حُلَّت بخريطة الإسناد في القسم 04. لم يعد هناك أي بند يوقف الإطلاق.</p></div>
+</section>
+
+<footer>المرجع الكامل في <code>docs/recruitment/03-workflow-rules.md</code></footer>
+
+</div>
+</body>
+</html>
