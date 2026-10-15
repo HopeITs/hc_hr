@@ -37,7 +37,8 @@
         <div>
             <x-forms.input-label for="work_phone">@lang('general.work_phone')</x-forms.input-label>
             <x-forms.input type="tel" wire:model="infoForm.work_phone" id="work_phone"
-                inputmode="numeric" maxlength="10" autocomplete="tel" />
+                inputmode="numeric" maxlength="10" autocomplete="tel"
+                placeholder="{{ __('general.phone_placeholder') }}" />
             <x-error-span>{{ $errors->first('infoForm.work_phone') }}</x-error-span>
         </div>
 
@@ -49,7 +50,8 @@
         <div>
             <x-forms.input-label for="personal_phone">@lang('general.personal_phone')</x-forms.input-label>
             <x-forms.input type="tel" wire:model="infoForm.personal_phone" id="personal_phone"
-                inputmode="numeric" maxlength="10" autocomplete="tel" />
+                inputmode="numeric" maxlength="10" autocomplete="tel"
+                placeholder="{{ __('general.phone_placeholder') }}" />
             <x-error-span>{{ $errors->first('infoForm.personal_phone') }}</x-error-span>
         </div>
 

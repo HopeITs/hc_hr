@@ -19,5 +19,9 @@
         @endactiverole
     </div>
 
-    <livewire:employee.employee-table />
+    {{-- Keeps the name column pinned while the rest of this wide table
+         scrolls sideways — see .table-frozen-employee in app.css. --}}
+    <div class="table-frozen-employee">
+        <livewire:employee.employee-table />
+    </div>
 </div>

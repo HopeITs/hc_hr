@@ -6,18 +6,38 @@
     $reports = $this->directReports;
 @endphp
 
-<div x-data="{ show: @entangle('open') }"
+{{-- Alpine owns the drawer: every card dispatches the browser event
+     'open-profile', which opens the drawer on the spot and asks the server for
+     that employee. The server's copy only renders once its employeeId matches
+     the one just requested — until then a spinner shows, so the previous
+     employee is never left on screen under a new click. --}}
+<div x-data="{
+        show: false,
+        requestedId: null,
+        get ready() {
+            return this.requestedId !== null && this.$wire.employeeId === this.requestedId;
+        },
+        open(employeeId) {
+            this.requestedId = Number(employeeId);
+            this.show = true;
+
+            if (! this.ready) {
+                this.$wire.openProfile(this.requestedId);
+            }
+        },
+     }"
      x-cloak
      x-show="show"
      x-effect="document.body.classList.toggle('overflow-hidden', show)"
-     x-on:livewire:navigating.window="document.body.classList.remove('overflow-hidden')"
+     x-on:open-profile.window="open($event.detail.employeeId)"
+     x-on:livewire:navigating.window="show = false; document.body.classList.remove('overflow-hidden')"
      x-on:keydown.escape.window="show = false"
      class="fixed inset-0 z-50">
 
     {{-- Backdrop --}}
     <div class="absolute inset-0 bg-secondary-dark/40 backdrop-blur-[1px]"
          x-show="show" x-transition.opacity
-         wire:click="close"></div>
+         x-on:click="show = false"></div>
 
     {{-- Panel: right drawer on desktop, bottom sheet on mobile --}}
     <div class="absolute inset-x-0 bottom-0 flex max-h-[92dvh] min-h-0 flex-col rounded-t-3xl bg-white shadow-e3
@@ -33,10 +53,11 @@
          x-transition:leave-end="translate-y-full sm:translate-y-0 sm:translate-x-full sm:rtl:-translate-x-full">
 
         @if($employee)
+        <div class="flex min-h-0 flex-1 flex-col" x-show="ready">
             {{-- Header --}}
             <div class="relative px-6 pt-6 pb-4 overflow-hidden text-white shrink-0 bg-gradient-to-b from-secondary-dark to-secondary-light">
 
-                <button type="button" wire:click="close"
+                <button type="button" x-on:click="show = false"
                         class="absolute z-20 flex items-center justify-center transition rounded-surface end-4 top-4 size-8 text-white/80 hover:bg-white/10 hover:text-white">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
@@ -81,8 +102,7 @@
                 {{-- Contact --}}
                 @php($contacts = collect([
                     ['icon' => 'phone', 'value' => $employee->work_phone, 'href' => 'tel:'],
-                    ['icon' => 'mobile', 'value' => $employee->personal_phone, 'href' => 'tel:'],
-                    ['icon' => 'mail', 'value' => $employee->personal_email, 'href' => 'mailto:'],
+                    ['icon' => 'mail', 'value' => $employee->work_email, 'href' => 'mailto:'],
                 ])->filter(fn ($c) => filled($c['value'])))
                 @if($contacts->isNotEmpty())
                     <div>
@@ -94,8 +114,6 @@
                                     <span class="flex items-center justify-center rounded-surface size-7 shrink-0 bg-secondary-soft/10 text-primary">
                                         @if($contact['icon'] === 'mail')
                                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-                                        @elseif($contact['icon'] === 'mobile')
-                                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path stroke-linecap="round" d="M11 18h2"/></svg>
                                         @else
                                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 5a2 2 0 0 1 2-2h2l2 5-2 1a12 12 0 0 0 5 5l1-2 5 2v2a2 2 0 0 1-2 2A16 16 0 0 1 2 5Z"/></svg>
                                         @endif
@@ -127,12 +145,11 @@
                     <div>
                         <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-secondary-light">
                             @lang('general.direct-reports')
-                            <span class="rounded-full bg-neutral-100 px-2 py-1 text-caption font-bold text-secondary-medium">{{ $reports->count() }}</span>
+                            <span class="rounded-full bg-neutral-100 px-2 py-1 text-caption font-bold text-secondary-medium">{{ \App\Models\Position::headcount($reports) }}</span>
                         </h3>
                         <div class="space-y-2">
                             @foreach($reports as $report)
-                                @php($rEmployee = $report->activeContracts->first()?->employee)
-                                @if($rEmployee)
+                                @forelse($report->activeContracts->pluck('employee')->filter()->unique('id') as $rEmployee)
                                     <button type="button" wire:click="$dispatch('open-profile', { employeeId: {{ $rEmployee->id }} })"
                                             class="flex items-center w-full gap-3 px-3 py-2 transition border border-neutral-100 rounded-surface text-start hover:border-secondary-light hover:bg-secondary-soft">
                                         <img src="{{ $rEmployee->avatar_url }}" alt="" class="object-cover rounded-full size-9">
@@ -141,7 +158,7 @@
                                             <div class="text-small truncate text-secondary-light">{{ $report->title }}</div>
                                         </div>
                                     </button>
-                                @else
+                                @empty
                                     <div class="flex items-center gap-3 px-3 py-2 border border-neutral-200 border-dashed rounded-surface text-secondary-light">
                                         <span class="flex items-center justify-center border border-neutral-300 border-dashed rounded-full size-9"><x-icons.user class="size-4"/></span>
                                         <div class="min-w-0">
@@ -149,7 +166,7 @@
                                             <div class="text-small truncate">{{ $report->title }}</div>
                                         </div>
                                     </div>
-                                @endif
+                                @endforelse
                             @endforeach
                         </div>
                     </div>
@@ -168,6 +185,12 @@
                     </a>
                 </div>
             @endif
+        </div>
         @endif
+
+        {{-- Shown while the requested employee is still loading. --}}
+        <div class="flex items-center justify-center flex-1 p-8" x-show="! ready">
+            <x-icons.spinner class="size-6 animate-spin text-primary" />
+        </div>
     </div>
 </div>

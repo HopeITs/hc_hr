@@ -15,11 +15,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
 class BadgeAuthorizationTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesContractFixtures, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -135,6 +136,127 @@ class BadgeAuthorizationTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseMissing('badges', ['id' => $badge->id]);
+    }
+
+    public function test_general_manager_sees_badges_in_every_city(): void
+    {
+        $aleppo = $this->createCity('ALP', '001');
+        $homs = $this->createCity('HMS', '002');
+        $user = $this->createUserWithActiveRole('general-manager', $aleppo);
+        $aleppoBadge = $this->createBadge($this->createEmployee($aleppo, 'gm.aleppo'));
+        $homsBadge = $this->createBadge($this->createEmployee($homs, 'gm.homs'));
+
+        $this->assertTrue($user->hasActivePermission('badges.view'));
+
+        $visibleIds = Badge::query()
+            ->visibleTo($user)
+            ->pluck('id');
+
+        $this->assertTrue($visibleIds->contains($aleppoBadge->id));
+        $this->assertTrue($visibleIds->contains($homsBadge->id));
+
+        Livewire::actingAs($user)
+            ->test(BadgesTable::class)
+            ->assertOk();
+    }
+
+    public function test_general_manager_opens_badge_details_without_pay_figures(): void
+    {
+        $aleppo = $this->createCity('ALP', '001');
+        $homs = $this->createCity('HMS', '002');
+        $user = $this->createUserWithActiveRole('general-manager', $aleppo);
+        $badge = $this->createBadge($this->createEmployee($homs, 'gm.details'));
+
+        Livewire::actingAs($user)
+            ->test(BadgesModule::class)
+            ->call('openBadgeModal', $badge->id)
+            ->assertSet('badge.id', $badge->id)
+            ->assertSet('badge.current_salary', null)
+            ->assertSet('badge.new_salary', null);
+    }
+
+    public function test_general_manager_cannot_delete_badges(): void
+    {
+        $aleppo = $this->createCity('ALP', '001');
+        $user = $this->createUserWithActiveRole('general-manager', $aleppo);
+        $badge = $this->createBadge($this->createEmployee($aleppo, 'gm.delete'));
+
+        Livewire::actingAs($user)
+            ->test(BadgesTable::class)
+            ->call('delete', ['id' => $badge->id])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('badges', ['id' => $badge->id]);
+    }
+
+    public function test_manager_cannot_view_badges(): void
+    {
+        $city = $this->createCity('ALP', '001');
+        $user = $this->createUserWithActiveRole('manager', $city);
+        $this->createBadge($this->createEmployee($city, 'manager.badge'));
+
+        $this->assertFalse($user->hasActivePermission('badges.view'));
+        $this->assertSame(0, Badge::query()->visibleTo($user)->count());
+    }
+
+    public function test_manager_granted_badges_view_reaches_only_their_reports(): void
+    {
+        $aleppo = $this->createCity('ALP', '001');
+        $homs = $this->createCity('HMS', '002');
+        $this->grantToRole('manager', 'badges.view');
+        $user = $this->createUserWithActiveRole('manager', $aleppo);
+
+        // The manager's own position, held through a contract running today.
+        $managerPosition = $this->makePosition($aleppo);
+        $this->makeContractFor(Employee::query()->findOrFail($user->employee_id), [
+            'position_id' => $managerPosition->id,
+            'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => now()->addMonth()->toDateString(),
+        ]);
+
+        $directReport = $this->createEmployee($aleppo, 'manager.direct');
+        $this->makeContractFor($directReport, [
+            'position_id' => $this->makePosition($aleppo, ['direct_manager_id' => $managerPosition->id])->id,
+        ]);
+        $techReport = $this->createEmployee($homs, 'manager.tech');
+        $this->makeContractFor($techReport, [
+            'position_id' => $this->makePosition($homs, ['tech_manager_id' => $managerPosition->id])->id,
+        ]);
+
+        $directBadge = $this->createBadge($directReport);
+        $techBadge = $this->createBadge($techReport);
+        $sameCityStranger = $this->createBadge($this->createEmployee($aleppo, 'manager.stranger'));
+        $otherCityStranger = $this->createBadge($this->createEmployee($homs, 'manager.foreign'));
+
+        $this->assertEqualsCanonicalizing(
+            [$directBadge->id, $techBadge->id],
+            Badge::query()->visibleTo($user)->pluck('id')->all(),
+        );
+
+        Livewire::actingAs($user)
+            ->test(BadgesModule::class)
+            ->call('openBadgeModal', $sameCityStranger->id)
+            ->assertNotFound();
+
+        Livewire::actingAs($user)
+            ->test(BadgesModule::class)
+            ->call('openBadgeModal', $otherCityStranger->id)
+            ->assertNotFound();
+    }
+
+    public function test_employee_granted_badges_view_reaches_no_badges(): void
+    {
+        $aleppo = $this->createCity('ALP', '001');
+        $this->grantToRole('employee', 'badges.view');
+        $user = $this->createUserWithActiveRole('employee', $aleppo);
+        $badge = $this->createBadge($this->createEmployee($aleppo, 'employee.colleague'));
+
+        $this->assertSame(0, Badge::query()->visibleTo($user)->count());
+
+        Livewire::actingAs($user)
+            ->test(BadgesModule::class)
+            ->call('openBadgeModal', $badge->id)
+            ->assertNotFound();
     }
 
     public function test_employee_form_cannot_delete_a_badge_belonging_to_another_employee(): void
@@ -310,6 +432,13 @@ class BadgeAuthorizationTest extends TestCase
         $user->unsetRelation('roles');
 
         return $user->fresh();
+    }
+
+    /** What ticking the permission for a role in Access Management does. */
+    private function grantToRole(string $roleName, string $permission): void
+    {
+        Role::findOrCreate($roleName, 'web')->givePermissionTo($permission);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function createBadge(

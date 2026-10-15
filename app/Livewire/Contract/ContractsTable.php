@@ -8,8 +8,10 @@ use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Position;
+use App\Models\Program;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -20,11 +22,23 @@ use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\BooleanColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
+use RamonRietdijk\LivewireTables\Enums\Direction;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractsTable extends LivewireTable
 {
+    // Open alphabetically by employee name; clicking the header still toggles
+    // desc and then clears back to the package's id order.
+    public string $sortColumn = 'employee';
+
+    public string $sortDirection = 'asc';
+
+    // Restore the list position and searches after visiting a contract.
+    protected bool $useSession = true;
+
+    protected array $sessionProperties = ['globalSearch', 'search', 'paginators', 'perPage'];
+
     protected string $model = Contract::class;
 
     protected $listeners = [
@@ -116,11 +130,47 @@ class ContractsTable extends LivewireTable
         );
     }
 
+    public function updatedPaginators(): void
+    {
+        // Pagination actions change state directly rather than through wire:model.
+        $this->updateSession();
+    }
+
+    protected function sessionKey(): string
+    {
+        return parent::sessionKey().':'.auth()->id();
+    }
+
+    protected function restoreSession(): void
+    {
+        // Livewire has already read URL searches before the table initializes.
+        $urlSearch = [];
+        foreach ($this->sessionProperties as $property) {
+            if (request()->query->has($this->getQueryStringName($property))) {
+                $urlSearch[$property] = $this->{$property};
+            }
+        }
+
+        parent::restoreSession();
+
+        $this->fill($urlSearch);
+
+        if (request()->query->has('page')) {
+            $this->paginators['page'] = max(1, request()->integer('page', 1));
+        }
+    }
+
+    /**
+     * query() has already limited the rows to what ContractPolicy::view allows,
+     * so the permission alone decides between the two policy outcomes here
+     * without a per-row Gate query: editors land on the editor, view-only roles
+     * (a manager) on the contract itself rather than on a 403.
+     */
     protected function link(Model $model): ?string
     {
         return auth()->user()->hasActivePermission('contracts.update')
             ? route('contracts.edit', $model->getKey())
-            : null;
+            : route('contracts.show', $model->getKey());
     }
 
     protected function query(): Builder
@@ -129,6 +179,7 @@ class ContractsTable extends LivewireTable
             ->with([
                 'employee',
                 'position.department',
+                'position.program',
                 'position.jobLevel',
                 'position.city',
                 'position.center.city',
@@ -136,10 +187,7 @@ class ContractsTable extends LivewireTable
                 'leaveBalances',
                 'terminationReason',
             ])
-            ->when(
-                auth()->user()->activeCityIds(),
-                fn (Builder $q, array $cityIds) => $q->whereHas('employee', fn (Builder $e) => $e->whereIn('city_id', $cityIds)),
-            );
+            ->visibleTo(auth()->user());
     }
 
     protected function globalSearchColumns(): array
@@ -166,7 +214,7 @@ class ContractsTable extends LivewireTable
         // Resolved once, like the flags above. Calling Gate::allows('renew')
         // per row would re-run ContractPolicy::renew's city-scope query for
         // every contract on the page; query() has already restricted the whole
-        // result set to the active city, so only the row's own state is left
+        // result set to what the policy can see, so only the row's own state is left
         // to check — which is done inline below, without touching the database.
         $canCreate = auth()->user()?->hasActivePermission('contracts.create') ?? false;
         // Mirrors ContractPolicy::export, which also refuses a role that may
@@ -178,6 +226,18 @@ class ContractsTable extends LivewireTable
         return [
             Column::make(trans_choice('general.employee', 1), 'employee')
                 ->displayUsing(fn ($v, Model $m) => $m->employee?->name ?? '—')
+                // Same order as the displayed name: first name, then last name,
+                // in the active locale. Subqueries rather than a join so the
+                // select stays contracts.* for the table and the Excel export.
+                ->sortable(function (Builder $query, Direction $direction) {
+                    foreach (['first_name', 'last_name'] as $base) {
+                        $query->orderBy(
+                            Employee::select(transColumn($base))->whereColumn('employees.id', 'contracts.employee_id'),
+                            $direction->value,
+                        );
+                    }
+                    $query->orderBy('contracts.id');
+                })
                 ->searchable(function (Builder $query, $value) {
                     $parts = array_filter(explode(' ', trim($value)));
 
@@ -192,6 +252,10 @@ class ContractsTable extends LivewireTable
                         }
                     });
                 }),
+            SelectColumn::make(trans_choice('general.program', 1), 'position.program.slug')
+                ->options(Program::orderBy('slug')->pluck('slug', 'slug')->toArray())
+                ->sortable()->searchable(),
+
             SelectColumn::make(trans_choice('general.positions', 1), 'position.'.$title)
                 ->options(Position::orderBy($title)->pluck($title, $title)->toArray())
                 ->sortable()->searchable(),
@@ -284,8 +348,8 @@ class ContractsTable extends LivewireTable
                         '<x-forms.toggle-input class="p-2 text-xl" active="'.($m->auto_renew ? 1 : 0).'" :model-id="'.$m->getKey().'" wire-event="confirmToggleAutoRenew" title="'.e(__('general.auto-renew')).'" />',
                     )
                     : '';
-                // Mirrors ContractPolicy::renew: permission (hoisted), city
-                // scope (guaranteed by query()), and the contract's own state.
+                // Mirrors ContractPolicy::renew: permission (hoisted), visibility
+                // (guaranteed by query()), and the contract's own state.
                 $isRenewable = $canCreate && $m->is_active && $m->terminated_at === null;
                 $renew = $isRenewable
                     ? Blade::render('<x-table.renew-btn :modelId="$id" />', ['id' => $m->getKey()])

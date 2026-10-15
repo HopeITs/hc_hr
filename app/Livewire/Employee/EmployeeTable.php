@@ -182,7 +182,14 @@ class EmployeeTable extends LivewireTable
 
             Column::make(trans('general.years-of-service'), 'years_of_service_formatted')->computed()->sortable(),
 
-            DateColumn::make(trans('general.join-at'), 'joined_at')->format('d-M-Y')->sortable(),
+            // dir="ltr": in the Arabic (RTL) layout the bidi algorithm otherwise
+            // reorders "01-Jan-2018" into "Jan-2018-01".
+            DateColumn::make(trans('general.join-at'), 'joined_at')
+                ->displayUsing(fn ($v, Model $m) => $m->joined_at
+                    ? '<span dir="ltr">'.$m->joined_at->format('d-M-Y').'</span>'
+                    : '—')
+                ->asHtml()
+                ->sortable(),
             SelectColumn::make(trans_choice('general.city', 1), 'city.'.transColumn('name'))
                 ->options(City::query()->whereNot('code', '000')->where('is_active', true)->get()->pluck(transColumn('name'), transColumn('name'))->toArray())
                 ->sortable()->searchable(),

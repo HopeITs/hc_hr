@@ -80,8 +80,13 @@ return [
             'recruitment-links.view',
             // General managers endorse applicants for their campaigns.
             'recruitment-applicants.view', 'recruitment-applicants.endorse',
+            // Read-only, across every city like HR-SYR: see Badge::scopeVisibleTo().
+            'badges.view',
         ],
         'manager' => [
+            // Read-only, and only their direct/technical reports' contracts:
+            // see Contract::scopeVisibleTo().
+            'contracts.view',
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
             'leaves.view-all', 'leaves.create', 'leaves.update', 'leaves.decide',
             'news.view', 'news.create', 'news.update',

@@ -99,7 +99,7 @@ class Directory extends Component
             ]);
 
             $this->baseQuery()
-                ->with(['city', 'contracts' => fn ($q) => $this->withVisiblePosition($q)])
+                ->with(['city', 'account', 'contracts' => fn ($q) => $this->withVisiblePosition($q)])
                 ->chunk(200, function ($employees) use ($handle) {
                     foreach ($employees as $employee) {
                         $position = $employee->contracts->first()?->position;
@@ -111,7 +111,7 @@ class Directory extends Component
                             $position?->center?->name,
                             $position?->city?->name ?? $employee->city?->name,
                             $employee->work_phone,
-                            $employee->personal_email,
+                            $employee->work_email,
                         ]);
                     }
                 });

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LeaveRequestStatus;
 use App\Traits\HasTranslation;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
@@ -107,6 +108,9 @@ class Employee extends Model implements HasMedia
 
     protected bool $latestActiveContractResolved = false;
 
+    /** Memoized result of isOnLeaveToday() — not a database column. */
+    protected ?bool $onLeaveTodayMemo = null;
+
     public function digitalIdUrl(): string
     {
         return route('digital-id.show', ['token' => $this->digital_id_token]);
@@ -167,6 +171,27 @@ class Employee extends Model implements HasMedia
         $this->latestActiveContractResolved = true;
 
         return $this->latestActiveContractMemo = $contract;
+    }
+
+    /**
+     * Whether an accepted leave covers today: a day leave for the whole of
+     * its dates, an hour leave only between its start and end times.
+     */
+    public function isOnLeaveToday(): bool
+    {
+        return $this->onLeaveTodayMemo ??= LeaveRequest::query()
+            ->where('status', LeaveRequestStatus::Accepted)
+            ->where(fn ($query) => $query
+                ->where(fn ($query) => $query
+                    ->where('type', 'day')
+                    ->whereDate('start_at', '<=', today())
+                    ->whereDate('end_at', '>=', today()))
+                ->orWhere(fn ($query) => $query
+                    ->where('type', 'hour')
+                    ->where('start_at', '<=', now())
+                    ->where('end_at', '>=', now())))
+            ->whereHas('leaveBalance.contract', fn ($query) => $query->where('employee_id', $this->id))
+            ->exists();
     }
 
     public function defaultDeliverItems(): Employee|HasMany
@@ -521,6 +546,16 @@ class Employee extends Model implements HasMedia
         return Attribute::get(
             fn () => "{$this->first_name} {$this->last_name}",
         );
+    }
+
+    /**
+     * The organization email — the linked account's login. Anything shown to
+     * colleagues uses this and work_phone, never personal_email/personal_phone,
+     * which stay on the HR-only private profile section.
+     */
+    protected function workEmail(): Attribute
+    {
+        return Attribute::get(fn (): ?string => $this->account?->email);
     }
 
     protected function firstName(): Attribute

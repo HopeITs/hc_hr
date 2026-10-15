@@ -30,7 +30,7 @@
     // Arabic-Indic digits into the LTR-styled English column previously
     // rendered as blank glyphs in the PDF (no visible number at all).
     $digitsAr = fn (int|float|string $n): string => $forPdf ? ar_digits((string) $n) : (string) $n;
-    $wrapLtr = fn (string $v): string => '<span >'.$v.'</span>';
+    $boldTime = fn (string $v): string => '<strong>'.$v.'</strong>';
 
     // Sunday(0)..Saturday(6) — Carbon's own day-of-week numbering, matching
     // work_day_from/to and the composer's own bilingual preview
@@ -141,8 +141,8 @@
             $rangeArRaw = $fromAr === $toAr ? $fromAr : "من {$fromAr} إلى {$toAr}";
         }
 
-        $fromTime = $wrapLtr($to12Hour($contract->work_hours_from));
-        $toTime = $wrapLtr($to12Hour($contract->work_hours_to));
+        $fromTime = $boldTime($to12Hour($contract->work_hours_from));
+        $toTime = $boldTime($to12Hour($contract->work_hours_to));
 
         $officeHoursEn = 'Standard office hours are'
             .($hasRange ? " {$rangeEn} and" : '')
@@ -158,8 +158,8 @@
             : "ساعات الدوام الرسمية هي من الساعة {$fromTime} حتى الساعة {$toTime}";
 
         if (filled($contract->work_hours_2_from) && filled($contract->work_hours_2_to)) {
-            $from2Time = $wrapLtr($to12Hour($contract->work_hours_2_from));
-            $to2Time = $wrapLtr($to12Hour($contract->work_hours_2_to));
+            $from2Time = $boldTime($to12Hour($contract->work_hours_2_from));
+            $to2Time = $boldTime($to12Hour($contract->work_hours_2_to));
 
             $officeHoursEn .= " and from {$from2Time} to {$to2Time}";
             $officeHoursArRaw .= " ومن الساعة {$from2Time} حتى الساعة {$to2Time}";

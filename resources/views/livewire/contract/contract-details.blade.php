@@ -40,9 +40,11 @@
                     {{ __('general.renew') }}
                 </x-outline-button>
             @endcan
+            @can('update', $contract)
             <x-primary-button :href="route('contracts.edit', $contract->id)" data-tour="contract-details.edit">
                 {{ __('general.edit') }}
             </x-primary-button>
+            @endcan
             <x-secondary-button :href="route('contracts.index')">
                 {{ __('general.back') }}
             </x-secondary-button>

@@ -78,6 +78,8 @@
                     'class' => $inputClass,
                 ];
                 if ($wireAttr) { $base[$wireAttr] = $model; }
+                // `placeholder` is a declared prop, so it is not in $attributes.
+                if (filled($placeholder)) { $base['placeholder'] = $placeholder; }
                 $base = array_merge($base, $aria);
             @endphp
             {{ $attributes->merge($base) }}

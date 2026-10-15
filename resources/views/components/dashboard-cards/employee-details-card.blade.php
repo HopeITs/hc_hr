@@ -21,8 +21,8 @@
 
     <div class="px-6 py-4 text-neutral-800 divide-y divide-neutral-100">
         <div class="pb-2">
-            <p class="text-small uppercase text-secondary-medium mb-1">Phone Number</p>
-            <p class="font-medium">{{ $employee?->personal_phone ?? '—' }}</p>
+            <p class="text-small uppercase text-secondary-medium mb-1">@lang('general.work-phone')</p>
+            <p class="font-medium" dir="ltr">{{ $employee?->work_phone ?: '—' }}</p>
         </div>
 
         <div class="py-2">

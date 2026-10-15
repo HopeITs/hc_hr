@@ -61,15 +61,13 @@ class Badge extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        $cityIds = $user->activeCityIds();
+        return $query->whereHas('employee', fn (Builder $employee) => static::constrainEmployees($employee, $user));
+    }
 
-        return $query->when(
-            $cityIds !== null,
-            fn (Builder $query) => $query->whereHas(
-                'employee',
-                fn (Builder $query) => $query->whereIn('city_id', $cityIds),
-            ),
-        );
+    /** Is $employee's record one whose badges the active role may handle? */
+    public static function coversEmployee(User $user, Employee $employee): bool
+    {
+        return static::constrainEmployees(Employee::query()->whereKey($employee->getKey()), $user)->exists();
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -89,5 +87,30 @@ class Badge extends Model
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Whose badges the active role reaches, permissions aside.
+     *
+     * activeCityIds() answers "every city" for any role that is not a regional
+     * HR role, so it cannot be the whole rule: a manager or employee granted
+     * badges.view in Access Management would see the entire organisation.
+     * Only the roles below are city-scoped; a manager follows the same line
+     * as Contract::scopeVisibleTo() (their direct/technical reports) and any
+     * other role reaches nobody.
+     */
+    protected static function constrainEmployees(Builder $employees, User $user): Builder
+    {
+        if ($user->activeRoleIs('HR', 'general-manager', 'super-admin')) {
+            $cityIds = $user->activeCityIds();
+
+            return $employees->when($cityIds !== null, fn (Builder $query) => $query->whereIn('city_id', $cityIds));
+        }
+
+        if ($user->activeRoleIs('manager')) {
+            return $employees->whereHas('allContracts', fn (Builder $contract) => $contract->visibleTo($user));
+        }
+
+        return $employees->whereRaw('1 = 0');
     }
 }

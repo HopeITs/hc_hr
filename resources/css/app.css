@@ -1165,3 +1165,54 @@ li:has(> ul:not(.hidden)) .nav-chevron {
         box-shadow: none;
     }
 }
+
+/* ── Frozen employee-name column ────────────────────────────────────────────
+   Same idea as .table-frozen-2, for tables whose name column is not first
+   (the employees table leads with ID and photo). Opt in with
+   .table-frozen-employee on a wrapper around the <livewire:*-table /> tag.
+
+   The column is picked by its code rather than its position: every cell the
+   vendor view renders for a column — header, search row, body, footer —
+   carries wire:key="<column code>", and that survives the viewer hiding
+   columns from the Columns dropdown, which would shift any nth-child.
+
+   Only this one column sticks, at the start edge. The columns before it
+   scroll away underneath it, so it needs no offset and the ones before it
+   need no fixed widths. Everything said above about layers, shadows and
+   backgrounds applies here unchanged. */
+.table-frozen-employee {
+    --frozen-col-employee: 13rem;
+}
+
+.table-frozen-employee table :is(th, td)[wire\:key="employee"] {
+    position: sticky;
+    z-index: 1;
+    inset-inline-start: 0;
+    width: var(--frozen-col-employee);
+    min-width: var(--frozen-col-employee);
+    max-width: var(--frozen-col-employee);
+    box-shadow: 1px 0 0 0 var(--color-neutral-200);
+}
+
+[dir="rtl"] .table-frozen-employee table :is(th, td)[wire\:key="employee"] {
+    box-shadow: -1px 0 0 0 var(--color-neutral-200);
+}
+
+.table-frozen-employee table :is(thead, tfoot) th[wire\:key="employee"] {
+    z-index: 2;
+}
+
+.table-frozen-employee table :is(th, td)[wire\:key="employee"] :is(input, select) {
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 48rem) {
+    .table-frozen-employee table :is(th, td)[wire\:key="employee"] {
+        position: static;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        box-shadow: none;
+    }
+}

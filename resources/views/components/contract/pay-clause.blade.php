@@ -46,7 +46,20 @@
 
     $rows = [];
 
-    if ((int) $contract->pay_mode === PayMode::Flexible) {
+    // The on-screen contract is read by roles that may not see pay figures
+    // (super-admin, general-manager, manager); the composer withholds them from
+    // those roles and so does this. The PDF never gets here for them -
+    // ContractPolicy::export refuses it - and a render with nobody signed in
+    // (console, export doctor) keeps the full clause.
+    // @see \App\Models\User::canViewSalary()
+    $payHidden = auth()->check() && ! auth()->user()->canViewSalary();
+
+    if ($payHidden) {
+        $rows[] = [
+            'en' => '<em>'.e(__('general.salary-hidden-title', [], 'en')).'</em>',
+            'ar' => '<em>'.e($glyphs(__('general.salary-hidden-title', [], 'ar'))).'</em>',
+        ];
+    } elseif ((int) $contract->pay_mode === PayMode::Flexible) {
         $tiers = $contract->payTiers;
 
         if ($tiers->isEmpty()) {
@@ -87,7 +100,9 @@
             $stipendAr = $glyphs('خصص الفريق الأول للفريق الثاني مكافأة وقدرها').' <strong>'.$glyphs('/ ').$amountAr.$glyphs(' /').'</strong>'.$glyphs(' عن كل جلسة، مدة الجلسة الواحدة ').$durationAr.$glyphs('.');
         } else {
             $stipendEn = 'Christian Hope Center is to give a monthly stipend of <strong>/ '.$amount.' /</strong>';
-            $stipendAr = $glyphs('خصص الفريق الأول للفريق الثاني شهرياً مكافأة وقدرها').' <strong>'.$glyphs('/ ').$amountAr.$glyphs(' /').'</strong>';
+            // The English sentence wraps to two lines on its own, so the Arabic
+            // figure goes on its own line to keep both columns the same height.
+            $stipendAr = $glyphs('خصص الفريق الأول للفريق الثاني شهرياً مكافأة وقدرها').'<br><strong>'.$glyphs('/ ').$amountAr.$glyphs(' /').'</strong>';
         }
 
         $rows[] = ['en' => $stipendEn, 'ar' => $stipendAr];

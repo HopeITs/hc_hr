@@ -93,10 +93,10 @@
     ' <strong>'.$escAr($nameAr).
     '</strong>'" />
 
-    <x-contract.dual :en="'Date and Place of Birth: <strong>' . $esc($pobEn) . ' — ' . $esc($dobStr) . '</strong>'"
+    <x-contract.dual :en="'Date and Place of Birth: <strong>' . $esc($pobEn) . ', ' . $esc($dobStr) . '</strong>'"
         :ar="$Glyphs('مكان وتاريخ الولادة:').
         ' <strong>'.$escAr($pobAr).
-        ' — '.$esc($dobStrAr).
+        '، <span dir=\'ltr\'>'.$esc($dobStrAr).'</span>'.
         '</strong>'" />
 
     <x-contract.dual rowClass="mt-3" :en="'National ID number: <strong>' . $esc($nationalId) . '</strong>'"

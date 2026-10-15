@@ -24,6 +24,12 @@ use Carbon\Carbon;
 class LeaveBalanceService
 {
     /**
+     * A new contract starting this soon after the previous one was ended early
+     * continues it — the employee moved to another position rather than left.
+     */
+    private const POSITION_CHANGE_GAP_DAYS = 7;
+
+    /**
      * Create the full set of leave balances for a brand-new contract.
      */
     public function create(Contract $contract): void
@@ -43,9 +49,9 @@ class LeaveBalanceService
         $leaveTypes = LeaveType::whereNot('base_days', 12)->get();
 
         $dailyWorkHours = $contract->work_hour_per_day;
-        $extra = $this->calculateExtraLeave($employee, $contract);
+        [$extra, $annualMonths] = $this->annualCarryOver($employee, $contract, $leaveRule);
 
-        [$yearly, $sick, $unpaid] = $this->calculateDeservedLeaves($contract->duration, $leaveRule, $dailyWorkHours, $extra);
+        [$yearly, $sick, $unpaid] = $this->calculateDeservedLeaves($contract->duration, $annualMonths, $leaveRule, $dailyWorkHours, $extra);
 
         // Annual leave
         LeaveBalance::create([
@@ -94,7 +100,7 @@ class LeaveBalanceService
             return null;
         }
 
-        // calculateExtraLeave() excludes the contract being priced by primary
+        // annualCarryOver() excludes the contract being priced by primary
         // key. An unsaved model has none, and `whereNot('id', null)` matches
         // no rows at all — which would silently drop every previous contract
         // from the carry-over check. A zero key excludes nothing instead.
@@ -105,9 +111,9 @@ class LeaveBalanceService
         }
 
         $rule = $this->getAnnualLeaveRule($employee);
-        $extra = $this->calculateExtraLeave($employee, $probe);
+        [$extra, $annualMonths] = $this->annualCarryOver($employee, $probe, $rule);
 
-        [$yearly] = $this->calculateDeservedLeaves($probe->duration, $rule, $dailyWorkHours, $extra);
+        [$yearly] = $this->calculateDeservedLeaves($probe->duration, $annualMonths, $rule, $dailyWorkHours, $extra);
 
         // Balances are stored in hours; the screen speaks in days.
         return round($yearly / $dailyWorkHours, 1);
@@ -129,9 +135,9 @@ class LeaveBalanceService
         $leaveTypes = LeaveType::whereNot('base_days', 12)->get();
 
         $dailyWorkHours = $contract->work_hour_per_day;
-        $extra = $this->calculateExtraLeave($employee, $contract);
+        [$extra, $annualMonths] = $this->annualCarryOver($employee, $contract, $leaveRule);
 
-        [$yearly, $sick, $unpaid] = $this->calculateDeservedLeaves($contract->duration, $leaveRule, $dailyWorkHours, $extra);
+        [$yearly, $sick, $unpaid] = $this->calculateDeservedLeaves($contract->duration, $annualMonths, $leaveRule, $dailyWorkHours, $extra);
 
         // Annual
         $contract->leaveBalances->where('type_id', LeaveTypeCases::Annual)->first()?->update(['deserved' => $yearly]);
@@ -176,65 +182,93 @@ class LeaveBalanceService
             ?? AnnualLeaveRule::first();
     }
 
-    private function calculateExtraLeave($employee, $contract): float
+    /**
+     * How a contract's annual leave continues from the contract before it in
+     * the same calendar year (leave never rolls over from an earlier year),
+     * as [carried-over hours, months still to price on this contract].
+     *
+     * An employee moved to another position keeps their place in the year:
+     * the old contract was priced up to its own end, so its unused balance
+     * moves across whole and only the months past that end are priced again.
+     * A trial followed by its annual contract carries its unused balance too.
+     * Someone who left and came back later only brings what they earned.
+     */
+    private function annualCarryOver($employee, $contract, AnnualLeaveRule $rule): array
     {
-        $extra = 0;
+        $months = $contract->duration;
 
-        if ($employee->allContracts->count() <= 3 && $employee->allContracts->count() > 1) {
-            // The contract that actually precedes this one. Ordering by
-            // end_date alone would pick the *latest* contract even when it
-            // starts after this one, which made two consecutive contracts
-            // carry leave over from each other and inflate on every
-            // recalculation.
-            $prevContract = $employee->allContracts()
-                ->whereNot('id', $contract->id)
-                ->where('end_date', '<=', $contract->start_date)
-                ->with([
-                    'leaveBalances' => fn ($q) => $q->where('type_id', LeaveTypeCases::Annual),
-                    'contractType',
-                ])
-                ->orderBy('end_date', 'desc')
-                ->first();
-
-            if (! $prevContract || $prevContract->contractType->category !== 'trial') {
-                return $extra;
-            }
-
-            if ($prevContract->end_date->year !== $contract->start_date->year) {
-                return $extra;
-            }
-
-            $prevBalance = $prevContract->leaveBalances[0] ?? null;
-            if (! $prevBalance) {
-                return $extra;
-            }
-
-            if ($prevContract->start_date->year === $prevContract->end_date->year) {
-                return $prevBalance->deserved - $prevBalance->used;
-            }
-
-            $startOfYear = Carbon::create($contract->start_date->year, 1, 1);
-            $endOfPrev = $prevContract->end_date;
-
-            if ($endOfPrev > $startOfYear) {
-                $monthsInNewYear = round($startOfYear->diffInMonths($endOfPrev));
-                $remain = $prevBalance->deserved - $prevBalance->used;
-                $extra = $remain >= $monthsInNewYear ? $monthsInNewYear * $contract->work_hour_per_day : $remain;
-            }
+        if ($employee->allContracts->count() < 2) {
+            return [0, $months];
         }
 
-        return $extra;
+        // The contract that actually precedes this one. Ordering by end_date
+        // alone would pick the *latest* contract even when it starts after
+        // this one, which made two consecutive contracts carry leave over from
+        // each other and inflate on every recalculation. A contract terminated
+        // early ends on terminated_at — its end_date can lie well after the
+        // successor's start (a position change mid-contract).
+        $prevContract = $employee->allContracts()
+            ->whereNot('id', $contract->id)
+            ->whereRaw('COALESCE(terminated_at, end_date) <= ?', [$contract->start_date])
+            ->with([
+                'leaveBalances' => fn ($q) => $q->where('type_id', LeaveTypeCases::Annual),
+                'contractType',
+            ])
+            ->orderByRaw('COALESCE(terminated_at, end_date) desc')
+            ->first();
+
+        if (! $prevContract || $this->isExemptFromLeave($prevContract)) {
+            return [0, $months];
+        }
+
+        $prevEnd = $prevContract->terminated_at ?? $prevContract->end_date;
+
+        if ($prevEnd->year !== $contract->start_date->year) {
+            return [0, $months];
+        }
+
+        $prevBalance = $prevContract->leaveBalances->first();
+        $prevDailyHours = $prevContract->work_hour_per_day;
+
+        if (! $prevBalance || $prevDailyHours < 1) {
+            return [0, $months];
+        }
+
+        $endedEarly = $prevContract->terminated_at && $prevContract->terminated_at < $prevContract->end_date;
+        $forfeitedDays = 0;
+
+        if ($endedEarly && $prevContract->terminated_at->diffInDays($contract->start_date) <= self::POSITION_CHANGE_GAP_DAYS) {
+            $pricedUntil = $prevContract->end_date->max($contract->start_date);
+
+            $months = $pricedUntil < $contract->end_date
+                ? round($pricedUntil->diffInMonths($contract->end_date), 1)
+                : 0;
+        } elseif ($endedEarly) {
+            // The previous balance was priced for its full term up front; the
+            // months after the employee left were never worked.
+            $forfeitedDays = round($prevContract->terminated_at->diffInMonths($prevContract->end_date) * $rule->day_per_month);
+        }
+
+        // Balances are stored in hours of each contract's own working day.
+        $remainDays = max(0, ($prevBalance->deserved - $prevBalance->used) / $prevDailyHours - $forfeitedDays);
+
+        // A previous contract that spans the new year only carries over what
+        // was earned in this year.
+        if ($prevContract->start_date->year !== $prevEnd->year) {
+            $monthsInYear = round(Carbon::create($prevEnd->year, 1, 1)->diffInMonths($prevEnd));
+            $remainDays = min($remainDays, $monthsInYear * $rule->day_per_month);
+        }
+
+        return [$remainDays * $contract->work_hour_per_day, $months];
     }
 
-    private function calculateDeservedLeaves($duration, $rule, $dailyWorkHours, $extra): array
+    private function calculateDeservedLeaves($duration, $annualMonths, $rule, $dailyWorkHours, $extra): array
     {
-        if ($duration < 12) {
-            $yearly = (round($duration * $rule->day_per_month) * $dailyWorkHours) + $extra;
-            $sick = $unpaid = $duration * $dailyWorkHours;
-        } else {
-            $yearly = ($rule->days * $dailyWorkHours) + $extra;
-            $sick = $unpaid = 12 * $dailyWorkHours;
-        }
+        $yearly = $annualMonths < 12
+            ? (round($annualMonths * $rule->day_per_month) * $dailyWorkHours) + $extra
+            : ($rule->days * $dailyWorkHours) + $extra;
+
+        $sick = $unpaid = min($duration, 12) * $dailyWorkHours;
 
         return [$yearly, $sick, $unpaid];
     }

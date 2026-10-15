@@ -122,7 +122,8 @@ class EmployeeEdit extends Component
         $this->persist('infoForm', function () {
             $this->infoForm->saveInformation();
             $employee = $this->infoForm->employee;
-            if ($employee->wasChanged('gender') || $employee->wasChanged('marital_status')) {
+            // joined_at drives seniority, and with it the annual-leave rule.
+            if ($employee->wasChanged(['gender', 'marital_status', 'joined_at'])) {
                 if ($employee->contracts()->exists()) {
                     $contract = $employee->contracts()->whereHas('leaveBalances')->first();
                     if (isset($contract)) {

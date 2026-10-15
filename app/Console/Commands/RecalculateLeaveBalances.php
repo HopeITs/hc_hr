@@ -40,7 +40,9 @@ class RecalculateLeaveBalances extends Command
             $query->where('is_active', true);
         }
 
-        $contracts = $query->orderBy('id')->get();
+        // Carry-over reads the preceding contract's annual balance, so each
+        // employee's contracts must be reconciled oldest first.
+        $contracts = $query->orderBy('employee_id')->orderBy('start_date')->orderBy('id')->get();
 
         if ($contracts->isEmpty()) {
             $this->info('No contracts matched. Nothing to do.');

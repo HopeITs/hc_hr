@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Employee;
 
+use App\Models\Badge;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -26,6 +28,11 @@ class EmployeeProfile extends Component
 
     #[Locked]
     public bool $canViewBadges = false;
+
+    // Contracts, education, experience, skills, courses and badges. Hidden from
+    // the employee role on every profile, their own included.
+    #[Locked]
+    public bool $canViewRecords = false;
 
     public function mount(?Employee $employee = null): void
     {
@@ -49,7 +56,13 @@ class EmployeeProfile extends Component
         // the one thing that must not come with that. See User::canViewSalary.
         $this->canViewFinancial = $isHrInScope && $user->canViewSalary();
         $this->canEdit = $isHrInScope || $isManagement;
-        $this->canViewBadges = $this->isSelf || $isHrInScope;
+        $this->canViewRecords = ! $user->activeRoleIs('employee');
+        // Same rule as the Badges page and the dashboard card, through
+        // Badge::scopeVisibleTo(): regional HR its own city, HR-SYR and
+        // general-manager every city, a manager granted badges.view their
+        // reports. Being the profile's owner grants nothing by itself.
+        $this->canViewBadges = $this->canViewRecords
+            && Gate::forUser($user)->allows('viewForEmployee', [Badge::class, $this->employee]);
     }
 
     public function render()
@@ -66,11 +79,15 @@ class EmployeeProfile extends Component
 
         $relations = [
             'account',
-            'educations',
-            'experiences',
-            'courses.category',
+            // Without the history the header and summary still need the
+            // current contract, so only that one is loaded.
             'allContracts' => fn ($query) => $query
                 ->select($contractColumns)
+                ->unless($this->canViewRecords, fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereNull('terminated_at')
+                    ->whereDate('start_date', '<=', today())
+                    ->whereDate('end_date', '>=', today()))
                 ->with([
                     'contractType',
                     'terminationReason',
@@ -83,6 +100,10 @@ class EmployeeProfile extends Component
                 ])
                 ->latest('start_date'),
         ];
+
+        if ($this->canViewRecords) {
+            array_push($relations, 'educations', 'experiences', 'courses.category');
+        }
 
         if ($this->canViewBadges) {
             $relations['badges'] = fn ($query) => $query
@@ -110,13 +131,15 @@ class EmployeeProfile extends Component
             'contracts' => $contracts,
             'currentContract' => $currentContract,
             'currentPosition' => $currentPosition,
+            'isOnLeave' => $employee->is_active && $employee->isOnLeaveToday(),
             'directManager' => $currentPosition?->directManager?->activeContracts?->first()?->employee,
-            'skills' => $this->parseTags($employee->skills),
-            'interests' => $this->parseTags($employee->interests),
+            'skills' => $this->canViewRecords ? $this->parseTags($employee->skills) : [],
+            'interests' => $this->canViewRecords ? $this->parseTags($employee->interests) : [],
             'canViewPrivate' => $this->canViewPrivate,
             'canViewFinancial' => $this->canViewFinancial,
             'canEdit' => $this->canEdit,
             'canViewBadges' => $this->canViewBadges,
+            'canViewRecords' => $this->canViewRecords,
         ]);
     }
 

@@ -69,6 +69,13 @@ class PersonalInfoForm extends Form
     #[Validate('nullable|date')]
     public $actual_dob;
 
+    /**
+     * Organisational joining date. Optional: when blank, seniority falls back
+     * to the earliest contract's start (see Employee::serviceStartDate()).
+     */
+    #[Validate('nullable|date')]
+    public $joined_at;
+
     #[Validate('required|in:1,2')]
     public $gender;
 
@@ -224,6 +231,7 @@ class PersonalInfoForm extends Form
         $this->tech_manager_id = $employee->tech_manager_id;
         $this->actual_dob = $employee->actual_dob?->format('Y-m-d');
         $this->dob = $employee->dob?->format('Y-m-d');
+        $this->joined_at = $employee->joined_at?->format('Y-m-d');
         $this->gender = $employee->gender;
         $this->marital_status = $employee->marital_status;
         $this->children = $employee->children;
@@ -349,6 +357,9 @@ class PersonalInfoForm extends Form
                 ? trim(en_digits($this->{$field}))
                 : null;
         }
+
+        // A cleared native date input sends '', which MySQL rejects for a date column.
+        $this->joined_at = filled($this->joined_at) ? $this->joined_at : null;
     }
 
     private function isSyrianNationality(): bool

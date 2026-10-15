@@ -140,6 +140,44 @@ class Contract extends Model
     }
 
     /**
+     * The contracts $user's active role may see. The single source of truth for
+     * contract visibility: ContractsTable lists through it and ContractPolicy
+     * checks single records through it, so a direct URL can never reach a
+     * contract the list would not show.
+     *
+     * - manager: contracts on positions they manage, directly or technically.
+     *   "Their" positions are the ones on their own currently active contracts,
+     *   so someone who has left a managerial post stops seeing that team.
+     * - regional HR: contracts of employees in the role's cities.
+     * - everyone else (HR-SYR, general-manager, super-admin): every contract.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->activeRoleIs('manager')) {
+            $managedPositionIds = $user->employee_id
+                ? static::query()->activeNow()->where('employee_id', $user->employee_id)->pluck('position_id')->all()
+                : [];
+
+            if ($managedPositionIds === []) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereHas('position', fn (Builder $position): Builder => $position->where(
+                fn (Builder $line): Builder => $line
+                    ->whereIn('direct_manager_id', $managedPositionIds)
+                    ->orWhereIn('tech_manager_id', $managedPositionIds),
+            ));
+        }
+
+        $cityIds = $user->activeCityIds();
+
+        return $query->when(
+            $cityIds !== null,
+            fn (Builder $q): Builder => $q->whereHas('employee', fn (Builder $e): Builder => $e->whereIn('city_id', $cityIds)),
+        );
+    }
+
+    /**
      * Restrict the query to exactly one contract per employee: the most recent
      * one by start_date, ties broken by the higher id.
      *

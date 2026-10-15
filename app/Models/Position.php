@@ -245,6 +245,25 @@ class Position extends Model
             : $this->{$relation}()->exists();
     }
 
+    /**
+     * Number of people seated in the given positions: the distinct employees on
+     * their active contracts. Drives the "direct reports" counts, which must count
+     * people rather than positions — one position can seat several employees, so
+     * a position count under-reported every shared role. Relies on activeContracts
+     * being eager-loaded (cardRelations()).
+     *
+     * @param  iterable<int, self>  $positions
+     */
+    public static function headcount(iterable $positions): int
+    {
+        return collect($positions)
+            ->filter(fn (self $position) => $position->is_active)
+            ->flatMap(fn (self $position) => $position->activeContracts)
+            ->pluck('employee_id')
+            ->unique()
+            ->count();
+    }
+
     public function inc(): void
     {
         $this->increment('exist_emp');

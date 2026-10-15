@@ -291,9 +291,11 @@ class ContractAutoRenewalWorkflowTest extends TestCase
 
         $contract = $contract->fresh();
         $payload = $this->composerPayload($fixtures, $contract, ['autoRenew' => false]);
-        $manager = $this->makeUser($fixtures['city'], 'manager', ['contracts.update', 'contracts.view']);
+        // Sees and edits every contract, but is not HR. (A manager no longer
+        // fits here: they only reach their own reports' contracts at all.)
+        $generalManager = $this->makeUser($fixtures['city'], 'general-manager', ['contracts.update', 'contracts.view']);
 
-        Livewire::actingAs($manager)
+        Livewire::actingAs($generalManager)
             ->test(ContractEdit::class, ['contract' => $contract])
             ->call('submit', $payload)
             ->assertStatus(403);

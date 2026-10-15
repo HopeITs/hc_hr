@@ -9,19 +9,19 @@ class ContractPolicy
 {
     public function view(User $user, Contract $contract): bool
     {
-        return $user->hasActivePermission('contracts.view') && $this->isInActiveCity($user, $contract);
+        return $user->hasActivePermission('contracts.view') && $this->isVisibleTo($user, $contract);
     }
 
     public function update(User $user, Contract $contract): bool
     {
-        return $user->hasActivePermission('contracts.update') && $this->isInActiveCity($user, $contract);
+        return $user->hasActivePermission('contracts.update') && $this->isVisibleTo($user, $contract);
     }
 
     public function manageAutoRenew(User $user, Contract $contract): bool
     {
         return $user->activeRoleIs('HR')
             && $user->hasActivePermission('contracts.update')
-            && $this->isInActiveCity($user, $contract);
+            && $this->isVisibleTo($user, $contract);
     }
 
     /**
@@ -35,12 +35,12 @@ class ContractPolicy
         return $user->hasActivePermission('contracts.create')
             && $contract->is_active
             && $contract->terminated_at === null
-            && $this->isInActiveCity($user, $contract);
+            && $this->isVisibleTo($user, $contract);
     }
 
     public function delete(User $user, Contract $contract): bool
     {
-        return $user->hasActivePermission('contracts.delete') && $this->isInActiveCity($user, $contract);
+        return $user->hasActivePermission('contracts.delete') && $this->isVisibleTo($user, $contract);
     }
 
     /**
@@ -56,19 +56,18 @@ class ContractPolicy
     {
         return $user->hasActivePermission('contracts.export')
             && $user->canViewSalary()
-            && $this->isInActiveCity($user, $contract);
+            && $this->isVisibleTo($user, $contract);
     }
 
-    private function isInActiveCity(User $user, Contract $contract): bool
+    /**
+     * Every ability starts from visibility: a role may only act on contracts it
+     * can see, through the same scope ContractsTable lists with — city for
+     * regional HR, direct/technical reports for a manager.
+     *
+     * @see Contract::scopeVisibleTo()
+     */
+    private function isVisibleTo(User $user, Contract $contract): bool
     {
-        $activeCityIds = $user->activeCityIds();
-
-        if ($activeCityIds === null) {
-            return true;
-        }
-
-        return $contract->employee()
-            ->whereIn('city_id', $activeCityIds)
-            ->exists();
+        return Contract::query()->whereKey($contract->getKey())->visibleTo($user)->exists();
     }
 }

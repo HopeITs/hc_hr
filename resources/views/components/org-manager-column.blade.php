@@ -37,7 +37,7 @@
                     class="mt-2 flex w-full items-center justify-between gap-2 rounded-[0.5cqw] bg-neutral-100 px-2 py-2 text-caption font-bold text-secondary-medium transition hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                     :aria-expanded="open"
                     :title="open ? @js(__('general.collapse')) : @js(__('general.expand'))">
-                <span>{{ $team->count() }} @lang('general.direct-reports')</span>
+                <span>{{ \App\Models\Position::headcount($team) }} @lang('general.direct-reports')</span>
                 <svg class="size-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>

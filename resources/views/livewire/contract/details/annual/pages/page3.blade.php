@@ -21,8 +21,8 @@
         :ar="$Glyphs('يحق للفريق الثاني ') . '<strong>' . $Digits($annualLeaveDays) . '</strong>' . $Glyphs(' يوم إجازة سنوية خلال فترة سريان العقد، وتكون متناسبة مع مدة العقد.')" />
 
     <x-contract.dual class="mt-1" 
-        :en="'The second team is entitled to 24 days of sick leave in cases of operations and infectious diseases, 12 days paid and 12 days paid at half the value of the monthly stipend, provided that a medical report is submitted to justify the leave.'" 
-        :ar="$Glyphs('يحق للفريق الثاني 24 يوم إجازة مرضية عند الضرورة فقط، أي في حالات العمليات والأمراض المُعديَة، 12 يوم مدفوع و12 يوم مدفوع بنصف قيمة المكافأة المالية الشهرية وذلك بشرط تقديم تقرير طبي لتبرير الإجازة.')" />
+        :en="'The second team is entitled to <strong>24</strong> days of sick leave in cases of operations and infectious diseases, <strong>12</strong> days paid and <strong>12</strong> days paid at half the value of the monthly stipend, provided that a medical report is submitted to justify the leave.'"
+        :ar="$Glyphs('يحق للفريق الثاني <strong>24</strong> يوم إجازة مرضية عند الضرورة فقط، أي في حالات العمليات والأمراض المُعديَة، <strong>12</strong> يوم مدفوع و<strong>12</strong> يوم مدفوع بنصف قيمة المكافأة المالية الشهرية وذلك بشرط تقديم تقرير طبي لتبرير الإجازة.')" />
 
     <x-contract.dual class="mt-1" 
         :en="'- In case the second team consumes all annual and sickness leave days, they will be given 12 days of leave with the deduction of the number of leave days from the monthly stipend allowance.'" 

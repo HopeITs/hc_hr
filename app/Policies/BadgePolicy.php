@@ -18,6 +18,12 @@ class BadgePolicy
         return $this->canAccessEmployee($user, $badge->employee, 'badges.view');
     }
 
+    /** May the user see $employee's badges at all, e.g. the card on their profile? */
+    public function viewForEmployee(User $user, Employee $employee): bool
+    {
+        return $this->canAccessEmployee($user, $employee, 'badges.view');
+    }
+
     public function create(User $user, Employee $employee): bool
     {
         return $this->canAccessEmployee($user, $employee, 'badges.create');
@@ -34,6 +40,6 @@ class BadgePolicy
             return false;
         }
 
-        return $user->canAccessCity($employee->city_id);
+        return Badge::coversEmployee($user, $employee);
     }
 }
