@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestMode;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Position;
 use App\Models\RecruitmentRequest;
 use App\Models\User;
@@ -12,7 +13,6 @@ use App\Services\RecruitmentRequestDraftService;
 use App\Services\RecruitmentScopeResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 
 /**
@@ -25,6 +25,8 @@ use Livewire\Attributes\Locked;
  */
 class Edit extends Create
 {
+    use WithFeedback;
+
     #[Locked]
     public int $requestId;
 
@@ -179,21 +181,5 @@ class Edit extends Create
         Gate::authorize('update', $request);
 
         return $request;
-    }
-
-    /**
-     * Say what happened, the way the rest of the application says it.
-     *
-     * A toast rather than a coloured panel: a red or green block across a form
-     * reads as part of the form rather than as a remark about it.
-     */
-    private function toast(string $message, bool $success = true): void
-    {
-        $alert = LivewireAlert::title($message);
-
-        ($success ? $alert->success() : $alert->error())
-            ->toast()
-            ->position('top-start')
-            ->show();
     }
 }

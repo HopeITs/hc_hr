@@ -79,7 +79,7 @@
                         ])
                         @if($column->isClickable() && ! $this->isReordering())
                             @if(($link = $this->link($item)) !== null)
-                                x-on:click.prevent="window.location.href = '{{ $link }}'"
+                                x-on:click.prevent="Livewire.navigate('{{ $link }}')"
                             @elseif(method_exists($this, 'rowClickAction') && ($rowClick = $this->rowClickAction($item)) !== null)
                                 x-on:click.prevent="{{ $rowClick }}"
                             @elseif($this->canSelect())

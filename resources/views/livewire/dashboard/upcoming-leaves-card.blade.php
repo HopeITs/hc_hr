@@ -50,7 +50,7 @@
 
     @if($upcomingLeaves->count() > 3 && auth()->user()->hasActivePermission('leaves.view-all'))
         <div class="flex shrink-0 justify-center bg-white px-6 pb-2">
-            <a href="{{ route('leaves.all') }}" class="inline-flex min-h-11 items-center justify-center gap-1 rounded-control px-3 text-small font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <a href="{{ route('leaves.all') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center gap-1 rounded-control px-3 text-small font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 {{ __('general.view-all') }}<span aria-hidden="true" class="rtl:rotate-180">→</span>
             </a>
         </div>

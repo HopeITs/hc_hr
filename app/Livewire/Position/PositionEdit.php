@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Position;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\PositionForm;
 use App\Livewire\Position\Concerns\ResolvesPositionFormOptions;
 use App\Models\City;
@@ -9,14 +10,13 @@ use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class PositionEdit extends Component
 {
     use ResolvesPositionFormOptions;
-    use WithAlerts;
+    use WithFeedback;
 
     public PositionForm $form;
 
@@ -54,7 +54,7 @@ class PositionEdit extends Component
     {
         Gate::authorize('update', $this->position);
         $this->form->update();
-        $this->successToast(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('positions.index');
     }

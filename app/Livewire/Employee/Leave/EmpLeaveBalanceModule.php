@@ -3,15 +3,16 @@
 namespace App\Livewire\Employee\Leave;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\LeaveBalance;
 use Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class EmpLeaveBalanceModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public LeaveBalance $leaveBalance;
 
@@ -45,13 +46,7 @@ class EmpLeaveBalanceModule extends Component
     {
         $html = $this->confirmationMessage();
 
-        LivewireAlert::title(__('general.confirmation'))
-            ->timer(null)
-            ->question()
-            ->html($html)
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('processSave')
-            ->withCancelButton(__('general.cancel'))->show();
+        $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: __('general.save'), danger: false);
 
     }
 
@@ -64,11 +59,7 @@ class EmpLeaveBalanceModule extends Component
         $this->showModal = false;
         $this->form->reset();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
     }
 

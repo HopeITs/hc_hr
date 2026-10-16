@@ -114,7 +114,7 @@ function insideFixed(el) {
 }
 
 // The app layout shows a full-screen loading animation above everything
-// (z-index 9999) for at least 1.5s on each page load and wire:navigate.
+// (z-index 9999) for ~0.5s on each page load and wire:navigate.
 function preloaderGone() {
     const overlay = document.getElementById('page-gif-overlay');
     return !overlay || overlay.style.display === 'none' || overlay.style.opacity === '0';

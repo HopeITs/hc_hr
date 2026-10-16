@@ -184,6 +184,7 @@
                                 : ($cardType === 'center'
                                     ? route('centers.show', $card['center_id'])
                                     : '#') }}"
+                       @if (in_array($cardType, ['program', 'center'], true)) wire:navigate @endif
                        data-tour="contract-stats.show-more"
                        class="text-small flex justify-end  text-primary hover:underline">
                         @lang('general.show-more') →

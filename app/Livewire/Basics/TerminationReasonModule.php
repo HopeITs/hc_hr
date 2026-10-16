@@ -3,13 +3,14 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\TerminationReason;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class TerminationReasonModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -74,8 +75,7 @@ class TerminationReasonModule extends Component
 
         $this->dispatch('refreshTerminationReasonTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
     }
 
     protected function rules(): array

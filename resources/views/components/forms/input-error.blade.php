@@ -29,6 +29,8 @@
         --}}
         <p id="{{ $errorId }}"
            role="alert"
+           data-inline-error
+           data-error-for="{{ $field }}"
            {{ $attributes->merge(['class' => $baseClass]) }}>
             <span class="sr-only">{{ __('general.a11y.error-prefix') }}</span>
             {{ $message }}

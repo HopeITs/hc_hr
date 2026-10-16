@@ -88,27 +88,20 @@ class RecruitmentSubmitRefusalTest extends TestCase
         $this->assertSame('error', $this->toastIcon($screen));
     }
 
-    /**
-     * The toast ships as a Livewire `js` effect rather than an event, so what it
-     * says has to be read back out of the emitted script.
-     */
-    private function toastScript($screen): string
+    /** The last toast the request sent (WithFeedback dispatches it as a `toast` event). */
+    private function toast($screen): array
     {
-        return collect($screen->effects['xjs'] ?? [])->pluck('expression')->implode("\n");
+        return collect($screen->effects['dispatches'] ?? [])->where('name', 'toast')->last()['params'] ?? [];
     }
 
     private function toastText($screen): string
     {
-        preg_match('/"title":"(.*?)"/', $this->toastScript($screen), $matches);
-
-        return $matches[1] ?? '';
+        return $this->toast($screen)['message'] ?? '';
     }
 
     private function toastIcon($screen): ?string
     {
-        preg_match('/"icon":"(\w+)"/', $this->toastScript($screen), $matches);
-
-        return $matches[1] ?? null;
+        return $this->toast($screen)['type'] ?? null;
     }
 
     /**

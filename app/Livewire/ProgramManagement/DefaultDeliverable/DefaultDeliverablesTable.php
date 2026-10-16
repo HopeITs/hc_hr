@@ -4,6 +4,7 @@ namespace App\Livewire\ProgramManagement\DefaultDeliverable;
 
 use App\Exports\DefaultDeliverableExport;
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ChecklistItem;
 use App\Models\City;
 use App\Models\DefaultDeliverable as DefaultDeliverableModel;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class DefaultDeliverablesTable extends LivewireTable
 {
     use ScopesToAuthorizedCity;
+    use WithFeedback;
 
     protected string $model = DefaultDeliverableModel::class;
 
@@ -33,13 +34,7 @@ class DefaultDeliverablesTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
@@ -52,8 +47,7 @@ class DefaultDeliverablesTable extends LivewireTable
 
         $model->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         $this->dispatch('refreshDefaultDeliverablesTable');
     }

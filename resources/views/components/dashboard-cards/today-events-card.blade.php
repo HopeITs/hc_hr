@@ -75,7 +75,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <script nonce="{{ Vite::cspNonce() }}" src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script nonce="{{ Vite::cspNonce() }}">
-        document.addEventListener("DOMContentLoaded", () => {
+        // Runs on a normal load and again when wire:navigate swaps this page in,
+        // where DOMContentLoaded has already fired and would never call back.
+        (() => {
+        const init = () => {
+            // After wire:navigate the bundle above may still be downloading.
+            if (!window.Swiper) {
+                document.querySelector('script[src*="swiper-bundle"]')?.addEventListener('load', init, { once: true });
+                return;
+            }
+
             new Swiper(".js-today-events .swiper", {
                 slidesPerView: 1,
                 loop: true,
@@ -88,7 +97,14 @@
                     clickable: true
                 },
             });
-        });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+        })();
     </script>
 
     <style>

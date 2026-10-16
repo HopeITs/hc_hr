@@ -84,4 +84,6 @@ function initSalaryTypeScatter() {
 }
 
 document.addEventListener("DOMContentLoaded", initSalaryTypeScatter);
+// DOMContentLoaded fires once; pages swapped in by wire:navigate need their own pass.
+document.addEventListener("livewire:navigated", initSalaryTypeScatter);
 window.Livewire?.hook("message.processed", initSalaryTypeScatter);

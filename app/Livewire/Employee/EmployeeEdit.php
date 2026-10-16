@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\AttachmentForm;
 use App\Livewire\Forms\Employee\BadgeForm;
 use App\Livewire\Forms\Employee\ChecklistForm;
@@ -18,7 +19,6 @@ use App\Models\City;
 use App\Models\DefaultDeliverable;
 use App\Models\Employee;
 use App\Services\ChecklistWorkflow;
-use App\Traits\WithAlerts;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
@@ -29,7 +29,7 @@ use Livewire\WithFileUploads;
 
 class EmployeeEdit extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use WithFeedback, WithFileUploads;
 
     public ?Employee $employee = null;
 
@@ -184,6 +184,7 @@ class EmployeeEdit extends Component
     {
         $this->attachmentForm->removeAttachment($index, $id);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function addEducation()
@@ -195,6 +196,7 @@ class EmployeeEdit extends Component
     {
         $this->educationForm->removeEducation($index, $id);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function addCourse()
@@ -206,6 +208,7 @@ class EmployeeEdit extends Component
     {
         $this->courseForm->remove($index, $id);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function addExperience()
@@ -217,6 +220,7 @@ class EmployeeEdit extends Component
     {
         $this->experienceForm->removeExperience($index, $id);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function addRelative()
@@ -228,6 +232,7 @@ class EmployeeEdit extends Component
     {
         $this->relativeForm->removeRelative($index, $id);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function addBadge()
@@ -239,8 +244,10 @@ class EmployeeEdit extends Component
     public function removeBadge(int $index)
     {
         Gate::authorize('create', [Badge::class, $this->employee]);
+        $id = $this->badgeForm->badges[$index]['id'] ?? null;
         $this->badgeForm->removeBadge($index);
         $this->resetErrorBag();
+        $this->toastIfSaved($id);
     }
 
     public function openInitiateReturnModal(int $checklistId)
@@ -272,7 +279,7 @@ class EmployeeEdit extends Component
                 receiverId: (int) $this->return_receiver_id,
             );
 
-            $this->successToast('Return process initiated.');
+            $this->toast(__('general.return-process-initiated'));
             $this->showInitiateReturnModal = false;
             $this->selectedChecklistForReturn = null;
         }
@@ -290,7 +297,7 @@ class EmployeeEdit extends Component
 
         app(ChecklistWorkflow::class)->finalizeReturn($checklistId, $this->employee);
 
-        $this->successToast('Checklist fully reset.');
+        $this->toast(__('general.checklist-fully-reset'));
 
         $this->checklistForm->setEmployeeAndAllItems(
             $this->employee->fresh(),
@@ -337,6 +344,17 @@ class EmployeeEdit extends Component
     }
 
     /**
+     * A saved row is deleted from the database on the spot, so it gets the
+     * same toast as any other delete; a row only added on screen does not.
+     */
+    private function toastIfSaved(mixed $id): void
+    {
+        if (filled($id)) {
+            $this->toast();
+        }
+    }
+
+    /**
      * Run a tab's save, then report what actually happened.
      *
      * Eloquent fires created/updated/deleted only when a row is really
@@ -364,7 +382,7 @@ class EmployeeEdit extends Component
         // Re-arms the save button's dirty gate against the freshly saved state.
         $this->dispatch('form-saved', form: $form);
 
-        $wrote ? $this->successToast() : $this->infoToast();
+        $wrote ? $this->toast() : $this->toast(__('general.no-changes-message'), type: 'info');
     }
 
     private function getChecklistItems(): Collection

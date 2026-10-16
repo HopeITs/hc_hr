@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Recruitment\Applicants;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplication;
@@ -15,7 +16,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -35,6 +35,8 @@ use Livewire\Component;
  */
 class Show extends Component
 {
+    use WithFeedback;
+
     #[Locked]
     public int $applicantId;
 
@@ -460,15 +462,5 @@ class Show extends Component
         $this->addError('statusReason', __('recruitment-applicant.decisions.internal_note_required'));
 
         return false;
-    }
-
-    /** Uses the application-wide SweetAlert toast instead of moving page content. */
-    private function toast(string $message): void
-    {
-        LivewireAlert::title($message)
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
     }
 }

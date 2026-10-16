@@ -2,14 +2,14 @@
 
 namespace App\Livewire\ProgramManagement\Program;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ProgramManagement\ProgramForm;
-use App\Traits\WithAlerts;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class Create extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use WithFeedback, WithFileUploads;
 
     public ProgramForm $form;
 
@@ -18,7 +18,7 @@ class Create extends Component
     public function save()
     {
         $this->form->store();
-        $this->successToast(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('programs.index');
     }

@@ -4,18 +4,19 @@ namespace App\Livewire\ProgramManagement\DefaultDeliverable;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ChecklistItem;
 use App\Models\City;
 use App\Models\DefaultDeliverable as DefaultDeliverableModel;
 use App\Models\Employee;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class DefaultDeliverablesModule extends Component
 {
     use AuthorizesActivePermissions, ScopesToAuthorizedCity;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -139,11 +140,7 @@ class DefaultDeliverablesModule extends Component
         $this->dispatch('closeModal');
         $this->dispatch('refreshDefaultDeliverablesTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
     }
 
     protected function rules()

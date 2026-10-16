@@ -71,7 +71,7 @@
 
                     <div class="mt-4 flex min-w-0 flex-row flex-wrap gap-2 sm:gap-3" data-tour="profile.actions">
                         @if ($canEdit)
-                            <a href="{{ route('employees.edit', $employee) }}" title="{{ __('general.edit') }}"
+                            <a href="{{ route('employees.edit', $employee) }}" wire:navigate title="{{ __('general.edit') }}"
                                 class="inline-flex h-9 w-9 max-w-full items-center justify-center gap-2 rounded-surface bg-primary p-0 text-body font-bold text-white shadow-e1 transition hover:brightness-90 min-[701px]:h-auto min-[701px]:w-auto min-[701px]:rounded-surface min-[701px]:px-3 min-[701px]:py-2 min-[900px]:px-4 min-[900px]:py-2">
                                 <x-icons.edit class="h-3.5 w-3.5 min-[701px]:h-4 min-[701px]:w-4" /> <span class="hidden min-[701px]:inline">@lang('general.edit')</span>
                             </a>

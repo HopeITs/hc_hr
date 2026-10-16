@@ -2,18 +2,20 @@
 
 namespace App\Livewire\News;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\News;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Enums\Direction;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class NewsTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = News::class;
 
     protected $listeners = ['delete', 'refreshNewsTable' => '$refresh'];
@@ -23,13 +25,7 @@ class NewsTable extends LivewireTable
         $news = News::findOrFail($id);
         abort_unless($this->canManageNews($news), 403);
 
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
@@ -38,7 +34,7 @@ class NewsTable extends LivewireTable
         abort_unless($this->canManageNews($news), 403);
 
         $news->delete();
-        LivewireAlert::title(__('general.success-message'))->success()->toast()->position('top-start')->show();
+        $this->toast();
         $this->dispatch('refreshNewsTable');
     }
 

@@ -327,15 +327,6 @@ select.public-career-select option:checked {
     color: var(--color-secondary-dark);
 }
 
-div:where(.swal2-icon).swal2-question {
-    border-color: var(--color-primary) !important;
-    color: var(--color-primary) !important;
-}
-
-div:where(.swal2-container) button:where(.swal2-styled):where(.swal2-confirm) {
-    background-color: var(--color-primary) !important;
-}
-
 @layer components {
     /* Recruitment labels stay aligned even when their text changes by status
        or locale. The width is sized for the longest workflow label. */

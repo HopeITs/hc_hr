@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ChecklistItems;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Checklist;
 use App\Services\ChecklistWorkflow;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,8 @@ use Livewire\Component;
 
 class PendingReturns extends Component
 {
+    use WithFeedback;
+
     public array $notes = [];
 
     public function getItemsProperty()
@@ -41,7 +44,7 @@ class PendingReturns extends Component
 
         unset($this->notes[$id]);
         $this->dispatch('pendingReturnsCount');
-        session()->flash('message', __('general.item_marked_received'));
+        $this->toast(__('general.item_marked_received'));
     }
 
     public function render()

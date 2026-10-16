@@ -476,7 +476,7 @@ return [
         // Phase 2 Task 10. save() re-resolves the offer through the scoped
         // query and asks the policy (convert) again; the service authorizes a
         // third time, and again for the employee it creates or links.
-        // confirmHire() only asks first (a LivewireAlert question that runs save()).
+        // confirmHire() only asks first (a confirm dialog that runs save()).
         'recruitment.offers.convert' => [
             'confirmHire' => 'recruitment-applicants.convert-hires',
             'save' => 'recruitment-applicants.convert-hires',
@@ -624,7 +624,7 @@ return [
         // caller-supplied owner id, so there is no cross-user surface for a
         // permission to protect.
         'dashboard.employee-notes-card' => [
-            'addText', 'createNote', 'toggleDone', 'updateContent', 'delete',
+            'addText', 'createNote', 'toggleDone', 'updateContent', 'delete', 'restoreNote',
         ],
         'notifications.dropdown' => [
             'markAsRead', 'markAllAsRead', 'openNotification', 'refreshList', 'safeNotificationUrl',

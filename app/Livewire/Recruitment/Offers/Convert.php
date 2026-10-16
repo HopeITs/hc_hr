@@ -3,13 +3,13 @@
 namespace App\Livewire\Recruitment\Offers;
 
 use App\Enums\SalaryPer;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentHiringConversion;
 use App\Models\RecruitmentJobOffer;
 use App\Services\RecruitmentHiringConversionService as Conversions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
@@ -28,13 +28,15 @@ use Throwable;
  * inactive…) is listed before anything is typed; the service checks it again
  * on the locked rows when HR confirms.
  *
- * Like the Leaves page, the hire is confirmed in a LivewireAlert question
- * first (confirmHire), and its result is a LivewireAlert that stays on this
+ * Like the Leaves page, the hire is confirmed in the shared confirm dialog
+ * first (confirmHire), and its result is a second dialog that stays on this
  * page and points to what comes next: the employee page, where HR gives
- * them a login account, or the contract.
+ * them a login account.
  */
 class Convert extends Component
 {
+    use WithFeedback;
+
     #[Locked]
     public int $offerId;
 
@@ -92,16 +94,14 @@ class Convert extends Component
             : null;
         $position = (string) $conversion->jobOffer?->position?->title;
 
-        LivewireAlert::title(__('recruitment-applicant.conversions.confirm_title', ['name' => (string) $conversion->jobOffer?->application?->applicant?->full_name]))
-            ->timer(null)
-            ->question()
-            ->text($linked
+        $this->confirm('save',
+            title: __('recruitment-applicant.conversions.confirm_title', ['name' => (string) $conversion->jobOffer?->application?->applicant?->full_name]),
+            message: $linked
                 ? __('recruitment-applicant.conversions.confirm_text_link', ['employee' => $linked['employee']->name, 'position' => $position])
-                : __('recruitment-applicant.conversions.confirm_text_create', ['position' => $position]))
-            ->withConfirmButton(__('recruitment-applicant.conversions.confirm'))
-            ->onConfirm('save')
-            ->withCancelButton(__('recruitment-applicant.cancel'))
-            ->show();
+                : __('recruitment-applicant.conversions.confirm_text_create', ['position' => $position]),
+            confirmLabel: __('recruitment-applicant.conversions.confirm'),
+            danger: false,
+        );
     }
 
     public function save(Conversions $conversions)
@@ -139,24 +139,22 @@ class Convert extends Component
         // a login account is made on the employee page (PersonalInfoForm).
         $conversion = $this->resolveConversion()->load(['employee.account']);
 
-        LivewireAlert::title(__('recruitment-applicant.conversions.converted'))
-            ->success()
-            ->timer(null)
-            ->text(__('recruitment-applicant.conversions.converted_next', ['name' => (string) $conversion->employee?->name, 'contract' => $conversion->contract_id])
+        // The dialog has one action, so it offers the usual next step (the login
+        // account); the contract is linked from the "converted" panel below.
+        $this->confirm('openEmployee',
+            title: __('recruitment-applicant.conversions.converted'),
+            message: __('recruitment-applicant.conversions.converted_next', ['name' => (string) $conversion->employee?->name, 'contract' => $conversion->contract_id])
                 .' '.($conversion->employee?->account
                     ? __('recruitment-applicant.conversions.has_account')
-                    : __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')])))
-            ->withConfirmButton(__('recruitment-applicant.conversions.open_employee_edit'))
-            ->onConfirm('openEmployee')
-            ->withDenyButton(__('recruitment-applicant.conversions.open_contract_page'))
-            ->onDeny('openContract')
-            ->withCancelButton(__('recruitment-applicant.conversions.later'))
-            ->show();
+                    : __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')])),
+            confirmLabel: __('recruitment-applicant.conversions.open_employee_edit'),
+            danger: false,
+        );
 
         return null;
     }
 
-    /** The post-hire message's buttons. Navigation only: those pages check their own permissions. */
+    /** Where the post-hire dialog leads. Navigation only: those pages check their own permissions. */
     public function openEmployee()
     {
         $conversion = $this->resolveConversion();

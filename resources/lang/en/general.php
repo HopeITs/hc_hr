@@ -302,7 +302,7 @@ return [
     'write-your-note' => 'Write Your Note',
     'save-changes' => 'Save Changes',
     'delete-note' => 'Delete Note',
-    'delete-note-text' => 'you sure you want to delete this note? This action cannot be undone.',
+    'delete-note-text' => 'Are you sure you want to delete this note?',
     'read-more' => 'Read More',
     'upcoming-events' => 'Upcoming Events',
     'today-events' => 'Today Events',
@@ -887,4 +887,18 @@ return [
     'assign-position-draft-description' => 'You can reserve a position for this employee now and finish their contract later, or skip this and add a contract whenever you are ready.',
     'create-draft-and-continue' => 'Reserve Position & Continue',
     'skip-for-now' => 'Skip for Now',
+
+    // <x-toasts/>: the hidden prefix tells a screen reader which kind of toast it is.
+    'toast' => [
+        'success' => 'Success:',
+        'error' => 'Error:',
+        'info' => 'Note:',
+        'undo' => 'Undo',
+        'dismiss' => 'Dismiss notification',
+    ],
+    'return-process-initiated' => 'Return process initiated.',
+    'checklist-fully-reset' => 'Checklist fully reset.',
+    'note-deleted' => 'Note deleted.',
+    'note-restored' => 'Note restored.',
+    'role-switched' => 'Role switched.',
 ];

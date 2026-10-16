@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Recruitment\Campaigns;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentCampaignInvite;
 use App\Services\RecruitmentCampaignInviteService;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Filters\SelectFilter;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
@@ -29,6 +29,8 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
  */
 class InviteTable extends LivewireTable
 {
+    use WithFeedback;
+
     public int $campaignId;
 
     protected string $model = RecruitmentCampaignInvite::class;
@@ -41,13 +43,11 @@ class InviteTable extends LivewireTable
 
     public function confirmCancel(int $id): void
     {
-        LivewireAlert::title(__('recruitment-applicants.invite_cancel'))
-            ->text(__('recruitment-applicants.invite_cancel_confirm'))
-            ->question()
-            ->withConfirmButton(__('recruitment-applicants.invite_cancel'))
-            ->onConfirm('cancelInvite', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('cancelInvite', ['id' => $id],
+            title: __('recruitment-applicants.invite_cancel'),
+            message: __('recruitment-applicants.invite_cancel_confirm'),
+            confirmLabel: __('recruitment-applicants.invite_cancel'),
+        );
     }
 
     public function sendInvite(int $id): void
@@ -59,11 +59,9 @@ class InviteTable extends LivewireTable
         try {
             app(RecruitmentCampaignInviteService::class)->send(auth()->user(), $invite);
 
-            LivewireAlert::title(__('recruitment-applicants.invite_sent_toast'))
-                ->success()->toast()->position('top-start')->show();
+            $this->toast(__('recruitment-applicants.invite_sent_toast'));
         } catch (ValidationException $exception) {
-            LivewireAlert::title(collect($exception->errors())->collapse()->first())
-                ->error()->toast()->position('top-start')->show();
+            $this->toast(collect($exception->errors())->collapse()->first(), 'error');
         }
     }
 
@@ -76,13 +74,11 @@ class InviteTable extends LivewireTable
         try {
             app(RecruitmentCampaignInviteService::class)->cancel(auth()->user(), $invite);
 
-            LivewireAlert::title(__('recruitment-applicants.invite_cancelled'))
-                ->success()->toast()->position('top-start')->show();
+            $this->toast(__('recruitment-applicants.invite_cancelled'));
         } catch (ValidationException $exception) {
-            // A used invite can't be cancelled — surfaced as an alert rather
+            // A used invite can't be cancelled — surfaced as a toast rather
             // than a fatal error.
-            LivewireAlert::title(collect($exception->errors())->collapse()->first())
-                ->error()->toast()->position('top-start')->show();
+            $this->toast(collect($exception->errors())->collapse()->first(), 'error');
         }
     }
 

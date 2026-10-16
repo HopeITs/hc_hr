@@ -10,7 +10,7 @@
                 :crumbs="[['label' => trans_choice('general.program', 2)]]"
             />
             @activerole('HR' , 'super-admin' ,'general-manager')
-            <a href="{{ route('programs.create') }}"
+            <a href="{{ route('programs.create') }}" wire:navigate
                class="px-4 py-2 rounded-surface bg-primary text-white text-body font-medium shadow transition">
                 @lang('general.add-new')
             </a>
@@ -48,7 +48,7 @@
                             <!-- Actions with vertical centering - Checkbox moved to last -->
                             @activerole('HR','super-admin','general-manager')
                             <div class="flex items-center gap-1">
-                                <a href="{{ route('programs.show', $program->slug) }}"
+                                <a href="{{ route('programs.show', $program->slug) }}" wire:navigate
                                    class="p-1 text-secondary-medium hover:text-primary hover:bg-neutral-50
                                           rounded-surface transition"
                                    title="@lang('general.view')">
@@ -62,7 +62,7 @@
                                     </svg>
                                 </a>
 
-                                <a href="{{ route('programs.edit', $program->slug) }}"
+                                <a href="{{ route('programs.edit', $program->slug) }}" wire:navigate
                                    class="p-1 text-secondary-medium hover:text-primary hover:bg-neutral-50
                                           rounded-surface transition"
                                    title="@lang('general.edit')">

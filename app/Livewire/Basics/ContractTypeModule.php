@@ -3,13 +3,14 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ContractType;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class ContractTypeModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -76,11 +77,7 @@ class ContractTypeModule extends Component
 
         $this->dispatch('refreshContractTypeTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
     }
 
     public function delete(array $payload): void
@@ -90,11 +87,7 @@ class ContractTypeModule extends Component
 
         $this->dispatch('refreshContractTypeTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
     }
 
     protected function rules()

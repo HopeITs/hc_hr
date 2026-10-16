@@ -27,7 +27,10 @@
 <script nonce="{{ Vite::cspNonce() }}" src="{{ asset('js/chart.umd.js') }}"></script>
 
 <script nonce="{{ Vite::cspNonce() }}">
-    document.addEventListener("DOMContentLoaded", async () => {
+    // Runs on a normal load and again when wire:navigate swaps this page in,
+    // where DOMContentLoaded has already fired and would never call back.
+    (() => {
+    const init = async () => {
 
         const canvas = document.getElementById("employeeChart");
         const select = document.getElementById("employeeChartRange");
@@ -203,5 +206,12 @@
             chart.update();
             renderLegend(chart);
         });
-    });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    })();
 </script>

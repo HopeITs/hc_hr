@@ -3,11 +3,11 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\CourseCategoryExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\CourseCategory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CourseCategoryTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = CourseCategory::class;
 
     protected $listeners = [
@@ -25,13 +27,7 @@ class CourseCategoryTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
@@ -40,23 +36,14 @@ class CourseCategoryTable extends LivewireTable
             ->findOrFail($payload['id']);
 
         if ($cat->courses_count > 0) {
-            LivewireAlert::title(__('general.error'))
-                ->text(__('general.cannot-delete-category-has-courses'))
-                ->error()
-                ->toast()
-                ->position('top-start')
-                ->show();
+            $this->toast(__('general.cannot-delete-category-has-courses'), type: 'error');
 
             return;
         }
 
         $cat->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         $this->dispatch('refreshCourseCategoryTable');
     }

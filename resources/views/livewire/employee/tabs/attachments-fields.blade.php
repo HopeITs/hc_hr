@@ -9,7 +9,7 @@
 
                 <div class="md:col-span-2 flex justify-end">
                     <x-primary-button type="button" :showSpinner="false"
-                        wire:click="removeAttachment({{ $index }}, {{ $attachment['media_id'] ?? 'null' }})">
+                        x-on:click="if ({{ filled($attachment['media_id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeAttachment({{ $index }}, {{ $attachment['media_id'] ?? 'null' }})">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>

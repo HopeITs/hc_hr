@@ -4,6 +4,7 @@ namespace App\Livewire\Contract;
 
 use App\Enums\SalaryPer;
 use App\Exports\ContractExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractType;
@@ -17,7 +18,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\BooleanColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractsTable extends LivewireTable
 {
+    use WithFeedback;
+
     // Open alphabetically by employee name; clicking the header still toggles
     // desc and then clears back to the package's id order.
     public string $sortColumn = 'employee';
@@ -50,13 +52,7 @@ class ContractsTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
@@ -66,8 +62,7 @@ class ContractsTable extends LivewireTable
 
         DB::transaction(fn () => $contract->delete());
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         $this->dispatch('refreshContractsTable');
     }
@@ -77,13 +72,7 @@ class ContractsTable extends LivewireTable
         $contract = Contract::findOrFail($id);
         Gate::authorize('manageAutoRenew', $contract);
 
-        LivewireAlert::title(__('general.toggle-auto-renew'))
-            ->text(__('general.confirm-auto-renew-change'))
-            ->question()
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('toggleAutoRenewConfirmed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('toggleAutoRenewConfirmed', ['id' => $id], title: __('general.toggle-auto-renew'), message: __('general.confirm-auto-renew-change'), confirmLabel: __('general.save'), danger: false);
     }
 
     public function toggleAutoRenewConfirmed(array $payload): void
@@ -96,8 +85,7 @@ class ContractsTable extends LivewireTable
 
         $contract->update(['auto_renew' => ! $contract->auto_renew]);
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast(__('general.item-updated'));
 
         $this->dispatch('refreshContractsTable');
     }

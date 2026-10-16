@@ -5,9 +5,6 @@
 <div class="space-y-8">
     <div class="flex justify-between items-center">
         <x-heading-label>{{ __('general.pending_checklist_requests') }}</x-heading-label>
-        @if (session()->has('message'))
-            <span class="text-neutral-600 text-body font-medium">{{ session('message') }}</span>
-        @endif
     </div>
 
     @if($pendingItems->isEmpty())

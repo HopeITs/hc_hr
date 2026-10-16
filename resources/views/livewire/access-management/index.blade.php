@@ -32,19 +32,6 @@
         </div>
     </header>
 
-    @if (session('access-success'))
-        <div x-data="{ visible: true, dismissTimer: null }"
-            x-init="dismissTimer = setTimeout(() => visible = false, 5000)"
-            x-show="visible"
-            x-transition.opacity.duration.200ms
-            x-on:beforeunload.window="clearTimeout(dismissTimer)"
-            data-testid="access-success"
-            class="flex min-h-11 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm font-semibold text-neutral-800"
-            role="status">
-            {{ session('access-success') }}
-        </div>
-    @endif
-
     @if ($activeTab === 'employees')
         <div class="grid min-w-0 gap-[clamp(1rem,1.5vw,1.5rem)] xl:grid-cols-[21rem_minmax(0,1fr)]">
             <section class="@container/directory flex min-w-0 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -162,7 +149,7 @@
                     <form wire:submit="saveEmployeeAccess">
                         <div class="flex flex-wrap items-center gap-3 border-b border-neutral-200 px-[clamp(1rem,2vw,1.5rem)] py-4">
                             @if (filled($selectedUser->profile->username))
-                                <a href="{{ route('employees.show', ['employee' => $selectedUser->profile->username]) }}"
+                                <a href="{{ route('employees.show', ['employee' => $selectedUser->profile->username]) }}" wire:navigate
                                     aria-label="{{ __('general.view-profile-of', ['name' => $selectedUser->profile->name]) }}"
                                     class="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]">
                                     <img src="{{ $selectedUser->profile->avatar_url }}"
@@ -176,7 +163,7 @@
 
                             <div class="min-w-0 flex-1">
                                 @if (filled($selectedUser->profile->username))
-                                    <a href="{{ route('employees.show', ['employee' => $selectedUser->profile->username]) }}"
+                                    <a href="{{ route('employees.show', ['employee' => $selectedUser->profile->username]) }}" wire:navigate
                                         class="block w-fit max-w-full rounded-sm text-[clamp(1rem,1.5vw,1.2rem)] font-bold text-neutral-900 transition hover:text-[#be1f24] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]">
                                         <h2 class="truncate">{{ $selectedUser->profile->name }}</h2>
                                     </a>
@@ -389,7 +376,7 @@
                                     class="min-h-11 rounded-lg border border-neutral-200 px-4 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]">
                                     {{ __('access.rename-role') }}
                                 </button>
-                                <button type="button" wire:click="deleteRole" wire:confirm="{{ __('access.delete-role') }}?"
+                                <button type="button" x-on:click="if (await $confirm({ title: @js(__('access.delete-role')) })) $wire.deleteRole()"
                                     class="min-h-11 rounded-lg border border-[#be1f24] px-4 text-sm font-bold text-[#be1f24] transition hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]">
                                     {{ __('access.delete-role') }}
                                 </button>
@@ -489,7 +476,7 @@
                         <article wire:key="assigned-role-user-{{ $roleUser->id }}"
                             class="flex min-w-0 items-center gap-3 border-b border-neutral-100 px-1 py-3 first:pt-0 last:border-0 last:pb-0">
                             @if ($roleProfile && filled($roleProfile->username))
-                                <a href="{{ route('employees.show', ['employee' => $roleProfile->username]) }}"
+                                <a href="{{ route('employees.show', ['employee' => $roleProfile->username]) }}" wire:navigate
                                     class="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]"
                                     aria-label="{{ __('access.view-employee', ['name' => $roleProfile->nameForLocale(app()->getLocale())]) }}">
                                     <img src="{{ $roleProfile->avatar_url }}" alt=""
@@ -502,7 +489,7 @@
 
                             <div class="min-w-0 flex-1">
                                 @if ($roleProfile && filled($roleProfile->username))
-                                    <a href="{{ route('employees.show', ['employee' => $roleProfile->username]) }}"
+                                    <a href="{{ route('employees.show', ['employee' => $roleProfile->username]) }}" wire:navigate
                                         class="block truncate text-sm font-bold text-neutral-900 transition hover:text-[#be1f24] hover:underline hover:underline-offset-4 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#be1f24]">
                                         {{ $roleProfile->nameForLocale(app()->getLocale()) }}
                                     </a>

@@ -3,11 +3,11 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\JobLevelExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\JobLevel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class JobLevelTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = JobLevel::class;
 
     protected $listeners = [
@@ -25,24 +27,14 @@ class JobLevelTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
         JobLevel::findOrFail($payload['id'])->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         $this->dispatch('refreshJobLevelTable');
     }

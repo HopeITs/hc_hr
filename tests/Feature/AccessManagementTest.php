@@ -252,8 +252,7 @@ class AccessManagementTest extends TestCase
             ->call('saveEmployeeAccess')
             ->assertHasNoErrors()
             ->assertSeeHtml('data-access-dirty="false"')
-            ->assertSeeHtml('data-testid="access-success"')
-            ->assertSeeHtml('setTimeout(() => visible = false, 5000)');
+            ->assertDispatched('toast', type: 'success', message: __('access.access-saved'));
     }
 
     public function test_replacing_an_employees_only_role_synchronizes_the_active_role_before_saving(): void

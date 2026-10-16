@@ -4,11 +4,11 @@ namespace App\Livewire\Basics;
 
 use App\Enums\ChecklistItemOrder;
 use App\Exports\ChecklistItemExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ChecklistItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ChecklistItemTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = ChecklistItem::class;
 
     protected $listeners = [
@@ -27,24 +29,14 @@ class ChecklistItemTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
         ChecklistItem::findOrFail($payload['id'])->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         $this->dispatch('refreshChecklistItemTable');
     }

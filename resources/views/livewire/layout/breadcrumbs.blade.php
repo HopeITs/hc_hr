@@ -8,7 +8,7 @@
 
                     {{-- Home --}}
                     <li class="inline-flex items-center">
-                        <a href="{{ route('dashboard') }}"
+                        <a href="{{ route('dashboard') }}" wire:navigate
                            class="inline-flex items-center text-small text-secondary-medium hover:text-primary">
                             <i class="ti ti-smart-home"></i>
                         </a>
@@ -19,7 +19,7 @@
 
                         <li class="text-body {{ $loop->last ? 'text-neutral-900' : 'text-default' }}">
                             @if(!empty($crumb['href']))
-                                <a href="{{ $crumb['href'] }}" class="hover:underline">
+                                <a href="{{ $crumb['href'] }}" wire:navigate class="hover:underline">
                                     {{ $crumb['label'] }}
                                 </a>
                             @else

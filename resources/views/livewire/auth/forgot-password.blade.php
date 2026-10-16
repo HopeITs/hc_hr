@@ -48,7 +48,7 @@
         {{-- Back to Login --}}
         <div class="text-center text-secondary-medium text-body mt-6">
             {{ __('auth.back-to') }}
-            <a href="{{ route('login') }}" class="text-primary hover:underline">
+            <a href="{{ route('login') }}" wire:navigate class="text-primary hover:underline">
                 {{ __('auth.sign-in') }}
             </a>
         </div>

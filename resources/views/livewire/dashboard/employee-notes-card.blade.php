@@ -60,7 +60,7 @@
 
                                         {{-- Delete --}}
                                         <button
-                                            @click="confirmDelete({{ $note->id }})"
+                                            x-on:click="if (await $confirm({ title: @js(__('general.delete-note')), message: @js(__('general.delete-note-text')) })) $wire.delete({{ $note->id }})"
                                             class="inline-flex me-1 items-center justify-center text-secondary-light hover:text-primary transition"
                                             title="Delete Note">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
@@ -149,33 +149,6 @@
             </div>
         </div>
 
-        <div
-            x-show="showDeleteModal"
-            x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            x-transition>
-            <div class="w-full max-w-sm bg-white rounded-surface shadow-e3 border border-neutral-200 p-9">
-                <h2 class="text-h4 font-semibold text-neutral-800 mb-3">@lang('general.delete-note')</h2>
-                <p class="text-body text-secondary-medium mb-6">
-                    @lang('general.delete-note-text')
-                </p>
-
-                <div class="flex justify-end space-x-3">
-                    <button
-                        @click="showDeleteModal = false"
-                        class="px-4 py-2 rounded-surface border border-neutral-300 text-small font-medium text-neutral-800 hover:bg-neutral-100 transition">
-                        @lang('general.cancel')
-                    </button>
-                    <button
-                        @click="
-                            Livewire.find('{{ $this->getId() }}').call('delete', deleteId);
-                            showDeleteModal = false;"
-                        class="px-4 py-2 rounded-surface bg-primary text-white text-small font-medium hover:bg-primary-hover transition">
-                        @lang('general.delete')
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script nonce="{{ Vite::cspNonce() }}">
@@ -186,8 +159,6 @@
                 modalId: null,
                 modalContent: '',
                 modalType: 'note',
-                showDeleteModal: false,
-                deleteId: null,
 
                 init(ids) {
                     this.order = Array.isArray(ids) ? ids : [];
@@ -226,11 +197,6 @@
                     const lw = Livewire.find('{{ $this->getId() }}');
                     if (!lw) return;
                     lw.call('toggleDone', id);
-                },
-
-                confirmDelete(id) {
-                    this.deleteId = id;
-                    this.showDeleteModal = true;
                 },
             };
         }

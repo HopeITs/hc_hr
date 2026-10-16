@@ -2,15 +2,16 @@
 
 namespace App\Livewire\ProgramManagement\Program;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ProgramManagement\ProgramForm;
 use App\Models\Program;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use WithFeedback;
     use WithFileUploads, WithPagination;
 
     public Program $program;
@@ -28,14 +29,7 @@ class Index extends Component
 
     public function confirmToggleItemStatus($id)
     {
-        LivewireAlert::title(__('general.toggle-status'))
-            ->text(__('general.confirm-status-change'))
-            ->question()
-            ->confirmButtonColor(config('samples.styles.colors.confirm'))
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('toggleItemStatusConfirmed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('toggleItemStatusConfirmed', ['id' => $id], title: __('general.toggle-status'), message: __('general.confirm-status-change'), confirmLabel: __('general.save'), danger: false);
     }
 
     public function toggleItemStatusConfirmed(Program $program)
@@ -43,11 +37,7 @@ class Index extends Component
         $this->form->setProgram($program);
         $this->form->statusToggle();
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast(__('general.item-updated'));
 
         $this->resetPage();
     }
@@ -59,14 +49,7 @@ class Index extends Component
 
     public function confirmDelete($id)
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->confirmButtonColor(config('samples.styles.colors.primary'))
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(Program $program)
@@ -74,11 +57,7 @@ class Index extends Component
         $this->form->setProgram($program);
         $this->form->program->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
     }
 
     public function render()

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Archives;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
@@ -27,7 +28,7 @@ use ZipArchive;
 
 class ArchivedFilesModule extends Component
 {
-    use WithFileUploads;
+    use WithFeedback, WithFileUploads;
 
     private const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -62,14 +63,6 @@ class ArchivedFilesModule extends Component
     public string $newFolderName = '';
 
     public array $filesToUpload = [];
-
-    public bool $showDeleteConfirmationModal = false;
-
-    public $itemToDeleteType = null;
-
-    public $itemToDeleteId = null;
-
-    public string $itemNameToDelete = '';
 
     public bool $showPermissionsModal = false;
 
@@ -392,35 +385,37 @@ class ArchivedFilesModule extends Component
         $folder = $this->folderForMedia((int) $mediaId);
         $this->authorizeFolderManagement($folder);
         $media = Media::findOrFail($mediaId);
-        $this->itemToDeleteType = 'file';
-        $this->itemToDeleteId = $mediaId;
-        $this->itemNameToDelete = $media->name;
-        $this->showDeleteConfirmationModal = true;
+        $this->confirmItemDeletion('file', (int) $mediaId, $media->name);
     }
 
     public function confirmFolderDeletion($folderId)
     {
         $folder = Folder::findOrFail($folderId);
         $this->authorizeFolderManagement($folder);
-        $this->itemToDeleteType = 'folder';
-        $this->itemToDeleteId = $folderId;
-        $this->itemNameToDelete = $folder->name;
-        $this->showDeleteConfirmationModal = true;
+        $this->confirmItemDeletion('folder', (int) $folderId, $folder->name);
     }
 
-    public function deleteItem()
+    /**
+     * The payload comes back from the browser, so each branch authorizes the
+     * item again rather than trusting that confirm*Deletion() already did.
+     */
+    public function deleteItem(array $payload): void
     {
-        if ($this->itemToDeleteType === 'file') {
-            $folder = $this->folderForMedia((int) $this->itemToDeleteId);
+        $id = (int) ($payload['id'] ?? 0);
+
+        if (($payload['type'] ?? null) === 'file') {
+            $folder = $this->folderForMedia($id);
             $this->authorizeFolderManagement($folder);
-            Media::findOrFail($this->itemToDeleteId)->delete();
-        } elseif ($this->itemToDeleteType === 'folder') {
-            $folder = Folder::findOrFail($this->itemToDeleteId);
+            Media::findOrFail($id)->delete();
+        } elseif (($payload['type'] ?? null) === 'folder') {
+            $folder = Folder::findOrFail($id);
             $this->authorizeFolderManagement($folder);
             $folder->delete();
+        } else {
+            return;
         }
-        $this->showDeleteConfirmationModal = false;
-        $this->itemNameToDelete = '';
+
+        $this->toast();
         $this->loadContent();
     }
 
@@ -591,6 +586,14 @@ class ArchivedFilesModule extends Component
             $lastIndex = count($this->finalCrumbs) - 1;
             unset($this->finalCrumbs[$lastIndex]['url']);
         }
+    }
+
+    private function confirmItemDeletion(string $type, int $id, string $name): void
+    {
+        $this->confirm('deleteItem', ['type' => $type, 'id' => $id],
+            title: __('general.delete_item'),
+            message: __('general.delete_confirmation', ['item' => $name]),
+        );
     }
 
     private function applyPermissionFilters(Builder $query): Builder

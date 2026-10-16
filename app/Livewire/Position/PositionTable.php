@@ -3,6 +3,7 @@
 namespace App\Livewire\Position;
 
 use App\Exports\PositionExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\BooleanColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
@@ -23,6 +23,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PositionTable extends LivewireTable
 {
+    use WithFeedback;
+
     public ?int $centerId = null;
 
     public ?int $cityId = null;
@@ -43,13 +45,7 @@ class PositionTable extends LivewireTable
 
     public function confirmDelete($id)
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete($payload)
@@ -58,21 +54,14 @@ class PositionTable extends LivewireTable
         Gate::authorize('delete', $position);
         $position->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
     }
 
     public function confirmToggleItemStatus($id)
     {
         $this->itemID = $id;
 
-        LivewireAlert::title(__('general.toggle-status'))
-            ->text(__('general.confirm-status-change'))
-            ->question()
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('toggleItemStatusConfirmed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('toggleItemStatusConfirmed', ['id' => $id], title: __('general.toggle-status'), message: __('general.confirm-status-change'), confirmLabel: __('general.save'), danger: false);
     }
 
     public function toggleItemStatusConfirmed($payload)
@@ -82,8 +71,7 @@ class PositionTable extends LivewireTable
         $item->is_active = ! $item->is_active;
         $item->save();
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast(__('general.item-updated'));
     }
 
     public function exportExcel(): BinaryFileResponse

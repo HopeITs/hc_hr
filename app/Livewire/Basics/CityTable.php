@@ -3,11 +3,11 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\CityExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\City;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\BooleanColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CityTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = City::class;
 
     protected $listeners = [
@@ -26,13 +28,7 @@ class CityTable extends LivewireTable
 
     public function confirmToggleItemStatus($id): void
     {
-        LivewireAlert::title(__('general.toggle-status'))
-            ->text(__('general.confirm-status-change'))
-            ->question()
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('toggleItemStatusConfirmed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('toggleItemStatusConfirmed', ['id' => $id], title: __('general.toggle-status'), message: __('general.confirm-status-change'), confirmLabel: __('general.save'), danger: false);
     }
 
     public function toggleItemStatusConfirmed($payload): void
@@ -41,11 +37,7 @@ class CityTable extends LivewireTable
         $item->is_active = ! $item->is_active;
         $item->save();
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast(__('general.item-updated'));
 
         $this->dispatch('refreshCityTable');
     }

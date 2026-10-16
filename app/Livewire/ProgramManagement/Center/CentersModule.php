@@ -4,18 +4,19 @@ namespace App\Livewire\ProgramManagement\Center;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\User;
 use App\Notifications\NewCenterCreated;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class CentersModule extends Component
 {
     use AuthorizesActivePermissions, ScopesToAuthorizedCity;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -140,8 +141,7 @@ class CentersModule extends Component
         $this->resetValidation();
         $this->dispatch('closeModal');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
     }
 
     private function authorizedCityQuery()

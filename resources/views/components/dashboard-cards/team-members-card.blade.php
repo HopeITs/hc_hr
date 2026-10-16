@@ -90,7 +90,7 @@
                 <!-- Actions -->
                 <div class="flex items-center flex-shrink-0 gap-2 ms-4">
 
-                    <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" title="View Profile">
+                    <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" wire:navigate title="View Profile">
                         <x-icons.user class="transition text-secondary-light hover:text-primary" />
                     </a>
 
@@ -127,7 +127,7 @@
 
     <!-- Footer -->
     <div class="border-t border-[var(--color-neutral-200)] bg-white px-6 py-3 text-center mt-auto">
-        <a href="{{ route('org.chart') }}"
+        <a href="{{ route('org.chart') }}" wire:navigate
             class="text-small font-semibold text-[var(--color-primary)] hover:underline">
             @lang('general.view-all') →
         </a>

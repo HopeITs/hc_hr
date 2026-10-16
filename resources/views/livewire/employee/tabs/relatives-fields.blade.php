@@ -7,7 +7,7 @@
                 <div class="md:col-span-2 lg:col-span-3 flex justify-end">
                     <x-primary-button type="button"
                                       :showSpinner="false"
-                        wire:click="removeRelative({{ $index }}, {{ $relative['id'] ?? 'null' }})"
+                        x-on:click="if ({{ filled($relative['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeRelative({{ $index }}, {{ $relative['id'] ?? 'null' }})"
                         title="@lang('general.remove')">
                         <x-icons.trash />
                     </x-primary-button>

@@ -3,13 +3,14 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\AnnualLeaveRule;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class AnnualLeaveRuleModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -77,8 +78,7 @@ class AnnualLeaveRuleModule extends Component
 
         $this->dispatch('refreshAnnualLeaveRuleTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
     }
 
     protected function rules(): array

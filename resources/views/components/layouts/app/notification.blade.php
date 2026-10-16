@@ -53,7 +53,7 @@
         </div>
 
         <!-- Footer -->
-        <a href="{{ route('notifications.index') }}"
+        <a href="{{ route('notifications.index') }}" wire:navigate
            class="flex items-center justify-center gap-2 border-t border-neutral-100 bg-neutral-50 py-2 text-body font-semibold
                   text-neutral-900 transition hover:bg-neutral-100">
             @lang('general.view-all')

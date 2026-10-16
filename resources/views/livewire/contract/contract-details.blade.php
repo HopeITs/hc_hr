@@ -69,9 +69,19 @@
 </div>
 
 <script nonce="{{ Vite::cspNonce() }}">
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('scroll-to-top', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-    });
+    // wire:navigate re-runs this script on every visit and livewire:init never
+    // fires again, so register the (global) listener once, whenever Livewire is up.
+    (() => {
+        if (window.__hcScrollToTopBound) return;
+
+        const bind = () => {
+            if (window.__hcScrollToTopBound) return;
+            window.__hcScrollToTopBound = true;
+            Livewire.on('scroll-to-top', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        };
+
+        window.Livewire?.on ? bind() : document.addEventListener('livewire:init', bind, { once: true });
+    })();
 </script>

@@ -44,7 +44,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Livewire;
 use LogicException;
 use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter;
@@ -138,14 +137,10 @@ class RecruitmentHiringConversionTest extends TestCase
             ->set('employee', $this->person())
             ->call('confirmHire')
             ->assertHasNoErrors();
-        $this->assertStringContainsString('"action":"save"', $this->alertScript($page));
-        $this->assertStringContainsString('"icon":"question"', $this->alertScript($page));
+        $page->assertDispatched('confirm-dialog', method: 'save', danger: false);
         $this->assertSame($employeesBefore, Employee::query()->count());
 
         // The confirm button runs save(); the page stays, now showing the hire.
-        // (The facade keeps the alert it resolved first, and with it the first
-        // request's component; in a browser every request starts afresh.)
-        LivewireAlert::clearResolvedInstance('livewire-alert');
         $page->call('save')
             ->assertHasNoErrors()
             ->assertNoRedirect()
@@ -191,12 +186,10 @@ class RecruitmentHiringConversionTest extends TestCase
         Notification::assertSentTo($this->hr, NewEmployeeWelcome::class);
 
         // Point 4: the message says what is next — a login account on the
-        // employee page, or the contract — and its buttons open them.
-        $script = $this->alertScript($page);
-        foreach (['"icon":"success"', '"action":"openEmployee"', '"action":"openContract"'] as $part) {
-            $this->assertStringContainsString($part, $script);
-        }
+        // employee page — and its button opens it; the contract is linked too.
+        $page->assertDispatched('confirm-dialog', method: 'openEmployee', danger: false);
         $page->assertSee(route('employees.edit', $employee->id))
+            ->assertSee(route('contracts.show', $contract->id))
             ->assertSee(__('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]))
             ->call('openEmployee')
             ->assertRedirect(route('employees.edit', $employee->id));
@@ -1058,16 +1051,6 @@ class RecruitmentHiringConversionTest extends TestCase
     }
 
     /** @return array<string, array<int, string>> */
-    /**
-     * The LivewireAlert of the last request. It ships as a Livewire `js`
-     * effect, so its SweetAlert options and actions are read back from the
-     * script (as EmployeeEditSaveFeedbackTest does).
-     */
-    private function alertScript($component): string
-    {
-        return collect($component->effects['xjs'] ?? [])->pluck('expression')->implode("\n");
-    }
-
     private function assertValidationError(callable $action, string $field, ?string $errorKey = null, string $section = 'conversions'): array
     {
         try {

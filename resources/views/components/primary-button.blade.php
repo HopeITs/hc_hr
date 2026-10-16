@@ -16,7 +16,8 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>
+    {{-- Internal links swap pages via wire:navigate; pass :wire:navigate="false" to opt out. --}}
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes, 'wire:navigate' => true]) }}>
         {{ $slot }}
     </a>
 @else

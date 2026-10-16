@@ -2,16 +2,18 @@
 
 namespace App\Livewire\Basics;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\TerminationReason;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class TerminationReasonTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = TerminationReason::class;
 
     protected $listeners = [
@@ -21,21 +23,14 @@ class TerminationReasonTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
         TerminationReason::findOrFail($payload['id'])->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         $this->dispatch('refreshTerminationReasonTable');
     }

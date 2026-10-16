@@ -3,10 +3,10 @@
 namespace App\Livewire\Recruitment\Interviews;
 
 use App\Enums\RecruitmentInterviewStatus;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Services\RecruitmentInterviewEvaluationService;
 use App\Services\RecruitmentInterviewSchedulingService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -28,7 +28,7 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     #[Locked]
     public int $interviewId;
@@ -66,7 +66,7 @@ class Show extends Component
         $this->resolveInterview();
 
         if ($message = session()->pull('recruitment_toast')) {
-            $this->successToast($message);
+            $this->toast($message);
         }
     }
 
@@ -195,7 +195,7 @@ class Show extends Component
         }
 
         $this->closePanel();
-        $this->successToast($message);
+        $this->toast($message);
 
         // The buttons that opened and confirmed the panel are gone once the
         // interview is closed: the interview itself, with its new status, is next.

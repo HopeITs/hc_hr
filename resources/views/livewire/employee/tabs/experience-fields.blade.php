@@ -6,7 +6,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2 flex justify-end">
                     <x-primary-button type="button"
-                        wire:click="removeExperience({{ $index }}, {{ $experience['id'] ?? 'null' }})"
+                        x-on:click="if ({{ filled($experience['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeExperience({{ $index }}, {{ $experience['id'] ?? 'null' }})"
                         title="@lang('general.remove')">
                         <x-icons.trash />
                     </x-primary-button>

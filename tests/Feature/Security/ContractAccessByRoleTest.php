@@ -110,7 +110,7 @@ class ContractAccessByRoleTest extends TestCase
             ->assertDontSee(['Aleppoworker', 'Latakiaworker'])
             // No edit button, and clicking the row opens the contract itself.
             ->assertDontSee(route('contracts.edit', $this->directReport))
-            ->assertSeeHtml("window.location.href = '".route('contracts.show', $this->directReport)."'");
+            ->assertSeeHtml("Livewire.navigate('".route('contracts.show', $this->directReport)."')");
     }
 
     public function test_manager_opens_a_report_contract_read_only(): void

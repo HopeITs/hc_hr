@@ -154,7 +154,7 @@
                 @if ($program->centers->isNotEmpty())
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         @foreach ($program->centers as $center)
-                            <a href="{{ route('centers.show', $center->id) }}"
+                            <a href="{{ route('centers.show', $center->id) }}" wire:navigate
                                class="group relative rounded-surface border bg-white backdrop-blur-xl p-9 shadow hover:-translate-y-1 hover:shadow-e3 transition">
 
                                 <h3 class="text-h4 font-bold text-neutral-900">

@@ -127,7 +127,7 @@
                                 <span>@lang('general.my-profile')</span>
                             </a>
 
-                            <a href="{{ route('settings.password') }}"
+                            <a href="{{ route('settings.password') }}" wire:navigate
                                 class="flex items-center gap-3 px-3 py-2 text-body font-medium text-neutral-800 transition rounded-surface hover:bg-neutral-100/90 hover:shadow-e1">
                                 <svg class="text-neutral-800 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="1.8">

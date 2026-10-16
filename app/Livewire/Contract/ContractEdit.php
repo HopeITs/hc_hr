@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Contract\Concerns\ResolvesContractLocationOptions;
 use App\Livewire\Forms\ContractForm;
@@ -11,7 +12,6 @@ use App\Models\TerminationReason;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 /**
@@ -32,6 +32,7 @@ class ContractEdit extends Component
         DrivesContractComposer::composerSections as private baseComposerSections;
         DrivesContractComposer::sectionOfField as private baseSectionOfField;
     }
+    use WithFeedback;
 
     public ContractForm $form;
 
@@ -98,7 +99,7 @@ class ContractEdit extends Component
             $this->balanceForm->store($this->contract->id);
         }
 
-        LivewireAlert::success(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('contracts.show', $this->contract->id);
     }

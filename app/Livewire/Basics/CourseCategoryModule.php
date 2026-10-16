@@ -3,13 +3,14 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\CourseCategory;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class CourseCategoryModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public bool $showModal = false;
 
@@ -84,10 +85,6 @@ class CourseCategoryModule extends Component
 
         $this->dispatch('refreshCourseCategoryTable');
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
     }
 }

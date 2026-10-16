@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Recruitment\PublicLinks;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\PublicRecruitmentLink;
 use App\Models\RecruitmentCampaignInvite;
 use App\Services\HiringCampaignService;
 use App\Services\PublicRecruitmentLinkService;
-use App\Traits\WithAlerts;
 use DomainException;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
@@ -29,7 +29,7 @@ use Livewire\Component;
  */
 class Manager extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     public HiringCampaign $campaign;
 
@@ -254,13 +254,13 @@ class Manager extends Component
         $this->notice = $message;
         $this->noticeType = 'success';
         $this->resetValidation();
-        $this->successToast($message);
+        $this->toast($message);
     }
 
     private function error(string $message): void
     {
         $this->notice = $message;
         $this->noticeType = 'error';
-        $this->errorToast($message);
+        $this->toast($message, 'error');
     }
 }

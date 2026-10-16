@@ -68,7 +68,10 @@
 </div>
 
 <script nonce="{{ Vite::cspNonce() }}">
-    document.addEventListener('alpine:init', () => {
+    // alpine:init has already fired when wire:navigate swaps this page in, so
+    // register straight away if Alpine is up and on alpine:init otherwise.
+    (() => {
+    const register = () => {
         Alpine.data('tagsInput', ({ model, suggestions = [], forceSuggestion = false }) => ({
             model,
             tags: [],
@@ -168,5 +171,8 @@
                 return match ? match.label : key;
             },
         }))
-    })
+    };
+
+    window.Alpine ? register() : document.addEventListener('alpine:init', register, { once: true });
+    })();
 </script>

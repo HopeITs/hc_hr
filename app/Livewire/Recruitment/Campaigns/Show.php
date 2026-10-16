@@ -3,6 +3,7 @@
 namespace App\Livewire\Recruitment\Campaigns;
 
 use App\Enums\HiringCampaignStatus as Status;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ApplicationForm;
 use App\Models\HiringCampaign;
 use App\Models\JobPost;
@@ -10,7 +11,6 @@ use App\Models\PublicRecruitmentLink;
 use App\Services\HiringCampaignService;
 use App\Services\HiringCampaignStateMachine;
 use App\Services\PublicRecruitmentLinkService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -29,7 +29,7 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     #[Locked]
     public int $campaignId;
@@ -56,7 +56,7 @@ class Show extends Component
         // Carried across the redirect from the create screen, so the first
         // thing HR sees is the same alert every other save shows.
         if ($message = session()->pull('recruitment_toast')) {
-            $this->successToast($message);
+            $this->toast($message);
         }
     }
 
@@ -66,7 +66,7 @@ class Show extends Component
         $this->run(function () use ($campaigns): void {
             $campaign = $campaigns->launch(auth()->user(), $this->resolve());
 
-            $this->successToast((int) $campaign->status === Status::Open
+            $this->toast((int) $campaign->status === Status::Open
                 ? __('recruitment-campaign.launched_open')
                 : __('recruitment-campaign.launched_scheduled', [
                     'date' => $campaign->starts_at?->translatedFormat('j M Y'),
@@ -83,7 +83,7 @@ class Show extends Component
         $reason = trim($this->reason) ?: null;
 
         if (in_array($action, ['close', 'disable'], true) && $reason === null) {
-            $this->errorToast(__('recruitment-campaign.reason_required'));
+            $this->toast(__('recruitment-campaign.reason_required'), 'error');
 
             return;
         }
@@ -100,7 +100,7 @@ class Show extends Component
             };
 
             $this->reason = '';
-            $this->successToast(__('recruitment-campaign.done_'.$action));
+            $this->toast(__('recruitment-campaign.done_'.$action));
             $this->dispatch('campaign-status-changed');
         });
     }
@@ -149,7 +149,7 @@ class Show extends Component
 
         $this->fillDetails($campaign);
         $this->editingDetails = false;
-        $this->successToast(__('recruitment-campaign.window_saved'));
+        $this->toast(__('recruitment-campaign.window_saved'));
         $this->dispatch('campaign-details-changed');
     }
 
@@ -247,8 +247,8 @@ class Show extends Component
         try {
             $work();
         } catch (ValidationException $exception) {
-            $this->errorToast(collect($exception->errors())->flatten()->first()
-                ?? __('recruitment-campaign.transition_not_allowed'));
+            $this->toast(collect($exception->errors())->flatten()->first()
+                ?? __('recruitment-campaign.transition_not_allowed'), 'error');
         }
     }
 

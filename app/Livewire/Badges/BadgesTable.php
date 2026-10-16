@@ -3,6 +3,7 @@
 namespace App\Livewire\Badges;
 
 use App\Enums\BadgeType;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Badge;
 use App\Models\Department;
 use App\Models\Employee;
@@ -12,13 +13,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class BadgesTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = Badge::class;
 
     protected $listeners = [
@@ -36,13 +38,7 @@ class BadgesTable extends LivewireTable
         $badge = $this->findVisibleBadge($id);
         Gate::authorize('delete', $badge);
 
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
@@ -56,8 +52,7 @@ class BadgesTable extends LivewireTable
 
         DB::transaction(fn () => $badge->delete());
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         $this->dispatch('refreshBadgesTable');
     }

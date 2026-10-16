@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Recruitment\Campaigns;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentCampaignInvite;
 use App\Services\RecruitmentCampaignInviteService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -20,7 +20,7 @@ use Livewire\Component;
  */
 class Invites extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     public HiringCampaign $campaign;
 
@@ -54,7 +54,7 @@ class Invites extends Component
         }
 
         if ($count > 0) {
-            $this->successToast(__('recruitment-applicants.invites_sent_toast', ['count' => $count]));
+            $this->toast(__('recruitment-applicants.invites_sent_toast', ['count' => $count]));
         }
 
         if ($failed > 0) {
@@ -74,7 +74,7 @@ class Invites extends Component
         $invites->add(auth()->user(), $this->campaign, $this->full_name, $this->email);
 
         $this->reset(['full_name', 'email']);
-        $this->successToast(__('recruitment-applicants.invite_added'));
+        $this->toast(__('recruitment-applicants.invite_added'));
 
         // The list lives in a separate nested component (InviteTable); this
         // is the same refresh signal the package's own actions use to update

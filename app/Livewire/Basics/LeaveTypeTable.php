@@ -4,11 +4,11 @@ namespace App\Livewire\Basics;
 
 use App\Enums\LeaveType as LeaveTypeEnum;
 use App\Exports\LeaveTypeExport;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\LeaveType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LeaveTypeTable extends LivewireTable
 {
+    use WithFeedback;
+
     protected string $model = LeaveType::class;
 
     protected $listeners = [
@@ -27,21 +29,14 @@ class LeaveTypeTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
         LeaveType::findOrFail($payload['id'])->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         $this->dispatch('refreshLeaveTypeTable');
     }

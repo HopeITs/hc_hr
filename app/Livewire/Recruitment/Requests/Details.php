@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestStatus;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\ContractType;
 use App\Models\Department;
@@ -24,12 +25,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Details extends Component
 {
+    use WithFeedback;
+
     #[Locked]
     public int $requestId;
 
@@ -198,7 +200,7 @@ class Details extends Component
 
         $this->toast(
             __($applied ? 'recruitment.executed' : 'recruitment.execution_failed'),
-            success: $applied,
+            $applied ? 'success' : 'error',
         );
     }
 
@@ -276,7 +278,7 @@ class Details extends Component
     {
         $messages = collect($e->errors())->flatten()->unique()->values();
 
-        $this->toast($messages->implode(' '), false);
+        $this->toast($messages->implode(' '), 'error');
     }
 
     /**
@@ -331,22 +333,5 @@ class Details extends Component
         Gate::authorize('view', $request);
 
         return $request;
-    }
-
-    /**
-     * Say what happened, the way the rest of the application says it.
-     *
-     * A toast rather than a coloured panel: the panel pushed the page down on
-     * every save, and a red or green block across a form reads as part of the
-     * form rather than as a remark about it.
-     */
-    private function toast(string $message, bool $success = true): void
-    {
-        $alert = LivewireAlert::title($message);
-
-        ($success ? $alert->success() : $alert->error())
-            ->toast()
-            ->position('top-start')
-            ->show();
     }
 }

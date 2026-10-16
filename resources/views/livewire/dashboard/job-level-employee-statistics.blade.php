@@ -16,7 +16,10 @@
 
 @push('scripts')
     <script nonce="{{ Vite::cspNonce() }}">
-        document.addEventListener("DOMContentLoaded", () => {
+        // Runs on a normal load and again when wire:navigate swaps this page in,
+        // where DOMContentLoaded has already fired and would never call back.
+        (() => {
+        const init = () => {
 
             const ctx = document.getElementById("jobLevelEmployeesChart");
             if (!ctx) return;
@@ -107,6 +110,13 @@
 
             });
 
-        });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+        })();
     </script>
 @endpush

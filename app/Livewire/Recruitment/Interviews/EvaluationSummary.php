@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Recruitment\Interviews;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
 use App\Services\RecruitmentInterviewEvaluationService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -27,7 +27,7 @@ use Livewire\Component;
  */
 class EvaluationSummary extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     #[Locked]
     public int $interviewId;
@@ -196,7 +196,7 @@ class EvaluationSummary extends Component
         }
 
         $this->cancelPanel();
-        $this->successToast($message);
+        $this->toast($message);
 
         // The panel and its buttons are gone: the evaluations, as they now stand, are next.
         $this->dispatch('focus-element', id: 'evaluations-title');

@@ -2,14 +2,15 @@
 
 namespace App\Livewire\News;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\NewsForm;
 use App\Models\News;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class NewsCreate extends Component
 {
+    use WithFeedback;
     use WithFileUploads;
 
     public NewsForm $form;
@@ -44,7 +45,7 @@ class NewsCreate extends Component
 
         $this->news = $this->form->persist($this->news);
 
-        LivewireAlert::title(__('general.success-message'))->success()->toast()->position('top-start')->show();
+        $this->toast();
 
         return to_route('news.index');
     }

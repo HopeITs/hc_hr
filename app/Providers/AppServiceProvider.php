@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\ActiveLivewirePermissionMiddleware;
+use App\Livewire\Features\SupportToasts;
 use App\Models\ApplicationForm;
 use App\Models\Badge;
 use App\Models\Center;
@@ -113,6 +114,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
             ? new ClamdScanner
             : new DisabledScanner);
+
+        // Sends or flashes the toasts raised through WithFeedback::toast().
+        // Registered while booting, not in boot(): Livewire attaches the hooks
+        // it knows about during its own boot, so one added afterwards is never
+        // called, and this one has to run ahead of Livewire's event hook.
+        $this->app->booting(fn () => Livewire::componentHook(SupportToasts::class));
     }
 
     public function boot(): void

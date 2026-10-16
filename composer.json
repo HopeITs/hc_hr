@@ -8,7 +8,6 @@
     "require": {
         "php": "^8.5",
         "bensampo/laravel-enum": "^6.12",
-        "jantinnerezo/livewire-alert": "^4.2",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "livewire/flux": "^2.20",

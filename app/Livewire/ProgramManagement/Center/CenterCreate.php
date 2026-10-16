@@ -3,17 +3,18 @@
 namespace App\Livewire\ProgramManagement\Center;
 
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\User;
 use App\Notifications\NewCenterCreated;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class CenterCreate extends Component
 {
     use ScopesToAuthorizedCity;
+    use WithFeedback;
 
     public array $item = [
         'name_en' => '',
@@ -53,11 +54,7 @@ class CenterCreate extends Component
 
         User::sendBroadcast(new NewCenterCreated($center), $center->city_id);
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         return redirect()->route('centers.index');
     }

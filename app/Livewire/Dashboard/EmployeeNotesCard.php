@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\EmployeeNote;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Locked;
@@ -26,6 +27,8 @@ use Livewire\Component;
  */
 class EmployeeNotesCard extends Component
 {
+    use WithFeedback;
+
     #[Locked]
     public ?int $employeeId = null;
 
@@ -97,7 +100,38 @@ class EmployeeNotesCard extends Component
 
     public function delete(int $id): void
     {
-        $this->findOwned($id)->delete();
+        $note = $this->findOwned($id);
+        $snapshot = $note->only(['type', 'content', 'is_done', 'order']);
+
+        $note->delete();
+
+        $this->toast(__('general.note-deleted'), undo: 'restoreNote', undoPayload: $snapshot);
+    }
+
+    /**
+     * Undo for delete(). The snapshot makes a round trip through the browser,
+     * so it is treated like createNote() input: the owner comes from the
+     * session and every field is re-checked.
+     */
+    public function restoreNote(array $snapshot): void
+    {
+        $ownerId = $this->ownerId();
+        $content = trim((string) ($snapshot['content'] ?? ''));
+
+        if ($ownerId === null || $content === '') {
+            return;
+        }
+
+        EmployeeNote::create([
+            'employee_id' => $ownerId,
+            'type' => in_array($snapshot['type'] ?? null, ['note', 'task'], true) ? $snapshot['type'] : 'note',
+            'content' => $content,
+            'is_done' => (bool) ($snapshot['is_done'] ?? false),
+            'order' => (int) ($snapshot['order'] ?? 0),
+            'color' => '#111827',
+        ]);
+
+        $this->toast(__('general.note-restored'));
     }
 
     public function render()

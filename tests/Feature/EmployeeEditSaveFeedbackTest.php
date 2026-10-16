@@ -84,17 +84,11 @@ class EmployeeEditSaveFeedbackTest extends TestCase
     }
 
     /**
-     * The toast ships as a Livewire `js` effect rather than an event, so its
-     * SweetAlert options have to be read back out of the emitted script.
-     * `icon` is the part that separates "saved" from "nothing to save".
+     * The toast's `type` is the part that separates "saved" from "nothing to save".
      */
     private function toastIcon($component): ?string
     {
-        $script = collect($component->effects['xjs'] ?? [])->pluck('expression')->implode('
-');
-
-        preg_match('/"icon":"(\w+)"/', $script, $matches);
-
-        return $matches[1] ?? null;
+        return collect($component->effects['dispatches'] ?? [])
+            ->firstWhere('name', 'toast')['params']['type'] ?? null;
     }
 }

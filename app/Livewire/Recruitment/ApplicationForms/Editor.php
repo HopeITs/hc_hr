@@ -3,11 +3,11 @@
 namespace App\Livewire\Recruitment\ApplicationForms;
 
 use App\Exceptions\StaleRecruitmentDraftException;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\ApplicationForm;
 use App\Models\ApplicationFormVersion;
 use App\Models\HiringCampaign;
 use App\Services\RecruitmentApplicationFormService;
-use App\Traits\WithAlerts;
 use DomainException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -15,7 +15,7 @@ use Livewire\Component;
 
 class Editor extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     public HiringCampaign $campaign;
 
@@ -145,7 +145,7 @@ class Editor extends Component
         $this->notice = __('recruitment.application_form.template_applied');
         $this->noticeType = 'info';
         $this->hasConflict = false;
-        $this->infoToast($this->notice);
+        $this->toast($this->notice, 'info');
     }
 
     public function applyPublishedTemplate(RecruitmentApplicationFormService $service): void
@@ -165,12 +165,12 @@ class Editor extends Component
             $this->notice = __('recruitment.application_form.reused_success');
             $this->noticeType = 'info';
             $this->hasConflict = false;
-            $this->infoToast($this->notice);
+            $this->toast($this->notice, 'info');
         } catch (DomainException $exception) {
             $this->notice = __('recruitment.application_form.reuse_unavailable');
             $this->noticeType = 'error';
             $this->hasConflict = false;
-            $this->errorToast($this->notice);
+            $this->toast($this->notice, 'error');
         }
     }
 
@@ -310,7 +310,7 @@ class Editor extends Component
         $this->hasConflict = false;
         $this->notice = __('recruitment.application_form.reloaded');
         $this->noticeType = 'info';
-        $this->infoToast($this->notice);
+        $this->toast($this->notice, 'info');
     }
 
     public function render(RecruitmentApplicationFormService $service)
@@ -438,7 +438,7 @@ class Editor extends Component
         $this->notice = $message;
         $this->noticeType = 'success';
         $this->hasConflict = false;
-        $this->successToast($message);
+        $this->toast($message);
     }
 
     private function conflict(): void
@@ -446,6 +446,6 @@ class Editor extends Component
         $this->notice = __('recruitment.application_form.conflict');
         $this->noticeType = 'error';
         $this->hasConflict = true;
-        $this->errorToast($this->notice);
+        $this->toast($this->notice, 'error');
     }
 }

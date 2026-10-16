@@ -4,12 +4,12 @@ namespace App\Livewire\Recruitment\Offers;
 
 use App\Enums\HiringCampaignStatus;
 use App\Enums\RecruitmentJobOfferStatus as Status;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentJobOffer;
 use App\Models\Vacancy;
 use App\Services\HiringCampaignStateMachine;
 use App\Services\RecruitmentJobOfferService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -26,13 +26,13 @@ use Livewire\Component;
  * HR with manage-offers can send the draft, record the candidate's answer,
  * cancel, and start a revision or edit the draft (on the form). Send, answer
  * and cancel open in a popup — the Leaves decision popup, <x-modal.dialog> —
- * and end with the same success toast (WithAlerts). Each action locks the
+ * and end with the same success toast (WithFeedback). Each action locks the
  * version the user was looking at; the service refuses if the offer moved on
  * since.
  */
 class Show extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     #[Locked]
     public int $offerId;
@@ -68,7 +68,7 @@ class Show extends Component
         $this->resolveOffer();
 
         if ($message = session()->pull('recruitment_toast')) {
-            $this->successToast($message);
+            $this->toast($message);
         }
     }
 
@@ -199,7 +199,7 @@ class Show extends Component
         }
 
         $this->closePanel();
-        $this->successToast(__('recruitment-applicant.offers.'.$messageKey));
+        $this->toast(__('recruitment-applicant.offers.'.$messageKey));
     }
 
     private function authorizedOffer(): RecruitmentJobOffer

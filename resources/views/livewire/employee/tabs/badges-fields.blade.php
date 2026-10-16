@@ -20,7 +20,7 @@
                 <div class="md:col-span-3 flex justify-end">
                     <x-primary-button type="button"
                                       :showSpinner="false"
-                                      wire:click="removeBadge({{ $index }})"
+                                      x-on:click="if ({{ filled($badge['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeBadge({{ $index }})"
                                       title="@lang('general.remove')">
                         <x-icons.trash/>
                     </x-primary-button>

@@ -2,18 +2,18 @@
 
 namespace App\Livewire\Employee;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\DraftContractForm;
 use App\Livewire\Forms\Employee\PersonalInfoForm;
 use App\Models\City;
 use App\Models\Position;
-use App\Traits\WithAlerts;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class EmployeeCreate extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use WithFeedback, WithFileUploads;
 
     public PersonalInfoForm $infoForm;
 
@@ -78,7 +78,7 @@ class EmployeeCreate extends Component
             throw $e;
         }
 
-        $this->successToast();
+        $this->toast();
         $this->showDraftPrompt = true;
         $this->draftCityId = $this->infoForm->employee->city_id;
 
@@ -185,7 +185,7 @@ class EmployeeCreate extends Component
     public function createDraftAndContinue()
     {
         $this->draftForm->createDraft($this->infoForm->employee, $this->draftCityId, $this->draftProgramId);
-        $this->successToast();
+        $this->toast();
 
         return $this->redirect(route('employees.edit', $this->infoForm->employee->id), navigate: true);
     }

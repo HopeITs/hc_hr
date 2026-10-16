@@ -17,7 +17,10 @@
 </div>
 
 <script nonce="{{ Vite::cspNonce() }}">
-    document.addEventListener("DOMContentLoaded", () => {
+    // Runs on a normal load and again when wire:navigate swaps this page in,
+    // where DOMContentLoaded has already fired and would never call back.
+    (() => {
+    const init = () => {
         const canvas = document.getElementById("departmentEmployeesChart");
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
@@ -113,5 +116,12 @@
                 }
             }
         });
-    });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    })();
 </script>

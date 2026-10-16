@@ -3,6 +3,7 @@
 namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveRequestStatus;
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\Contract;
 use App\Models\Employee;
@@ -15,7 +16,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\DateColumn;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -23,6 +23,8 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class AllLeaveRequestTable extends LivewireTable
 {
+    use WithFeedback;
+
     public LeaveRequestForm $form;
 
     public string $statusFilter = 'all';
@@ -48,13 +50,7 @@ class AllLeaveRequestTable extends LivewireTable
 
     public function confirmDelete($id): void
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function edit($id)
@@ -84,8 +80,7 @@ class AllLeaveRequestTable extends LivewireTable
 
         $leaveRequest->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast();
     }
 
     public function confirmHrReview(int $id): void
@@ -93,13 +88,7 @@ class AllLeaveRequestTable extends LivewireTable
         $leaveRequest = LeaveRequest::findOrFail($id);
         Gate::authorize('review', $leaveRequest);
 
-        LivewireAlert::title(__('general.review-leave-request'))
-            ->text(__('general.confirm-review-leave-request'))
-            ->question()
-            ->withConfirmButton(__('general.mark-reviewed'))
-            ->onConfirm('markAsReviewed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('markAsReviewed', ['id' => $id], title: __('general.review-leave-request'), message: __('general.confirm-review-leave-request'), confirmLabel: __('general.mark-reviewed'), danger: false);
     }
 
     public function markAsReviewed(array $payload): void
@@ -125,8 +114,7 @@ class AllLeaveRequestTable extends LivewireTable
         $this->dispatch('notification-created');
         $this->dispatch('$refresh');
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()->toast()->position('top-start')->show();
+        $this->toast(__('general.item-updated'));
     }
 
     protected function rowClickAction(Model $model): ?string

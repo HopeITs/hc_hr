@@ -1,7 +1,7 @@
 <div class="flex min-h-[330px] w-full flex-col justify-between space-y-4 rounded-surface border border-neutral-200 bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] sm:min-h-[360px] md:min-h-0">
     <x-dashboard-cards.card-header :title="__('general.my-leaves')">
         <x-slot:actions>
-            <a href="{{route('leaves.index')}}" class="flex flex-row gap-2 rounded-[10px] bg-primary px-3 py-2 text-xs font-medium text-white transition">
+            <a href="{{route('leaves.index')}}" wire:navigate class="flex flex-row gap-2 rounded-[10px] bg-primary px-3 py-2 text-xs font-medium text-white transition">
                 {{ __('general.show-more') }}
             </a>
         </x-slot:actions>
@@ -66,8 +66,13 @@
 </div>
 @push('js')
 <script nonce="{{ Vite::cspNonce() }}">
-    function initChart() {
+    // Runs on a normal load and again when wire:navigate swaps this page in.
+    // A livewire:navigated listener would outlive the dashboard and fire on
+    // every later page, where the canvas is gone.
+    (() => {
+    const init = () => {
         const canvas = document.getElementById("leavesGaugeChart");
+        if (!canvas) return;
         const ctx = canvas.getContext("2d");
         const value = '{{$percentage}}';
 
@@ -122,7 +127,13 @@
                 }
             }]
         });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
-    document.addEventListener('livewire:navigated', initChart)
+    })();
 </script>
 @endpush

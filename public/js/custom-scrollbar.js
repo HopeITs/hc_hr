@@ -24,6 +24,10 @@
 (function () {
   "use strict";
 
+  // Booted once per document; a re-executed <script> after wire:navigate must
+  // not stack a second set of listeners and observers on top.
+  if (window.CustomScrollbar) return;
+
   /* ---------- Config (override via window.CustomScrollbarConfig before load) ---------- */
   var DEFAULTS = {
     color:       "#dcddde", // thumb + track outline (also settable via --csb-color)
@@ -212,8 +216,22 @@
     /* childList only, to find new scroll containers; show/hide is caught by each
        element's ResizeObserver. Watching attributes here would loop, because
        updating the .csb overlays changes their style and re-fires the observer. */
-    if (document.body) { try { new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true }); } catch (e) {} }
+    observeBody();
   }
+
+  var bodyObserver = null;
+  function observeBody() {
+    if (!document.body) return;
+    try {
+      if (bodyObserver) bodyObserver.disconnect();
+      bodyObserver = new MutationObserver(schedule);
+      bodyObserver.observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
+  }
+
+  /* wire:navigate replaces <body> wholesale, so the observer above would be left
+     watching the detached old one; follow the new body and rescan it. */
+  document.addEventListener("livewire:navigated", function () { observeBody(); schedule(); });
 
   if (document.readyState !== "loading") boot(); else document.addEventListener("DOMContentLoaded", boot);
   window.addEventListener("load", schedule);

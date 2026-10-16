@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Position;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\PositionForm;
 use App\Livewire\Position\Concerns\ResolvesPositionFormOptions;
 use App\Models\City;
@@ -9,13 +10,12 @@ use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
-use App\Traits\WithAlerts;
 use Livewire\Component;
 
 class PositionCreate extends Component
 {
     use ResolvesPositionFormOptions;
-    use WithAlerts;
+    use WithFeedback;
 
     public PositionForm $form;
 
@@ -41,7 +41,7 @@ class PositionCreate extends Component
     public function save()
     {
         $this->form->store();
-        $this->successToast(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('positions.index');
     }

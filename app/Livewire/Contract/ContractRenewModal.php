@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Contract;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Contract;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -22,6 +22,8 @@ use Livewire\Component;
  */
 class ContractRenewModal extends Component
 {
+    use WithFeedback;
+
     public ContractForm $form;
 
     public LeaveBalanceForm $balanceForm;
@@ -77,7 +79,7 @@ class ContractRenewModal extends Component
 
         $this->show = false;
 
-        LivewireAlert::success(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('contracts.show', $renewal->id);
     }

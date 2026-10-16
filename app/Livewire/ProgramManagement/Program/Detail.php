@@ -2,13 +2,15 @@
 
 namespace App\Livewire\ProgramManagement\Program;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ProgramManagement\ProgramForm;
 use App\Models\Program;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Component;
 
 class Detail extends Component
 {
+    use WithFeedback;
+
     public $slug;
 
     public ProgramForm $form;
@@ -21,14 +23,7 @@ class Detail extends Component
 
     public function confirmToggleItemStatus($id)
     {
-        LivewireAlert::title(__('general.toggle-status'))
-            ->text(__('general.confirm-status-change'))
-            ->question()
-            ->confirmButtonColor(config('samples.styles.colors.confirm'))
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('toggleItemStatusConfirmed', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('toggleItemStatusConfirmed', ['id' => $id], title: __('general.toggle-status'), message: __('general.confirm-status-change'), confirmLabel: __('general.save'), danger: false);
     }
 
     public function toggleItemStatusConfirmed(Program $program)
@@ -36,11 +31,7 @@ class Detail extends Component
         $this->form->setProgram($program);
         $this->form->statusToggle();
 
-        LivewireAlert::title(__('general.item-updated'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast(__('general.item-updated'));
     }
 
     public function render()
@@ -54,25 +45,14 @@ class Detail extends Component
 
     public function confirmDelete($id)
     {
-        LivewireAlert::title(__('general.delete-item'))
-            ->text(__('general.confirm-delete-item'))
-            ->question()
-            ->confirmButtonColor(config('samples.styles.colors.primary'))
-            ->withConfirmButton(__('general.delete'))
-            ->onConfirm('delete', ['id' => $id])
-            ->withCancelButton(__('general.cancel'))
-            ->show();
+        $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(Program $program)
     {
         $program->delete();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         return redirect()->route('programs.index');
     }

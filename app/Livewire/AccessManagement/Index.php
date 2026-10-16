@@ -2,6 +2,7 @@
 
 namespace App\Livewire\AccessManagement;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -22,7 +23,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithFeedback, WithPagination;
 
     private const COMPACT_EMPLOYEES_PER_PAGE = 12;
 
@@ -240,7 +241,7 @@ class Index extends Component
             logName: 'access-management',
         );
 
-        session()->flash('access-success', __('access.access-saved'));
+        $this->toast(__('access.access-saved'));
         $this->selectUser($target->id);
     }
 
@@ -322,7 +323,7 @@ class Index extends Component
             logName: 'access-management',
         );
 
-        session()->flash('access-success', __('access.role-permissions-saved'));
+        $this->toast(__('access.role-permissions-saved'));
         $this->loadSelectedRole();
     }
 
@@ -364,7 +365,7 @@ class Index extends Component
         $this->newRoleName = '';
         $this->selectedRoleId = $role->id;
         $this->loadSelectedRole();
-        session()->flash('access-success', __('access.role-created'));
+        $this->toast(__('access.role-created'));
     }
 
     public function renameRole(ActivityLogger $activityLogger): void
@@ -391,7 +392,7 @@ class Index extends Component
             logName: 'access-management',
         );
 
-        session()->flash('access-success', __('access.role-renamed'));
+        $this->toast(__('access.role-renamed'));
         $this->loadSelectedRole();
     }
 
@@ -416,7 +417,7 @@ class Index extends Component
 
         $this->selectedRoleId = Role::query()->orderBy('name')->value('id');
         $this->loadSelectedRole();
-        session()->flash('access-success', __('access.role-deleted'));
+        $this->toast(__('access.role-deleted'));
     }
 
     public function render(): View

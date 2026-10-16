@@ -4,6 +4,7 @@ namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveRequestStatus;
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
@@ -13,7 +14,6 @@ use Blade;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -21,6 +21,7 @@ use Livewire\Component;
 class MyLeaveRequestModule extends Component
 {
     use AuthorizesActivePermissions;
+    use WithFeedback;
 
     public LeaveBalance $leaveBalance;
 
@@ -158,13 +159,7 @@ class MyLeaveRequestModule extends Component
     {
         $html = $this->confirmationMessage();
 
-        LivewireAlert::title(__('general.confirmation'))
-            ->timer(null)
-            ->question()
-            ->html($html)
-            ->withConfirmButton(__('general.save'))
-            ->onConfirm('processSave')
-            ->withCancelButton(__('general.cancel'))->show();
+        $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: __('general.save'), danger: false);
 
     }
 
@@ -188,11 +183,7 @@ class MyLeaveRequestModule extends Component
         $this->showModal = false;
         $this->form->reset();
 
-        LivewireAlert::title(__('general.success-message'))
-            ->success()
-            ->toast()
-            ->position('top-start')
-            ->show();
+        $this->toast();
 
         $this->refreshCounts();
         $this->dispatch('leaveRequestSaved')->to(MyLeaveRequestTable::class);

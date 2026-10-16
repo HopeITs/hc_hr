@@ -28,7 +28,7 @@
                     <x-primary-button
                         type="button"
                         :showSpinner="false"
-                        wire:click="removeCourse({{ $index }} , {{ $course['id'] ?? 'null' }})"
+                        x-on:click="if ({{ filled($course['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeCourse({{ $index }}, {{ $course['id'] ?? 'null' }})"
                         title="@lang('general.remove')">
                         <x-icons.trash />
                     </x-primary-button>

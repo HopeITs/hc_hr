@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Livewire\Concerns\WithFeedback;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -10,6 +11,8 @@ use Livewire\Component;
 
 class RoleSwitcher extends Component
 {
+    use WithFeedback;
+
     public bool $onlySwitchables = false;
 
     public ?string $activeRoleName = null;
@@ -96,7 +99,7 @@ class RoleSwitcher extends Component
         session(['active_role_id' => (int) $role->id]);
 
         $this->dispatch('role-switched', role: (string) $role->name);
-        $this->dispatch('notify', title: __('Role switched'), message: __('Role updated successfully.'));
+        $this->toast(__('general.role-switched'));
 
         $this->refreshRoles();
 

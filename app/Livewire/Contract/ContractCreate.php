@@ -3,6 +3,7 @@
 namespace App\Livewire\Contract;
 
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Contract\Concerns\ResolvesContractLocationOptions;
 use App\Livewire\Forms\ContractForm;
@@ -15,7 +16,6 @@ use App\Notifications\NewEmployeeWelcome;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
@@ -39,6 +39,7 @@ use Livewire\Component;
 class ContractCreate extends Component
 {
     use DrivesContractComposer, ResolvesContractLocationOptions;
+    use WithFeedback;
 
     public ContractForm $form;
 
@@ -134,7 +135,7 @@ class ContractCreate extends Component
 
         $this->dispatch('notification-created');
 
-        LivewireAlert::success(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('contracts.show', $contract->id);
     }

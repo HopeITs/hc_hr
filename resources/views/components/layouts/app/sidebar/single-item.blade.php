@@ -1,7 +1,9 @@
+{{-- Sidebar links swap pages through wire:navigate instead of a full reload. --}}
 @props(['active' => false, 'icon' => null])
 
 <li class="w-full">
     <a
+        wire:navigate
         title="{{ trim(strip_tags($slot)) }}"
         {{ $attributes->merge([
             'class' => "

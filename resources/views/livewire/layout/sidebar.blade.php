@@ -25,7 +25,7 @@
 
         <div class="flex flex-col h-full">
             {{-- Fixed header: logo stays put; scrolling begins below the divider --}}
-            <a href="{{ route('dashboard') }}" class="flex items-center justify-start ps-6 h-16 shrink-0 border-b border-black/[0.06]">
+            <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center justify-start ps-6 h-16 shrink-0 border-b border-black/[0.06]">
                 <x-app-logo class="w-[8.25rem] h-auto object-fit" x-show="!sidebarCollapsed || open" />
                 <img src="{{ asset('assets/img/hope-center-icon.svg') }}"
                      alt="{{ config('app.name') }}"
@@ -174,10 +174,10 @@
                             <x-layouts.app.sidebar.nav-item :href="route('leave-types.index')" :active="request()->routeIs('leave-types.index')">
                                 {{ trans_choice('general.leave-type', 2) }}
                             </x-layouts.app.sidebar.nav-item>
-                            <x-layouts.app.sidebar.nav-item :href="route('annual-leave-rules.index')" :active="request()->routeIs('annual-leave-rules.*')" wire:navigate>
+                            <x-layouts.app.sidebar.nav-item :href="route('annual-leave-rules.index')" :active="request()->routeIs('annual-leave-rules.*')">
                                 {{ __('general.annual_leave_rules') }}
                             </x-layouts.app.sidebar.nav-item>
-                            <x-layouts.app.sidebar.nav-item :href="route('termination-reasons.index')" :active="request()->routeIs('termination-reasons.*')" wire:navigate>
+                            <x-layouts.app.sidebar.nav-item :href="route('termination-reasons.index')" :active="request()->routeIs('termination-reasons.*')">
                                 {{ __('general.termination_reasons') }}
                             </x-layouts.app.sidebar.nav-item>
 
@@ -190,10 +190,10 @@
                             </x-layouts.app.sidebar.nav-item>
 
                             {{-- Departments (All) --}}
-                            <x-layouts.app.sidebar.nav-item :href="route('departments.index')" :active="request()->routeIs('departments.index')" wire:navigate>
+                            <x-layouts.app.sidebar.nav-item :href="route('departments.index')" :active="request()->routeIs('departments.index')">
                                 {{ trans_choice('general.department', 2) }}
                             </x-layouts.app.sidebar.nav-item>
-                            <x-layouts.app.sidebar.nav-item :href="route('course-categories.index')" :active="request()->routeIs('course-categories.index')" wire:navigate>
+                            <x-layouts.app.sidebar.nav-item :href="route('course-categories.index')" :active="request()->routeIs('course-categories.index')">
                                 {{ trans_choice('general.course-category', 2) }}
                             </x-layouts.app.sidebar.nav-item>
                         </x-slot>
@@ -226,7 +226,7 @@
                                 @endactivepermission
 
                                 @activepermission('centers.view')
-                                <x-layouts.app.sidebar.nav-item :href="route('centers.index')" :active="request()->routeIs('centers.*')" wire:navigate>
+                                <x-layouts.app.sidebar.nav-item :href="route('centers.index')" :active="request()->routeIs('centers.*')">
                                     {{ trans_choice('general.center', 2) }}
                                 </x-layouts.app.sidebar.nav-item>
                                 @endactivepermission

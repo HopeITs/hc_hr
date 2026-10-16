@@ -1,6 +1,7 @@
 @if($attributes->has('href'))
     <a {{
     $attributes->merge([
+        'wire:navigate' => true,
         'class' => 'cursor-pointer p-2 inline-flex items-center'
     ])
 }}>

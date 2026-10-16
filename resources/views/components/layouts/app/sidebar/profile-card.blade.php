@@ -43,7 +43,7 @@
         </button>
 
         <div class="mt-3 px-3">
-            <a href="{{ route('notifications.index') }}"
+            <a href="{{ route('notifications.index') }}" wire:navigate
                class="flex items-center justify-between w-full px-3 py-2 text-body font-medium bg-neutral-100 text-neutral-800 rounded-surface border border-neutral-200 hover:bg-neutral-200 transition">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-secondary-medium" fill="none" stroke="currentColor" stroke-width="2"
@@ -94,7 +94,7 @@
             <div class="h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent"></div>
 
             <div class="px-2 py-2">
-                <a href="{{ route('settings.profile') }}"
+                <a href="{{ route('settings.profile') }}" wire:navigate
                    class="flex items-center gap-3 px-3 py-2 rounded-surface text-body font-medium
                       text-neutral-800 hover:bg-neutral-100/90 hover:shadow-e1 transition">
                     <svg class="size-4 text-neutral-800" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -201,10 +201,18 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.Livewire?.on) {
+    // wire:navigate re-runs this script on every page and DOMContentLoaded never
+    // fires again, so register the (global) listener once, whenever Livewire is up.
+    (() => {
+        if (window.__hcRoleSwitchedBound) return;
+
+        const bind = () => {
+            if (window.__hcRoleSwitchedBound) return;
+            window.__hcRoleSwitchedBound = true;
             Livewire.on('role-switched', ({role}) => {document.getElementById('activeRolePill')?.replaceChildren(document.createTextNode(role));
             });
-        }
-    });
+        };
+
+        window.Livewire?.on ? bind() : document.addEventListener('livewire:init', bind, { once: true });
+    })();
 </script>

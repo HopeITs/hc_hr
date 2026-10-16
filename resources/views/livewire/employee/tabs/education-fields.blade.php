@@ -13,7 +13,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2 flex justify-end">
                     <x-primary-button type="button" :showSpinner="false"
-                        wire:click="removeEducation({{ $index }} , {{ $education['id'] ?? 'null' }})">
+                        x-on:click="if ({{ filled($education['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeEducation({{ $index }}, {{ $education['id'] ?? 'null' }})">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>

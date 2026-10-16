@@ -2,15 +2,15 @@
 
 namespace App\Livewire\ProgramManagement\Program;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ProgramManagement\ProgramForm;
 use App\Models\Program;
-use App\Traits\WithAlerts;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class Update extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use WithFeedback, WithFileUploads;
 
     public ProgramForm $form;
 
@@ -25,7 +25,7 @@ class Update extends Component
     {
         $this->validate();
         $this->form->update();
-        $this->successToast(__('general.success-message'));
+        $this->toast();
 
         return redirect()->route('programs.index');
     }
