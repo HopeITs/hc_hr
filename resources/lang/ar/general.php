@@ -901,4 +901,7 @@ return [
     'note-deleted' => 'تم حذف الملاحظة.',
     'note-restored' => 'تمت استعادة الملاحظة.',
     'role-switched' => 'تم تبديل الدور.',
+
+    'contracts-history' => 'سجل العقود',
+    'contracts-history-empty' => 'لا توجد عقود بعد. سيظهر سجل العقود هنا بعد حفظ الموظف.',
 ];

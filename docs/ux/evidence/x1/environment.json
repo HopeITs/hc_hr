@@ -1,0 +1,110 @@
+{
+  "started_at": "2026-10-16T14:50:17+03:00",
+  "git_sha": "fb01a226be474820a2aba710edf0a661d294dc7a",
+  "git_dirty_paths": [
+    "?? tests/Performance/"
+  ],
+  "browser": "Chromium 151.0.7922.34 (Playwright, headless)",
+  "php": "8.5.11",
+  "os": "Windows-10-10.0.26300-SP0",
+  "cpu": "AMD64 Family 25 Model 124 Stepping 0, AuthenticAMD",
+  "python": "3.10.6",
+  "server": "6 x php -S + router.php behind a threaded proxy on http://127.0.0.1:8390; opcache.enable_cli=1, validate_timestamps=0; SQLite WAL, busy_timeout 10 s",
+  "profiles": {
+    "desktop": {
+      "context": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "device_scale_factor": 1
+      },
+      "network": null,
+      "cpu": 1,
+      "load_cap_ms": 120000
+    },
+    "phone": {
+      "context": {
+        "viewport": {
+          "width": 375,
+          "height": 812
+        },
+        "device_scale_factor": 3,
+        "is_mobile": true,
+        "has_touch": true,
+        "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"
+      },
+      "network": {
+        "offline": false,
+        "latency": 562.5,
+        "downloadThroughput": 180000,
+        "uploadThroughput": 84375
+      },
+      "cpu": 4,
+      "load_cap_ms": 420000
+    }
+  },
+  "flows": {
+    "dashboard": {
+      "persona": "hr",
+      "path": "/",
+      "content": "[data-tour=\"dashboard.team\"]",
+      "interaction": null
+    },
+    "employee_search": {
+      "persona": "hr",
+      "path": "/employees",
+      "content": "tr[data-tour=\"table.row\"]",
+      "interaction": "search"
+    },
+    "contract_create": {
+      "persona": "hr",
+      "path": "/contracts/create",
+      "content": "[x-data^=\"contractComposer\"]",
+      "interaction": "pick_employee"
+    },
+    "leave_form": {
+      "persona": "staff",
+      "path": "/leaves",
+      "content": "[data-tour=\"leaves.request\"]",
+      "interaction": "open_leave_form"
+    }
+  },
+  "runs": {
+    "cold": 5,
+    "first_visit": 5,
+    "warm": 5
+  },
+  "fixture": {
+    "built_at": "2026-10-16T14:50:15+03:00",
+    "seed": 20261016,
+    "counts": {
+      "employees": 278,
+      "users": 261,
+      "contracts": 314,
+      "positions": 168,
+      "centers": 27,
+      "cities": 16,
+      "leave_balances": 1615,
+      "leave_requests": 63,
+      "leave_types": 10,
+      "notifications": 1050,
+      "media": 191,
+      "checklists": 8,
+      "employee_notes": 10,
+      "news": 0,
+      "active_employees": 196,
+      "active_contracts": 196,
+      "avatar_avg_bytes": 247036,
+      "leave_balance_failures": 0
+    },
+    "search": {
+      "term": "Haddad",
+      "expected_matches_in_hr_scope": 5,
+      "employees_in_hr_scope": 71
+    },
+    "contract_pick": {
+      "employee_id": 3
+    }
+  }
+}

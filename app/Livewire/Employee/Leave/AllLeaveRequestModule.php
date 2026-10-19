@@ -9,6 +9,7 @@ use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveNotificationService;
 use Blade;
 use Carbon\Carbon;
@@ -320,21 +321,9 @@ class AllLeaveRequestModule extends Component
             ->get() ?? collect();
     }
 
-    /**
-     * Colleagues in the same city and department who can cover for the employee.
-     */
     protected function alternativeEmployeesFor(?Employee $employee): Collection
     {
-        if (! $employee) {
-            return collect();
-        }
-
-        return Employee::query()
-            ->where('city_id', $employee->city_id)
-            ->where('id', '!=', $employee->id)
-            ->whereHas('contracts.position.department', fn ($q) => $q->where('id', $employee->department?->id))
-            ->orderBy(transColumn('first_name'))
-            ->get();
+        return $employee ? app(LeaveAlternativeEmployees::class)->for($employee) : collect();
     }
 
     protected function resolveStart()

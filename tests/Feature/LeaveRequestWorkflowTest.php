@@ -112,6 +112,25 @@ class LeaveRequestWorkflowTest extends TestCase
             ->assertHasNoErrors();
     }
 
+    public function test_new_leave_rejects_an_alternative_outside_the_allowed_list(): void
+    {
+        [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
+        $outsiderId = $this->createEmployeeInCityOf($existingLeave);
+
+        Livewire::actingAs($employee)
+            ->test(MyLeaveRequestModule::class)
+            ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
+            ->set('form.type', 'day')
+            ->set('form.start_at', now()->addMonth()->toDateString())
+            ->set('form.end_at', now()->addMonth()->addDay()->toDateString())
+            ->set('form.reason', 'Alternative without an active contract.')
+            ->set('form.alternative_employee', $outsiderId)
+            ->call('processSave')
+            ->assertHasErrors(['form.alternative_employee']);
+
+        $this->assertDatabaseMissing('leave_requests', ['alternative_employee_id' => $outsiderId]);
+    }
+
     public function test_new_leave_persists_alternative_employee_and_forces_pending_status(): void
     {
         [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
@@ -924,7 +943,31 @@ class LeaveRequestWorkflowTest extends TestCase
         return $user->fresh();
     }
 
+    /**
+     * A colleague holding an active contract on the requester's own position,
+     * which LeaveAlternativeEmployees always accepts as an alternative.
+     */
     private function createColleagueForLeave(LeaveRequest $leaveRequest): int
+    {
+        $colleagueId = $this->createEmployeeInCityOf($leaveRequest);
+        $contract = $leaveRequest->leaveBalance->contract;
+
+        DB::table('contracts')->insert([
+            'employee_id' => $colleagueId,
+            'position_id' => $contract->position_id,
+            'contract_type_id' => $contract->contract_type_id,
+            'start_date' => now()->subMonth(),
+            'end_date' => now()->addYear(),
+            'currency' => 2,
+            'weekly_hours' => 40,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $colleagueId;
+    }
+
+    private function createEmployeeInCityOf(LeaveRequest $leaveRequest): int
     {
         $suffix = substr(md5((string) $leaveRequest->id), 0, 8);
         $employee = $leaveRequest->leaveBalance->contract->employee;

@@ -1,0 +1,449 @@
+{
+    "/": {
+        "status": 200,
+        "render_ms": 839.1,
+        "queries": 220,
+        "sql_ms": 45.8,
+        "top_origins": [
+            {
+                "origin": "app/Models/User.php:108",
+                "count": 61,
+                "ms": 9.4,
+                "distinct_shapes": 1,
+                "example": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_mod"
+            },
+            {
+                "origin": "app/Models/User.php:199",
+                "count": 24,
+                "ms": 2.7,
+                "distinct_shapes": 1,
+                "example": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_pe"
+            },
+            {
+                "origin": "app/Models/User.php:203",
+                "count": 24,
+                "ms": 5.9,
+                "distinct_shapes": 1,
+                "example": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" "
+            },
+            {
+                "origin": "app/Models/Employee.php:162",
+                "count": 20,
+                "ms": 4.1,
+                "distinct_shapes": 4,
+                "example": "select * from \"contracts\" where \"contracts\".\"employee_id\" = ? and \"contracts\".\"employee_id\" is not null and \"contracts\".\"is_active\" = ? and strftime(?, \"contrac"
+            },
+            {
+                "origin": "app/Models/LeaveRequest.php:57",
+                "count": 9,
+                "ms": 1,
+                "distinct_shapes": 1,
+                "example": "select * from \"centers\" where \"centers\".\"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:353",
+                "count": 7,
+                "ms": 8.2,
+                "distinct_shapes": 7,
+                "example": "select * from \"employees\" where \"is_active\" = ? and exists (select * from \"contracts\" where \"employees\".\"id\" = \"contracts\".\"employee_id\" and \"contracts\".\"is_act"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/UpcomingLeavesCard.php:28",
+                "count": 6,
+                "ms": 1.1,
+                "distinct_shapes": 6,
+                "example": "select * from \"leave_requests\" where (strftime(?, \"start_at\") >= cast(? as text) or strftime(?, \"end_at\") >= cast(? as text)) and exists (select * from \"leave_b"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:400",
+                "count": 5,
+                "ms": 0.4,
+                "distinct_shapes": 5,
+                "example": "select * from \"contracts\" where \"employee_id\" = ? order by \"start_date\" desc limit ?"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:272",
+                "count": 5,
+                "ms": 0.8,
+                "distinct_shapes": 5,
+                "example": "select * from \"employees\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:307",
+                "count": 5,
+                "ms": 0.8,
+                "distinct_shapes": 5,
+                "example": "select * from \"positions\" where \"positions\".\"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:314",
+                "count": 5,
+                "ms": 0.8,
+                "distinct_shapes": 5,
+                "example": "select * from \"contracts\" where \"contracts\".\"position_id\" = ? and \"contracts\".\"position_id\" is not null and \"contracts\".\"is_active\" = ? and strftime(?, \"contrac"
+            },
+            {
+                "origin": "app/Models/Employee.php:290",
+                "count": 4,
+                "ms": 1,
+                "distinct_shapes": 2,
+                "example": "select * from \"leave_balances\" where \"leave_balances\".\"contract_id\" = ? and \"leave_balances\".\"contract_id\" is not null"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:292",
+                "count": 4,
+                "ms": 1.2,
+                "distinct_shapes": 4,
+                "example": "select * from \"contracts\" where exists (select * from \"positions\" where \"contracts\".\"position_id\" = \"positions\".\"id\" and exists (select * from \"job_levels\" wher"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/UpcomingLeavesCard.php:14",
+                "count": 4,
+                "ms": 1.2,
+                "distinct_shapes": 4,
+                "example": "select * from \"employees\" where \"employees\".\"id\" in (?)"
+            },
+            {
+                "origin": "app/Livewire/Dashboard/Index.php:394",
+                "count": 3,
+                "ms": 0.4,
+                "distinct_shapes": 3,
+                "example": "select * from \"employees\" where \"employees\".\"id\" = ? limit ?"
+            }
+        ],
+        "repeated_shapes": [
+            {
+                "count": 61,
+                "shape": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_model_type\", \"model_has_roles\".\"is_active\" ",
+                "origins": [
+                    "app/Models/User.php:108"
+                ]
+            },
+            {
+                "count": 24,
+                "shape": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_permissions\".\"model_id\" = ? and \"model_has",
+                "origins": [
+                    "app/Models/User.php:199"
+                ]
+            },
+            {
+                "count": 24,
+                "shape": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" inner join \"role_has_permissions\" on \"pe",
+                "origins": [
+                    "app/Models/User.php:203"
+                ]
+            },
+            {
+                "count": 10,
+                "shape": "select * from \"positions\" where \"positions\".\"id\" in (?)",
+                "origins": [
+                    "app/Livewire/Dashboard/Index.php:400",
+                    "app/Models/Employee.php:162",
+                    "app/Livewire/Dashboard/Index.php:272"
+                ]
+            }
+        ]
+    },
+    "/employees": {
+        "status": 200,
+        "render_ms": 2009.4,
+        "queries": 812,
+        "sql_ms": 119,
+        "top_origins": [
+            {
+                "origin": "app/Models/User.php:108",
+                "count": 402,
+                "ms": 54.3,
+                "distinct_shapes": 1,
+                "example": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_mod"
+            },
+            {
+                "origin": "app/Models/User.php:199",
+                "count": 191,
+                "ms": 18.4,
+                "distinct_shapes": 1,
+                "example": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_pe"
+            },
+            {
+                "origin": "app/Models/User.php:203",
+                "count": 191,
+                "ms": 40.1,
+                "distinct_shapes": 1,
+                "example": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" "
+            },
+            {
+                "origin": "resources/views/livewire/employee/index.blade.php:104",
+                "count": 10,
+                "ms": 3.2,
+                "distinct_shapes": 9,
+                "example": "select count(*) as \"aggregate\" from \"employees\" left join \"cities\" as \"city\" on \"city\".\"id\" = \"employees\".\"city_id\" where \"city_id\" in (?)"
+            },
+            {
+                "origin": "app/Http/Middleware/SecurityHeaders.php:19",
+                "count": 3,
+                "ms": 0.3,
+                "distinct_shapes": 3,
+                "example": "select * from \"sessions\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:37",
+                "count": 3,
+                "ms": 0.7,
+                "distinct_shapes": 3,
+                "example": "select * from \"contracts\" where \"contracts\".\"employee_id\" = ? and \"contracts\".\"employee_id\" is not null and \"contracts\".\"is_active\" = ? and strftime(?, \"contrac"
+            },
+            {
+                "origin": "app/Models/User.php:226",
+                "count": 2,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select \"id\" from \"cities\" where \"slug\" in (?)"
+            },
+            {
+                "origin": "app/Http/Middleware/EnsureAccountIsActive.php:44",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select \"is_active\" from \"employees\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Livewire/Employee/EmployeeTable.php:182",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select * from \"cities\" where not \"code\" = ? and \"is_active\" = ?"
+            },
+            {
+                "origin": "app/Livewire/Employee/EmployeeTable.php:125",
+                "count": 1,
+                "ms": 0.3,
+                "distinct_shapes": 1,
+                "example": "select \"id\", \"first_name_en\", \"first_name_ar\", \"last_name_en\", \"last_name_ar\" from \"employees\" where \"city_id\" in (?) and \"is_active\" = ? order by \"first_name_e"
+            },
+            {
+                "origin": "app/Livewire/Employee/EmployeeTable.php:204",
+                "count": 1,
+                "ms": 0.9,
+                "distinct_shapes": 1,
+                "example": "select * from \"positions\" order by \"title_en\" asc"
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:44",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"checklists\" where \"delivered_id\" = ? and \"delivered_status\" != ?"
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:50",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"checklists\" where \"receiver_id\" = ? and \"returned_status\" = ?"
+            },
+            {
+                "origin": "app/Livewire/Notifications/Counter.php:18",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"notifications\" where \"notifications\".\"notifiable_type\" = ? and \"notifications\".\"notifiable_id\" = ? and \"notifications\".\"not"
+            },
+            {
+                "origin": "app/Livewire/Notifications/Dropdown.php:28",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select * from \"notifications\" where \"notifications\".\"notifiable_type\" = ? and \"notifications\".\"notifiable_id\" = ? and \"notifications\".\"notifiable_id\" is not nul"
+            }
+        ],
+        "repeated_shapes": [
+            {
+                "count": 402,
+                "shape": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_model_type\", \"model_has_roles\".\"is_active\" ",
+                "origins": [
+                    "app/Models/User.php:108"
+                ]
+            },
+            {
+                "count": 191,
+                "shape": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_permissions\".\"model_id\" = ? and \"model_has",
+                "origins": [
+                    "app/Models/User.php:199"
+                ]
+            },
+            {
+                "count": 191,
+                "shape": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" inner join \"role_has_permissions\" on \"pe",
+                "origins": [
+                    "app/Models/User.php:203"
+                ]
+            }
+        ]
+    },
+    "/contracts/create": {
+        "status": 200,
+        "render_ms": 344.7,
+        "queries": 116,
+        "sql_ms": 16,
+        "top_origins": [
+            {
+                "origin": "app/Models/User.php:108",
+                "count": 53,
+                "ms": 6.9,
+                "distinct_shapes": 1,
+                "example": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_mod"
+            },
+            {
+                "origin": "app/Models/User.php:199",
+                "count": 24,
+                "ms": 2.2,
+                "distinct_shapes": 1,
+                "example": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_pe"
+            },
+            {
+                "origin": "app/Models/User.php:203",
+                "count": 24,
+                "ms": 5,
+                "distinct_shapes": 1,
+                "example": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" "
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:37",
+                "count": 3,
+                "ms": 0.5,
+                "distinct_shapes": 3,
+                "example": "select * from \"contracts\" where \"contracts\".\"employee_id\" = ? and \"contracts\".\"employee_id\" is not null and \"contracts\".\"is_active\" = ? and strftime(?, \"contrac"
+            },
+            {
+                "origin": "app/Http/Middleware/SecurityHeaders.php:19",
+                "count": 2,
+                "ms": 0.2,
+                "distinct_shapes": 2,
+                "example": "select * from \"sessions\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Http/Middleware/EnsureAccountIsActive.php:44",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select \"is_active\" from \"employees\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Models/User.php:226",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select \"id\" from \"cities\" where \"slug\" in (?)"
+            },
+            {
+                "origin": "app/Livewire/Contract/Concerns/ResolvesContractLocationOptions.php:249",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select \"id\", \"name_en\" from \"cities\" where \"is_active\" = ? and \"cities\".\"id\" in (?)"
+            },
+            {
+                "origin": "app/Livewire/Contract/Concerns/ResolvesContractLocationOptions.php:257",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select \"id\", \"name_en\" from \"contract_types\" order by \"name_en\" asc"
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:44",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"checklists\" where \"delivered_id\" = ? and \"delivered_status\" != ?"
+            },
+            {
+                "origin": "app/Livewire/Layout/Sidebar.php:50",
+                "count": 1,
+                "ms": 0,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"checklists\" where \"receiver_id\" = ? and \"returned_status\" = ?"
+            },
+            {
+                "origin": "app/Livewire/Notifications/Counter.php:18",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"notifications\" where \"notifications\".\"notifiable_type\" = ? and \"notifications\".\"notifiable_id\" = ? and \"notifications\".\"not"
+            },
+            {
+                "origin": "app/Livewire/Notifications/Dropdown.php:28",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select * from \"notifications\" where \"notifications\".\"notifiable_type\" = ? and \"notifications\".\"notifiable_id\" = ? and \"notifications\".\"notifiable_id\" is not nul"
+            },
+            {
+                "origin": "app/Livewire/Notifications/Dropdown.php:36",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select exists(select * from \"notifications\" where \"notifications\".\"notifiable_type\" = ? and \"notifications\".\"notifiable_id\" = ? and \"notifications\".\"notifiable_"
+            },
+            {
+                "origin": "app/Models/User.php:254",
+                "count": 1,
+                "ms": 0.2,
+                "distinct_shapes": 1,
+                "example": "select count(*) as \"aggregate\" from \"roles\" inner join \"model_has_roles\" on \"roles\".\"id\" = \"model_has_roles\".\"role_id\" where \"model_has_roles\".\"model_id\" = ? an"
+            }
+        ],
+        "repeated_shapes": [
+            {
+                "count": 53,
+                "shape": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_model_type\", \"model_has_roles\".\"is_active\" ",
+                "origins": [
+                    "app/Models/User.php:108"
+                ]
+            },
+            {
+                "count": 24,
+                "shape": "select exists(select * from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_permissions\".\"model_id\" = ? and \"model_has",
+                "origins": [
+                    "app/Models/User.php:199"
+                ]
+            },
+            {
+                "count": 24,
+                "shape": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" inner join \"role_has_permissions\" on \"pe",
+                "origins": [
+                    "app/Models/User.php:203"
+                ]
+            }
+        ]
+    },
+    "/employee-photo/1": {
+        "status": 200,
+        "render_ms": 8.1,
+        "queries": 5,
+        "sql_ms": 0.6,
+        "top_origins": [
+            {
+                "origin": "app/Http/Middleware/SecurityHeaders.php:19",
+                "count": 3,
+                "ms": 0.5,
+                "distinct_shapes": 3,
+                "example": "select * from \"sessions\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Http/Middleware/EnsureAccountIsActive.php:44",
+                "count": 1,
+                "ms": 0,
+                "distinct_shapes": 1,
+                "example": "select \"is_active\" from \"employees\" where \"id\" = ? limit ?"
+            },
+            {
+                "origin": "app/Http/Controllers/EmployeeAvatarController.php:57",
+                "count": 1,
+                "ms": 0.1,
+                "distinct_shapes": 1,
+                "example": "select * from \"media\" where \"media\".\"model_id\" in (?) and \"media\".\"model_type\" = ?"
+            }
+        ],
+        "repeated_shapes": []
+    }
+}

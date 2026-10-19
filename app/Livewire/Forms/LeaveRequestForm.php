@@ -7,6 +7,7 @@ use App\Enums\LeaveTypeCases;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\LeaveAlternativeEmployees;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -75,10 +76,7 @@ class LeaveRequestForm extends Form
             ],
             'alternative_employee' => [
                 'nullable',
-                Rule::exists('employees', 'id')
-                    ->where(fn ($query) => $query
-                        ->where('city_id', $employee?->city_id ?? 0)
-                        ->where('id', '!=', $employee?->id ?? 0)),
+                Rule::in($employee ? app(LeaveAlternativeEmployees::class)->query($employee)->pluck('id')->all() : []),
             ],
         ];
 

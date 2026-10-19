@@ -22,12 +22,21 @@
              128M default, so the run died part-way through with a memory
              exhaustion at whichever allocation happened to be last. -->
         <ini name="memory_limit" value="1G"/>
-        <env name="APP_ENV" value="testing"/>
+        <!-- An inherited shell value must not change the baseline (docs/ux/test-baseline.md). <env force> covers
+             getenv()/$_ENV only; Laravel reads $_SERVER first, which <server> always overwrites. -->
+        <server name="APP_ENV" value="testing"/>
+        <server name="APP_LOCALE" value="en"/>
+        <server name="APP_FALLBACK_LOCALE" value="en"/>
+        <server name="DB_CONNECTION" value="sqlite"/>
+        <server name="DB_DATABASE" value=":memory:"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_LOCALE" value="en" force="true"/>
+        <env name="APP_FALLBACK_LOCALE" value="en" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
         <env name="ACTIVITY_LOGGER_DB_CONNECTION" value="sqlite"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

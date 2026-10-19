@@ -81,6 +81,8 @@ Brand palette is `--color-primary` `#be1f24` plus four greys (`--color-secondary
 - JS that reads colours from CSS must read only the five brand variables; the derived tokens are `color-mix()` expressions chart libraries can't parse.
 
 Fonts: SomarSans (with Lato fallback), preloaded in `resources/views/partials/head.blade.php`. Required form fields are marked with a red star via the `required` prop on `<x-forms.input-label>`.
+- **Web fonts live in `resources/fonts/` as WOFF2** and are referenced from `app.css` by relative path, so Vite fingerprints them (cache-busting) and the preload uses `Vite::asset()` to get the same URL. Never point `@font-face` at `/fonts/...` again — that is what produced the "didn't resolve at build time" warnings.
+- `public/fonts/` holds only the `.ttf` files the contract PDF inlines through `public_path()` (`_styles.blade.php`). Those two sets are separate on purpose.
 
 ### Routes
 `routes/web.php` is the locale-wrapped entry point and `require`s the domain route files: `basic-project.php`, `projects-management.php`, `employees-management.php`, and `auth.php`.

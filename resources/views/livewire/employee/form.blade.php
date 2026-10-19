@@ -62,6 +62,11 @@
             <x-tab.item :title="__('general.items')" activeTab="items" :disabled="!isset($infoForm->id)" :active="$activeTab === 'items'">
                 <x-icons.items />
             </x-tab.item>
+            @if ($canViewContractHistory)
+                <x-tab.item :title="__('general.contracts-history')" activeTab="contracts_history" :disabled="!isset($infoForm->id)" :active="$activeTab === 'contracts_history'">
+                    <x-icons.contracts />
+                </x-tab.item>
+            @endif
         </x-tab.list>
 
         <div class="flex-grow w-full">
@@ -86,6 +91,8 @@
                     @include('livewire.employee.tabs.attachments-fields')
                 @elseif($activeTab === 'items')
                     @include('livewire.employee.tabs.items-fields')
+                @elseif($activeTab === 'contracts_history' && $canViewContractHistory)
+                    @include('livewire.employee.tabs.contracts-history')
                 @else
                     @include('livewire.employee.tabs.personal-info-tab')
                 @endif

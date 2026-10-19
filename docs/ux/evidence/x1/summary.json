@@ -1,0 +1,4867 @@
+{
+  "environment": {
+    "started_at": "2026-10-16T14:50:17+03:00",
+    "git_sha": "fb01a226be474820a2aba710edf0a661d294dc7a",
+    "git_dirty_paths": [
+      "?? tests/Performance/"
+    ],
+    "browser": "Chromium 151.0.7922.34 (Playwright, headless)",
+    "php": "8.5.11",
+    "os": "Windows-10-10.0.26300-SP0",
+    "cpu": "AMD64 Family 25 Model 124 Stepping 0, AuthenticAMD",
+    "python": "3.10.6",
+    "server": "6 x php -S + router.php behind a threaded proxy on http://127.0.0.1:8390; opcache.enable_cli=1, validate_timestamps=0; SQLite WAL, busy_timeout 10 s",
+    "profiles": {
+      "desktop": {
+        "context": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "device_scale_factor": 1
+        },
+        "network": null,
+        "cpu": 1,
+        "load_cap_ms": 120000
+      },
+      "phone": {
+        "context": {
+          "viewport": {
+            "width": 375,
+            "height": 812
+          },
+          "device_scale_factor": 3,
+          "is_mobile": true,
+          "has_touch": true,
+          "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"
+        },
+        "network": {
+          "offline": false,
+          "latency": 562.5,
+          "downloadThroughput": 180000,
+          "uploadThroughput": 84375
+        },
+        "cpu": 4,
+        "load_cap_ms": 420000
+      }
+    },
+    "flows": {
+      "dashboard": {
+        "persona": "hr",
+        "path": "/",
+        "content": "[data-tour=\"dashboard.team\"]",
+        "interaction": null
+      },
+      "employee_search": {
+        "persona": "hr",
+        "path": "/employees",
+        "content": "tr[data-tour=\"table.row\"]",
+        "interaction": "search"
+      },
+      "contract_create": {
+        "persona": "hr",
+        "path": "/contracts/create",
+        "content": "[x-data^=\"contractComposer\"]",
+        "interaction": "pick_employee"
+      },
+      "leave_form": {
+        "persona": "staff",
+        "path": "/leaves",
+        "content": "[data-tour=\"leaves.request\"]",
+        "interaction": "open_leave_form"
+      }
+    },
+    "runs": {
+      "cold": 5,
+      "first_visit": 5,
+      "warm": 5
+    },
+    "fixture": {
+      "built_at": "2026-10-16T14:50:15+03:00",
+      "seed": 20261016,
+      "counts": {
+        "employees": 278,
+        "users": 261,
+        "contracts": 314,
+        "positions": 168,
+        "centers": 27,
+        "cities": 16,
+        "leave_balances": 1615,
+        "leave_requests": 63,
+        "leave_types": 10,
+        "notifications": 1050,
+        "media": 191,
+        "checklists": 8,
+        "employee_notes": 10,
+        "news": 0,
+        "active_employees": 196,
+        "active_contracts": 196,
+        "avatar_avg_bytes": 247036,
+        "leave_balance_failures": 0
+      },
+      "search": {
+        "term": "Haddad",
+        "expected_matches_in_hr_scope": 5,
+        "employees_in_hr_scope": 71
+      },
+      "contract_pick": {
+        "employee_id": 3
+      }
+    }
+  },
+  "flows": {
+    "dashboard": {
+      "desktop": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 3010.7,
+            "min": 2944.4,
+            "max": 3043.2
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 66.7,
+            "min": 63.8,
+            "max": 69.8
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 230,
+            "min": 230,
+            "max": 231
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.919921875,
+            "min": 54.912109375,
+            "max": 54.931640625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 3049.599999997765,
+            "min": 2968.800000000745,
+            "max": 3084.89999999851
+          },
+          "fcp": {
+            "n": 5,
+            "median": 5056,
+            "min": 3676,
+            "max": 5928
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 5138.900000002235,
+            "min": 3752.699999999255,
+            "max": 6038.800000000745
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 6921.10000000149,
+            "min": 4951,
+            "max": 7924.800000000745
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 6921.10000000149,
+            "min": 4951,
+            "max": 7924.800000000745
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 7713.70000000298,
+            "min": 6642.199999999255,
+            "max": 8821.800000000745
+          },
+          "settled": {
+            "n": 5,
+            "median": 7923.60000000149,
+            "min": 6821.800000000745,
+            "max": 9064.699999999255
+          },
+          "load": {
+            "n": 5,
+            "median": 7891.400000002235,
+            "min": 6722.10000000149,
+            "max": 9032.099999997765
+          },
+          "lcp": {
+            "n": 5,
+            "median": 6048,
+            "min": 3780,
+            "max": 6816
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 15487.35546875,
+            "min": 15486.673828125,
+            "max": 15487.400390625
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 476.6396484375,
+            "min": 475.9404296875,
+            "max": 476.673828125
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 14182.6259765625,
+            "min": 14182.6220703125,
+            "max": 14182.642578125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 17114.9,
+            "min": 15825.9,
+            "max": 19196.6
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1588,
+            "min": 1584,
+            "max": 1590
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 94.1,
+            "min": 76.5,
+            "max": 132.9
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.513671875,
+            "min": 3.5087890625,
+            "max": 3.515625
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0.1146352163976766,
+            "min": 0.10924718722538367,
+            "max": 0.11743737478164652
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5596,
+            "min": 5596,
+            "max": 5596
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 761.4,
+            "min": 689.2,
+            "max": 818.9
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 60.1,
+            "min": 51.8,
+            "max": 89.5
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 227,
+            "min": 227,
+            "max": 227
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.91796875,
+            "min": 54.912109375,
+            "max": 54.919921875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 799.8000000007451,
+            "min": 715,
+            "max": 859.1999999992549
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1696,
+            "min": 1412,
+            "max": 2472
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 1784.300000000745,
+            "min": 1497.699999999255,
+            "max": 2543.199999999255
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 2796.10000000149,
+            "min": 2545.89999999851,
+            "max": 4283.10000000149
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 2796.10000000149,
+            "min": 2545.89999999851,
+            "max": 4283.10000000149
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 4242.199999999255,
+            "min": 4200.900000002235,
+            "max": 5247.400000002235
+          },
+          "settled": {
+            "n": 5,
+            "median": 4406.300000000745,
+            "min": 4362,
+            "max": 5475
+          },
+          "load": {
+            "n": 5,
+            "median": 4325.5,
+            "min": 4282.5,
+            "max": 5449.400000002235
+          },
+          "lcp": {
+            "n": 5,
+            "median": 1812,
+            "min": 1528,
+            "max": 3928
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 15486.640625,
+            "min": 15486.6201171875,
+            "max": 15486.6904296875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 475.9248046875,
+            "min": 475.908203125,
+            "max": 475.962890625
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 14182.6201171875,
+            "min": 14182.6181640625,
+            "max": 14182.6318359375
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 16447.8,
+            "min": 16080.6,
+            "max": 17385.0
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1586,
+            "min": 1583,
+            "max": 1589
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 81.3,
+            "min": 71.2,
+            "max": 84.3
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.51171875,
+            "min": 3.51171875,
+            "max": 3.515625
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0.11196319754225073,
+            "min": 0.11163709815591778,
+            "max": 0.11656002131960519
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5596,
+            "min": 5596,
+            "max": 5596
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 735.7,
+            "min": 723.8,
+            "max": 800.7
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 57.2,
+            "min": 55.2,
+            "max": 63.3
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 227,
+            "min": 227,
+            "max": 227
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.919921875,
+            "min": 54.9130859375,
+            "max": 54.923828125
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 756,
+            "min": 746.0999999977648,
+            "max": 824.4000000022352
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1020,
+            "min": 1012,
+            "max": 1096
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 997.3000000007451,
+            "min": 988.5,
+            "max": 1075.9000000022352
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 2246.7999999970198,
+            "min": 2043.3999999985099,
+            "max": 2392
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 2246.7999999970198,
+            "min": 2043.3999999985099,
+            "max": 2392
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 3193.5,
+            "min": 3114.699999999255,
+            "max": 3452.39999999851
+          },
+          "settled": {
+            "n": 5,
+            "median": 3332.699999999255,
+            "min": 3293.800000000745,
+            "max": 3607.800000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 3253.300000000745,
+            "min": 3180.199999999255,
+            "max": 3524.800000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 1020,
+            "min": 1012,
+            "max": 1096
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 494.3544921875,
+            "min": 494.3447265625,
+            "max": 494.357421875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 287.759765625,
+            "min": 287.759765625,
+            "max": 287.759765625
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 16243.1,
+            "min": 15902.5,
+            "max": 17664.2
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1588,
+            "min": 1587,
+            "max": 1590
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 72.2,
+            "min": 66.6,
+            "max": 107.6
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.5126953125,
+            "min": 3.509765625,
+            "max": 3.5166015625
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0.006317629498349623,
+            "min": 0.006317629498349623,
+            "max": 0.006317629498349623
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5576,
+            "min": 5576,
+            "max": 5576
+          },
+          "runs": 5
+        }
+      },
+      "phone": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2983.1,
+            "min": 2888.4,
+            "max": 3004.3
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 67.2,
+            "min": 65.5,
+            "max": 69.9
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 230,
+            "min": 230,
+            "max": 230
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.9150390625,
+            "min": 54.900390625,
+            "max": 54.9248046875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 3006,
+            "min": 2911.699999999255,
+            "max": 3035.800000000745
+          },
+          "fcp": {
+            "n": 5,
+            "median": 5464,
+            "min": 5344,
+            "max": 5732
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 5625.800000000745,
+            "min": 5503.800000000745,
+            "max": 6030.800000000745
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 11632.60000000149,
+            "min": 10172.900000002235,
+            "max": 11984
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 11632.60000000149,
+            "min": 10172.900000002235,
+            "max": 11984
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 103285.40000000224,
+            "min": 102976.70000000298,
+            "max": 103353.19999999925
+          },
+          "settled": {
+            "n": 5,
+            "median": 104501.60000000149,
+            "min": 104163.60000000149,
+            "max": 104603.69999999925
+          },
+          "load": {
+            "n": 5,
+            "median": 103645.40000000224,
+            "min": 103308.5,
+            "max": 103733.10000000149
+          },
+          "lcp": {
+            "n": 5,
+            "median": 9252,
+            "min": 8320,
+            "max": 10152
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 15487.345703125,
+            "min": 15486.6806640625,
+            "max": 15487.7333984375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 476.658203125,
+            "min": 475.97265625,
+            "max": 477.0185546875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 14182.611328125,
+            "min": 14182.607421875,
+            "max": 14182.6162109375
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 14919.4,
+            "min": 14293.0,
+            "max": 15249.5
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1587,
+            "min": 1585,
+            "max": 1590
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 89.6,
+            "min": 82.8,
+            "max": 92.5
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.5126953125,
+            "min": 3.509765625,
+            "max": 3.5146484375
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0.22716663222586897,
+            "min": 0.22216628162486757,
+            "max": 0.23716412790591862
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5596,
+            "min": 5596,
+            "max": 5596
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 700.0,
+            "min": 691.1,
+            "max": 894.9
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 55.4,
+            "min": 53.9,
+            "max": 63.5
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 227,
+            "min": 227,
+            "max": 227
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.912109375,
+            "min": 54.91015625,
+            "max": 54.9169921875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 722.3000000007451,
+            "min": 715.5999999977648,
+            "max": 920.0999999977648
+          },
+          "fcp": {
+            "n": 5,
+            "median": 3156,
+            "min": 3116,
+            "max": 3332
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 3352.699999999255,
+            "min": 3321,
+            "max": 3582
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 9306.89999999851,
+            "min": 9182.800000000745,
+            "max": 9645.300000000745
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 9306.89999999851,
+            "min": 9182.800000000745,
+            "max": 9645.300000000745
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 100878.40000000224,
+            "min": 100746,
+            "max": 101188.09999999776
+          },
+          "settled": {
+            "n": 5,
+            "median": 102061.5,
+            "min": 101923.19999999925,
+            "max": 102406.30000000075
+          },
+          "load": {
+            "n": 5,
+            "median": 101175.80000000075,
+            "min": 101073.69999999925,
+            "max": 101546.09999999776
+          },
+          "lcp": {
+            "n": 5,
+            "median": 7108,
+            "min": 7056,
+            "max": 8016
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 15486.693359375,
+            "min": 15486.640625,
+            "max": 15487.7021484375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 475.9912109375,
+            "min": 475.94921875,
+            "max": 477.0068359375
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 14182.6064453125,
+            "min": 14182.6044921875,
+            "max": 14182.6201171875
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 13979.2,
+            "min": 13150.9,
+            "max": 14770.4
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1587,
+            "min": 1584,
+            "max": 1589
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 68.3,
+            "min": 64.7,
+            "max": 81.3
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.5126953125,
+            "min": 3.5107421875,
+            "max": 3.5146484375
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0.22504323817814875,
+            "min": 0.21647751553058797,
+            "max": 0.23525478461673013
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5596,
+            "min": 5596,
+            "max": 5596
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 685.3,
+            "min": 640.7,
+            "max": 738.7
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 54.0,
+            "min": 50.9,
+            "max": 57.5
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 227,
+            "min": 227,
+            "max": 227
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 1212.0654296875,
+            "min": 1212.0654296875,
+            "max": 1212.0654296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 54.9111328125,
+            "min": 54.90234375,
+            "max": 54.921875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 706.0999999977648,
+            "min": 660.5999999977648,
+            "max": 759.3999999985099
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1200,
+            "min": 1148,
+            "max": 1228
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 1483.7999999970198,
+            "min": 1381.300000000745,
+            "max": 1532.800000000745
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 5776.79999999702,
+            "min": 5562.89999999851,
+            "max": 5902.29999999702
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 5776.79999999702,
+            "min": 5562.89999999851,
+            "max": 5902.29999999702
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 16772,
+            "min": 16518.199999999255,
+            "max": 16846.89999999851
+          },
+          "settled": {
+            "n": 5,
+            "median": 17840.5,
+            "min": 17583.89999999851,
+            "max": 17900.599999997765
+          },
+          "load": {
+            "n": 5,
+            "median": 17275.39999999851,
+            "min": 17004.79999999702,
+            "max": 17336.099999997765
+          },
+          "lcp": {
+            "n": 5,
+            "median": 3824,
+            "min": 3732,
+            "max": 4692
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 218,
+            "min": 218,
+            "max": 218
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 494.3427734375,
+            "min": 494.337890625,
+            "max": 494.3544921875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 191,
+            "min": 191,
+            "max": 191
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 134,
+            "min": 134,
+            "max": 134
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 287.759765625,
+            "min": 287.759765625,
+            "max": 287.759765625
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 13287.6,
+            "min": 12874.5,
+            "max": 13718.8
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 1587,
+            "min": 1584,
+            "max": 1587
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 69.5,
+            "min": 63.0,
+            "max": 78.1
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 3.51171875,
+            "min": 3.5107421875,
+            "max": 3.5146484375
+          },
+          "ix_ms": null,
+          "ix_debounce_ms": null,
+          "ix_server_ms": null,
+          "ix_queries": null,
+          "ix_raw_kb": null,
+          "ix_wire_kb": null,
+          "cls": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 5576,
+            "min": 5576,
+            "max": 5576
+          },
+          "runs": 5
+        }
+      }
+    },
+    "employee_search": {
+      "desktop": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 4896.4,
+            "min": 4500.4,
+            "max": 4972.2
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 150.7,
+            "min": 148.5,
+            "max": 185.1
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 818,
+            "min": 818,
+            "max": 818
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.900390625,
+            "min": 36.8974609375,
+            "max": 36.90625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 4920.199999999255,
+            "min": 4536.70000000298,
+            "max": 4988.900000002235
+          },
+          "fcp": {
+            "n": 5,
+            "median": 6932,
+            "min": 5364,
+            "max": 9144
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 6970.300000000745,
+            "min": 5413.39999999851,
+            "max": 9185.900000002235
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 7587.60000000149,
+            "min": 6185.79999999702,
+            "max": 9779
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 7587.60000000149,
+            "min": 6185.79999999702,
+            "max": 9779
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 8649,
+            "min": 6097.5,
+            "max": 14817.900000002235
+          },
+          "settled": {
+            "n": 5,
+            "median": 10808.199999999255,
+            "min": 8416.699999999255,
+            "max": 16846.300000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 8758,
+            "min": 6191.699999999255,
+            "max": 14929.300000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 8724,
+            "min": 6164,
+            "max": 14888
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 4791.755859375,
+            "min": 4791.736328125,
+            "max": 4791.7626953125
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 427.966796875,
+            "min": 427.951171875,
+            "max": 427.9736328125
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 3648.6298828125,
+            "min": 3648.6279296875,
+            "max": 3648.6318359375
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 2114.4,
+            "min": 1806.7,
+            "max": 2176.3
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 134,
+            "min": 133,
+            "max": 134
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 2243.3,
+            "min": 1957.7,
+            "max": 2251.9
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 708
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.6123046875,
+            "min": 16.609375,
+            "max": 16.61328125
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1599.7,
+            "min": 1481.3,
+            "max": 1654.9
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 511.4,
+            "min": 509.1,
+            "max": 519.9
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 987.0,
+            "min": 894.2,
+            "max": 1036.0
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 256
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.171875,
+            "min": 12.169921875,
+            "max": 12.173828125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0029100663633830587,
+            "min": 0.0006841589238254459,
+            "max": 0.003072330461248285
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2389.9,
+            "min": 2254.6,
+            "max": 2543.1
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 166.4,
+            "min": 160.9,
+            "max": 169.9
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 815,
+            "min": 815,
+            "max": 815
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.9013671875,
+            "min": 36.8916015625,
+            "max": 36.9091796875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2422.39999999851,
+            "min": 2270.300000000745,
+            "max": 2567.300000000745
+          },
+          "fcp": {
+            "n": 5,
+            "median": 3904,
+            "min": 3148,
+            "max": 5156
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 3945,
+            "min": 3194.199999999255,
+            "max": 5192.400000002235
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 4531.39999999851,
+            "min": 3784.5,
+            "max": 5821.60000000149
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 4531.39999999851,
+            "min": 3784.5,
+            "max": 5821.60000000149
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 6047.5,
+            "min": 3777.60000000149,
+            "max": 7380.400000002235
+          },
+          "settled": {
+            "n": 5,
+            "median": 8084.099999997765,
+            "min": 5911.400000002235,
+            "max": 9423
+          },
+          "load": {
+            "n": 5,
+            "median": 6171.79999999702,
+            "min": 3876.60000000149,
+            "max": 7496.60000000149
+          },
+          "lcp": {
+            "n": 5,
+            "median": 6132,
+            "min": 3848,
+            "max": 7464
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 4791.73046875,
+            "min": 4791.720703125,
+            "max": 4791.767578125
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 427.953125,
+            "min": 427.951171875,
+            "max": 427.982421875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 3648.623046875,
+            "min": 3648.619140625,
+            "max": 3648.626953125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 1317.4,
+            "min": 1204.3,
+            "max": 1393.6
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 133,
+            "min": 133,
+            "max": 135
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 2029.0,
+            "min": 1951.9,
+            "max": 2110.4
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 708
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.6123046875,
+            "min": 16.6083984375,
+            "max": 16.61328125
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1407.4,
+            "min": 1307.0,
+            "max": 1469.2
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 514.2,
+            "min": 506.9,
+            "max": 515.3
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 803.8,
+            "min": 719.5,
+            "max": 857.4
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 256
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.169921875,
+            "min": 12.16796875,
+            "max": 12.1708984375
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.002321937023105281,
+            "min": 0.00029959062071330586,
+            "max": 0.0031345732596021946
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2212.7,
+            "min": 1577.9,
+            "max": 2278.5
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 152.2,
+            "min": 114.1,
+            "max": 161.7
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 815,
+            "min": 815,
+            "max": 816
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.900390625,
+            "min": 36.89453125,
+            "max": 36.91015625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2237.10000000149,
+            "min": 1589.2000000029802,
+            "max": 2293.39999999851
+          },
+          "fcp": {
+            "n": 5,
+            "median": 2416,
+            "min": 1724,
+            "max": 2500
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 2478.10000000149,
+            "min": 1772.300000000745,
+            "max": 2528.5
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 3106,
+            "min": 2362.300000000745,
+            "max": 3212.5
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 3106,
+            "min": 2362.300000000745,
+            "max": 3212.5
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 2733.10000000149,
+            "min": 1964.1000000014901,
+            "max": 2825.5
+          },
+          "settled": {
+            "n": 5,
+            "median": 4802.800000000745,
+            "min": 3869.7000000029802,
+            "max": 5029.300000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 2823.60000000149,
+            "min": 2051.900000002235,
+            "max": 2923.5
+          },
+          "lcp": {
+            "n": 5,
+            "median": 2552,
+            "min": 2064,
+            "max": 2944
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 201.6728515625,
+            "min": 201.669921875,
+            "max": 201.6865234375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 1299.4,
+            "min": 1299.4,
+            "max": 1299.4
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 135,
+            "min": 135,
+            "max": 135
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 2002.5,
+            "min": 1845.1,
+            "max": 2205.9
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 708
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.61328125,
+            "min": 16.611328125,
+            "max": 16.615234375
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1413.4,
+            "min": 1156.2,
+            "max": 1448.8
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 507.9,
+            "min": 507.1,
+            "max": 518.0
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 807.8,
+            "min": 585.3,
+            "max": 842.2
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 256
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.169921875,
+            "min": 12.1689453125,
+            "max": 12.173828125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.00028579818244170094,
+            "min": 0.00028579818244170094,
+            "max": 0.0023563886477623456
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        }
+      },
+      "phone": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 4555.4,
+            "min": 4472.2,
+            "max": 4681.1
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 143.9,
+            "min": 141.4,
+            "max": 145.8
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 818,
+            "min": 818,
+            "max": 818
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.896484375,
+            "min": 36.892578125,
+            "max": 36.904296875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 4572.300000000745,
+            "min": 4488.800000000745,
+            "max": 4697.89999999851
+          },
+          "fcp": {
+            "n": 5,
+            "median": 7056,
+            "min": 6960,
+            "max": 7160
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 7396.89999999851,
+            "min": 7222.300000000745,
+            "max": 7445.699999999255
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 18868.099999997765,
+            "min": 11296.5,
+            "max": 19007.699999999255
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 18868.099999997765,
+            "min": 11296.5,
+            "max": 19007.699999999255
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 33776.400000002235,
+            "min": 30857,
+            "max": 33912
+          },
+          "settled": {
+            "n": 5,
+            "median": 36184,
+            "min": 33316.29999999702,
+            "max": 36337.89999999851
+          },
+          "load": {
+            "n": 5,
+            "median": 34747.5,
+            "min": 32826.5,
+            "max": 34882.29999999702
+          },
+          "lcp": {
+            "n": 5,
+            "median": 7156,
+            "min": 7068,
+            "max": 8632
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 4792.03515625,
+            "min": 4791.755859375,
+            "max": 4792.04296875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.263671875,
+            "min": 427.984375,
+            "max": 428.2705078125
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 3648.6181640625,
+            "min": 3648.6171875,
+            "max": 3648.619140625
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 1214.3,
+            "min": 1181.1,
+            "max": 1267.4
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 133,
+            "min": 133,
+            "max": 133
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 1920.2,
+            "min": 1842.1,
+            "max": 1975.0
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 709
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.6103515625,
+            "min": 16.609375,
+            "max": 16.6123046875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1933.8,
+            "min": 1925.3,
+            "max": 1986.3
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 522.1,
+            "min": 517.3,
+            "max": 531.0
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 872.2,
+            "min": 852.1,
+            "max": 900.7
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 256
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.1708984375,
+            "min": 12.1669921875,
+            "max": 12.171875
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0782765715493986,
+            "min": 0.07770591799070997,
+            "max": 0.0782765715493986
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 1936.9,
+            "min": 1871.2,
+            "max": 1949.4
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 128.8,
+            "min": 128.6,
+            "max": 134.4
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 815,
+            "min": 815,
+            "max": 815
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.8955078125,
+            "min": 36.8935546875,
+            "max": 36.90625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 1961.300000000745,
+            "min": 1901,
+            "max": 1975
+          },
+          "fcp": {
+            "n": 5,
+            "median": 4408,
+            "min": 4312,
+            "max": 7620
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 4662.60000000149,
+            "min": 4555.900000002235,
+            "max": 7810.599999997765
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 16179.300000000745,
+            "min": 8888,
+            "max": 16385.599999997765
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 16179.300000000745,
+            "min": 8888,
+            "max": 16385.599999997765
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 30836.60000000149,
+            "min": 30270.29999999702,
+            "max": 31294.699999999255
+          },
+          "settled": {
+            "n": 5,
+            "median": 33045.300000000745,
+            "min": 32412.89999999851,
+            "max": 33413.89999999851
+          },
+          "load": {
+            "n": 5,
+            "median": 31814.199999999255,
+            "min": 31238.29999999702,
+            "max": 32256.599999997765
+          },
+          "lcp": {
+            "n": 5,
+            "median": 4532,
+            "min": 4392,
+            "max": 7840
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 4791.7509765625,
+            "min": 4643.6005859375,
+            "max": 4791.771484375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 427.984375,
+            "min": 427.9775390625,
+            "max": 428.001953125
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 3648.6181640625,
+            "min": 3648.6171875,
+            "max": 3648.6201171875
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 1073.8,
+            "min": 1064.0,
+            "max": 1101.7
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 133,
+            "min": 133,
+            "max": 135
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 1699.1,
+            "min": 1656.2,
+            "max": 1739.1
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 708
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.61328125,
+            "min": 16.611328125,
+            "max": 16.615234375
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1759.6,
+            "min": 1716.8,
+            "max": 1879.0
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 525.8,
+            "min": 516.3,
+            "max": 531.2
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 671.6,
+            "min": 636.2,
+            "max": 735.0
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 257
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.169921875,
+            "min": 12.1689453125,
+            "max": 12.1708984375
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0782765715493986,
+            "min": 0.07770591799070997,
+            "max": 0.07836458175348024
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 1945.5,
+            "min": 1900.7,
+            "max": 1970.0
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 132.9,
+            "min": 131.1,
+            "max": 137.0
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 815,
+            "min": 815,
+            "max": 815
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 440.634765625,
+            "min": 440.634765625,
+            "max": 440.634765625
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 36.900390625,
+            "min": 36.89453125,
+            "max": 36.90234375
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 1959.5,
+            "min": 1927.800000000745,
+            "max": 1984.3999999985099
+          },
+          "fcp": {
+            "n": 5,
+            "median": 2444,
+            "min": 2408,
+            "max": 2484
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 2788.2000000029802,
+            "min": 2705.400000002235,
+            "max": 2813.5
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 5303.900000002235,
+            "min": 5210,
+            "max": 5449.400000002235
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 5303.900000002235,
+            "min": 5210,
+            "max": 5449.400000002235
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 4726.10000000149,
+            "min": 4631.10000000149,
+            "max": 4825.900000002235
+          },
+          "settled": {
+            "n": 5,
+            "median": 6978.400000002235,
+            "min": 6848.70000000298,
+            "max": 7016.900000002235
+          },
+          "load": {
+            "n": 5,
+            "median": 5320.800000000745,
+            "min": 5238.60000000149,
+            "max": 5394.199999999255
+          },
+          "lcp": {
+            "n": 5,
+            "median": 2616,
+            "min": 2560,
+            "max": 2688
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 38,
+            "min": 38,
+            "max": 38
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 201.671875,
+            "min": 201.66796875,
+            "max": 201.677734375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 15,
+            "min": 15,
+            "max": 15
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 1036.2,
+            "min": 1036.2,
+            "max": 1036.2
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 133,
+            "min": 133,
+            "max": 133
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 1713.0,
+            "min": 1688.4,
+            "max": 1797.0
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 708,
+            "min": 708,
+            "max": 709
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 16.6123046875,
+            "min": 16.609375,
+            "max": 16.6142578125
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 1781.2,
+            "min": 1708.3,
+            "max": 1797.9
+          },
+          "ix_debounce_ms": {
+            "n": 5,
+            "median": 523.5,
+            "min": 516.8,
+            "max": 529.0
+          },
+          "ix_server_ms": {
+            "n": 5,
+            "median": 657.4,
+            "min": 638.9,
+            "max": 670.6
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 256,
+            "min": 256,
+            "max": 256
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 170.84375,
+            "min": 170.84375,
+            "max": 170.84375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 12.171875,
+            "min": 12.169921875,
+            "max": 12.1728515625
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.07765344140034136,
+            "min": 0.07765344140034136,
+            "max": 0.07765344140034136
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1625,
+            "min": 1625,
+            "max": 1625
+          },
+          "runs": 5
+        }
+      }
+    },
+    "contract_create": {
+      "desktop": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2346.3,
+            "min": 2218.7,
+            "max": 2437.7
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 32.2,
+            "min": 31.1,
+            "max": 35.0
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 123,
+            "min": 123,
+            "max": 123
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.673828125,
+            "min": 35.6650390625,
+            "max": 35.68359375
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2377.5,
+            "min": 2238.5,
+            "max": 2451.5
+          },
+          "fcp": {
+            "n": 5,
+            "median": 4624,
+            "min": 2988,
+            "max": 5800
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 4646,
+            "min": 3012.800000000745,
+            "max": 5831.39999999851
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 5227.599999997765,
+            "min": 3581.60000000149,
+            "max": 6465.60000000149
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 6954.5,
+            "min": 4485.900000002235,
+            "max": 7352.699999999255
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 6567.900000002235,
+            "min": 4130.10000000149,
+            "max": 6996.199999999255
+          },
+          "settled": {
+            "n": 5,
+            "median": 6954.5,
+            "min": 4485.900000002235,
+            "max": 7352.699999999255
+          },
+          "load": {
+            "n": 5,
+            "median": 6673,
+            "min": 4215.10000000149,
+            "max": 7086.800000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 4660,
+            "min": 3024,
+            "max": 5840
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1363.6015625,
+            "min": 1363.322265625,
+            "max": 1363.6201171875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.23828125,
+            "min": 427.96875,
+            "max": 428.2666015625
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 232.923828125,
+            "min": 232.923828125,
+            "max": 232.923828125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 169.4,
+            "min": 142.1,
+            "max": 194.9
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 201.5,
+            "min": 193.1,
+            "max": 220.9
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.6484375,
+            "min": 6.646484375,
+            "max": 6.6513671875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 192.5,
+            "min": 171.5,
+            "max": 210.5
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 138.2,
+            "min": 118.5,
+            "max": 144.0
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.0322265625,
+            "min": 3.03125,
+            "max": 3.03515625
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.1407634295093343,
+            "min": 0.1407634295093343,
+            "max": 0.14079020924927932
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 419.4,
+            "min": 375.6,
+            "max": 449.2
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 27.5,
+            "min": 23.8,
+            "max": 30.0
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 120,
+            "min": 120,
+            "max": 120
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.6708984375,
+            "min": 35.66796875,
+            "max": 35.67578125
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 432.19999999925494,
+            "min": 391,
+            "max": 461.3999999985099
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1056,
+            "min": 1004,
+            "max": 1704
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 1078.1000000014901,
+            "min": 984,
+            "max": 1730.5999999977648
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 1737.699999999255,
+            "min": 1648.0999999977648,
+            "max": 2483.199999999255
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 2606.60000000149,
+            "min": 1992.1000000014901,
+            "max": 3386.900000002235
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 2301.60000000149,
+            "min": 1673.5,
+            "max": 3075.7000000029802
+          },
+          "settled": {
+            "n": 5,
+            "median": 2606.60000000149,
+            "min": 1992.1000000014901,
+            "max": 3386.900000002235
+          },
+          "load": {
+            "n": 5,
+            "median": 2390,
+            "min": 1761.300000000745,
+            "max": 3157
+          },
+          "lcp": {
+            "n": 5,
+            "median": 1108,
+            "min": 1004,
+            "max": 1744
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1363.6044921875,
+            "min": 1363.5908203125,
+            "max": 1363.6162109375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.251953125,
+            "min": 428.240234375,
+            "max": 428.2646484375
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 232.9228515625,
+            "min": 232.9228515625,
+            "max": 232.923828125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 84.8,
+            "min": 75.2,
+            "max": 140.4
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 155.7,
+            "min": 137.0,
+            "max": 167.8
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.6494140625,
+            "min": 6.64453125,
+            "max": 6.650390625
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 158.8,
+            "min": 146.5,
+            "max": 182.0
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 102.0,
+            "min": 96.1,
+            "max": 131.2
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.029296875,
+            "min": 3.02734375,
+            "max": 3.03125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.14079020924927932,
+            "min": 0.14079020924927932,
+            "max": 0.141621335244931
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 380.1,
+            "min": 327.1,
+            "max": 404.6
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 26.8,
+            "min": 25.3,
+            "max": 28.9
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 120,
+            "min": 120,
+            "max": 120
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.671875,
+            "min": 35.666015625,
+            "max": 35.6806640625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 393.69999999925494,
+            "min": 338.80000000074506,
+            "max": 419
+          },
+          "fcp": {
+            "n": 5,
+            "median": 592,
+            "min": 520,
+            "max": 612
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 583.0999999977648,
+            "min": 535.1999999992549,
+            "max": 609.3000000007451
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 1158,
+            "min": 1097.5,
+            "max": 1186.800000000745
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 1158,
+            "min": 1097.5,
+            "max": 1186.800000000745
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 757.3000000007451,
+            "min": 708.1000000014901,
+            "max": 793.9000000022352
+          },
+          "settled": {
+            "n": 5,
+            "median": 1158,
+            "min": 1097.5,
+            "max": 1186.800000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 848.3000000007451,
+            "min": 802.5,
+            "max": 879.4000000022352
+          },
+          "lcp": {
+            "n": 5,
+            "median": 876,
+            "min": 840,
+            "max": 900
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 190.484375,
+            "min": 190.4765625,
+            "max": 190.4921875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 94.5,
+            "min": 94.5,
+            "max": 94.5
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 164.1,
+            "min": 147.4,
+            "max": 169.5
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.650390625,
+            "min": 6.6484375,
+            "max": 6.6513671875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 133.4,
+            "min": 130.5,
+            "max": 144.1
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 88.4,
+            "min": 84.0,
+            "max": 97.9
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.0283203125,
+            "min": 3.02734375,
+            "max": 3.0322265625
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.14079020924927932,
+            "min": 0.1407634295093343,
+            "max": 0.14229282179676783
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        }
+      },
+      "phone": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2215.2,
+            "min": 2162.2,
+            "max": 2318.9
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 32.5,
+            "min": 31.4,
+            "max": 35.1
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 123,
+            "min": 123,
+            "max": 123
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.6669921875,
+            "min": 35.662109375,
+            "max": 35.67578125
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2237.699999999255,
+            "min": 2189.800000000745,
+            "max": 2337.7999999970198
+          },
+          "fcp": {
+            "n": 5,
+            "median": 4700,
+            "min": 4636,
+            "max": 4812
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 4734.5,
+            "min": 4675.800000000745,
+            "max": 4857.699999999255
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 7384.199999999255,
+            "min": 7318.89999999851,
+            "max": 7493.5
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 13257.5,
+            "min": 13186.699999999255,
+            "max": 14824.5
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 11651.599999997765,
+            "min": 11537.800000000745,
+            "max": 13246.699999999255
+          },
+          "settled": {
+            "n": 5,
+            "median": 13257.5,
+            "min": 13186.699999999255,
+            "max": 14824.5
+          },
+          "load": {
+            "n": 5,
+            "median": 13061.5,
+            "min": 12547.5,
+            "max": 14699.099999997765
+          },
+          "lcp": {
+            "n": 5,
+            "median": 7320,
+            "min": 7240,
+            "max": 7444
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1363.63671875,
+            "min": 1363.6201171875,
+            "max": 1363.6494140625
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.2890625,
+            "min": 428.28125,
+            "max": 428.298828125
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 232.923828125,
+            "min": 232.923828125,
+            "max": 232.923828125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 141.8,
+            "min": 121.4,
+            "max": 160.8
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 164.0,
+            "min": 150.2,
+            "max": 179.8
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.6494140625,
+            "min": 6.6455078125,
+            "max": 6.650390625
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 869.1,
+            "min": 855.5,
+            "max": 938.6
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 83.8,
+            "min": 76.0,
+            "max": 87.9
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.0283203125,
+            "min": 3.02734375,
+            "max": 3.033203125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.181683792084759,
+            "min": 0.181683792084759,
+            "max": 0.19379182578947157
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 356.1,
+            "min": 322.2,
+            "max": 410.7
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 24.9,
+            "min": 21.5,
+            "max": 27.6
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 120,
+            "min": 120,
+            "max": 120
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.6708984375,
+            "min": 35.6669921875,
+            "max": 35.673828125
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 370,
+            "min": 335.5999999977648,
+            "max": 424.1000000014901
+          },
+          "fcp": {
+            "n": 5,
+            "median": 3016,
+            "min": 2996,
+            "max": 3044
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 3057.699999999255,
+            "min": 3027.599999997765,
+            "max": 3079.60000000149
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 5679.5,
+            "min": 5635.60000000149,
+            "max": 5712
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 12358.199999999255,
+            "min": 11392.900000002235,
+            "max": 13960.300000000745
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 10747.400000002235,
+            "min": 9870,
+            "max": 12385.20000000298
+          },
+          "settled": {
+            "n": 5,
+            "median": 12358.199999999255,
+            "min": 11392.900000002235,
+            "max": 13960.300000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 11778,
+            "min": 11265.800000000745,
+            "max": 13410.400000002235
+          },
+          "lcp": {
+            "n": 5,
+            "median": 5612,
+            "min": 3108,
+            "max": 5640
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1363.6259765625,
+            "min": 1363.611328125,
+            "max": 1363.6279296875
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.2734375,
+            "min": 428.265625,
+            "max": 428.2822265625
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 232.9228515625,
+            "min": 232.9228515625,
+            "max": 232.9228515625
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 69.2,
+            "min": 66.9,
+            "max": 84.2
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 8
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 139.9,
+            "min": 128.0,
+            "max": 149.0
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.6484375,
+            "min": 6.6455078125,
+            "max": 6.6513671875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 881.8,
+            "min": 863.0,
+            "max": 890.9
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 85.0,
+            "min": 78.6,
+            "max": 92.7
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.0283203125,
+            "min": 3.02734375,
+            "max": 3.0302734375
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.181683792084759,
+            "min": 0.181683792084759,
+            "max": 0.1899344169482597
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 340.8,
+            "min": 318.8,
+            "max": 350.9
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 23.7,
+            "min": 22.5,
+            "max": 25.8
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 120,
+            "min": 120,
+            "max": 120
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 208.48828125,
+            "min": 208.48828125,
+            "max": 208.48828125
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 35.6669921875,
+            "min": 35.6611328125,
+            "max": 35.6826171875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 363.5,
+            "min": 329.79999999701977,
+            "max": 376.5
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1032,
+            "min": 1004,
+            "max": 1076
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 1117.300000000745,
+            "min": 1087.6000000014901,
+            "max": 1139.199999999255
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 3045.60000000149,
+            "min": 2955.099999997765,
+            "max": 3156
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 4007.10000000149,
+            "min": 3886.900000002235,
+            "max": 4112.199999999255
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 2416.60000000149,
+            "min": 2371,
+            "max": 2517.2000000029802
+          },
+          "settled": {
+            "n": 5,
+            "median": 4007.10000000149,
+            "min": 3886.900000002235,
+            "max": 4112.199999999255
+          },
+          "load": {
+            "n": 5,
+            "median": 2970.800000000745,
+            "min": 2871.599999997765,
+            "max": 3125.800000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 2900,
+            "min": 1212,
+            "max": 3008
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 23,
+            "min": 23,
+            "max": 23
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 190.4775390625,
+            "min": 190.470703125,
+            "max": 190.49609375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 76.7,
+            "min": 76.7,
+            "max": 76.7
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 146.4,
+            "min": 125.3,
+            "max": 153.2
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 24,
+            "min": 24,
+            "max": 24
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 6.6494140625,
+            "min": 6.6484375,
+            "max": 6.65234375
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 876.0,
+            "min": 861.3,
+            "max": 881.0
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 82.6,
+            "min": 77.1,
+            "max": 84.0
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 19
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 1.8212890625,
+            "min": 1.8212890625,
+            "max": 1.8212890625
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 3.0283203125,
+            "min": 3.02734375,
+            "max": 3.0341796875
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.009174888980562498,
+            "min": 0.009174888980562498,
+            "max": 0.009174888980562498
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 1231,
+            "min": 1231,
+            "max": 1231
+          },
+          "runs": 5
+        }
+      }
+    },
+    "leave_form": {
+      "desktop": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2380.1,
+            "min": 2275.5,
+            "max": 2512.6
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 36.9,
+            "min": 35.2,
+            "max": 39.5
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 149,
+            "min": 149,
+            "max": 149
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.4443359375,
+            "min": 28.4384765625,
+            "max": 28.44921875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2410.300000000745,
+            "min": 2311,
+            "max": 2526.300000000745
+          },
+          "fcp": {
+            "n": 5,
+            "median": 3888,
+            "min": 3232,
+            "max": 7028
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 3871.89999999851,
+            "min": 3269.5,
+            "max": 7069.599999997765
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 4450.699999999255,
+            "min": 3841.300000000745,
+            "max": 7643.89999999851
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 4450.699999999255,
+            "min": 3841.300000000745,
+            "max": 7643.89999999851
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 6549.300000000745,
+            "min": 5809.60000000149,
+            "max": 10189.699999999255
+          },
+          "settled": {
+            "n": 5,
+            "median": 6777.60000000149,
+            "min": 6061.5,
+            "max": 10428
+          },
+          "load": {
+            "n": 5,
+            "median": 6605.800000000745,
+            "min": 5870.300000000745,
+            "max": 10249.300000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 3888,
+            "min": 3288,
+            "max": 7084
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1382.3671875,
+            "min": 1382.3642578125,
+            "max": 1382.3828125
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.2646484375,
+            "min": 428.25,
+            "max": 428.2763671875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 255.388671875,
+            "min": 255.388671875,
+            "max": 255.388671875
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 157.1,
+            "min": 132.1,
+            "max": 170.9
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 195.7,
+            "min": 186.0,
+            "max": 214.7
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 19
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.7265625,
+            "min": 8.72265625,
+            "max": 8.73046875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 193.3,
+            "min": 189.8,
+            "max": 211.0
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 143.7,
+            "min": 127.5,
+            "max": 164.3
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 38
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.90625,
+            "min": 7.904296875,
+            "max": 7.9111328125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0012094186455788108,
+            "min": 0.0007940618569958847,
+            "max": 0.0018989969135802468
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 327.1,
+            "min": 286.5,
+            "max": 348.4
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 33.7,
+            "min": 28.5,
+            "max": 34.6
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 146,
+            "min": 146,
+            "max": 146
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.4443359375,
+            "min": 28.4404296875,
+            "max": 28.4462890625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 338.70000000298023,
+            "min": 299.19999999925494,
+            "max": 374.5
+          },
+          "fcp": {
+            "n": 5,
+            "median": 936,
+            "min": 892,
+            "max": 7712
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 982.4000000022352,
+            "min": 938.8999999985099,
+            "max": 7749.10000000149
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 1593,
+            "min": 1505.2000000029802,
+            "max": 8314.70000000298
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 1593,
+            "min": 1505.2000000029802,
+            "max": 8314.70000000298
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 1627.5,
+            "min": 1534.800000000745,
+            "max": 9733.5
+          },
+          "settled": {
+            "n": 5,
+            "median": 1810.300000000745,
+            "min": 1705.7999999970198,
+            "max": 9909.5
+          },
+          "load": {
+            "n": 5,
+            "median": 1681.699999999255,
+            "min": 1588.699999999255,
+            "max": 9792.300000000745
+          },
+          "lcp": {
+            "n": 5,
+            "median": 1000,
+            "min": 960,
+            "max": 7764
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1382.3583984375,
+            "min": 1382.34375,
+            "max": 1382.3603515625
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 428.2490234375,
+            "min": 428.236328125,
+            "max": 428.26171875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 255.3876953125,
+            "min": 255.3876953125,
+            "max": 255.388671875
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 72.3,
+            "min": 67.1,
+            "max": 140.0
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 8
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 131.7,
+            "min": 119.2,
+            "max": 142.3
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 19
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.724609375,
+            "min": 8.7216796875,
+            "max": 8.732421875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 191.5,
+            "min": 174.9,
+            "max": 194.3
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 139.3,
+            "min": 126.9,
+            "max": 144.3
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 37
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.908203125,
+            "min": 7.9072265625,
+            "max": 7.91015625
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0010127030821330588,
+            "min": 0.0007940618569958847,
+            "max": 0.0015367766203703702
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 316.0,
+            "min": 297.2,
+            "max": 349.8
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 32.2,
+            "min": 26.6,
+            "max": 36.4
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 146,
+            "min": 146,
+            "max": 146
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.4423828125,
+            "min": 28.43359375,
+            "max": 28.455078125
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 326.79999999701977,
+            "min": 306.5999999977648,
+            "max": 359.3999999985099
+          },
+          "fcp": {
+            "n": 5,
+            "median": 536,
+            "min": 524,
+            "max": 544
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 522.7999999970198,
+            "min": 507.69999999925494,
+            "max": 565.5
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 1070.0999999977648,
+            "min": 1044.5999999977648,
+            "max": 1141.7999999970198
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 1070.0999999977648,
+            "min": 1044.5999999977648,
+            "max": 1141.7999999970198
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 669.6999999992549,
+            "min": 663.5999999977648,
+            "max": 743.0999999977648
+          },
+          "settled": {
+            "n": 5,
+            "median": 1070.0999999977648,
+            "min": 1044.5999999977648,
+            "max": 1141.7999999970198
+          },
+          "load": {
+            "n": 5,
+            "median": 724.4000000022352,
+            "min": 715.3999999985099,
+            "max": 793.6999999992549
+          },
+          "lcp": {
+            "n": 5,
+            "median": 740,
+            "min": 724,
+            "max": 808
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 185.33203125,
+            "min": 185.322265625,
+            "max": 185.3427734375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 85.2,
+            "min": 85.2,
+            "max": 85.2
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 128.2,
+            "min": 118.9,
+            "max": 138.3
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.7275390625,
+            "min": 8.724609375,
+            "max": 8.728515625
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 175.0,
+            "min": 157.1,
+            "max": 181.7
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 128.3,
+            "min": 109.6,
+            "max": 137.5
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 37
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.9091796875,
+            "min": 7.90625,
+            "max": 7.912109375
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.004664480452674897,
+            "min": 0.0007940618569958847,
+            "max": 0.004664480452674897
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        }
+      },
+      "phone": {
+        "cold": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 2286.5,
+            "min": 2266.5,
+            "max": 2326.5
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 36.9,
+            "min": 35.3,
+            "max": 38.4
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 149,
+            "min": 149,
+            "max": 149
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.447265625,
+            "min": 28.439453125,
+            "max": 28.4541015625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 2302.10000000149,
+            "min": 2293.699999999255,
+            "max": 2355.300000000745
+          },
+          "fcp": {
+            "n": 5,
+            "median": 4796,
+            "min": 4744,
+            "max": 7184
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 4940.10000000149,
+            "min": 4874.5,
+            "max": 7390.20000000298
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 7729.10000000149,
+            "min": 7725.10000000149,
+            "max": 8175.300000000745
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 7729.10000000149,
+            "min": 7725.10000000149,
+            "max": 8175.300000000745
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 11956.300000000745,
+            "min": 11716.10000000149,
+            "max": 12731.800000000745
+          },
+          "settled": {
+            "n": 5,
+            "median": 12795.20000000298,
+            "min": 12570.699999999255,
+            "max": 13578.300000000745
+          },
+          "load": {
+            "n": 5,
+            "median": 12263.900000002235,
+            "min": 12048.199999999255,
+            "max": 13028.5
+          },
+          "lcp": {
+            "n": 5,
+            "median": 7520,
+            "min": 4968,
+            "max": 7776
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1382.0947265625,
+            "min": 1382.08203125,
+            "max": 1382.3896484375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 427.9853515625,
+            "min": 427.9765625,
+            "max": 428.2763671875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 255.388671875,
+            "min": 255.388671875,
+            "max": 255.388671875
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 144.4,
+            "min": 133.4,
+            "max": 156.8
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 191.6,
+            "min": 184.6,
+            "max": 199.8
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.7275390625,
+            "min": 8.72265625,
+            "max": 8.728515625
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 854.9,
+            "min": 853.5,
+            "max": 917.3
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 143.4,
+            "min": 128.7,
+            "max": 144.3
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 37
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.90625,
+            "min": 7.9052734375,
+            "max": 7.9111328125
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0014955632669238922,
+            "min": 0.0014955632669238922,
+            "max": 0.0024144523445525654
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        },
+        "first-visit": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 291.3,
+            "min": 280.3,
+            "max": 337.3
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 29.7,
+            "min": 29.5,
+            "max": 30.8
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 146,
+            "min": 146,
+            "max": 146
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.44921875,
+            "min": 28.447265625,
+            "max": 28.451171875
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 301.79999999701977,
+            "min": 291.19999999925494,
+            "max": 360.80000000074506
+          },
+          "fcp": {
+            "n": 5,
+            "median": 3012,
+            "min": 3000,
+            "max": 3088
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 3178.60000000149,
+            "min": 3134.60000000149,
+            "max": 3256.39999999851
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 5969.60000000149,
+            "min": 5923.39999999851,
+            "max": 6043.89999999851
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 5969.60000000149,
+            "min": 5923.39999999851,
+            "max": 6043.89999999851
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 10856.39999999851,
+            "min": 10161.60000000149,
+            "max": 13927.599999997765
+          },
+          "settled": {
+            "n": 5,
+            "median": 11713.10000000149,
+            "min": 11026.60000000149,
+            "max": 14765.099999997765
+          },
+          "load": {
+            "n": 5,
+            "median": 11174.699999999255,
+            "min": 10467,
+            "max": 14226.79999999702
+          },
+          "lcp": {
+            "n": 5,
+            "median": 5848,
+            "min": 5788,
+            "max": 5964
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 1382.09765625,
+            "min": 1382.087890625,
+            "max": 1382.1025390625
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 427.9814453125,
+            "min": 427.9736328125,
+            "max": 427.9873046875
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 255.3876953125,
+            "min": 255.3876953125,
+            "max": 255.3876953125
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 73.1,
+            "min": 60.6,
+            "max": 78.9
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 124.7,
+            "min": 115.3,
+            "max": 141.9
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.7265625,
+            "min": 8.7255859375,
+            "max": 8.73046875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 854.2,
+            "min": 822.6,
+            "max": 896.0
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 126.1,
+            "min": 105.5,
+            "max": 132.3
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 37
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.91015625,
+            "min": 7.9072265625,
+            "max": 7.912109375
+          },
+          "cls": {
+            "n": 5,
+            "median": 0.0014955632669238922,
+            "min": 0.0014955632669238922,
+            "max": 0.0024144523445525654
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        },
+        "warm": {
+          "doc_server_ms": {
+            "n": 5,
+            "median": 276.8,
+            "min": 262.6,
+            "max": 319.0
+          },
+          "doc_db_ms": {
+            "n": 5,
+            "median": 29.3,
+            "min": 28.5,
+            "max": 30.8
+          },
+          "doc_queries": {
+            "n": 5,
+            "median": 146,
+            "min": 146,
+            "max": 146
+          },
+          "doc_raw_kb": {
+            "n": 5,
+            "median": 185.3154296875,
+            "min": 185.3154296875,
+            "max": 185.3154296875
+          },
+          "doc_wire_kb": {
+            "n": 5,
+            "median": 28.44140625,
+            "min": 28.439453125,
+            "max": 28.4462890625
+          },
+          "ttfb": {
+            "n": 5,
+            "median": 304.30000000074506,
+            "min": 280.5999999977648,
+            "max": 328.80000000074506
+          },
+          "fcp": {
+            "n": 5,
+            "median": 1104,
+            "min": 1036,
+            "max": 1156
+          },
+          "content_visible": {
+            "n": 5,
+            "median": 1138.4000000022352,
+            "min": 1091.7999999970198,
+            "max": 1208.8999999985099
+          },
+          "overlay_hidden": {
+            "n": 5,
+            "median": 2935.199999999255,
+            "min": 2843.099999997765,
+            "max": 3046.5
+          },
+          "first_useful": {
+            "n": 5,
+            "median": 2935.199999999255,
+            "min": 2843.099999997765,
+            "max": 3046.5
+          },
+          "nav_ready": {
+            "n": 5,
+            "median": 2466,
+            "min": 2394.099999997765,
+            "max": 2592.89999999851
+          },
+          "settled": {
+            "n": 5,
+            "median": 3361.599999997765,
+            "min": 3278.300000000745,
+            "max": 3505.7999999970198
+          },
+          "load": {
+            "n": 5,
+            "median": 2882,
+            "min": 2782.599999997765,
+            "max": 3002.2000000029802
+          },
+          "lcp": {
+            "n": 5,
+            "median": 2788,
+            "min": 1156,
+            "max": 2992
+          },
+          "page_requests": {
+            "n": 5,
+            "median": 22,
+            "min": 22,
+            "max": 22
+          },
+          "page_wire_kb": {
+            "n": 5,
+            "median": 185.330078125,
+            "min": 185.326171875,
+            "max": 185.3349609375
+          },
+          "third_party_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "avatar_403": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "avatar_wire_kb": {
+            "n": 5,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "avatar_server_ms_sum": {
+            "n": 5,
+            "median": 68.1,
+            "min": 68.1,
+            "max": 68.1
+          },
+          "avatar_queries_sum": {
+            "n": 5,
+            "median": 7,
+            "min": 7,
+            "max": 7
+          },
+          "load_lw_requests": {
+            "n": 5,
+            "median": 1,
+            "min": 1,
+            "max": 1
+          },
+          "load_lw_server_ms": {
+            "n": 5,
+            "median": 124.8,
+            "min": 121.6,
+            "max": 135.7
+          },
+          "load_lw_queries": {
+            "n": 5,
+            "median": 18,
+            "min": 18,
+            "max": 18
+          },
+          "load_lw_wire_kb": {
+            "n": 5,
+            "median": 8.7275390625,
+            "min": 8.7255859375,
+            "max": 8.73046875
+          },
+          "ix_ms": {
+            "n": 5,
+            "median": 828.9,
+            "min": 812.9,
+            "max": 860.5
+          },
+          "ix_debounce_ms": null,
+          "ix_server_ms": {
+            "n": 5,
+            "median": 120.3,
+            "min": 114.1,
+            "max": 127.0
+          },
+          "ix_queries": {
+            "n": 5,
+            "median": 37,
+            "min": 37,
+            "max": 37
+          },
+          "ix_raw_kb": {
+            "n": 5,
+            "median": 37.9052734375,
+            "min": 37.9052734375,
+            "max": 37.9052734375
+          },
+          "ix_wire_kb": {
+            "n": 5,
+            "median": 7.9072265625,
+            "min": 7.9052734375,
+            "max": 7.9091796875
+          },
+          "cls": {
+            "n": 5,
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "dom_nodes": {
+            "n": 5,
+            "median": 869,
+            "min": 869,
+            "max": 869
+          },
+          "runs": 5
+        }
+      }
+    }
+  },
+  "failures": []
+}

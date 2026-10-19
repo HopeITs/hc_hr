@@ -204,6 +204,11 @@ class EmployeeCreate extends Component
             'isCreateMode' => true,
             'employeeChecklistItems' => collect(),
             'canManageBadges' => false,
+            // No employee yet, so the tab is disabled. Same rule as
+            // EmployeeProfile's $canViewRecords.
+            'canViewContractHistory' => ! auth()->user()->activeRoleIs('employee'),
+            'canViewContractPay' => false,
+            'contractHistory' => collect(),
         ]);
     }
 

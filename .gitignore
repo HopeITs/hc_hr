@@ -7,6 +7,7 @@
 /storage/fonts
 /storage/pail
 /storage/media-library
+/storage/framework
 /vendor
 .env
 .env.backup

@@ -6,9 +6,9 @@ use App\Enums\LeaveRequestStatus;
 use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveRequestForm;
-use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveNotificationService;
 use Blade;
 use Carbon\Carbon;
@@ -143,12 +143,7 @@ class MyLeaveRequestModule extends Component
         $employee = auth()->user()->profile;
         $availableLeaves = $employee->availableLeaves();
         $allAvailableLeaves = $employee->allAvailableLeaves();
-
-        $alternativeEmployees = Employee::where('city_id', $employee->city_id)
-            ->where('id', '!=', $employee->id)
-            ->whereHas('contracts.position.department', fn ($q) => $q->where('id', $employee->department->id ?? null),
-            )
-            ->get();
+        $alternativeEmployees = app(LeaveAlternativeEmployees::class)->for($employee);
 
         return view('livewire.employee.leave.index', compact(
             'availableLeaves', 'allAvailableLeaves', 'alternativeEmployees',

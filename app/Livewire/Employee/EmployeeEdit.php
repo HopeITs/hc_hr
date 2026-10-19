@@ -325,6 +325,20 @@ class EmployeeEdit extends Component
         }
         $cities = City::where('is_active', true)->pluck(transColumn('name'), 'id')->toArray();
 
+        // Contracts History tab. The permission rules mirror
+        // EmployeeProfile::mount() ($canViewRecords / $canViewFinancial);
+        // keep the two in sync. Loaded only while the tab is open, and handed
+        // to the view rather than kept on a public property, so pay never
+        // enters the Livewire snapshot.
+        $user = auth()->user();
+        $canViewContractHistory = ! $user->activeRoleIs('employee');
+        $canViewContractPay = $user->activeRoleIs('HR', 'super-admin')
+            && $user->canAccessCity($this->employee->city_id)
+            && $user->canViewSalary();
+        $contractHistory = $canViewContractHistory && $this->activeTab === 'contracts_history'
+            ? $this->contractHistory($canViewContractPay)
+            : collect();
+
         $employeeChecklistItems = Checklist::with(['item'])
             ->where('employee_id', $this->employee->id)
             ->where(function ($q) {
@@ -340,6 +354,9 @@ class EmployeeEdit extends Component
             'delivereds' => $delivereds,
             'employeeChecklistItems' => $employeeChecklistItems,
             'isCreateMode' => false,
+            'canViewContractHistory' => $canViewContractHistory,
+            'canViewContractPay' => $canViewContractPay,
+            'contractHistory' => $contractHistory,
         ]);
     }
 
@@ -383,6 +400,31 @@ class EmployeeEdit extends Component
         $this->dispatch('form-saved', form: $form);
 
         $wrote ? $this->toast() : $this->toast(__('general.no-changes-message'), type: 'info');
+    }
+
+    /**
+     * Same columns and order as the career history in
+     * EmployeeProfile::render(), with only the relations the card reads;
+     * keep the two in sync. Pay columns are only selected when the viewer
+     * may see them.
+     */
+    private function contractHistory(bool $withPay): Collection
+    {
+        $columns = [
+            'id', 'employee_id', 'position_id', 'contract_type_id',
+            'termination_reason_id', 'start_date', 'end_date', 'terminated_at',
+            'weekly_hours', 'salary_per', 'is_active',
+        ];
+
+        if ($withPay) {
+            array_push($columns, 'salary', 'currency');
+        }
+
+        return $this->employee->allContracts()
+            ->select($columns)
+            ->with(['contractType', 'position.department'])
+            ->latest('start_date')
+            ->get();
     }
 
     private function getChecklistItems(): Collection

@@ -1,0 +1,57 @@
+{
+    "built_at": "2026-10-16T14:50:15+03:00",
+    "seed": 20261016,
+    "database": "sqlite: <PERF_HOME>/perf.sqlite",
+    "targets": {
+        "employees": 278,
+        "active_employees": 196,
+        "users": 261,
+        "contracts": 314,
+        "positions": 168,
+        "leave_requests": 63,
+        "avatars": 191,
+        "notifications": 1050
+    },
+    "counts": {
+        "employees": 278,
+        "users": 261,
+        "contracts": 314,
+        "positions": 168,
+        "centers": 27,
+        "cities": 16,
+        "leave_balances": 1615,
+        "leave_requests": 63,
+        "leave_types": 10,
+        "notifications": 1050,
+        "media": 191,
+        "checklists": 8,
+        "employee_notes": 10,
+        "news": 0,
+        "active_employees": 196,
+        "active_contracts": 196,
+        "avatar_avg_bytes": 247036,
+        "leave_balance_failures": 0
+    },
+    "personas": {
+        "hr": {
+            "email": "hr.alp@example.test",
+            "password": "perf-baseline",
+            "role": "HR-ALP",
+            "employee_id": 1
+        },
+        "staff": {
+            "email": "staff.alp@example.test",
+            "password": "perf-baseline",
+            "role": "employee",
+            "employee_id": 2
+        }
+    },
+    "search": {
+        "term": "Haddad",
+        "expected_matches_in_hr_scope": 5,
+        "employees_in_hr_scope": 71
+    },
+    "contract_pick": {
+        "employee_id": 3
+    }
+}

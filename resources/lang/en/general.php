@@ -901,4 +901,7 @@ return [
     'note-deleted' => 'Note deleted.',
     'note-restored' => 'Note restored.',
     'role-switched' => 'Role switched.',
+
+    'contracts-history' => 'Contracts History',
+    'contracts-history-empty' => 'No contracts yet. Contract history will appear here after the employee is saved.',
 ];

@@ -36,9 +36,10 @@
 <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicons/favicon-16x16.png') }}">
 <link rel="manifest" href="{{ asset('favicons/site.webmanifest') }}">
 
-{{-- Preload the critical brand font weights so text paints without a flash --}}
-<link rel="preload" href="{{ asset('fonts/SomarSans/SomarSans-Regular.otf') }}" as="font" type="font/otf" crossorigin>
-<link rel="preload" href="{{ asset('fonts/SomarSans/SOMARSANS-MEDIUM.OTF') }}" as="font" type="font/otf" crossorigin>
+{{-- Preload the critical brand font weights so text paints without a flash.
+     Vite::asset() resolves the same fingerprinted URL app.css uses, so the preload is never a wasted second download. --}}
+<link rel="preload" href="{{ Vite::asset('resources/fonts/SomarSans/SomarSans-Regular.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ Vite::asset('resources/fonts/SomarSans/SomarSans-Medium.woff2') }}" as="font" type="font/woff2" crossorigin>
 
 {{-- Warm the cdnjs connection before the render-blocking Font Awesome stylesheet asks for it --}}
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
