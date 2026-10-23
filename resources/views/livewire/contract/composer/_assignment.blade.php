@@ -94,7 +94,10 @@
                     aria-hidden="true">
                     <path d="M10 1.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM9 5.5h2v6H9v-6zm0 7.5h2v2H9v-2z" />
                 </svg>
-                <span x-text="draftContractNotice"></span>
+                <span class="flex min-w-0 flex-col gap-1">
+                    <span x-text="draftContractNotice"></span>
+                    <span class="text-secondary-dark">@lang('contracts.composer-help.draft')</span>
+                </span>
             </p>
         </template>
 
@@ -116,9 +119,15 @@
                 <x-forms.combobox id="composer_position" required variant="position" clearable options="positionOptions"
                     model="selected.position" disabled="loading || !selected.program" />
                 <x-error-span>{{ $errors->first('form.position_id') }}</x-error-span>
+                {{-- Explains the greyed-out "Full" entries in the list above;
+                     the seat counts come from the same locationOptions()
+                     data, scoped by Position::inCity(). --}}
+                <p class="mt-1.5 text-caption text-secondary-medium">@lang('contracts.composer-help.capacity')</p>
             </div>
 
-
+            {{-- Why Program and Position stay locked until the field before
+                 them is chosen. --}}
+            <p class="text-caption text-secondary-medium md:col-span-2 md:-mt-2">@lang('contracts.composer-help.location')</p>
         </div>
     </div>
 
@@ -295,6 +304,10 @@
             <x-error-span>{{ $errors->first('form.end_date') }}</x-error-span>
         </div>
     </div>
+
+    {{-- What "active" means for the contract this saves, and that it
+         renews on its own unless it is a trial (ContractObserver). --}}
+    <p class="mt-3 text-caption text-secondary-medium">@lang('contracts.composer-help.status')</p>
 
     <x-contract.continue section="assignment" />
 </x-contract.section>

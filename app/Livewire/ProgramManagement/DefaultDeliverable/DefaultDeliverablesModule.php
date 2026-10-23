@@ -3,6 +3,7 @@
 namespace App\Livewire\ProgramManagement\DefaultDeliverable;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\ChecklistItem;
@@ -16,6 +17,7 @@ use Livewire\Component;
 class DefaultDeliverablesModule extends Component
 {
     use AuthorizesActivePermissions, ScopesToAuthorizedCity;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -84,6 +86,7 @@ class DefaultDeliverablesModule extends Component
         $this->item = ['id' => null, 'employee_id' => '', 'city_id' => '', 'item_id' => ''];
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -104,6 +107,7 @@ class DefaultDeliverablesModule extends Component
 
         $this->resetValidation();
         $this->modalTitle = __('general.edit');
+        $this->markClean();
         $this->showModal = true;
     }
 

@@ -9,7 +9,7 @@
             <x-app-logo class="mx-auto w-[207px]" />
         </div>
 
-        <x-auth-card class="space-y-6 w-96">
+        <x-auth-card class="space-y-6 w-full max-w-96">
 
             <div class="space-y-1 text-center">
                 <h1 class="text-2xl font-bold text-neutral-900">{{ __('auth.sign-in') }}</h1>

@@ -20,7 +20,7 @@ final class KinshipType extends Enum
     {
         $res = match ($value) {
             self::Parents => ['en' => 'Parents', 'ar' => 'الوالدان'],
-            self::Spouse => ['en' => 'Spouse', 'ar' => 'الشريك'],
+            self::Spouse => ['en' => 'Spouse', 'ar' => 'الزوج/الزوجة'],
             self::Siblings => ['en' => 'Siblings', 'ar' => 'الإخوة'],
             self::Children => ['en' => 'Children', 'ar' => 'الأولاد'],
             default => ['en' => 'Other', 'ar' => 'آخر'],

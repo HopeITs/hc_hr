@@ -23,7 +23,7 @@ class NewCenterCreated extends Notification implements ShouldQueue
         return [
             'title' => [
                 'en' => "We have a new center, established in {$this->center->city->name_en}.",
-                'ar' => "لقد تم إنشاء مركز جديد في {$this->center->city->name_ar}.",
+                'ar' => "تم إنشاء مركز جديد في {$this->center->city->name_ar}.",
             ],
 
             'body' => [

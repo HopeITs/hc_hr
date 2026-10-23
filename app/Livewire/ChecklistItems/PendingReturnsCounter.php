@@ -5,6 +5,7 @@ namespace App\Livewire\ChecklistItems;
 use App\Models\Checklist;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Throwable;
 
 class PendingReturnsCounter extends Component
 {
@@ -25,7 +26,19 @@ class PendingReturnsCounter extends Component
     public function render()
     {
         return view('livewire.checklist-items.pending-returns-counter', [
-            'pendingReturnsCount' => $this->getPendingReturnsCountProperty(),
+            // A badge must never take the sidebar down: on a failed count show none and report it.
+            'pendingReturnsCount' => $this->safeCount(),
         ]);
+    }
+
+    private function safeCount(): int
+    {
+        try {
+            return $this->getPendingReturnsCountProperty();
+        } catch (Throwable $e) {
+            report($e);
+
+            return 0;
+        }
     }
 }

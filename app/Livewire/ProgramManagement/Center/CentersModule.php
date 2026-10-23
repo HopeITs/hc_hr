@@ -3,6 +3,7 @@
 namespace App\Livewire\ProgramManagement\Center;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\ScopesToAuthorizedCity;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
@@ -16,6 +17,7 @@ use Livewire\Component;
 class CentersModule extends Component
 {
     use AuthorizesActivePermissions, ScopesToAuthorizedCity;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -74,6 +76,7 @@ class CentersModule extends Component
 
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -103,6 +106,7 @@ class CentersModule extends Component
 
         $this->resetValidation();
         $this->modalTitle = __('general.edit');
+        $this->markClean();
         $this->showModal = true;
     }
 

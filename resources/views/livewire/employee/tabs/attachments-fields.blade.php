@@ -9,14 +9,15 @@
 
                 <div class="md:col-span-2 flex justify-end">
                     <x-primary-button type="button" :showSpinner="false"
-                        x-on:click="if ({{ filled($attachment['media_id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeAttachment({{ $index }}, {{ $attachment['media_id'] ?? 'null' }})">
+                        x-on:click="if ({{ filled($attachment['media_id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeAttachment({{ $index }}, {{ $attachment['media_id'] ?? 'null' }})"
+                        :title="__('general.delete')" :aria-label="__('general.delete')">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>
 
                 <div>
-                    <x-forms.input-label>@lang('general.name')</x-forms.input-label>
-                    <x-forms.input type="text"
+                    <x-forms.input-label for="attachment_name_{{ $index }}">@lang('general.name')</x-forms.input-label>
+                    <x-forms.input type="text" id="attachment_name_{{ $index }}"
                         wire:model.defer="attachmentForm.attachments.{{ $index }}.name" />
                     @error("attachmentForm.attachments.{$index}.name")
                         <x-error-span>{{ $message }}</x-error-span>
@@ -24,7 +25,7 @@
                 </div>
 
                 <div>
-                    <x-forms.input-label>@lang('general.category')</x-forms.input-label>
+                    <x-forms.input-label for="attachment_category_{{ $index }}">@lang('general.category')</x-forms.input-label>
                     <x-forms.select2-input id="attachment_category_{{ $index }}"
                         wire:model.defer="attachmentForm.attachments.{{ $index }}.category">
                         <option value="">{{ __('general.choose') }}</option>

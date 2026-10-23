@@ -7,6 +7,11 @@
 
     </div>
 
+    @if ($loadFailed)
+        <x-ui.load-error class="flex-1" />
+    @elseif ($totalEmployees === 0)
+        <x-center-empty-state variant="empty" class="flex-1 min-h-40! border-0 shadow-none" />
+    @else
     <div class="grid grid-cols-2 -mt-3 items-center">
 
         <div class="flex flex-col items-center  pt-6 justify-center">
@@ -39,5 +44,6 @@
         </div>
 
     </div>
+    @endif
 
 </div>

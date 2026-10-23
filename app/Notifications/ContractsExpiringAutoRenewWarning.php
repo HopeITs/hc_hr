@@ -46,10 +46,12 @@ class ContractsExpiringAutoRenewWarning extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $data = $this->toArray($notifiable);
+        // See ContractsAutoRenewedSummary::toMail(): one language per email.
+        $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
 
         return (new MailMessage)
-            ->subject($data['title']['ar'])
-            ->line($data['body']['ar']);
+            ->subject($data['title'][$locale])
+            ->line($data['body'][$locale]);
     }
 
     /**
@@ -84,10 +86,10 @@ class ContractsExpiringAutoRenewWarning extends Notification
         $date = $contract['end_date'];
 
         if ($this->daysUntilExpiration === 7) {
-            return "عقد المتطوع {$name} لديه خاصية التجديد التلقائي مفعّلة، وسينتهي في الاسبوع القادم بتاريخ {$date}. في حال رغبتك بإلغاء خاصية التجديد التلقائي وعدم تجديد العقد يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
+            return "عقد المتطوع {$name} لديه خاصية التجديد التلقائي مفعّلة، وسينتهي في الأسبوع القادم بتاريخ {$date}. في حال رغبتك بإلغاء خاصية التجديد التلقائي وعدم تجديد العقد يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
         }
 
-        return "عقد المتطوع {$name} لديه خاصية التجديد التلقائي مفعّلة، وسينتهي بعد {$this->daysUntilExpiration} يوم بتاريخ {$date}. في حال رغبتك بإلغاء خاصية التجديد التلقائي وعدم تجديد العقد يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
+        return "عقد المتطوع {$name} لديه خاصية التجديد التلقائي مفعّلة، وسينتهي بعد {$this->daysAr()} بتاريخ {$date}. في حال رغبتك بإلغاء خاصية التجديد التلقائي وعدم تجديد العقد يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
     }
 
     private function multipleContractsBodyAr(int $count): string
@@ -95,10 +97,16 @@ class ContractsExpiringAutoRenewWarning extends Notification
         $list = $this->contractListInline('ar');
 
         if ($this->daysUntilExpiration === 7) {
-            return "العقود التالية لديها خاصية التجديد التلقائي مفعّلة وستنتهي خلال الاسبوع القادم: {$list}. في حال رغبتك بإلغاء خاصية التجديد التلقائي لأي من هذه العقود وعدم تجديدها يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
+            return "العقود التالية لديها خاصية التجديد التلقائي مفعّلة وستنتهي خلال الأسبوع القادم: {$list}. في حال رغبتك بإلغاء خاصية التجديد التلقائي لأي من هذه العقود وعدم تجديدها يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
         }
 
-        return "العقود التالية لديها خاصية التجديد التلقائي مفعّلة وستنتهي بعد {$this->daysUntilExpiration} يوم: {$list}. في حال رغبتك بإلغاء خاصية التجديد التلقائي لأي من هذه العقود وعدم تجديدها يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
+        return "العقود التالية لديها خاصية التجديد التلقائي مفعّلة وستنتهي بعد {$this->daysAr()}: {$list}. في حال رغبتك بإلغاء خاصية التجديد التلقائي لأي من هذه العقود وعدم تجديدها يرجى إعلام مسؤول الموارد البشرية ضمن محافظتك";
+    }
+
+    /** "30 يومًا" / "3 أيام" with the right Arabic plural form. */
+    private function daysAr(): string
+    {
+        return trans_choice('general.count.days', $this->daysUntilExpiration, [], 'ar');
     }
 
     private function contractListInline(string $locale): string

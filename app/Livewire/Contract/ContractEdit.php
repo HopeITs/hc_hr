@@ -101,7 +101,7 @@ class ContractEdit extends Component
 
         $this->toast();
 
-        return redirect()->route('contracts.show', $this->contract->id);
+        return $this->redirectRoute('contracts.show', $this->contract->id, navigate: true);
     }
 
     // ────────────────────────────────────────────────
@@ -172,10 +172,11 @@ class ContractEdit extends Component
 
         $this->form->is_active = $isTerminated ? false : (bool) $this->contract->is_active;
 
-        // A terminated contract never rolls over. ContractObserver::saving()
-        // enforces this on every write; mirroring it here keeps the form state
-        // honest for whatever is rendered after the save.
-        if ($isTerminated) {
+        // A terminated or trial contract never rolls over.
+        // ContractObserver::saving() enforces this on every write; mirroring
+        // it here keeps the form state honest for whatever is rendered after
+        // the save.
+        if ($isTerminated || Contract::isTrialType($this->form->contract_type_id)) {
             $this->form->auto_renew = false;
         }
     }

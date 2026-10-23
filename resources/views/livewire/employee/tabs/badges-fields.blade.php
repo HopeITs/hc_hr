@@ -21,7 +21,7 @@
                     <x-primary-button type="button"
                                       :showSpinner="false"
                                       x-on:click="if ({{ filled($badge['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeBadge({{ $index }})"
-                                      title="@lang('general.remove')">
+                                      :title="__('general.delete')" :aria-label="__('general.delete')">
                         <x-icons.trash/>
                     </x-primary-button>
                 </div>

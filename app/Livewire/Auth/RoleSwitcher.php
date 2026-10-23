@@ -98,7 +98,7 @@ class RoleSwitcher extends Component
 
         session(['active_role_id' => (int) $role->id]);
 
-        $this->dispatch('role-switched', role: (string) $role->name);
+        $this->dispatch('role-switched', role: (string) $role->name, label: role_label((string) $role->name));
         $this->toast(__('general.role-switched'));
 
         $this->refreshRoles();

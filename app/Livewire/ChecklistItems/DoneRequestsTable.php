@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ChecklistItems;
 
+use App\Livewire\Concerns\HasScreenListStates;
 use App\Models\Checklist;
 use App\Models\ChecklistItem;
 use App\Models\Employee;
@@ -15,9 +16,19 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class DoneRequestsTable extends LivewireTable
 {
+    use HasScreenListStates;
+
     protected string $model = Checklist::class;
 
     protected bool $showFilters = true;
+
+    protected function emptyScreenState(): array
+    {
+        return [
+            'title' => __('states.done-empty-title'),
+            'description' => __('states.done-empty-help'),
+        ];
+    }
 
     protected function query(): Builder
     {

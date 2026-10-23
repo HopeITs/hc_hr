@@ -1,10 +1,11 @@
 <form wire:submit.prevent="saveCourses" class="space-y-6">
     @php
-        $courseCategories = \App\Models\CourseCategory::pluck('name_en', 'id')->toArray();
+        $courseCategories = \App\Models\CourseCategory::pluck(transColumn('name'), 'id')->toArray();
+        // The keys are the stored values; only the labels are translated.
         $organizationOptions = [
-            'Hope Center' => 'Hope Center',
-            'Personal' => 'Personal',
-            'Other' => 'Other',
+            'Hope Center' => __('employees.courses.organization-hope-center'),
+            'Personal' => __('employees.courses.organization-personal'),
+            'Other' => __('employees.courses.organization-other'),
         ];
         $placeOptions = [
             1 => __('general.online'),
@@ -29,7 +30,7 @@
                         type="button"
                         :showSpinner="false"
                         x-on:click="if ({{ filled($course['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeCourse({{ $index }}, {{ $course['id'] ?? 'null' }})"
-                        title="@lang('general.remove')">
+                        :title="__('general.delete')" :aria-label="__('general.delete')">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>

@@ -20,7 +20,7 @@ class Create extends Component
         $this->form->store();
         $this->toast();
 
-        return redirect()->route('programs.index');
+        return $this->redirectRoute('programs.index', navigate: true);
     }
 
     public function render()

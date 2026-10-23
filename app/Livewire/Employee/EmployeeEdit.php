@@ -326,12 +326,13 @@ class EmployeeEdit extends Component
         $cities = City::where('is_active', true)->pluck(transColumn('name'), 'id')->toArray();
 
         // Contracts History tab. The permission rules mirror
-        // EmployeeProfile::mount() ($canViewRecords / $canViewFinancial);
-        // keep the two in sync. Loaded only while the tab is open, and handed
-        // to the view rather than kept on a public property, so pay never
-        // enters the Livewire snapshot.
+        // EmployeeProfile ($canViewRecords / $canViewFinancial): the history
+        // is the colleague-records tier, EmployeePolicy::viewRecords
+        // (access-policy.md §4.3). Loaded only while the tab is open, and
+        // handed to the view rather than kept on a public property, so pay
+        // never enters the Livewire snapshot.
         $user = auth()->user();
-        $canViewContractHistory = ! $user->activeRoleIs('employee');
+        $canViewContractHistory = Gate::forUser($user)->allows('viewRecords', $this->employee);
         $canViewContractPay = $user->activeRoleIs('HR', 'super-admin')
             && $user->canAccessCity($this->employee->city_id)
             && $user->canViewSalary();

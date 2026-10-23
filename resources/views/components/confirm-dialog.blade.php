@@ -10,15 +10,28 @@
     Cancel, so a stray Enter never confirms a destructive action, and returns
     to the triggering control when the dialog closes (x-trap).
 --}}
+{{--
+    One x-init on purpose: an element keeps only the first of two identically
+    named attributes, so a second x-init (the focus fallback) was silently dropped.
+--}}
 <div x-data
-     x-init="$store.confirm.defaults = @js([
-         'title' => __('general.delete-item'),
-         'message' => __('general.confirm-delete-item'),
-         'confirmLabel' => __('general.delete'),
-         'danger' => true,
-     ])"
+     x-init="
+         $store.confirm.defaults = @js([
+             'title' => __('general.delete-item'),
+             'message' => __('general.confirm-delete-item'),
+             'confirmLabel' => __('general.delete'),
+             'cancelLabel' => __('general.cancel'),
+             'danger' => true,
+         ]);
+         {{-- x-trap places focus 15ms after opening; if the panel was not painted yet, focus would stay behind. --}}
+         $watch('$store.confirm.open', open => open && [60, 200, 500].forEach(ms => setTimeout(() => {
+             if ($store.confirm.open && ! $refs.panel.contains(document.activeElement)) $refs.cancel?.focus();
+         }, ms)))
+     "
      x-show="$store.confirm.open"
      x-on:keydown.escape.window="$store.confirm.open && $store.confirm.settle(false)"
+     {{-- Opened over a form modal, this root was hidden by that modal's x-trap.inert; un-hide it or a screen reader never hears the question. --}}
+     x-effect="$store.confirm.open && $el.removeAttribute('aria-hidden')"
      class="fixed inset-0 z-[9000] flex items-center justify-center p-4"
      style="display: none;">
     <div x-show="$store.confirm.open"
@@ -28,6 +41,7 @@
          class="absolute inset-0 bg-neutral-900/60"></div>
 
     <div x-show="$store.confirm.open"
+         x-ref="panel"
          x-trap.inert.noscroll="$store.confirm.open"
          x-transition:enter="transition duration-200 ease-fluid"
          x-transition:enter-start="opacity-0 scale-95"
@@ -64,7 +78,10 @@
         </div>
 
         <div class="mt-6 flex flex-wrap justify-end gap-3">
-            <x-secondary-button x-on:click="$store.confirm.settle(false)" class="!w-auto">
+            {{-- The label comes from the store: Blade does not compile @js() inside a
+                 component tag's attribute, which once left this reading "Cancel". --}}
+            <x-secondary-button x-ref="cancel" x-on:click="$store.confirm.settle(false)" class="!w-auto"
+                                x-text="$store.confirm.cancelLabel">
                 {{ __('general.cancel') }}
             </x-secondary-button>
 

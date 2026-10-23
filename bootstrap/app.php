@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ActivePermissionMiddleware;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\RememberUserLocale;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SecurityHeaders;
 use App\Services\Monitoring\SecurityMonitor;
@@ -41,6 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // existing sessions, not merely block the next login.
         $middleware->web(append: [
             EnsureAccountIsActive::class,
+            // Language for mail sent outside a request (A4).
+            RememberUserLocale::class,
         ]);
 
         $middleware->alias([

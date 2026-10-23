@@ -62,7 +62,7 @@ class DraftContractForm extends Form
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($cityId, $programId): void {
             if (! auth()->user()?->canAccessCity($cityId)) {
-                $fail(__('You may only manage employees in your active city.'));
+                $fail(__('employees.validation.city-scope'));
 
                 return;
             }
@@ -74,7 +74,7 @@ class DraftContractForm extends Form
             }
 
             if (! $query->exists()) {
-                $fail(__('validation.exists', ['attribute' => 'position']));
+                $fail(__('validation.exists', ['attribute' => __('general.position')]));
             }
         };
     }

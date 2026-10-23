@@ -1,6 +1,6 @@
 # A1 — Test baseline (proposed)
 
-Status: **implemented, awaiting review** (QA engineer + technical lead). Not marked done until reviewed.
+Status: **approved 2026-10-20** (HR product owner + technical lead). See §9 for the re-run.
 Date: 2026-10-16. Task: A1 in `docs/ux/ux-prompts-v3.md` (R-24).
 
 ## 1. Starting state
@@ -93,3 +93,11 @@ Identical to R1: same totals and the **same 13 failing test IDs** (JUnit set dif
 ## 8. Handoff
 
 Consumers: X1, X2, A2-D, A3-D, A6-D, B5-D. Baseline to compare against: R1 (544 / 531 pass / 13 failing as listed). Any new failure outside §5 is a regression.
+
+## 9. Review re-run (2026-10-20, on `aceda68e`)
+
+552 tests, 543 passed, 9 failed. Failing set = §5 #1, #2, #3, #4, #5, #6, #11, #12, #13; **no failure outside §5**. #7–10 now pass (`926b12f1`, local PDF rendering).
+
+Note for A2: #2, #3 and #4 assert an unguessable random card token. The A2-D decision of 2026-10-20 (access-policy.md §9 Q6) chose a readable card link instead, so these tests encode an **outdated expectation** and must be rewritten against the decided rule (only the latest plastic index resolves; cardboard stops when plastic is issued; inactive employee shows "card is not valid"), not satisfied by changing the code back.
+
+§6 browserless token: removed from source by `926b12f1`, but **still live in production** (same token, browserless.io cloud; confirmed 2026-10-20). Rotation is urgent; third-party rendering of the pay clause awaits a decision (see start-state.md §8).

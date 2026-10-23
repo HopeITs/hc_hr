@@ -58,7 +58,7 @@
                         {!! $iconFor($role) !!}
                     </span>
 
-                    <span class="truncate">{{ $role }}</span>
+                    <span class="truncate">{{ role_label($role) }}</span>
 
                     <svg class="ms-auto size-4 opacity-0 group-hover:opacity-100 transition" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="1.8">

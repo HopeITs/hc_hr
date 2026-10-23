@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\JobLevel;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class JobLevelModule extends Component
 {
     use AuthorizesActivePermissions;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -50,6 +52,7 @@ class JobLevelModule extends Component
         $this->resetValidation();
 
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -69,6 +72,7 @@ class JobLevelModule extends Component
 
         $this->modalTitle = __('general.edit');
         $this->resetValidation();
+        $this->markClean();
         $this->showModal = true;
     }
 

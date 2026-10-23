@@ -83,7 +83,7 @@ class ContractExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'position_jobLevel_name_en', 'position_jobLevel_name_ar' => $row->position?->jobLevel?->name_en ?? '—',
                 'duration' => $row->duration.' '.__('general.months', [], 'en'),
                 'period' => ($row->start_date?->format('Y-m-d') ?? '').' to '.($row->end_date?->format('Y-m-d') ?? ''),
-                'leaveBalances' => strip_tags($row->leaveBalances->first()?->deserved_formatted ?? '0'),
+                'leaveBalances' => strip_tags($row->leaveBalances->first()?->setRelation('contract', $row)->deserved_formatted ?? '0'),
                 'salary_per' => SalaryPer::getLocalizedName($row->salary_per instanceof SalaryPer ? $row->salary_per->value : (int) $row->salary_per)['value'] ?? '',
                 'weekly_hours' => $row->weekly_hours ?? '0',
                 'is_active' => $row->is_active ? 'Yes' : 'No',
@@ -98,7 +98,7 @@ class ContractExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

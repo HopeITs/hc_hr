@@ -12,7 +12,8 @@
     };
 @endphp
 
-<label {{ $attributes->merge(['class' => $baseClass]) }}>
+{{-- A server-rendered id lets a widget that replaces its control (select2) name itself by this label; one added in JS would be stripped by Livewire's morph. --}}
+<label {{ $attributes->merge(array_filter(['class' => $baseClass, 'id' => $attributes->get('for') ? $attributes->get('for').'-label' : null])) }}>
     {{ $value ?? $slot }}
     @if ($required)
         {{--

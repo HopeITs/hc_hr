@@ -3,7 +3,7 @@
         <h2 class="mb-1">{{ $title }}</h2>
 
         @if (!empty($items))
-            <nav class="flex" aria-label="Breadcrumb">
+            <nav class="flex" aria-label="{{ __('general.a11y.breadcrumb') }}">
                 <ol class="inline-flex items-center space-x-1 md:space-x-2">
 
                     {{-- Home --}}

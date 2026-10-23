@@ -20,4 +20,23 @@
 
     </div>
     <livewire:basics.city-table />
+
+    {{-- Edit: the HR hotline only (see CityModule). --}}
+    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
+        <form wire:submit.prevent="save" class="space-y-4">
+            <p class="text-body font-semibold text-secondary-dark">{{ $item['name'] }}</p>
+
+            <div>
+                <x-forms.input-label for="hr_hotline">@lang('digital_id.city.hotline')</x-forms.input-label>
+                <x-forms.input type="tel" id="hr_hotline" dir="ltr" wire:model="item.hr_hotline" />
+                <p class="mt-1 text-small text-secondary-light">@lang('digital_id.city.hotline_help')</p>
+                <x-error-span>{{ $errors->first('item.hr_hotline') }}</x-error-span>
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
+                <x-modal.cancel-btn />
+            </div>
+        </form>
+    </x-modal.dialog>
 </div>

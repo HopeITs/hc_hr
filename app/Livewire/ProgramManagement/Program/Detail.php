@@ -54,6 +54,6 @@ class Detail extends Component
 
         $this->toast();
 
-        return redirect()->route('programs.index');
+        return $this->redirectRoute('programs.index', navigate: true);
     }
 }

@@ -24,11 +24,12 @@ class ContractsSearchPersistenceTest extends TestCase
         $city = $this->makeCity('DMS', '003');
         $user = $this->makeUser($city, 'HR-DMS', ['contracts.view']);
         $contract = $this->makeContractFor($user->profile);
+        $this->seedContracts($city);
 
         Livewire::actingAs($user)->test(ContractsTable::class)
             ->set('globalSearch', 'Joseph')
             ->set('search.employee', 'Joseph')
-            ->call('gotoPage', 5);
+            ->call('gotoPage', 2);
 
         $details = $this->get(route('contracts.show', $contract))->assertOk();
         $document = new DOMDocument;
@@ -42,19 +43,21 @@ class ContractsSearchPersistenceTest extends TestCase
             ->assertSeeLivewire(ContractsTable::class)
             ->assertSee('"globalSearch":"Joseph"')
             ->assertSee('"employee":"Joseph"')
-            ->assertSee('"page":5');
+            ->assertSee('"page":2');
     }
 
     public function test_page_and_page_size_are_restored_after_navigation(): void
     {
-        $user = $this->makeUser($this->makeCity('DMS', '003'), 'HR-DMS');
+        $city = $this->makeCity('DMS', '003');
+        $user = $this->makeUser($city, 'HR-DMS');
+        $this->seedContracts($city, 28);
 
         Livewire::actingAs($user)->test(ContractsTable::class)
             ->set('perPage', 25)
-            ->call('gotoPage', 5);
+            ->call('gotoPage', 2);
 
         Livewire::test(ContractsTable::class)
-            ->assertSet('paginators.page', 5)
+            ->assertSet('paginators.page', 2)
             ->assertSet('perPage', 25);
     }
 
@@ -73,10 +76,12 @@ class ContractsSearchPersistenceTest extends TestCase
 
     public function test_url_page_takes_precedence_over_saved_page(): void
     {
-        $user = $this->makeUser($this->makeCity('DMS', '003'), 'HR-DMS');
+        $city = $this->makeCity('DMS', '003');
+        $user = $this->makeUser($city, 'HR-DMS');
+        $this->seedContracts($city, 46);
 
         Livewire::actingAs($user)->test(ContractsTable::class)
-            ->call('gotoPage', 5);
+            ->call('gotoPage', 3);
 
         Livewire::withQueryParams(['page' => 2])->test(ContractsTable::class)
             ->assertSet('paginators.page', 2);
@@ -131,5 +136,16 @@ class ContractsSearchPersistenceTest extends TestCase
 
         Livewire::withQueryParams(['globalSearch' => 'Mary'])->test(ContractsTable::class)
             ->assertSet('globalSearch', 'Mary');
+    }
+
+    /**
+     * Enough rows for a second page. A restored page past the last page is
+     * clamped (B4 shared table state), so the page tests need real pages.
+     */
+    private function seedContracts(\App\Models\City $city, int $count = 16, string $first = 'Joseph'): void
+    {
+        foreach (range(1, $count) as $i) {
+            $this->makeContractFor($this->makeEmployee($city, "seed-{$i}-".uniqid(), ['first_name_en' => $first]));
+        }
     }
 }

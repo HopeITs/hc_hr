@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LeaveRequestStatus;
+use App\Services\LeaveRequestPricing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,8 @@ class LeaveRequest extends Model
         'leave_balance_id', 'type', 'start_at', 'end_at', 'reason',
         'approved_by', 'approved_at', 'hr_approved', 'reject_reason', 'status',
         'alternative_employee_id',
+        // Pricing snapshot (A3-D D-5) and the December exception flag (D-7).
+        'computed_hours', 'rule_version', 'is_exceptional',
     ];
 
     protected $casts = [
@@ -28,6 +31,8 @@ class LeaveRequest extends Model
         'approved_at' => 'datetime',
         'hr_approved' => 'boolean',
         'status' => 'integer',
+        'computed_hours' => 'float',
+        'is_exceptional' => 'boolean',
     ];
 
     public function leaveBalance(): BelongsTo
@@ -54,6 +59,13 @@ class LeaveRequest extends Model
 
     public function getDurationAttribute(): string
     {
+        // Priced by LeaveRequestPricing (A3-D D-5): show the stored amount, so
+        // the list reads the same figure that was previewed and deducted.
+        // Rows from before the snapshot keep the legacy wording below (§4.2).
+        if ($this->computed_hours !== null) {
+            return $this->snapshotDuration();
+        }
+
         $weekends = array_map('intval', explode(',', $this->leaveBalance->contract->position->center->weekends ?? '0,6'));
         Carbon::setWeekendDays($weekends);
 
@@ -73,15 +85,15 @@ class LeaveRequest extends Model
             $parts = [];
 
             if ($hours > 0) {
-                $parts[] = $hours.' '.trans_choice('general.hour', $hours);
+                $parts[] = trans_choice('general.count.hours', $hours);
             }
 
             if ($minutes > 0) {
-                $parts[] = $minutes.' '.trans_choice('general.minute', $minutes);
+                $parts[] = trans_choice('general.count.minutes', $minutes);
             }
 
             // Fallback if both are zero (unlikely but safe)
-            return implode(' ', $parts) ?: '0 '.trans_choice('general.minute', 2);
+            return join_counts($parts) ?: trans_choice('general.count.minutes', 0);
         }
 
         // Day-based leave (unchanged)
@@ -91,7 +103,7 @@ class LeaveRequest extends Model
         // Include the end date
         $days = $start->diffInWeekDays($end) + 1;
 
-        return $days.' '.trans_choice('general.day', $days);
+        return trans_choice('general.count.days', $days);
     }
 
     public function getDurationInHoursAttribute(): float
@@ -255,5 +267,44 @@ class LeaveRequest extends Model
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * computed_hours worded as days + hours + minutes, with the contract's
+     * own day length (weekly hours ÷ working days). An hourly request stays
+     * in hours; so does a schedule without a day length.
+     */
+    private function snapshotDuration(): string
+    {
+        $contract = $this->leaveBalance?->contract;
+        $perDay = $this->type !== 'hour' && $contract
+            ? app(LeaveRequestPricing::class)->hoursPerDayFor($contract)
+            : null;
+
+        [$days, $hours] = LeaveRequestPricing::splitDays((float) $this->computed_hours, $perDay);
+
+        $wholeHours = (int) floor($hours);
+        $minutes = (int) round(($hours - $wholeHours) * 60);
+
+        if ($minutes >= 60) {
+            $wholeHours += intdiv($minutes, 60);
+            $minutes %= 60;
+        }
+
+        $parts = [];
+
+        if ($days > 0) {
+            $parts[] = trans_choice('general.count.days', $days);
+        }
+
+        if ($wholeHours > 0) {
+            $parts[] = trans_choice('general.count.hours', $wholeHours);
+        }
+
+        if ($minutes > 0) {
+            $parts[] = trans_choice('general.count.minutes', $minutes);
+        }
+
+        return join_counts($parts) ?: trans_choice('general.count.'.($this->type === 'hour' ? 'minutes' : 'days'), 0);
     }
 }

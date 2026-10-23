@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\LeaveRequestStatus;
+use App\Services\DigitalIdManager;
+use App\Services\LeaveRequestPricing;
 use App\Traits\HasTranslation;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
@@ -101,6 +103,8 @@ class Employee extends Model implements HasMedia
         'digital_id_enabled' => 'boolean',
         'digital_id_rotated_at' => 'datetime',
         'digital_id_revoked_at' => 'datetime',
+        // Deliberately not fillable: only DigitalIdManager moves it, forward.
+        'digital_id_card_index' => 'integer',
     ];
 
     /** Memoized result of latestActiveContract() — not a database column. */
@@ -111,9 +115,18 @@ class Employee extends Model implements HasMedia
     /** Memoized result of isOnLeaveToday() — not a database column. */
     protected ?bool $onLeaveTodayMemo = null;
 
-    public function digitalIdUrl(): string
+    /**
+     * The public link of this employee's current card, for printing:
+     * /ID/[city][program][employee id]-[index]. Null when no link can be built
+     * (no city, no current position, or a code that is not 1–3 digits).
+     *
+     * @see DigitalIdManager
+     */
+    public function digitalIdUrl(): ?string
     {
-        return route('digital-id.show', ['token' => $this->digital_id_token]);
+        $card = app(DigitalIdManager::class)->cardCode($this);
+
+        return $card === null ? null : route('digital-id.show', ['card' => $card]);
     }
 
     public function nameForLocale(string $locale): string
@@ -171,6 +184,26 @@ class Employee extends Model implements HasMedia
         $this->latestActiveContractResolved = true;
 
         return $this->latestActiveContractMemo = $contract;
+    }
+
+    /**
+     * The contract shown as the employee's main position: the active one whose
+     * position has the highest job level (lowest grade; no level ranks last),
+     * newest first on a tie. Display only: leave balances keep following
+     * latestActiveContract().
+     */
+    public function primaryContract(): ?Contract
+    {
+        $contracts = $this->relationLoaded('contracts')
+            ? $this->contracts
+            : $this->contracts()->with('position.jobLevel')->get();
+
+        return $contracts
+            ->sortBy([
+                fn ($a, $b) => ($a->position?->jobLevel?->grade ?? PHP_INT_MAX) <=> ($b->position?->jobLevel?->grade ?? PHP_INT_MAX),
+                fn ($a, $b) => $b->created_at <=> $a->created_at,
+            ])
+            ->first();
     }
 
     /**
@@ -288,39 +321,24 @@ class Employee extends Model implements HasMedia
 
     public function availableLeaves()
     {
-
         $leaves = $this->latestActiveContract()?->leaveBalances()
-//            ->whereHas('leaveType', fn ($q) => $q->where('base_days', '>', 10))
-            ->with(['leaveRequests' => fn ($q) => $q->pending()
-                ->select('id', 'leave_balance_id', 'type', 'start_at', 'end_at'),
-            ])
+            ->with(['leaveType', 'contract.position.center'])
             ->get();
 
-        // Now compute pending durations using the real accessor logic
-
+        // Pending = hours reserved by pending requests, from the same pricing
+        // service as the request preview (A3-D §2.3: one unit, hours). Split
+        // into days + hours with the contract's own day length for the card.
         if ($leaves?->count() > 0) {
+            $pricing = app(LeaveRequestPricing::class);
+
             foreach ($leaves as $leave) {
+                $pending = $pricing->pendingHoursFor($leave);
+                $perDay = $leave->contract ? $pricing->hoursPerDayFor($leave->contract) : null;
+                [$days, $rest] = LeaveRequestPricing::splitDays($pending, $perDay);
 
-                $pendingDays = 0;
-                $pendingHours = 0;
-
-                foreach ($leave->leaveRequests as $req) {
-
-                    if ($req->type === 'day') {
-                        $weekends = array_map('intval', explode(',', $req->leaveBalance->contract->position->center->weekends ?? '0,6'));
-
-                        Carbon::setWeekendDays($weekends);
-
-                        $pendingDays += $req->start_at->diffInWeekDays($req->end_at) + 1;
-                    }
-
-                    if ($req->type === 'hour') {
-                        $pendingHours += $req->start_at->floatDiffInRealHours($req->end_at);
-                    }
-                }
-
-                $leave->pending_days = $pendingDays;
-                $leave->pending_hours = $pendingHours;
+                $leave->pending_total_hours = $pending;
+                $leave->pending_days = $days;
+                $leave->pending_hours = $rest;
             }
         }
 
@@ -376,8 +394,8 @@ class Employee extends Model implements HasMedia
     /**
      * A short-lived signed photo URL for the unauthenticated digital ID card.
      *
-     * Only ShowDigitalId should call this, and only after the bearer token has
-     * been matched to an active employee.
+     * Only ShowDigitalId should call this, and only after the card link has
+     * resolved to an active employee's current, enabled card.
      */
     public function signedAvatarUrl(): string
     {
@@ -471,23 +489,18 @@ class Employee extends Model implements HasMedia
         $end = $this->serviceEndDate();
 
         if (! $start || $end->lte($start)) {
-            return 0 .' '.trans_choice('general.year', 0);
+            return trans_choice('general.count.years', 0);
         }
 
         $years = $this->yearsOfServiceOn();
         $months = (int) floor($start->copy()->addYears($years)->diffInMonths($end));
 
-        $result = '';
+        $parts = array_filter([
+            $years > 0 ? trans_choice('general.count.years', $years) : null,
+            $months > 0 ? trans_choice('general.count.months', $months) : null,
+        ]);
 
-        if ($years > 0) {
-            $result = $years.' '.trans_choice('general.year', $years).' ';
-        }
-
-        if ($months > 0) {
-            $result .= $months.' '.trans_choice('general.month', $months);
-        }
-
-        return trim($result) ?: 0 .' '.trans_choice('general.year', 0);
+        return join_counts($parts) ?: trans_choice('general.count.years', 0);
     }
 
     public function getYearsOfServiceAttribute(): int
@@ -530,6 +543,8 @@ class Employee extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (Employee $employee): void {
+            // No longer read by the card (its link is DigitalIdManager's), kept
+            // so the previous release still works if it has to be redeployed.
             $employee->digital_id_token ??= Str::random(64);
         });
     }

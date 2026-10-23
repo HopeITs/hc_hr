@@ -107,7 +107,7 @@ class News extends Model implements HasMedia
             'Center' => trans_choice('general.center', 1),
             'Program' => trans_choice('general.program', 1),
             'Employee' => trans_choice('general.employee', 1),
-            default => $relation->name ?? __('general.n_a'),
+            default => $relation->name ?? __('general.na'),
         };
 
         if (in_array($type, ['City', 'Center', 'Program', 'Employee'])) {

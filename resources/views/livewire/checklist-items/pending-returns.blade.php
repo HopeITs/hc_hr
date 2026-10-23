@@ -7,11 +7,12 @@
         <x-heading-label>{{ __('general.pending_return_requests') }}</x-heading-label>
     </div>
 
-    @if ($pendingReturns->isEmpty())
-        <div class="text-center text-secondary-light italic py-12 border border-dashed border-neutral-300 rounded-surface bg-neutral-50">
-            {{ __('general.no_pending_returns') }}
-        </div>
+    @if ($loadFailed)
+        <x-ui.load-error />
+    @elseif ($pendingReturns->isEmpty())
+        <x-center-empty-state :title="__('states.pending-returns-empty-title')" :description="__('states.pending-returns-empty-help')" />
     @else
+        <p class="sr-only" role="status" aria-live="polite">{{ trans_choice('states.items-count', $pendingReturns->count()) }}</p>
         <div class="overflow-hidden rounded-surface border border-neutral-200 shadow-e1">
             <table class="min-w-full text-body text-left text-neutral-800">
                 <thead class="bg-neutral-100 text-secondary-medium uppercase text-small tracking-wider">
@@ -38,6 +39,7 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <button wire:click="markReceived({{ $item->id }})"
+                                    wire:loading.attr="disabled" wire:target="markReceived({{ $item->id }})"
                                     class="inline-flex items-center px-3 py-2 bg-primary text-white text-small font-semibold rounded-control hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
                                     {{ __('general.mark_as_received') }}
                                 </button>

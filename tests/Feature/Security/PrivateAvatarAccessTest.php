@@ -7,17 +7,18 @@ use App\Services\DigitalIdManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\URL;
+use Tests\Concerns\CreatesDigitalIdCards;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
 /**
  * Employee photographs are protection-sensitive. They must be unreachable
  * anonymously, unreachable across cities, and reachable on the public ID card
- * only through a signed link minted from a live token.
+ * only through a signed link minted after the card resolved.
  */
 class PrivateAvatarAccessTest extends TestCase
 {
-    use CreatesHrFixtures, RefreshDatabase;
+    use CreatesDigitalIdCards, CreatesHrFixtures, RefreshDatabase;
 
     public function test_the_photo_is_not_stored_on_the_public_disk(): void
     {
@@ -39,17 +40,35 @@ class PrivateAvatarAccessTest extends TestCase
         $this->get(route('employees.avatar', $employee))->assertRedirect(route('login'));
     }
 
-    public function test_hr_in_another_city_cannot_download_a_photo(): void
+    /**
+     * The expectation changed with the signed A2-D policy (access-policy.md
+     * §4.3, A2D-Q4, §8): the photo follows the Directory tier, so an Aleppo
+     * HR officer sees an ACTIVE Homs colleague's face like every other member
+     * of staff does (this is what broke 134 photos on that officer's
+     * dashboard, X1). The city boundary still holds for what is not Directory
+     * tier: a FORMER Homs employee's photo is refused, with the same 404 as
+     * an id that does not exist (§4.4).
+     */
+    public function test_hr_in_another_city_sees_active_photos_but_not_former_employees(): void
     {
         $aleppo = $this->makeCity('ALP', '001');
         $homs = $this->makeCity('HMS', '002');
 
-        $subject = $this->withPhoto($this->makeEmployee($homs, 'homs-subject'));
+        $active = $this->withPhoto($this->makeEmployee($homs, 'homs-subject'));
+        $former = $this->withPhoto($this->makeEmployee($homs, 'homs-former', ['is_active' => false]));
         $aleppoHr = $this->makeUser($aleppo, 'HR-ALP', ['employees.view']);
 
         $this->actingAs($aleppoHr)
-            ->get(route('employees.avatar', $subject))
-            ->assertForbidden();
+            ->get(route('employees.avatar', $active))
+            ->assertOk();
+
+        $this->actingAs($aleppoHr)
+            ->get(route('employees.avatar', $former))
+            ->assertNotFound();
+
+        $this->actingAs($aleppoHr)
+            ->get(route('employees.avatar', ['employee' => 999999]))
+            ->assertNotFound();
     }
 
     public function test_hr_in_the_same_city_can_download_a_photo_privately(): void
@@ -126,37 +145,44 @@ class PrivateAvatarAccessTest extends TestCase
         $this->get($signed)->assertNotFound();
     }
 
+    /** access-policy.md §7 #3, card link per §9 A2D-Q6 (no token any more). */
     public function test_a_disabled_digital_id_stops_resolving(): void
     {
         $city = $this->makeCity('DIG', '998');
-        $employee = $this->makeEmployee($city, 'digital-subject');
+        $employee = $this->makeCardHolder($city, 'digital-subject');
+        $card = $this->cardPath($employee);
 
-        $this->get(route('digital-id.show', $employee->digital_id_token))->assertOk();
+        $this->get($card)->assertOk();
 
         app(DigitalIdManager::class)->disable($employee);
 
-        $this->get(route('digital-id.show', $employee->fresh()->digital_id_token))
-            ->assertNotFound();
+        $this->get($card)->assertNotFound()->assertSee('This card is not valid');
     }
 
-    public function test_rotating_the_token_invalidates_the_printed_card(): void
+    /**
+     * access-policy.md §7 #4 under §9 A2D-Q6: re-issue replaces token rotation.
+     * The printed card's index stops resolving at once; only the new one does.
+     */
+    public function test_reissuing_the_card_invalidates_the_printed_card(): void
     {
         $city = $this->makeCity('DIG', '998');
-        $employee = $this->makeEmployee($city, 'digital-subject');
-        $printedToken = $employee->digital_id_token;
+        $employee = $this->makeCardHolder($city, 'digital-subject');
+        $printed = $this->cardPath($employee);
 
-        app(DigitalIdManager::class)->rotate($employee);
+        app(DigitalIdManager::class)->reissue($employee, 0);
 
-        $this->get(route('digital-id.show', $printedToken))->assertNotFound();
-        $this->get(route('digital-id.show', $employee->fresh()->digital_id_token))->assertOk();
+        $this->get($printed)->assertNotFound()->assertSee('This card is not valid');
+        $this->assertStringEndsWith('-1', $this->cardPath($employee));
+        $this->get($this->cardPath($employee))->assertOk();
     }
 
     public function test_the_public_card_is_marked_noindex(): void
     {
         $city = $this->makeCity('DIG', '998');
-        $employee = $this->makeEmployee($city, 'digital-subject');
+        $employee = $this->makeCardHolder($city, 'digital-subject');
 
-        $this->get(route('digital-id.show', $employee->digital_id_token))
+        $this->get($this->cardPath($employee))
+            ->assertOk()
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, noimageindex');
     }
 

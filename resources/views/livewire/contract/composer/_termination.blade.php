@@ -30,7 +30,8 @@
 
     <div class="mt-4 grid gap-x-6 gap-y-4 md:grid-cols-2">
         @if($canManageAutoRenew)
-            <div class="md:col-span-2">
+            {{-- A trial never auto-renews (ContractObserver::saving()), so there is nothing to toggle. --}}
+            <div class="md:col-span-2" x-show="selectedType?.category !== 'trial'">
                 <div class="flex min-h-[2.625rem] items-center justify-between gap-4 rounded-control border border-neutral-200 bg-neutral-50 px-3 py-2">
                     <div class="min-w-0">
                         <x-forms.input-label for="composer_auto_renew">
@@ -38,6 +39,11 @@
                         </x-forms.input-label>
                         <p class="mt-0.5 text-caption text-secondary-medium">
                             @lang('general.auto-renew-hint')
+                        </p>
+                        {{-- What switching it on actually does
+                             (ContractAutoRenewalService). --}}
+                        <p class="mt-1 text-caption text-secondary-medium">
+                            @lang('contracts.composer-help.auto-renew')
                         </p>
                     </div>
 

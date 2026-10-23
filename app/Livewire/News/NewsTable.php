@@ -83,7 +83,7 @@ class NewsTable extends LivewireTable
                 ->displayUsing(fn ($v) => $v ? $v->format('Y-m-d') : __('general.always_display'))
                 ->sortable(),
             Column::make(__('general.event_date'), 'event_date')
-                ->displayUsing(fn ($v) => $v ? $v->format('Y-m-d') : __('general.n_a'))
+                ->displayUsing(fn ($v) => $v ? $v->format('Y-m-d') : __('general.na'))
                 ->sortable(),
             Column::make(__('general.published_at'), 'published_at')
                 ->displayUsing(fn ($v) => optional($v)->diffForHumans())

@@ -308,6 +308,15 @@ class ContractForm extends Form
     // Validation
     // ────────────────────────────────────────────────
 
+    /**
+     * Human field names for every message below, in the viewer's locale —
+     * without them Laravel falls back to the raw key ("employee id").
+     */
+    public function validationAttributes(): array
+    {
+        return __('contracts.attributes');
+    }
+
     public function validateIdentity(): array
     {
         return $this->validate([
@@ -796,7 +805,7 @@ class ContractForm extends Form
                 ->find($value);
 
             if ($position && ! $position->canAssign()) {
-                $fail(__('This position exceeded the number of max employees.'));
+                $fail(__('contracts.errors.position-full'));
             }
         };
     }

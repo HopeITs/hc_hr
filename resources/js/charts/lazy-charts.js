@@ -81,6 +81,19 @@ export default function registerLazyCharts() {
     // covers in-place component re-renders (a filter changing, for instance).
     document.addEventListener("livewire:navigated", renderVisibleCharts);
 
+    // wire:navigate removes the chart hosts without telling amCharts, which
+    // keeps every Root (and its animation loop) alive in its registry. Dispose
+    // them before the swap; the module is only imported if a chart ever loaded.
+    document.addEventListener("livewire:navigating", () => {
+        if (loaded.size === 0) {
+            return;
+        }
+
+        import("@amcharts/amcharts5").then((am5) => {
+            [...am5.registry.rootElements].forEach((root) => root.dispose());
+        });
+    });
+
     window.Livewire?.hook("commit", ({ succeed }) => {
         succeed(() => queueMicrotask(renderVisibleCharts));
     });

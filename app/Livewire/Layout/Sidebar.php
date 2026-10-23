@@ -7,6 +7,7 @@ use App\Services\RecruitmentApproverEligibility;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Throwable;
 
 class Sidebar extends Component
 {
@@ -39,17 +40,23 @@ class Sidebar extends Component
 
         $isDeliverResponsible = in_array($departmentName, ['IT', 'CT', 'HR']);
 
-        $pendingDeliversCount = $employeeId
-            ? Checklist::where('delivered_id', $employeeId)
-                ->where('delivered_status', '!=', 'delivered')
-                ->count()
-            : 0;
+        // Badges only: a failed count must not take every page down with it.
+        try {
+            $pendingDeliversCount = $employeeId
+                ? Checklist::where('delivered_id', $employeeId)
+                    ->where('delivered_status', '!=', 'delivered')
+                    ->count()
+                : 0;
 
-        $pendingReturnsCount = $employeeId
-            ? Checklist::where('receiver_id', $employeeId)
-                ->where('returned_status', 'pending')
-                ->count()
-            : 0;
+            $pendingReturnsCount = $employeeId
+                ? Checklist::where('receiver_id', $employeeId)
+                    ->where('returned_status', 'pending')
+                    ->count()
+                : 0;
+        } catch (Throwable $e) {
+            report($e);
+            $pendingDeliversCount = $pendingReturnsCount = 0;
+        }
 
         $user = Auth::user();
 

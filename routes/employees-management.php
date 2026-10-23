@@ -34,9 +34,10 @@ Route::prefix('contracts')
         Route::get('/{contract}', ContractDetails::class)->middleware('active_permission:contracts.view')->name('show');
     });
 
-if (app()->isLocal()) {
-    // Bypasses the export Gate/city checks so the print layout can be
-    // previewed without needing an exact-match logged-in user.
-    Route::get('contracts/{contract}/export-preview', [ContractExportController::class, 'preview'])
-        ->name('contracts.export-preview');
-}
+// The print layout as plain HTML, for iterating on it in devtools. It answers
+// 404 outside the local environment (the controller checks, so the gate is
+// testable) and otherwise holds the same export/salary/city gates as the PDF:
+// the page carries the pay clause.
+Route::get('contracts/{contract}/export-preview', [ContractExportController::class, 'preview'])
+    ->middleware('active_permission:contracts.export')
+    ->name('contracts.export-preview');

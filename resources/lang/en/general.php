@@ -857,6 +857,8 @@ return [
     // screen readers but never painted, so they must stay translated like any
     // other user-facing copy.
     'a11y' => [
+        'open-sidebar' => 'Open sidebar',
+        'breadcrumb' => 'Breadcrumb',
         'skip-to-content' => 'Skip to main content',
         'main-content' => 'Main content',
         'required-field' => 'required',
@@ -865,6 +867,8 @@ return [
         'logo-preview' => 'Selected logo preview',
         'current-logo' => 'Current logo',
         'toggle-password' => 'Show or hide password',
+        'close-dialog' => 'Close dialog',
+        'view-details' => 'View details',
     ],
 
     // Default <meta> copy, overridden per page via $title / $description
@@ -904,4 +908,115 @@ return [
 
     'contracts-history' => 'Contracts History',
     'contracts-history-empty' => 'No contracts yet. Contract history will appear here after the employee is saved.',
+
+    // A4: a number with its unit, for durations shown after a figure.
+    // :count may carry markup (the figure in bold).
+    'count' => [
+        'days' => ':count Day|:count Days',
+        'hours' => ':count Hour|:count Hours',
+        'minutes' => ':count Minute|:count Minutes',
+        'months' => ':count Month|:count Months',
+        'years' => ':count Year|:count Years',
+        // Joins two counts ("1 Year 3 Months").
+        'and' => ':first :second',
+    ],
+
+    // A4: display names for stored role names (see role_label()).
+    'role-labels' => [
+        'employee' => 'Employee',
+        'manager' => 'Manager',
+        'general-manager' => 'General Manager',
+        'super-admin' => 'System Administrator',
+        'hr-city' => 'HR · :city',
+    ],
+
+    // A4: keys that were used but missing in one or both languages.
+    'na' => 'N/A',
+    'view' => 'View',
+    'update' => 'Update',
+    'general-info' => 'General Information',
+    'employee-dashboard' => 'Employee Dashboard',
+    'hours' => 'Hours',
+    'updating-statistics' => 'Updating statistics…',
+    'badges-management' => 'Badges Management',
+
+    // A4: select2's own messages (search box, empty list). :count is filled in the browser.
+    'select2' => [
+        'noResults' => 'No results found',
+        'searching' => 'Searching…',
+        'loadingMore' => 'Loading more results…',
+        'errorLoading' => 'The results could not be loaded.',
+        'inputTooShort' => 'Please enter :count more characters',
+        'inputTooLong' => 'Please delete :count characters',
+        'maximumSelected' => 'You can only select :count items',
+        'removeAllItems' => 'Remove all items',
+        'removeItem' => 'Remove item',
+        'search' => 'Search',
+    ],
+
+    // A4: sidebar group headings.
+    'nav-group' => [
+        'main' => 'Main',
+        'management' => 'Management',
+        'time-and-leave' => 'Time & Leave',
+        'files-and-tasks' => 'Files & Tasks',
+        'more' => 'More',
+    ],
+
+    // A5-M: closing an editable dialog with unsaved entries (GuardsModalClose).
+    'unsaved' => [
+        'title' => 'Discard your changes?',
+        'message' => 'Your changes have not been saved.',
+        'keep-editing' => 'Keep editing',
+        'discard' => 'Discard changes',
+    ],
+
+    // Notification progress: separate from unread. Unread means "not opened yet";
+    // these say whether the record still needs this person, from its current state.
+    'notification-state' => [
+        'awaiting' => 'Awaiting your action',
+        'handled' => 'Already handled',
+        'unavailable' => 'No longer available',
+        'status' => 'Request status: :status',
+    ],
+    'notification-target-unavailable' => 'This request is no longer available to you. It may have been removed, or your access may have changed.',
+
+    // Shared list states (x-center-empty-state, x-ui.load-error, x-ui.skeleton)
+    'state-empty-title' => 'No records yet',
+    'state-empty-help' => 'Nothing has been added here yet.',
+    'state-filtered-title' => 'No results match your filters',
+    'state-filtered-help' => 'Try changing or removing some filters.',
+    'clear-filters' => 'Clear filters',
+    'state-error-title' => 'Could not load this content',
+    'state-error-help' => 'Something went wrong while loading. Your data has not changed.',
+    'retry' => 'Retry',
+    'state-results-count' => '{1} :count result|[2,*] :count results',
+    'state-add-employee' => 'Add employee',
+    'state-add-contract' => 'Add contract',
+    'state-notice-filter-cleared' => 'A filter was cleared because it no longer applies',
+    'state-clear-all' => 'Clear all',
+    'state-active-filters' => 'Active filters',
+    'state-remove-filter' => 'Remove filter :filter',
+    'state-dismiss' => 'Dismiss',
+    'emp-open-details' => 'Open details of :name',
+    'emp-more-actions' => 'More actions for :name',
+    'emp-view-profile-of' => 'View profile of :name',
+    'emp-activate' => 'Activate',
+    'emp-deactivate' => 'Deactivate',
+    'emp-drawer-close' => 'Close details',
+    'emp-views' => 'Employee views',
+    'emp-export-note' => 'Exports the columns shown',
+    'views-menu' => 'My views',
+    'views-saved-list' => 'Saved views',
+    'views-none' => 'No saved views yet.',
+    'views-name' => 'View name',
+    'views-save-current' => 'Save current view',
+    'views-apply' => 'Apply view :name',
+    'views-rename' => 'Rename view :name',
+    'views-delete' => 'Delete view :name',
+    'views-delete-confirm' => 'Delete this saved view?',
+    'views-limit' => 'You can keep up to :max saved views for this table. Delete one first.',
+    'views-name-taken' => 'You already have a view with this name.',
+    'views-help' => 'A view keeps search, filters, sort, rows per page and columns. It never keeps results.',
+
 ];

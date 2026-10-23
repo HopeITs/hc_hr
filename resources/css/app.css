@@ -118,6 +118,36 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* M1: a dialog becomes a full-screen "sheet" on phones, portrait AND landscape (a landscape phone is wider
+   than `sm` but only ~375px tall, so a width breakpoint alone would leave a cramped centred dialog).
+   `sheet:` = phone-sized; `dialog:` = the exact complement, i.e. the unchanged desktop/tablet layout. */
+@custom-variant sheet {
+    @media (max-width: 639.98px) {
+        @slot;
+    }
+
+    @media (max-height: 500px) and (max-width: 950px) {
+        @slot;
+    }
+}
+
+@custom-variant dialog {
+    @media (min-width: 640px) and (min-height: 501px) {
+        @slot;
+    }
+
+    @media (min-width: 951px) {
+        @slot;
+    }
+}
+
+/* A sheet that ends in a pinned action bar sits flush with the bottom edge (no body padding under it). */
+@media (max-width: 639.98px), (max-height: 500px) and (max-width: 950px) {
+    .modal-body:has([data-sheet-actions]) {
+        padding-bottom: 0;
+    }
+}
+
 body {
     font-family: 'SomarSans', sans-serif;
 
@@ -999,6 +1029,11 @@ select.public-career-select option:checked {
     .animate-notif-pop {
         animation: none;
     }
+
+    /* Livewire's navigate progress bar (A7): keep the progress, drop the sliding. */
+    #nprogress .bar {
+        transition: none !important;
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1205,5 +1240,110 @@ li:has(> ul:not(.hidden)) .nav-chevron {
         min-width: 0;
         max-width: none;
         box-shadow: none;
+    }
+}
+
+/* ── M1: phone task actions ─────────────────────────────────────────────────
+   A long form keeps its save / next / cancel row reachable: below lg (phones, landscape phones, small tablets) the row
+   sticks to the bottom of the viewport (below md it only needs the form to be
+   on screen), pads for the home-indicator safe area, and the page reserves
+   scroll padding so a focused field is scrolled clear of it instead of
+   hiding behind it. Desktop keeps the row where the markup puts it. */
+@media (max-width: 63.99rem) {
+    html:has(.m1-action-bar) {
+        scroll-padding-bottom: 7rem;
+    }
+
+    .m1-action-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-inline: -1rem;
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        background: #fff;
+        border-top: 1px solid var(--color-neutral-200);
+    }
+
+    .m1-action-bar > * {
+        flex: 1 1 8rem;
+        width: auto;
+        min-height: 2.75rem;
+        margin: 0;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ── M1: contract review on phones ──────────────────────────────────────────
+   The on-screen contract is an A4 sheet (210mm x 300mm, English and Arabic
+   columns side by side). On a phone it is reflowed instead of shrunk: the
+   sheet takes the screen width and its natural height, the two language
+   blocks stack, and the absolutely placed signature blocks flow normally.
+   Scoped to .contract-review (the review page only) and to screens, so the
+   PDF export and printing keep the exact A4 layout. */
+@media screen and (max-width: 63.99rem) {
+    .contract-review .contract-a4 {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        padding: 22mm 5mm 26mm;
+        background-size: 100% auto, 100% auto;
+        background-position: center 3mm, center calc(100% - 3mm);
+    }
+
+    .contract-review .contract-body {
+        padding-bottom: 1rem;
+        overflow: visible;
+    }
+
+    .contract-review .dual-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.5rem;
+    }
+
+    .contract-review .contract-title-center .dual-row {
+        flex-direction: column;
+        gap: 0.25rem !important;
+    }
+
+    .contract-review .contract-title-separator {
+        display: none;
+    }
+
+    .contract-review .contract-footer {
+        bottom: 12mm;
+    }
+
+    .contract-review .contract-signature {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-height: 0;
+    }
+
+    .contract-review .signature-party {
+        position: static;
+        width: 100%;
+    }
+
+    .contract-review .signature-date {
+        margin-top: 1rem;
+    }
+
+    .contract-review table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+/* M1: the contract composer's fixed save bar is below lg; keep a focused
+   field scrolled clear of it. */
+@media (max-width: 63.99rem) {
+    html:has([data-tour="contract.save"]) {
+        scroll-padding-bottom: 10rem;
     }
 }

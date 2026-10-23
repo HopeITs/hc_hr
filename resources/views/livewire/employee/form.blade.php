@@ -28,45 +28,58 @@
     --}}
     <x-forms.errors-validation-list />
 
+    @php
+        // One definition feeds the desktop list and the phone selector, so the
+        // two can never disagree about which sections exist or are unlocked.
+        $hasEmployee = isset($infoForm->id);
+        $sections = array_values(array_filter([
+            ['key' => 'information', 'title' => __('general.information'), 'icon' => 'user', 'locked' => false],
+            ['key' => 'contact', 'title' => __('general.contact'), 'icon' => 'contact', 'locked' => false],
+            ['key' => 'education', 'title' => __('general.education'), 'icon' => 'education', 'locked' => ! $hasEmployee],
+            ['key' => 'courses', 'title' => __('general.courses'), 'icon' => 'courses', 'locked' => ! $hasEmployee],
+            ['key' => 'experience', 'title' => __('general.experience'), 'icon' => 'experience', 'locked' => ! $hasEmployee],
+            ['key' => 'relatives', 'title' => __('general.relatives'), 'icon' => 'relatives', 'locked' => ! $hasEmployee],
+            $canManageBadges ? ['key' => 'badges', 'title' => __('general.badges'), 'icon' => 'badges', 'locked' => ! $hasEmployee] : null,
+            ['key' => 'checklist', 'title' => __('general.checklist'), 'icon' => 'checklist', 'locked' => ! $hasEmployee],
+            ['key' => 'attachments', 'title' => __('general.attachments'), 'icon' => 'attachment', 'locked' => ! $hasEmployee],
+            ['key' => 'items', 'title' => __('general.items'), 'icon' => 'items', 'locked' => ! $hasEmployee],
+            $canViewContractHistory ? ['key' => 'contracts_history', 'title' => __('general.contracts-history'), 'icon' => 'contracts', 'locked' => ! $hasEmployee] : null,
+        ]));
+        $currentIndex = collect($sections)->search(fn ($section) => $section['key'] === $activeTab);
+        $currentIndex = $currentIndex === false ? 0 : $currentIndex;
+        $digits = fn ($n) => app()->getLocale() === 'ar' ? ar_digits($n) : (string) $n;
+    @endphp
+
     <x-tab.form activeTab="information">
-        <x-tab.list data-tour="employee.tabs">
-            <x-tab.item :title="__('general.information')" activeTab="information" :active="$activeTab === 'information'">
-                <x-icons.user />
-            </x-tab.item>
-            <x-tab.item :title="__('general.contact')" activeTab="contact" :active="$activeTab === 'contact'">
-                <x-icons.contact/>
-            </x-tab.item>
-            <x-tab.item :title="__('general.education')" :disabled="!isset($infoForm->id)" activeTab="education" :active="$activeTab === 'education'">
-                <x-icons.education />
-            </x-tab.item>
-            <x-tab.item :title="__('general.courses')" activeTab="courses" :disabled="!isset($infoForm->id)" :active="$activeTab === 'courses'">
-                <x-icons.courses />
-            </x-tab.item>
-            <x-tab.item :title="__('general.experience')" activeTab="experience" :disabled="!isset($infoForm->id)" :active="$activeTab === 'experience'">
-                <x-icons.experience />
-            </x-tab.item>
-            <x-tab.item :title="__('general.relatives')" activeTab="relatives" :disabled="!isset($infoForm->id)" :active="$activeTab === 'relatives'">
-                <x-icons.relatives />
-            </x-tab.item>
-            @if($canManageBadges)
-                <x-tab.item :title="__('general.badges')" activeTab="badges" :disabled="!isset($infoForm->id)" :active="$activeTab === 'badges'">
-                    <x-icons.badges />
+        {{--
+            Phones: one labelled selector replaces the stack of eleven
+            full-width buttons that pushed the form a screen and a half down.
+            Sections that need a saved employee stay listed but unavailable,
+            exactly as the desktop list shows them.
+        --}}
+        <div class="lg:hidden" data-employee-section-nav>
+            <label for="employee-section-select" class="mb-1 flex items-baseline justify-between text-small font-semibold text-secondary-medium">
+                <span>@lang('mobile.section')</span>
+                <span class="font-normal" aria-live="polite">{{ $digits($currentIndex + 1) }} / {{ $digits(count($sections)) }}</span>
+            </label>
+            <select id="employee-section-select"
+                class="min-h-11 w-full rounded-control border border-neutral-300 bg-white px-3 text-body font-semibold text-neutral-900 shadow-e1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light"
+                x-on:change="$wire.setActiveTab($event.target.value)">
+                @foreach ($sections as $section)
+                    <option value="{{ $section['key'] }}" @selected($section['key'] === $activeTab) @disabled($section['locked'])>{{ $section['title'] }}</option>
+                @endforeach
+            </select>
+            @unless ($hasEmployee)
+                <p class="mt-1 text-small text-secondary-medium">@lang('mobile.sections-unlock-after-save')</p>
+            @endunless
+        </div>
+
+        <x-tab.list data-tour="employee.tabs" class="hidden lg:block">
+            @foreach ($sections as $section)
+                <x-tab.item :title="$section['title']" :activeTab="$section['key']" :disabled="$section['locked']" :active="$activeTab === $section['key']">
+                    <x-dynamic-component :component="'icons.'.$section['icon']" />
                 </x-tab.item>
-            @endif
-            <x-tab.item :title="__('general.checklist')" activeTab="checklist" :disabled="!isset($infoForm->id)" :active="$activeTab === 'checklist'">
-                <x-icons.checklist  />
-            </x-tab.item>
-            <x-tab.item :title="__('general.attachments')" activeTab="attachments" :disabled="!isset($infoForm->id)" :active="$activeTab === 'attachments'">
-                <x-icons.attachment />
-            </x-tab.item>
-            <x-tab.item :title="__('general.items')" activeTab="items" :disabled="!isset($infoForm->id)" :active="$activeTab === 'items'">
-                <x-icons.items />
-            </x-tab.item>
-            @if ($canViewContractHistory)
-                <x-tab.item :title="__('general.contracts-history')" activeTab="contracts_history" :disabled="!isset($infoForm->id)" :active="$activeTab === 'contracts_history'">
-                    <x-icons.contracts />
-                </x-tab.item>
-            @endif
+            @endforeach
         </x-tab.list>
 
         <div class="flex-grow w-full">

@@ -4,7 +4,6 @@ namespace App\Observers;
 
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Models\Contract;
-use App\Models\ContractType;
 use App\Models\Position;
 use App\Services\ChecklistWorkflow;
 use App\Support\StatisticsCache;
@@ -14,32 +13,31 @@ use Illuminate\Validation\ValidationException;
 class ContractObserver
 {
     /**
-     * A terminated contract has ended for good, so it can never roll over.
+     * A terminated contract has ended for good, and a trial is meant to end
+     * and be evaluated — neither may ever roll over.
      *
      * Enforced here rather than in the form because a termination can be
      * saved by a role that may not touch auto_renew (ContractForm only writes
-     * the flag for HR), and because ContractAutoRenewalService picks up every
-     * inactive auto_renew contract — terminated ones included — once its
-     * end_date passes. Runs before creating(), so the default there never
-     * sees an unset flag on a terminated contract.
+     * the flag for HR), because HR could otherwise switch a trial on from the
+     * contracts list, and because ContractAutoRenewalService picks up every
+     * inactive auto_renew contract once its end_date passes. Runs before
+     * creating(), so the default there never sees an unset flag on either.
      */
     public function saving(Contract $contract): void
     {
-        if ($contract->isTerminated()) {
+        if (! $contract->canAutoRenew()) {
             $contract->auto_renew = false;
         }
     }
 
     public function creating(Contract $contract): void
     {
-        // Auto-renew defaults true (right for volunteer and service
-        // contracts) except for trial/probation contracts, which default
-        // false — a trial is meant to end and be evaluated, not roll over
-        // silently. Only applied when the caller left it unset, so an
-        // explicit true/false (e.g. from the composer, once it exposes this
-        // field) is never overridden.
+        // Auto-renew defaults true — right for volunteer and service
+        // contracts; saving() above has already forced it off for a trial.
+        // Only applied when the caller left it unset, so an explicit false is
+        // never overridden.
         if (! array_key_exists('auto_renew', $contract->getAttributes())) {
-            $contract->auto_renew = ContractType::find($contract->contract_type_id)?->category !== 'trial';
+            $contract->auto_renew = true;
         }
 
         // A draft contract (a placeholder position/center reservation
@@ -70,7 +68,7 @@ class ContractObserver
 
         if (! $pos->canAssign()) {
             throw ValidationException::withMessages([
-                'form.position_id' => __('validation.custom.position_id.max_reached'),
+                'form.position_id' => __('contracts.errors.position-full'),
             ]);
         }
     }
@@ -106,7 +104,7 @@ class ContractObserver
 
             if (! $pos->canAssign()) {
                 throw ValidationException::withMessages([
-                    'form.position_id' => __('validation.custom.position_id.max_reached'),
+                    'form.position_id' => __('contracts.errors.position-full'),
                 ]);
             }
 
@@ -141,7 +139,7 @@ class ContractObserver
         }
         if (! $new->canAssign()) {
             throw ValidationException::withMessages([
-                'form.position_id' => __('validation.custom.position_id.max_reached'),
+                'form.position_id' => __('contracts.errors.position-full'),
             ]);
         }
     }

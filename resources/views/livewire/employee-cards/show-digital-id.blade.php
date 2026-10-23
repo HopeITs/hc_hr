@@ -242,7 +242,7 @@
         }
     </style>
 
-    <main class="digital-id-wrap" aria-label="Employee digital ID">
+    <main class="digital-id-wrap" aria-label="{{ __('digital_id.card.label') }}">
         <img class="digital-id-logo" src="{{ asset('assets/img/001_HC.svg') }}" alt="Christian Hope Center">
 
         <section class="digital-id-card">
@@ -264,9 +264,9 @@
                 <div class="digital-id-divider" aria-hidden="true"></div>
 
                 @if ($hasContactLink)
-                    <div class="digital-id-icons" aria-label="Employee contact links">
+                    <div class="digital-id-icons" role="group" aria-label="{{ __('digital_id.card.contact_links') }}">
                         @if ($hasPhone)
-                            <a class="digital-id-icon-link" href="{{ $phoneHref }}" aria-label="Call {{ $employeeName }}">
+                            <a class="digital-id-icon-link" href="{{ $phoneHref }}" aria-label="{{ __('digital_id.card.call', ['name' => $employeeName]) }}">
                                 <svg class="digital-id-icon" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.61 21 3 13.39 3 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.24.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                                 </svg>
@@ -274,7 +274,7 @@
                         @endif
 
                         @if ($hasTelegram)
-                            <a class="digital-id-icon-link" href="{{ $telegramHref }}" target="_blank" rel="noopener noreferrer" aria-label="Open Telegram for {{ $employeeName }}">
+                            <a class="digital-id-icon-link" href="{{ $telegramHref }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('digital_id.card.telegram', ['name' => $employeeName]) }}">
                                 <svg class="digital-id-icon" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M21.94 4.16a1.27 1.27 0 0 0-1.42-.2L3.3 11.07c-.48.2-.8.62-.8 1.08 0 .55.42.96 1.08 1.08l4.35.78 1.66 5.22c.18.55.56.86 1.03.86.35 0 .64-.17.9-.48l2.4-2.89 4.54 3.36c.27.2.56.31.85.31.67 0 1.13-.47 1.28-1.28l2.35-13.57c.1-.58-.1-1.09-.5-1.38zM18.72 7.4l-7.46 6.68-.3 3.09-1.1-3.48 8.86-6.29z"/>
                                 </svg>
@@ -282,7 +282,7 @@
                         @endif
 
                         @if ($hasLinkedin)
-                            <a class="digital-id-icon-link" href="{{ $linkedinHref }}" target="_blank" rel="noopener noreferrer" aria-label="Open LinkedIn for {{ $employeeName }}">
+                            <a class="digital-id-icon-link" href="{{ $linkedinHref }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('digital_id.card.linkedin', ['name' => $employeeName]) }}">
                                 <svg class="digital-id-icon" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M19 3A2 2 0 0 1 21 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.75H5.67v8.59h2.67zM7 8.58c.85 0 1.54-.69 1.54-1.54S7.85 5.5 7 5.5s-1.54.69-1.54 1.54S6.15 8.58 7 8.58zm11.34 9.76v-4.71c0-2.32-1.24-3.39-2.9-3.39-1.33 0-1.93.73-2.26 1.25V9.75h-2.66v8.59h2.66v-4.79c0-1.26.24-2.48 1.8-2.48 1.53 0 1.55 1.43 1.55 2.56v4.71h2.81z"/>
                                 </svg>
@@ -295,8 +295,8 @@
 
         @if (filled($emergencyPhone) && filled($emergencyPhoneHref))
             <p class="digital-id-emergency">
-                EMERGENCY CONTACT:
-                <a href="{{ $emergencyPhoneHref }}">{{ $emergencyPhone }}</a>
+                {{ __('digital_id.card.emergency') }}
+                <a href="{{ $emergencyPhoneHref }}" dir="ltr">{{ $emergencyPhone }}</a>
             </p>
         @endif
     </main>

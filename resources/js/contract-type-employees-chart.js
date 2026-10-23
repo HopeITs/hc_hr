@@ -21,6 +21,12 @@ export default function initContractTypeChart() {
             item.sliceSettings = { fill: colors[index % colors.length] };
         });
 
+        // Re-runs (initial load + livewire:navigated, Livewire re-renders) must
+        // not stack a second Root on the same node: amCharts throws if they do.
+        am5.registry.rootElements
+            .filter((r) => r.dom.id === "chartdiv")
+            .forEach((r) => r.dispose());
+
         var root = am5.Root.new("chartdiv");
         applyBrandInterfaceColors(root);
         root.setThemes([am5themes_Animated.new(root)]);

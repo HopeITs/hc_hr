@@ -47,7 +47,7 @@ class NewsCreate extends Component
 
         $this->toast();
 
-        return to_route('news.index');
+        return $this->redirectRoute('news.index', navigate: true);
     }
 
     public function render()

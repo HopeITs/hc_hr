@@ -13,16 +13,16 @@ class EmployeeContractSeeder extends Seeder
     public function run(): void
     {
         $contracts = [
-            ['employee' => 'fredy.youssef', 'position' => 'Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'safir.salim', 'position' => 'Deputy Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'judy.dadaoghlian', 'position' => 'IT Manager', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'george.abdelnour', 'position' => 'Communication Manager / Syria', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'lana.abdo', 'position' => 'HR Generalist', 'start_date' => '2025-02-01'],
-            ['employee' => 'majd.zrek', 'position' => 'Legal Affairs Consultant', 'start_date' => '2025-03-01'],
-            ['employee' => 'rama.daaboul', 'position' => 'Second Deputy Chief Executive Officer', 'start_date' => '2025-09-01'],
-            ['employee' => 'magie.najjar', 'position' => 'Center Keeper', 'start_date' => '2025-11-16'],
-            ['employee' => 'shadi.makdessi', 'position' => 'Senior Financial Manager', 'start_date' => '2025-02-01'],
-            ['employee' => 'antoine.arbaji', 'position' => 'Program Manager', 'start_date' => '2025-10-01'],
+            ['employee' => 'sami.haddad', 'position' => 'Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
+            ['employee' => 'nabil.khoury', 'position' => 'Deputy Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
+            ['employee' => 'rana.saad', 'position' => 'IT Manager', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
+            ['employee' => 'tarek.nassar', 'position' => 'Communication Manager / Syria', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
+            ['employee' => 'maya.azar', 'position' => 'HR Generalist', 'start_date' => '2025-02-01'],
+            ['employee' => 'omar.hilal', 'position' => 'Legal Affairs Consultant', 'start_date' => '2025-03-01'],
+            ['employee' => 'dina.sabbagh', 'position' => 'Second Deputy Chief Executive Officer', 'start_date' => '2025-09-01'],
+            ['employee' => 'hala.mansour', 'position' => 'Center Keeper', 'start_date' => '2025-11-16'],
+            ['employee' => 'rami.toma', 'position' => 'Senior Financial Manager', 'start_date' => '2025-02-01'],
+            ['employee' => 'fares.kassab', 'position' => 'Program Manager', 'start_date' => '2025-10-01'],
         ];
 
         foreach ($contracts as $data) {

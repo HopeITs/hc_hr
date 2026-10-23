@@ -2,59 +2,62 @@
 
 namespace App\Livewire\EmployeeCards;
 
-use App\Models\Contract;
 use App\Models\Employee;
+use App\Services\DigitalIdManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\App;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * The public digital-ID card, /ID/{card}.
+ *
+ * Only the card code (already in the URL) is component state. The employee is
+ * resolved again on every render, so a Livewire request replayed after the
+ * card was re-issued or disabled cannot render it either.
+ *
+ * Anything that is not a current, enabled card of an active employee gets the
+ * same bilingual "card is not valid" page with the same 404 and no personal
+ * data, so the page cannot be used to test whether an id exists.
+ */
 #[Layout('components.layouts.public')]
 class ShowDigitalId extends Component
 {
-    public Employee $employee;
+    #[Locked]
+    public string $card = '';
 
     public function boot(): void
     {
         App::setLocale('en');
     }
 
-    public function mount(string $username): void
+    public function mount(string $card): void
     {
-        $this->employee = Employee::query()
-            ->where('username', $username)
-            ->where('is_active', true)
-            // A deactivated employee's card, and a card that has been
-            // explicitly disabled after being lost, both stop resolving here.
-            ->where('digital_id_enabled', true)
-            ->with([
-                'city',
-                'media',
-                'contracts' => fn ($query) => $query
-                    ->with([
-                        'position.center.city',
-                        'position.department',
-                    ])
-                    ->latest('start_date'),
-            ])
-            ->firstOrFail();
+        $this->card = $card;
     }
 
     public function render()
     {
-        $contract = $this->currentContract();
-        $position = $contract?->position;
-        $city = $this->employee->city;
-        $emergencyPhone = $this->findEmergencyPhone($this->employee->city_id);
-        $firstName = $this->employee->first_name_en;
-        $lastName = $this->employee->last_name_en;
+        $manager = app(DigitalIdManager::class);
+        $employee = $manager->resolve($this->card);
+
+        if (! $employee) {
+            abort(response()->view('livewire.employee-cards.digital-id-not-valid', [], 404));
+        }
+
+        $position = $manager->cardContract($employee)?->position;
+        $city = $employee->city;
+        $emergencyPhone = $this->emergencyPhone($employee);
+        $firstName = $employee->first_name_en;
+        $lastName = $employee->last_name_en;
 
         return view('livewire.employee-cards.show-digital-id', [
-            'employee' => $this->employee,
+            'employee' => $employee,
             // The card is unauthenticated, so the internal avatar route would
-            // 403 here. The bearer token has already been matched to an active
-            // employee in mount(), which is what authorizes this signed link.
-            'avatarSrc' => $this->employee->signedAvatarUrl(),
+            // 403 here. The card has just resolved, which is what authorizes
+            // this short-lived signed link.
+            'avatarSrc' => $employee->signedAvatarUrl(),
             'employeeName' => trim($firstName.' '.$lastName),
             'firstName' => $firstName,
             'lastName' => $lastName,
@@ -65,15 +68,21 @@ class ShowDigitalId extends Component
             'cityName' => $city?->name_en,
             'emergencyPhone' => $emergencyPhone,
             'emergencyPhoneHref' => $this->phoneHref($emergencyPhone),
-            'phoneHref' => $this->phoneHref($this->employee->work_phone),
-            'telegramHref' => $this->telegramHref($this->employee->telegram_work),
-            'linkedinHref' => $this->linkedinHref($this->employee->linkedin),
+            'phoneHref' => $this->phoneHref($employee->work_phone),
+            'telegramHref' => $this->telegramHref($employee->telegram_work),
+            'linkedinHref' => $this->linkedinHref($employee->linkedin),
         ]);
     }
 
-    private function currentContract(): ?Contract
+    /**
+     * The city's HR hotline set by HR (A2D-Q7), or, while none is set, the
+     * first active HR-department employee's work phone in that city.
+     */
+    private function emergencyPhone(Employee $employee): ?string
     {
-        return $this->employee->contracts->first();
+        $hotline = trim((string) $employee->city?->hr_hotline);
+
+        return $hotline !== '' ? $hotline : $this->findEmergencyPhone($employee->city_id);
     }
 
     private function findEmergencyPhone(?int $cityId): ?string

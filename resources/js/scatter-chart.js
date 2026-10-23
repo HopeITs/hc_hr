@@ -86,4 +86,7 @@ function initSalaryTypeScatter() {
 document.addEventListener("DOMContentLoaded", initSalaryTypeScatter);
 // DOMContentLoaded fires once; pages swapped in by wire:navigate need their own pass.
 document.addEventListener("livewire:navigated", initSalaryTypeScatter);
-window.Livewire?.hook("message.processed", initSalaryTypeScatter);
+// Chart.js instances are destroyed on livewire:navigating (see app.js), so the
+// canvas that wire:navigate removes never keeps a live chart behind it. The
+// Livewire 2 "message.processed" hook that used to be registered here never
+// fires in Livewire 4 and has been dropped.

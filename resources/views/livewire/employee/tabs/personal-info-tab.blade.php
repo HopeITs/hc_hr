@@ -56,7 +56,7 @@
             <x-error-span>{{ $errors->first('draftForm.position_id') }}</x-error-span>
         </div>
 
-        <div class="flex justify-end space-x-2">
+        <div class="flex justify-end space-x-2 m1-action-bar">
             <x-primary-button type="button" wire:click="createDraftAndContinue" class="!w-auto">
                 @lang('general.create-draft-and-continue')
             </x-primary-button>
@@ -81,7 +81,7 @@
                         <x-forms.input-label for="first_name_{{ $locale }}" required>@lang('general.first_name')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.first_name_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.first_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="first_name_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.first_name_' . $locale) }}</x-error-span>
                     </div>
@@ -90,7 +90,7 @@
                         <x-forms.input-label for="last_name_{{ $locale }}" required>@lang('general.last_name')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.last_name_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.last_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="last_name_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.last_name_' . $locale) }}</x-error-span>
                     </div>
@@ -164,7 +164,7 @@
                         <x-forms.input-label for="address_{{ $locale }}">@lang('general.address')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.address_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.address_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="address_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.address_' . $locale) }}</x-error-span>
                     </div>
@@ -180,7 +180,7 @@
                         <x-forms.input-label for="father_name_{{ $locale }}" required>@lang('general.father_name')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.father_name_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.father_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="father_name_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.father_name_' . $locale) }}</x-error-span>
                     </div>
@@ -192,7 +192,7 @@
                         <x-forms.input-label for="mother_name_{{ $locale }}" required>@lang('general.mother_name')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.mother_name_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.mother_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="mother_name_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.mother_name_' . $locale) }}</x-error-span>
                     </div>
@@ -219,11 +219,11 @@
                 <x-forms.input-label for="national_number" required>@lang('general.national_number')</x-forms.input-label>
                 @if ((int) data_get($infoForm, 'nationality') === Nationality::Syrian)
                     <x-forms.input type="text" wire:model="infoForm.national_number" id="national_number"
-                        inputmode="numeric" maxlength="11"
+                        inputmode="numeric" maxlength="11" dir="ltr"
                         placeholder="{{ __('general.national_number_placeholder') }}" />
                 @else
                     <x-forms.input type="text" wire:model="infoForm.national_number" id="national_number"
-                        inputmode="text" maxlength="255"
+                        inputmode="text" maxlength="255" dir="ltr"
                         placeholder="{{ __('general.national_number_placeholder') }}" />
                 @endif
                 <x-error-span>{{ $errors->first('infoForm.national_number') }}</x-error-span>
@@ -236,7 +236,7 @@
                         <x-forms.input-label for="pob_{{ $locale }}">@lang('general.place_and_birth_date')
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
-                        <x-forms.input type="text" wire:model="infoForm.pob_{{ $locale }}"
+                        <x-forms.input type="text" wire:model="infoForm.pob_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
                             id="pob_{{ $locale }}" />
                         <x-error-span>{{ $errors->first('infoForm.pob_' . $locale) }}</x-error-span>
                     </div>
@@ -291,7 +291,7 @@
 
             <div class="md:col-span-2" wire:ignore>
                 <x-forms.input-label for="skills">@lang('general.skills')</x-forms.input-label>
-                <x-forms.tags-input inputId="skills" placeholder='Add tag'
+                <x-forms.tags-input inputId="skills" :placeholder="__('employees.form.add-skill')"
                     suggestions="Resilience,Initiative,MS Office,Teamwork,Time management,Critical thinking,Problem Solving,Adaptability,Willingness to learn,Active listening,Emotion Intelligence,Creativity,Data analysis"
                     :forceSuggestion=true wire:model="infoForm.skills" />
                 <x-error-span>{{ $errors->first('infoForm.skills') }}</x-error-span>
@@ -299,7 +299,7 @@
 
             <div class="md:col-span-2" wire:ignore>
                 <x-forms.input-label for="interests">@lang('general.interests')</x-forms.input-label>
-                <x-forms.tags-input inputId="interests" placeholder='Add tag'
+                <x-forms.tags-input inputId="interests" :placeholder="__('employees.form.add-interest')"
                     suggestions="Reading,Swimming,Cooking,Sports,Football,Basketball,Tennis,Hiking,Traveling"
                     :forceSuggestion=true wire:model="infoForm.interests" />
                 <x-error-span>{{ $errors->first('infoForm.interests') }}</x-error-span>

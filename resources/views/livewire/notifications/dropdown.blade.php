@@ -5,7 +5,7 @@
             @lang('general.notifications')
         </span>
 
-        @if($hasUnread)
+        @if($hasUnread && ! $loadFailed)
             <button
                 type="button"
                 wire:click="markAllAsRead"
@@ -15,7 +15,16 @@
         @endif
     </div>
 
+    {{-- Announces loading and the unread total politely; the panel keeps its height while it refreshes. --}}
+    <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        <span wire:loading wire:target="refreshList,markAllAsRead,retryLoad">{{ __('states.notifications-loading') }}</span>
+        <span wire:loading.remove wire:target="refreshList,markAllAsRead,retryLoad">{{ $loadFailed ? __('general.state-error-title') : trans_choice('states.notifications-summary', $unreadCount) }}</span>
+    </p>
+
     {{-- List --}}
+    @if($loadFailed)
+        <x-ui.load-error class="m-3 min-h-40" />
+    @endif
     @forelse($notifications as $note)
         @php
             $isUnread = is_null($note->read_at);
@@ -59,8 +68,27 @@
 
                 <p class="mt-1 line-clamp-2 text-small transition-colors duration-300
                           {{ $isUnread ? 'text-secondary-medium' : 'text-secondary-medium' }}">
-                    {{ $note->data['body'][app()->getLocale()] ?? '' }}
+                    {{ ($states[$note->id]['state'] ?? null) === 'unavailable' ? __('general.notification-target-unavailable') : ($note->data['body'][app()->getLocale()] ?? '') }}
                 </p>
+
+                    @php($state = $states[$note->id] ?? null)
+                    @if($state && $state['state'] !== 'info')
+                        <p class="mt-1 flex flex-wrap items-center gap-x-2 text-caption">
+                            @if($state['state'] === 'awaiting')
+                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-primary">@lang('general.notification-state.awaiting')</span>
+                            @elseif($state['state'] === 'handled')
+                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-secondary-medium">@lang('general.notification-state.handled')</span>
+                            @else
+                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-secondary-medium">@lang('general.notification-state.unavailable')</span>
+                            @endif
+                            @if($state['status'])
+                                <span class="text-secondary-medium">@lang('general.notification-state.status', ['status' => $state['status']])</span>
+                            @endif
+                        </p>
+                        @if($state['next_step'] && $state['state'] !== 'handled')
+                            <p class="mt-1 text-caption text-secondary-medium">{{ $state['next_step'] }}</p>
+                        @endif
+                    @endif
 
                 <p class="mt-1 text-caption text-secondary-light">
                     {{ $note->created_at?->diffForHumans() }}
@@ -72,11 +100,14 @@
                   x-bind:style="clicked ? 'opacity: 0; transform: scale(0)' : ''"></span>
         </a>
     @empty
-        <div class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-            <span class="inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 text-secondary-light">
-                <x-icons.notification class="size-5" />
-            </span>
-            <span class="text-body text-secondary-light">@lang('general.no-notifications')</span>
-        </div>
+        @unless($loadFailed)
+            <div class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center" data-state="empty">
+                <span class="inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 text-secondary-light" aria-hidden="true">
+                    <x-icons.notification class="size-5" />
+                </span>
+                <span class="text-body font-semibold text-neutral-800">@lang('general.no-notifications')</span>
+                <span class="text-small text-secondary-light">@lang('states.notifications-empty-help')</span>
+            </div>
+        @endunless
     @endforelse
 </div>

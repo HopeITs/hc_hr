@@ -224,7 +224,7 @@ class CentersTable extends LivewireTable
                     $badge = '<span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] md:text-xs bg-current/10">'.$count.'</span>';
 
                     return Blade::render(
-                        '<a href="'.$url.'" class="'.$classes.'" title="'.e(__('general.positions')).'">
+                        '<a href="'.$url.'" wire:navigate class="'.$classes.'" title="'.e(__('general.positions')).'">
                 <i class="ti ti-briefcase text-base"></i>
                 <span>'.e(trans_choice('general.positions', 2)).'</span>'.
                             $badge.
@@ -235,7 +235,7 @@ class CentersTable extends LivewireTable
             Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete): string {
                 $viewUrl = route('centers.show', $m->getKey());
                 $viewBtn = Blade::render(
-                    '<a href="'.$viewUrl.'"
+                    '<a href="'.$viewUrl.'" wire:navigate
                                 class="inline-flex items-center justify-center p-2 text-xl rounded-lg  text-black"
                                 title="'.e(__('general.view')).'">
                                 <svg xmlns="http://www.w3.org/2000/svg"

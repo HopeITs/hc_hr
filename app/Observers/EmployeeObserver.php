@@ -26,8 +26,9 @@ class EmployeeObserver
             return;
         }
 
-        // The printed ID card is a bearer credential; deactivation must
-        // invalidate it too, not only the login.
+        // A departed volunteer's printed card must show "card is not valid"
+        // (DEC-02), so deactivation disables it too, not only the login.
+        // Reactivating does not turn it back on; HR enables it.
         app(DigitalIdManager::class)->disable($employee);
 
         $user = $employee->account;

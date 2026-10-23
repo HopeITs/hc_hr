@@ -4,6 +4,7 @@ namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveTypeCases;
 use App\Exports\EmployeeLeaveBalanceExport;
+use App\Livewire\Concerns\HasScreenListStates;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
@@ -17,11 +18,13 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EmpLeaveBalanceTable extends LivewireTable
 {
+    use HasScreenListStates;
+
     public LeaveBalanceForm $form;
 
     public $showModal = false;
 
-    public $modalTitle = 'Modal title';
+    public $modalTitle = '';
 
     protected string $model = Employee::class;
 
@@ -66,6 +69,14 @@ class EmpLeaveBalanceTable extends LivewireTable
         );
     }
 
+    protected function emptyScreenState(): array
+    {
+        return [
+            'title' => __('states.leave-balance-empty-title'),
+            'description' => __('states.leave-balance-empty-help'),
+        ];
+    }
+
     protected function rowClickAction(Model $model): ?string
     {
         $balanceId = $this->annualBalance($model)?->id;
@@ -79,7 +90,7 @@ class EmpLeaveBalanceTable extends LivewireTable
         $role = $user->myRole();
 
         $query = Employee::query()
-            ->with('contracts.leaveBalances.contract')
+            ->with(['contracts.position.center', 'contracts.leaveBalances'])
             ->whereHas('contracts.leaveBalances', function ($query) {
                 return $query->where('type_id', LeaveTypeCases::Annual);
             });
@@ -171,8 +182,12 @@ class EmpLeaveBalanceTable extends LivewireTable
         // latestActiveContract() memoizes and reuses the eager-loaded contracts
         // relation; reading the loaded leaveBalances collection avoids one
         // query per cell (this used to run 5 fresh queries per row).
-        return $employee->latestActiveContract()
-            ?->leaveBalances
-            ->firstWhere('type_id', LeaveTypeCases::Annual);
+        // The balance gets its contract back from that same collection, so
+        // its day length (position.center) is read from the eager load too.
+        $contract = $employee->latestActiveContract();
+
+        return $contract?->leaveBalances
+            ->firstWhere('type_id', LeaveTypeCases::Annual)
+            ?->setRelation('contract', $contract);
     }
 }

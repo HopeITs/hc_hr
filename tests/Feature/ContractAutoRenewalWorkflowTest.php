@@ -14,13 +14,21 @@ use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\TerminationReason;
+use App\Models\User;
 use App\Notifications\ContractsAutoRenewedSummary;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
 use App\Services\LeaveBalanceService;
+use App\Services\NotificationDeliveryLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use RuntimeException;
+use Spatie\Permission\Models\Role;
 use stdClass;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
@@ -386,6 +394,47 @@ class ContractAutoRenewalWorkflowTest extends TestCase
         $this->assertSame(1, Contract::query()->where('employee_id', $employee->id)->count());
     }
 
+    public function test_process_auto_renewals_skips_trial_contracts(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+        Notification::fake();
+
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'trial-expired');
+        $contract = $this->makeContract($fixtures, $employee, $this->makePosition($fixtures, 'Trial Expired Position'), [
+            'contract_type_id' => $fixtures['trialType']->id,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-09-15',
+            'is_active' => false,
+        ]);
+
+        // Legacy row: a trial switched on before the observer forced it off.
+        Contract::query()->whereKey($contract)->update(['auto_renew' => true]);
+
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $this->assertSame(1, Contract::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_contracts_table_refuses_the_auto_renew_toggle_on_a_trial_contract(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $contract = $this->makeContract(
+            $fixtures,
+            $this->makeEmployee($fixtures['city'], 'trial-table'),
+            $this->makePosition($fixtures, 'Trial Table Position'),
+            ['contract_type_id' => $fixtures['trialType']->id],
+        );
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractsTable::class)
+            ->assertDontSee('confirmToggleAutoRenew')
+            ->call('toggleAutoRenewConfirmed', ['id' => $contract->id])
+            ->assertStatus(403);
+
+        $this->assertFalse($contract->fresh()->auto_renew);
+    }
+
     public function test_contracts_table_shows_termination_date_and_hides_auto_renew_toggle(): void
     {
         $fixtures = $this->makeFixtures();
@@ -396,14 +445,163 @@ class ContractAutoRenewalWorkflowTest extends TestCase
             ['terminated_at' => '2026-06-30', 'is_active' => false],
         );
 
+        // Terminated contracts live in the "ended" view, and the termination date
+        // is one of the optional columns (compact defaults, B4).
         Livewire::actingAs($fixtures['hr'])
             ->test(ContractsTable::class)
+            ->call('setPreset', 'ended')
+            ->call('selectAllColumns', true)
             ->assertSee('2026-06-30')
             ->assertDontSee('confirmToggleAutoRenew')
             ->call('toggleAutoRenewConfirmed', ['id' => $contract->id])
             ->assertStatus(403);
 
         $this->assertFalse($contract->fresh()->auto_renew);
+    }
+
+    public function test_competing_worker_claim_keeps_a_contract_out_of_the_warning(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+        Notification::fake();
+
+        [$manager, $first, $second] = $this->twoExpiringContractsForOneManager();
+
+        // Another worker claimed the first contract for this manager and day
+        // after this run read its list but before it sent anything.
+        $ledger = app(NotificationDeliveryLedger::class);
+        $this->assertSame([$first->id], $ledger->claim('contract-expiry-warning', $manager->id, [$first->id]));
+
+        Artisan::call(SendContractExpirationWarnings::class);
+
+        Notification::assertSentToTimes($manager, ContractsExpiringAutoRenewWarning::class, 1);
+        Notification::assertSentTo(
+            $manager,
+            ContractsExpiringAutoRenewWarning::class,
+            fn (ContractsExpiringAutoRenewWarning $n): bool => collect($n->contracts)->pluck('id')->all() === [$second->id],
+        );
+    }
+
+    public function test_ledger_claim_is_won_once_per_contract_recipient_and_day(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+        $fixtures = $this->makeFixtures();
+        $manager = $this->makeManagerWithPosition($fixtures)['user'];
+        $ledger = app(NotificationDeliveryLedger::class);
+
+        $this->assertSame([7, 8], $ledger->claim('contract-expiry-warning', $manager->id, [7, 8, 7]));
+        $this->assertSame([], $ledger->claim('contract-expiry-warning', $manager->id, [7, 8]));
+        $this->assertSame([9], $ledger->claim('contract-expiry-warning', $manager->id, [8, 9]));
+        $this->assertSame(
+            [7],
+            $ledger->claim('contract-expiry-warning', $manager->id, [7], now()->addDay()->startOfDay()),
+            'A later day is a new claim',
+        );
+        $this->assertSame(3 + 1, DB::table('notification_deliveries')->count());
+    }
+
+    public function test_a_failed_send_releases_the_claim_so_the_next_run_retries(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+
+        [$manager] = $this->twoExpiringContractsForOneManager();
+
+        $fail = true;
+        Event::listen(NotificationSending::class, function () use (&$fail): void {
+            if ($fail) {
+                throw new RuntimeException('mail down');
+            }
+        });
+
+        try {
+            Artisan::call(SendContractExpirationWarnings::class);
+            $this->fail('The send failure should surface.');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame(0, DB::table('notification_deliveries')->count());
+        $this->assertSame(0, $manager->notifications()->count());
+
+        $fail = false;
+        Artisan::call(SendContractExpirationWarnings::class);
+        Artisan::call(SendContractExpirationWarnings::class);
+
+        $this->assertSame(1, $manager->notifications()->count());
+        $this->assertSame(2, DB::table('notification_deliveries')->whereNotNull('delivered_at')->count());
+    }
+
+    public function test_a_manager_with_several_roles_still_gets_one_warning_per_day(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+
+        [$manager] = $this->twoExpiringContractsForOneManager();
+        $manager->assignRole(Role::findOrCreate('general-manager', 'web'));
+
+        Artisan::call(SendContractExpirationWarnings::class);
+        Artisan::call(SendContractExpirationWarnings::class);
+
+        $this->assertSame(1, $manager->notifications()->count());
+        $this->assertCount(2, $manager->notifications()->first()->data['contracts']);
+    }
+
+    public function test_the_same_contract_is_warned_again_on_the_next_reminder_day_not_before(): void
+    {
+        Notification::fake();
+        $fixtures = $this->makeFixtures();
+        $manager = $this->makeManagerWithPosition($fixtures);
+        $position = $this->makePosition($fixtures, 'Weekly Report', $manager['position']->id);
+        $this->makeContract($fixtures, $this->makeEmployee($fixtures['city'], 'weekly'), $position, [
+            'end_date' => '2026-10-16',
+            'auto_renew' => true,
+        ]);
+
+        foreach (['2026-09-16 09:00:00', '2026-09-17 09:00:00', '2026-09-25 09:00:00', '2026-09-25 20:00:00'] as $moment) {
+            $this->travelTo($moment);
+            Artisan::call(SendContractExpirationWarnings::class);
+        }
+
+        // 30 days out, then 21 days out. The 17th (29 days) and the repeat on
+        // the 25th are not reminder days / are duplicates.
+        Notification::assertSentToTimes($manager['user'], ContractsExpiringAutoRenewWarning::class, 2);
+    }
+
+    public function test_the_claim_day_follows_the_application_timezone_not_utc(): void
+    {
+        config(['app.timezone' => 'Europe/Istanbul']);
+        // 22:30 UTC on the 16th is already 01:30 on the 17th in Istanbul.
+        $this->travelTo(Carbon::parse('2026-09-16 22:30:00', 'UTC'));
+        Notification::fake();
+
+        $fixtures = $this->makeFixtures();
+        $manager = $this->makeManagerWithPosition($fixtures);
+        $position = $this->makePosition($fixtures, 'Zone Report', $manager['position']->id);
+        $this->makeContract($fixtures, $this->makeEmployee($fixtures['city'], 'zone'), $position, [
+            'end_date' => '2026-09-24',
+            'auto_renew' => true,
+        ]);
+
+        Artisan::call(SendContractExpirationWarnings::class);
+
+        Notification::assertSentToTimes($manager['user'], ContractsExpiringAutoRenewWarning::class, 1);
+        $this->assertSame('2026-09-17', DB::table('notification_deliveries')->value('local_date'));
+    }
+
+    /**
+     * @return array{0: User, 1: Contract, 2: Contract}
+     */
+    private function twoExpiringContractsForOneManager(): array
+    {
+        $fixtures = $this->makeFixtures();
+        $manager = $this->makeManagerWithPosition($fixtures);
+        $contracts = collect(['dedup-one', 'dedup-two'])->map(function (string $username) use ($fixtures, $manager): Contract {
+            $position = $this->makePosition($fixtures, $username, $manager['position']->id);
+
+            return $this->makeContract($fixtures, $this->makeEmployee($fixtures['city'], $username), $position, [
+                'end_date' => '2026-09-23',
+                'auto_renew' => true,
+            ]);
+        });
+
+        return [$manager['user'], $contracts[0], $contracts[1]];
     }
 
     private function makeFixtures(): array
@@ -422,11 +620,12 @@ class ContractAutoRenewalWorkflowTest extends TestCase
         $jobLevel = JobLevel::query()->forceCreate(['name_en' => 'Officer', 'name_ar' => 'مسؤول', 'grade' => 2]);
         $program = Program::query()->forceCreate(['name' => 'Core Program', 'slug' => 'core-program', 'code' => 'CORE', 'is_active' => true]);
         $annualType = ContractType::query()->forceCreate(['id' => 1, 'name_en' => 'Annual', 'name_ar' => 'سنوي']);
+        $trialType = ContractType::query()->forceCreate(['id' => 3, 'name_en' => 'Trial', 'name_ar' => 'تجريبي']);
         ContractType::query()->forceCreate(['id' => 5, 'name_en' => 'Service Agreement', 'name_ar' => 'اتفاقية خدمة']);
         $hr = $this->makeUser($city, 'HR-ALP', ['contracts.update', 'contracts.view'], null);
         $hr->update(['email' => 'hr.alp@example.test']);
 
-        return compact('city', 'center', 'department', 'jobLevel', 'program', 'annualType', 'hr');
+        return compact('city', 'center', 'department', 'jobLevel', 'program', 'annualType', 'trialType', 'hr');
     }
 
     private function makeManagerWithPosition(array $fixtures): array

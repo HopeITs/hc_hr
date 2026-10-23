@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Closure;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
     use HasFactory, HasRoles, LogsActivity, Notifiable;
 
@@ -27,12 +28,16 @@ class User extends Authenticatable
     protected $hidden = ['password', 'remember_token'];
 
     /**
-     * Include the application's active-role flag whenever roles are eager loaded.
-     *
-     * Spatie's default relationship only exposes its own pivot keys. Without
-     * this override, activeRole() cannot inspect is_active on a loaded roles
-     * collection and may incorrectly fall back to the first assigned role.
+     * The language mail to this user is rendered in: the interface language
+     * they last worked in (RememberUserLocale). Null (not seen since the
+     * column was added) falls back to the current locale, which outside a
+     * request is the app default.
      */
+    public function preferredLocale(): ?string
+    {
+        return $this->locale ?: null;
+    }
+
     /**
      * Answers derived from this user's roles and grants, kept for the life of
      * this instance (one request). A profile page asks the same policy
@@ -63,6 +68,13 @@ class User extends Authenticatable
         $this->requestMemo = [];
     }
 
+    /**
+     * Include the application's active-role flag whenever roles are eager loaded.
+     *
+     * Spatie's default relationship only exposes its own pivot keys. Without
+     * this override, activeRole() cannot inspect is_active on a loaded roles
+     * collection and may incorrectly fall back to the first assigned role.
+     */
     public function roles(): BelongsToMany
     {
         $registrar = app(PermissionRegistrar::class);

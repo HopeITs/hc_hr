@@ -27,7 +27,7 @@ class Update extends Component
         $this->form->update();
         $this->toast();
 
-        return redirect()->route('programs.index');
+        return $this->redirectRoute('programs.index', navigate: true);
     }
 
     public function render()

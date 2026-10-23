@@ -23,7 +23,7 @@
 
     <livewire:program-management.center.centers-table />
 
-    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" max-width="3xl" wire:ignore.self>
+    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" max-width="3xl" close-action="requestClose" wire:ignore.self>
         <form wire:submit.prevent="save" class="grid grid-cols-2 gap-4">
 
             @foreach(config('app.supported_locales') as $loc)

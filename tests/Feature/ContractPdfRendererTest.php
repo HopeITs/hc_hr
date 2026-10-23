@@ -70,6 +70,58 @@ class ContractPdfRendererTest extends TestCase
         $this->assertNotContains('--disable-software-rasterizer', $args);
     }
 
+    public function test_without_an_endpoint_the_local_chrome_renders_the_page(): void
+    {
+        config(['browsershot.ws_endpoint' => null]);
+
+        $options = app(ContractPdfRenderer::class)
+            ->browsershot('<h1>x</h1>')
+            ->createPdfCommand()['options'];
+
+        $this->assertArrayNotHasKey('browserWSEndpoint', $options);
+        $this->assertArrayNotHasKey('contentUrl', $options);
+    }
+
+    public function test_a_remote_chrome_is_served_the_page_without_a_public_url(): void
+    {
+        config(['browsershot.ws_endpoint' => 'wss://chrome.example.test?token=t']);
+
+        $command = app(ContractPdfRenderer::class)
+            ->browsershot('<h1>x</h1>')
+            ->createPdfCommand('/tmp/out.pdf');
+
+        $this->assertSame('wss://chrome.example.test?token=t', $command['options']['browserWSEndpoint'] ?? null);
+
+        // Node answers this URL from the local HTML through interception, so
+        // the contract is never written under public/ for the remote to fetch.
+        $this->assertSame(ContractPdfRenderer::REMOTE_CONTENT_URL, $command['options']['contentUrl'] ?? null);
+        $this->assertStringStartsWith('file://', $command['url']);
+        $this->assertDirectoryDoesNotExist(public_path('temp'));
+    }
+
+    public function test_a_remote_chrome_over_an_unencrypted_socket_is_refused(): void
+    {
+        config(['browsershot.ws_endpoint' => 'ws://chrome.example.test?token=t']);
+
+        $this->expectException(RuntimeException::class);
+
+        app(ContractPdfRenderer::class)->browsershot('<h1>x</h1>');
+    }
+
+    public function test_a_loopback_remote_chrome_may_use_plain_ws(): void
+    {
+        config(['browsershot.ws_endpoint' => 'ws://127.0.0.1:3000']);
+
+        $this->assertSame('ws://127.0.0.1:3000', app(ContractPdfRenderer::class)->remoteEndpoint());
+    }
+
+    public function test_no_renderer_credential_is_committed_to_source(): void
+    {
+        $source = (string) file_get_contents(app_path('Services/ContractPdfRenderer.php'));
+
+        $this->assertDoesNotMatchRegularExpression('/token=\w{16,}/', $source);
+    }
+
     public function test_a_render_that_produces_no_pdf_throws(): void
     {
         config(['browsershot.chrome_path' => __DIR__.'/no-such-chrome']);

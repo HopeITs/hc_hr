@@ -23,7 +23,7 @@
         <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
             <dt class="text-sm text-neutral-500">@lang('general.request_date')</dt>
             <dd class="mt-1 font-semibold text-neutral-800">
-                {{ $leaveRequest->created_at?->format('d-m-Y H:i') ?? '—' }}
+                <bdi dir="ltr">{{ $leaveRequest->created_at?->format('d-m-Y H:i') ?? '—' }}</bdi>
             </dd>
         </div>
 
@@ -31,7 +31,7 @@
             <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
                 <dt class="text-sm text-neutral-500">@lang('general.decision-date')</dt>
                 <dd class="mt-1 font-semibold text-neutral-800">
-                    {{ $leaveRequest->approved_at->format('d-m-Y H:i') }}
+                    <bdi dir="ltr">{{ $leaveRequest->approved_at->format('d-m-Y H:i') }}</bdi>
                 </dd>
             </div>
         @endif

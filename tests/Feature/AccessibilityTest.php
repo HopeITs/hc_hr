@@ -110,16 +110,16 @@ class AccessibilityTest extends TestCase
         $this->assertStringContainsString('href="#main-content"', $layout);
         $this->assertStringContainsString('id="main-content"', $layout);
 
-        // The decorative preloader must stay out of the accessibility tree.
-        $this->assertMatchesRegularExpression(
-            '/id="page-gif-overlay"\s+aria-hidden="true"/',
-            $layout,
-        );
+        // A7: no full-screen preloader covers ready content (it used to hold
+        // every page for at least 550 ms, hidden from assistive technology
+        // but not from anyone else).
+        $this->assertStringNotContainsString('page-gif-overlay', $layout);
+        $this->assertStringNotContainsString('<video', $layout);
     }
 
     public function test_accessibility_strings_are_translated_in_every_locale(): void
     {
-        $keys = ['skip-to-content', 'main-content', 'required-field', 'error-prefix'];
+        $keys = ['skip-to-content', 'main-content', 'required-field', 'error-prefix', 'close-dialog'];
 
         foreach (['en', 'ar'] as $locale) {
             $strings = require resource_path("lang/{$locale}/general.php");
@@ -130,6 +130,121 @@ class AccessibilityTest extends TestCase
                 $this->assertNotSame('', trim($strings['a11y'][$key]));
             }
         }
+    }
+
+    public function test_form_modal_is_a_modal_dialog_named_by_its_heading(): void
+    {
+        $html = $this->renderModal('<x-modal.dialog id="leaveForm" title="Request leave" wire:model="showModal">Body</x-modal.dialog>');
+
+        $this->assertStringContainsString('role="dialog"', $html);
+        $this->assertStringContainsString('aria-modal="true"', $html);
+        $this->assertStringContainsString('aria-labelledby="leaveForm-title"', $html);
+        $this->assertMatchesRegularExpression('/<h2 id="leaveForm-title"[^>]*>\s*Request leave/', $html);
+    }
+
+    public function test_modal_traps_focus_hides_the_page_and_locks_scroll(): void
+    {
+        $html = $this->renderModal('<x-modal id="plain" label="Users" wire:model="open">Body</x-modal>');
+
+        // The Alpine focus plugin bundled with Livewire: trap, inert background,
+        // scroll lock; initial focus is placed by the component itself.
+        $this->assertStringContainsString('x-trap.inert.noscroll.noautofocus="show"', $html);
+        $this->assertStringContainsString('aria-label="Users"', $html);
+
+        // Escape belongs to the dialog that has focus. A window listener also
+        // closed a form sitting underneath the confirm dialog.
+        $this->assertStringContainsString('x-on:keydown.escape="if ($event.defaultPrevented || $store.confirm?.open) return;', $html);
+        $this->assertStringNotContainsString('keydown.escape.window', $html);
+    }
+
+    public function test_modal_close_button_has_a_translated_name_in_every_locale(): void
+    {
+        foreach (['en' => 'Close dialog', 'ar' => 'إغلاق النافذة'] as $locale => $name) {
+            app()->setLocale($locale);
+
+            $html = $this->renderModal('<x-modal.dialog id="m" title="T" wire:model="show">Body</x-modal.dialog>');
+
+            $this->assertMatchesRegularExpression(
+                '/<button type="button"\s+x-on:click="close\(\)"\s+aria-label="'.preg_quote($name, '/').'"/u',
+                $html,
+                "Close button is unnamed in [{$locale}].",
+            );
+        }
+    }
+
+    public function test_radios_of_one_group_get_unique_stable_ids_and_a_shared_name(): void
+    {
+        $template = '<x-forms.radio-input wire:model.live="form.type" value="day">Day</x-forms.radio-input>'
+            .'<x-forms.radio-input wire:model.live="form.type" value="hour">Hour</x-forms.radio-input>';
+
+        $html = $this->renderWithErrors($template);
+
+        preg_match_all('/<input[^>]*\bid="([^"]+)"/', $html, $ids);
+        preg_match_all('/<label for="([^"]+)"[^>]*>(Day|Hour)</', $html, $labels);
+
+        $this->assertSame(['radio-formtype-day', 'radio-formtype-hour'], $ids[1]);
+        // Each label names its own radio, not the first one on the page.
+        $this->assertSame($ids[1], $labels[1]);
+        $this->assertSame(2, substr_count($html, 'name="form.type"'));
+
+        // Stable: Livewire morphing must see the same ids on every render.
+        $this->assertSame($html, $this->renderWithErrors($template));
+    }
+
+    public function test_an_explicit_radio_id_and_name_are_respected(): void
+    {
+        $html = $this->renderWithErrors('<x-forms.radio-input id="accept" name="decision" value="1">Accept</x-forms.radio-input>');
+
+        $this->assertStringContainsString('id="accept"', $html);
+        $this->assertStringContainsString('name="decision"', $html);
+        $this->assertStringContainsString('<label for="accept"', $html);
+        $this->assertStringNotContainsString('id="btn"', $html);
+    }
+
+    public function test_radio_group_is_a_fieldset_whose_error_describes_it(): void
+    {
+        $template = '<x-forms.radio-group legend="Action" error="form.status" required>'
+            .'<x-forms.radio-input wire:model="form.status" value="2">Accept</x-forms.radio-input>'
+            .'</x-forms.radio-group>';
+
+        $html = $this->renderWithErrors($template, ['form.status' => ['Choose an action.']]);
+
+        $this->assertMatchesRegularExpression('/<fieldset[^>]*aria-describedby="radio-group-formstatus-error"/', $html);
+        $this->assertMatchesRegularExpression('/<legend[^>]*>\s*Action/', $html);
+        $this->assertMatchesRegularExpression('/id="radio-group-formstatus-error"[^>]*>Choose an action\./', $html);
+
+        $clean = $this->renderWithErrors($template);
+        $this->assertStringNotContainsString('aria-describedby', $clean);
+    }
+
+    public function test_no_view_nests_a_radio_input_inside_another_label(): void
+    {
+        $offenders = [];
+
+        foreach ($this->bladeFiles() as $path) {
+            // radio-input renders its own <label>; a wrapping one is invalid
+            // HTML and gives the radio two competing names.
+            if (preg_match('/<label\b[^>]*>\s*<x-forms\.radio-input\b/', file_get_contents($path))) {
+                $offenders[] = str_replace(base_path().DIRECTORY_SEPARATOR, '', $path);
+            }
+        }
+
+        $this->assertSame([], $offenders);
+    }
+
+    /** Render a modal; @entangle needs the surrounding Livewire component's id. */
+    private function renderModal(string $template): string
+    {
+        View::share('errors', new ViewErrorBag);
+        View::share('__livewire', new class
+        {
+            public function getId(): string
+            {
+                return 'test-component';
+            }
+        });
+
+        return Blade::render($template);
     }
 
     /** Render a Blade string with an error bag bound, the way a failed form does. */

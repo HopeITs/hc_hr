@@ -4,7 +4,7 @@
         x-init="init(@js($this->notes->pluck('id')))"
         class="relative h-full w-full">
         <div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-neutral-200 bg-white shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)]">
-            <x-dashboard-cards.card-header :title="__('general.notes')" :count="$this->notes->count()">
+            <x-dashboard-cards.card-header :title="__('general.notes')" :count="$loadFailed ? null : $this->notes->count()">
                 <x-slot:icon>
                     <img class="block size-full object-contain" src="{{ asset('assets/icons/notes.svg') }}" alt="">
                 </x-slot:icon>
@@ -23,11 +23,14 @@
             <div data-csb-exclude class="mx-6 mt-[11px] mb-4 pe-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 <div class="pt-1">
 
+                    @if ($loadFailed)
+                        <x-ui.load-error class="min-h-40" />
+                    @else
                     <table class="w-full text-body text-neutral-800 ">
                         <thead>
                         <tr class="border-b border-b-secondary-light text-secondary-medium">
                             <th class="sticky top-0 z-10 bg-white py-1 w-10 text-center font-medium"></th>
-                            <th class="sticky top-0 z-10 bg-white py-1 font-medium text-left"></th>
+                            <th class="sticky top-0 z-10 bg-white py-1 font-medium text-start"></th>
                             <th class="sticky top-0 z-10 bg-white py-1 px-3 ltr:text-right rtl:text-left font-medium">@lang('general.actions')</th>
                             <th class="sticky top-0 z-10 bg-white py-1 text-center font-medium w-16">@lang('general.done')!</th>
                         </tr>
@@ -54,7 +57,8 @@
                                         <button
                                             @click="openEditModal({{ $note->id }}, @js($note->content))"
                                             class="inline-flex items-center justify-center text-secondary-medium hover:text-primary transition"
-                                            title="Edit Note">
+                                            title="{{ __('general.edit-note') }}"
+                                            aria-label="{{ __('general.edit-note') }}">
                                             <img class="w-4 h-4" src="{{asset('assets/icons/Edit.svg')}}" alt="">
                                         </button>
 
@@ -62,7 +66,8 @@
                                         <button
                                             x-on:click="if (await $confirm({ title: @js(__('general.delete-note')), message: @js(__('general.delete-note-text')) })) $wire.delete({{ $note->id }})"
                                             class="inline-flex me-1 items-center justify-center text-secondary-light hover:text-primary transition"
-                                            title="Delete Note">
+                                            title="{{ __('general.delete-note') }}"
+                                            aria-label="{{ __('general.delete-note') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
                                                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -74,7 +79,9 @@
                                         {{-- Done Checkbox --}}
                                         <button
                                             @click="toggleCheckbox({{ $note->id }})"
-                                            title="Toggle Done"
+                                            title="{{ $note->is_done ? __('dashboard.mark-not-done') : __('dashboard.mark-done') }}"
+                                            aria-label="{{ $note->is_done ? __('dashboard.mark-not-done') : __('dashboard.mark-done') }}"
+                                            aria-pressed="{{ $note->is_done ? 'true' : 'false' }}"
                                             class="inline-flex items-center justify-center mt-[1px] w-4 h-4 rounded-full border border-neutral-400 hover:border-primary transition">
                                             @if($note->is_done)
                                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -99,6 +106,7 @@
                         @endforelse
                         </tbody>
                     </table>
+                    @endif
                 </div>
             </div>
         </div>
@@ -113,8 +121,8 @@
             <div class="w-full max-w-md rounded-surface bg-white p-9 shadow-e3 border border-neutral-100">
                 <div class="flex items-start justify-between mb-4">
                     <h3 class="text-h4 font-semibold text-neutral-900 tracking-tight"
-                        x-text="modalMode === 'create' ? '{{__('general.add-new-note')}}' : '{{__('general.edit-note')}}'"></h3>
-                    <button @click="showModal=false" class="text-secondary-light hover:text-secondary-medium transition">
+                        x-text="modalMode === 'create' ? @js(__('general.add-new-note')) : @js(__('general.edit-note'))"></h3>
+                    <button type="button" @click="showModal=false" aria-label="{{ __('dashboard.close') }}" class="text-secondary-light hover:text-secondary-medium transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
                              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -138,7 +146,7 @@
                     <button
                         @click="saveModal()"
                         class="inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-surface text-small font-medium shadow-e1 transition"
-                        x-text="modalMode === 'create' ? '{{__('general.add-note')}}' : '{{__('general.save-changes')}}'">
+                        x-text="modalMode === 'create' ? @js(__('general.add-note')) : @js(__('general.save-changes'))">
                     </button>
                     <button
                         @click="showModal=false"

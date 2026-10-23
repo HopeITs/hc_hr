@@ -39,7 +39,7 @@
 
                     {{-- Group: Main --}}
                     <li x-show="!sidebarCollapsed || open" aria-hidden="true" class="px-3 py-[3px]">
-                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ app()->getLocale() === 'ar' ? 'الرئيسية' : 'Main' }}</span>
+                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ __('general.nav-group.main') }}</span>
                     </li>
 
                     {{-- 1. Employee Dashboard (Seen by all) --}}
@@ -143,7 +143,7 @@
 
                     {{-- Group: Management --}}
                     <li x-show="!sidebarCollapsed || open" aria-hidden="true" class="px-3 py-[3px]">
-                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ app()->getLocale() === 'ar' ? 'الإدارة' : 'Management' }}</span>
+                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ __('general.nav-group.management') }}</span>
                     </li>
 
                     {{-- 2. Project Basics --}}
@@ -277,7 +277,7 @@
 
                     {{-- Group: Time & Leave --}}
                     <li x-show="!sidebarCollapsed || open" aria-hidden="true" class="px-3 py-[3px]">
-                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ app()->getLocale() === 'ar' ? 'الإجازات' : 'Time & Leave' }}</span>
+                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ __('general.nav-group.time-and-leave') }}</span>
                     </li>
 
                     {{-- 5. Leave Management (Holidays and leaves) --}}
@@ -319,7 +319,7 @@
 
                     {{-- Group: Files & Tasks --}}
                     <li x-show="!sidebarCollapsed || open" aria-hidden="true" class="px-3 py-[3px]">
-                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ app()->getLocale() === 'ar' ? 'الملفات والمهام' : 'Files & Tasks' }}</span>
+                        <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ __('general.nav-group.files-and-tasks') }}</span>
                     </li>
 
                     {{-- 6. Archived Files (All) --}}
@@ -392,7 +392,7 @@
                     {{-- Group: More (only for roles that can see any item below) --}}
                     @activerole('HR', 'super-admin', 'general-manager', 'manager')
                         <li x-show="!sidebarCollapsed || open" aria-hidden="true" class="px-3 py-[3px]">
-                            <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ app()->getLocale() === 'ar' ? 'أخرى' : 'More' }}</span>
+                            <span class="text-caption font-semibold uppercase tracking-wider text-secondary-light">{{ __('general.nav-group.more') }}</span>
                         </li>
                     @endactiverole
 

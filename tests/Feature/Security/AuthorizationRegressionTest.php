@@ -115,20 +115,48 @@ class AuthorizationRegressionTest extends TestCase
 
     // --- Profile drawer (report item 7) ----------------------------------
 
-    public function test_the_profile_drawer_refuses_an_employee_from_another_city(): void
+    /**
+     * Was test_the_profile_drawer_refuses_an_employee_from_another_city, which
+     * expected a 403. The signed A2-D policy changes that expectation
+     * (docs/ux/access-policy.md §7 #1, DEC-01 + A2D-Q4): an HR-ALP officer may
+     * open an ACTIVE Homs colleague at the Directory tier, like everyone else.
+     * The intent — no cross-city leak of HR data — is what is asserted now:
+     * the drawer carries Directory fields only, and none of the Homs
+     * employee's private, record or pay data is in the HTML or the Livewire
+     * snapshot. A FORMER Homs employee is still refused, with a 404.
+     */
+    public function test_the_profile_drawer_shows_another_citys_colleague_at_directory_tier_only(): void
     {
         $aleppo = $this->makeCity('ALP', '001');
         $homs = $this->makeCity('HMS', '002');
 
         $hr = $this->makeUser($aleppo, 'HR-ALP', ['employees.view']);
-        $outsider = $this->makeEmployee($homs, 'homs-person');
+        $outsider = $this->makeEmployee($homs, 'homs-person', [
+            'first_name_en' => 'Outsider',
+            'work_phone' => '0933000111',
+            'national_number' => 'NID-HOMS-777',
+            'personal_phone' => '0944000222',
+            'personal_email' => 'outsider.home@example.test',
+            'skills' => 'SKILL-HOMS-MARKER',
+        ]);
+        $outsider->courses()->create(['title' => 'COURSE-HOMS-MARKER']);
+        $former = $this->makeEmployee($homs, 'homs-former', ['is_active' => false]);
 
-        // Dispatching the event directly is exactly what an attacker does; the
-        // org chart never renders a button for this employee.
-        Livewire::actingAs($hr)
+        $drawer = Livewire::actingAs($hr)
             ->test(ProfileDrawer::class)
             ->call('openProfile', $outsider->id)
-            ->assertStatus(403);
+            ->assertOk()
+            ->assertSet('employeeId', $outsider->id)
+            ->assertSee('Outsider')
+            ->assertSee('0933000111');
+
+        $payload = $drawer->html().json_encode($drawer->snapshot);
+
+        foreach (['NID-HOMS-777', '0944000222', 'outsider.home@example.test', 'SKILL-HOMS-MARKER', 'COURSE-HOMS-MARKER'] as $secret) {
+            $this->assertStringNotContainsString($secret, $payload);
+        }
+
+        $drawer->call('openProfile', $former->id)->assertNotFound();
     }
 
     public function test_the_profile_drawer_opens_for_an_employee_in_the_same_city(): void

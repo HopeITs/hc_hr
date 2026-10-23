@@ -20,7 +20,7 @@
 @section('greeting')
     <div class="py-4 pt-24">
         <h1 class="text-secondary-dark font-semibold text-h3">
-            @lang('general.greeting') {{ $firstName }},
+            {{ __('dashboard.greeting', ['name' => $firstName]) }}
         </h1>
 
         <p class="text-secondary-light text-body">
@@ -33,7 +33,9 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
-            @if($hasLeaves)
+            @if(isset($failedSections['leaves']))
+                <div data-tour="dashboard.my-leaves" class="w-full"><x-ui.load-error class="h-full " /></div>
+            @elseif($hasLeaves)
                 <div data-tour="dashboard.my-leaves" class="flex items-center justify-start font-semibold text-white rounded-surface">
                     <livewire:dashboard.my-leaves-card/>
                 </div>
@@ -47,7 +49,11 @@
         </div>
 
         <div data-tour="dashboard.team" class="w-full rounded-surface text-white font-semibold  {{$hasLeaves ? 'h-full' : 'h-68'}}">
-            <x-dashboard-cards.team-members-card/>
+            @if(isset($failedSections['team']))
+                <x-ui.load-error class="h-full " />
+            @else
+                <x-dashboard-cards.team-members-card/>
+            @endif
         </div>
 
 
@@ -70,19 +76,35 @@
         </div>
 
         <div class="flex items-center justify-center font-semibold text-white h-70">
-            <x-dashboard-cards.upcoming-events-card :upcoming-events="$upcomingEvents"/>
+            @if(isset($failedSections['upcoming-events']))
+                <x-ui.load-error class="h-full " />
+            @else
+                <x-dashboard-cards.upcoming-events-card :upcoming-events="$upcomingEvents"/>
+            @endif
         </div>
 
         <div data-tour="dashboard.pending-requests" class="flex items-center justify-center font-semibold text-white h-70">
-            <x-dashboard-cards.pending-requests-card :pending-requests="$pendingRequests"/>
+            @if(isset($failedSections['pending']))
+                <x-ui.load-error class="h-full " />
+            @else
+                <x-dashboard-cards.pending-requests-card :pending-requests="$pendingRequests"/>
+            @endif
         </div>
 
         <div class="flex items-center justify-center font-semibold text-white h-70">
-            <x-dashboard-cards.checklist-items-card :delivered-items="$deliveredItems"/>
+            @if(isset($failedSections['delivered']))
+                <x-ui.load-error class="h-full " />
+            @else
+                <x-dashboard-cards.checklist-items-card :delivered-items="$deliveredItems"/>
+            @endif
         </div>
 
         <div class="flex items-center justify-center font-semibold text-white h-70">
-            <x-dashboard-cards.my-badges-card :my-badges="$myBadges"/>
+            @if(isset($failedSections['badges']))
+                <x-ui.load-error class="h-full " />
+            @else
+                <x-dashboard-cards.my-badges-card :my-badges="$myBadges"/>
+            @endif
         </div>
     </div>
 

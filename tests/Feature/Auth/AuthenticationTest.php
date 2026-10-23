@@ -6,6 +6,7 @@ use App\Livewire\Auth\Login;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -104,7 +105,9 @@ class AuthenticationTest extends TestCase
 
         $response = $this->actingAs($user)->post('/logout');
 
-        $response->assertRedirect('/');
+        // A4: the sign-in page that follows keeps the user's language, so the
+        // redirect goes to the localized home rather than the bare root.
+        $response->assertRedirect(LaravelLocalization::localizeUrl('/', 'en'));
 
         $this->assertGuest();
     }

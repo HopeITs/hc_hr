@@ -92,19 +92,19 @@ class AnnualLeaveRuleTable extends LivewireTable
         return [
             Column::make(__('general.days_per_year'), 'days')
                 ->displayUsing(
-                    fn ($value) => $value.' '.trans_choice('general.day', $value),
+                    fn ($value) => self::countLabel('days', $value),
                 )
                 ->sortable()->searchable(),
 
             Column::make(__('general.day_per_month'), 'day_per_month')
                 ->displayUsing(
-                    fn ($value) => $value.' '.trans_choice('general.day', $value),
+                    fn ($value) => self::countLabel('days', $value),
                 )
                 ->sortable()->searchable(),
 
             Column::make(__('general.years_of_volunteering'), 'years_of_volunteering')
                 ->displayUsing(
-                    fn ($value) => $value.' '.trans_choice('general.year', $value),
+                    fn ($value) => self::countLabel('years', $value),
                 )
                 ->sortable()
                 ->searchable(),
@@ -122,5 +122,18 @@ class AnnualLeaveRuleTable extends LivewireTable
                 return '<div class="flex items-center justify-center gap-2">'.$editBtn.$deleteBtn.'</div>';
             })->asHtml()->visible($canUpdate || $canDelete)->clickable(false),
         ];
+    }
+
+    /**
+     * "3 days" / "٣ أيام" with the right plural form. A fractional figure has
+     * no plural category of its own, so it keeps the number with the plain unit.
+     */
+    private static function countLabel(string $unit, int|float|string|null $value): string
+    {
+        $number = (float) $value;
+
+        return fmod($number, 1.0) === 0.0
+            ? trans_choice("general.count.{$unit}", (int) $number)
+            : $value.' '.trans_choice('general.'.rtrim($unit, 's'), 2);
     }
 }

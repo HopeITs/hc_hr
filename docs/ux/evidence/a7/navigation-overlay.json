@@ -1,0 +1,30 @@
+{
+  "task": "A7",
+  "recorded": "2026-10-21",
+  "metric": "Per wire:navigate, ms from Livewire.navigate() call: nav = livewire:navigated event; content = first matching element (table tbody tr for /employees and /contracts, a Livewire component inside #main-content for /); overlayGone = #page-gif-overlay absent or display:none; firstUseful = max(content, overlayGone), as in X1 measure.py.",
+  "target": "X2 session copy (synthetic SQLite, *@example.test), php -S single worker on 127.0.0.1:8391, HR-ALP persona, Chromium (Claude desktop built-in browser), pane-sized desktop viewport, warm.",
+  "method": "5 rounds of /employees -> /contracts -> / ; each navigation starts only after no new resource request for 700 ms (settled). Before = A7 changes stashed and assets rebuilt; after = A7 changes applied and assets rebuilt. Same session, same data.",
+  "caveat": "Absolute times swing between runs on this machine (an unsettled before run gave /employees content 1022 ms median, the settled before run 1607 ms, with no code change). Compare hidden = overlayGone - content, not absolute load times.",
+  "before_settled": {
+    "/employees": [{"nav":1621,"content":1646,"overlayGone":2072},{"nav":1579,"content":1607,"overlayGone":2066},{"nav":1540,"content":1574,"overlayGone":2045},{"nav":1534,"content":1569,"overlayGone":2025},{"nav":1634,"content":1674,"overlayGone":2132}],
+    "/contracts": [{"nav":2067,"content":2101,"overlayGone":2554},{"nav":2370,"content":2406,"overlayGone":2857},{"nav":2126,"content":2164,"overlayGone":2601},{"nav":2307,"content":2355,"overlayGone":2808},{"nav":2493,"content":2550,"overlayGone":3026}],
+    "/": [{"nav":1392,"content":1410,"overlayGone":1987},{"nav":1331,"content":1364,"overlayGone":1999},{"nav":1425,"content":1474,"overlayGone":2188},{"nav":1708,"content":1772,"overlayGone":2639},{"nav":1632,"content":1699,"overlayGone":2569}]
+  },
+  "after_settled": {
+    "/employees": [{"nav":1023,"content":1039,"overlayGone":1039},{"nav":973,"content":991,"overlayGone":991},{"nav":907,"content":926,"overlayGone":926},{"nav":914,"content":935,"overlayGone":935},{"nav":920,"content":942,"overlayGone":942}],
+    "/contracts": [{"nav":1229,"content":1248,"overlayGone":1248},{"nav":1327,"content":1351,"overlayGone":1351},{"nav":1331,"content":1356,"overlayGone":1356},{"nav":1153,"content":1181,"overlayGone":1181},{"nav":1157,"content":1186,"overlayGone":1186}],
+    "/": [{"nav":808,"content":818,"overlayGone":818},{"nav":876,"content":899,"overlayGone":899},{"nav":735,"content":762,"overlayGone":762},{"nav":721,"content":757,"overlayGone":757},{"nav":764,"content":807,"overlayGone":807}]
+  },
+  "before_unsettled_first_run": {
+    "note": "Fixed 400 ms gap between navigations, no settling. Kept for disclosure; not used for comparison.",
+    "/employees": [{"nav":1016,"content":1037,"overlayGone":1489},{"nav":996,"content":1024,"overlayGone":1477},{"nav":1001,"content":1022,"overlayGone":1519},{"nav":970,"content":997,"overlayGone":1481},{"nav":922,"content":946,"overlayGone":1437}],
+    "/contracts": [{"nav":1408,"content":1428,"overlayGone":1917},{"nav":1299,"content":1330,"overlayGone":1797},{"nav":1179,"content":1207,"overlayGone":1686},{"nav":1180,"content":1208,"overlayGone":1688},{"nav":1193,"content":1225,"overlayGone":1682}],
+    "/": [{"nav":896,"content":908,"overlayGone":1428},{"nav":817,"content":840,"overlayGone":1392},{"nav":779,"content":806,"overlayGone":1384},{"nav":721,"content":755,"overlayGone":1356},{"nav":821,"content":867,"overlayGone":1518}]
+  },
+  "after_unsettled_discarded": {
+    "note": "Same fixed 400 ms gap after the change: next navigation queued behind the previous page's photo requests on the single-worker server, so nav times rose (e.g. /contracts ~2800 ms). Diagnosed as a measurement artefact and replaced by the settled method; recorded here so it is not hidden.",
+    "/employees_firstUseful_ms": [1902,1634,1590,1549,1599],
+    "/contracts_firstUseful_ms": [2841,2892,2875,2891,2542],
+    "/_firstUseful_ms": [2174,2198,2088,2147,1155]
+  }
+}

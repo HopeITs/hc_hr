@@ -82,6 +82,11 @@ class ContractScheduleClauseTest extends TestCase
         // Second shift appended to the same sentence.
         $this->assertStringContainsString('6:00 PM', $html);
         $this->assertStringContainsString('8:00 PM', $html);
+        // Arabic column: ص / م, not Latin AM/PM.
+        $this->assertStringContainsString('9:00 ص', $html);
+        $this->assertStringContainsString('5:00 م', $html);
+        $this->assertStringContainsString('6:00 م', $html);
+        $this->assertStringContainsString('8:00 م', $html);
     }
 
     public function test_flexible_mode_lists_only_the_checked_fragments(): void

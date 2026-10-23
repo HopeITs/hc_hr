@@ -7,7 +7,7 @@
                 <div class="md:col-span-2 flex justify-end">
                     <x-primary-button type="button"
                         x-on:click="if ({{ filled($experience['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeExperience({{ $index }}, {{ $experience['id'] ?? 'null' }})"
-                        title="@lang('general.remove')">
+                        :title="__('general.delete')" :aria-label="__('general.delete')">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>

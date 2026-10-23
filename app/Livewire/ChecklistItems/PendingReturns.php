@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ChecklistItems;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Checklist;
 use App\Services\ChecklistWorkflow;
@@ -10,6 +11,7 @@ use Livewire\Component;
 
 class PendingReturns extends Component
 {
+    use HandlesLoadFailure;
     use WithFeedback;
 
     public array $notes = [];
@@ -50,7 +52,8 @@ class PendingReturns extends Component
     public function render()
     {
         return view('livewire.checklist-items.pending-returns', [
-            'pendingReturns' => $this->items,
+            // A failed query shows a retry panel (retryLoad only re-renders; nothing is written).
+            'pendingReturns' => $this->guardedLoad(fn () => $this->items, fallback: collect()),
         ]);
     }
 }

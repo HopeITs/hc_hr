@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\TerminationReason;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\Component;
 class TerminationReasonModule extends Component
 {
     use AuthorizesActivePermissions;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -39,6 +41,7 @@ class TerminationReasonModule extends Component
         ];
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -55,6 +58,7 @@ class TerminationReasonModule extends Component
 
         $this->modalTitle = __('general.edit');
         $this->resetValidation();
+        $this->markClean();
         $this->showModal = true;
     }
 

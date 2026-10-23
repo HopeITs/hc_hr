@@ -197,18 +197,10 @@ class PersonalInfoForm extends Form
 
     public function messages(): array
     {
-        if (app()->getLocale() !== 'ar') {
-            return [
-                'work_phone.regex' => 'The work phone must be exactly 10 digits and start with 09.',
-                'personal_phone.regex' => 'The personal phone must be exactly 10 digits and start with 09.',
-                'national_number.digits' => 'The national number must be exactly 11 digits for Syrian employees.',
-            ];
-        }
-
         return [
-            'work_phone.regex' => 'يجب أن يتكون هاتف العمل من 10 أرقام تماماً وأن يبدأ بـ 09.',
-            'personal_phone.regex' => 'يجب أن يتكون الهاتف الشخصي من 10 أرقام تماماً وأن يبدأ بـ 09.',
-            'national_number.digits' => 'يجب أن يتكون الرقم الوطني للسوريين من 11 رقماً تماماً.',
+            'work_phone.regex' => __('employees.validation.work-phone-format'),
+            'personal_phone.regex' => __('employees.validation.personal-phone-format'),
+            'national_number.digits' => __('employees.validation.national-number-syrian'),
         ];
     }
 
@@ -380,7 +372,7 @@ class PersonalInfoForm extends Form
 
         if (! $user->canAccessCity((int) $this->city_id)) {
             throw ValidationException::withMessages([
-                'city_id' => __('You may only manage employees in your active city.'),
+                'city_id' => __('employees.validation.city-scope'),
             ]);
         }
 
@@ -391,7 +383,7 @@ class PersonalInfoForm extends Form
                 ->where('city_id', $this->city_id)
                 ->exists()) {
                 throw ValidationException::withMessages([
-                    $field => __('The selected manager must belong to the employee city.'),
+                    $field => __('employees.validation.manager-city'),
                 ]);
             }
         }

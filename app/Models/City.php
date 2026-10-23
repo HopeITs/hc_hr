@@ -28,6 +28,8 @@ class City extends Model
         'name_en',
         'name_ar',
         'code',
+        // The emergency number on this city's public ID cards (A2D-Q7).
+        'hr_hotline',
         'is_active',
     ];
 
@@ -103,6 +105,7 @@ class City extends Model
                 'name_en',
                 'name_ar',
                 'code',
+                'hr_hotline',
                 'is_active',
             ])
             ->logOnlyDirty()

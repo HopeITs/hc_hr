@@ -24,8 +24,6 @@
 
 </div>
 
-<script nonce="{{ Vite::cspNonce() }}" src="{{ asset('js/chart.umd.js') }}"></script>
-
 <script nonce="{{ Vite::cspNonce() }}">
     // Runs on a normal load and again when wire:navigate swaps this page in,
     // where DOMContentLoaded has already fired and would never call back.
@@ -52,7 +50,8 @@
         const neutral   = styles.getPropertyValue("--color-secondary-light").trim() || "#939598";
 
         async function fetchData(mode = "monthly") {
-            const res = await fetch(`/employee-statistics/${mode}`);
+            // Locale-prefixed, so the endpoint answers in the page's language.
+            const res = await fetch(`${@js(LaravelLocalization::localizeUrl('/employee-statistics'))}/${mode}`);
             if (!res.ok) return { labels: [], new: [], ended: [], terminated: [] };
             return res.json();
         }
@@ -65,7 +64,7 @@
                 labels: data.labels,
                 datasets: [
                     {
-                        label: "New Employees",
+                        label: @js(__('dashboard.employee-chart.new')),
                         data: data.new,
                         borderColor: primary,
                         fill: false,
@@ -76,7 +75,7 @@
                         pointHoverRadius: 4.2
                     },
                     {
-                        label: "Ended",
+                        label: @js(__('dashboard.employee-chart.ended')),
                         data: data.ended,
                         borderColor: secondary,
                         fill: false,
@@ -87,7 +86,7 @@
                         pointHoverRadius: 4.2
                     },
                     {
-                        label: "Terminated",
+                        label: @js(__('dashboard.employee-chart.terminated')),
                         data: data.terminated,
                         borderColor: neutral,
                         fill: false,

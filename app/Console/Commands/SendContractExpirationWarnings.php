@@ -5,9 +5,12 @@ namespace App\Console\Commands;
 use App\Models\Contract;
 use App\Models\User;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
+use App\Services\NotificationDeliveryLedger;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class SendContractExpirationWarnings extends Command
 {
@@ -15,41 +18,51 @@ class SendContractExpirationWarnings extends Command
      * Exact reminder anchors, in days before the contract ends.
      *
      * The command runs daily, so matching exact dates sends weekly reminders
-     * during the last 30 days without adding a separate notification log.
+     * during the last 30 days with NotificationDeliveryLedger making each contract/manager/day claim atomic.
      *
      * @var array<int, int>
      */
     private const REMINDER_DAYS = [30, 21, 14, 7];
 
+    private const LEDGER_KIND = 'contract-expiry-warning';
+
     protected $signature = 'contracts:send-expiration-warnings';
 
     protected $description = 'Send direct managers scheduled warnings for auto-renewable contracts nearing expiration';
 
-    public function handle(): int
+    public function handle(NotificationDeliveryLedger $ledger): int
     {
-        $contracts = $this->expiringContracts();
+        $day = $ledger->today();
         $sent = 0;
 
-        $contracts
+        $this->expiringContracts($day)
             ->groupBy(fn (Contract $contract): string => implode(':', [
                 $this->directManagerUser($contract)?->id ?? 'none',
-                $contract->end_date ? today()->diffInDays($contract->end_date) : 0,
+                (int) $day->diffInDays($contract->end_date->startOfDay()),
             ]))
             ->filter(fn (Collection $group): bool => $this->directManagerUser($group->first()) !== null)
-            ->each(function (Collection $group) use (&$sent): void {
+            ->each(function (Collection $group) use (&$sent, $ledger, $day): void {
                 $manager = $this->directManagerUser($group->first());
+                $daysUntilExpiration = (int) $day->diffInDays($group->first()->end_date->startOfDay());
 
-                if (! $manager) {
+                // The claim is per contract, so a contract already reported today
+                // stays out of any later group, however the groups are formed.
+                $claimed = $ledger->claim(self::LEDGER_KIND, $manager->id, $group->pluck('id')->all(), $day);
+                $fresh = $group->whereIn('id', $claimed)->values();
+
+                if ($fresh->isEmpty()) {
                     return;
                 }
 
-                $daysUntilExpiration = (int) today()->diffInDays($group->first()->end_date);
+                try {
+                    $manager->notify(new ContractsExpiringAutoRenewWarning($fresh, $daysUntilExpiration));
+                } catch (Throwable $e) {
+                    $ledger->release(self::LEDGER_KIND, $manager->id, $claimed, $day);
 
-                $manager->notify(new ContractsExpiringAutoRenewWarning(
-                    $group,
-                    $daysUntilExpiration,
-                ));
+                    throw $e;
+                }
 
+                $ledger->markDelivered(self::LEDGER_KIND, $manager->id, $claimed, $day);
                 $sent++;
             });
 
@@ -61,14 +74,14 @@ class SendContractExpirationWarnings extends Command
     /**
      * @return Collection<int, Contract>
      */
-    private function expiringContracts(): Collection
+    private function expiringContracts(CarbonInterface $day): Collection
     {
         $renewableTypeIds = collect(config('contracts.map_by_id', []))
             ->filter(fn (string $category): bool => in_array($category, ['annual', 'service'], true))
             ->keys()
             ->all();
         $reminderDates = collect(self::REMINDER_DAYS)
-            ->map(fn (int $days): string => today()->addDays($days)->toDateString())
+            ->map(fn (int $days): string => $day->copy()->addDays($days)->toDateString())
             ->all();
 
         return Contract::query()

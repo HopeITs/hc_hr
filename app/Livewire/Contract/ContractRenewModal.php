@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
@@ -22,6 +23,7 @@ use Livewire\Component;
  */
 class ContractRenewModal extends Component
 {
+    use GuardsModalClose;
     use WithFeedback;
 
     public ContractForm $form;
@@ -43,6 +45,7 @@ class ContractRenewModal extends Component
 
         $this->contractId = $contract->id;
         [$this->form->start_date, $this->form->end_date] = $contract->renewalWindow();
+        $this->markClean('contractRenewModal');
         $this->show = true;
     }
 
@@ -81,7 +84,7 @@ class ContractRenewModal extends Component
 
         $this->toast();
 
-        return redirect()->route('contracts.show', $renewal->id);
+        return $this->redirectRoute('contracts.show', $renewal->id, navigate: true);
     }
 
     /**
@@ -97,11 +100,11 @@ class ContractRenewModal extends Component
             'form.end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:form.start_date'],
         ]);
 
-        return redirect()->route('contracts.renew', [
+        return $this->redirectRoute('contracts.renew', [
             'contract' => $source->id,
             'start' => $this->form->start_date,
             'end' => $this->form->end_date,
-        ]);
+        ], navigate: true);
     }
 
     public function render(): View
@@ -115,6 +118,28 @@ class ContractRenewModal extends Component
                     ->find($this->contractId)
                 : null,
         ]);
+    }
+
+    /** The dialog's id; it is shown by $show. */
+    protected function guardedDialogs(): array
+    {
+        return ['contractRenewModal'];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->show;
+    }
+
+    /** Only the period is editable here; every other term is copied. */
+    protected function guardedEntries(string $dialog): array
+    {
+        return $this->form->only(['start_date', 'end_date']);
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->close();
     }
 
     /**

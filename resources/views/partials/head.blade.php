@@ -1,5 +1,5 @@
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
 <meta name="description" content="{{ $description ?? __('Secure human resources management for Christian Hope Center teams across Syria.') }}" />
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
 
@@ -14,6 +14,9 @@
 
 {{-- Internal HR system: nothing here belongs in a search index. A layout may pass $robots to override. --}}
 <meta name="robots" content="{{ $robots ?? 'noindex, nofollow' }}" />
+
+{{-- select2's built-in messages in the page language; read by resources/js/app.js. --}}
+<meta name="hc-select2-i18n" content="{{ json_encode(__('general.select2'), JSON_UNESCAPED_UNICODE) }}" />
 
 <link rel="canonical" href="{{ url()->current() }}" />
 

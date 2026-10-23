@@ -53,6 +53,9 @@ trait WithFeedback
      * $html replaces $message for confirmations that need markup. It is
      * inserted as HTML, so it must come from a Blade view (which escapes),
      * never from raw input.
+     *
+     * $cancelLabel renames the dismiss button (default Cancel); the question
+     * "Discard your changes?" needs it to read "Keep editing".
      */
     protected function confirm(
         string $then,
@@ -62,6 +65,7 @@ trait WithFeedback
         ?string $confirmLabel = null,
         bool $danger = true,
         ?string $html = null,
+        ?string $cancelLabel = null,
     ): void {
         // `componentId`, not `component`: Livewire reads a `component` param as
         // "deliver this event to that component" and would never reach the window.
@@ -74,6 +78,7 @@ trait WithFeedback
             html: $html,
             confirmLabel: $confirmLabel ?? __('general.delete'),
             danger: $danger,
+            cancelLabel: $cancelLabel,
         );
     }
 }

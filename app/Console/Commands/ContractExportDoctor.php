@@ -48,7 +48,9 @@ class ContractExportDoctor extends Command
 
         $this->section('Chrome');
         $chrome = (string) config('browsershot.chrome_path');
-        if ($this->check('chrome_path exists', $chrome !== '' && is_file($chrome), 'Not a file: '.$chrome.'. On Linux this is usually /usr/bin/chromium — install it with the package manager rather than unpacking one by hand.')) {
+        // On connect the local Chrome is never launched, so checking it would
+        // only fail a host that renders fine.
+        if (! $this->usesRemoteChrome($renderer) && $this->check('chrome_path exists', $chrome !== '' && is_file($chrome), 'Not a file: '.$chrome.'. On Linux this is usually /usr/bin/chromium — install it with the package manager rather than unpacking one by hand.')) {
             $this->check('chrome_path executable', is_executable($chrome), 'chmod +x '.$chrome.', or the web user cannot run it.');
             $this->probe([$chrome, '--version'], 'chrome --version', timeout: 15);
             $this->launchesAlone($chrome, $renderer);
@@ -79,6 +81,37 @@ class ContractExportDoctor extends Command
         $this->section('Render');
 
         return $this->attemptRender($renderer) ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Report BROWSERSHOT_WS_ENDPOINT, if set, without the token it carries.
+     *
+     * True when the render goes to a remote Chrome — and also when the endpoint
+     * is refused, since the render then fails for that reason alone.
+     */
+    private function usesRemoteChrome(ContractPdfRenderer $renderer): bool
+    {
+        try {
+            $endpoint = $renderer->remoteEndpoint();
+        } catch (Throwable $e) {
+            $this->check('ws_endpoint accepted', false, $e->getMessage());
+
+            return true;
+        }
+
+        if ($endpoint === null) {
+            return false;
+        }
+
+        $parts = parse_url($endpoint);
+        $shown = ($parts['scheme'] ?? '').'://'.($parts['host'] ?? '')
+            .(isset($parts['port']) ? ':'.$parts['port'] : '')
+            .($parts['path'] ?? '');
+
+        $this->line('  ws_endpoint    '.$shown.'  (query hidden)');
+        $this->line('  <fg=yellow>NOTE</> Remote Chrome: chrome_path is not used, and every contract, pay clause included, is rendered by that service.');
+
+        return true;
     }
 
     /**

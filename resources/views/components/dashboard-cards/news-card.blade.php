@@ -30,14 +30,16 @@
             @endphp
             <div class="pb-3 border-b border-b-secondary-light last:border-b-0 last:pb-0">
                 <p class="text-[10px] font-light text-neutral-400">
-                    {{ $news->published_at?->diffForHumans() ?? 'Just Now' }}
+                    {{ $news->published_at?->diffForHumans() ?? __('dashboard.just-now') }}
                 </p>
                 <p class="text-sm font-bold text-[#58595B]">
                     {{ $title }}
                 </p>
-                <p class="mt-1 text-xs font-light text-secondary-medium line-clamp-2">
-                    {{ $description ?? 'Since 2013 (officially established in 2018), Christian Hope Center has been dedicated to supporting Christian...' }}
-                </p>
+                @if(filled($description))
+                    <p class="mt-1 text-xs font-light text-secondary-medium line-clamp-2">
+                        {{ $description }}
+                    </p>
+                @endif
                 <button type="button"
                     x-on:click="selected = {
                         title: @js($title),

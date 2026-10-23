@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\EmployeeNote;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,12 +28,16 @@ use Livewire\Component;
  */
 class EmployeeNotesCard extends Component
 {
+    use HandlesLoadFailure;
     use WithFeedback;
 
     #[Locked]
     public ?int $employeeId = null;
 
     public string $newText = '';
+
+    /** Per-request memo: the view reads $this->notes three times per render (3 identical queries before B3). */
+    protected ?\Illuminate\Support\Collection $notesMemo = null;
 
     public function mount(): void
     {
@@ -41,12 +46,15 @@ class EmployeeNotesCard extends Component
 
     public function getNotesProperty()
     {
-        return $this->notesQuery()->orderBy('order')->get();
+        return $this->notesMemo ??= $this->guardedLoad(
+            fn () => $this->notesQuery()->orderBy('order')->get(),
+            fallback: collect(),
+        );
     }
 
     public function addText(): void
     {
-        $this->createNote($this->newText === '' ? 'New Note' : $this->newText, 'note');
+        $this->createNote($this->newText === '' ? __('dashboard.new-note') : $this->newText, 'note');
 
         $this->newText = '';
     }

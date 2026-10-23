@@ -45,11 +45,21 @@ class ContractAutoRenewDefaultTest extends TestCase
         $this->assertFalse($volunteerOptedOut->fresh()->auto_renew);
     }
 
-    public function test_an_explicit_true_is_never_overridden_for_a_trial_contract(): void
+    public function test_a_trial_contract_never_auto_renews_even_when_asked_to(): void
     {
         $trialOptedIn = $this->makeContract(3, ['auto_renew' => true]);
 
-        $this->assertTrue($trialOptedIn->fresh()->auto_renew);
+        $this->assertFalse($trialOptedIn->fresh()->auto_renew);
+    }
+
+    public function test_switching_a_contract_to_trial_turns_auto_renew_off(): void
+    {
+        $contract = $this->makeContract(1);
+        ContractType::query()->find(3) ?? ContractType::query()->forceCreate(['id' => 3, 'name_en' => 'Trial', 'name_ar' => 'تجريبي']);
+
+        $contract->update(['contract_type_id' => 3]);
+
+        $this->assertFalse($contract->fresh()->auto_renew);
     }
 
     private function makeContract(int $contractTypeId, array $overrides = []): Contract

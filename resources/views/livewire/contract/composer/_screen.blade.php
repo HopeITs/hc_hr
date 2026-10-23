@@ -88,9 +88,10 @@
             'duplicate' => __('general.composer.duplicate-contract'),
             'draftFound' => __('general.composer.draft-found'),
             // :count substituted client-side, same as the duration labels below.
-            'daysPerWeek' => __('general.composer.days-per-week'),
-            'hoursPerWeek' => __('general.composer.hours-per-week'),
-            'hoursPerDay' => __('general.composer.hours-per-day'),
+            // Laravel pipe-plural strings, resolved by choice() in the composer.
+            'daysPerWeek' => __('contracts.include-days-per-week'),
+            'hoursPerWeek' => __('contracts.include-hours-per-week'),
+            'hoursPerDay' => __('contracts.include-hours-per-day'),
             'showDayRange' => __('general.composer.show-day-range'),
             'weeklyHoursValue' => __('general.composer.weekly-hours-value'),
             'dayRange' => __('general.composer.day-range'),
@@ -105,21 +106,23 @@
             'payHintNoTiers' => __('general.composer.pay-hint-no-tiers'),
             'payHintTiersIncomplete' => __('general.composer.pay-hint-tiers-incomplete'),
             'payHintAmountNegative' => __('general.composer.pay-hint-amount-negative'),
-            // Lowercase units, because these are read inside a phrase
-            // ("3 months") rather than as standalone labels.
-            'month' => __('general.composer.duration-month'),
-            'months' => __('general.composer.duration-months'),
-            'day' => __('general.composer.duration-day'),
-            'days' => __('general.composer.duration-days'),
-            'daysUnit' => __('general.composer.days-unit'),
+            // Whole counts are pipe-plural strings (Arabic has six forms), picked
+            // client-side by choice(); a fractional figure uses the *Decimal one.
+            'monthsCount' => __('contracts.months-count'),
+            'monthsDecimal' => __('contracts.months-decimal'),
+            'daysCount' => __('contracts.days-count'),
+            'daysDecimal' => __('contracts.days-decimal'),
+            'hoursShort' => __('contracts.hours-short'),
             'unknownCurrency' => __('general.unknown'),
             'perMonth' => __('general.composer.per-month'),
             'perHour' => __('general.composer.per-hour'),
             'perSession' => __('general.composer.per-session'),
             'perYear' => __('general.composer.per-year'),
-            'tiersCount' => __('general.composer.tiers-count'),
+            'tiersCount' => __('contracts.tiers-count'),
             'salaryHidden' => __('general.salary-hidden'),
             'empty' => '—',
+            // Points from start to end in the reading direction.
+            'periodArrow' => app()->getLocale() === 'ar' ? '←' : '→',
         ],
     ];
 @endphp
@@ -127,7 +130,7 @@
 <div
     x-data="contractComposer(@js($composerConfig))"
     x-init="initialize()"
-    class="pb-2 max-lg:pb-28"
+    class="pb-2 max-lg:pb-40"
 >
     {{--
         items-stretch is what actually guarantees the two columns share a

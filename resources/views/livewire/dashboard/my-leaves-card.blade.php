@@ -21,7 +21,7 @@
 
             {{-- The divider only reads as a divider when the two blocks are
                  side by side; once they stack it is a stray vertical line. --}}
-            <div class="hidden sm:block border-l border-secondary-medium h-26"></div>
+            <div class="hidden sm:block border-s border-secondary-medium h-26"></div>
 
             {{-- min-w-0, not min-w-full: this is a flex child with two siblings,
                  so `min-width:100%` forced the row past the container width and

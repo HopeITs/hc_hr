@@ -4,22 +4,176 @@
     {
       "name": "hc-hr (composer dev)",
       "runtimeExecutable": "composer",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 8000,
       "autoPort": false
     },
     {
       "name": "hc-hr (artisan serve)",
       "runtimeExecutable": "php",
-      "runtimeArgs": ["artisan", "serve", "--port=8299"],
+      "runtimeArgs": [
+        "artisan",
+        "serve",
+        "--port=8299"
+      ],
       "port": 8299,
       "autoPort": false
     },
     {
       "name": "hc-hr (php 8.5 serve)",
       "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
-      "runtimeArgs": ["artisan", "serve", "--port=8385"],
+      "runtimeArgs": [
+        "artisan",
+        "serve",
+        "--port=8385"
+      ],
       "port": 8385,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr X2 usability sessions (synthetic SQLite)",
+      "runtimeExecutable": "php",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8391",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "port": 8391,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr A3-R (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8392",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-a3r",
+        "X2_PORT": "8392"
+      },
+      "port": 8392,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr A4 (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8393",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-a4",
+        "X2_PORT": "8393"
+      },
+      "port": 8393,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr A3 (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8394",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-a3",
+        "X2_PORT": "8394"
+      },
+      "port": 8394,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr A5-M (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8395",
+        "-t",
+        "C:/laragon/www/hc-hr-a5m/public",
+        "C:/laragon/www/hc-hr-a5m/tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-a5m",
+        "X2_PORT": "8395"
+      },
+      "port": 8395,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr main A5-M check (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8396",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-a5m-check",
+        "X2_PORT": "8396"
+      },
+      "port": 8396,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr X2-I (synthetic SQLite, telemetry on)",
+      "runtimeExecutable": "php",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8397",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-x2i",
+        "X2_PORT": "8397",
+        "TASK_TELEMETRY_ENABLED": "true"
+      },
+      "port": 8397,
       "autoPort": false
     }
   ]

@@ -61,14 +61,15 @@ class NewLeaveRequest extends Notification
             ],
 
             'body' => [
-                'en' => "{$employeeNameEn} has submitted a {$leaveType->name_en} request",
-                'ar' => "قام {$employeeNameAr} بتقديم طلب {$leaveType->name_ar}",
+                'en' => "{$leaveType->name_en} leave request from {$employeeNameEn}",
+                'ar' => "طلب إجازة ({$leaveType->name_ar}) من {$employeeNameAr}",
             ],
 
             'url' => route('leaves.all', [
                 'leave' => $leaveRequest->id,
                 'mode' => 'decision',
             ]),
+            'subject' => ['type' => 'leave_request', 'id' => $leaveRequest->id, 'action' => 'decide'],
         ];
     }
 }

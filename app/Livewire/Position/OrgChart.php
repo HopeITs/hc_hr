@@ -8,7 +8,9 @@ use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
+use App\Support\DirectoryAccess;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Locked;
@@ -252,11 +254,14 @@ class OrgChart extends Component
             ->where(function (Builder $query) use ($term) {
                 $query->where('title_en', 'like', $term)
                     ->orWhere('title_ar', 'like', $term)
+                    // A name only matches someone the viewer may see, or a
+                    // search would confirm a former employee's existence.
                     ->orWhereHas('activeContracts.employee', function (Builder $employee) use ($term) {
-                        $employee->where('first_name_en', 'like', $term)
+                        DirectoryAccess::constrain($employee->where(fn (Builder $name) => $name
+                            ->where('first_name_en', 'like', $term)
                             ->orWhere('last_name_en', 'like', $term)
                             ->orWhere('first_name_ar', 'like', $term)
-                            ->orWhere('last_name_ar', 'like', $term);
+                            ->orWhere('last_name_ar', 'like', $term)), auth()->user());
                     });
             })
             ->when($this->cityFilterIds(), fn (Builder $query, array $ids) => $query->whereIn('city_id', $ids))
@@ -264,7 +269,7 @@ class OrgChart extends Component
             ->when($this->center_id, fn (Builder $query) => $query->where('center_id', $this->center_id))
             ->when($this->department_id, fn (Builder $query) => $query->where('department_id', $this->department_id))
             ->when($this->job_level_id, fn (Builder $query) => $query->where('job_level_id', $this->job_level_id))
-            ->with(Position::cardRelations($this->manager_type))
+            ->with($this->cardRelations())
             ->orderByGrade()
             ->limit(60)
             ->get();
@@ -286,6 +291,13 @@ class OrgChart extends Component
         // tree rather than a rehydrated, unfiltered one.
         if (! $this->treeBuilt) {
             $this->refreshTree();
+        }
+
+        // The focus list comes back from the snapshot without its holders;
+        // reload them under the same Directory rule rather than letting the
+        // view lazy-load every holder unfiltered.
+        if ($this->managers instanceof EloquentCollection) {
+            $this->managers->loadMissing(['activeContracts' => DirectoryAccess::holders(auth()->user()), 'jobLevel']);
         }
 
         return view('livewire.position.org-chart', ['tree' => $this->tree]);
@@ -314,9 +326,26 @@ class OrgChart extends Component
             ->whereHas('activeContracts')
             ->when($this->cityFilterIds(), fn (Builder $q, array $ids) => $q->whereIn('city_id', $ids))
             ->when($this->program_id, fn (Builder $q) => $q->where('program_id', $this->program_id))
-            ->with(['activeContracts.employee', 'jobLevel'])
+            ->with(['activeContracts' => DirectoryAccess::holders(auth()->user()), 'jobLevel'])
             ->orderByGrade()
             ->get();
+    }
+
+    /**
+     * Position::cardRelations(), with each card's holders limited to the
+     * people the viewer may see at the Directory tier (access-policy.md
+     * A2D-Q3): a former employee still sitting on a running contract is not
+     * drawn for staff, and the seat reads as vacant. No city scoping: every
+     * role sees every active colleague here (DEC-01, A2D-Q4).
+     *
+     * @return array<int|string, mixed>
+     */
+    private function cardRelations(): array
+    {
+        return [
+            ...Position::cardRelations($this->manager_type),
+            'activeContracts' => DirectoryAccess::holders(auth()->user()),
+        ];
     }
 
     private function updateCityOptions(): void
@@ -397,7 +426,7 @@ class OrgChart extends Component
         // the direct-manager skeleton.
         $managerColumn = $this->manager_type.'_manager_id';
         $teamRelation = $this->manager_type.'Team';
-        $relations = Position::cardRelations($this->manager_type);
+        $relations = $this->cardRelations();
 
         $rootPositions = $this->resolveRoots($managerColumn, $relations);
 

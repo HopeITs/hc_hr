@@ -49,6 +49,11 @@
     };
 
     $to12Hour = fn (?string $value): string => $value ? Carbon::parse($value)->format('g:i A') : '';
+    // Arabic column: «9:00 ص» / «5:00 م» rather than Latin AM/PM (A4 decision,
+    // 2026-10-21). Mirrors to12Hour(value, true) in contract-composer.js.
+    $to12HourAr = fn (?string $value): string => $value
+        ? Carbon::parse($value)->format('g:i').' '.(Carbon::parse($value)->hour < 12 ? 'ص' : 'م')
+        : '';
 
     $rows = [];
 
@@ -63,7 +68,9 @@
 
         if ($contract->flex_days_per_week) {
             $fragmentsEn[] = ((string) $contract->flex_days_per_week).' days per week';
-            $fragmentsAr[] = $glyphs($digitsAr($contract->flex_days_per_week).' يوم أسبوعيًا');
+            // Arabic counts 3-10 take the plural (أيام); 1-2 stay singular.
+            $dayWordAr = (int) $contract->flex_days_per_week >= 3 ? 'أيام' : 'يوم';
+            $fragmentsAr[] = $glyphs($digitsAr($contract->flex_days_per_week).' '.$dayWordAr.' أسبوعيًا');
         }
 
         if ($contract->flex_hours_per_month) {
@@ -143,6 +150,8 @@
 
         $fromTime = $boldTime($to12Hour($contract->work_hours_from));
         $toTime = $boldTime($to12Hour($contract->work_hours_to));
+        $fromTimeAr = $boldTime($to12HourAr($contract->work_hours_from));
+        $toTimeAr = $boldTime($to12HourAr($contract->work_hours_to));
 
         $officeHoursEn = 'Standard office hours are'
             .($hasRange ? " {$rangeEn} and" : '')
@@ -154,15 +163,17 @@
         // above) — so it is written as one literal below, never assembled
         // from a trailing "و" plus a separately-started "من ...".
         $officeHoursArRaw = $hasRange
-            ? "ساعات الدوام الرسمية هي {$rangeArRaw} ومن الساعة {$fromTime} حتى الساعة {$toTime}"
-            : "ساعات الدوام الرسمية هي من الساعة {$fromTime} حتى الساعة {$toTime}";
+            ? "ساعات الدوام الرسمية هي {$rangeArRaw} ومن الساعة {$fromTimeAr} حتى الساعة {$toTimeAr}"
+            : "ساعات الدوام الرسمية هي من الساعة {$fromTimeAr} حتى الساعة {$toTimeAr}";
 
         if (filled($contract->work_hours_2_from) && filled($contract->work_hours_2_to)) {
             $from2Time = $boldTime($to12Hour($contract->work_hours_2_from));
             $to2Time = $boldTime($to12Hour($contract->work_hours_2_to));
+            $from2TimeAr = $boldTime($to12HourAr($contract->work_hours_2_from));
+            $to2TimeAr = $boldTime($to12HourAr($contract->work_hours_2_to));
 
             $officeHoursEn .= " and from {$from2Time} to {$to2Time}";
-            $officeHoursArRaw .= " ومن الساعة {$from2Time} حتى الساعة {$to2Time}";
+            $officeHoursArRaw .= " ومن الساعة {$from2TimeAr} حتى الساعة {$to2TimeAr}";
         }
 
         $rows[] = [

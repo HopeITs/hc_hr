@@ -15,13 +15,31 @@ class LeaveNotificationService
 {
     public function sendNewRequest(LeaveRequest $leaveRequest, ?User $actor = null): void
     {
+        $audience = $this->newRequestAudience($leaveRequest, $actor);
+
+        $recipients = $audience['managers']
+            ->merge($audience['hr'])
+            ->pipe(fn (Collection $users) => $this->eligibleUniqueUsers($users));
+
+        Notification::send($recipients, new NewLeaveRequest($this->loadContext($leaveRequest)));
+    }
+
+    /**
+     * Who is told about a new request, split by group. sendNewRequest() sends
+     * to exactly these accounts, and LeaveRequestNextStep reads the same lists,
+     * so the "who acts next" text on screen can never drift from the people
+     * actually notified.
+     *
+     * @return array{managers: Collection<int, User>, hr: Collection<int, User>}
+     */
+    public function newRequestAudience(LeaveRequest $leaveRequest, ?User $actor = null): array
+    {
         $leaveRequest = $this->loadContext($leaveRequest);
 
-        $recipients = $this->managerRecipients($leaveRequest)
-            ->merge($this->hrRecipients($leaveRequest))
-            ->pipe(fn (Collection $users) => $this->eligibleUniqueUsers($users, [$actor?->id]));
-
-        Notification::send($recipients, new NewLeaveRequest($leaveRequest));
+        return [
+            'managers' => $this->eligibleUniqueUsers($this->managerRecipients($leaveRequest), [$actor?->id]),
+            'hr' => $this->eligibleUniqueUsers($this->hrRecipients($leaveRequest), [$actor?->id]),
+        ];
     }
 
     public function sendDecision(LeaveRequest $leaveRequest, ?User $actor = null): void

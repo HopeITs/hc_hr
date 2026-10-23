@@ -3,6 +3,7 @@
 namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveRequestStatus;
+use App\Livewire\Concerns\HasScreenListStates;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\LeaveRequest;
@@ -19,6 +20,7 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class MyLeaveRequestTable extends LivewireTable
 {
+    use HasScreenListStates;
     use WithFeedback;
 
     public LeaveRequestForm $form;
@@ -27,7 +29,7 @@ class MyLeaveRequestTable extends LivewireTable
 
     public $showModal = false;
 
-    public $modalTitle = 'Modal title';
+    public $modalTitle = '';
 
     protected string $model = LeaveRequest::class;
 
@@ -61,6 +63,30 @@ class MyLeaveRequestTable extends LivewireTable
         $leaveRequest->delete();
 
         $this->toast();
+    }
+
+    protected function emptyScreenState(): array
+    {
+        // Same permission the create handler enforces; a role without it gets text only.
+        $canCreate = auth()->user()?->hasActivePermission('leaves.create') ?? false;
+
+        return [
+            'title' => __('states.leave-empty-title'),
+            'description' => __($canCreate ? 'states.leave-empty-help' : 'states.leave-empty-help-readonly'),
+            'action' => $canCreate
+                ? ['label' => __('leaves.modal.new-title'), 'alpine' => "\$dispatch('openRequestLeaveCreate')"]
+                : null,
+        ];
+    }
+
+    protected function narrowedByTab(): bool
+    {
+        return $this->statusFilter !== 'all';
+    }
+
+    protected function clearTab(): void
+    {
+        $this->dispatch('leaveStatusFilterCleared');
     }
 
     protected function rowClickAction(Model $model): ?string
@@ -99,8 +125,8 @@ class MyLeaveRequestTable extends LivewireTable
                 ->sortable()
                 ->searchable(),
             SelectColumn::make(trans_choice('general.type', 1), 'type')
-                ->options(['hour' => trans_choice('general.hour', 1), 'day' => trans_choice('general.day', 1)])
-                ->displayUsing(fn ($v, Model $m) => trans_choice('general.'.$m->type, 1))
+                ->options(['hour' => __('leaves.unit.hour'), 'day' => __('leaves.unit.day')])
+                ->displayUsing(fn ($v, Model $m) => __('leaves.unit.'.($m->type === 'hour' ? 'hour' : 'day')))
                 ->sortable()
                 ->searchable(),
 
@@ -118,9 +144,9 @@ class MyLeaveRequestTable extends LivewireTable
                         return '-';
                     }
 
-                    return $model->type === 'hour' ? $model->start_at->format('H:i d-m-Y') : $model->start_at->format('d-m-Y');
+                    return '<bdi dir="ltr">'.e($model->type === 'hour' ? $model->start_at->format('H:i d-m-Y') : $model->start_at->format('d-m-Y')).'</bdi>';
                 })
-                ->sortable(),
+                ->sortable()->asHtml(),
             DateColumn::make(__('general.end-date'), 'end_at')
                 ->format('d-m-Y H:i') // keep it; used for default/export/sort context
                 ->displayUsing(function (mixed $value, Model $model): string {
@@ -128,9 +154,9 @@ class MyLeaveRequestTable extends LivewireTable
                         return '-';
                     }
 
-                    return $model->type === 'hour' ? $model->end_at->format('H:i d-m-Y') : $model->end_at->format('d-m-Y');
+                    return '<bdi dir="ltr">'.e($model->type === 'hour' ? $model->end_at->format('H:i d-m-Y') : $model->end_at->format('d-m-Y')).'</bdi>';
                 })
-                ->sortable(),
+                ->sortable()->asHtml(),
             BooleanColumn::make(__('general.seen-by-hr'), 'hr_approved'),
             Column::make(__('general.actions'), function (Model $model): string {
                 $showBtn = Blade::render(

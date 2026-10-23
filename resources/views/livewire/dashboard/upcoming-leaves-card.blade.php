@@ -1,10 +1,13 @@
 @php
     use App\Enums\LeaveRequestStatus;
 @endphp
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white ring-1 ring-neutral-200 shadow-sm">
-    <x-dashboard-cards.card-header :title="__('general.upcoming-leaves')" :count="$upcomingLeaves->count()" />
+<div class="flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface bg-white ring-1 ring-neutral-200 shadow-sm">
+    <x-dashboard-cards.card-header :title="__('general.upcoming-leaves')" :count="$loadFailed ? null : $upcomingLeaves->count()" />
 
     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-5 pt-2 text-start scrollbar-thin scrollbar-thumb-[var(--color-secondary-light)] scrollbar-track-transparent">
+        @if ($loadFailed)
+            <x-ui.load-error class="min-h-40" />
+        @else
         @forelse($upcomingLeaves as $upcomingLeave)
             <div wire:key="upcoming-leave-{{ $upcomingLeave->id }}" class="flex items-start gap-3">
                 <div class="flex size-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-control bg-neutral-100 pt-1 text-center text-secondary-dark" aria-hidden="true">
@@ -42,13 +45,18 @@
                 </div>
             </div>
         @empty
-            <div class="flex h-full items-center justify-center text-caption font-normal text-secondary-light">
-                <span>@lang('general.no-available-data')</span>
-            </div>
+            <x-center-empty-state variant="empty" :title="__('general.no-available-data')" :description="''" class="min-h-40! border-0 shadow-none">
+                @if (auth()->user()->hasActivePermission('leaves.view-own'))
+                    <x-slot:action>
+                        <a href="{{ route('leaves.index') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center rounded-control px-3 text-small font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ __('general.my-leaves') }}</a>
+                    </x-slot:action>
+                @endif
+            </x-center-empty-state>
         @endforelse
+        @endif
     </div>
 
-    @if($upcomingLeaves->count() > 3 && auth()->user()->hasActivePermission('leaves.view-all'))
+    @if(! $loadFailed && $upcomingLeaves->count() > 3 && auth()->user()->hasActivePermission('leaves.view-all'))
         <div class="flex shrink-0 justify-center bg-white px-6 pb-2">
             <a href="{{ route('leaves.all') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center gap-1 rounded-control px-3 text-small font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 {{ __('general.view-all') }}<span aria-hidden="true" class="rtl:rotate-180">→</span>

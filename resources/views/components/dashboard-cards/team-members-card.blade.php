@@ -13,7 +13,7 @@
                 <input x-model="search" type="text" placeholder="{{ __('general.search') }}"
                     class="h-6 w-full rounded-full border border-neutral-300 bg-white pe-3 ps-8 text-xs leading-none text-neutral-700
                            placeholder-secondary-light outline-none transition focus:border-neutral-400 focus:ring-0">
-                <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400">
+                <div class="pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-neutral-400">
                     <x-icons.search class="size-2" />
                 </div>
             </div>
@@ -58,8 +58,8 @@
             <!-- Member Row -->
             <div x-show="
                     !search ||
-                    '{{ strtolower($member->displayName ?? $member->name) }}'.includes(search.toLowerCase()) ||
-                    '{{ strtolower($memberTitle) }}'.includes(search.toLowerCase())
+                    {{ \Illuminate\Support\Js::from(mb_strtolower($member->displayName ?? $member->name)) }}.includes(search.toLowerCase()) ||
+                    {{ \Illuminate\Support\Js::from(mb_strtolower($memberTitle)) }}.includes(search.toLowerCase())
                 "
                 x-transition
                 class="flex items-center justify-between py-2 border-b border-[var(--color-neutral-200)] last:border-0">
@@ -90,26 +90,26 @@
                 <!-- Actions -->
                 <div class="flex items-center flex-shrink-0 gap-2 ms-4">
 
-                    <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" wire:navigate title="View Profile">
+                    <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" wire:navigate title="{{ __('general.view-profile') }}" aria-label="{{ __('general.view-profile') }}">
                         <x-icons.user class="transition text-secondary-light hover:text-primary" />
                     </a>
 
                     @if ($phone)
-                        <a href="tel:{{ $phone }}" title="Call">
-                            <x-icons.phone class="text-secondary-light ml-1 hover:text-primary transition" />
+                        <a href="tel:{{ $phone }}" title="{{ __('dashboard.call') }}" aria-label="{{ __('dashboard.call') }}">
+                            <x-icons.phone class="text-secondary-light ms-1 hover:text-primary transition" />
                         </a>
                     @endif
 
                     @if ($telegramHref)
                         <a href="{{ $telegramHref }}" target="_blank" rel="noopener"
-                            class="transition text-secondary-light hover:text-primary" title="Chat on Telegram">
+                            class="transition text-secondary-light hover:text-primary" title="{{ __('dashboard.chat-on-telegram') }}" aria-label="{{ __('dashboard.chat-on-telegram') }}">
                             <x-icons.telegram class="transition text-secondary-light hover:text-primary" />
                         </a>
                     @endif
 
                     @if ($email)
                         <a href="mailto:{{ $email }}"
-                            class="transition text-secondary-light hover:text-primary" title="Send Email">
+                            class="transition text-secondary-light hover:text-primary" title="{{ __('dashboard.send-email') }}" aria-label="{{ __('dashboard.send-email') }}">
                             <x-icons.envelope class="transition text-secondary-light ms-1 hover:text-primary" />
                         </a>
                     @endif
@@ -129,7 +129,7 @@
     <div class="border-t border-[var(--color-neutral-200)] bg-white px-6 py-3 text-center mt-auto">
         <a href="{{ route('org.chart') }}" wire:navigate
             class="text-small font-semibold text-[var(--color-primary)] hover:underline">
-            @lang('general.view-all') →
+            @lang('general.view-all') <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span>
         </a>
     </div>
 </div>

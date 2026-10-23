@@ -13,7 +13,13 @@ return [
     |
     */
 
-    'previous' => '&laquo; Previous',
-    'next' => 'Next &raquo;',
+    // Plain words, no &laquo;/&raquo;: these also feed aria-label attributes,
+    // where an entity would be read out literally, and the arrows do not mirror in RTL.
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'navigation' => 'Pagination',
+    // :first, :last and :total arrive already wrapped in markup by the view.
+    'showing' => 'Showing :first to :last of :total results',
+    'go_to_page' => 'Go to page :page',
 
 ];

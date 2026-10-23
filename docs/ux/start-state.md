@@ -1,7 +1,7 @@
 # P0 · Start state, prerequisites and QA setup (proposed)
 
 Task: P0 from [ux-prompts-v3.md](ux-prompts-v3.md) (requirements R-01, R-02, R-03, R-24).
-Status: **draft for review**. It needs sign-off from the technical lead and the QA engineer before it counts as done.
+Status: **approved 2026-10-20** (HR product owner + technical lead), with the limitations in §8.
 Recorded: 2026-10-16. Discovery only: no product code, schema or data was changed.
 
 Consumers: A1, A2-D, A3-D, B5-D.
@@ -194,4 +194,14 @@ npm run build
 | AC-P0-02: each prerequisite has a status with evidence | Met: §2 |
 | AC-P0-03: synthetic-data test target identified, real records untouched | Met for automated tests (SQLite `:memory:` + fixtures). Browser QA DB and staging are recorded as pending limitations in §3. |
 
-Review sign-off: _pending (technical lead, QA engineer)_.
+Review sign-off: **approved 2026-10-20** (HR product owner + technical lead, in session). QA engineer role not separately assigned.
+
+## 8. Review addendum (2026-10-20)
+
+- **Baseline re-run on `aceda68e`** (PHP 8.5.11, SQLite `:memory:`): 552 tests, 543 passed, **9 failed**. All 9 are in A1's failure register (#1–6, #11–13); **no new failure**. #7–10 (`ContractPdfRendererTest`) now pass after `926b12f1` (local PDF rendering, remote Chrome opt-in). **New baseline for downstream tasks: `aceda68e`, 552 / 9.**
+- **Browser QA database:** resolved in practice by the X1/X2 synthetic SQLite copy outside the repository (`docs/ux/x2/test-environment.md`).
+- **`config/samples/sampleData.php`:** HR states that **some of its data is real** and decided to **keep it as is**. Recorded as an accepted privacy risk (real personal data in the repository and its history). It stays unusable as QA data.
+  - **Superseded 2026-10-21:** the `employees` block was replaced with fictional people (placeholder national numbers `000000000NN`, phones `09000000NN`), and `EmployeeContractSeeder` was updated to match. The real records **remain in git history** until it is rewritten.
+- **browserless.io token** (`3a0e5c49`): no longer in the source, still in git history. The technical lead confirmed on 2026-10-20 that production **uses the browserless.io cloud service with this same token**, so a **live credential is exposed** to anyone with repository access. **Urgent open item:** issue a new token, set it in the server's `BROWSERSHOT_WS_ENDPOINT`, revoke the old one (no code change). **Policy item pending:** contracts, including the pay clause, are rendered by a third party; options are a self-hosted browserless container on loopback, local Chromium, or recorded risk acceptance.
+- **CI and staging:** none; accepted as a recorded limitation. Tests are run locally before each task is marked done.
+- **Implementer/reviewer names:** not assigned; HR product owner and technical lead act as reviewers.

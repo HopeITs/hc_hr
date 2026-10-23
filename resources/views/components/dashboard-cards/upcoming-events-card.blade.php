@@ -13,7 +13,7 @@
                 <div class="flex justify-between items-center">
                     <p class="text-body font-bold text-[#58595B]">{{ $event->event_title }}</p>
                     <span class="text-caption h-4 w-15 font-medium tracking-wide mt-4 text-center text-secondary-light px-1 rounded-full">
-                        {{ \Carbon\Carbon::parse($event->event_timestamp)->format('j/n/Y') }}
+                        <bdi>{{ \Carbon\Carbon::parse($event->event_timestamp)->format('j/n/Y') }}</bdi>
                     </span>
                 </div>
                 <p class="text-caption font-light -mt-1 text-secondary-medium line-clamp-2">

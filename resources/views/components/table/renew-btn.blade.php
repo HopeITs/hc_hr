@@ -6,7 +6,7 @@
 <button {{
     $attributes->merge([
         'type' => 'button',
-        'class' => 'cursor-pointer p-2 inline-flex items-center',
+        'class' => 'cursor-pointer p-2 inline-flex items-center max-sm:min-h-11 max-sm:min-w-11 justify-center',
         'title' => __('general.renew'),
 ])
 }} x-on:click.stop="Livewire.dispatch('open-renew-modal', { contractId: {{ (int) $modelId }} })">

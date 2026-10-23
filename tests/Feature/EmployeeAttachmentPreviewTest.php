@@ -82,7 +82,7 @@ class EmployeeAttachmentPreviewTest extends TestCase
         Livewire::actingAs($user)
             ->test(EmployeeEdit::class, ['employee' => $employee])
             ->set('activeTab', 'education')
-            ->assertSee('NO FILE');
+            ->assertSee(__('employees.file-input.no-file'));
 
         // 2. A stored file is named and linked.
         $stored = UploadedFile::fake()->create('degree-certificate.pdf', 20);
@@ -95,7 +95,7 @@ class EmployeeAttachmentPreviewTest extends TestCase
             ->test(EmployeeEdit::class, ['employee' => $employee])
             ->set('activeTab', 'education')
             ->assertSee('degree-certificate.pdf')
-            ->assertDontSee('NO FILE');
+            ->assertDontSee(__('employees.file-input.no-file'));
 
         // 3. Picking a replacement shows the new name, not the stored one.
         $component

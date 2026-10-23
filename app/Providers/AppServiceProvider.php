@@ -40,6 +40,7 @@ use App\Policies\BadgePolicy;
 use App\Policies\CenterPolicy;
 use App\Policies\ContractPolicy;
 use App\Policies\DefaultDeliverablePolicy;
+use App\Policies\DigitalIdPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\HiringCampaignPolicy;
 use App\Policies\JobPostPolicy;
@@ -187,6 +188,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(RecruitmentJobOffer::class, RecruitmentJobOfferPolicy::class);
         // Team 2 (Phase 2 Task 10)
         Gate::policy(RecruitmentHiringConversion::class, RecruitmentHiringConversionPolicy::class);
+
+        // Public digital-ID card management (access-policy.md §9 A2D-Q5).
+        Gate::define('digital-id.view', [DigitalIdPolicy::class, 'view']);
+        Gate::define('digital-id.manage', [DigitalIdPolicy::class, 'manage']);
+        Gate::define('digital-id.report-lost', [DigitalIdPolicy::class, 'reportLost']);
 
         Livewire::setUpdateRoute(function ($handle) {
             return Route::post('/livewire/update', $handle)

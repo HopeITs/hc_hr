@@ -46,7 +46,7 @@
     <livewire:basics.job-level-table />
 
 
-    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" wire:ignore.self>
+    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
         <form class="space-y-4" wire:submit.prevent="save">
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-1">

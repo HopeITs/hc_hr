@@ -132,7 +132,7 @@ return [
     'allowed-gender' => 'الجنس المسموح به',
     'marital-status' => 'الحالة الاجتماعية',
     'any' => 'أي',
-    'and' => ':attr1 و :attr2',
+    'and' => ':attr1 و:attr2',
     'and2' => 'و',
     'attachment' => 'المرفق',
     'upload-failed-for' => 'فشل رفع الملفات التالية:',
@@ -636,7 +636,7 @@ return [
     'end-at' => 'تاريخ الانتهاء',
     'start-time' => 'وقت البدء',
     'end-time' => 'وقت الانتهاء',
-    'seen-by-hr' => 'مراجَع من الـ HR',
+    'seen-by-hr' => 'راجعته الموارد البشرية',
     'reviewed' => 'تمت المراجعة',
     'mark-reviewed' => 'تحديد كمراجَع',
     'review-leave-request' => 'مراجعة طلب الإجازة',
@@ -849,7 +849,7 @@ return [
         'create' => 'إنشاء العقد',
         'continue' => 'متابعة',
 
-        'no-results' => 'لا نتائج مطابقة',
+        'no-results' => 'لا توجد نتائج',
         'clear' => 'مسح',
     ],
 
@@ -857,6 +857,8 @@ return [
     // screen readers but never painted, so they must stay translated like any
     // other user-facing copy.
     'a11y' => [
+        'open-sidebar' => 'فتح القائمة الجانبية',
+        'breadcrumb' => 'مسار التنقل',
         'skip-to-content' => 'تخطَّ إلى المحتوى الرئيسي',
         'main-content' => 'المحتوى الرئيسي',
         'required-field' => 'مطلوب',
@@ -865,6 +867,8 @@ return [
         'logo-preview' => 'معاينة الشعار المحدد',
         'current-logo' => 'الشعار الحالي',
         'toggle-password' => 'إظهار أو إخفاء كلمة المرور',
+        'close-dialog' => 'إغلاق النافذة',
+        'view-details' => 'عرض التفاصيل',
     ],
 
     // نصوص <meta> الافتراضية، ويمكن تجاوزها لكل صفحة عبر $title / $description
@@ -904,4 +908,117 @@ return [
 
     'contracts-history' => 'سجل العقود',
     'contracts-history-empty' => 'لا توجد عقود بعد. سيظهر سجل العقود هنا بعد حفظ الموظف.',
+
+    // A4: العدد مع وحدته بصيغ الجمع العربية الست
+    // (صفر | واحد | اثنان | 3–10 | 11–99 | 100 فأكثر). قد يحمل :count تنسيقًا (الرقم بخط عريض).
+    'count' => [
+        'days' => ':count يوم|يوم واحد|يومان|:count أيام|:count يومًا|:count يوم',
+        'hours' => ':count ساعة|ساعة واحدة|ساعتان|:count ساعات|:count ساعة|:count ساعة',
+        'minutes' => ':count دقيقة|دقيقة واحدة|دقيقتان|:count دقائق|:count دقيقة|:count دقيقة',
+        'months' => ':count شهر|شهر واحد|شهران|:count أشهر|:count شهرًا|:count شهر',
+        'years' => ':count سنة|سنة واحدة|سنتان|:count سنوات|:count سنة|:count سنة',
+        // يربط عددين بواو العطف («سنة واحدة و3 أشهر»).
+        'and' => ':first و:second',
+    ],
+
+    // A4: أسماء العرض لأسماء الأدوار المخزنة (انظر role_label()).
+    'role-labels' => [
+        'employee' => 'موظف',
+        'manager' => 'مدير',
+        'general-manager' => 'المدير العام',
+        'super-admin' => 'مسؤول النظام',
+        'hr-city' => 'الموارد البشرية · :city',
+    ],
+
+    // A4: مفاتيح كانت مستخدمة وناقصة في إحدى اللغتين أو كلتيهما.
+    'na' => 'غير متوفر',
+    'view' => 'عرض',
+    'update' => 'تعديل',
+    'name_en' => 'الاسم بالإنجليزية',
+    'name_ar' => 'الاسم بالعربية',
+    'items_from_checklist' => 'جميع العناصر',
+    'back_to_list' => 'إلغاء',
+    'delivered' => 'تم التسليم',
+    'received' => 'تم الاستلام',
+    'no_notifications' => 'لا توجد إشعارات',
+
+    // A4: رسائل select2 (مربع البحث والقائمة الفارغة). يُملأ :count في المتصفح.
+    'select2' => [
+        'noResults' => 'لا توجد نتائج',
+        'searching' => 'جارٍ البحث…',
+        'loadingMore' => 'جارٍ تحميل المزيد من النتائج…',
+        'errorLoading' => 'تعذّر تحميل النتائج.',
+        'inputTooShort' => 'يرجى إدخال أحرف إضافية (:count على الأقل)',
+        'inputTooLong' => 'يرجى حذف أحرف (:count)',
+        'maximumSelected' => 'الحد الأقصى للاختيار: :count',
+        'removeAllItems' => 'إزالة كل العناصر',
+        'removeItem' => 'إزالة العنصر',
+        'search' => 'بحث',
+    ],
+
+    // A4: عناوين مجموعات القائمة الجانبية.
+    'nav-group' => [
+        'main' => 'الرئيسية',
+        'management' => 'الإدارة',
+        'time-and-leave' => 'الإجازات',
+        'files-and-tasks' => 'الملفات والمهام',
+        'more' => 'أخرى',
+    ],
+
+    // A5-M: إغلاق نافذة تعديل فيها إدخالات غير محفوظة (GuardsModalClose).
+    'unsaved' => [
+        'title' => 'تجاهل التغييرات؟',
+        'message' => 'لم يتم حفظ تغييراتك.',
+        'keep-editing' => 'متابعة التعديل',
+        'discard' => 'تجاهل التغييرات',
+    ],
+
+    // تقدّم الإشعار: منفصل عن «غير مقروء». غير المقروء يعني أنه لم يُفتح بعد،
+    // أما هذه الحالات فتبيّن إن كان السجل ما زال بحاجة إلى هذا الشخص.
+    'notification-state' => [
+        'awaiting' => 'بانتظار إجراء منك',
+        'handled' => 'تمت معالجته',
+        'unavailable' => 'لم يعد متاحًا',
+        'status' => 'حالة الطلب: :status',
+    ],
+    'notification-target-unavailable' => 'لم يعد هذا الطلب متاحًا لك. ربما حُذف، أو تغيّرت صلاحياتك.',
+
+    // حالات القوائم المشتركة (x-center-empty-state, x-ui.load-error, x-ui.skeleton)
+    'state-empty-title' => 'لا توجد سجلات بعد',
+    'state-empty-help' => 'لم تتم إضافة أي شيء هنا حتى الآن.',
+    'state-filtered-title' => 'لا توجد نتائج مطابقة للمرشحات',
+    'state-filtered-help' => 'جرّب تغيير بعض المرشحات أو إزالتها.',
+    'clear-filters' => 'مسح المرشحات',
+    'state-error-title' => 'تعذّر تحميل هذا المحتوى',
+    'state-error-help' => 'حدث خطأ أثناء التحميل. لم تتغيّر بياناتك.',
+    'retry' => 'إعادة المحاولة',
+    'state-results-count' => '{1} نتيجة واحدة|{2} نتيجتان|[3,10] :count نتائج|[11,*] :count نتيجة',
+    'state-add-employee' => 'إضافة موظف',
+    'state-add-contract' => 'إضافة عقد',
+    'state-notice-filter-cleared' => 'تم مسح أحد المرشحات لأنه لم يعد ينطبق',
+    'state-clear-all' => 'مسح الكل',
+    'state-active-filters' => 'المرشحات المفعّلة',
+    'state-remove-filter' => 'إزالة المرشح :filter',
+    'state-dismiss' => 'إغلاق',
+    'emp-open-details' => 'فتح تفاصيل :name',
+    'emp-more-actions' => 'المزيد من الإجراءات لـ :name',
+    'emp-view-profile-of' => 'عرض الملف الشخصي لـ :name',
+    'emp-activate' => 'تفعيل',
+    'emp-deactivate' => 'إلغاء التفعيل',
+    'emp-drawer-close' => 'إغلاق التفاصيل',
+    'emp-views' => 'عروض الموظفين',
+    'emp-export-note' => 'يصدّر الأعمدة المعروضة',
+    'views-menu' => 'عروضي',
+    'views-saved-list' => 'العروض المحفوظة',
+    'views-none' => 'لا توجد عروض محفوظة بعد.',
+    'views-name' => 'اسم العرض',
+    'views-save-current' => 'حفظ العرض الحالي',
+    'views-apply' => 'تطبيق العرض :name',
+    'views-rename' => 'إعادة تسمية العرض :name',
+    'views-delete' => 'حذف العرض :name',
+    'views-delete-confirm' => 'هل تريد حذف هذا العرض المحفوظ؟',
+    'views-limit' => 'يمكنك الاحتفاظ بحتى :max عروض محفوظة لهذا الجدول. احذف واحدًا أولًا.',
+    'views-name-taken' => 'لديك عرض بهذا الاسم مسبقًا.',
+    'views-help' => 'يحفظ العرض البحث والمرشحات والترتيب وعدد الصفوف والأعمدة، ولا يحفظ النتائج أبدًا.',
+
 ];

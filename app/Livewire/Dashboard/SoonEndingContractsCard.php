@@ -2,13 +2,38 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Models\Contract;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Lazy;
 use Livewire\Component;
 
+/**
+ * B3: lazy (measured ~50 queries for 5 rows: avatar/name/city/department accessors
+ * resolved per row) and independently useful, so it must not hold up the page.
+ * Pay figures are never loaded here.
+ */
+#[Lazy]
 class SoonEndingContractsCard extends Component
 {
+    use HandlesLoadFailure;
+
+    public function placeholder()
+    {
+        return view('livewire.dashboard.card-placeholder', ['title' => __('general.soon-ending-contracts')]);
+    }
+
     public function render()
+    {
+        $contracts = $this->guardedLoad(fn () => $this->contracts(), fallback: new Collection);
+
+        return view('livewire.dashboard.soon-ending-contracts-card', [
+            'contracts' => $contracts,
+        ]);
+    }
+
+    private function contracts(): Collection
     {
         $today = Carbon::today();
         $limit = $today->copy()->addDays(30);
@@ -18,7 +43,7 @@ class SoonEndingContractsCard extends Component
             ->whereNull('terminated_at')
             ->whereDate('end_date', '>=', $today)
             ->whereDate('end_date', '<=', $limit)
-            ->with(['employee', 'employee.city', 'position.department'])
+            ->with(['employee.media', 'employee.city', 'position.department'])
             ->orderBy('end_date', 'asc')
             ->limit(5)
             ->get();
@@ -41,8 +66,6 @@ class SoonEndingContractsCard extends Component
             $contract->view_route = route('contracts.show', ['contract' => $contract->id]);
         });
 
-        return view('livewire.dashboard.soon-ending-contracts-card', [
-            'contracts' => $contracts,
-        ]);
+        return $contracts;
     }
 }

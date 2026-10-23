@@ -8,9 +8,15 @@
 
     </div>
 
+    @if ($loadFailed)
+        <x-ui.load-error class="flex-1" />
+    @elseif (empty($jobLevelLabels))
+        <x-center-empty-state variant="empty" class="flex-1 min-h-40! border-0 shadow-none" />
+    @else
     <div class="relative flex-1 min-h-[200px]">
         <canvas id="jobLevelEmployeesChart" class="w-full h-full"></canvas>
     </div>
+    @endif
 
 </div>
 
@@ -26,6 +32,10 @@
 
             const jobLevels = @json($jobLevelLabels);
             const employees = @json($employeeCounts);
+            // Tooltip text per count, pluralised on the server so Arabic gets
+            // its full set of plural forms.
+            const countLabels = @json(collect($employeeCounts)->unique()->mapWithKeys(fn ($count) => [$count => trans_choice('dashboard.employees-count', $count)]));
+            const isRtl = document.documentElement.dir === 'rtl';
 
             const primaryColor = "#be1f24";
             const gridColor    = "#dcddde";
@@ -75,14 +85,17 @@
                             padding: 10,
                             cornerRadius: 8,
                             displayColors: false,
+                            rtl: isRtl,
+                            textDirection: isRtl ? 'rtl' : 'ltr',
                             callbacks: {
-                                label: (ctx) => `${ctx.parsed.y} Employees`
+                                label: (ctx) => countLabels[ctx.parsed.y] ?? String(ctx.parsed.y)
                             }
                         }
                     },
 
                     scales: {
                         x: {
+                            reverse: isRtl,
                             grid: { display: false },
                             ticks: {
                                 color: "#6d6e71",
@@ -92,6 +105,7 @@
                         },
 
                         y: {
+                            position: isRtl ? 'right' : 'left',
                             beginAtZero: true,
                             grid: {
                                 color: gridColor,

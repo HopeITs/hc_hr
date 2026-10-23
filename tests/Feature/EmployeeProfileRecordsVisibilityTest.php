@@ -15,9 +15,12 @@ use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
 /**
- * The employee role never sees the contracts, education, experience, skills,
- * courses or badges cards on a profile, their own included. Every other role
- * keeps the page exactly as it was.
+ * The colleague-records tier (contracts without pay, education, experience,
+ * skills, courses) follows docs/ux/access-policy.md §4.3 / A2D-Q2 as signed
+ * off on 2026-10-20: the employee role sees it on their own profile only; a
+ * manager on their direct reports only; the general manager and HR (in city
+ * scope) everywhere. Badges follow BadgePolicy, which the employee role never
+ * passes.
  */
 class EmployeeProfileRecordsVisibilityTest extends TestCase
 {
@@ -53,7 +56,13 @@ class EmployeeProfileRecordsVisibilityTest extends TestCase
         $this->assertRecordCardsHidden($component);
     }
 
-    public function test_the_employee_role_does_not_see_the_record_cards_on_their_own_profile(): void
+    /**
+     * Expectation changed by the signed policy (access-policy.md §9, A2D-Q2:
+     * "employee sees own"). It used to assert the employee role saw no record
+     * cards even on their own profile. Badges stay hidden: BadgePolicy, not
+     * profile ownership, decides those.
+     */
+    public function test_the_employee_role_sees_the_record_cards_on_their_own_profile_but_not_badges(): void
     {
         $city = $this->makeCity('ALP', '001');
         $subject = $this->makeSubjectWithRecords($city);
@@ -62,10 +71,15 @@ class EmployeeProfileRecordsVisibilityTest extends TestCase
             ->test(EmployeeProfile::class, ['employee' => $subject])
             ->assertOk()
             ->assertSet('isSelf', true)
-            ->assertSet('canViewRecords', false)
-            ->assertSet('canViewBadges', false);
+            ->assertSet('canViewRecords', true)
+            ->assertSet('canViewBadges', false)
+            ->assertSee(__('general.career-history'))
+            ->assertSee(__('general.courses'))
+            ->assertDontSee('BADGE-MARKER');
 
-        $this->assertRecordCardsHidden($component);
+        foreach (array_diff(self::RECORD_MARKERS, ['BADGE-MARKER']) as $marker) {
+            $component->assertSee($marker);
+        }
     }
 
     public function test_the_employee_role_still_sees_the_current_position_from_the_active_contract(): void
@@ -102,19 +116,51 @@ class EmployeeProfileRecordsVisibilityTest extends TestCase
         }
     }
 
-    public function test_managers_still_see_the_record_cards(): void
+    public function test_the_general_manager_still_sees_the_record_cards(): void
     {
         $city = $this->makeCity('ALP', '001');
         $subject = $this->makeSubjectWithRecords($city);
 
-        foreach (['manager', 'general-manager'] as $role) {
-            Livewire::actingAs($this->makeUser($city, $role))
-                ->test(EmployeeProfile::class, ['employee' => $subject])
-                ->assertSet('canViewRecords', true)
-                ->assertSee('OLD-CONTRACT-POSITION')
-                ->assertSee('EDUCATION-MARKER')
-                ->assertSee('COURSE-MARKER');
-        }
+        Livewire::actingAs($this->makeUser($city, 'general-manager'))
+            ->test(EmployeeProfile::class, ['employee' => $subject])
+            ->assertSet('canViewRecords', true)
+            ->assertSee('OLD-CONTRACT-POSITION')
+            ->assertSee('EDUCATION-MARKER')
+            ->assertSee('COURSE-MARKER');
+    }
+
+    /**
+     * Expectation changed by the signed policy (access-policy.md §9, A2D-Q2
+     * and the DEC-05 revision): a manager gets the records of their DIRECT
+     * reports only. This used to assert every manager saw every profile's
+     * records; now a manager who does not lead the subject gets the
+     * Directory tier, and one who does still sees the records.
+     */
+    public function test_a_manager_sees_the_record_cards_of_direct_reports_only(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $subject = $this->makeSubjectWithRecords($city);
+
+        $component = Livewire::actingAs($this->makeUser($city, 'manager'))
+            ->test(EmployeeProfile::class, ['employee' => $subject])
+            ->assertOk()
+            ->assertSet('canViewRecords', false);
+        $this->assertRecordCardsHidden($component);
+
+        $managerEmployee = $this->makeEmployee($city, 'profile.manager.'.uniqid());
+        $managerPosition = $this->makeContractFor($managerEmployee, [
+            'start_date' => today()->subYear(),
+            'end_date' => today()->addYear(),
+        ])->position;
+        $subject->allContracts()->where('is_active', true)->first()->position
+            ->update(['direct_manager_id' => $managerPosition->id]);
+
+        Livewire::actingAs($this->makeUser($city, 'manager', [], $managerEmployee))
+            ->test(EmployeeProfile::class, ['employee' => $subject])
+            ->assertSet('canViewRecords', true)
+            ->assertSee('OLD-CONTRACT-POSITION')
+            ->assertSee('EDUCATION-MARKER')
+            ->assertSee('COURSE-MARKER');
     }
 
     /** An inactive employee role must not hide anything from someone signed in as HR. */

@@ -28,3 +28,7 @@ graphify-out
 .htaccess
 /public/.htaccess
 .impeccable
+chrome-headless-shell
+
+# B4 browser screenshots (local evidence only)
+/docs/ux/evidence/b4/

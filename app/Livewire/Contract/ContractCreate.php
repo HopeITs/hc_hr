@@ -3,6 +3,7 @@
 namespace App\Livewire\Contract;
 
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Livewire\Concerns\TracksTaskAttempt;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Contract\Concerns\ResolvesContractLocationOptions;
@@ -39,6 +40,7 @@ use Livewire\Component;
 class ContractCreate extends Component
 {
     use DrivesContractComposer, ResolvesContractLocationOptions;
+    use TracksTaskAttempt;
     use WithFeedback;
 
     public ContractForm $form;
@@ -74,6 +76,9 @@ class ContractCreate extends Component
 
         if ($contract?->exists) {
             $this->initializeRenewal($contract);
+        } else {
+            // X2-I task D: a new contract (renewals are a different task).
+            $this->startTaskAttempt('contract_create');
         }
     }
 
@@ -135,9 +140,10 @@ class ContractCreate extends Component
 
         $this->dispatch('notification-created');
 
+        $this->finishTaskAttempt();
         $this->toast();
 
-        return redirect()->route('contracts.show', $contract->id);
+        return $this->redirectRoute('contracts.show', $contract->id, navigate: true);
     }
 
     /**

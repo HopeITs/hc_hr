@@ -5,15 +5,18 @@
 <div class="space-y-8">
     <div class="flex items-center justify-between">
         <x-heading-label>{{ __('general.checklist_items') }}</x-heading-label>
-        <span class="text-body text-secondary-medium">
-            {{ $items->count() }} {{ \Illuminate\Support\Str::plural(__('general.item'), $items->count()) }}
-        </span>
+        @unless($loadFailed)
+            <span class="text-body text-secondary-medium" role="status" aria-live="polite">
+                {{ trans_choice('states.items-count', $items->count()) }}
+            </span>
+        @endunless
     </div>
 
-    @if($items->isEmpty())
-        <div class="text-center text-secondary-medium italic py-12 bg-neutral-50 rounded-surface border border-dashed">
-            {{ __('general.no_items') }}
-        </div>
+    @if($loadFailed)
+        <x-ui.load-error />
+    @elseif($items->isEmpty())
+        {{-- Read-only list: items arrive from HR, so there is no action to offer. --}}
+        <x-center-empty-state :title="__('states.checklist-empty-title')" :description="__('states.checklist-empty-help')" />
     @else
         <div class="overflow-hidden shadow-e1 border border-neutral-200 rounded-surface">
             <table class="min-w-full divide-y divide-neutral-200">

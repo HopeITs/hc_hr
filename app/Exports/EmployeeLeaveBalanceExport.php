@@ -130,8 +130,10 @@ class EmployeeLeaveBalanceExport implements FromCollection, ShouldAutoSize, With
 
     private function annualBalance($employee): ?\App\Models\LeaveBalance
     {
-        return $employee->latestActiveContract()
-            ?->leaveBalances
-            ->firstWhere('type_id', LeaveTypeCases::Annual);
+        $contract = $employee->latestActiveContract();
+
+        return $contract?->leaveBalances
+            ->firstWhere('type_id', LeaveTypeCases::Annual)
+            ?->setRelation('contract', $contract);
     }
 }

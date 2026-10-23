@@ -1,10 +1,13 @@
 @props([
     'modelId' => null,
 ])
+{{-- Icon-only unless the caller adds visible text, so it needs its own name then. --}}
+@php($iconOnly = $slot->isEmpty())
 <button {{
     $attributes->merge([
         'type' => 'button',
-        'class' => 'cursor-pointer p-2'
+        'class' => 'cursor-pointer p-2'.($iconOnly ? ' inline-flex items-center justify-center max-sm:min-h-11 max-sm:min-w-11' : ''),
+        'aria-label' => $iconOnly ? __('general.delete') : null,
 ])
 }}  wire:click="confirmDelete({{$modelId}})">
     <svg class="size-4.5 text-primary " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">

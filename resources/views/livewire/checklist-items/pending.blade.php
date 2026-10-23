@@ -7,11 +7,12 @@
         <x-heading-label>{{ __('general.pending_checklist_requests') }}</x-heading-label>
     </div>
 
-    @if($pendingItems->isEmpty())
-        <div class="text-center text-secondary-light italic py-12 border border-dashed border-neutral-300 rounded-surface bg-neutral-50">
-            {{ __('general.no_pending_requests') }}
-        </div>
+    @if($loadFailed)
+        <x-ui.load-error />
+    @elseif($pendingItems->isEmpty())
+        <x-center-empty-state :title="__('states.pending-delivers-empty-title')" :description="__('states.pending-delivers-empty-help')" />
     @else
+        <p class="sr-only" role="status" aria-live="polite">{{ trans_choice('states.items-count', $pendingItems->count()) }}</p>
         <div class="overflow-hidden rounded-surface border border-neutral-200 shadow-e1">
             <table class="min-w-full text-body text-left text-neutral-800">
                 <thead class="bg-neutral-100 text-secondary-medium uppercase text-small tracking-wider">
@@ -33,11 +34,12 @@
                                 <input type="text"
                                     wire:model.defer="notes.{{ $item->id }}"
                                     wire:key="note-input-{{ $item->id }}"
-                                    placeholder="{{ __('general.add_note') }}"
+                                    placeholder="{{ __('general.add-note') }}"
                                     class="w-full rounded-control border-primary text-body focus:border-primary focus:ring-primary">
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <button wire:click="markDelivered({{ $item->id }})"
+                                    wire:loading.attr="disabled" wire:target="markDelivered({{ $item->id }})"
                                     class="inline-flex items-center px-3 py-2 bg-primary text-white text-small font-semibold rounded-control hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
                                     {{ __('general.mark_as_delivered') }}
                                 </button>

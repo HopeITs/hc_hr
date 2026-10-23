@@ -100,9 +100,14 @@
         @empty
             <tr class="group">
                 <td class="p-0" colspan="{{ $columns->count() + 1 }}">
-                    <span class="block text-h4 text-center py-24 bg-white text-black dark:bg-neutral-900 dark:text-white">
-                        @lang('No results')
-                    </span>
+                    @if(method_exists($this, 'renderEmptyState'))
+                        {{-- Tables using App\Livewire\Concerns\HasListStates: empty / filtered / error. --}}
+                        <div class="sticky start-0 w-[min(100%,100vw)] bg-white p-4 dark:bg-neutral-900">{!! $this->renderEmptyState() !!}</div>
+                    @else
+                        <span class="block text-h4 text-center py-24 bg-white text-black dark:bg-neutral-900 dark:text-white">
+                            @lang('No results')
+                        </span>
+                    @endif
                 </td>
             </tr>
         @endforelse

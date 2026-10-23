@@ -435,9 +435,9 @@
             </section>
         </div>
 
-        <x-modal id="assigned-role-users-modal" max-width="3xl" wire:model.live="showAssignedUsersModal">
-            <section class="overflow-hidden rounded-xl bg-white" role="dialog" aria-modal="true"
-                aria-labelledby="assigned-role-users-title">
+        <x-modal id="assigned-role-users-modal" max-width="3xl" wire:model.live="showAssignedUsersModal"
+            labelledby="assigned-role-users-title">
+            <section class="overflow-hidden rounded-xl bg-white">
                 <header class="flex items-start justify-between gap-4 border-b border-neutral-200 px-[clamp(1rem,3vw,1.5rem)] py-4">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">

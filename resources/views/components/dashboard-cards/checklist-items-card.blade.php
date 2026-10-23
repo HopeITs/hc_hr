@@ -22,11 +22,11 @@
 
                 <div class="flex justify-between items-center">
                     <p class="text-[13px] font-bold text-[#58595B]">
-                        {{ $item->item?->name ?? 'Item #'.$item->item_id }}
+                        {{ $item->item?->name ?? __('dashboard.item-fallback', ['id' => $item->item_id]) }}
                     </p>
 
                     <span class="text-[11px] text-[#58595B]">
-                        {{ optional($item->delivered_at)->format('d/m/Y') }}
+                        <bdi>{{ optional($item->delivered_at)->format('d/m/Y') }}</bdi>
                     </span>
                 </div>
             </div>

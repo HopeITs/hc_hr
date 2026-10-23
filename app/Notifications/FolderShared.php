@@ -27,7 +27,7 @@ class FolderShared extends Notification
 
             'body' => [
                 'en' => "{$this->creatorName} shared the folder '{$this->folder->name}' with you. You can now access it in Shared Folders.",
-                'ar' => "{$this->creatorName} قام بمشاركة المجلد '{$this->folder->name}' معك. يمكنك الآن الوصول إليه ضمن المجلدات المشتركة.",
+                'ar' => "شارك {$this->creatorName} المجلد '{$this->folder->name}' معك. يمكنك الوصول إليه الآن من المجلدات المشتركة.",
             ],
             'url' => route('shared-folders.index', ['folderId' => $this->folder->id]),
         ];

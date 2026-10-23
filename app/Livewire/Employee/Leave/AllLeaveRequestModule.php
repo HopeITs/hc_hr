@@ -4,23 +4,31 @@ namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveRequestStatus;
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
+use App\Livewire\Concerns\TracksTaskAttempt;
 use App\Livewire\Concerns\WithFeedback;
+use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveNotificationService;
+use App\Support\Leave\LeaveQuote;
 use Blade;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Throwable;
 
 class AllLeaveRequestModule extends Component
 {
     use AuthorizesActivePermissions;
+    use FormatsLeaveDuration;
+    use GuardsModalClose;
+    use TracksTaskAttempt;
     use WithFeedback;
 
     public LeaveBalance $leaveBalance;
@@ -31,7 +39,7 @@ class AllLeaveRequestModule extends Component
 
     public $formModal = false;
 
-    public $modalTitle = 'Modal title';
+    public $modalTitle = '';
 
     public string $statusFilter = 'all';
 
@@ -58,6 +66,8 @@ class AllLeaveRequestModule extends Component
     protected $listeners = [
         'openRequestLeaveEdit' => 'edit',
         'openShowRequestLeave' => 'show',
+        'openAllLeaveCreate' => 'create',
+        'leaveStatusFilterCleared' => 'resetStatusFilter',
         'openDecisionRequestLeave' => 'openDecision',
         'processSave' => 'processSave',
     ];
@@ -89,7 +99,7 @@ class AllLeaveRequestModule extends Component
         $this->linkedLeaveId = $leaveRequest->id;
         $this->linkedLeaveMode = 'details';
 
-        $this->modalTitle = 'Leave Details';
+        $this->modalTitle = __('general.leave-details');
         $this->showModal = true;
     }
 
@@ -110,6 +120,7 @@ class AllLeaveRequestModule extends Component
         $this->form->leave_balance_id = (int) $id->leave_balance_id;
 
         $this->modalTitle = __('general.edit');
+        $this->markClean('formModal');
         $this->formModal = true;
     }
 
@@ -143,12 +154,16 @@ class AllLeaveRequestModule extends Component
         $this->linkedLeaveMode = 'decision';
 
         $this->modalTitle = __('general.leave-decision');
+        $this->markClean('decisionModal');
         $this->decisionModal = true;
+        // X2-I task C: one attempt per opened decision.
+        $this->startTaskAttempt('leave_review');
     }
 
     public function submitDecision()
     {
         $leaveRequest = $this->form->submitDecision();
+        $this->finishTaskAttempt();
 
         app(LeaveNotificationService::class)->sendDecision(
             $leaveRequest,
@@ -181,6 +196,7 @@ class AllLeaveRequestModule extends Component
 
     public function closeDecision(): void
     {
+        $this->finishTaskAttempt('cancelled');
         $this->decisionModal = false;
         $this->decisionLeave = null;
         $this->clearLinkedLeave();
@@ -191,15 +207,33 @@ class AllLeaveRequestModule extends Component
         $user = auth()->user();
         $leaveRequests = LeaveRequest::query()->manageableBy($user);
 
-        $this->counts = ['all' => (clone $leaveRequests)->count(),
-            'pending' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Pending)->count(),
-            'accepted' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Accepted)->count(),
-            'rejected' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Rejected)->count(), ];
+        // A failed count must not take the page down: the table below shows the
+        // load error with its retry, and the tabs fall back to zero until it recovers.
+        try {
+            $this->counts = ['all' => (clone $leaveRequests)->count(),
+                'pending' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Pending)->count(),
+                'accepted' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Accepted)->count(),
+                'rejected' => (clone $leaveRequests)->where('status', LeaveRequestStatus::Rejected)->count(), ];
+        } catch (Throwable $e) {
+            report($e);
+            $this->counts = ['all' => 0, 'pending' => 0, 'accepted' => 0, 'rejected' => 0];
+        }
+    }
+
+    /** The table's "clear filters" when only the status tab was narrowing the list. */
+    public function resetStatusFilter(): void
+    {
+        $this->setActiveTab('all');
     }
 
     public function create()
     {
+        // Also reached by the empty-state button's event, so check here, not in the view.
+        $this->authorizeActivePermission('leaves.create');
+        abort_unless(auth()->user()->activeRoleIs('HR', 'super-admin'), 403);
+
         $this->form->reset();
+        $this->markClean('formModal');
         $this->formModal = true;
         $this->modalTitle = __('general.add-new');
     }
@@ -215,7 +249,15 @@ class AllLeaveRequestModule extends Component
 
     public function confirmSave()
     {
-        $html = $this->confirmationMessage();
+        // Validate first: the confirmation needs a chosen leave balance, and
+        // without this an empty form only reported "leave type is invalid"
+        // instead of each missing field.
+        $this->form->validate();
+        // Pricing errors (balance, December, working hours ...) on their own
+        // fields, from the same service store()/update() use under a lock.
+        $quote = $this->form->checkedQuote();
+
+        $html = $this->confirmationMessage($quote);
 
         $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: __('general.save'), danger: false);
 
@@ -259,6 +301,31 @@ class AllLeaveRequestModule extends Component
 
     }
 
+    /** The details dialog is read-only and keeps its ordinary close. */
+    protected function guardedDialogs(): array
+    {
+        return ['formModal', 'decisionModal'];
+    }
+
+    protected function guardedEntries(string $dialog): array
+    {
+        return $dialog === 'decisionModal'
+            ? $this->form->only(['status', 'reject_reason'])
+            : $this->form->entries() + ['employee_id' => $this->form->employee_id];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        if ($dialog === 'decisionModal') {
+            $this->closeDecision();
+        } else {
+            $this->formModal = false;
+            $this->form->reset();
+        }
+
+        $this->form->resetValidation();
+    }
+
     /**
      * Employees selectable in the dropdown, scoped to the HR user's city.
      * Computed per render (not stored as state) so the heavy list is never
@@ -280,24 +347,33 @@ class AllLeaveRequestModule extends Component
             ->get();
     }
 
-    protected function confirmationMessage(): string
+    /**
+     * The duration comes from the pricing service. No balance figure is shown
+     * here: this page is also used by managers, who see the leave type but
+     * not balances (A3-D §9).
+     */
+    protected function confirmationMessage(?LeaveQuote $quote): string
     {
         $leaveTypeName = $this->form->selectedBalance()
             ->leaveType
-            ->name ?? 'N/A';
+            ->name ?? '—';
 
         $type = $this->form->type;
 
         $start = $this->resolveStart();
         $end = $this->resolveEnd();
-        $duration = $this->resolveDuration();
+        // No quote: a content-only edit of an accepted request, which keeps
+        // its stored amount.
+        $duration = $quote
+            ? $this->formatLeaveSplit($quote->requestedHours, $quote->hoursPerDay)
+            : ($this->form->leaveRequest?->duration ?? '—');
         $date = $this->form->leave_date;
         $reason = $this->form->reason;
 
         return Blade::render(
-            '<x-alerts.leave-request-confirmation
+            '<x-leave.request-confirmation
                 :type="$type"
-                :leave_type="$leaveTypeName"
+                :leave-type="$leaveTypeName"
                 :start="$start"
                 :end="$end"
                 :duration="$duration"
@@ -338,17 +414,6 @@ class AllLeaveRequestModule extends Component
         return $this->form->type === 'day'
             ? Carbon::parse($this->form->end_at)->format('d-m-Y')
             : $this->form->end_hour;
-    }
-
-    protected function resolveDuration()
-    {
-        if ($this->form->type === 'day') {
-            return Carbon::parse($this->form->start_at)
-                ->diffInDays(Carbon::parse($this->form->end_at)) + 1;
-        }
-
-        return Carbon::parse($this->form->start_hour)
-            ->floatDiffInHours(Carbon::parse($this->form->end_hour));
     }
 
     private function clearLinkedLeave(): void

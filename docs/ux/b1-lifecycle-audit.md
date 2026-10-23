@@ -1,0 +1,35 @@
+# B1 / AC-B1-03 widget lifecycle audit (wire:navigate)
+
+Method: static code reading only. No browser, no console, no Livewire runtime was used, so nothing below is browser-verified. Every row marked "needs browser proof" must be checked in a real browser (repeat Dashboard -> other page -> Dashboard 5+ times, EN and AR; watch the console and the listener/instance counts).
+
+Key mechanics assumed: `@vite` app.js is a module in `<head>` and runs once; inline `<script>` blocks and `<script src>` tags in the swapped `<body>` re-run on every navigation unless `data-navigate-once`.
+
+| File | Widget | Issue | Fix / status | Needs browser proof |
+|---|---|---|---|---|
+| resources/js/contract-composer.js | Alpine `contractComposer` | `window` `composer-invalid` listener added in `initialize()`, never removed; one more per composer visit, each holding a dead component. `leaveTimer` also not cleared on teardown. | Fixed: handler stored, `destroy()` removes it and clears the timer. | Yes (visit composer repeatedly, trigger a failed submit, confirm one effect) |
+| resources/js/contract-type-employees-chart.js | amCharts `#chartdiv` | `Root.new` without disposing an existing Root on that node. lazy-charts runs on first load and again on `livewire:navigated` (which also fires on initial load) and after each commit, so amCharts throws "multiple Roots" and the error is caught and logged. | Fixed: dispose roots on the node before creating. | Yes |
+| resources/js/job-levels-employees.js | amCharts `#jobLevelsChart` | Same as above. | Fixed: same. | Yes |
+| resources/js/donut-chart.js | amCharts `#salaryTypePieChart` | Already disposes before re-create. | OK, no change. | No |
+| resources/js/charts/lazy-charts.js | amCharts loader | Roots never disposed when wire:navigate removes the hosts (registry and animation loops accumulate). Listeners themselves are registered once (module scope): OK. | Fixed: on `livewire:navigating`, dispose all roots (only imports amCharts if a chart ever loaded). | Yes |
+| resources/js/app.js | Chart.js inline dashboard charts (5 views) | Instances never destroyed when their canvas is removed by navigation. | Fixed: `livewire:navigating` destroys `Chart.instances`. | Yes |
+| resources/js/app.js | Flowbite re-init, `Livewire.hook('commit')`, `select2:open` | Registered once at module scope: OK. `initFlowbite()` per commit/navigate relies on Flowbite's own instance guards. | No change. | Yes (dropdown/modal toggles once per click) |
+| resources/js/scatter-chart.js | Chart.js scatter | Init on DOMContentLoaded + navigated is guarded by destroy-before-create. `Livewire?.hook("message.processed")` is a Livewire 2 hook that never fires in v4 (and `Livewire` may be undefined at module time): dead code. | Fixed: dead hook removed; cleanup now via the navigating destroy in app.js. Note: scatter is not re-initialised after an in-place commit; not changed. | Yes |
+| resources/views/partials/scripts.blade.php | Font Awesome kit, Flowbite CDN scripts | Sit in `<body>`, so re-executed on every navigation (re-registers listeners / resets Flowbite's instance registry). Flowbite is also bundled via npm in app.js, so two copies exist. | Fixed: `data-navigate-once` on both tags. Duplicate Flowbite copies NOT removed (behavior change, needs decision). | Yes |
+| resources/views/components/dashboard-cards/today-events-card.blade.php | Swiper | New Swiper per visit, never destroyed (autoplay timer outlives the element); CDN bundle re-executed. | Fixed: `data-navigate-once` on bundle, skip if already initialised, destroy on `livewire:navigating`. | Yes |
+| resources/views/components/dashboard-cards/employee-chart-statistics.blade.php | Chart.js + Select2 | Loaded `asset('js/chart.umd.js')`, which does not exist in public/js (404 every visit; would also replace `window.Chart` if it existed). Select2 re-initialised on the fresh element each visit: OK. Open Select2 dropdown is appended to body and may orphan on navigation. | Fixed: redundant script tag removed (`window.Chart` already provided by app.js; Filler not needed, `fill: false`). Orphan dropdown not changed. | Yes |
+| resources/views/components/dashboard-cards/department-employees-statistics.blade.php, livewire/dashboard/{department,job-level}-employee-statistics, my-leaves-card | Chart.js inline | Use the readyState guard and no document listeners: OK. Instance cleanup now covered by app.js. | No change. | Yes |
+| resources/views/components/forms/tags-input.blade.php | Alpine `tagsInput` | Re-registers `Alpine.data` each navigation (overwrite, same definition, no listeners); `once` listener on alpine:init. `hideSuggestionsLater` timeout is a harmless 150 ms. | Acceptable; no change. | Low |
+| profile-card.blade.php, contract-details.blade.php | `Livewire.on` global listeners | Guarded by `window.__hc*Bound` flags: OK. | No change. | No |
+| resources/js/product-tour.js | Tour store/data, overlay | `destroy()` unbinds resize/scroll and flags the autostart timeout; store registered once on alpine:init. The 450 ms `show()` timeout is not cleared but only calls `scheduleMeasure` (confirm it no-ops when closed). | No change. | Yes (start tour, navigate mid-tour) |
+| resources/js/feedback.js | Toasts / confirm store | `alpine:init` once; window `toast` / `confirm-dialog` listeners registered once; `errorSummary` unregisters its commit hook in `destroy()`. Toast timers live in a global store by design. | No change. | Yes |
+| resources/js/clock-timepicker.js | clock-timepicker | Per-element `data-bound` guard: OK. | No change. | No |
+| resources/js/password-toggle.js, password-strength.js | Delegated click / global fn | Delegated once: OK. | No change. | No |
+| public/js/custom-scrollbar.js | Overlay scrollbars | Booted-once guard exists. Observers follow the new body on `livewire:navigated`. The `instances` array keeps update closures for removed elements (slow growth, per-element ResizeObserver/MutationObserver on detached nodes are collectable). | No change (low risk); candidate for pruning. | Yes (long session) |
+| livewire/layout/header.blade.php, sidebar/profile-card.blade.php | `roleDropdown()` global function | Function declaration only; no listeners. | No change. | No |
+| livewire/dashboard/employee-notes-card.blade.php | `notesBoard()` | Global function, no document listeners. | No change. | No |
+| Select2 across 20+ views | Select2 | No global teardown found; instances live on removed nodes and are collected with them. Not exhaustively audited per view. | Not changed. | Yes |
+
+## Verification performed
+- `npm ci` then `npm run build`: the JS graph transforms (339 modules), but the build stops on `Can't resolve '../../vendor/livewire/flux/dist/flux.css'` because `vendor/` (composer) is absent in this sandbox. This is environmental, not caused by these edits. `node --check` passed on all six modified JS files. Full build NOT confirmed.
+- `php vendor/bin/pint`: not runnable (no vendor/). No PHP files were changed by this task.
+- No browser verification was performed.

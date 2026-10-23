@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\CourseCategory;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\Component;
 class CourseCategoryModule extends Component
 {
     use AuthorizesActivePermissions;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -48,6 +50,7 @@ class CourseCategoryModule extends Component
         $this->resetValidation();
 
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -65,6 +68,7 @@ class CourseCategoryModule extends Component
         $this->modalTitle = __('general.edit');
 
         $this->resetValidation();
+        $this->markClean();
         $this->showModal = true;
     }
 

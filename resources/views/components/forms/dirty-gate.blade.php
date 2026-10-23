@@ -9,7 +9,7 @@
 ])
 
 @unless ($active)
-    <div {{ $attributes }} x-data="{ dirty: true }">
+    <div {{ $attributes->class(['m1-action-bar']) }} x-data="{ dirty: true }">
         {{ $slot }}
     </div>
 @else
@@ -23,7 +23,7 @@
         trip, so wire:dirty goes clean again the moment the upload lands, and
         the save button would lock right after picking a file.
     --}}
-    <div {{ $attributes }}
+    <div {{ $attributes->class(['m1-action-bar']) }}
         x-data="{
             watching: @js($watch),
             baseline: null,

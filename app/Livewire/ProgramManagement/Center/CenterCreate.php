@@ -56,7 +56,7 @@ class CenterCreate extends Component
 
         $this->toast();
 
-        return redirect()->route('centers.index');
+        return $this->redirectRoute('centers.index', navigate: true);
     }
 
     public function render()

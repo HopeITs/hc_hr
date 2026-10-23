@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\ContractType;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\Component;
 class ContractTypeModule extends Component
 {
     use AuthorizesActivePermissions;
+    use GuardsModalClose;
     use WithFeedback;
 
     public bool $showModal = false;
@@ -40,6 +42,7 @@ class ContractTypeModule extends Component
 
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
+        $this->markClean();
         $this->showModal = true;
     }
 
@@ -56,6 +59,7 @@ class ContractTypeModule extends Component
             'name_en' => $model->name_en,
         ];
 
+        $this->markClean();
         $this->showModal = true;
     }
 

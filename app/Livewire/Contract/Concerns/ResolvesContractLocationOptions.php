@@ -352,7 +352,7 @@ trait ResolvesContractLocationOptions
     private function validateCityConsistency(): bool
     {
         if (! auth()->user()?->canAccessCity((int) $this->city_id)) {
-            $this->addError('city_id', __('You may only manage contracts in your active city.'));
+            $this->addError('city_id', __('contracts.errors.city-not-allowed'));
 
             return false;
         }
@@ -369,7 +369,7 @@ trait ResolvesContractLocationOptions
             ->exists();
 
         if (! $employeeMatchesCity) {
-            $this->addError('form.employee_id', __('The selected employee must belong to the contract city.'));
+            $this->addError('form.employee_id', __('contracts.errors.employee-city-mismatch'));
 
             return false;
         }
@@ -382,7 +382,7 @@ trait ResolvesContractLocationOptions
             ->find($this->form->position_id);
 
         if (! $position) {
-            $this->addError('form.position_id', __('validation.exists', ['attribute' => 'position']));
+            $this->addError('form.position_id', __('contracts.errors.position-not-found'));
 
             return false;
         }
@@ -392,19 +392,19 @@ trait ResolvesContractLocationOptions
             ->exists();
 
         if (! $belongsToCity) {
-            $this->addError('form.position_id', __('validation.custom.position_id.invalid'));
+            $this->addError('form.position_id', __('contracts.errors.position-not-in-city'));
 
             return false;
         }
 
         if ($this->program_id && (int) $position->program_id !== (int) $this->program_id) {
-            $this->addError('form.position_id', __('validation.custom.position_id.program_mismatch'));
+            $this->addError('form.position_id', __('contracts.errors.position-program-mismatch'));
 
             return false;
         }
 
         if ($this->center_id && (int) $position->center_id !== (int) $this->center_id) {
-            $this->addError('form.position_id', __('validation.custom.position_id.center_mismatch'));
+            $this->addError('form.position_id', __('contracts.errors.position-center-mismatch'));
 
             return false;
         }

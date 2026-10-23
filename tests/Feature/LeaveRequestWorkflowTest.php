@@ -7,13 +7,18 @@ use App\Livewire\Employee\Leave\AllLeaveRequestModule;
 use App\Livewire\Employee\Leave\AllLeaveRequestTable;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Livewire\Employee\Leave\MyLeaveRequestTable;
+use App\Livewire\Notifications\Dropdown as NotificationsDropdown;
+use App\Livewire\Notifications\Index as NotificationsIndex;
 use App\Models\LeaveRequest;
+use App\Models\TaskAttempt;
 use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\NewLeaveRequest;
 use App\Services\LeaveNotificationService;
+use App\Services\NotificationRequestState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -105,8 +110,8 @@ class LeaveRequestWorkflowTest extends TestCase
             ->test(MyLeaveRequestModule::class)
             ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
             ->set('form.type', 'day')
-            ->set('form.start_at', now()->addMonth()->toDateString())
-            ->set('form.end_at', now()->addMonth()->addDay()->toDateString())
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
             ->set('form.reason', 'Final end-to-end confirmation scenario.')
             ->call('confirmSave')
             ->assertHasNoErrors();
@@ -121,8 +126,8 @@ class LeaveRequestWorkflowTest extends TestCase
             ->test(MyLeaveRequestModule::class)
             ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
             ->set('form.type', 'day')
-            ->set('form.start_at', now()->addMonth()->toDateString())
-            ->set('form.end_at', now()->addMonth()->addDay()->toDateString())
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
             ->set('form.reason', 'Alternative without an active contract.')
             ->set('form.alternative_employee', $outsiderId)
             ->call('processSave')
@@ -141,8 +146,8 @@ class LeaveRequestWorkflowTest extends TestCase
             ->test(MyLeaveRequestModule::class)
             ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
             ->set('form.type', 'day')
-            ->set('form.start_at', now()->addMonth()->toDateString())
-            ->set('form.end_at', now()->addMonth()->addDay()->toDateString())
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
             ->set('form.reason', 'Verify the stored alternative employee.')
             ->set('form.alternative_employee', $alternativeEmployeeId)
             ->set('form.status', LeaveRequestStatus::Accepted)
@@ -177,8 +182,8 @@ class LeaveRequestWorkflowTest extends TestCase
             ->test(MyLeaveRequestModule::class)
             ->set('form.leave_balance_id', $otherLeave->leave_balance_id)
             ->set('form.type', 'day')
-            ->set('form.start_at', now()->addMonth()->toDateString())
-            ->set('form.end_at', now()->addMonth()->addDay()->toDateString())
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
             ->set('form.reason', 'Forged balance request.')
             ->call('processSave')
             ->assertHasErrors(['form.leave_balance_id']);
@@ -716,6 +721,183 @@ class LeaveRequestWorkflowTest extends TestCase
     }
 
     /**
+     * @return array{0: User, 1: LeaveRequest}
+     */
+    /** A5-M: a chosen decision is guarded; closing it writes nothing and clears the deep link. */
+    public function test_closing_a_decision_with_a_choice_asks_and_discarding_writes_nothing(): void
+    {
+        [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
+        Notification::fake();
+
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->call('requestClose', 'decisionModal')
+            ->assertSet('decisionModal', false)
+            ->assertNotDispatched('confirm-dialog')
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'Coverage is unavailable.')
+            ->call('requestClose', 'decisionModal')
+            ->assertSet('decisionModal', true)
+            ->assertSet('form.reject_reason', 'Coverage is unavailable.')
+            ->assertDispatched('confirm-dialog', method: 'discardChanges', payload: 'decisionModal')
+            ->call('discardChanges', 'decisionModal')
+            ->assertSet('decisionModal', false)
+            ->assertSet('linkedLeaveId', null)
+            ->call('openDecision', $leaveRequest->id)
+            ->assertSet('form.status', null)
+            ->assertSet('form.reject_reason', null);
+
+        $this->assertSame(LeaveRequestStatus::Pending, (int) $leaveRequest->fresh()->status);
+        Notification::assertNothingSent();
+    }
+
+    public function test_the_hr_request_form_is_guarded_and_the_details_dialog_is_not(): void
+    {
+        [$decisionMaker] = $this->createPendingDecisionFixture();
+        $before = LeaveRequest::query()->count();
+
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('create')
+            ->call('requestClose', 'formModal')
+            ->assertSet('formModal', false)
+            ->assertNotDispatched('confirm-dialog')
+            ->call('create')
+            ->set('form.reason', 'Typed by HR')
+            ->call('requestClose', 'formModal')
+            ->assertSet('formModal', true)
+            ->assertDispatched('confirm-dialog', method: 'discardChanges', payload: 'formModal')
+            ->call('discardChanges', 'formModal')
+            ->assertSet('formModal', false)
+            ->assertSet('form.reason', '')
+            ->assertSeeHtml("\$wire.call(this.guard, 'formModal')")
+            ->assertSeeHtml("\$wire.call(this.guard, 'decisionModal')")
+            ->assertDontSeeHtml(route('leaves.all').'"');
+
+        // Read-only details keep their ordinary close; the guard refuses them.
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('requestClose', 'showModal')
+            ->assertNotFound();
+
+        $this->assertSame($before, LeaveRequest::query()->count());
+    }
+
+    public function test_x2i_closing_a_decision_cancels_and_a_submitted_one_completes_its_attempt(): void
+    {
+        config(['telemetry.enabled' => true]);
+        [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
+        Notification::fake();
+
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->call('closeDecision')
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->call('submitDecision')
+            ->assertHasErrors(['form.reject_reason'])
+            ->set('form.reject_reason', 'Required operational coverage is unavailable.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertSame(
+            [['leave_review', 'cancelled', false], ['leave_review', 'completed', true]],
+            TaskAttempt::query()->orderBy('id')->get()
+                ->map(fn (TaskAttempt $a) => [$a->task, $a->outcome, $a->had_validation_error])
+                ->all(),
+        );
+    }
+
+    /**
+     * Build only the domain records required by the leave details flow.
+     *
+     * The repository's EmployeeFactory still targets removed `name_*` columns,
+     * so these fixtures intentionally use the current migration schema.
+     *
+     * @return array{0: User, 1: LeaveRequest}
+     */
+    public function test_new_request_notification_is_awaiting_action_until_the_request_is_decided(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $leaveRequest->update(['reason' => 'Confidential: surgery follow-up']);
+        $hr->notify(new NewLeaveRequest($leaveRequest->fresh()));
+        $notification = $hr->notifications()->first();
+
+        $this->assertStringNotContainsString('surgery', json_encode($notification->data, JSON_UNESCAPED_UNICODE));
+
+        $states = app(NotificationRequestState::class);
+        $pending = $states->forMany($hr, [$notification])[$notification->id];
+        $this->assertSame('awaiting', $pending['state']);
+        $this->assertNotNull($pending['next_step']);
+
+        Livewire::actingAs($hr)->test(NotificationsIndex::class)->assertSee(__('general.notification-state.awaiting'));
+
+        $leaveRequest->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()]);
+
+        $decided = $states->forMany($hr, [$notification->fresh()])[$notification->id];
+        $this->assertSame('handled', $decided['state']);
+        $this->assertNull($decided['next_step']);
+        $this->assertNull($notification->fresh()->read_at, 'Handled is separate from unread');
+
+        Livewire::actingAs($hr)->test(NotificationsIndex::class)
+            ->assertSee(__('general.notification-state.handled'))
+            ->assertDontSee(__('general.notification-state.awaiting'));
+    }
+
+    public function test_opening_a_notification_for_a_deleted_request_is_a_safe_outcome(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $hr->notify(new NewLeaveRequest($leaveRequest->fresh()));
+        $notification = $hr->notifications()->first();
+        $leaveRequest->delete();
+
+        Livewire::actingAs($hr)
+            ->test(NotificationsDropdown::class)
+            ->call('openNotification', $notification->id)
+            ->assertNoRedirect()
+            ->assertDispatched('toast');
+
+        $this->assertNotNull($notification->fresh()->read_at);
+        $this->assertSame('unavailable', app(NotificationRequestState::class)
+            ->forMany($hr, [$notification->fresh()])[$notification->id]['state']);
+    }
+
+    public function test_opening_a_notification_after_losing_access_does_not_navigate(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $hr->notify(new NewLeaveRequest($leaveRequest->fresh()));
+        $notification = $hr->notifications()->first();
+
+        // Role change since the message was written: no role, no city.
+        $hr->syncRoles([]);
+
+        Livewire::actingAs($hr->fresh())
+            ->test(NotificationsDropdown::class)
+            ->call('openNotification', $notification->id)
+            ->assertNoRedirect()
+            ->assertDispatched('toast');
+
+        Livewire::actingAs($hr->fresh())->test(NotificationsIndex::class)
+            ->assertSee(__('general.notification-state.unavailable'))
+            ->assertDontSee($leaveRequest->leaveBalance->leaveType->name_en.' leave request from');
+    }
+
+    public function test_an_authorized_open_still_navigates_to_the_record(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $hr->notify(new NewLeaveRequest($leaveRequest->fresh()));
+        $notification = $hr->notifications()->first();
+
+        Livewire::actingAs($hr)
+            ->test(NotificationsDropdown::class)
+            ->call('openNotification', $notification->id)
+            ->assertRedirect();
+    }
+
+    /**
      * The all-leaves table lists other people's requests, so the employee
      * column has to be there for every role that can reach the page.
      */
@@ -748,14 +930,6 @@ class LeaveRequestWorkflowTest extends TestCase
             ->assertSee($teamMember->name);
     }
 
-    /**
-     * Build only the domain records required by the leave details flow.
-     *
-     * The repository's EmployeeFactory still targets removed `name_*` columns,
-     * so these fixtures intentionally use the current migration schema.
-     *
-     * @return array{0: User, 1: LeaveRequest}
-     */
     private function createRejectedLeaveFixture(
         ?string $rejectReason,
         string $email = 'employee@example.test',
@@ -886,9 +1060,6 @@ class LeaveRequestWorkflowTest extends TestCase
         return [$user, LeaveRequest::query()->findOrFail($leaveRequestId)];
     }
 
-    /**
-     * @return array{0: User, 1: LeaveRequest}
-     */
     private function createPendingDecisionFixture(): array
     {
         [, $leaveRequest] = $this->createRejectedLeaveFixture(null);
@@ -1066,5 +1237,21 @@ class LeaveRequestWorkflowTest extends TestCase
         } else {
             $this->assertSame($mode, $query['mode'] ?? null);
         }
+    }
+
+    /**
+     * A Monday at least a month ahead whose Monday and Tuesday are working
+     * days outside December, so the weekend (0,6) and the December rule
+     * (A3-D D-7) never depend on the day the suite runs.
+     */
+    private static function workingMonday(): Carbon
+    {
+        $monday = now()->addMonth()->next(Carbon::MONDAY)->startOfDay();
+
+        while ($monday->month === 12 || $monday->copy()->addDay()->month === 12) {
+            $monday->addWeek();
+        }
+
+        return $monday;
     }
 }

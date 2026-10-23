@@ -108,9 +108,9 @@ class ContractAccessByRoleTest extends TestCase
             ->test(ContractsTable::class)
             ->assertSee(['Directreport', 'Techreport', 'Bothreport'])
             ->assertDontSee(['Aleppoworker', 'Latakiaworker'])
-            // No edit button, and clicking the row opens the contract itself.
+            // No edit link, and clicking the row opens the read-only drawer (never an editor).
             ->assertDontSee(route('contracts.edit', $this->directReport))
-            ->assertSeeHtml("Livewire.navigate('".route('contracts.show', $this->directReport)."')");
+            ->assertSee("Livewire.dispatch('open-contract-drawer', { contractId: {$this->directReport->id} })");
     }
 
     public function test_manager_opens_a_report_contract_read_only(): void

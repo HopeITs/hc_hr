@@ -31,20 +31,15 @@ class ActionLeaveBalance extends Notification
 
         $isAdd = $this->operation === 'sum';
 
-        $amountLabelAr = $this->unit === 'day'
-            ? "{$this->amount} يوم"
-            : "{$this->amount} ساعة";
-
-        $amountLabelEn = $this->unit === 'day'
-            ? "{$this->amount} day(s)"
-            : "{$this->amount} hour(s)";
+        $amountLabelAr = $this->amountLabel('ar');
+        $amountLabelEn = $this->amountLabel('en');
 
         // رسائل الموظف
         if ($this->recipientType === 'employee') {
             return [
                 'title' => [
                     'en' => $isAdd ? 'Leave Balance Increased' : 'Leave Balance Deducted',
-                    'ar' => $isAdd ? 'تمت زيادة رصيد الإجازات' : 'تم خصم من رصيد الإجازات',
+                    'ar' => $isAdd ? 'تمت زيادة رصيد الإجازات' : 'تم الخصم من رصيد الإجازات',
                 ],
                 'body' => [
                     'en' => $isAdd
@@ -78,5 +73,26 @@ class ActionLeaveBalance extends Notification
         }
 
         return [];
+    }
+
+    /**
+     * "3 days" / "3 أيام" in the given language, with the right plural form.
+     * A fractional amount has no plural category, so it keeps the plain unit.
+     */
+    private function amountLabel(string $locale): string
+    {
+        $unit = $this->unit === 'day' ? 'days' : 'hours';
+        $number = (float) $this->amount;
+
+        if (fmod($number, 1.0) === 0.0) {
+            return trans_choice("general.count.{$unit}", (int) $number, [], $locale);
+        }
+
+        return $this->amount.' '.match ([$unit, $locale]) {
+            ['days', 'ar'] => 'يوم',
+            ['hours', 'ar'] => 'ساعة',
+            ['days', 'en'] => 'days',
+            default => 'hours',
+        };
     }
 }

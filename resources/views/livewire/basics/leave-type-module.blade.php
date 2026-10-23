@@ -38,7 +38,7 @@
 
     <livewire:basics.leave-type-table />
 
-    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" wire:ignore.self>
+    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
         <form wire:submit.prevent="save" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 @foreach (config('app.supported_locales') as $locale)
@@ -59,34 +59,25 @@
                 </div>
 
                 <div>
-                    <x-forms.input-label required>@lang('general.allowed-gender')</x-forms.input-label>
-                    <div class="flex justify-between">
-                        <x-forms.radio-input id="any_gender" name="allowed_gender" value="{{ LeaveType::GENDER_ANY }}"
+                    <x-forms.radio-group :legend="__('general.allowed-gender')" error="item.allowed_gender" required>
+                        <x-forms.radio-input value="{{ LeaveType::GENDER_ANY }}"
                             wire:model="item.allowed_gender">{{ LeaveType::getGender(LeaveType::GENDER_ANY)['value'] }}</x-forms.radio-input>
-                        <x-forms.radio-input id="male" name="allowed_gender" value="{{ LeaveType::GENDER_MALE }}"
+                        <x-forms.radio-input value="{{ LeaveType::GENDER_MALE }}"
                             wire:model="item.allowed_gender">{{ LeaveType::getGender(LeaveType::GENDER_MALE)['value'] }}</x-forms.radio-input>
-                        <x-forms.radio-input id="female" name="allowed_gender"
-                            value="{{ LeaveType::GENDER_FEMALE }}"
+                        <x-forms.radio-input value="{{ LeaveType::GENDER_FEMALE }}"
                             wire:model="item.allowed_gender">{{ LeaveType::getGender(LeaveType::GENDER_FEMALE)['value'] }}</x-forms.radio-input>
-                    </div>
-                    <x-error-span>{{ $errors->first('item.allowed_gender') }}</x-error-span>
+                    </x-forms.radio-group>
                 </div>
 
                 <div>
-                    <x-forms.input-label required>@lang('general.marital_status')</x-forms.input-label>
-                    <div class="flex justify-between">
-                        <x-forms.radio-input id="any_status" name="marital_status"
-                            value="{{ LeaveType::MARITAL_STATUS_ANY }}"
+                    <x-forms.radio-group :legend="__('general.marital_status')" error="item.marital_status" required>
+                        <x-forms.radio-input value="{{ LeaveType::MARITAL_STATUS_ANY }}"
                             wire:model="item.marital_status">{{ LeaveType::getMaritalStatus(LeaveType::MARITAL_STATUS_ANY)['value'] }}</x-forms.radio-input>
-                        <x-forms.radio-input id="single" name="marital_status"
-                            value="{{ LeaveType::MARITAL_STATUS_SINGLE }}"
+                        <x-forms.radio-input value="{{ LeaveType::MARITAL_STATUS_SINGLE }}"
                             wire:model="item.marital_status">{{ LeaveType::getMaritalStatus(LeaveType::MARITAL_STATUS_SINGLE)['value'] }}</x-forms.radio-input>
-                        <x-forms.radio-input id="married" name="marital_status"
-                            value="{{ LeaveType::MARITAL_STATUS_MARRIED }}"
+                        <x-forms.radio-input value="{{ LeaveType::MARITAL_STATUS_MARRIED }}"
                             wire:model="item.marital_status">{{ LeaveType::getMaritalStatus(LeaveType::MARITAL_STATUS_MARRIED)['value'] }}</x-forms.radio-input>
-                    </div>
-
-                    <x-error-span>{{ $errors->first('item.marital_status') }}</x-error-span>
+                    </x-forms.radio-group>
                 </div>
             </div>
 

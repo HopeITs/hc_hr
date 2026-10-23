@@ -30,6 +30,11 @@ export default function initJobLevelsChart() {
     }
 
     am5.ready(function () {
+        // Re-runs must not stack a second Root on the same node (amCharts throws).
+        am5.registry.rootElements
+            .filter((r) => r.dom.id === "jobLevelsChart")
+            .forEach((r) => r.dispose());
+
         const root = am5.Root.new("jobLevelsChart");
         applyBrandInterfaceColors(root);
 

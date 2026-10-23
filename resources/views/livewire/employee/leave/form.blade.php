@@ -35,25 +35,22 @@
 
             @if($form->leave_balance_id !== null)
                 @if($availableLeaves->find($form->leave_balance_id)?->leaveType?->id === LeaveTypeCases::Annual)
-                    <div class="mt-4">
-                        <x-forms.input-label>Leave Type</x-forms.input-label>
-                        <div class="flex gap-4">
-                            <x-forms.radio-input wire:model.live="form.type" value="day">{{trans_choice('general.day',1)}}</x-forms.radio-input>
-                            <x-forms.radio-input wire:model.live="form.type" value="hour">{{trans_choice('general.hour',1)}}</x-forms.radio-input>
-                        </div>
-                    </div>
+                    <x-forms.radio-group class="mt-4" :legend="trans_choice('general.leave-type',1)" error="form.type">
+                        <x-forms.radio-input wire:model.live="form.type" value="day">{{trans_choice('general.day',1)}}</x-forms.radio-input>
+                        <x-forms.radio-input wire:model.live="form.type" value="hour">{{trans_choice('general.hour',1)}}</x-forms.radio-input>
+                    </x-forms.radio-group>
                 @endif
             @endif
             @if($form->leave_balance_id === null || $availableLeaves->find($form->leave_balance_id)?->leaveType?->id !== LeaveTypeCases::Annual)
 
                 <div>
                     <x-forms.input-label for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
-                    <x-forms.date-input id="start_at" wire:model.live="form.start_at" label="Start Date"/>
+                    <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')"/>
                     <x-error-span>{{ $errors->first('form.start_at') }}</x-error-span>
                 </div>
                 <div>
                     <x-forms.input-label for="end_at" required>{{__('general.end-date')}}</x-forms.input-label>
-                    <x-forms.date-input id="end_at" wire:model.live="form.end_at" label="End Date"/>
+                    <x-forms.date-input id="end_at" wire:model.live="form.end_at" :label="__('general.end-date')"/>
                     <x-error-span>{{ $errors->first('form.end_at') }}</x-error-span>
                 </div>
 
@@ -63,12 +60,12 @@
                     <div class="col-span-full grid md:grid-cols-2 gap-4">
                         <div>
                             <x-forms.input-label for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
-                            <x-forms.date-input id="start_at" wire:model.live="form.start_at" label="Start Date"/>
+                            <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')"/>
                             <x-error-span>{{ $errors->first('form.start_at') }}</x-error-span>
                         </div>
                         <div>
                             <x-forms.input-label for="end_at" required>{{__('general.end-date')}}</x-forms.input-label>
-                            <x-forms.date-input id="end_at" wire:model.live="form.end_at" label="End Date"/>
+                            <x-forms.date-input id="end_at" wire:model.live="form.end_at" :label="__('general.end-date')"/>
                             <x-error-span>{{ $errors->first('form.end_at') }}</x-error-span>
                         </div>
                     </div>
@@ -76,7 +73,7 @@
 
                     <div>
                         <x-forms.input-label for="leave_date" required>{{__('general.leave-date')}}</x-forms.input-label>
-                        <x-forms.date-input wire:model.live="form.leave_date" label="Leave Date"/>
+                        <x-forms.date-input id="leave_date" wire:model.live="form.leave_date" :label="__('general.leave-date')"/>
                         <x-error-span>{{ $errors->first('form.leave_date') }}</x-error-span>
                     </div>
 
@@ -103,7 +100,8 @@
 
         <div class="flex justify-end gap-2">
             <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
-            <x-primary-button :href="route('leaves.index')"
+            {{-- Closes locally, like Escape and the header close. --}}
+            <x-primary-button type="button" x-on:click="close()"
                               class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
         </div>
     </form>

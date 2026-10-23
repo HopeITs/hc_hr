@@ -3,14 +3,14 @@
     $titleField = 'title_' . $locale;
 @endphp
 
-<div class="relative w-full h-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] overflow-hidden flex flex-col">
+<div class="relative w-full h-full min-h-64 bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(88,_89,_91,_0.30)] overflow-hidden flex flex-col">
 
     <div class="flex items-center gap-2 px-6 pt-6 pb-4">
         <h2 class="text-h4 font-semibold text-secondary-medium">
             @lang('general.no-leaves-employees')
         </h2>
         <span class="text-secondary-light sm:text-h4 md:text-body font-medium">
-                {{ $noLeavesEmployees->count() }}
+                @unless ($loadFailed){{ $noLeavesEmployees->count() }}@endunless
             </span>
     </div>
 
@@ -18,6 +18,9 @@
                 scrollbar-thin scrollbar-thumb-[var(--color-neutral-300)] scrollbar-track-transparent
                 hover:scrollbar-thumb-[var(--color-secondary-medium)] max-h-[440px] ">
 
+        @if ($loadFailed)
+            <x-ui.load-error class="min-h-40" />
+        @else
         @forelse ($noLeavesEmployees as $emp)
             <div class="flex items-center justify-between py-4 border-b border-[var(--color-neutral-200)] last:border-0">
 
@@ -40,7 +43,7 @@
                         </p>
 
                         <p class="text-small text-[var(--color-neutral-500)] truncate">
-                            {{ $emp->latestActiveContract()->position->title . ' - ' .$emp->department->name }}
+                            {{ $emp->latestActiveContract()?->position?->title . ' - ' . $emp->department?->name }}
                         </p>
                     </div>
                 </div>
@@ -48,9 +51,8 @@
 
             </div>
         @empty
-            <div class="text-center p-4 text-body text-[var(--color-neutral-500)]">
-                No active contracts are set to end in the next 30 days.
-            </div>
+            <x-center-empty-state variant="empty" :title="__('dashboard.no-leaves-employees-empty')" :description="''" class="min-h-40! border-0 shadow-none" />
         @endforelse
+        @endif
     </div>
 </div>

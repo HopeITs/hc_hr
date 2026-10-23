@@ -2,17 +2,49 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Models\Contract;
 use App\Support\StatisticsCache;
 use Livewire\Component;
 
 class DepartmentEmployeeStatistics extends Component
 {
+    use HandlesLoadFailure;
+
     public $departmentLabels = [];
 
     public $employeeCounts = [];
 
-    public function mount()
+    public function mount(): void
+    {
+        $this->loadData();
+    }
+
+    /**
+     * B3: re-runs the load. This card's Chart.js script is pushed once at page load
+     * and reads the data inline, so a successful retry reloads the page instead of
+     * leaving a chart that was initialised from empty data.
+     */
+    public function retryLoad(): void
+    {
+        $this->loadData();
+
+        if (! $this->loadFailed) {
+            $this->js('window.location.reload()');
+        }
+    }
+
+    public function render()
+    {
+        return view('livewire.dashboard.department-employee-statistics');
+    }
+
+    private function loadData(): void
+    {
+        $this->guardedLoad(fn () => $this->compute());
+    }
+
+    private function compute(): void
     {
         /**
          * Headcount per department, based on each employee's current contract.
@@ -38,10 +70,5 @@ class DepartmentEmployeeStatistics extends Component
 
         $this->departmentLabels = array_keys($counts);
         $this->employeeCounts = array_map('intval', array_values($counts));
-    }
-
-    public function render()
-    {
-        return view('livewire.dashboard.department-employee-statistics');
     }
 }

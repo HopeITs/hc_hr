@@ -12,6 +12,9 @@ return [
     'failed' => 'Please check your credentials',
     'account_inactive' => 'This account has been deactivated. Please contact your HR administrator.',
     'throttle_ip' => 'Too many sign-in attempts from this network. Please try again in :seconds seconds.',
+    'throttle' => 'Too many sign-in attempts. Please try again in :seconds seconds.',
+    'login' => 'Log in',
+    'register' => 'Register',
 
     'reset-password' => 'Reset Password',
     'reset-password-text' => 'The new password must be different from previously used passwords.',

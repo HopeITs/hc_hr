@@ -58,7 +58,31 @@ class CalendarCard extends Component
 
         return view('livewire.dashboard.calendar-card', [
             'calendar' => $calendar,
+            'weekdays' => $this->weekdays(),
         ]);
+    }
+
+    /**
+     * Column headers, Monday first to match the ISO offset used above.
+     * The abbreviation comes from the lang file (Carbon's Arabic minimal
+     * names mix one- and two-letter forms); the full name from Carbon.
+     *
+     * @return list<array{short: string, name: string}>
+     */
+    private function weekdays(): array
+    {
+        $monday = Carbon::now()->locale(app()->getLocale())->startOfWeek(Carbon::MONDAY);
+
+        return collect(range(0, 6))
+            ->map(function (int $offset) use ($monday) {
+                $day = $monday->copy()->addDays($offset);
+
+                return [
+                    'short' => __('dashboard.weekdays-min.'.$day->dayOfWeekIso),
+                    'name' => $day->dayName,
+                ];
+            })
+            ->all();
     }
 
     private function formatDay(Carbon $date, bool $isCurrentMonth)

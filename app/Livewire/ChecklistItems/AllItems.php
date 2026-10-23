@@ -2,12 +2,15 @@
 
 namespace App\Livewire\ChecklistItems;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Models\Checklist;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class AllItems extends Component
 {
+    use HandlesLoadFailure;
+
     public function getItemsProperty()
     {
         $employee = Auth::user()->profile ?? null;
@@ -33,7 +36,8 @@ class AllItems extends Component
     public function render()
     {
         return view('livewire.checklist-items.all', [
-            'items' => $this->items,
+            // A failed query shows a retry panel (retryLoad only re-renders; nothing is written).
+            'items' => $this->guardedLoad(fn () => $this->items, fallback: collect()),
         ]);
     }
 }

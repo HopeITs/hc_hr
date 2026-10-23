@@ -10,25 +10,25 @@
 
     <div class="mx-7 my-1 flex items-center justify-between px-3">
         <p class="text-[13px] font-normal text-secondary-dark">
-            {{ $current->format('F Y') }}
+            {{ $current->copy()->locale(app()->getLocale())->translatedFormat('F Y') }}
         </p>
 
         <div class="flex gap-1 text-body font-light text-secondary-dark">
-            <button wire:click="prev" >&lt;</button>
-            <button wire:click="next" >&gt;</button>
+            {{-- "<" and ">" are bidi-mirrored characters, so in RTL they already
+                 point the right way without any rotation. --}}
+            <button type="button" wire:click="prev" aria-label="{{ __('dashboard.previous-month') }}" title="{{ __('dashboard.previous-month') }}">&lt;</button>
+            <button type="button" wire:click="next" aria-label="{{ __('dashboard.next-month') }}" title="{{ __('dashboard.next-month') }}">&gt;</button>
         </div>
     </div>
 
     <div class="mx-7 mb-2 border-t border-secondary-medium"></div>
 
     <div class="mx-7 mb-1 grid grid-cols-7 text-center text-[12px] font-medium tracking-wide text-secondary-dark">
-        <span>{{substr(__('general.days-of-week.1'), 0,2)}} </span>
-        <span>Tu</span>
-        <span>We</span>
-        <span>Th</span>
-        <span>Fr</span>
-        <span>Sa</span>
-        <span>Su</span>
+        {{-- Weeks start on Monday, matching the ISO weekday offset CalendarCard
+             uses to lay out the grid. --}}
+        @foreach ($weekdays as $weekday)
+            <abbr title="{{ $weekday['name'] }}" class="no-underline">{{ $weekday['short'] }}</abbr>
+        @endforeach
     </div>
 
     <div class="mx-7 grid grid-cols-7 gap-y-1 text-center text-[11px] font-light">

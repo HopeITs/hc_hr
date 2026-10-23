@@ -47,6 +47,7 @@ class CityExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMa
                 'name_en' => __('general.name', [], 'en').' (EN)',
                 'code' => __('general.code', [], 'en'),
                 'slug' => __('general.slug', [], 'en'),
+                'hr_hotline' => __('digital_id.city.hotline', [], 'en'),
                 'is_active' => __('general.active', [], 'en'),
                 default => $code,
             };
@@ -66,6 +67,7 @@ class CityExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMa
                 'name_en' => $row->name_en,
                 'code' => $row->code,
                 'slug' => $row->slug,
+                'hr_hotline' => $row->hr_hotline,
                 'is_active' => $row->is_active ? 'Yes' : 'No',
                 default => '',
             };

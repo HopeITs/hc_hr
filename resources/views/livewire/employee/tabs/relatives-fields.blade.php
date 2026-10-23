@@ -8,7 +8,7 @@
                     <x-primary-button type="button"
                                       :showSpinner="false"
                         x-on:click="if ({{ filled($relative['id'] ?? null) ? 'await $confirm()' : 'true' }}) $wire.removeRelative({{ $index }}, {{ $relative['id'] ?? 'null' }})"
-                        title="@lang('general.remove')">
+                        :title="__('general.delete')" :aria-label="__('general.delete')">
                         <x-icons.trash />
                     </x-primary-button>
                 </div>
@@ -34,7 +34,7 @@
 
                 <div>
                     <x-forms.input-label for="phone_{{ $index }}">@lang('general.phone')</x-forms.input-label>
-                    <x-forms.input id="phone_{{ $index }}" type="tel"
+                    <x-forms.input id="phone_{{ $index }}" type="tel" dir="ltr"
                         wire:model.defer="relativeForm.relatives.{{ $index }}.phone" />
                     <x-error-span>{{ $errors->first("relativeForm.relatives.$index.phone") }}</x-error-span>
                 </div>

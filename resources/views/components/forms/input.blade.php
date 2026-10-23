@@ -14,7 +14,11 @@
 @php
     use Illuminate\Support\Str;
 
-    $inputId = $id ?? Str::slug($model ?? 'input');
+    // A plain wire:model="..." (instead of the model prop) names the field just
+    // as well; without it every such input on a page shared id="input".
+    $boundModel = $model ?? ($attributes->wire('model')->value() ?: null);
+
+    $inputId = $id ?? Str::slug($boundModel ?? 'input');
     $wireAttr = $model ? "wire:model.$update" : null;
 
     /**
@@ -28,7 +32,7 @@
      * The error key defaults to the wire:model path, which is already the key
      * Livewire validates under, so existing call sites gain this for free.
      */
-    $errorField = $errorKey ?? $model;
+    $errorField = $errorKey ?? $boundModel;
     $hasError = $errorField !== null && $errors->has($errorField);
 
     $aria = [];

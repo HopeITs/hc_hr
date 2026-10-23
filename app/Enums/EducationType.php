@@ -23,12 +23,12 @@ final class EducationType extends Enum
     public static function getLocalizedName(int $value): string
     {
         $result = match ($value) {
-            self::Primary_School => ['en' => 'Primary School', 'ar' => 'تعليم اساسي'],
+            self::Primary_School => ['en' => 'Primary School', 'ar' => 'تعليم أساسي'],
             self::High_School => ['en' => 'High School', 'ar' => 'تعليم ثانوي'],
             self::Institute => ['en' => 'Institute', 'ar' => 'معهد'],
             self::University => ['en' => 'University', 'ar' => 'جامعة'],
             self::Master => ['en' => 'Master', 'ar' => 'ماجستير'],
-            self::PHD => ['en' => 'PHD', 'ar' => 'دكتوراه'],
+            self::PHD => ['en' => 'PhD', 'ar' => 'دكتوراه'],
             default => ['en' => 'Unknown', 'ar' => 'غير معروف'],
         };
 

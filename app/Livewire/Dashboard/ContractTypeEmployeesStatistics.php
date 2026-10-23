@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Support\StatisticsCache;
@@ -9,6 +10,8 @@ use Livewire\Component;
 
 class ContractTypeEmployeesStatistics extends Component
 {
+    use HandlesLoadFailure;
+
     /**
      * Donut sections → the contract_type_id values that roll up into them.
      *
@@ -17,14 +20,39 @@ class ContractTypeEmployeesStatistics extends Component
      * coupling visible rather than burying it mid-method.
      */
     private const GROUPS = [
-        'Annual' => [1, 2],
-        'Trial Period' => [3, 4],
-        'Service Agreement' => [5, 6],
+        'annual' => [1, 2],
+        'trial' => [3, 4],
+        'service' => [5, 6],
     ];
 
     public $chartData;
 
-    public function mount()
+    public function mount(): void
+    {
+        $this->loadData();
+    }
+
+    /**
+     * B3: re-runs the load. The amCharts init re-runs after every Livewire commit, so a re-render is enough.
+     */
+    public function retryLoad(): void
+    {
+        $this->loadData();
+    }
+
+    public function render()
+    {
+        return view('livewire.dashboard.contract-type-employees-statistics', [
+            'chartData' => $this->chartData,
+        ]);
+    }
+
+    private function loadData(): void
+    {
+        $this->guardedLoad(fn () => $this->compute());
+    }
+
+    private function compute(): void
     {
         /**
          * Contract counts per type, rolled up into the three donut sections.
@@ -44,19 +72,24 @@ class ContractTypeEmployeesStatistics extends Component
                 ->selectRaw('contract_type_id, COUNT(*) as total')
                 ->pluck('total', 'contract_type_id')
                 ->all(),
-            ContractType::pluck('name_en', 'id')->all(),
+            ContractType::query()->get(['id', 'name_en', 'name_ar'])
+                ->mapWithKeys(fn (ContractType $type) => [$type->id => [
+                    'en' => $type->name_en,
+                    'local' => $type->{transColumn('name')} ?: $type->name_en,
+                ]])
+                ->all(),
         ]);
 
         $this->chartData = collect(self::GROUPS)
-            ->map(fn (array $typeIds, string $mainCategory) => [
-                'category' => $mainCategory,
+            ->map(fn (array $typeIds, string $group) => [
+                'category' => __("dashboard.contract-groups.{$group}"),
                 'value' => array_sum(array_map(
                     fn ($typeId) => (int) ($countsByType[$typeId] ?? 0),
                     $typeIds,
                 )),
                 'breakdown' => collect($typeIds)
                     ->map(fn ($typeId) => [
-                        'category' => $this->shortLabel($typeNames[$typeId] ?? 'Unknown'),
+                        'category' => $this->shortLabel($typeNames[$typeId] ?? null),
                         'value' => (int) ($countsByType[$typeId] ?? 0),
                     ])
                     ->values(),
@@ -64,23 +97,22 @@ class ContractTypeEmployeesStatistics extends Component
             ->values();
     }
 
-    public function render()
-    {
-        return view('livewire.dashboard.contract-type-employees-statistics', [
-            'chartData' => $this->chartData,
-        ]);
-    }
-
     /**
      * The seeded names are too long to fit a donut legend, so the two agreement
      * variants are abbreviated. Anything else is shown verbatim.
      */
-    private function shortLabel(string $name): string
+    private function shortLabel(?array $name): string
     {
-        return match (strtolower($name)) {
-            'online agreement contract' => 'Online',
-            'onsite agreement contract' => 'Onsite',
-            default => $name,
+        if ($name === null) {
+            return __('general.unknown');
+        }
+
+        // Matched on the English name (stable seed value), shown in the
+        // current locale.
+        return match (strtolower((string) $name['en'])) {
+            'online agreement contract' => __('general.online'),
+            'onsite agreement contract' => __('general.onsite'),
+            default => (string) $name['local'],
         };
     }
 }

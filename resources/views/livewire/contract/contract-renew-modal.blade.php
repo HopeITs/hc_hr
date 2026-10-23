@@ -7,7 +7,7 @@
 <div>
     {{-- Explicit id: x-modal.dialog otherwise defaults every instance to
          id="modal", and this one shares pages with other modals. --}}
-    <x-modal.dialog id="contractRenewModal" wire:model="show" maxWidth="lg"
+    <x-modal.dialog id="contractRenewModal" wire:model="show" maxWidth="lg" close-action="requestClose"
                     :title="__('general.renew-contract')">
         @if($contract)
             @php($employee = $contract->employee)
@@ -101,7 +101,8 @@
                      buttons on one baseline instead of drifting apart. --}}
                 <div class="flex flex-col-reverse gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-4
                             sm:flex-row sm:items-center sm:justify-end">
-                    <button type="button" wire:click="close" wire:loading.attr="disabled"
+                    {{-- The dialog's close(): asks requestClose() if the period was changed. --}}
+                    <button type="button" x-on:click="close()" wire:loading.attr="disabled"
                             class="inline-flex h-10 items-center justify-center rounded-control px-4 text-body font-medium
                                    text-neutral-700 hover:bg-neutral-200 transition disabled:opacity-60">
                         @lang('general.cancel')

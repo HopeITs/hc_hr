@@ -7,6 +7,7 @@ use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
 use App\Console\Commands\ScanRecruitmentFiles;
+use App\Console\Commands\PruneTaskAttempts;
 use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
 use App\Console\Commands\SweepRecruitmentRetention;
@@ -44,6 +45,8 @@ Schedule::command(RedispatchRecruitmentRejectionNotices::class)->everyFiveMinute
 // erasure requests. Automatic time-based anonymization stays off until
 // RECRUITMENT_RETENTION_ENFORCE is set (config/recruitment-privacy.php).
 Schedule::command(SweepRecruitmentRetention::class)->dailyAt('02:15')->withoutOverlapping();
+// X2-I / DEC-10: task-attempt telemetry is deleted after 90 days.
+Schedule::command(PruneTaskAttempts::class)->dailyAt('03:10');
 Schedule::call(function () {
     Log::info('الكرون جوب يعمل بنجاح!');
 })->daily();

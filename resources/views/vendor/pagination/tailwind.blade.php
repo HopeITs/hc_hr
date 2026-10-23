@@ -1,5 +1,5 @@
 @if ($paginator->hasPages())
-    <nav role="navigation" aria-label="{{ __('Pagination Navigation') }}" class="flex items-center justify-between">
+    <nav role="navigation" aria-label="{{ __('pagination.navigation') }}" class="flex items-center justify-between">
         <div class="flex justify-between flex-1 sm:hidden">
             @if ($paginator->onFirstPage())
                 <span class="relative inline-flex items-center px-4 py-2 text-body font-medium text-secondary-medium bg-white border border-neutral-300 cursor-default leading-5 rounded-md dark:text-secondary-medium dark:bg-neutral-800 dark:border-neutral-600">
@@ -25,17 +25,11 @@
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
                 <p class="text-body text-neutral-800 leading-5 dark:text-secondary-light">
-                    {!! __('Showing') !!}
-                    @if ($paginator->firstItem())
-                        <span class="font-medium">{{ $paginator->firstItem() }}</span>
-                        {!! __('to') !!}
-                        <span class="font-medium">{{ $paginator->lastItem() }}</span>
-                    @else
-                        {{ $paginator->count() }}
-                    @endif
-                    {!! __('of') !!}
-                    <span class="font-medium">{{ $paginator->total() }}</span>
-                    {!! __('results') !!}
+                    {!! __('pagination.showing', [
+                        'first' => '<span class="font-medium">'.e($paginator->firstItem() ?? $paginator->count()).'</span>',
+                        'last' => '<span class="font-medium">'.e($paginator->lastItem() ?? $paginator->count()).'</span>',
+                        'total' => '<span class="font-medium">'.e($paginator->total()).'</span>',
+                    ]) !!}
                 </p>
             </div>
 
@@ -75,7 +69,7 @@
                                         <span class="relative inline-flex items-center px-4 py-2 -ml-px text-body font-medium text-secondary-medium bg-white border border-neutral-300 cursor-default leading-5 dark:bg-neutral-800 dark:border-neutral-600">{{ $page }}</span>
                                     </span>
                                 @else
-                                    <a href="{{ $url }}" class="relative inline-flex items-center px-4 py-2 -ml-px text-body font-medium text-neutral-800 bg-white border border-neutral-300 leading-5 hover:text-secondary-medium focus:z-10 focus:outline-none focus:ring ring-neutral-300 focus:border-neutral-300 active:bg-neutral-100 active:text-neutral-800 transition ease-in-out duration-150 dark:bg-neutral-800 dark:border-neutral-600 dark:text-secondary-light dark:hover:text-secondary-light dark:active:bg-neutral-700 dark:focus:border-neutral-800" aria-label="{{ __('Go to page :page', ['page' => $page]) }}">
+                                    <a href="{{ $url }}" class="relative inline-flex items-center px-4 py-2 -ml-px text-body font-medium text-neutral-800 bg-white border border-neutral-300 leading-5 hover:text-secondary-medium focus:z-10 focus:outline-none focus:ring ring-neutral-300 focus:border-blue-300 active:bg-neutral-100 active:text-neutral-800 transition ease-in-out duration-150 dark:bg-neutral-800 dark:border-neutral-600 dark:text-secondary-light dark:hover:text-secondary-light dark:active:bg-neutral-700 dark:focus:border-blue-800" aria-label="{{ __('pagination.go_to_page', ['page' => $page]) }}">
                                         {{ $page }}
                                     </a>
                                 @endif

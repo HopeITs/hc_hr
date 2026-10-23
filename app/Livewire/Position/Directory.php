@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Program;
+use App\Support\DirectoryAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
@@ -84,7 +85,11 @@ class Directory extends Component
         ])->filter()->count();
     }
 
-    /** Stream the filtered directory as a CSV download. */
+    /**
+     * Stream the filtered directory as a CSV download: Directory-tier columns
+     * only, and exactly the rows the list shows this viewer (access-policy.md
+     * §4.3 actions), because both read baseQuery().
+     */
     public function exportCsv(): StreamedResponse
     {
         $filename = 'directory-'.now()->format('Y-m-d').'.csv';
@@ -99,7 +104,7 @@ class Directory extends Component
             ]);
 
             $this->baseQuery()
-                ->with(['city', 'account', 'contracts' => fn ($q) => $this->withVisiblePosition($q)])
+                ->with(['city', DirectoryAccess::ACCOUNT_COLUMNS, 'contracts' => fn ($q) => $this->withVisiblePosition($q)])
                 ->chunk(200, function ($employees) use ($handle) {
                     foreach ($employees as $employee) {
                         $position = $employee->contracts->first()?->position;
@@ -133,12 +138,20 @@ class Directory extends Component
         return view('livewire.position.directory', compact('employees'));
     }
 
-    /** Base query shared by the paginated list and the CSV export. */
+    /**
+     * Base query shared by the paginated list and the CSV export.
+     *
+     * The row set is the viewer's Directory cell (access-policy.md A2D-Q3):
+     * staff and managers never get former employees, whatever the status
+     * filter says; regional HR gets them for its own cities only; the general
+     * manager, HR-SYR and super-admin get everyone. Only Directory columns are
+     * selected.
+     */
     private function baseQuery(): Builder
     {
         $term = '%'.trim($this->search).'%';
 
-        return Employee::query()
+        return DirectoryAccess::constrain(Employee::query()->select(DirectoryAccess::COLUMNS), auth()->user())
             ->whereHas('contracts.position', fn (Builder $p) => $p->visible())
             ->when($this->status === 'board', fn (Builder $q) => $q->where('is_board_member', true))
             ->when($this->status === 'active', fn (Builder $q) => $q->where('is_active', true))
@@ -165,6 +178,8 @@ class Directory extends Component
     private function withVisiblePosition($query)
     {
         return $query
+            // The position is all a Directory row needs from the contract.
+            ->select(['id', 'employee_id', 'position_id', 'start_date', 'end_date', 'is_active', 'created_at'])
             ->whereHas('position', fn (Builder $position) => $position->visible())
             ->with([
                 'position.department',

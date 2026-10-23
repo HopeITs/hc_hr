@@ -6,7 +6,14 @@
 </x-slot:title>
 @php
     $currency = [0 => $notSpecified, 1 => 'SYP', 2 => 'USD', 3 => 'EUR'];
-    $formatDate = fn($date) => $date ? \Carbon\Carbon::parse($date)->translatedFormat('d M Y') : $notSpecified;
+    // Month names follow the page language; callers isolate the result with <bdi>.
+    $formatDate = fn($date) => $date ? \Carbon\Carbon::parse($date)->locale(app()->getLocale())->translatedFormat('d M Y') : $notSpecified;
+    // Stored values for course organizations, labelled in the page language.
+    $courseOrganizations = [
+        'Hope Center' => __('employees.courses.organization-hope-center'),
+        'Personal' => __('employees.courses.organization-personal'),
+        'Other' => __('employees.courses.organization-other'),
+    ];
     $positionName = $currentPosition?->title ?? $notSpecified;
     $workEmail = $employee->account?->email;
     $directManagerName = $directManager?->name;
@@ -50,7 +57,7 @@
                     </div>
 
                     <h1 class="whitespace-normal break-normal py-1 text-h4 font-bold leading-normal tracking-tight text-secondary-dark sm:text-h1 sm:leading-normal">
-                        {{ $employee->name }}</h1>
+                        <bdi>{{ $employee->name }}</bdi></h1>
                     <p class="mt-1 whitespace-normal break-words py-1 text-body font-semibold leading-normal text-primary sm:mt-2 sm:text-h4 sm:leading-normal">{{ $positionName }}
                     </p>
 
@@ -94,8 +101,18 @@
             </div>
         </section>
 
-        <section data-tour="profile.summary" class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-            @foreach ([[__('general.years-of-service'), $employee->years_of_service_formatted, 'icons.clock'], [trans_choice('general.department', 1), $currentPosition?->department?->name ?? $notSpecified, 'icons.homepage'], [trans_choice('general.center', 1), $currentPosition?->center?->name ?? $notSpecified, 'icons.map-pin'], [__('general.contract-status'), $currentContract ? __('general.active') : __('general.inactive'), 'icons.contracts']] as [$label, $value, $icon])
+        {{-- Length of service comes from the career history, so it is only
+             there for viewers who get that tier ($yearsOfService is null otherwise). --}}
+        @php
+            $summary = array_values(array_filter([
+                $yearsOfService !== null ? [__('general.years-of-service'), $yearsOfService, 'icons.clock'] : null,
+                [trans_choice('general.department', 1), $currentPosition?->department?->name ?? $notSpecified, 'icons.homepage'],
+                [trans_choice('general.center', 1), $currentPosition?->center?->name ?? $notSpecified, 'icons.map-pin'],
+                [__('general.contract-status'), $currentContract ? __('general.active') : __('general.inactive'), 'icons.contracts'],
+            ]));
+        @endphp
+        <section data-tour="profile.summary" @class(['grid grid-cols-2 gap-2 sm:gap-3', 'lg:grid-cols-4' => count($summary) === 4, 'lg:grid-cols-3' => count($summary) === 3])>
+            @foreach ($summary as [$label, $value, $icon])
                 <div class="rounded-surface border border-neutral-200 bg-white p-3 shadow-e1 sm:rounded-surface sm:p-4">
                     <div
                         class="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-surface bg-primary text-white sm:mb-3 sm:h-9 sm:w-9 sm:rounded-surface">
@@ -146,15 +163,15 @@
                                         </span>
                                     </div>
                                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-small text-secondary-light">
-                                        <span>{{ $formatDate($contract->start_date) }} -
-                                            {{ $formatDate($contract->terminated_at ?? $contract->end_date) }}</span>
+                                        <span><bdi>{{ $formatDate($contract->start_date) }}</bdi> –
+                                            <bdi>{{ $formatDate($contract->terminated_at ?? $contract->end_date) }}</bdi></span>
                                         @if ($contract->weekly_hours)
                                             <span>@lang('general.weekly-hours'): {{ $contract->weekly_hours }}</span>
                                         @endif
                                         @if ($canViewFinancial && $contract->salary)
                                             <span class="font-bold text-primary">@lang('general.salary'):
-                                                {{ number_format($contract->salary) }}
-                                                {{ $currency[$contract->currency] ?? '' }}</span>
+                                                <bdi>{{ number_format($contract->salary) }}
+                                                {{ $currency[$contract->currency] ?? '' }}</bdi></span>
                                         @endif
                                     </div>
                                 </article>
@@ -198,8 +215,8 @@
                                         <p class="mt-1 text-small text-secondary-medium">
                                             {{ $experience->company ?? $notSpecified }}</p>
                                         <p class="mt-1 text-small text-secondary-light">
-                                            {{ $formatDate($experience->start_date) }} -
-                                            {{ $formatDate($experience->end_date) }}</p>
+                                            <bdi>{{ $formatDate($experience->start_date) }}</bdi> –
+                                            <bdi>{{ $formatDate($experience->end_date) }}</bdi></p>
                                     </div>
                                 @empty
                                     <p class="text-body text-secondary-light">@lang('general.no-available-data')</p>
@@ -215,7 +232,7 @@
                             @foreach ([[__('general.national-id'), $employee->national_number ?? $notSpecified], [__('general.birthday'), $formatDate($employee->actual_dob)], [__('general.birth-place'), $employee->{'pob_' . app()->getLocale()} ?? $notSpecified], [__('general.nationality'), $employee->nationality !== null ? \App\Enums\Nationality::getLocalizedName((int) $employee->nationality) : $notSpecified], [__('general.marital-status'), $employee->marital_status !== null ? \App\Enums\MaritalStatus::getLocalizedName((int) $employee->marital_status)['value'] : $notSpecified], [__('general.children'), $employee->children ?? 0], [__('general.civil-registry-office'), $employee->civil_registry_office ?? $notSpecified], [__('general.civil-registry-number'), $employee->civil_registry_number ?? $notSpecified], [__('general.address'), $employee->address ?? $notSpecified]] as [$label, $value])
                                 <div class="rounded-surface bg-neutral-50 p-4">
                                     <dt class="text-small font-semibold text-secondary-light">{{ $label }}</dt>
-                                    <dd class="mt-1 text-body font-bold text-secondary-dark">{{ $value }}</dd>
+                                    <dd class="mt-1 text-body font-bold text-secondary-dark"><bdi>{{ $value }}</bdi></dd>
                                 </div>
                             @endforeach
                         </dl>
@@ -234,9 +251,9 @@
                                     <div class="min-w-0">
                                         <p class="text-small text-secondary-light">{{ $label }}</p>
                                         @if ($href)
-                                            <a href="{{ $href }}"
-                                                class="block min-w-0 break-all font-semibold text-secondary-dark hover:text-primary">{{ $value }}</a>
-                                        @else<p class="block min-w-0 break-all font-semibold text-secondary-dark">
+                                            <a href="{{ $href }}" dir="ltr"
+                                                class="block min-w-0 break-all text-start font-semibold text-secondary-dark hover:text-primary">{{ $value }}</a>
+                                        @else<p dir="ltr" class="block min-w-0 break-all text-start font-semibold text-secondary-dark">
                                                 {{ $value }}</p>
                                         @endif
                                     </div>
@@ -248,6 +265,7 @@
                         @endif
                     </div>
                 </x-profile-section>
+                <livewire:employee-cards.manage-digital-id :employee="$employee" :key="'digital-id-'.$employee->id" />
 
                 @if ($canViewPrivate)
                     <x-profile-section :title="__('general.personal-contact')" icon="icons.phone" private>
@@ -255,7 +273,11 @@
                             @foreach ([[__('general.email'), $employee->personal_email], [__('general.personal-phone'), $employee->personal_phone]] as [$label, $value])
                                 <div class="rounded-surface bg-neutral-50 p-3">
                                     <p class="text-small text-secondary-light">{{ $label }}</p>
-                                    <p class="mt-1 font-semibold text-secondary-dark">{{ $value ?? $notSpecified }}</p>
+                                    @if ($value)
+                                        <p dir="ltr" class="mt-1 break-all text-start font-semibold text-secondary-dark">{{ $value }}</p>
+                                    @else
+                                        <p class="mt-1 font-semibold text-secondary-dark">{{ $notSpecified }}</p>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -294,7 +316,7 @@
                                     <p class="text-body font-bold text-secondary-dark">{{ $course->title ?? $notSpecified }}
                                     </p>
                                     <p class="mt-1 text-small text-secondary-light">
-                                        {{ $course->organization ?? ($course->granted_by ?? $notSpecified) }}</p>
+                                        {{ $course->organization ? ($courseOrganizations[$course->organization] ?? $course->organization) : ($course->granted_by ?? $notSpecified) }}</p>
                                 </div>
                             @empty
                                 <p class="text-body text-secondary-light">@lang('general.no-available-data')</p>
@@ -311,7 +333,7 @@
                                     <div class="flex items-start justify-between gap-3">
                                         <p class="text-body font-bold text-secondary-dark">
                                             {{ \App\Enums\BadgeType::getLocalizedName((int) $badge->type) }}</p>
-                                        <span class="text-small text-secondary-light">{{ $formatDate($badge->date) }}</span>
+                                        <span class="shrink-0 text-small text-secondary-light"><bdi>{{ $formatDate($badge->date) }}</bdi></span>
                                     </div>
                                     @if ($badge->reason)
                                         <p class="mt-2 text-small text-secondary-medium">{{ $badge->reason }}</p>
@@ -329,10 +351,10 @@
                         <div class="space-y-3">
                             @foreach ($employee->relatives as $relative)
                                 <div class="rounded-surface bg-neutral-50 p-3">
-                                    <p class="text-body font-bold text-secondary-dark">{{ $relative->name }}</p>
-                                    <p class="mt-1 text-small text-secondary-light">{{ $relative->relation }}
+                                    <p class="text-body font-bold text-secondary-dark"><bdi>{{ $relative->name }}</bdi></p>
+                                    <p class="mt-1 text-small text-secondary-light">{{ \App\Enums\KinshipType::getLocalizedName((int) $relative->relation) }}
                                         @if ($relative->phone)
-                                            · {{ $relative->phone }}
+                                            · <span dir="ltr">{{ $relative->phone }}</span>
                                         @endif
                                     </p>
                                 </div>

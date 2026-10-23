@@ -113,13 +113,6 @@ function insideFixed(el) {
     return false;
 }
 
-// The app layout shows a full-screen loading animation above everything
-// (z-index 9999) for ~0.5s on each page load and wire:navigate.
-function preloaderGone() {
-    const overlay = document.getElementById('page-gif-overlay');
-    return !overlay || overlay.style.display === 'none' || overlay.style.opacity === '0';
-}
-
 function prefersReducedMotion() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -165,19 +158,10 @@ document.addEventListener('alpine:init', () => {
             return `${tour?.id}:${userId ?? 'guest'}`;
         },
 
-        // Waits for the loading animation to clear (it sits above the tour),
-        // then opens the tour. Gives up quietly if the user leaves the page
-        // first, or if the page takes unusually long to settle.
+        // Opens the tour once the page has had a moment to lay out. Does nothing
+        // if the user has already left the page or opened the tour themselves.
         autostart() {
-            const startedAt = performance.now();
-
-            const attempt = () => {
-                if (this.destroyed || this.open) return;
-                if (preloaderGone()) return setTimeout(() => this.destroyed || this.start(), 300);
-                if (performance.now() - startedAt < 6000) setTimeout(attempt, 100);
-            };
-
-            attempt();
+            setTimeout(() => this.destroyed || this.open || this.start(), 300);
         },
 
         // Looked up rather than read from $refs: the card lives inside an

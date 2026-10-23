@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Models\Badge;
 use App\Models\Center;
 use App\Models\Checklist;
@@ -13,10 +14,13 @@ use App\Models\Position;
 use App\Models\Program;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class Index extends Component
 {
+    use HandlesLoadFailure;
+
     public $employee;
 
     public $contract;
@@ -28,6 +32,17 @@ class Index extends Component
     public $joinedOn;
 
     public $workEmail;
+
+    /**
+     * Sections whose load failed during THIS request (card key => true). Not a
+     * public property: it is recomputed on every render, and a retry simply re-renders.
+     *
+     * @var array<string, bool>
+     */
+    protected array $failedSections = [];
+
+    /** @var array<string, mixed> Per-request memo so a card that reads $this->x after render() does not query twice. */
+    protected array $memo = [];
 
     public function getTodayEventsProperty()
     {
@@ -56,7 +71,7 @@ class Index extends Component
                 $emp->positionTitle = $contract?->position?->$titleCol ?? null;
                 $emp->departmentName = $contract?->position?->department?->$deptCol ?? null;
                 $emp->event_type = 'birthday';
-                $emp->event_title = 'Happy Birthday!';
+                $emp->event_title = __('dashboard.happy-birthday');
                 $emp->event_description = trim(($emp->positionTitle ? $emp->positionTitle.' · ' : '').($emp->departmentName ?? ''));
                 $emp->event_timestamp = $today;
 
@@ -107,6 +122,130 @@ class Index extends Component
 
     public function getUpcomingEventsProperty()
     {
+        return $this->section('upcoming-events', fn () => $this->loadUpcomingEvents(), collect());
+    }
+
+    public function getUpcomingBirthdaysProperty()
+    {
+        $today = now()->timezone(config('app.timezone'))->startOfDay();
+        $start = $today->copy()->addDay();
+        $end = $today->copy()->addDays(7);
+        $locale = app()->getLocale();
+        $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
+        $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
+
+        return Employee::query()
+            ->where('is_active', true)
+            ->whereNotNull('dob')
+            ->get()
+            ->filter(function ($emp) use ($start, $end) {
+                $dob = Carbon::parse($emp->dob)->setYear(now()->year);
+                if ($dob->lt($start)) {
+                    $dob->addYear();
+                }
+
+                return $dob->isBetween($start, $end, true);
+            })
+            ->map(function ($emp) use ($titleCol, $deptCol) {
+                $contract = Contract::with(['position.department'])
+                    ->where('employee_id', $emp->id)
+                    ->orderByDesc('start_date')
+                    ->first();
+
+                $emp->positionTitle = $contract?->position?->$titleCol ?? null;
+                $emp->departmentName = $contract?->position?->department?->$deptCol ?? null;
+                $dob = Carbon::parse($emp->dob)->setYear(now()->year);
+                if ($dob->lt(now())) {
+                    $dob->addYear();
+                }
+                $daysLeft = now()->diffInDays($dob, false);
+                $emp->upcomingDob = $dob->copy()->locale(app()->getLocale())->translatedFormat('d M');
+                $emp->daysLeftText = trans_choice('dashboard.in-days', (int) $daysLeft).((int) $daysLeft === 0 ? ' 🎂' : '');
+
+                return $emp;
+            })
+            ->sortBy(fn ($emp) => Carbon::parse($emp->dob)->setYear(now()->year)->dayOfYear)
+            ->values();
+    }
+
+    public function getDeliveredItemsProperty()
+    {
+        return $this->section('delivered', fn () => $this->loadDeliveredItems(), collect());
+    }
+
+    public function getMyBadgesProperty()
+    {
+        return $this->section('badges', fn () => $this->loadMyBadges(), collect());
+    }
+
+    public function getPendingRequestsProperty()
+    {
+        return $this->section('pending', fn () => $this->loadPendingRequests(), collect());
+    }
+
+    public function getTeamMembersProperty()
+    {
+        return $this->section('team', fn () => $this->loadTeamMembers(), collect());
+    }
+
+    public function mount(): void
+    {
+        $locale = app()->getLocale();
+        $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
+        $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
+
+        $user = auth()->user();
+        if (! $user) {
+            abort(403, 'Unauthorized');
+        }
+
+        $this->employee = $user
+            ->profile()
+            ->with(['media', 'city'])
+            ->first();
+
+        if ($this->employee) {
+            $this->contract = Contract::with(['position.department', 'position.center', 'position.program'])
+                ->where('employee_id', $this->employee->id)
+                ->orderByDesc('start_date')
+                ->first();
+
+            $this->positionTitle = $this->contract?->position?->$titleCol ?? '—';
+            $this->departmentName = $this->contract?->position?->department?->$deptCol ?? '—';
+            $this->joinedOn = $this->contract?->start_date
+                ? Carbon::parse($this->contract->start_date)->locale(app()->getLocale())->translatedFormat('d M Y')
+                : '—';
+            $this->workEmail = $user->email ?? '—';
+        } else {
+            $this->positionTitle = $this->departmentName = $this->joinedOn = $this->workEmail = '—';
+        }
+    }
+
+    public function render()
+    {
+        // The unused todayEvents list (36 queries for 100 employees: N+1 per
+        // birthday) used to be computed here and never rendered; the
+        // news.today-events-card component loads its own data.
+        $viewData = [
+            'employee' => $this->employee,
+            'hasLeaves' => $this->section('leaves', fn () => $this->employee?->availableLeaves()?->count() > 0, false),
+            'contract' => $this->contract,
+            'positionTitle' => $this->positionTitle,
+            'departmentName' => $this->departmentName,
+            'joinedOn' => $this->joinedOn,
+            'workEmail' => $this->workEmail,
+            'upcomingEvents' => $this->upcomingEvents,
+            'deliveredItems' => $this->deliveredItems,
+            'myBadges' => $this->myBadges,
+            'pendingRequests' => $this->pendingRequests,
+            'teamMembers' => $this->teamMembers,
+        ];
+
+        return view('livewire.dashboard.index', $viewData + ['failedSections' => $this->failedSections]);
+    }
+
+    protected function loadUpcomingEvents()
+    {
         $start = now()->timezone(config('app.timezone'))->addDay()->startOfDay();
         $end = $start->copy()->addDays(6)->endOfDay();
 
@@ -144,10 +283,7 @@ class Index extends Component
                 $news->event_description = $news->description;
                 $news->event_timestamp = $timestamp;
                 $news->image_url = $news->getFirstMediaUrl('news-image') ?: '/images/news-default.png';
-                $news->daysLeftText = match ($daysLeft) {
-                    1 => 'Tomorrow',
-                    default => "In {$daysLeft} days",
-                };
+                $news->daysLeftText = trans_choice('dashboard.in-days', (int) $daysLeft);
 
                 return $news;
             })
@@ -155,53 +291,7 @@ class Index extends Component
             ->values();
     }
 
-    public function getUpcomingBirthdaysProperty()
-    {
-        $today = now()->timezone(config('app.timezone'))->startOfDay();
-        $start = $today->copy()->addDay();
-        $end = $today->copy()->addDays(7);
-        $locale = app()->getLocale();
-        $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
-        $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
-
-        return Employee::query()
-            ->whereNotNull('dob')
-            ->get()
-            ->filter(function ($emp) use ($start, $end) {
-                $dob = Carbon::parse($emp->dob)->setYear(now()->year);
-                if ($dob->lt($start)) {
-                    $dob->addYear();
-                }
-
-                return $dob->isBetween($start, $end, true);
-            })
-            ->map(function ($emp) use ($titleCol, $deptCol) {
-                $contract = Contract::with(['position.department'])
-                    ->where('employee_id', $emp->id)
-                    ->orderByDesc('start_date')
-                    ->first();
-
-                $emp->positionTitle = $contract?->position?->$titleCol ?? null;
-                $emp->departmentName = $contract?->position?->department?->$deptCol ?? null;
-                $dob = Carbon::parse($emp->dob)->setYear(now()->year);
-                if ($dob->lt(now())) {
-                    $dob->addYear();
-                }
-                $daysLeft = now()->diffInDays($dob, false);
-                $emp->upcomingDob = $dob->format('d M');
-                $emp->daysLeftText = match ($daysLeft) {
-                    0 => 'Today 🎂',
-                    1 => 'Tomorrow',
-                    default => "In {$daysLeft} days",
-                };
-
-                return $emp;
-            })
-            ->sortBy(fn ($emp) => Carbon::parse($emp->dob)->setYear(now()->year)->dayOfYear)
-            ->values();
-    }
-
-    public function getDeliveredItemsProperty()
+    protected function loadDeliveredItems()
     {
         if (! $this->employee) {
             return collect();
@@ -215,7 +305,7 @@ class Index extends Component
             ->get();
     }
 
-    public function getMyBadgesProperty()
+    protected function loadMyBadges()
     {
         if (! $this->employee) {
             return collect();
@@ -224,7 +314,7 @@ class Index extends Component
         return Badge::query()->with('employee')->where('employee_id', $this->employee->id)->orderByDesc('date')->get();
     }
 
-    public function getPendingRequestsProperty()
+    protected function loadPendingRequests()
     {
         if (! $this->employee) {
             return collect();
@@ -246,7 +336,7 @@ class Index extends Component
             );
     }
 
-    public function getTeamMembersProperty()
+    protected function loadTeamMembers()
     {
         if (! $this->contract?->position) {
             return collect();
@@ -267,11 +357,48 @@ class Index extends Component
             ->with(['media', 'contracts.position.jobLevel'])
             ->first();
 
+        // The CEO and the deputies are pinned by id and by position rather
+        // than by the is_active filter below, so they go through the Directory
+        // rule instead: a former holder is not shown to staff and managers
+        // (access-policy.md A2D-Q3).
+        $viewer = auth()->user();
+        $visible = fn (?Employee $employee) => $employee && $viewer
+            && Gate::forUser($viewer)->allows('viewDirectory', $employee);
+
+        if ($ceo && ! $visible($ceo)) {
+            $ceo = null;
+        }
+
         if ($ceo) {
             $contract = $ceo->latestActiveContract();
-            $ceo->positionTitle = 'Chief Executive Officer';
+            $ceo->positionTitle = __('dashboard.ceo-title');
             $members->push($ceo);
         }
+
+        // The deputies (Deputy CEO, Second Deputy CEO) are found by position —
+        // executive grade + "deputy" title, as the org chart does — from any
+        // contract, so they stay even without a current one.
+        $deputies = Contract::query()
+            ->whereHas('position', fn ($query) => $query
+                ->whereHas('jobLevel', fn ($level) => $level->where('grade', 1))
+                ->where(fn ($title) => $title
+                    ->where('title_en', 'like', '%deputy%')
+                    ->orWhere('title_ar', 'like', '%نائب%')))
+            ->when($ceo, fn ($query) => $query->where('employee_id', '!=', $ceo->id))
+            ->with(['position', 'employee.media'])
+            ->latest('start_date')
+            ->get()
+            ->unique('employee_id')
+            ->sortBy('position_id')
+            ->filter(fn (Contract $contract) => $visible($contract->employee))
+            ->map(function (Contract $contract) use ($titleCol) {
+                $contract->employee->positionTitle = $contract->position?->$titleCol ?? '—';
+
+                return $contract->employee;
+            })
+            ->values();
+
+        $members->push(...$deputies);
 
         $directManager = null;
         if ($position?->direct_manager_id) {
@@ -343,54 +470,26 @@ class Index extends Component
             ->loadMissing('account');
     }
 
-    public function mount(): void
+    /**
+     * Run one card's loader once per request. A failure is reported, marked on
+     * $failedSections (the view swaps that card for x-ui.load-error) and returns
+     * the fallback, so a broken card never blanks or 500s the whole dashboard.
+     */
+    protected function section(string $key, callable $loader, mixed $fallback): mixed
     {
-        $locale = app()->getLocale();
-        $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
-        $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
-
-        $user = auth()->user();
-        if (! $user) {
-            abort(403, 'Unauthorized');
+        if (array_key_exists($key, $this->memo)) {
+            return $this->memo[$key];
         }
 
-        $this->employee = $user
-            ->profile()
-            ->with(['media', 'city'])
-            ->first();
+        $result = $this->guardedLoad($loader, $fallback);
 
-        if ($this->employee) {
-            $this->contract = Contract::with(['position.department', 'position.center', 'position.program'])
-                ->where('employee_id', $this->employee->id)
-                ->orderByDesc('start_date')
-                ->first();
-
-            $this->positionTitle = $this->contract?->position?->$titleCol ?? '—';
-            $this->departmentName = $this->contract?->position?->department?->$deptCol ?? '—';
-            $this->joinedOn = $this->contract?->start_date ? date('d M Y', strtotime($this->contract->start_date)) : '—';
-            $this->workEmail = $user->email ?? '—';
-        } else {
-            $this->positionTitle = $this->departmentName = $this->joinedOn = $this->workEmail = '—';
+        if ($this->loadFailed) {
+            $this->failedSections[$key] = true;
         }
-    }
 
-    public function render()
-    {
+        // guardedLoad() resets the flag on success; keep it true if any section failed.
+        $this->loadFailed = $this->failedSections !== [];
 
-        return view('livewire.dashboard.index', [
-            'employee' => $this->employee,
-            'hasLeaves' => $this->employee?->availableLeaves()?->count() > 0,
-            'contract' => $this->contract,
-            'positionTitle' => $this->positionTitle,
-            'departmentName' => $this->departmentName,
-            'joinedOn' => $this->joinedOn,
-            'workEmail' => $this->workEmail,
-            'todayEvents' => $this->todayEvents,
-            'upcomingEvents' => $this->getUpcomingEventsProperty(),
-            'deliveredItems' => $this->deliveredItems,
-            'myBadges' => $this->myBadges,
-            'pendingRequests' => $this->pendingRequests,
-            'teamMembers' => $this->teamMembers,
-        ]);
+        return $this->memo[$key] = $result;
     }
 }

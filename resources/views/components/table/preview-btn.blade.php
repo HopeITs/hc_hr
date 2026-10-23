@@ -1,6 +1,6 @@
 {{-- Local-only dev button: opens the export-preview route (see
-     routes/employees-management.php), which skips the export Gate/city
-     check so the print layout can be checked without matching permissions. --}}
+     routes/employees-management.php), the print layout as plain HTML. It holds
+     the same export/salary/city gates as the PDF, since it carries the pay clause. --}}
 <a {{
     $attributes->merge([
         'class' => 'cursor-pointer p-2 text-neutral-500 inline-flex items-center',

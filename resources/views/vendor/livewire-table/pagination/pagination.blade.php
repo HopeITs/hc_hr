@@ -1,7 +1,7 @@
 <div>
     @if ($paginator->hasPages())
 
-        <nav role="navigation" aria-label="Pagination Navigation" class="flex items-center justify-between">
+        <nav role="navigation" aria-label="{{ __('pagination.navigation') }}" class="flex items-center justify-between">
 
             {{-- Mobile --}}
             <div class="flex flex-col gap-3 w-full lg:hidden">
@@ -44,13 +44,11 @@
             {{-- Desktop --}}
             <div class="hidden lg:flex-1 lg:flex lg:items-center lg:justify-between">
                 <p class="text-body text-neutral-800 dark:text-neutral-400">
-                    <span>{!! __('Showing') !!}</span>
-                    <span class="font-bold">{{ $paginator->firstItem() }}</span>
-                    <span>{!! __('to') !!}</span>
-                    <span class="font-bold">{{ $paginator->lastItem() }}</span>
-                    <span>{!! __('of') !!}</span>
-                    <span class="font-bold">{{ $paginator->total() }}</span>
-                    <span>{!! __('results') !!}</span>
+                    {!! __('pagination.showing', [
+                        'first' => '<span class="font-bold">'.e($paginator->firstItem()).'</span>',
+                        'last' => '<span class="font-bold">'.e($paginator->lastItem()).'</span>',
+                        'total' => '<span class="font-bold">'.e($paginator->total()).'</span>',
+                    ]) !!}
                 </p>
 
                 <div>
@@ -63,7 +61,7 @@
                                         class="relative inline-flex items-center px-2 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-s-control dark:bg-neutral-800 dark:border-neutral-700"
                                         aria-hidden="true">
                                         <!-- Icon "chevron-left" (outline) from https://heroicons.com -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                                         </svg>
                                     </span>
@@ -76,7 +74,7 @@
                                         class="relative inline-flex items-center px-2 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-s-control hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-primary dark:active:bg-neutral-900 dark:active:text-white"
                                         aria-label="@lang('pagination.previous')">
                                     <!-- Icon "chevron-left" (outline) from https://heroicons.com -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                                     </svg>
                                 </button>
@@ -89,7 +87,7 @@
                             @if (is_string($element))
                                 <span aria-disabled="true">
                                     <span
-                                        class="relative inline-flex items-center px-4 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 select-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300">{{ $element }}</span>
+                                        class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 select-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300">{{ $element }}</span>
                                 </span>
                             @endif
 
@@ -100,13 +98,13 @@
                                         @if ($page == $paginator->currentPage())
                                             <span aria-current="page">
                                                 <span
-                                                    class="relative inline-flex items-center px-4 py-2 -ml-px text-body text-neutral-500 bg-neutral-100 border border-neutral-200 select-none dark:bg-neutral-700 dark:border-neutral-700 dark:text-neutral-400">{{ $page }}</span>
+                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-500 bg-neutral-100 border border-neutral-200 select-none dark:bg-neutral-700 dark:border-neutral-700 dark:text-neutral-400">{{ $page }}</span>
                                             </span>
                                         @else
                                             <button type="button"
                                                     wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')"
-                                                    class="relative inline-flex items-center px-4 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-neutral-600 dark:active:bg-neutral-900 dark:active:text-white"
-                                                    aria-label="{{ __('Go to page :page', ['page' => $page]) }}">
+                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                                    aria-label="{{ __('pagination.go_to_page', ['page' => $page]) }}">
                                                 {{ $page }}
                                             </button>
                                         @endif
@@ -122,20 +120,20 @@
                                         wire:click="nextPage('{{ $paginator->getPageName() }}')"
                                         dusk="nextPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.after"
                                         rel="next"
-                                        class="relative inline-flex items-center px-2 py-2 -ml-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-neutral-300 active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-neutral-600 dark:text-neutral-300 dark:hover:text-white dark:focus:border-neutral-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-blue-300 active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-blue-600 dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
                                         aria-label="@lang('pagination.next')">
                                     <!-- Icon "chevron-right" (outline) from https://heroicons.com -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                     </svg>
                                 </button>
                             @else
                                 <span aria-disabled="true" aria-label="@lang('pagination.next')">
                                     <span
-                                        class="relative inline-flex items-center px-2 py-2 -ml-px text-body text-neutral-500 bg-white border border-neutral-200 rounded-e-control dark:bg-neutral-800 dark:border-neutral-700"
+                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-500 bg-white border border-neutral-200 rounded-e-control dark:bg-neutral-800 dark:border-neutral-700"
                                         aria-hidden="true">
                                         <!-- Icon "chevron-right" (outline) from https://heroicons.com -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                         </svg>
                                     </span>

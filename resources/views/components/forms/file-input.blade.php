@@ -19,10 +19,10 @@
     @if ($previewType === 'avatar')
         <div class="shrink-0">
             @if ($tempUrl)
-                <img class="size-20 rounded-full object-cover" src="{{ $tempUrl }}" alt="New profile photo"/>
+                <img class="size-20 rounded-full object-cover" src="{{ $tempUrl }}" alt="{{ __('employees.file-input.new-profile-photo') }}"/>
             @elseif ($oldFile && ! $tempUrl)
                 @if (is_string($oldFile))
-                    <img class="size-20 rounded-full object-cover" src="{{ $oldFile }}" alt="Current profile photo"/>
+                    <img class="size-20 rounded-full object-cover" src="{{ $oldFile }}" alt="{{ __('employees.file-input.current-profile-photo') }}"/>
                 @else
                     <div class="size-24 rounded-full flex border border-1 border-primary items-center justify-center">
                         <x-icons.user class="size-14 text-primary"/>
@@ -39,20 +39,20 @@
     @if ($previewType === 'image')
         <div class="shrink-0">
             @if ($tempUrl)
-                <img class="w-28 rounded-control object-cover" src="{{ $tempUrl }}" alt="New photo"/>
+                <img class="w-28 rounded-control object-cover" src="{{ $tempUrl }}" alt="{{ __('employees.file-input.new-photo') }}"/>
             @elseif ($oldFile && ! $tempUrl)
                 @if (is_string($oldFile))
-                    <img class="w-28 rounded-control object-cover" src="{{ $oldFile }}" alt="Current photo"/>
+                    <img class="w-28 rounded-control object-cover" src="{{ $oldFile }}" alt="{{ __('employees.file-input.current-photo') }}"/>
                 @else
                     <div class="w-24 rounded-control bg-neutral-200 flex flex-col items-center justify-center">
                         <x-icons.image class="size-12"/>
-                        <span class="text-small text-secondary-medium">NO IMAGE</span>
+                        <span class="text-small uppercase text-secondary-medium">{{ __('employees.file-input.no-image') }}</span>
                     </div>
                 @endif
             @else
                 <div class="w-24 rounded-control bg-neutral-200 flex flex-col items-center justify-center">
                     <x-icons.image class="size-12"/>
-                    <span class="text-small text-secondary-medium">NO IMAGE</span>
+                    <span class="text-small uppercase text-secondary-medium">{{ __('employees.file-input.no-image') }}</span>
                 </div>
             @endif
         </div>
@@ -78,19 +78,19 @@
                         <x-icons.pdf-file />
                     </div>
                     <span class="text-small text-secondary-medium text-center mt-2 w-24 break-words">
-                        {{ $pdfLabel ?? 'FILE' }}
+                        <bdi>{{ $pdfLabel ?? __('employees.file-input.file') }}</bdi>
                     </span>
                 </a>
             @else
                 <div class="w-24 rounded-control bg-neutral-200 flex flex-col items-center justify-center">
                     <x-icons.pdf-file />
                     @unless ($pdfLabel)
-                        <span class="text-small text-secondary-medium">NO FILE</span>
+                        <span class="text-small uppercase text-secondary-medium">{{ __('employees.file-input.no-file') }}</span>
                     @endunless
                 </div>
                 @if ($pdfLabel)
                     <span class="block text-small text-secondary-medium text-center mt-2 w-24 break-words">
-                        {{ $pdfLabel }}
+                        <bdi>{{ $pdfLabel }}</bdi>
                     </span>
                 @endif
             @endif

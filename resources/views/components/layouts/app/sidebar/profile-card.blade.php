@@ -5,7 +5,7 @@
     $chevFlip = $isRtl ? 'scale-x-[-1]' : '';
     $haloAnchor = $isRtl ? 'at_30%_30%' : 'at_70%_30%';
     $user = auth()->user();
-    $activeRole = $user->active_role_name ?? __('None');
+    $activeRole = role_label($user->active_role_name) ?: __('None');
     $switchTo = $isRtl ? 'en' : 'ar';
     $localized = LaravelLocalization::getLocalizedURL($switchTo, null, [], true);
 @endphp
@@ -20,7 +20,7 @@
             <span
                 class="relative inline-grid place-items-center rounded-full shrink-0 ring-2 ring-primary/30">
                 <img class="size-14 border border-1 border-primary rounded-full object-cover"
-                     src="{{ $user->profile->avatar_url }}" alt="user"/>
+                     src="{{ $user->profile->avatar_url }}" alt=""/>
                 <span
                     class="absolute bottom-1.5 {{ $isRtl ? 'left-1.5' : 'right-1.5' }} size-2 rounded-full bg-neutral-500 ring-2 ring-white"></span>
             </span>
@@ -53,7 +53,7 @@
                     </svg>
                     <span>Notifications</span>
                 </div>
-                <livewire:notifications.counter wire:poll.10s/>
+                <livewire:notifications.counter :poll="false" />
             </a>
         </div>
 
@@ -73,7 +73,7 @@
                     <span
                         class="rounded-full shrink-0 ring-2 ring-primary/30">
                         <img class="size-12 border border-1 border-primary rounded-full object-cover"
-                             src="{{ $user->profile->avatar_url }}" alt="user">
+                             src="{{ $user->profile->avatar_url }}" alt="">
                     </span>
                     <div class="min-w-0">
                         <div class="text-body font-semibold text-neutral-900 truncate">{{ $user->profile?->name }}</div>
@@ -178,11 +178,11 @@
 
 @guest
     <div class="p-4 space-y-2 w-full">
-        <a href="{{ route('login') }}"
+        <a href="{{ route('login') }}" wire:navigate
            class="block w-full text-center py-2 px-4 text-body font-semibold text-white bg-primary rounded-surface">
             @lang('auth.login')
         </a>
-        <a href="{{ route('register') }}"
+        <a href="{{ route('register') }}" wire:navigate
            class="block w-full text-center py-2 px-4 text-body font-semibold text-neutral-800 bg-neutral-200 hover:bg-neutral-300 rounded-surface">
             @lang('auth.register')
         </a>
@@ -209,7 +209,7 @@
         const bind = () => {
             if (window.__hcRoleSwitchedBound) return;
             window.__hcRoleSwitchedBound = true;
-            Livewire.on('role-switched', ({role}) => {document.getElementById('activeRolePill')?.replaceChildren(document.createTextNode(role));
+            Livewire.on('role-switched', ({role, label}) => {document.getElementById('activeRolePill')?.replaceChildren(document.createTextNode(label ?? role));
             });
         };
 

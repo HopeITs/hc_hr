@@ -10,12 +10,29 @@
      'open-profile', which opens the drawer on the spot and asks the server for
      that employee. The server's copy only renders once its employeeId matches
      the one just requested — until then a spinner shows, so the previous
-     employee is never left on screen under a new click. --}}
+     employee is never left on screen under a new click.
+
+     A profile the viewer may not see (unknown, former, or no longer visible
+     after a role switch) answers openProfile() with a plain 404, or drops an
+     open drawer with 'profile-unavailable'. Both close the drawer with the
+     same generic message and nothing about the record (access-policy.md §4.4). --}}
 <div x-data="{
         show: false,
         requestedId: null,
         get ready() {
             return this.requestedId !== null && this.$wire.employeeId === this.requestedId;
+        },
+        init() {
+            this.$wire.$intercept('openProfile', ({ onError }) => {
+                onError(({ response, preventDefault }) => {
+                    if (response?.status !== 404) {
+                        return;
+                    }
+
+                    preventDefault();
+                    this.unavailable();
+                });
+            });
         },
         open(employeeId) {
             this.requestedId = Number(employeeId);
@@ -25,11 +42,19 @@
                 this.$wire.openProfile(this.requestedId);
             }
         },
+        unavailable() {
+            this.show = false;
+            this.requestedId = null;
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: { type: 'info', message: @js(__('general.no-available-data')) },
+            }));
+        },
      }"
      x-cloak
      x-show="show"
      x-effect="document.body.classList.toggle('overflow-hidden', show)"
      x-on:open-profile.window="open($event.detail.employeeId)"
+     x-on:profile-unavailable.window="unavailable()"
      x-on:livewire:navigating.window="show = false; document.body.classList.remove('overflow-hidden')"
      x-on:keydown.escape.window="show = false"
      class="fixed inset-0 z-50">

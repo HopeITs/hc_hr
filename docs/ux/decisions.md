@@ -23,8 +23,29 @@ Source of policy: "سياسة الموارد البشرية - 2026" (Christian H
 | Pending requests | **Reserve** balance immediately; released on rejection/cancellation. |
 | Historical requests | **Left as they are**; the unified rule applies to new requests only. |
 
+### Decided by HR, A3-D follow-up (2026-10-20)
+| Point | Decision |
+|---|---|
+| D-1 Weekend for a volunteer with no center | The volunteer belongs to a **program** in a governorate (e.g. Study Zone Homs). Take the weekend of **any center of that program in that governorate**; centers are uniform within a governorate and program. **No new governorate column is needed.** |
+| D-2 Calendar-day leave types | **Maternity only.** Every other type excludes weekends and holidays. |
+| D-3a Hourly rounding | **Exact**, with a **15-minute minimum**. No rounding up. |
+| D-3b Hourly cap | **Cap removed.** For full-time, an hourly request over 4 hours counts as one full day. |
+| D-4 Holidays | **National + the center's city + the program.** Recurring holidays repeat every year (confirm in writing if different). |
+| D-5 Snapshot | **Yes.** Computed hours are stored on each request when created (needs a new column; technical lead to confirm design). |
+| D-6 Non-annual over balance | **Warn**; HR decides at approval. Annual still blocks. |
+| D-7 December | **Blocked** unless the requester marks it exceptional and both manager and HR approve. Needs an "exceptional" flag on the request. |
+| D-8 Non-five-day schedules | Irregular schedules exist (e.g. Desk and Lab program): scattered days, **at most 5 days**, not written in the contract. The contract states only **weekly hours** (e.g. 20 h/week). Day length therefore cannot be derived for them; they are priced **in hours only** (see D-9). |
+| D-9 Part-time | **Weekly hours below 40** = part-time, deducted by hours only. A center that works full time is identified by the **contract's weekly hours** (40). |
+| Service agreements | A **service agreement** contract has **no paid leave and no balance**. If the volunteer apologizes for a session, HR is informed, the hours are simply not worked and not paid (pay is hourly). Nothing is deducted from any leave balance. The **direct manager also approves** the absence (HR is informed). Gap: the request form needs a balance (`leave_balance_id` is required) and service contracts have none, so this absence flow has no home today; it needs a decision on where it lives (a no-balance request type) in the implementation task. This matches the existing exemption in `LeaveBalanceService::isExemptFromLeave`. |
+
+### D-4 refinement — who sets holidays (2026-10-21)
+Official holidays are in the HR policy. They are entered by **national HR (HR-SYR)**, or by the **program manager** for the projects they are responsible for (a project = a program in one governorate). A program manager may grant a **one-off** holiday to a project. A holiday may be shared by several projects or belong to one; projects may have different holidays. A volunteer gets national holidays + their project's.
+**Birthday holiday:** a holiday for everyone, each on their own birthday (`actual_dob`, else `dob`); created for a period and not necessarily repeated (e.g. this year only). On a weekend or holiday the volunteer picks another day in the same week. Shown to colleagues as "Birthday" (no year), an accepted exception to the private tier. The moved day needs the direct manager's approval; service agreements excluded; created by HR-SYR only.
+**Other answers:** CYG holidays are set by HR-SYR; there is no governorate-wide holiday level, only per project; saints' days are commemorations shown in the calendar, not holidays. Design: [team-coverage-contract.md](team-coverage-contract.md) §6.1.
+
 ### Implementation gap found
-- `cities` has no weekend field, so the governorate fallback for volunteers without a center needs a new column (or equivalent) before A3.
+- ~~`cities` has no weekend field~~ Resolved by D-1: the weekend is read from a center of the volunteer's program in their governorate. If the program has no center there, fall back to the code default with a visible warning.
+- D-5 needs a schema change on `leave_requests` (computed hours + rule version); D-7 needs an "exceptional" flag. Both belong to the implementation task, not A3-D.
 
 ## DEC-04 — Employee draft (settled 2026-10-16)
 | Point | Decision |
@@ -42,6 +63,21 @@ Source of policy: "سياسة الموارد البشرية - 2026" (Christian H
 | Rejection reason | Mandatory; visible to the volunteer and kept in the history. |
 | Batch approval | Simple requests only (e.g. short leave within balance). Advances and contract amendments are approved one by one. |
 
+### DEC-05 revision — leave approval (2026-10-20, from HR's handwritten flow draft)
+Replaces the "Leave approval chain" row above **for leave requests only**. Other sources (overtime, advances, amendments) keep DEC-05 as written.
+
+| Point | Decision |
+|---|---|
+| Flow | Volunteer submits → notification to the **direct manager and HR** at the same time. |
+| Who decides | The **direct manager** accepts or rejects. HR does not give a second approval. |
+| Technical manager | **No longer exists.** Only one manager: the direct manager. |
+| HR after the decision | Marks **"Seen by HR"** (existing `hr_approved`). HR may **object**: the request goes **back to the manager** as pending, with HR's note. |
+| HR on behalf of the manager | Only while the manager is on an **accepted leave**. Shown as "on behalf of <manager>" in the response column. |
+| Upcoming events card | Shows **accepted** leaves. |
+| HR note | An **optional free-text note** HR may write on the request (e.g. with "Seen by HR" or an objection). Visible to **HR, the direct manager and the volunteer** who made the request. |
+
+Implementation notes (not decided here): today `LeaveRequestPolicy::decide` also allows HR at any time and the technical manager (`tech_manager_id` in `manageableBy` and in notifications); both must change. An objection on an accepted request must release its hours from `used` when it returns to pending (A3-D §3.4).
+
 ## DEC-01 / DEC-02 — Directory and public card (settled 2026-10-16)
 | Point | Decision |
 |---|---|
@@ -50,12 +86,34 @@ Source of policy: "سياسة الموارد البشرية - 2026" (Christian H
 | Re-issued QR (replacement card) | The old printed card stops working **immediately**. |
 | In-app directory (non-HR users) | Visible across **all governorates** (name, photo, position, work contact). |
 
+### DEC-02 revision — card link (2026-10-20)
+| Point | Decision |
+|---|---|
+| Card link | `ID/[city 3 digits][program 3 digits][employee_id]-[index]`, readable, no secret part. |
+| Cardboard card | Index always `0`; temporary. It **stops when the plastic card is issued**. Lost before that: not revoked. |
+| Plastic card | Starts at `1`; re-issue increments the index; only the latest index is valid. |
+| Purpose | Lets other centers scan the QR to see whether the volunteer is **active** and reach the **emergency number** when needed. |
+| Move to another governorate / new position | A **new card is printed**; the old link (old city/program code) stops. |
+| Accepted risk | The link can be guessed, so all public cards can be collected by anyone. Details in access-policy.md §9 Q6. |
+
 ## DEC-06 — Team calendar (settled 2026-10-16)
 | Point | Decision |
 |---|---|
 | "My team" | Both views: same project/program **and** same direct manager (user can switch between them). |
 | What colleagues see | The leave **with its type**. |
 | Coverage | Advisory warning to the manager only; never blocks a request. |
+
+### DEC-06 detail (2026-10-21, C5-D)
+Full record: [team-coverage-contract.md](team-coverage-contract.md) §3.1.
+
+| Point | Decision |
+|---|---|
+| Colleague set (replaces "same project/program") | Same **department** in any governorate + same **center** + same **direct manager** (the manager included) + **project managers** (job level grade 3) of the same program see each other. |
+| Service departments | Leave of a volunteer in CT (`Comm`), IT, HR, PR (`Fund`), Logistic (`Logi`), Financial (`Fin`), MEAL or Legal Affair consultant (`LegA`) is also visible to the **project managers of every program in the same governorate** (e.g. Logistic Aleppo → Study Zone Aleppo PM). Visibility only, no warning. |
+| Sensitive types | Sick, maternity, paternity, bereavement show to colleagues as "On leave"; manager and HR see the type. |
+| Pending | Colleagues see accepted only; manager and HR coverage counts pending, marked. |
+| Warning | Manager: on any overlap. Requester: anonymous count before submitting. Never blocks. |
+| HR scope | Regional HR: own city. super-admin: as national HR. |
 
 ## DEC-07 — Installable app (settled 2026-10-16)
 Yes: make it installable (PWA) without offline caching of private data.

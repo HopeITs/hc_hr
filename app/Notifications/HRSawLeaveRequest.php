@@ -65,6 +65,7 @@ class HRSawLeaveRequest extends Notification
                     'ar' => "قام قسم الموارد البشرية بمراجعة طلب إجازتك من نوع: {$leaveType->name_ar}",
                 ],
                 'url' => route('leaves.index', ['leave' => $leaveRequest->id]),
+                'subject' => ['type' => 'leave_request', 'id' => $leaveRequest->id, 'action' => null],
             ];
         }
 
@@ -72,7 +73,7 @@ class HRSawLeaveRequest extends Notification
             return [
                 'title' => [
                     'en' => 'HR Reviewed Leave Request',
-                    'ar' => 'مراجعة طلب الإجازة من قبل الموارد البشرية',
+                    'ar' => 'راجع قسم الموارد البشرية طلب إجازة',
                 ],
                 'body' => [
                     'en' => "HR reviewed {$leaveType->name_en} leave request for employee: {$employeeNameEn}",
@@ -82,6 +83,7 @@ class HRSawLeaveRequest extends Notification
                     'leave' => $leaveRequest->id,
                     'mode' => 'details',
                 ]),
+                'subject' => ['type' => 'leave_request', 'id' => $leaveRequest->id, 'action' => null],
             ];
         }
 

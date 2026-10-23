@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * The close guard of an editable dialog (GuardsModalClose, A5-M). requestClose()
+ * only compares the entries with what the dialog opened with and either hides
+ * it or raises the "Discard your changes?" question; discardChanges() hides it
+ * and clears that dialog's own form. Neither reads a record or writes one, and
+ * the dialog name they take is checked against the component's own list.
+ */
+$closeGuard = ['requestClose', 'discardChanges'];
+
 return [
     'administrator_roles' => ['super-admin', 'HR-SYR'],
 
@@ -219,6 +228,8 @@ return [
             'renameRole' => 'access-management.manage-roles',
             'deleteRole' => 'access-management.manage-roles',
         ],
+        // edit() discloses a city into the modal, like the other basics modules.
+        'basics.city-module' => ['edit' => 'project-basics.update'],
         'basics.city-table' => [
             'toggleItemStatusConfirmed' => 'project-basics.update',
             'exportExcel' => 'project-basics.export',
@@ -282,6 +293,9 @@ return [
             'initiateReturn' => 'employees.update',
             'finalizeReturnCycle' => 'employees.update',
         ],
+        // B4: opens the read-only drawer; the method re-runs EmployeePolicy::view and
+        // ::viewDirectory on the record inside the active city scope.
+        'employee.employee-drawer' => ['open' => 'employees.view'],
         'employee.employee-table' => [
             'delete' => 'employees.delete',
             'toggleItemStatusConfirmed' => 'employees.update',
@@ -313,7 +327,19 @@ return [
             'renewAsIs' => 'contracts.create',
             'renewWithEdit' => 'contracts.create',
         ],
-        'contract.contracts-table' => ['delete' => 'contracts.delete', 'exportExcel' => 'contracts.export'],
+        // Both auto-renew actions also run ContractPolicy::manageAutoRenew on
+        // the specific contract (HR role, contracts.update, visible to the
+        // caller), which is the city/record control; the permission here is
+        // the coarse gate. The confirmed write normally arrives as a dispatched
+        // event, so the in-method Gate is what holds on that path.
+        // Opens the read-only drawer; the method re-runs ContractPolicy::view on the record.
+        'contract.contract-drawer' => ['open' => 'contracts.view'],
+        'contract.contracts-table' => [
+            'delete' => 'contracts.delete',
+            'exportExcel' => 'contracts.export',
+            'confirmToggleAutoRenew' => 'contracts.update',
+            'toggleAutoRenewConfirmed' => 'contracts.update',
+        ],
         // The permission map is the coarse HTTP boundary. Each action also
         // runs JobPostPolicy so governorate HR remains inside its city scope.
         'recruitment.job-posts.editor' => [
@@ -574,65 +600,145 @@ return [
         'basics.job-level-table' => ['confirmDelete'],
         'basics.leave-type-table' => ['confirmDelete'],
         'basics.termination-reason-table' => ['confirmDelete'],
-        'contract.contracts-table' => ['confirmDelete'],
+        // updatedPaginators (not a dialog) stores the caller's own page
+        // position in their own session (the key includes auth()->id()); the
+        // rows still come from query(), which applies Contract::scopeVisibleTo.
+        // B3 list states: view state / text only, no writes.
+        // B4: setPreset / clearAll / removeChip / dismissStateNotice change only the caller's
+        // own view state (setPreset also 403s a preset the active role may not use); every
+        // row still comes from query() -> Contract::scopeVisibleTo. The rest is display text.
+        // B4-D saved views: saveView / applyView / renameView / deleteView / savedViews touch only
+        // the caller's OWN saved_table_views rows (every query is scoped by auth id, this table and
+        // the active role context; another user's id is a 404). They store table state only (search,
+        // filters, sort, per-page, columns), never rows or pay, and applyView re-runs the table's
+        // sanitizing, so rows still come from query().
+        'contract.contracts-table' => [
+            'saveView', 'applyView', 'renameView', 'deleteView', 'savedViews',
+            'confirmDelete', 'updatedPaginators', 'updatedPerPage', 'updatedRemembersTableState', 'clearAllFilters',
+            'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'setPreset', 'clearAll', 'removeChip',
+            'dismissStateNotice', 'canClearAll', 'activeFilterChips', 'cardView',
+        ],
+        // Closing the read-only drawer only clears its own locked id.
+        'contract.contract-drawer' => ['close'],
         'news.news-table' => ['confirmDelete'],
         'position.position-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.center.centers-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.default-deliverable.default-deliverables-table' => ['confirmDelete'],
         'program-management.program.detail' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.program.index' => ['confirmDelete', 'confirmToggleItemStatus', 'loadMore'],
-        'employee.employee-table' => ['confirmDelete', 'confirmToggleItemStatus'],
+        'employee.employee-table' => [
+            'confirmDelete', 'confirmToggleItemStatus',
+            'saveView', 'applyView', 'renameView', 'deleteView', 'savedViews', // B4-D saved views: own rows only, see contract.contracts-table
+            // X2-I lifecycle hooks: Livewire refuses direct calls to updated*.
+            // They only start an anonymous lookup attempt (TaskTelemetry).
+            'updatedGlobalSearch', 'updatedSearch',
+            'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', // B3: view state / text only
+            // B4: setView / clearAll / removeChip / dismissStateNotice change only the caller's own
+            // view state (setView falls back to Active for a view the role may not use); rows still
+            // come from query(). The rest is display text or an Alpine expression.
+            'setView', 'clearAll', 'removeChip', 'dismissStateNotice', 'canClearAll', 'activeFilterChips',
+            'cardView', 'rowClickAction', 'canUseInactiveView', 'effectiveView',
+            'updatedPaginators', 'updatedPerPage', 'updatedRemembersTableState',
+        ],
+        // Closing the read-only drawer only clears its own id.
+        'employee.employee-drawer' => ['close'],
+
+        // --- X2-I task telemetry --------------------------------------------
+        // dehydrateTracksTaskAttempt is a Livewire lifecycle hook: dehydrate*
+        // cannot be called from the browser. It only flags an anonymous
+        // attempt as having met a validation error (TracksTaskAttempt).
+        'contract.contract-create' => ['dehydrateTracksTaskAttempt'],
 
         // --- Authorized inside the method -----------------------------------
         // save() is create-or-update, so a single permission name in the
         // middleware map would be wrong in one direction or the other. Each of
         // these calls authorizeActivePermission() with the correct permission
         // for the branch it is taking, which the middleware cannot do.
-        'basics.annual-leave-rule-module' => ['save'],
-        'basics.checklist-item-module' => ['save'],
-        'basics.contract-type-module' => ['save'],
-        'basics.course-category-module' => ['save'],
-        'basics.department-module' => ['save'],
-        'basics.job-level-module' => ['save'],
-        'basics.leave-type-module' => ['save'],
-        'basics.termination-reason-module' => ['save'],
+        'basics.annual-leave-rule-module' => ['save', ...$closeGuard],
+        'basics.checklist-item-module' => ['save', ...$closeGuard],
+        'basics.contract-type-module' => ['save', ...$closeGuard],
+        'basics.course-category-module' => ['save', ...$closeGuard],
+        'basics.department-module' => ['save', ...$closeGuard],
+        'basics.job-level-module' => ['save', ...$closeGuard],
+        'basics.leave-type-module' => ['save', ...$closeGuard],
+        'basics.termination-reason-module' => ['save', ...$closeGuard],
+        // save() writes only cities.hr_hotline (the ID card's emergency number,
+        // A2D-Q7) after its own project-basics.update check.
+        'basics.city-module' => ['save', ...$closeGuard],
+        // Each re-reads the employee by its locked id and runs the
+        // digital-id.manage or digital-id.report-lost gate (DigitalIdPolicy)
+        // against the request's active role. A permission name would be wrong:
+        // reportLost belongs to the card's owner, who holds no HR permission,
+        // and manage is city-scoped HR, which a permission cannot express.
+        'employee-cards.manage-digital-id' => ['reissue', 'disable', 'enable', 'reportLost'],
         // updatedFormNewsableType() only clears dependent form selections;
         // it does not read a record or persist data. save() authorizes before writing.
         'news.news-create' => ['save', 'updatedFormNewsableType'],
         // Also runs assertCityIsAuthorized() and a Gate check on the city.
-        'program-management.center.centers-module' => ['save'],
-        'program-management.default-deliverable.default-deliverables-module' => ['save'],
+        'program-management.center.centers-module' => ['save', ...$closeGuard],
+        'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
         // Each calls authorizeActivePermission() plus a LeaveRequestPolicy
         // check on the specific record, which is the stronger control.
         'employee.leave.my-leave-request-module' => [
             'create', 'edit', 'processSave', 'confirmSave', 'openDetails',
-            'closeDetails', 'selectedLeave', 'refreshCounts', 'setActiveTab',
+            'closeDetails', 'selectedLeave', 'submittedLeave', 'refreshCounts', 'setActiveTab',
+            // B3: list states. resetStatusFilter only sets the tab to "all" (a filter on the
+            // caller's own requests); retryLoad re-renders and writes nothing.
+            'resetStatusFilter', 'retryLoad',
+            // Only resets form.type to "day" when an own non-annual balance is picked.
+            'updatedFormLeaveBalanceId',
+            // Read-only, self-scoped: prices the typed window against a balance
+            // of the signed-in employee's own active contract; writes nothing.
+            'leaveImpact',
+            ...$closeGuard,
+            'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
         ],
         'employee.leave.all-leave-request-module' => [
             'edit', 'show', 'processSave', 'confirmSave', 'confirmDelete',
             'closeDecision', 'closeDetails', 'refreshCounts', 'setActiveTab',
+            'resetStatusFilter', // B3: sets the tab to "all"; a view filter only
             'updatedFormEmployeeId',
+            ...$closeGuard,
+            'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
         ],
-        'employee.leave.emp-leave-balance-module' => ['confirmSave'],
+        'employee.leave.emp-leave-balance-module' => ['confirmSave', ...$closeGuard],
+        // B3 HasScreenListStates: clearAllFilters resets search/filters/tab (view state only),
+        // renderEmptyState and stateAnnouncement render text, retryLoad re-renders. No writes.
         'employee.leave.all-leave-request-table' => [
             'edit', 'confirmDelete', 'confirmHrReview', 'refreshTable', 'setStatusFilter',
+            'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement',
         ],
-        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter'],
+        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter', 'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
+        'employee.leave.emp-leave-balance-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
+        // B3: read-only lists of the caller's own checklist rows; retryLoad re-renders only.
+        'checklist-items.all-items' => ['retryLoad'],
+        'checklist-items.pending-items' => ['retryLoad'],
+        'checklist-items.pending-returns' => ['retryLoad'],
+        'checklist-items.done-requests-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
+        // A record read, not a state toggle: it takes a caller-supplied
+        // employee id. It authorizes EmployeePolicy::viewDirectory on that id,
+        // and the drawer re-checks on every render, so a role switch or a
+        // former employee drops back to a uniform not-found (access-policy.md
+        // §4.4). The middleware could only add positions.view, which every
+        // role already holds and which says nothing about the record.
+        'position.profile-drawer' => ['openProfile'],
 
         // --- Scoped to the caller -------------------------------------------
         // These resolve their subject from auth() and never accept a
         // caller-supplied owner id, so there is no cross-user surface for a
         // permission to protect.
         'dashboard.employee-notes-card' => [
-            'addText', 'createNote', 'toggleDone', 'updateContent', 'delete', 'restoreNote',
+            'addText', 'createNote', 'toggleDone', 'updateContent', 'delete', 'restoreNote', 'retryLoad',
         ],
         'notifications.dropdown' => [
             'markAsRead', 'markAllAsRead', 'openNotification', 'refreshList', 'safeNotificationUrl',
+            'retryLoad', // B3: re-renders the read-only list; marks nothing read
         ],
         'notifications.index' => [
             'markAsRead', 'markAllAsRead', 'openNotification', 'refreshList', 'safeNotificationUrl',
+            'retryLoad', // B3: re-renders the read-only list; marks nothing read
         ],
-        'notifications.counter' => ['updateCount'],
+        'notifications.counter' => ['updateCount', 'syncCount'],
         'layout.sidebar' => ['toggle', 'close', 'refreshCounts'],
 
         // --- Component-state only -------------------------------------------
@@ -657,8 +763,17 @@ return [
         'contract.contract-details' => ['nextPage', 'prevPage', 'setPage'],
         // Dismisses the modal and clears its state. Writes nothing; the two
         // actions that do write are mapped to contracts.create above.
-        'contract.contract-renew-modal' => ['close'],
+        'contract.contract-renew-modal' => ['close', ...$closeGuard],
         'dashboard.calendar-card' => ['next', 'prev'],
+        // B3: retryLoad re-renders read-only data; placeholder renders the lazy skeleton.
+        'dashboard.contract-type-employees-statistics' => ['retryLoad'],
+        'dashboard.department-employee-statistics' => ['retryLoad'],
+        'dashboard.index' => ['retryLoad'],
+        'dashboard.job-level-employee-statistics' => ['retryLoad'],
+        'dashboard.salary-per-employee-statistics' => ['retryLoad'],
+        'dashboard.upcoming-leaves-card' => ['retryLoad'],
+        'dashboard.no-leaves-employees-statistics' => ['retryLoad', 'placeholder'],
+        'dashboard.soon-ending-contracts-card' => ['retryLoad', 'placeholder'],
         // skipDraft is pure navigation (a redirect, no data read or write) and
         // updatedDraftCityId/updatedDraftProgramId only reset the draft
         // cascade's own in-memory selections — the same class as
@@ -673,12 +788,19 @@ return [
             'setActiveTab', 'toggleBoardMember', 'addEducation', 'addCourse',
             'addExperience', 'addRelative', 'addAttachment', 'openInitiateReturnModal',
         ],
+        // toggleVacancies only flips whether empty positions are drawn and
+        // rebuilds the same tree; vacant positions hold no person's data.
         'position.org-chart' => [
             'zoomIn', 'zoomOut', 'resetZoom', 'fitToScreen', 'expandAll',
             'collapseAll', 'toggleCollapse', 'toggleDensity', 'resetFilters',
+            'toggleVacancies',
         ],
         'position.directory' => ['resetFilters'],
-        'position.profile-drawer' => ['openProfile', 'close'],
+        // Reset the dependent center selection and pass the city through
+        // validPositionFormCityId(), which refuses a city outside the
+        // caller's scope. Nothing is written until the mapped save() runs.
+        'position.position-create' => ['updatedFormCityId'],
+        'position.position-edit' => ['updatedFormCityId'],
         'program-management.center.center-details' => ['switchTab'],
         'news.today-events-card' => ['loadEvents'],
 

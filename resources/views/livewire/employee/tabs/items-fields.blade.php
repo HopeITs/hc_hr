@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-heading-label>@lang('general.items_from_checklist')</x-heading-label>
+    <x-heading-label>@lang('employees.items.title')</x-heading-label>
 
     @if(!empty($employeeChecklistItems) && $employeeChecklistItems->isNotEmpty())
         <div class="overflow-x-auto rounded-surface border">
@@ -16,19 +16,19 @@
                     @foreach ($employeeChecklistItems as $item)
                         @php
                             $status = match (true) {
-                                $item->returned_status === 'received' => __('general.received'),
-                                $item->delivered_status === 'delivered' => __('general.delivered'),
+                                $item->returned_status === 'received' => __('employees.items.received'),
+                                $item->delivered_status === 'delivered' => __('employees.items.delivered'),
                                 default => __('general.on_hold'),
                             };
 
                             $statusColor = match ($status) {
-                                __('general.received') => 'bg-neutral-100 text-neutral-700',
-                                __('general.delivered') => 'bg-neutral-100 text-neutral-700',
+                                __('employees.items.received') => 'bg-neutral-100 text-neutral-700',
+                                __('employees.items.delivered') => 'bg-neutral-100 text-neutral-700',
                                 default => 'bg-neutral-100 text-neutral-700',
                             };
                         @endphp
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-body text-neutral-900">{{ $item->item?->name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-body text-neutral-900">{{ $item->item?->name ?? __('general.not-specified') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-body text-secondary-medium">{{ $item->notes ?: '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-body">
                                 <span class="px-2 py-1 inline-flex text-small font-medium rounded-full {{ $statusColor }}">
@@ -37,7 +37,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-body text-secondary-medium">
                                 {{-- Fix: Only show date if status is delivered AND date exists --}}
-                                {{ $item->delivered_status === 'delivered' && $item->delivered_at ? $item->delivered_at->format('Y-m-d') : '-' }}
+                                <bdi>{{ $item->delivered_status === 'delivered' && $item->delivered_at ? $item->delivered_at->format('Y-m-d') : '-' }}</bdi>
                             </td>
                         </tr>
                     @endforeach

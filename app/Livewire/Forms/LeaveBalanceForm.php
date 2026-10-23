@@ -123,6 +123,22 @@ class LeaveBalanceForm extends Form
 
     }
 
+    /**
+     * Field names used in validation messages, in the current locale.
+     *
+     * @return array<string, string>
+     */
+    protected function validationAttributes(): array
+    {
+        return [
+            'operation' => __('general.operation'),
+            'unit' => __('general.unit'),
+            'amount' => __('general.amount'),
+            'add_badge' => __('general.add-as-badge'),
+            'notes' => __('general.note'),
+        ];
+    }
+
     protected function rules()
     {
         return [

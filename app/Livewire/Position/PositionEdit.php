@@ -56,6 +56,6 @@ class PositionEdit extends Component
         $this->form->update();
         $this->toast();
 
-        return redirect()->route('positions.index');
+        return $this->redirectRoute('positions.index', navigate: true);
     }
 }

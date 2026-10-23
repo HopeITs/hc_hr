@@ -10,17 +10,18 @@
 
 ])
 <div {{$attributes->merge([
-    'class' => 'flex items-end space-x-8 bg-white rounded-surface py-4 px-6 w-full'
+    'class' => 'flex max-sm:flex-wrap items-end gap-4 sm:gap-8 bg-white rounded-surface py-4 px-6 w-full min-w-0'
 ]) }}>
     @if($isAnnual)
-        <div class="flex items-end -mb-3">
-            <span class="text-[125px] font-extrabold text-secondary-medium leading-none">{{$remainingDays}}</span>
+        {{-- Phones: the details drop below the figure instead of being pushed off-screen (M1). --}}
+        <div class="flex items-end sm:-mb-3 shrink-0 max-sm:w-full">
+            <span class="text-[72px] sm:text-[125px] font-extrabold text-secondary-medium leading-none">{{$remainingDays}}</span>
             <span class="text-h2 text-secondary-medium font-semibold mb-4">/{{$totalDays}}</span>
         </div>
 
-        <div class="border-l border-secondary-medium h-26"></div>
+        <div class="hidden sm:block border-s border-secondary-medium h-26 shrink-0"></div>
     @endif
-    <div class="flex flex-col justify-between min-w-full">
+    <div class="flex flex-col justify-between flex-1 min-w-0 max-sm:basis-full">
         <h4 class="text-secondary-medium font-bold text-md">
             {{$title}}
         </h4>

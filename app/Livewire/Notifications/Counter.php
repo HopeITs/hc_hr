@@ -2,12 +2,22 @@
 
 namespace App\Livewire\Notifications;
 
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Throwable;
 
 class Counter extends Component
 {
     public int $count = 0;
+
+    /**
+     * Whether this instance polls. The page has two counters (header bell and
+     * sidebar link); only the bell polls, the other follows its events, so one
+     * browser tab asks the server once per interval, not once per counter.
+     */
+    #[Locked]
+    public bool $poll = true;
 
     #[On('notification-read')]
     #[On('notification-created')]
@@ -15,23 +25,47 @@ class Counter extends Component
     #[On('center-closed')]
     public function updateCount(): void
     {
-        $new = auth()->user()->unreadNotifications()->count();
+        $new = $this->unreadTotal();
+
+        // A failed count keeps what is on screen; the next poll or event retries.
+        if ($new === null) {
+            return;
+        }
 
         // A new notification landed since we last checked → tell the UI to react.
-        if ($new > $this->count) {
+        if ($this->poll && $new > $this->count) {
             $this->dispatch('notif-arrived');
         }
 
         $this->count = $new;
     }
 
-    public function mount(): void
+    /** Follows the polling counter's "new notification" event without announcing it a second time. */
+    #[On('notif-arrived')]
+    public function syncCount(): void
     {
-        $this->updateCount();
+        $this->count = $this->unreadTotal() ?? $this->count;
+    }
+
+    public function mount(bool $poll = true): void
+    {
+        $this->poll = $poll;
+        $this->count = $this->unreadTotal() ?? 0;
     }
 
     public function render()
     {
         return view('livewire.notifications.counter');
+    }
+
+    private function unreadTotal(): ?int
+    {
+        try {
+            return auth()->user()->unreadNotifications()->count();
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 }

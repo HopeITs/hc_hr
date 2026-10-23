@@ -112,7 +112,15 @@ class ContractPayClauseTest extends TestCase
         $this->assertStringContainsString('—', $html);
     }
 
-    public function test_for_pdf_true_does_not_throw_and_still_carries_the_amount(): void
+    /**
+     * The printed export renders this clause exactly as the screen does: since
+     * the switch to Browsershot (3a0e5c49) Chrome shapes Arabic natively and
+     * pdf/contract.blade.php never sets forPdf. The old forPdf=true branch
+     * still names App\Support\ArabicText, deleted in that same commit, so it
+     * is unreachable dead code rather than the export path — see
+     * docs/ux/contract-failure-triage.md. This checks the path that ships.
+     */
+    public function test_the_clause_the_export_prints_carries_the_amount_in_both_languages(): void
     {
         $contract = $this->makeContract([
             'pay_mode' => PayMode::Fixed,
@@ -121,11 +129,11 @@ class ContractPayClauseTest extends TestCase
             'salary_per' => SalaryPer::Month,
         ]);
 
-        $html = $this->renderClause($contract, forPdf: true);
+        foreach (['en', 'ar'] as $locale) {
+            app()->setLocale($locale);
 
-        // English column digits stay Latin even for the PDF path — only the
-        // Arabic column is converted to Arabic-Indic numerals.
-        $this->assertStringContainsString('150', $html);
+            $this->assertStringContainsString('150', $this->renderClause($contract));
+        }
     }
 
     private function renderClause(Contract $contract, bool $forPdf = false): string

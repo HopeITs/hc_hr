@@ -18,7 +18,7 @@
             </label>
 
             <x-forms.select2-input wire:model.lazy="selectedCity" :hideSearch="true">
-                <option value="">{{ __('general.all') }} {{ trans_choice('general.city', 2) }}</option>
+                <option value="">{{ __('dashboard.all-cities') }}</option>
                 @foreach($cities as $city)
                     <option value="{{ $city->id }}">{{ $city->name }}</option>
                 @endforeach
@@ -31,7 +31,7 @@
                 </label>
 
                 <x-forms.select2-input wire:model.lazy="selectedProgram" :hideSearch="true">
-                    <option value="">{{ __('general.all') }} {{ trans_choice('general.program', 2) }}</option>
+                    <option value="">{{ __('dashboard.all-programs') }}</option>
                     @foreach($programs as $program)
                         <option value="{{ $program->id }}">{{ $program->name }}</option>
                     @endforeach
@@ -71,7 +71,7 @@
     <div wire:loading.flex wire:target="applyFilters, resetFilters" class="justify-center py-12">
         <div class="text-body text-secondary-dark flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            @lang('general.updating-statistics')
+            @lang('dashboard.updating-statistics')
         </div>
     </div>
 
@@ -98,8 +98,8 @@
                         </span>
                     </div>
 
-                    <div class="text-right">
-                        <span class="inline-block px-2 py-1 text-caption font-semibold text-white rounded-control scale-[0.8] origin-right
+                    <div class="text-end">
+                        <span class="inline-block px-2 py-1 text-caption font-semibold text-white rounded-control scale-[0.8] ltr:origin-right rtl:origin-left
                                      {{ $card['color'] }}">
                             {{ $cardType === 'program'
                                 ? trans_choice('general.program', 2)
@@ -187,7 +187,7 @@
                        @if (in_array($cardType, ['program', 'center'], true)) wire:navigate @endif
                        data-tour="contract-stats.show-more"
                        class="text-small flex justify-end  text-primary hover:underline">
-                        @lang('general.show-more') →
+                        @lang('general.show-more') <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span>
                     </a>
                 </div>
 

@@ -45,7 +45,8 @@ class EmployeeStatistics extends Component
     private function getMonthlyData(): JsonResponse
     {
         $months = collect(range(0, 5))->map(function ($i) {
-            return now()->subMonths($i)->format('M');
+            // Chart axis labels: month names in the viewer's language.
+            return now()->subMonths($i)->locale(app()->getLocale())->translatedFormat('M');
         })->reverse()->values();
 
         $new = $months->map(function ($label, $i) {
@@ -91,7 +92,7 @@ class EmployeeStatistics extends Component
         $terminated = collect($quarters)->map(fn ($q) => $this->countInQuarter('terminated_at', $q, true));
 
         return response()->json([
-            'labels' => $quarters,
+            'labels' => collect($quarters)->map(fn (string $q) => __('employees.statistics.quarter', ['number' => substr($q, 1)])),
             'new' => $new,
             'ended' => $ended,
             'terminated' => $terminated,

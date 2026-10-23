@@ -30,14 +30,14 @@ use App\Enums\LeaveRequestStatus;
     </div>
 
 
-    <x-modal.dialog max-width="6xl" id="showModal" :title="$modalTitle" wire:model.defer="showModal" wire:ignore.self>
+    <x-modal.dialog max-width="6xl" id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
 
-        <form wire:submit.prevent="save" class="space-y-4">
+        <form wire:submit.prevent="save" class="space-y-4 sheet:flex-1 sheet:flex sheet:flex-col">
             <x-forms.errors-validation-list/>
             <div class="grid md:grid-cols-3 gap-4">
                 <div class="md:col-span-1">
                     <x-forms.input-label >{{__('general.name')}}</x-forms.input-label>
-                    <p>{{$form->balance?->contract->employee->name}}</p>
+                    <p><bdi>{{$form->balance?->contract->employee->name}}</bdi></p>
                 </div>
                 <div class="md:col-span-2">
                     <x-forms.input-label >{{__('general.years-of-service')}}</x-forms.input-label>
@@ -57,28 +57,20 @@ use App\Enums\LeaveRequestStatus;
                 </div>
 
                 <div>
-                    <x-forms.input-label required>@lang('general.operation')</x-forms.input-label>
-                    <div class="flex gap-x-4">
-                        <x-forms.radio-input id="op_sum" name="operation" value="sum"
+                    <x-forms.radio-group :legend="__('general.operation')" error="form.operation" required>
+                        <x-forms.radio-input value="sum"
                                              wire:model="form.operation">{{__('general.sum')}}</x-forms.radio-input>
-                        <x-forms.radio-input id="op_sub" name="operation" value="sub"
+                        <x-forms.radio-input value="sub"
                                              wire:model="form.operation">{{__('general.sub')}}</x-forms.radio-input>
-
-                    </div>
-
-                    <x-error-span>{{ $errors->first('form.operation') }}</x-error-span>
+                    </x-forms.radio-group>
                 </div>
                 <div>
-                    <x-forms.input-label required>@lang('general.unit')</x-forms.input-label>
-                    <div class="flex gap-x-4">
-                        <x-forms.radio-input id="unit_hour" name="unit" value="hour"
-                                             wire:model="form.unit">{{trans_choice('general.hour',1)}}</x-forms.radio-input>
-                        <x-forms.radio-input id="unit_day" name="unit" value="day"
-                                             wire:model="form.unit">{{trans_choice('general.day',1)}}</x-forms.radio-input>
-
-                    </div>
-
-                    <x-error-span>{{ $errors->first('form.unit') }}</x-error-span>
+                    <x-forms.radio-group :legend="__('general.unit')" error="form.unit" required>
+                        <x-forms.radio-input value="hour"
+                                             wire:model="form.unit">{{ __('leaves.unit.hour') }}</x-forms.radio-input>
+                        <x-forms.radio-input value="day"
+                                             wire:model="form.unit">{{ __('leaves.unit.day') }}</x-forms.radio-input>
+                    </x-forms.radio-group>
                 </div>
                 <div>
                     <x-forms.input-label for="amount" required>@lang('general.amount')</x-forms.input-label>
@@ -100,12 +92,13 @@ use App\Enums\LeaveRequestStatus;
                     </div>
                 @endif
             </div>
-            <div class="flex justify-end gap-2">
+            <x-modal.actions>
                 <x-primary-button type="button" wire:click="confirmSave"
                                   class="!w-auto">@lang('general.save')</x-primary-button>
-                <x-primary-button :href="route('leaves.balance')"
+                {{-- Closes through the guard, like Escape and the header close: no link, no submit. --}}
+                <x-primary-button type="button" :show-spinner="false" x-on:click="close()"
                                   class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
-            </div>
+            </x-modal.actions>
         </form>
     </x-modal.dialog>
 </div>

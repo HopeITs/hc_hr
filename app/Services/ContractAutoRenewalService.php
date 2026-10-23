@@ -50,7 +50,9 @@ class ContractAutoRenewalService
             if (
                 ! $source
                 || ! $source->auto_renew
-                || $source->isTerminated()
+                // A legacy row can still carry the flag from before
+                // ContractObserver::saving() forced it off for these.
+                || ! $source->canAutoRenew()
                 || $source->is_active
                 || ! $source->end_date
                 || $source->end_date->gte($asOf)

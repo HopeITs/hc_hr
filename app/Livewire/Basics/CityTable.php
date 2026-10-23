@@ -77,7 +77,7 @@ class CityTable extends LivewireTable
 
     protected function globalSearchColumns(): array
     {
-        return ['id', 'name_ar', 'name_en', 'code', 'slug'];
+        return ['id', 'name_ar', 'name_en', 'code', 'slug', 'hr_hotline'];
     }
 
     protected function columns(): array
@@ -100,21 +100,31 @@ class CityTable extends LivewireTable
             Column::make(__('general.slug'), 'slug')
                 ->sortable()->searchable(),
 
+            Column::make(__('digital_id.city.hotline'), 'hr_hotline')
+                ->sortable()->searchable(),
+
             BooleanColumn::make(__('general.active'), 'is_active')
                 ->searchable(),
 
             Column::make(__('general.actions'), function (Model $m): string {
+                $id = (int) $m->getKey();
 
-                return Blade::render(
+                // Opens CityModule's modal, which authorizes again.
+                $editBtn = Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openCityEdit\', { id: '.$id.' })" />');
+
+                $toggle = Blade::render(
                     '<x-forms.toggle-input
             class="!me-2 text-xl p-2 mb-3"
             active="'.($m->is_active ? 1 : 0).'"
-            :model-id="'.$m->id.'"
+            :model-id="'.$id.'"
             wire-event="confirmToggleItemStatus" />',
                 );
+
+                return '<div class="flex items-center justify-center gap-2">'.$editBtn.$toggle.'</div>';
             })
                 ->asHtml()
-                ->visible($canUpdate),
+                ->visible($canUpdate)
+                ->clickable(false),
         ];
     }
 }

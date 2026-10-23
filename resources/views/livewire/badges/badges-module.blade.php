@@ -18,8 +18,8 @@
         <div class="space-y-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <x-field-caption class="text-primary dark:text-primary">@lang('general.employee')</x-field-caption>
-                    <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ $badge['employee'] ?? '—' }}</div>
+                    <x-field-caption class="text-primary dark:text-primary">{{ trans_choice('general.employee', 1) }}</x-field-caption>
+                    <div class="font-medium text-neutral-900 dark:text-neutral-100"><bdi>{{ $badge['employee'] ?? '—' }}</bdi></div>
                 </div>
                 <div>
                     <x-field-caption class="text-primary dark:text-primary">@lang('general.type')</x-field-caption>
@@ -37,7 +37,7 @@
                 @endif
                 <div>
                     <x-field-caption class="text-primary dark:text-primary">@lang('general.date')</x-field-caption>
-                    <div>{{ $badge['date'] ?? '—' }}</div>
+                    <div><bdi>{{ $badge['date'] ?? '—' }}</bdi></div>
                 </div>
                 <div>
                     <x-field-caption class="text-primary dark:text-primary">{{ trans_choice('general.program', 1) }}</x-field-caption>
@@ -56,7 +56,7 @@
                             <x-field-caption class="text-primary dark:text-primary">@lang('general.financial-amount')</x-field-caption>
                             <div>
                                 @if(!empty($badge['amount']))
-                                    {{ number_format((float)$badge['amount'], 2) }} {{ $badge['currency'] ?? '' }}
+                                    <bdi>{{ number_format((float)$badge['amount'], 2) }} {{ $badge['currency'] ?? '' }}</bdi>
                                 @else
                                     —
                                 @endif
@@ -107,7 +107,7 @@
                         <x-field-caption class="text-primary dark:text-primary">@lang('general.current_salary')</x-field-caption>
                         <div>
                             @if(!empty($badge['current_salary']))
-                                {{ number_format((float)$badge['current_salary'], 2) }} {{ $badge['currency'] ?? '' }}
+                                <bdi>{{ number_format((float)$badge['current_salary'], 2) }} {{ $badge['currency'] ?? '' }}</bdi>
                             @else
                                 —
                             @endif
@@ -117,7 +117,7 @@
                         <x-field-caption class="text-primary dark:text-primary">@lang('general.new-salary')</x-field-caption>
                         <div>
                             @if(!empty($badge['new_salary']))
-                                {{ number_format((float)$badge['new_salary'], 2) }} {{ $badge['currency'] ?? '' }}
+                                <bdi>{{ number_format((float)$badge['new_salary'], 2) }} {{ $badge['currency'] ?? '' }}</bdi>
                             @else
                                 —
                             @endif

@@ -28,7 +28,7 @@ class TodayEventsCard extends Component
                 'name' => $employee->name,
                 'position' => $employee->latestActiveContract()?->position?->title ?? '',
                 'department' => $employee->latestActiveContract()?->position?->department?->name ?? '',
-                'message' => 'Happy Birthday! 🎉',
+                'message' => __('dashboard.happy-birthday').' 🎉',
                 'photo' => $employee->avatar_url
                     // Local placeholder: the previous ui-avatars.com fallback
                     // sent every employee's name to a third-party host.

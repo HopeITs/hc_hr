@@ -1,7 +1,8 @@
 @if($attributes->has('href'))
     <a {{
     $attributes->merge([
-        'class' => 'cursor-pointer p-2 text-secondary-medium inline-flex items-center',
+        'class' => 'cursor-pointer p-2 text-secondary-medium inline-flex items-center max-sm:min-h-11 max-sm:min-w-11 justify-center',
+        'aria-label' => __('general.export'),
         'target' => '_blank',
         'title' => __('general.export'),
     ])
@@ -12,7 +13,9 @@
 
     <button {{
     $attributes->merge([
-        'class' => 'cursor-pointer text-secondary-medium p-2 inline-flex items-center',
+        'type' => 'button',
+        'class' => 'cursor-pointer text-secondary-medium p-2 inline-flex items-center max-sm:min-h-11 max-sm:min-w-11 justify-center',
+        'aria-label' => __('general.export'),
         'title' => __('general.export'),
     ])
 }}>

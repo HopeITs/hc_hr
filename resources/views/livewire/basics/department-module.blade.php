@@ -44,7 +44,7 @@
     <livewire:basics.department-table />
 
     {{-- Modal --}}
-    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" wire:ignore.self>
+    <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
         <form wire:submit.prevent="save" class="space-y-4">
             <div class="grid grid-cols-2 space-x-2 space-y-4">
                 {{-- Name Input  --}}

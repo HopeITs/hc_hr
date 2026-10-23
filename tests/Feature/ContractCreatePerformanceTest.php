@@ -96,13 +96,10 @@ class ContractCreatePerformanceTest extends TestCase
             ->assertSeeHtml('composer-section-assignment')
             ->assertSeeHtml('composer-section-schedule')
             ->assertSeeHtml('composer-section-pay')
-            // All five cascade fields, laid out two per row.
+            // The cascade fields (the center field was removed in dbbeb4c0).
             ->assertSeeHtml('id="composer_employee"')
             ->assertSeeHtml('id="composer_program"')
-            ->assertSeeHtml('id="composer_center"')
             ->assertSeeHtml('id="composer_position"')
-            // Capacity has its own panel rather than hiding under the field.
-            ->assertSee(__('general.composer.capacity-empty'))
             // A city-scoped role gets a locked chip, never a dropdown of one.
             ->assertSee(__('general.composer.locked-city'))
             ->assertDontSeeHtml('id="composer_city"')

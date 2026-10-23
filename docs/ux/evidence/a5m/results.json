@@ -1,0 +1,562 @@
+[
+  {
+    "name": "[en-desktop] page direction",
+    "ok": true,
+    "detail": "ltr"
+  },
+  {
+    "name": "[en-desktop] new-request title",
+    "ok": true,
+    "detail": "Request leave"
+  },
+  {
+    "name": "[en-desktop] submit label",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] pristine Escape closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] focus returns to opener",
+    "ok": true,
+    "detail": "Request leave"
+  },
+  {
+    "name": "[en-desktop] pristine header close closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] pristine Cancel closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] backdrop click keeps dirty dialog open",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] backdrop keeps entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty Escape: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-desktop] dirty Escape: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-desktop] dirty Escape: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty Escape: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty header: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-desktop] dirty header: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-desktop] dirty header: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty header: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty Cancel: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-desktop] dirty Cancel: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-desktop] dirty Cancel: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] dirty Cancel: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] Discard closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] reopened request starts clean",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] scroll position kept across close",
+    "ok": true,
+    "detail": "0 → 0"
+  },
+  {
+    "name": "[en-desktop] changed-then-restored closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-desktop] no document reload",
+    "ok": true,
+    "detail": "docs=0 navs=0"
+  },
+  {
+    "name": "[ar-desktop] page direction",
+    "ok": true,
+    "detail": "rtl"
+  },
+  {
+    "name": "[ar-desktop] new-request title",
+    "ok": true,
+    "detail": "طلب إجازة"
+  },
+  {
+    "name": "[ar-desktop] submit label",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] pristine Escape closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] focus returns to opener",
+    "ok": true,
+    "detail": "طلب إجازة"
+  },
+  {
+    "name": "[ar-desktop] pristine header close closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] pristine Cancel closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] backdrop click keeps dirty dialog open",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] backdrop keeps entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty Escape: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-desktop] dirty Escape: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-desktop] dirty Escape: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty Escape: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty header: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-desktop] dirty header: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-desktop] dirty header: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty header: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty Cancel: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-desktop] dirty Cancel: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-desktop] dirty Cancel: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] dirty Cancel: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] Discard closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] reopened request starts clean",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] scroll position kept across close",
+    "ok": true,
+    "detail": "0 → 0"
+  },
+  {
+    "name": "[ar-desktop] changed-then-restored closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-desktop] no document reload",
+    "ok": true,
+    "detail": "docs=0 navs=0"
+  },
+  {
+    "name": "[en-phone] page direction",
+    "ok": true,
+    "detail": "ltr"
+  },
+  {
+    "name": "[en-phone] new-request title",
+    "ok": true,
+    "detail": "Request leave"
+  },
+  {
+    "name": "[en-phone] submit label",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] pristine Escape closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] focus returns to opener",
+    "ok": true,
+    "detail": "Request leave"
+  },
+  {
+    "name": "[en-phone] pristine header close closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] pristine Cancel closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] backdrop click keeps dirty dialog open",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] backdrop keeps entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty Escape: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-phone] dirty Escape: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-phone] dirty Escape: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty Escape: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty header: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-phone] dirty header: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-phone] dirty header: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty header: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty Cancel: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "Discard your changes?"
+  },
+  {
+    "name": "[en-phone] dirty Cancel: initial focus on Keep editing",
+    "ok": true,
+    "detail": "Keep editing"
+  },
+  {
+    "name": "[en-phone] dirty Cancel: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] dirty Cancel: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] Discard closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] reopened request starts clean",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] scroll position kept across close",
+    "ok": true,
+    "detail": "0 → 0"
+  },
+  {
+    "name": "[en-phone] changed-then-restored closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[en-phone] no document reload",
+    "ok": true,
+    "detail": "docs=0 navs=0"
+  },
+  {
+    "name": "[en-phone] Cancel reachable with keyboard-sized viewport",
+    "ok": true,
+    "detail": "{\"x\":252.71875,\"y\":355.984375,\"width\":81.28125,\"height\":37.6875}"
+  },
+  {
+    "name": "[ar-phone] page direction",
+    "ok": true,
+    "detail": "rtl"
+  },
+  {
+    "name": "[ar-phone] new-request title",
+    "ok": true,
+    "detail": "طلب إجازة"
+  },
+  {
+    "name": "[ar-phone] submit label",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] pristine Escape closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] focus returns to opener",
+    "ok": true,
+    "detail": "طلب إجازة"
+  },
+  {
+    "name": "[ar-phone] pristine header close closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] pristine Cancel closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] backdrop click keeps dirty dialog open",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] backdrop keeps entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty Escape: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-phone] dirty Escape: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-phone] dirty Escape: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty Escape: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty header: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-phone] dirty header: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-phone] dirty header: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty header: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty Cancel: one confirmation with the A5-M wording",
+    "ok": true,
+    "detail": "تجاهل التغييرات؟"
+  },
+  {
+    "name": "[ar-phone] dirty Cancel: initial focus on Keep editing",
+    "ok": true,
+    "detail": "متابعة التعديل"
+  },
+  {
+    "name": "[ar-phone] dirty Cancel: dismissing keeps dialog and entry",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] dirty Cancel: focus is back inside the dialog",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] Discard closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] reopened request starts clean",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] scroll position kept across close",
+    "ok": true,
+    "detail": "0 → 0"
+  },
+  {
+    "name": "[ar-phone] changed-then-restored closes without confirmation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[ar-phone] no document reload",
+    "ok": true,
+    "detail": "docs=0 navs=0"
+  },
+  {
+    "name": "[ar-phone] Cancel reachable with keyboard-sized viewport",
+    "ok": true,
+    "detail": "{\"x\":56,\"y\":355.984375,\"width\":60.375,\"height\":37.6875}"
+  },
+  {
+    "name": "[hr-departments-en] backdrop ignored",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[hr-departments-en] dirty Cancel asks",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[hr-departments-en] discard closes, no reload",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[hr-departments-ar] backdrop ignored",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[hr-departments-ar] dirty Cancel asks",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "[hr-departments-ar] discard closes, no reload",
+    "ok": true,
+    "detail": ""
+  }
+]

@@ -31,17 +31,11 @@
 </a>
 
 {{--
-    Decorative brand animation. It is hidden from assistive technology entirely:
-    it carries no information, and without aria-hidden a screen reader would
-    land on an unlabelled <video> element on every navigation.
+    No page-covering loader (A7). A full-screen animation used to cover every
+    page load and wire:navigate for at least 550 ms after the content was ready.
+    Progress now comes from Livewire's navigate bar (config/livewire.php,
+    --livewire-progress-bar-color) and from each control's own pending state.
 --}}
-<div id="page-gif-overlay"
-     aria-hidden="true"
-     style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#ffffff; z-index:9999;">
-    <video autoplay loop muted playsinline tabindex="-1" style="width:18.5rem; height:18.5rem; object-fit:contain;">
-        <source src="{{ asset('assets/GIF/hr-website-2.mp4') }}" type="video/mp4">
-    </video>
-</div>
 <livewire:layout.sidebar/>
 
 
@@ -75,35 +69,6 @@
 
 @include('partials.scripts')
 @stack('scripts')
-<script nonce="{{ Vite::cspNonce() }}">
-    // The overlay shows on every page load and wire:navigate, but only briefly:
-    // long enough to read as a transition, short enough not to slow anyone down.
-    // Wrapped in an IIFE because wire:navigate re-runs body scripts, and a
-    // top-level const would throw on redeclaration.
-    (() => {
-        const MIN_VISIBLE = 300;
-        const FADE = 250;
-
-        const hide = () => {
-            const overlay = document.getElementById('page-gif-overlay');
-            if (!overlay || overlay.dataset.hiding) return;
-            overlay.dataset.hiding = '1';
-
-            setTimeout(() => {
-                overlay.style.transition = `opacity ${FADE}ms ease`;
-                overlay.style.opacity = '0';
-                setTimeout(() => { overlay.style.display = 'none'; }, FADE);
-            }, MIN_VISIBLE);
-        };
-
-        hide();
-
-        if (!window.__hcPreloaderBound) {
-            window.__hcPreloaderBound = true;
-            document.addEventListener('livewire:navigated', hide);
-        }
-    })();
-</script>
 
 
 

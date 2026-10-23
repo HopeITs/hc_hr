@@ -2,8 +2,12 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Services\NotificationRequestState;
+
 trait HandlesNotificationActions
 {
+    use WithFeedback;
+
     public function openNotification(string $id): void
     {
         $notification = auth()->user()
@@ -15,6 +19,17 @@ trait HandlesNotificationActions
         if ($notification->unread()) {
             $notification->markAsRead();
             $this->dispatch('notification-read');
+        }
+
+        // The record may have been deleted, or this user's role/city may have
+        // changed since the message was written. Say so instead of landing on a
+        // 403/404 page, and never reveal anything about the record.
+        $state = app(NotificationRequestState::class)->forOne(auth()->user(), $notification->data);
+
+        if ($state !== null && $state['state'] === NotificationRequestState::UNAVAILABLE) {
+            $this->toast(__('general.notification-target-unavailable'), 'info');
+
+            return;
         }
 
         $url = $this->safeNotificationUrl($notification->data['url'] ?? null);
@@ -96,5 +111,16 @@ trait HandlesNotificationActions
         $query = isset($parts['query']) ? '?'.$parts['query'] : '';
 
         return $path.$query;
+    }
+
+    /**
+     * Current record state for each listed notification, for the views.
+     *
+     * @param  iterable<int, \Illuminate\Notifications\DatabaseNotification>  $notifications
+     * @return array<string, array{state: string, status: ?string, next_step: ?string}>
+     */
+    protected function requestStates(iterable $notifications): array
+    {
+        return app(NotificationRequestState::class)->forMany(auth()->user(), $notifications);
     }
 }

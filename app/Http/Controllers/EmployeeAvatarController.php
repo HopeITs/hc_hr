@@ -17,11 +17,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  *  - internal(): a signed-in HR user, authorized by EmployeePolicy, which
  *    enforces city scope. This is the path every in-app <img> uses.
- *  - digitalId(): the public ID card at /ID/{token}. That page has no session
+ *  - digitalId(): the public ID card at /ID/{card}. That page has no session
  *    — anyone holding the printed QR code may view it — so it cannot use the
  *    authenticated endpoint, and the authenticated endpoint must not be
  *    relaxed to accommodate it. It instead receives a short-lived signed URL
- *    minted only after the token has been matched to an active employee.
+ *    minted only after the card link resolved to an active employee's
+ *    current, enabled card.
  *
  * Neither response reveals a storage path, and neither is cacheable by a
  * shared proxy.
@@ -41,11 +42,13 @@ class EmployeeAvatarController extends Controller
     public function digitalId(Request $request, Employee $employee): BinaryFileResponse|StreamedResponse
     {
         // The signature covers the employee id and the expiry, so a valid link
-        // cannot be edited to point at a different employee. Deactivating an
-        // employee revokes access even while an unexpired link is in flight.
+        // cannot be edited to point at a different employee, and it is minted
+        // only after ShowDigitalId resolved the card. Deactivating the employee
+        // or disabling the card revokes it even while an unexpired link is in
+        // flight.
         abort_unless($request->hasValidSignature(), Response::HTTP_FORBIDDEN);
         abort_unless(
-            $employee->is_active && $employee->digital_id_token && $employee->digital_id_enabled,
+            $employee->is_active && $employee->digital_id_enabled,
             Response::HTTP_NOT_FOUND,
         );
 

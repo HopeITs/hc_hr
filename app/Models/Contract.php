@@ -308,6 +308,31 @@ class Contract extends Model
         return filled($this->terminated_at) || filled($this->termination_reason_id);
     }
 
+    /**
+     * A trial is meant to end and be evaluated, never roll over silently.
+     * Keyed off config('contracts.map_by_id'), the same source as
+     * ContractType::$category, without loading the type row.
+     */
+    public static function isTrialType(?int $contractTypeId): bool
+    {
+        return (config('contracts.map_by_id')[$contractTypeId] ?? null) === 'trial';
+    }
+
+    public function isTrial(): bool
+    {
+        return static::isTrialType($this->contract_type_id);
+    }
+
+    /**
+     * May this contract be set to renew automatically at all? Neither a
+     * terminated contract nor a trial ever may — ContractObserver::saving()
+     * forces the flag off for both.
+     */
+    public function canAutoRenew(): bool
+    {
+        return ! $this->isTerminated() && ! $this->isTrial();
+    }
+
     public function getDurationAttribute()
     {
         $start_date = Carbon::parse($this->start_date);
