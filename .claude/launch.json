@@ -175,6 +175,27 @@
       },
       "port": 8397,
       "autoPort": false
+    },
+    {
+      "name": "hc-hr B2 (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5.11/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8398",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-b2",
+        "X2_PORT": "8398"
+      },
+      "port": 8398,
+      "autoPort": false
     }
   ]
 }

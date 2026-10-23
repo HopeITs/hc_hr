@@ -16,6 +16,51 @@ const DURATION = { success: 5000, info: 5000, error: 8000 };
 const UNDO_DURATION = 8000; // long enough to read the message and reach the button
 const MAX_VISIBLE = 4;
 
+const FOCUSABLE = 'input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable=true]';
+
+const isVisible = (el) => el.getClientRects().length > 0;
+
+// select2 hides the real <select> and takes focus on its own box.
+function focusTarget(el) {
+    if (el?.classList?.contains('select2-hidden-accessible')) {
+        return el.nextElementSibling?.querySelector('.select2-selection') ?? null;
+    }
+
+    return el && isVisible(el) ? el : null;
+}
+
+/**
+ * The field behind an error key: the control bound to it (wire:model, any
+ * modifier) or named after it, else the first control next to its inline
+ * message (fields bound through Alpine, such as the contract composer's).
+ */
+function locateField(key, message, summary) {
+    const bound = [...document.querySelectorAll('input, select, textarea')].filter((el) =>
+        el.getAttribute('name') === key
+        || [...el.attributes].some((attr) => attr.name.startsWith('wire:model') && attr.value === key),
+    );
+
+    for (const el of bound) {
+        const target = focusTarget(el);
+
+        if (target) return target;
+    }
+
+    if (!message) return null;
+
+    const inline = [...document.querySelectorAll('[data-inline-error]')].find(
+        (el) => !summary.contains(el) && isVisible(el) && el.textContent.trim() === message,
+    );
+
+    for (let box = inline?.parentElement; box && box !== document.body; box = box.parentElement) {
+        const target = [...box.querySelectorAll(FOCUSABLE)].map(focusTarget).find(Boolean);
+
+        if (target) return target;
+    }
+
+    return null;
+}
+
 // Calls a method on the Livewire component that raised the toast or the
 // confirmation. A null payload means "call with no argument".
 function callBack({ component, method, payload }) {
@@ -158,8 +203,13 @@ document.addEventListener('alpine:init', () => {
      * An inline message is matched by key (data-error-for, set by
      * <x-forms.input-error>) or, for the many <x-error-span>s that only
      * receive the text, by that text.
+     *
+     * Each entry links to its field (B2): go() opens the tab or section that
+     * holds it (`reveal`, a Livewire method such as setActiveTab, and the
+     * `reveal-field` window event) and then focuses it.
      */
-    Alpine.data('errorSummary', () => ({
+    Alpine.data('errorSummary', (reveal = null) => ({
+        reveal,
         keys: [],
         covered: [],
         ready: false,
@@ -174,10 +224,18 @@ document.addEventListener('alpine:init', () => {
             this.stopListening = window.Livewire?.hook('commit', ({ succeed }) => {
                 succeed(() => queueMicrotask(() => this.sync()));
             });
+
+            // Collapsing a section or switching an Alpine-only tab hides
+            // messages without a round trip; check again after the next paint.
+            this.resync = () => requestAnimationFrame(() => requestAnimationFrame(() => this.sync()));
+            document.addEventListener('click', this.resync, true);
+            document.addEventListener('keyup', this.resync, true);
         },
 
         destroy() {
             this.stopListening?.();
+            document.removeEventListener('click', this.resync, true);
+            document.removeEventListener('keyup', this.resync, true);
         },
 
         sync() {
@@ -202,6 +260,30 @@ document.addEventListener('alpine:init', () => {
 
         isCovered(key) {
             return this.covered.includes(key);
+        },
+
+        async go(key, section = null) {
+            // $root, not $el: called from an entry's click, $el is that button.
+            const summary = this.$root;
+            const message = summary.querySelector(`[data-error-key="${CSS.escape(key)}"]`)?.textContent.trim() ?? '';
+            let field = locateField(key, message, summary);
+
+            if (!field && section) {
+                window.dispatchEvent(new CustomEvent('reveal-field', { detail: { key, section } }));
+
+                if (this.reveal) await this.$wire.call(this.reveal, section);
+            }
+
+            // The tab or section renders on a later frame.
+            for (let attempt = 0; !field && attempt < 20; attempt++) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                field = locateField(key, message, summary);
+            }
+
+            if (!field) return;
+
+            field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            field.focus({ preventScroll: true });
         },
 
         get hasUncovered() {

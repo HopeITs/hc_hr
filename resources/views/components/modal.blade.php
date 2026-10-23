@@ -69,6 +69,8 @@
         lastInside: null,
         observer: null,
         guard: @js($closeAction),
+        touched: false,
+        unsavedId: null,
         {{-- The single close route for Escape, the header close and Cancel. --}}
         close() {
             if (this.guard) { $wire.call(this.guard, @js($id)); return; }
@@ -81,6 +83,25 @@
             this.remember = e => { if (! this.show && ! this.$el.contains(e.target)) this.opener = e.target };
             document.addEventListener('focusin', this.remember);
 
+            {{-- B2: the Back button closes an editable dialog through its own close route, and
+                 reloading or closing the tab asks once something was typed or picked in it. --}}
+            if (this.guard) {
+                this.touched = false;
+                this.unsavedId = 'dialog:' + $wire.$id + ':' + @js($id);
+                this.markTouched = () => { if (this.show) this.touched = true };
+                this.$el.addEventListener('input', this.markTouched);
+                this.$el.addEventListener('change', this.markTouched);
+                {{-- select2 reports a pick only through jQuery's own events. --}}
+                window.jQuery?.(this.$el).on('select2:select select2:unselect', this.markTouched);
+                $unsaved.register(this.unsavedId, {
+                    kind: 'dialog',
+                    wireId: $wire.$id,
+                    isOpen: () => this.show,
+                    touched: () => this.show && this.touched,
+                    close: () => this.close(),
+                });
+            }
+
             this.observer = new MutationObserver(() => {
                 if (this.show && document.activeElement === document.body) this.recoverFocus(this.lastInside);
             });
@@ -88,6 +109,7 @@
 
             this.$watch('show', open => {
                 if (open) {
+                    this.touched = false;
                     if (document.activeElement !== document.body) this.opener = document.activeElement;
                     setTimeout(() => this.focusInitial(), 30);
                 } else {
@@ -115,6 +137,7 @@
         destroy() {
             document.removeEventListener('focusin', this.remember);
             this.observer?.disconnect();
+            if (this.unsavedId) $unsaved.unregister(this.unsavedId);
         },
         {{-- A Livewire re-render can replace the focused field (a changed wire:key), which drops
              focus to <body>, outside the dialog. Put it back on the replacement, else the first field. --}}

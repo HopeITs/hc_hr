@@ -23,6 +23,15 @@ class PersonalInfoForm extends Form
 {
     use WithFileUploads;
 
+    /**
+     * The fields shown on the employee form's Contact tab; every other field
+     * of this form is on the Profile tab. `email` is built from `username`.
+     */
+    public const CONTACT_FIELDS = [
+        'username', 'email', 'create_account', 'work_phone', 'personal_phone', 'personal_email',
+        'whatsapp_work', 'telegram_work', 'facebook', 'instagram', 'linkedin',
+    ];
+
     public ?Employee $employee = null;
 
     public $photo = null;

@@ -26,7 +26,24 @@
         rendered below, so an error list living inside a tab is invisible
         whenever the offending field belongs to a different tab.
     --}}
-    <x-forms.errors-validation-list />
+    @php
+        // Which tab holds each field, so a summary entry can open it (B2).
+        $errorTabs = [
+            'infoForm.' => 'information',
+            'educationForm.' => 'education',
+            'courseForm.' => 'courses',
+            'experienceForm.' => 'experience',
+            'relativeForm.' => 'relatives',
+            'badgeForm.' => 'badges',
+            'checklistForm.' => 'checklist',
+            'attachmentForm.' => 'attachments',
+        ];
+
+        foreach (\App\Livewire\Forms\Employee\PersonalInfoForm::CONTACT_FIELDS as $contactField) {
+            $errorTabs['infoForm.'.$contactField] = 'contact';
+        }
+    @endphp
+    <x-forms.errors-validation-list :sections="$errorTabs" reveal="setActiveTab" />
 
     @php
         // One definition feeds the desktop list and the phone selector, so the

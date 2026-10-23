@@ -132,6 +132,9 @@
     x-init="initialize()"
     class="pb-2 max-lg:pb-40"
 >
+    {{-- Errors in a collapsed section; each entry opens it (reveal-field). --}}
+    <x-forms.errors-validation-list :sections="$errorSections ?? []" />
+
     {{--
         items-stretch is what actually guarantees the two columns share a
         height: a grid row is as tall as its tallest cell, and both cells

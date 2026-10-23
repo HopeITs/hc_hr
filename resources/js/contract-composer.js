@@ -388,10 +388,43 @@ document.addEventListener('alpine:init', () => {
                 this.submitting = false;
             };
             window.addEventListener('composer-invalid', this.onComposerInvalid);
+
+            // B2: an error listed in the form's summary opens its section.
+            this.onRevealField = (event) => {
+                const name = event.detail?.section;
+
+                if (this.sections.includes(name) && this.isUnlocked(name)) {
+                    this.section = name;
+                }
+            };
+            window.addEventListener('reveal-field', this.onRevealField);
+
+            // B2: leaving with unsaved changes asks first. The baseline is
+            // taken at the user's first touch, not here: seeding and the
+            // cascades above keep rewriting the form while it loads, and none
+            // of that is the user's work.
+            this.unsavedBaseline = null;
+            this.onFirstTouch = () => {
+                if (this.unsavedBaseline === null) {
+                    this.unsavedBaseline = JSON.stringify(this.payload());
+                }
+            };
+            this.$el.addEventListener('pointerdown', this.onFirstTouch, true);
+            this.$el.addEventListener('keydown', this.onFirstTouch, true);
+            this.unsavedId = `composer:${this.$wire.$id}`;
+            window.hcUnsaved?.register(this.unsavedId, {
+                wireId: this.$wire.$id,
+                // Not while sending: a successful save navigates away on its own.
+                dirty: () => !this.submitting
+                    && this.unsavedBaseline !== null
+                    && JSON.stringify(this.payload()) !== this.unsavedBaseline,
+            });
         },
 
         destroy() {
             window.removeEventListener('composer-invalid', this.onComposerInvalid);
+            window.removeEventListener('reveal-field', this.onRevealField);
+            window.hcUnsaved?.unregister(this.unsavedId);
             clearTimeout(this.leaveTimer);
         },
 
@@ -1649,57 +1682,62 @@ document.addEventListener('alpine:init', () => {
             this.submitting = true;
 
             try {
-                const payload = {
-                    cityId: this.selected.city,
-                    employeeId: this.selected.employee,
-                    programId: this.selected.program,
-                    positionId: this.selected.position,
-                    draftContractId: this.draftContractId,
-                    contractTypeId: this.selected.contractType,
-                    type: this.type,
-                    place: this.place,
-                    startDate: this.startDate,
-                    endDate: this.endDate,
-                    scheduleMode: this.scheduleMode,
-                    workHoursFrom: this.workHoursFrom,
-                    workHoursTo: this.workHoursTo,
-                    weeklyHours: this.weeklyHours,
-                    workHours2From: this.workHours2From,
-                    workHours2To: this.workHours2To,
-                    workDayFrom: this.workDayFrom,
-                    workDayTo: this.workDayTo,
-                    showDaysPerWeek: this.showDaysPerWeek,
-                    showHoursPerWeek: this.showHoursPerWeek,
-                    showHoursPerDay: this.showHoursPerDay,
-                    showDayRange: this.showDayRange,
-                    flexDaysPerWeek: this.flexDaysPerWeek,
-                    flexHoursPerWeek: this.flexHoursPerWeek,
-                    flexHoursPerMonth: this.flexHoursPerMonth,
-                    flexVariesByRequirements: this.flexVariesByRequirements,
-                    flexCoordinatedWithManager: this.flexCoordinatedWithManager,
-                    flexCustomEn: this.flexCustomEn,
-                    flexCustomAr: this.flexCustomAr,
-                    payMode: this.payMode,
-                    salary: this.salary,
-                    currency: this.currency,
-                    salaryPer: this.salaryPer,
-                    sessionDuration: this.sessionDuration,
-                    payTiers: this.payTiers,
-                    // Ignored by ContractCreate, which always writes a contract
-                    // that is active and un-terminated.
-                    terminatedAt: this.terminatedAt,
-                    terminationReasonId: this.terminationReasonId,
-                    reasonOfTermination: this.reasonOfTermination,
-                };
-
-                if (this.canManageAutoRenew) {
-                    payload.autoRenew = this.autoRenew;
-                }
-
-                await this.$wire.submit(payload);
+                await this.$wire.submit(this.payload());
             } finally {
                 this.submitting = false;
             }
+        },
+
+        /** Everything submit() sends; also what "unsaved changes" compares. */
+        payload() {
+            const payload = {
+                cityId: this.selected.city,
+                employeeId: this.selected.employee,
+                programId: this.selected.program,
+                positionId: this.selected.position,
+                draftContractId: this.draftContractId,
+                contractTypeId: this.selected.contractType,
+                type: this.type,
+                place: this.place,
+                startDate: this.startDate,
+                endDate: this.endDate,
+                scheduleMode: this.scheduleMode,
+                workHoursFrom: this.workHoursFrom,
+                workHoursTo: this.workHoursTo,
+                weeklyHours: this.weeklyHours,
+                workHours2From: this.workHours2From,
+                workHours2To: this.workHours2To,
+                workDayFrom: this.workDayFrom,
+                workDayTo: this.workDayTo,
+                showDaysPerWeek: this.showDaysPerWeek,
+                showHoursPerWeek: this.showHoursPerWeek,
+                showHoursPerDay: this.showHoursPerDay,
+                showDayRange: this.showDayRange,
+                flexDaysPerWeek: this.flexDaysPerWeek,
+                flexHoursPerWeek: this.flexHoursPerWeek,
+                flexHoursPerMonth: this.flexHoursPerMonth,
+                flexVariesByRequirements: this.flexVariesByRequirements,
+                flexCoordinatedWithManager: this.flexCoordinatedWithManager,
+                flexCustomEn: this.flexCustomEn,
+                flexCustomAr: this.flexCustomAr,
+                payMode: this.payMode,
+                salary: this.salary,
+                currency: this.currency,
+                salaryPer: this.salaryPer,
+                sessionDuration: this.sessionDuration,
+                payTiers: this.payTiers,
+                // Ignored by ContractCreate, which always writes a contract
+                // that is active and un-terminated.
+                terminatedAt: this.terminatedAt,
+                terminationReasonId: this.terminationReasonId,
+                reasonOfTermination: this.reasonOfTermination,
+            };
+
+            if (this.canManageAutoRenew) {
+                payload.autoRenew = this.autoRenew;
+            }
+
+            return payload;
         },
     }));
 });

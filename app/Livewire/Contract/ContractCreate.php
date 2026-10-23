@@ -14,7 +14,10 @@ use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\User;
 use App\Notifications\NewEmployeeWelcome;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Locked;
@@ -61,6 +64,14 @@ class ContractCreate extends Component
     #[Locked]
     public ?Contract $renewalSource = null;
 
+    /**
+     * One per opened composer (B2). A double-sent or retried submit carries
+     * the same token, and finds the contract the first one created instead
+     * of writing a second. Locked: the browser can neither change nor clear it.
+     */
+    #[Locked]
+    public string $submissionToken = '';
+
     // ────────────────────────────────────────────────
     // Lifecycle
     // ────────────────────────────────────────────────
@@ -73,6 +84,7 @@ class ContractCreate extends Component
     public function mount(?Contract $contract = null): void
     {
         $this->form->setDefaults();
+        $this->submissionToken = (string) Str::uuid();
 
         if ($contract?->exists) {
             $this->initializeRenewal($contract);
@@ -86,64 +98,23 @@ class ContractCreate extends Component
     // Submission
     // ────────────────────────────────────────────────
 
+    /**
+     * Duplicate protection (B2). A double click, a request retried after a
+     * timeout, or a response lost on the way back must create one contract:
+     * under a lock on this composer's token, a token already used goes to the
+     * contract it created. The disabled button in the browser is only feedback.
+     */
     public function submit(array $payload): mixed
     {
-        // A renewal may sit open for a while. Re-read the source and re-check
-        // the gate, so a contract terminated or moved between opening the
-        // composer and saving it cannot still be carried forward.
-        if ($this->renewalSource) {
-            $source = $this->renewalSource->fresh();
-
-            // Deleted out from under the composer: there is nothing left to
-            // renew, and re-checking the gate against the stale copy would be
-            // a lie.
-            abort_if($source === null, 403);
-
-            Gate::authorize('renew', $source);
-        }
-
-        $this->applyComposerPayload($payload);
+        $key = 'contract-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
 
         try {
-            $this->form->validateIdentity();
-            $this->form->validateTerms();
-            $this->form->validatePay();
-        } catch (ValidationException $exception) {
-            // Reopen the offending section before Livewire renders the errors.
-            $this->dispatch('composer-invalid', sections: $this->sectionsFor(array_keys($exception->errors())));
-
-            throw $exception;
-        }
-
-        if (! $this->validateCityConsistency()) {
-            $this->dispatch('composer-invalid', sections: $this->sectionsFor($this->getErrorBag()->keys()));
+            return Cache::lock($key.':lock', 30)->block(10, fn () => $this->submitOnce($payload, $key));
+        } catch (LockTimeoutException) {
+            $this->toast(__('general.composer.submit-in-progress'), type: 'info');
 
             return null;
         }
-
-        // Everything above was validated in this same request, so persist
-        // without running the identical queries a second time.
-        if ($draft = $this->resolveDraftUpgrade($payload)) {
-            // Same row, filled in — not a new contract. update() skips
-            // re-validating (already done above) and ContractObserver
-            // recognises the type change away from Draft as the position's
-            // true first assignment (see ContractObserver::updating()).
-            $this->form->update($draft);
-            $contract = $draft;
-        } else {
-            $contract = $this->form->create();
-        }
-
-        $this->balanceForm->store($contract->id);
-
-        $this->notifyIfFirstContract($contract);
-
-        $this->dispatch('notification-created');
-
-        $this->finishTaskAttempt();
-        $this->toast();
-
-        return $this->redirectRoute('contracts.show', $contract->id, navigate: true);
     }
 
     /**
@@ -220,6 +191,7 @@ class ContractCreate extends Component
             'types' => $this->contractTypeCards($nameColumn),
             // A plain create opens blank; a renewal opens on its predecessor.
             'seed' => $this->isRenewal() ? $this->composerSeed() : null,
+            'errorSections' => $this->errorSections(),
         ]);
     }
 
@@ -238,6 +210,72 @@ class ContractCreate extends Component
     protected function contractTermAnchor(): ?string
     {
         return $this->isRenewal() ? $this->form->start_date : null;
+    }
+
+    private function submitOnce(array $payload, string $key): mixed
+    {
+        if ($created = $this->createdBy($key)) {
+            return $this->redirectRoute('contracts.show', $created->id, navigate: true);
+        }
+
+        // A renewal may sit open for a while. Re-read the source and re-check
+        // the gate, so a contract terminated or moved between opening the
+        // composer and saving it cannot still be carried forward.
+        if ($this->renewalSource) {
+            $source = $this->renewalSource->fresh();
+
+            // Deleted out from under the composer: there is nothing left to
+            // renew, and re-checking the gate against the stale copy would be
+            // a lie.
+            abort_if($source === null, 403);
+
+            Gate::authorize('renew', $source);
+        }
+
+        $this->applyComposerPayload($payload);
+
+        try {
+            $this->form->validateIdentity();
+            $this->form->validateTerms();
+            $this->form->validatePay();
+        } catch (ValidationException $exception) {
+            // Reopen the offending section before Livewire renders the errors.
+            $this->dispatch('composer-invalid', sections: $this->sectionsFor(array_keys($exception->errors())));
+
+            throw $exception;
+        }
+
+        if (! $this->validateCityConsistency()) {
+            $this->dispatch('composer-invalid', sections: $this->sectionsFor($this->getErrorBag()->keys()));
+
+            return null;
+        }
+
+        // Everything above was validated in this same request, so persist
+        // without running the identical queries a second time.
+        if ($draft = $this->resolveDraftUpgrade($payload)) {
+            // Same row, filled in — not a new contract. update() skips
+            // re-validating (already done above) and ContractObserver
+            // recognises the type change away from Draft as the position's
+            // true first assignment (see ContractObserver::updating()).
+            $this->form->update($draft);
+            $contract = $draft;
+        } else {
+            $contract = $this->form->create();
+        }
+
+        $this->balanceForm->store($contract->id);
+
+        Cache::put($key, $contract->id, now()->addDay());
+
+        $this->notifyIfFirstContract($contract);
+
+        $this->dispatch('notification-created');
+
+        $this->finishTaskAttempt();
+        $this->toast();
+
+        return $this->redirectRoute('contracts.show', $contract->id, navigate: true);
     }
 
     // ────────────────────────────────────────────────
@@ -313,6 +351,24 @@ class ContractCreate extends Component
         $validated = $requested->validated();
 
         return [$validated['start'], $validated['end']];
+    }
+
+    /**
+     * The contract an earlier send of this composer created, if it is still
+     * there and still this user's to see. A token is never a way to reach
+     * someone else's contract.
+     */
+    private function createdBy(string $key): ?Contract
+    {
+        $id = Cache::get($key);
+
+        if (! $id) {
+            return null;
+        }
+
+        $contract = Contract::query()->find($id);
+
+        return $contract && auth()->user()->can('view', $contract) ? $contract : null;
     }
 
     private function notifyIfFirstContract(Contract $contract): void

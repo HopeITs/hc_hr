@@ -78,6 +78,9 @@ class EmployeeCreate extends Component
             throw $e;
         }
 
+        // What is on screen is now saved: leaving no longer asks (B2).
+        $this->dispatch('form-saved', form: 'infoForm');
+
         $this->toast();
         $this->showDraftPrompt = true;
         $this->draftCityId = $this->infoForm->employee->city_id;
@@ -219,7 +222,7 @@ class EmployeeCreate extends Component
      */
     private function tabForErrors(array $errors): string
     {
-        $contactFields = ['username', 'email', 'work_phone', 'personal_phone'];
+        $contactFields = PersonalInfoForm::CONTACT_FIELDS;
 
         $failingFields = collect(array_keys($errors))
             ->map(fn (string $key): string => str($key)->after('infoForm.')->toString());

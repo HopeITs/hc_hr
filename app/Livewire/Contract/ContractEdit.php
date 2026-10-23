@@ -124,6 +124,7 @@ class ContractEdit extends Component
                 ->orderBy("title_{$locale}")
                 ->get(),
             'seed' => $this->composerSeed(),
+            'errorSections' => $this->errorSections(),
             'canManageAutoRenew' => auth()->user()->can('manageAutoRenew', $this->contract),
         ]);
     }

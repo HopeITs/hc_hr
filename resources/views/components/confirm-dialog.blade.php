@@ -23,6 +23,13 @@
              'cancelLabel' => __('general.cancel'),
              'danger' => true,
          ]);
+         {{-- Leaving a page with unsaved changes (resources/js/unsaved.js): A5-M's wording. --}}
+         window.hcUnsaved && (window.hcUnsaved.labels = @js([
+             'title' => __('general.unsaved.title'),
+             'message' => __('general.unsaved.message'),
+             'discard' => __('general.unsaved.discard'),
+             'keepEditing' => __('general.unsaved.keep-editing'),
+         ]));
          {{-- x-trap places focus 15ms after opening; if the panel was not painted yet, focus would stay behind. --}}
          $watch('$store.confirm.open', open => open && [60, 200, 500].forEach(ms => setTimeout(() => {
              if ($store.confirm.open && ! $refs.panel.contains(document.activeElement)) $refs.cancel?.focus();

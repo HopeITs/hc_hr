@@ -29,6 +29,7 @@ return [
     ],
 
     'file-input' => [
+        'staged' => 'Not saved yet. This file stays attached while this page is open, even if saving fails. If you leave or reload the page, choose it again.',
         'new-profile-photo' => 'New profile photo',
         'current-profile-photo' => 'Current profile photo',
         'new-photo' => 'New photo',

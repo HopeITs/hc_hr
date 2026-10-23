@@ -112,6 +112,17 @@
             $errors->first(null) returns the FIRST message in the whole bag,
             which printed an unrelated error under every such input.
         --}}
+        {{--
+            B2: a picked file lives only in this page's Livewire state (and as a
+            temporary upload the server clears after a day). It survives a failed
+            save, but not leaving or reloading the page; say so instead of
+            implying the browser keeps it.
+        --}}
+        @if ($oldFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile)
+            <p class="mt-2 px-4 text-caption text-secondary-medium" data-testid="staged-file-hint">
+                {{ __('employees.file-input.staged') }}
+            </p>
+        @endif
         @if ($attributes->get('name'))
             <x-error-span>{{ $errors->first($attributes->get('name')) }}</x-error-span>
         @endif

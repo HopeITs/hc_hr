@@ -104,6 +104,9 @@ window.Chart = Chart;
 // Toasts and the confirmation dialog (<x-toasts/>, <x-confirm-dialog/>).
 import './feedback.js';
 
+// Asks before leaving a page with unsaved changes (B2).
+import './unsaved.js';
+
 import './password-toggle.js';
 import './password-strength.js';
 import './scatter-chart.js';

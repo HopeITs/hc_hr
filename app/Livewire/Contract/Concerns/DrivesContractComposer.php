@@ -325,6 +325,24 @@ trait DrivesContractComposer
      * @param  array<int, string>  $keys
      * @return array<int, string>
      */
+    /**
+     * The same map, keyed the way the error bag names the fields, for the
+     * form's error summary: each entry opens its section (B2).
+     *
+     * @return array<string, string>
+     */
+    protected function errorSections(): array
+    {
+        $sections = ['form.pay_tiers.' => 'pay'];
+
+        foreach ($this->sectionOfField() as $field => $section) {
+            $sections[$field] = $section;
+            $sections['form.'.$field] = $section;
+        }
+
+        return $sections;
+    }
+
     protected function sectionsFor(array $keys): array
     {
         $map = $this->sectionOfField();
