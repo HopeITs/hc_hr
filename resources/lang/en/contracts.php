@@ -58,6 +58,7 @@ return [
 
     // Server-side checks raised by the composer.
     'errors' => [
+        'employee-incomplete' => 'This person\'s record is incomplete. Complete it before creating a contract.',
         'city-not-allowed' => 'You may only manage contracts in your active city.',
         'employee-city-mismatch' => 'The selected employee must belong to the contract city.',
         'position-not-found' => 'The selected position no longer exists.',

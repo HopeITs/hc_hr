@@ -31,7 +31,12 @@ class EmployeeTable extends LivewireTable
     use RemembersTableState;
     use WithFeedback;
 
-    public const VIEWS = ['active', 'inactive'];
+    /**
+     * Named presets. B5 adds "awaiting" (complete volunteers who never had a
+     * real contract, a subset of Inactive) and "incomplete" (drafts, which
+     * no other view shows). employee-lifecycle.md §5.4.
+     */
+    public const VIEWS = ['active', 'inactive', 'awaiting', 'incomplete'];
 
     /** B4 named preset (`?view=`): only ever narrows the authorized query. See effectiveView(). */
     #[Url(as: 'view')]
@@ -85,6 +90,11 @@ class EmployeeTable extends LivewireTable
     {
         $item = $this->scopedEmployee($payload['id']);
         Gate::authorize('update', $item);
+        // A draft, or a volunteer awaiting their first contract, is activated
+        // by that contract, never by hand (AC-B5-02, B5D-Q4; HR decision
+        // 2026-10-23, which also covers older inactive records that never
+        // had a contract). Former staff keep today's toggle.
+        abort_if($item->isDraft() || $item->isAwaitingContract(), 403);
         $item->is_active = ! $item->is_active;
         $item->save();
 
@@ -137,10 +147,20 @@ class EmployeeTable extends LivewireTable
         return (bool) auth()->user()?->activeRoleIs('HR', 'general-manager', 'super-admin');
     }
 
+    /** Drafts are HR's work in progress: HR and super-admin only, not the general manager (B5-D §5.4). */
+    public function canUseIncompleteView(): bool
+    {
+        return (bool) auth()->user()?->activeRoleIs('HR', 'super-admin');
+    }
+
     /** The preset actually applied: an unknown or unauthorized value falls back to Active. */
     public function effectiveView(): string
     {
-        return $this->preset === 'inactive' && $this->canUseInactiveView() ? 'inactive' : 'active';
+        return match (true) {
+            in_array($this->preset, ['inactive', 'awaiting'], true) && $this->canUseInactiveView() => $this->preset,
+            $this->preset === 'incomplete' && $this->canUseIncompleteView() => 'incomplete',
+            default => 'active',
+        };
     }
 
     #[On('employee-set-view')]
@@ -190,11 +210,18 @@ class EmployeeTable extends LivewireTable
                 'account',
                 'media',
             ])
+            ->withExists(['realContracts as has_real_contract'])
             ->when(
                 auth()->user()->activeCityIds(),
                 fn (Builder $q, array $cityIds) => $q->whereIn('city_id', $cityIds),
             )
-            ->where('employees.is_active', $this->effectiveView() === 'active');
+            ->tap(fn (Builder $q) => match ($this->effectiveView()) {
+                // A draft is always inactive, so Active needs no extra condition.
+                'active' => $q->where('employees.is_active', true),
+                'inactive' => $q->completeRecords()->where('employees.is_active', false),
+                'awaiting' => $q->awaitingContract(),
+                'incomplete' => $q->drafts()->with('lastSavedBy.profile'),
+            });
     }
 
     protected function globalSearchColumns(): array

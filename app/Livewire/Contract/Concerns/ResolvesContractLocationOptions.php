@@ -160,7 +160,8 @@ trait ResolvesContractLocationOptions
         $employees = Employee::query()
             ->select('id', 'city_id', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar')
             ->with(['media' => fn ($query) => $query->where('collection_name', 'avatar')])
-            ->where('is_active', true)
+            // Active staff plus volunteers awaiting their first contract; never a draft (B5).
+            ->contractable()
             ->when($activeCityIds !== null, fn ($query) => $query->whereIn('city_id', $activeCityIds))
             ->orderBy("first_name_{$locale}")
             ->orderBy("last_name_{$locale}")
@@ -290,7 +291,8 @@ trait ResolvesContractLocationOptions
             // Constrained to the avatar collection so it does not drag in every
             // other media row an employee happens to own.
             ->with(['media' => fn ($query) => $query->where('collection_name', 'avatar')])
-            ->where('is_active', true)
+            // Active staff plus volunteers awaiting their first contract; never a draft (B5).
+            ->contractable()
             ->unless($isNationwide, fn ($query) => $query->where('city_id', $city->id))
             ->orderBy("first_name_{$locale}")
             ->orderBy("last_name_{$locale}")

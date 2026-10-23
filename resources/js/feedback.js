@@ -61,6 +61,35 @@ function locateField(key, message, summary) {
     return null;
 }
 
+/**
+ * Take the user to a field: focus it if it is on screen, otherwise open its
+ * tab or section first (`reveal`, a Livewire method called with the section,
+ * and the `reveal-field` window event), then focus it once it renders.
+ * Shared by the error summary and the onboarding checklist (B2, B5).
+ */
+async function revealField(key, { section = null, reveal = null, wire = null, message = '', summary = document.createElement('div') } = {}) {
+    let field = locateField(key, message, summary);
+
+    if (!field && section) {
+        window.dispatchEvent(new CustomEvent('reveal-field', { detail: { key, section } }));
+
+        if (reveal && wire) await wire.call(reveal, section);
+    }
+
+    // The tab or section renders on a later frame.
+    for (let attempt = 0; !field && attempt < 20; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        field = locateField(key, message, summary);
+    }
+
+    if (!field) return;
+
+    field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    field.focus({ preventScroll: true });
+}
+
+window.hcRevealField = revealField;
+
 // Calls a method on the Livewire component that raised the toast or the
 // confirmation. A null payload means "call with no argument".
 function callBack({ component, method, payload }) {
@@ -262,28 +291,12 @@ document.addEventListener('alpine:init', () => {
             return this.covered.includes(key);
         },
 
-        async go(key, section = null) {
+        go(key, section = null) {
             // $root, not $el: called from an entry's click, $el is that button.
             const summary = this.$root;
             const message = summary.querySelector(`[data-error-key="${CSS.escape(key)}"]`)?.textContent.trim() ?? '';
-            let field = locateField(key, message, summary);
 
-            if (!field && section) {
-                window.dispatchEvent(new CustomEvent('reveal-field', { detail: { key, section } }));
-
-                if (this.reveal) await this.$wire.call(this.reveal, section);
-            }
-
-            // The tab or section renders on a later frame.
-            for (let attempt = 0; !field && attempt < 20; attempt++) {
-                await new Promise((resolve) => setTimeout(resolve, 50));
-                field = locateField(key, message, summary);
-            }
-
-            if (!field) return;
-
-            field.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            field.focus({ preventScroll: true });
+            return revealField(key, { section, reveal: this.reveal, wire: this.$wire, message, summary });
         },
 
         get hasUncovered() {

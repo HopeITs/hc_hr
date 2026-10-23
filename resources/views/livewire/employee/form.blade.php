@@ -45,6 +45,8 @@
     @endphp
     <x-forms.errors-validation-list :sections="$errorTabs" reveal="setActiveTab" />
 
+    @include('livewire.employee.partials.onboarding-status')
+
     @php
         // One definition feeds the desktop list and the phone selector, so the
         // two can never disagree about which sections exist or are unlocked.

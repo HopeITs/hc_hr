@@ -314,14 +314,7 @@
             FAILED — which hid this tab, and with it every error message
             belonging to its fields. In edit mode the save simply stays put.
         --}}
-            <x-primary-button type="button" wire:click="saveInformation" data-tour="employee.save" class="!w-auto"
-                x-bind:disabled="!dirty">
-                @lang($isCreateMode ? 'general.next' : 'general.save')
-            </x-primary-button>
-
-            @if ($isCreateMode)
-                <x-secondary-button :href="route('employees.index')" class="!w-auto">@lang('general.cancel')</x-secondary-button>
-            @endif
+            @include('livewire.employee.partials.record-save-buttons', ['tour' => true])
         </x-forms.dirty-gate>
 
     </form>

@@ -4,7 +4,16 @@
 
 @php
     $canSeeInactive = auth()->user()?->activeRoleIs('HR', 'general-manager', 'super-admin') ?? false;
-    $initialView = $canSeeInactive && request()->query('view') === 'inactive' ? 'inactive' : 'active';
+    // Drafts are HR's work in progress (B5-D §5.4).
+    $canSeeIncomplete = auth()->user()?->activeRoleIs('HR', 'super-admin') ?? false;
+    $views = ['active' => __('general.active')];
+    if ($canSeeInactive) {
+        $views += ['inactive' => __('general.inactive'), 'awaiting' => __('employees.onboarding.view-awaiting')];
+    }
+    if ($canSeeIncomplete) {
+        $views['incomplete'] = __('employees.onboarding.view-incomplete');
+    }
+    $initialView = array_key_exists((string) request()->query('view'), $views) ? request()->query('view') : 'active';
 @endphp
 
 <div>
@@ -30,7 +39,7 @@
         {{-- Named views (?view=): Active is the default; Inactive is HR / general manager only. --}}
         <div class="mb-3" x-data="{ view: @js($initialView) }" x-on:employee-view-changed.window="view = $event.detail.view">
             <div role="group" aria-label="{{ __('general.emp-views') }}" class="inline-flex rounded-lg border border-[var(--line-hairline)] bg-white p-0.5">
-                @foreach (['active' => __('general.active'), 'inactive' => __('general.inactive')] as $key => $label)
+                @foreach ($views as $key => $label)
                     <button type="button" data-employee-view="{{ $key }}"
                         x-on:click="view = '{{ $key }}'; Livewire.dispatch('employee-set-view', { view: '{{ $key }}' })"
                         x-bind:aria-pressed="view === '{{ $key }}'"

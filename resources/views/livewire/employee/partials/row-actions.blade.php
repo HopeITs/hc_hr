@@ -62,8 +62,11 @@
                 @if($canUpdate)
                     <a role="menuitem" href="{{ route('employees.edit', $employee->getKey()) }}" wire:navigate
                         class="flex min-h-11 items-center px-4 text-black hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">{{ __('general.edit') }}</a>
+                    {{-- B5: a draft, or a volunteer awaiting their first contract, is activated by that contract, never by hand (HR, 2026-10-23). --}}
+                    @unless($employee->isDraft() || $employee->isAwaitingContract())
                     <button type="button" role="menuitem" wire:click="confirmToggleItemStatus({{ (int) $employee->getKey() }})" x-on:click="close(false)"
                         class="flex min-h-11 w-full items-center px-4 text-start text-black hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">{{ $employee->is_active ? __('general.emp-deactivate') : __('general.emp-activate') }}</button>
+                    @endunless
                 @endif
                 @if($canDelete)
                     <button type="button" role="menuitem" wire:click="confirmDelete({{ (int) $employee->getKey() }})" x-on:click="close(false)"

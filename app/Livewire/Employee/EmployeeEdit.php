@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Enums\ContractType as ContractTypeEnum;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\AttachmentForm;
 use App\Livewire\Forms\Employee\BadgeForm;
@@ -21,6 +22,7 @@ use App\Models\Employee;
 use App\Services\ChecklistWorkflow;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -117,8 +119,55 @@ class EmployeeEdit extends Component
         }
     }
 
+    /**
+     * Save a draft and keep it a draft (B5). Only while the record is still
+     * incomplete: a complete record never goes back to draft.
+     */
+    public function saveDraftRecord()
+    {
+        abort_unless($this->employee->isDraft(), 403);
+
+        $this->persist('infoForm', fn () => $this->infoForm->saveDraft());
+        $this->employee->refresh();
+    }
+
+    /** Ask first: discarding a draft deletes it (B5D-Q7). */
+    public function confirmDiscardDraftRecord(): void
+    {
+        $this->assertDiscardable();
+
+        $this->confirm(
+            'discardDraftRecord',
+            title: __('employees.onboarding.discard-title'),
+            message: __('employees.onboarding.discard-message'),
+            confirmLabel: __('employees.onboarding.discard'),
+        );
+    }
+
+    /**
+     * Delete an incomplete record and its position reservation, if any
+     * (B5D-Q6, Q7). Only a draft with no real contract and no account; the
+     * activity log keeps the event, never the national ID.
+     */
+    public function discardDraftRecord()
+    {
+        $employee = $this->assertDiscardable();
+
+        DB::transaction(function () use ($employee): void {
+            $employee->allContracts()->where('type', ContractTypeEnum::Draft)->get()->each->delete();
+            $employee->delete();
+        });
+
+        $this->toast(__('employees.onboarding.discarded'));
+
+        return $this->redirectRoute('employees.index', ['view' => 'incomplete'], navigate: true);
+    }
+
     public function saveInformation()
     {
+        // Saving a draft here completes it (B5): say so instead of the generic message.
+        $completing = $this->employee->isDraft() ? __('employees.onboarding.completed') : null;
+
         $this->persist('infoForm', function () {
             $this->infoForm->saveInformation();
             $employee = $this->infoForm->employee;
@@ -140,7 +189,9 @@ class EmployeeEdit extends Component
             // bouncing back to the employees table after every save threw away
             // the user's place in it. `back_to_employees` is the only way out.
             $this->title = $employee->name;
-        });
+        }, $completing);
+
+        $this->employee->refresh();
     }
 
     public function saveEducation()
@@ -372,6 +423,18 @@ class EmployeeEdit extends Component
         }
     }
 
+    /** The draft being discarded, re-read and re-authorized; 403 for anything else. */
+    private function assertDiscardable(): Employee
+    {
+        $employee = $this->employee->fresh();
+
+        abort_unless($employee && $employee->isDraft(), 403);
+        Gate::authorize('update', $employee);
+        abort_if($employee->realContracts()->exists() || $employee->account()->exists(), 403);
+
+        return $employee;
+    }
+
     /**
      * Run a tab's save, then report what actually happened.
      *
@@ -381,7 +444,7 @@ class EmployeeEdit extends Component
      * shape the form behind the tab happens to have. Without it every save
      * claimed success, including saves of a form nobody had touched.
      */
-    private function persist(string $form, callable $save): void
+    private function persist(string $form, callable $save, ?string $successMessage = null): void
     {
         $wrote = false;
 
@@ -400,7 +463,7 @@ class EmployeeEdit extends Component
         // Re-arms the save button's dirty gate against the freshly saved state.
         $this->dispatch('form-saved', form: $form);
 
-        $wrote ? $this->toast() : $this->toast(__('general.no-changes-message'), type: 'info');
+        $wrote ? $this->toast($successMessage) : $this->toast(__('general.no-changes-message'), type: 'info');
     }
 
     /**

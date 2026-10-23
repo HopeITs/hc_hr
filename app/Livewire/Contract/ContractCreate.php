@@ -14,6 +14,7 @@ use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\User;
 use App\Notifications\NewEmployeeWelcome;
+use App\Services\EmployeeActivation;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -268,12 +269,22 @@ class ContractCreate extends Component
 
         Cache::put($key, $contract->id, now()->addDay());
 
+        // B5: the first real contract activates a volunteer awaiting it and
+        // gives them their login account (DEC-04).
+        $activation = app(EmployeeActivation::class)->activateForContract($contract);
+
         $this->notifyIfFirstContract($contract);
 
         $this->dispatch('notification-created');
 
         $this->finishTaskAttempt();
         $this->toast();
+
+        if ($activation === EmployeeActivation::RESULT_ACCOUNT_CREATED) {
+            $this->toast(__('employees.onboarding.account-created'), type: 'info');
+        } elseif ($activation === EmployeeActivation::RESULT_EMAIL_TAKEN) {
+            $this->toast(__('employees.onboarding.account-email-taken'), type: 'error');
+        }
 
         return $this->redirectRoute('contracts.show', $contract->id, navigate: true);
     }

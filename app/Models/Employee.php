@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\LeaveRequestStatus;
 use App\Services\DigitalIdManager;
 use App\Services\LeaveRequestPricing;
 use App\Traits\HasTranslation;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +26,22 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Employee extends Model implements HasMedia
 {
     use HasFactory, HasTranslation, InteractsWithMedia, LogsActivity, RedactsSensitiveActivityLog;
+
+    /*
+     * B5 (DEC-04, docs/ux/employee-lifecycle.md): an incomplete record being
+     * entered by HR is a draft; everything else is complete. A draft is always
+     * inactive, but inactive does not mean draft: never use is_active alone
+     * for that. record_status is not fillable; only the onboarding code sets it.
+     */
+    public const RECORD_DRAFT = 'draft';
+
+    public const RECORD_COMPLETE = 'complete';
+
+    /** Days after which an untouched draft is listed for HR review (B5D-Q7). */
+    public const DRAFT_REVIEW_DAYS = 90;
+
+    /** Days after which a complete volunteer still awaiting a contract is listed for review (B5D-Q5). */
+    public const AWAITING_REVIEW_DAYS = 60;
 
     protected $fillable = [
         'city_id',
@@ -148,6 +166,67 @@ class Employee extends Model implements HasMedia
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function lastSavedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'last_saved_by');
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->record_status === self::RECORD_DRAFT;
+    }
+
+    /** Complete, not active, and never held a real contract: "Ready, awaiting contract". */
+    public function isAwaitingContract(): bool
+    {
+        if ($this->isDraft() || $this->is_active) {
+            return false;
+        }
+
+        // Lists load this once with withExists(['realContracts as has_real_contract']).
+        $hasRealContract = array_key_exists('has_real_contract', $this->attributes)
+            ? (bool) $this->attributes['has_real_contract']
+            : $this->realContracts()->exists();
+
+        return ! $hasRealContract;
+    }
+
+    /** Contracts other than Draft-type position reservations. */
+    public function realContracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'employee_id')->where('type', '!=', ContractTypeEnum::Draft);
+    }
+
+    public function scopeDrafts(Builder $query): Builder
+    {
+        return $query->where('employees.record_status', self::RECORD_DRAFT);
+    }
+
+    public function scopeCompleteRecords(Builder $query): Builder
+    {
+        return $query->where('employees.record_status', self::RECORD_COMPLETE);
+    }
+
+    public function scopeAwaitingContract(Builder $query): Builder
+    {
+        return $query->completeRecords()
+            ->where('employees.is_active', false)
+            ->whereDoesntHave('realContracts');
+    }
+
+    /**
+     * Who may be given a contract in the composer: active staff, as before,
+     * plus complete volunteers awaiting their first contract. Never a draft
+     * (AC-B5-02), and not a former employee: re-hiring still starts with HR
+     * re-activating them, as it always has.
+     */
+    public function scopeContractable(Builder $query): Builder
+    {
+        return $query->completeRecords()->where(fn (Builder $q) => $q
+            ->where('employees.is_active', true)
+            ->orWhereDoesntHave('realContracts'));
     }
 
     public function allContracts()
@@ -545,7 +624,10 @@ class Employee extends Model implements HasMedia
         static::creating(function (Employee $employee): void {
             // No longer read by the card (its link is DigitalIdManager's), kept
             // so the previous release still works if it has to be redeployed.
-            $employee->digital_id_token ??= Str::random(64);
+            // A draft gets none (B5-D §5.3); it is issued at activation.
+            if (! $employee->isDraft()) {
+                $employee->digital_id_token ??= Str::random(64);
+            }
         });
     }
 

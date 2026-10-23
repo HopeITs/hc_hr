@@ -8,6 +8,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Rules\SafeImage;
 use App\Services\SecureImageUploadService;
+use Closure;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -145,8 +147,12 @@ class PersonalInfoForm extends Form
      * When true, a platform login account (work email) is created/kept for the
      * employee. When false, the employee exists without platform access — the
      * username is still required (used for the profile page and QR scan ID).
+     *
+     * B5 (DEC-04, B5D-Q8): a new volunteer gets an account when their first
+     * contract starts (EmployeeActivation), never from this form. HR can still
+     * create one deliberately for an active employee who has none.
      */
-    public bool $create_account = true;
+    public bool $create_account = false;
 
     #[Validate('nullable|exists:employees,id')]
     public $direct_manager_id = null;
@@ -182,7 +188,7 @@ class PersonalInfoForm extends Form
                 'required',
                 'string',
                 Rule::when($this->isSyrianNationality(), ['digits:11'], ['max:255']),
-                Rule::unique('employees', 'national_number')->ignore($this->employee?->id),
+                $this->nationalNumberIsFree(...),
             ],
             'work_phone' => ['nullable', 'regex:/^09\d{8}$/'],
             'personal_phone' => ['nullable', 'regex:/^09\d{8}$/'],
@@ -274,44 +280,34 @@ class PersonalInfoForm extends Form
         $this->linkedin = $employee->linkedin ?? null;
     }
 
+    /**
+     * Save the complete record. A new one, or a draft being finished, becomes
+     * "Ready, awaiting contract" (B5-D state C): complete but not active, and
+     * with no account, until its first contract starts (B5D-Q4).
+     */
     public function saveInformation(): Employee
     {
-        // Work email is derived from the username, only when an account is wanted.
-        $this->email = $this->create_account ? $this->buildWorkEmail($this->username) : null;
-        $this->normalizeIdentityAndPhoneFields();
+        return $this->persist(complete: true);
+    }
 
-        $this->validate();
-        $this->authorizeScope();
+    /**
+     * Save what is there as a draft (B5D-Q1-Q3, Q10): the eight name fields,
+     * governorate, national ID and username are required; everything else is
+     * checked only when filled in. Never for a record that is already complete.
+     */
+    public function saveDraft(): Employee
+    {
+        abort_if($this->employee && ! $this->employee->isDraft(), 403);
 
-        // create_account is a UI-only flag, not an employees column.
-        $payload = $this->except(['email', 'photo', 'create_account']);
+        return $this->persist(complete: false);
+    }
 
-        if ($this->employee) {
-            $this->employee->update($payload);
-        } else {
-            $this->employee = Employee::create($payload);
-        }
-
-        // Create/update the login account only when HR opted in. Unchecking on
-        // an existing employee leaves any current account untouched.
-        if ($this->create_account) {
-            $this->persistAccount();
-        }
-
-        if ($this->photo instanceof TemporaryUploadedFile) {
-            // Employee photographs are protection-sensitive: they are stored
-            // re-encoded, under a random server-chosen name, on the private
-            // disk, and served only through EmployeeAvatarController.
-            app(SecureImageUploadService::class)->attachTo(
-                model: $this->employee,
-                file: $this->photo,
-                collection: 'avatar',
-                profile: 'avatar',
-                disk: 'local',
-            );
-        }
-
-        return $this->employee;
+    /** Whether this form may create or keep a login account for its employee. */
+    public function mayHaveAccount(): bool
+    {
+        return $this->employee !== null
+            && ! $this->employee->isDraft()
+            && ($this->employee->is_active || $this->employee->account !== null);
     }
 
     protected function buildWorkEmail(?string $username): ?string
@@ -349,6 +345,112 @@ class PersonalInfoForm extends Form
         }
 
         Password::sendResetLink(['email' => $user->email]);
+    }
+
+    private function persist(bool $complete): Employee
+    {
+        // Drafts and volunteers without a contract get no account (DEC-04),
+        // whatever the browser sends.
+        $this->create_account = $this->create_account && $this->mayHaveAccount();
+
+        // Work email is derived from the username, only when an account is wanted.
+        $this->email = $this->create_account ? $this->buildWorkEmail($this->username) : null;
+        $this->normalizeIdentityAndPhoneFields();
+
+        $this->validate($complete ? null : $this->draftRules());
+        $this->authorizeScope();
+
+        // create_account is a UI-only flag. is_active and record_status are
+        // never taken from the browser: activation belongs to the first
+        // contract and to the status toggle, not to this form.
+        $payload = $this->except(['email', 'photo', 'create_account', 'is_active', 'employee', 'id']);
+
+        DB::transaction(function () use ($payload, $complete): void {
+            if ($this->employee) {
+                $this->employee->fill($payload);
+
+                if ($complete && $this->employee->isDraft()) {
+                    $this->employee->record_status = Employee::RECORD_COMPLETE;
+                }
+            } else {
+                $this->employee = new Employee($payload);
+                $this->employee->forceFill([
+                    'record_status' => $complete ? Employee::RECORD_COMPLETE : Employee::RECORD_DRAFT,
+                    'is_active' => false,
+                ]);
+            }
+
+            if ($this->employee->isDirty()) {
+                $this->employee->last_saved_by = auth()->id();
+            }
+
+            $this->employee->save();
+        });
+
+        $this->id = $this->employee->id;
+        $this->is_active = $this->employee->is_active;
+
+        // Create/update the login account only when HR opted in. Unchecking on
+        // an existing employee leaves any current account untouched.
+        if ($this->create_account) {
+            $this->persistAccount();
+        }
+
+        if ($this->photo instanceof TemporaryUploadedFile) {
+            // Employee photographs are protection-sensitive: they are stored
+            // re-encoded, under a random server-chosen name, on the private
+            // disk, and served only through EmployeeAvatarController.
+            app(SecureImageUploadService::class)->attachTo(
+                model: $this->employee,
+                file: $this->photo,
+                collection: 'avatar',
+                profile: 'avatar',
+                disk: 'local',
+            );
+        }
+
+        return $this->employee;
+    }
+
+    /**
+     * The full rule set with gender, marital status and nationality made
+     * optional and no work email: what a draft needs (employee-lifecycle.md §6,
+     * B5D-Q3). Nationality's own rule ("integer") also refuses an empty value,
+     * so it has to be made nullable explicitly.
+     */
+    private function draftRules(): array
+    {
+        $rules = $this->getRules();
+
+        foreach (['gender', 'marital_status', 'nationality'] as $field) {
+            $fieldRules = is_string($rules[$field] ?? null) ? explode('|', $rules[$field]) : (array) ($rules[$field] ?? []);
+            $rules[$field] = ['nullable', ...array_values(array_filter($fieldRules, fn ($rule) => $rule !== 'required'))];
+        }
+
+        unset($rules['email']);
+
+        return $rules;
+    }
+
+    /**
+     * A national ID already on file is refused with the existing record's
+     * name and city (B5D-Q9), also when it is in another city: nothing else
+     * about that record, and no link to it.
+     */
+    private function nationalNumberIsFree(string $attribute, mixed $value, Closure $fail): void
+    {
+        $existing = Employee::query()
+            ->with('city')
+            ->where('national_number', $value)
+            ->when($this->employee, fn ($query) => $query->whereKeyNot($this->employee->id))
+            ->first();
+
+        if ($existing) {
+            $fail(__('employees.validation.national-number-taken', [
+                'name' => $existing->nameForLocale(app()->getLocale()),
+                'city' => $existing->city?->{transColumn('name')} ?? __('general.unknown'),
+            ]));
+        }
     }
 
     private function normalizeIdentityAndPhoneFields(): void

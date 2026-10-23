@@ -6,8 +6,13 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\DraftContractForm;
 use App\Livewire\Forms\Employee\PersonalInfoForm;
 use App\Models\City;
+use App\Models\Employee;
 use App\Models\Position;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -42,9 +47,19 @@ class EmployeeCreate extends Component
     /** Narrows the draft-position dropdown within draftCityId. */
     public ?int $draftProgramId = null;
 
+    /**
+     * One per opened form (B5, B2 hand-off). A save retried after its response
+     * was lost carries the same token and continues on the record the first
+     * one created, instead of creating a second person. Locked: the browser
+     * can neither change nor clear it.
+     */
+    #[Locked]
+    public string $submissionToken = '';
+
     public function mount()
     {
         $this->title = __('general.add-new');
+        $this->submissionToken = (string) Str::uuid();
     }
 
     public function setActiveTab($tab)
@@ -61,36 +76,16 @@ class EmployeeCreate extends Component
         }
     }
 
+    /** Save the complete record: "Ready, awaiting contract" (B5-D state C). */
     public function saveInformation()
     {
-        try {
-            $this->infoForm->saveInformation();
-        } catch (ValidationException $e) {
-            // PersonalInfoForm validates fields split across two tabs
-            // (Profile: names, gender, national_number, city... / Contact:
-            // username, email, work_phone, personal_phone), but only one tab
-            // is ever rendered at a time. An error on a field that lives on
-            // the tab NOT currently showing was invisible — the request
-            // still "failed" from the user's point of view, with no visible
-            // reason why. Jump to whichever tab actually holds the error.
-            $this->activeTab = $this->tabForErrors($e->errors());
+        $this->saveRecord(complete: true);
+    }
 
-            throw $e;
-        }
-
-        // What is on screen is now saved: leaving no longer asks (B2).
-        $this->dispatch('form-saved', form: 'infoForm');
-
-        $this->toast();
-        $this->showDraftPrompt = true;
-        $this->draftCityId = $this->infoForm->employee->city_id;
-
-        // saveInformation() is reachable from more than one tab's own Save
-        // button (Profile and Contact share the same Form object and both
-        // call this method) but the draft-position prompt only lives in the
-        // Profile tab's view — force the user back there so it is always
-        // reachable regardless of which tab they saved from.
-        $this->activeTab = 'information';
+    /** Save what is there as a draft (B5-D state D): listed as Incomplete, nothing activated. */
+    public function saveDraftRecord()
+    {
+        $this->saveRecord(complete: false);
     }
 
     /** Whether the acting user may point the draft-position cascade at a city other than the employee's own. */
@@ -213,6 +208,56 @@ class EmployeeCreate extends Component
             'canViewContractPay' => false,
             'contractHistory' => collect(),
         ]);
+    }
+
+    private function saveRecord(bool $complete): void
+    {
+        $key = 'employee-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
+
+        try {
+            Cache::lock($key.':lock', 30)->block(10, fn () => $this->saveRecordOnce($complete, $key));
+        } catch (LockTimeoutException) {
+            $this->toast(__('employees.onboarding.save-in-progress'), type: 'info');
+        }
+    }
+
+    private function saveRecordOnce(bool $complete, string $key): void
+    {
+        // An earlier send of this form already created the record: continue on it.
+        if (! $this->infoForm->employee && ($id = Cache::get($key))) {
+            $this->infoForm->employee = Employee::query()->find($id);
+        }
+
+        try {
+            $complete ? $this->infoForm->saveInformation() : $this->infoForm->saveDraft();
+        } catch (ValidationException $e) {
+            // PersonalInfoForm validates fields split across two tabs
+            // (Profile: names, gender, national_number, city... / Contact:
+            // username, email, work_phone, personal_phone), but only one tab
+            // is ever rendered at a time. An error on a field that lives on
+            // the tab NOT currently showing was invisible — the request
+            // still "failed" from the user's point of view, with no visible
+            // reason why. Jump to whichever tab actually holds the error.
+            $this->activeTab = $this->tabForErrors($e->errors());
+
+            throw $e;
+        }
+
+        Cache::put($key, $this->infoForm->employee->id, now()->addDay());
+
+        // What is on screen is now saved: leaving no longer asks (B2).
+        $this->dispatch('form-saved', form: 'infoForm');
+
+        $this->toast($complete ? __('employees.onboarding.saved-complete') : __('employees.onboarding.saved-draft'));
+        $this->showDraftPrompt = true;
+        $this->draftCityId = $this->infoForm->employee->city_id;
+
+        // saveInformation() is reachable from more than one tab's own Save
+        // button (Profile and Contact share the same Form object and both
+        // call this method) but the draft-position prompt only lives in the
+        // Profile tab's view — force the user back there so it is always
+        // reachable regardless of which tab they saved from.
+        $this->activeTab = 'information';
     }
 
     /**

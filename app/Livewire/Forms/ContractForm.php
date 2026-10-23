@@ -11,6 +11,7 @@ use App\Enums\SessionDuration;
 use App\Models\Contract;
 use App\Models\ContractPayTier;
 use App\Models\ContractType;
+use App\Models\Employee;
 use App\Models\Position;
 use Carbon\Carbon;
 use Closure;
@@ -320,7 +321,9 @@ class ContractForm extends Form
     public function validateIdentity(): array
     {
         return $this->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
+            // An incomplete record cannot be given a contract (B5, AC-B5-02);
+            // only a Draft-type reservation, which is not made here.
+            'employee_id' => ['required', 'exists:employees,id', $this->employeeIsCompleteRule()],
             'position_id' => ['required', 'exists:positions,id', $this->positionCapacityRule()],
             'contract_type_id' => ['required', 'exists:contract_types,id'],
             'type' => ['required', Rule::in([ContractTypeEnum::FullTime, ContractTypeEnum::PartTime, ContractTypeEnum::Freelance]), $this->typeMatchesCategoryRule()],
@@ -532,6 +535,15 @@ class ContractForm extends Form
             'salary' => $this->salary,
             'salary_per' => (string) $this->salary_per,
         ]);
+    }
+
+    private function employeeIsCompleteRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (Employee::query()->whereKey($value)->drafts()->exists()) {
+                $fail(__('contracts.errors.employee-incomplete'));
+            }
+        };
     }
 
     /**

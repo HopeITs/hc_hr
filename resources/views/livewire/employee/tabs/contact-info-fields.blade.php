@@ -20,7 +20,15 @@
             </div>
             <x-error-span>{{ $errors->first('infoForm.username') }}</x-error-span>
 
-            {{-- Optional: create a platform login account (work email) --}}
+            {{--
+                Optional: create a platform login account (work email). Only for an
+                active employee (or one who already has an account): a draft or a
+                volunteer awaiting a contract gets theirs when the first contract
+                starts (B5, DEC-04).
+            --}}
+            @unless ($infoForm->mayHaveAccount())
+                <p class="mt-3 text-small text-secondary-medium" data-testid="account-at-contract">@lang('employees.onboarding.account-at-contract')</p>
+            @else
             <label class="flex items-start gap-2 mt-3 cursor-pointer">
                 <x-forms.input type="checkbox" wire:model.live="infoForm.create_account" value="1"
                     id="create_account" class="mt-1" />
@@ -31,6 +39,7 @@
                     @endif
                 </span>
             </label>
+            @endunless
             <x-error-span>{{ $errors->first('infoForm.email') }}</x-error-span>
         </div>
 
@@ -96,10 +105,7 @@
     </div>
 
     <x-forms.dirty-gate watch="infoForm" :active="! $isCreateMode" class="flex justify-end space-x-2">
-        <x-primary-button type="submit" class="!w-auto" x-bind:disabled="! dirty">@lang('general.save')</x-primary-button>
-        @if ($isCreateMode)
-            <x-secondary-button :href="route('employees.index')" class="!w-auto">@lang('general.cancel')</x-secondary-button>
-        @endif
+        @include('livewire.employee.partials.record-save-buttons', ['tour' => false])
     </x-forms.dirty-gate>
 
 

@@ -268,6 +268,7 @@ return [
         ],
         'employee.employee-create' => [
             'saveInformation' => 'employees.create',
+            'saveDraftRecord' => 'employees.create',
             'createDraftAndContinue' => 'employees.create',
             'positionOptionsForDraft' => 'employees.create',
             'programOptionsForDraft' => 'employees.create',
@@ -277,6 +278,9 @@ return [
         'employee.employee-edit' => [
             'saveChecklist' => 'employees.update',
             'saveInformation' => 'employees.update',
+            'saveDraftRecord' => 'employees.update',
+            'confirmDiscardDraftRecord' => 'employees.update',
+            'discardDraftRecord' => 'employees.update',
             'saveEducation' => 'employees.update',
             'saveCourses' => 'employees.update',
             'saveExperience' => 'employees.update',
@@ -637,7 +641,7 @@ return [
             // view state (setView falls back to Active for a view the role may not use); rows still
             // come from query(). The rest is display text or an Alpine expression.
             'setView', 'clearAll', 'removeChip', 'dismissStateNotice', 'canClearAll', 'activeFilterChips',
-            'cardView', 'rowClickAction', 'canUseInactiveView', 'effectiveView',
+            'cardView', 'rowClickAction', 'canUseInactiveView', 'canUseIncompleteView', 'effectiveView',
             'updatedPaginators', 'updatedPerPage', 'updatedRemembersTableState',
         ],
         // Closing the read-only drawer only clears its own id.
