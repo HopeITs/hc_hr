@@ -14,7 +14,6 @@
         <livewire:layout.breadcrumbs
             :title="__('general.positions')"
             :crumbs="array_filter([
-                ['label' => __('general.programs-management')],
                 ['label' => __('general.positions'), 'route' => route('positions.index')],
                 $center ? ['label' => $center->name . ' (' . $center->city?->name . ')'] : null,
             ])"

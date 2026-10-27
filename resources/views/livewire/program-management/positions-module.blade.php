@@ -3,7 +3,6 @@
         <livewire:layout.breadcrumbs
             :title="__('general.positions')"
             :crumbs="[
-        ['label' => __('general.programs-management')],
         ['label' => __('general.centers'), 'url' => route('centers.index')],
         ['label' => (string) $center->name . ' (' . $center->city->name . ')'],
             ]"

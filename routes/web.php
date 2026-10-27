@@ -88,6 +88,9 @@ Route::group(
             Route::redirect('settings', 'settings/password');
             Route::get('settings/password', Password::class)->name('settings.password');
             Route::get('my-profile', EmployeeProfile::class)->name('my-profile');
+            // C3: the work inbox. No permission of its own: every row comes from a
+            // source's scoped query and every action re-checks its domain policy.
+            Route::get('inbox', App\Livewire\Inbox\Index::class)->name('inbox');
 
             // Basic project routes
             require __DIR__.'/basic-project.php';
@@ -147,7 +150,7 @@ Route::group(
             Route::get('/news/create', NewsCreate::class)->name('news.create')->middleware('active_permission:news.create');
             Route::get('/news/{news}/edit', NewsCreate::class)->name('news.edit')->middleware('active_permission:news.update');
 
-            Route::get('/course-categories', CourseCategoryModule::class)->middleware('active_permission:project-basics.view')->name('course-categories.index');
+            Route::get('/course-categories', CourseCategoryModule::class)->middleware('reference_page:project-basics')->name('course-categories.index');
             Route::get('/activity-log', ActivityLogModule::class)
                 ->name('activity-log.index')
                 ->middleware('active_permission:activity-log.view');

@@ -899,6 +899,7 @@ return [
         'error' => 'خطأ:',
         'info' => 'ملاحظة:',
         'undo' => 'تراجع',
+        'try-again' => 'إعادة المحاولة',
         'dismiss' => 'إغلاق الإشعار',
     ],
     'return-process-initiated' => 'بدأت عملية الإرجاع.',
@@ -958,6 +959,45 @@ return [
     ],
 
     // A4: عناوين مجموعات القائمة الجانبية.
+    // C2: البحث في الشريط العلوي وزر «جديد» (docs/ux/interaction-contract.md §6).
+    'global-search' => [
+        'label' => 'ابحث عن شخص أو صفحة',
+        'placeholder' => 'ابحث عن شخص أو صفحة',
+        'loading' => 'جارٍ البحث…',
+        'too-short' => 'اكتب :count أحرف على الأقل.',
+        'throttled' => 'عمليات بحث كثيرة في وقت قصير. انتظر دقيقة ثم حاول مرة أخرى.',
+        'failed' => 'البحث غير متاح الآن. حاول مرة أخرى.',
+        'empty' => 'لا يوجد أشخاص أو صفحات بـ «:term».',
+        'count' => 'لا نتائج|نتيجة واحدة|نتيجتان|:count نتائج|:count نتيجة|:count نتيجة',
+        'pages' => 'صفحات',
+        'people' => 'أشخاص',
+        'former' => 'سابق',
+    ],
+    'new-menu' => [
+        'label' => 'جديد',
+        'leave' => 'طلب إجازة',
+        'leave-for-employee' => 'طلب إجازة لموظف',
+        'employee' => 'موظف',
+        'contract' => 'عقد',
+        'news' => 'خبر',
+    ],
+
+    // C1: أقسام القائمة الجانبية من C0 (docs/ux/interaction-contract.md §4، §8).
+    'nav' => [
+        'area' => [
+            'my-space' => 'مساحتي',
+            'my-team' => 'فريقي',
+            'hr' => 'عمليات الموارد البشرية',
+            'settings' => 'الإعدادات',
+        ],
+        'organisation' => 'المنظمة',
+        'work-inbox' => 'صندوق المهام',
+        'work-inbox-count' => ':count بانتظارك',
+        'team-leaves' => 'إجازات فريقي',
+        'team-contracts' => 'عقود فريقي',
+        'acting-as' => 'تعمل بصفة',
+    ],
+
     'nav-group' => [
         'main' => 'الرئيسية',
         'management' => 'الإدارة',
@@ -965,6 +1005,9 @@ return [
         'files-and-tasks' => 'الملفات والمهام',
         'more' => 'أخرى',
     ],
+
+    // G-B-2: إجراء لم يصل إلى الخادم (resources/js/feedback.js).
+    'network-error' => 'تعذّر الوصول إلى الخادم. لم يُحفظ شيء، وما أدخلته ما زال موجودًا. تحقّق من الاتصال ثم حاول مرة أخرى.',
 
     // A5-M: إغلاق نافذة تعديل فيها إدخالات غير محفوظة (GuardsModalClose).
     'unsaved' => [

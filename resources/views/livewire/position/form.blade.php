@@ -7,7 +7,6 @@
         <livewire:layout.breadcrumbs
             :title="__('general.positions')"
             :crumbs="[
-        ['label' => __('general.programs-management')],
         ['label' => __('general.positions') ],
                 ['label' => $title],
             ]"

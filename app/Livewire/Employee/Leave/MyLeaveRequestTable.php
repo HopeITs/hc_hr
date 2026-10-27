@@ -65,6 +65,34 @@ class MyLeaveRequestTable extends LivewireTable
         $this->toast();
     }
 
+    /** Below md each request becomes a card (B4-D §6, G-B-4). */
+    public function cardView(): ?string
+    {
+        return 'livewire.employee.leave.partials.my-card';
+    }
+
+    protected function rowOpenAction(Model $model): string
+    {
+        return $this->rowClickAction($model);
+    }
+
+    /** The row's buttons, shared by the table's Actions column and the phone card. */
+    protected function leaveActions(Model $model): string
+    {
+        $showBtn = Blade::render(
+            '<x-table.show-btn wire:click="$dispatch(\'openMyLeaveDetails\', { id: '.$model->getKey().' })" />',
+        );
+
+        if ($model->status !== LeaveRequestStatus::Pending) {
+            return $showBtn;
+        }
+
+        $editBtn = Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$model->getKey().' })" />');
+        $deleteBtn = Blade::render('<x-table.delete-btn :modelId="'.$model->getKey().'" />');
+
+        return $showBtn.$editBtn.$deleteBtn;
+    }
+
     protected function emptyScreenState(): array
     {
         // Same permission the create handler enforces; a role without it gets text only.
@@ -100,7 +128,7 @@ class MyLeaveRequestTable extends LivewireTable
     {
         $user = auth()->user();
         $query = LeaveRequest::query()
-            ->with(['leaveBalance.contract.employee', 'leaveBalance.contract.position'])
+            ->with(['leaveBalance.contract.employee', 'leaveBalance.contract.position.center', 'leaveBalance.leaveType'])
             ->orderBy('created_at', 'desc');
 
         $query->whereHas('leaveBalance.contract', function ($q) use ($user) {
@@ -131,11 +159,8 @@ class MyLeaveRequestTable extends LivewireTable
                 ->searchable(),
 
             Column::make(__('general.duration'), 'duration')->computed(),
-            Column::make(__('general.status'), function (mixed $value, Model $model): string {
-                $status = LeaveRequestStatus::getLocalizedName($value->status);
-
-                return Blade::render('<x-badge :color="$color">{{ $text }}</x-badge>', ['color' => $status['color'], 'text' => $status['value']]);
-            })->asHtml(),
+            Column::make(__('general.status'), fn (Model $model): string => view('livewire.employee.leave.partials.card-status', ['item' => $model])->render())
+                ->asHtml(),
 
             DateColumn::make(__('general.start-date'), 'start_at')
                 ->format('d-m-Y H:i') // keep it; used for default/export/sort context
@@ -158,23 +183,8 @@ class MyLeaveRequestTable extends LivewireTable
                 })
                 ->sortable()->asHtml(),
             BooleanColumn::make(__('general.seen-by-hr'), 'hr_approved'),
-            Column::make(__('general.actions'), function (Model $model): string {
-                $showBtn = Blade::render(
-                    '<x-table.show-btn wire:click="$dispatch(\'openMyLeaveDetails\', { id: '.$model->getKey().' })" />',
-                );
-
-                if ($model->status === LeaveRequestStatus::Pending) {
-                    $editBtn = Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$model->getKey().' })" />');
-                    $deleteBtn = Blade::render(
-                        '<x-table.delete-btn :modelId="'.$model->getKey().'" />',
-                    );
-
-                    return $showBtn.$editBtn.$deleteBtn;
-                }
-
-                return $showBtn;
-
-            })->asHtml()->clickable(false),
+            Column::make(__('general.actions'), fn (Model $model): string => $this->leaveActions($model))
+                ->asHtml()->clickable(false),
 
         ];
     }

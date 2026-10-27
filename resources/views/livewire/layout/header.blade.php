@@ -34,13 +34,19 @@
                     <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10" />
                 </svg>
             </button>
-            {{-- Island 1: language segmented (EN | AR) --}}
+            {{-- C2: search pages and people, and start a task. --}}
+            <livewire:layout.global-search />
+            @include('livewire.layout.partials.new-menu', ['actions' => \App\Support\Navigation::newActions($user)])
+
+            {{-- Island 1: language segmented (EN | AR). On phones only the other
+                 language is shown (C2): with search and New in the row, two
+                 buttons here pushed the menu button off the screen. --}}
             <div class="flex items-center shrink-0 rounded-[18px] bg-neutral-50 p-0.5 sm:p-1">
                 <a href="{{ $enUrl }}"
-                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-white text-neutral-900 shadow-e1' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
+                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-white text-neutral-900 shadow-e1 max-sm:hidden' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
                     aria-label="English" @if($curr === 'en') aria-current="true" @endif>EN</a>
                 <a href="{{ $arUrl }}"
-                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'ar' ? 'bg-white text-neutral-900 shadow-e1' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
+                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'ar' ? 'bg-white text-neutral-900 shadow-e1 max-sm:hidden' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
                     aria-label="العربية" @if($curr === 'ar') aria-current="true" @endif>AR</a>
             </div>
 

@@ -69,6 +69,22 @@ class EmpLeaveBalanceTable extends LivewireTable
         );
     }
 
+    /** Below md each employee becomes a card (B4-D §6, G-B-4). */
+    public function cardView(): ?string
+    {
+        return 'livewire.employee.leave.partials.balance-card';
+    }
+
+    protected function rowOpenAction(Model $model): ?string
+    {
+        return $this->rowClickAction($model);
+    }
+
+    protected function cardBalance(Model $employee): ?LeaveBalance
+    {
+        return $this->annualBalance($employee);
+    }
+
     protected function emptyScreenState(): array
     {
         return [

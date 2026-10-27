@@ -36,10 +36,19 @@ use Spatie\Activitylog\Facades\Activity;
 class ChecklistWorkflow
 {
     /**
+     * The work inbox's batch (C3, approval-source-contract.md §6.2): each item
+     * is still confirmed here one by one, and its audit entry carries the
+     * batch id so the batch can be traced. Null outside a batch.
+     */
+    private ?string $batchId = null;
+
+    /**
      * The assignee confirms they handed the item over.
      */
-    public function markDelivered(int $checklistId, int $actorEmployeeId, ?string $notes): Checklist
+    public function markDelivered(int $checklistId, int $actorEmployeeId, ?string $notes, ?string $batchId = null): Checklist
     {
+        $this->batchId = $batchId;
+
         return $this->transition(
             fn (Builder $query) => $query
                 ->where('delivered_id', $actorEmployeeId)
@@ -58,8 +67,10 @@ class ChecklistWorkflow
     /**
      * The nominated receiver confirms the item came back.
      */
-    public function markReceived(int $checklistId, int $actorEmployeeId, ?string $notes): Checklist
+    public function markReceived(int $checklistId, int $actorEmployeeId, ?string $notes, ?string $batchId = null): Checklist
     {
+        $this->batchId = $batchId;
+
         return $this->transition(
             fn (Builder $query) => $query
                 ->where('receiver_id', $actorEmployeeId)
@@ -211,7 +222,9 @@ class ChecklistWorkflow
                 'to' => $to,
                 'employee_id' => $checklist->employee_id,
                 'item_id' => $checklist->item_id,
-            ])
+            ] + ($this->batchId !== null ? ['batch_id' => $this->batchId] : []))
             ->log($event);
+
+        $this->batchId = null;
     }
 }

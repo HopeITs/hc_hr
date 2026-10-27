@@ -40,23 +40,15 @@ return [
             'upcoming-leaves' => ['target' => 'dashboard.upcoming-leaves', 'placement' => 'top'],
             'pending-requests' => ['target' => 'dashboard.pending-requests', 'placement' => 'top'],
 
-            // Sidebar: one step per page the user can reach.
+            // Sidebar (C1): one step per area of the menu. An area the role
+            // does not see is not rendered, so its step is skipped.
             'nav-intro' => ['target' => 'nav', 'placement' => 'end'],
-            'nav-statistics' => ['target' => 'nav.statistics', 'placement' => 'end'],
-            'nav-org-chart' => ['target' => 'nav.org-chart', 'placement' => 'end'],
-            'nav-project-basics' => ['target' => 'nav.project-basics', 'placement' => 'end'],
-            'nav-programs' => ['target' => 'nav.programs', 'placement' => 'end'],
-            'nav-centers' => ['target' => 'nav.centers', 'placement' => 'end'],
-            'nav-employees' => ['target' => 'nav.employees', 'placement' => 'end'],
-            'nav-leaves-management' => ['target' => 'nav.leaves-management', 'placement' => 'end'],
-            'nav-my-leaves' => ['target' => 'nav.my-leaves', 'placement' => 'end'],
-            'nav-archives' => ['target' => 'nav.archives', 'placement' => 'end'],
-            'nav-checklists' => ['target' => 'nav.checklists', 'placement' => 'end'],
-            'nav-my-items' => ['target' => 'nav.my-items', 'placement' => 'end'],
-            'nav-news' => ['target' => 'nav.news', 'placement' => 'end'],
-            'nav-badges' => ['target' => 'nav.badges', 'placement' => 'end'],
-            'nav-activity-log' => ['target' => 'nav.activity-log', 'placement' => 'end'],
-            'nav-access' => ['target' => 'nav.access', 'placement' => 'end'],
+            'nav-inbox' => ['target' => 'nav.inbox', 'placement' => 'end'],
+            'nav-my-space' => ['target' => 'nav.area.my-space', 'placement' => 'end'],
+            'nav-my-team' => ['target' => 'nav.area.my-team', 'placement' => 'end'],
+            'nav-hr' => ['target' => 'nav.area.hr', 'placement' => 'end'],
+            'nav-settings' => ['target' => 'nav.area.settings', 'placement' => 'end'],
+            'nav-organisation' => ['target' => 'nav.area.organisation', 'placement' => 'end'],
 
             'replay' => ['target' => 'tour.button', 'placement' => 'bottom'],
         ],

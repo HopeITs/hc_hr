@@ -10,7 +10,6 @@
         <livewire:layout.breadcrumbs
             :title="trans_choice('general.contracts', 2)"
             :crumbs="[
-                ['label' => trans_choice('general.employee-management', 2)],
                 ['label' => trans_choice('general.contracts', 2)],
             ]"
             :showButton="true"

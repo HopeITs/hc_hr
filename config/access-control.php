@@ -67,6 +67,21 @@ return [
         'employee',
     ],
 
+    /*
+     * Reference pages a role may not open, though its baseline still holds
+     * the read permission (C0-Q4 answer 2, G-B-13 answer 2). The same list
+     * takes them out of the menu and refuses their URL with 403, so the two
+     * cannot drift. The permission stays: positions.view also opens the org
+     * chart and the colleague drawer, which every role keeps.
+     * Read through User::canOpenReferencePage().
+     */
+    'reference_pages_hidden_from' => [
+        'centers' => ['employee'],
+        'programs' => ['employee'],
+        'positions' => ['employee', 'manager'],
+        'project-basics' => ['employee', 'manager'],
+    ],
+
     'role_baselines' => [
         'general-manager' => [
             'statistics.view', 'employees.view', 'employees.create', 'employees.update', 'employees.export',
@@ -651,7 +666,8 @@ return [
         // dehydrateTracksTaskAttempt is a Livewire lifecycle hook: dehydrate*
         // cannot be called from the browser. It only flags an anonymous
         // attempt as having met a validation error (TracksTaskAttempt).
-        'contract.contract-create' => ['dehydrateTracksTaskAttempt'],
+        'contract.contract-create' => ['dehydrateTracksTaskAttempt', 'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
+        ],
 
         // --- Authorized inside the method -----------------------------------
         // save() is create-or-update, so a single permission name in the
@@ -677,7 +693,9 @@ return [
         'employee-cards.manage-digital-id' => ['reissue', 'disable', 'enable', 'reportLost'],
         // updatedFormNewsableType() only clears dependent form selections;
         // it does not read a record or persist data. save() authorizes before writing.
-        'news.news-create' => ['save', 'updatedFormNewsableType'],
+        'news.news-create' => ['save', 'updatedFormNewsableType',
+            'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
+        ],
         // Also runs assertCityIsAuthorized() and a Gate check on the city.
         'program-management.center.centers-module' => ['save', ...$closeGuard],
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
@@ -696,6 +714,7 @@ return [
             'leaveImpact',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
+            'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
         'employee.leave.all-leave-request-module' => [
             'edit', 'show', 'processSave', 'confirmSave', 'confirmDelete',
@@ -704,16 +723,18 @@ return [
             'updatedFormEmployeeId',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
+            'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
         'employee.leave.emp-leave-balance-module' => ['confirmSave', ...$closeGuard],
         // B3 HasScreenListStates: clearAllFilters resets search/filters/tab (view state only),
         // renderEmptyState and stateAnnouncement render text, retryLoad re-renders. No writes.
+        // G-B-4: cardView only names the phone card's Blade view; rows still come from query().
         'employee.leave.all-leave-request-table' => [
             'edit', 'confirmDelete', 'confirmHrReview', 'refreshTable', 'setStatusFilter',
-            'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement',
+            'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView',
         ],
-        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter', 'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
-        'employee.leave.emp-leave-balance-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
+        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter', 'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView'],
+        'employee.leave.emp-leave-balance-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView'],
         // B3: read-only lists of the caller's own checklist rows; retryLoad re-renders only.
         'checklist-items.all-items' => ['retryLoad'],
         'checklist-items.pending-items' => ['retryLoad'],
@@ -784,7 +805,21 @@ return [
         // setActiveTab, not the mapped createDraftAndContinue/
         // positionOptionsForDraft/programOptionsForDraft/citiesForDraft/
         // canPickAnyDraftCity above.
-        'employee.employee-create' => ['setActiveTab', 'toggleBoardMember', 'skipDraft', 'updatedDraftCityId', 'updatedDraftProgramId'],
+        'employee.employee-create' => ['setActiveTab', 'toggleBoardMember', 'skipDraft', 'updatedDraftCityId', 'updatedDraftProgramId',
+            'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
+        ],
+        // C3 work inbox: no permission of its own, by design (approval-source-contract.md §5).
+        // Each action re-reads the record and runs its domain owner, which authorizes inside
+        // its lock: decide -> LeaveRequestForm::submitDecision (Gate decide, LeaveDecisionAuthority),
+        // markSeen/object -> LeaveRequestReview (Gate review/object), confirmItem/applyBatch ->
+        // ChecklistWorkflow (row scoped to the actor, plus checklists.deliver/receive),
+        // finalizeItem -> Gate update on the employee + ChecklistWorkflow::finalizeReturn.
+        // previewBatch writes nothing; setFilter changes the view only.
+        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch'],
+        // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
+        // trims the term and counts it against the per-user search limit. Results come from
+        // DirectoryAccess::constrain() and the active role's menu on every render.
+        'layout.global-search' => ['updatedQ'],
         // The add*/openInitiateReturnModal methods stage rows in the in-memory
         // form object; nothing is written until the mapped save* action runs,
         // and mount() has already authorized 'update' on this employee.

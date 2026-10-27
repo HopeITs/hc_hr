@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\LogOptions;
@@ -23,6 +24,8 @@ class LeaveRequest extends Model
         'alternative_employee_id',
         // Pricing snapshot (A3-D D-5) and the December exception flag (D-7).
         'computed_hours', 'rule_version', 'is_exceptional',
+        // C3: how the decider was entitled, and the manager HR stood in for.
+        'decision_basis', 'decided_on_behalf_of',
     ];
 
     protected $casts = [
@@ -55,6 +58,30 @@ class LeaveRequest extends Model
     public function alternativeEmployee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'alternative_employee_id');
+    }
+
+    /** HR's notes and objections, oldest first (C3). */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(LeaveRequestNote::class)->oldest();
+    }
+
+    /** The manager HR decided on behalf of (C3), when it did. */
+    public function onBehalfOf(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'decided_on_behalf_of');
+    }
+
+    /**
+     * The hours an acceptance adds to the balance's `used`, and an objection
+     * gives back: the amount priced when the request was sent (A3-D D-5
+     * snapshot), or the legacy rule for a request from before it (§4.2).
+     */
+    public function deductionHours(): float
+    {
+        return $this->computed_hours !== null
+            ? round((float) $this->computed_hours, 2)
+            : round(app(LeaveRequestPricing::class)->quoteLegacy($this), 2);
     }
 
     public function getDurationAttribute(): string
@@ -165,11 +192,11 @@ class LeaveRequest extends Model
                 return $query->whereRaw('1 = 0');
             }
 
+            // Direct reports only: the technical manager no longer exists
+            // (DEC-05 revision, C3 G2). The column stays; it grants nothing.
             return $query->whereHas(
                 'leaveBalance.contract.position',
-                fn (Builder $positionQuery) => $positionQuery
-                    ->whereIn('direct_manager_id', $managerPositionIds)
-                    ->orWhereIn('tech_manager_id', $managerPositionIds),
+                fn (Builder $positionQuery) => $positionQuery->whereIn('direct_manager_id', $managerPositionIds),
             );
         }
 

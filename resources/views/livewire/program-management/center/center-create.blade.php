@@ -7,7 +7,6 @@
         <livewire:layout.breadcrumbs
             :title="__('general.centers')"
             :crumbs="[
-                ['label' => __('general.programs-management')],
                 ['label' => __('general.centers'), 'route' => 'centers.index'],
                 ['label' => __('general.add-new')],
             ]"

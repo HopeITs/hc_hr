@@ -3,11 +3,13 @@
 namespace App\Livewire\Forms;
 
 use App\Enums\LeaveRequestStatus;
+use App\Exceptions\LeaveDecisionAlreadyMade;
 use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\LeaveDecisionAuthority;
 use App\Services\LeaveRequestPricing;
 use App\Support\Leave\LeaveQuote;
 use App\Support\Leave\LeaveWindow;
@@ -216,6 +218,12 @@ class LeaveRequestForm extends Form
             throw new LogicException('A leave request must be selected before submitting a decision.');
         }
 
+        // Before validation, so nobody is asked for a reason on a decision
+        // that can no longer be made. Repeated under the lock below.
+        if ($current = LeaveRequest::query()->find($this->decisionLeave->id)) {
+            $this->assertStillPending($current);
+        }
+
         $this->validate([
             'status' => [
                 'required',
@@ -243,7 +251,16 @@ class LeaveRequestForm extends Form
 
             // Authorization is intentionally checked after the row lock. A
             // concurrent decision must observe the latest persisted status.
+            $this->assertStillPending($leaveRequest);
             Gate::authorize('decide', $leaveRequest);
+
+            // How the decider was entitled (C3): the direct manager, or HR on
+            // their behalf / with no direct manager. Stored with the decision.
+            $authority = app(LeaveDecisionAuthority::class);
+            $basis = $authority->basisFor(auth()->user(), $leaveRequest);
+            $onBehalfOf = $basis === LeaveDecisionAuthority::ON_BEHALF
+                ? $authority->directManagers($leaveRequest)->first()?->id
+                : null;
 
             if ((int) $this->status === LeaveRequestStatus::Accepted) {
                 // Lock order: request, then balance (store/update: employee,
@@ -269,6 +286,8 @@ class LeaveRequestForm extends Form
                     'reject_reason' => null,
                     'approved_at' => now(),
                     'approved_by' => auth()->user()->profile->id,
+                    'decision_basis' => $basis,
+                    'decided_on_behalf_of' => $onBehalfOf,
                 ]);
 
                 if ($hours > 0) {
@@ -280,6 +299,8 @@ class LeaveRequestForm extends Form
                     'reject_reason' => $this->reject_reason,
                     'approved_at' => now(),
                     'approved_by' => auth()->user()->profile->id,
+                    'decision_basis' => $basis,
+                    'decided_on_behalf_of' => $onBehalfOf,
                 ]);
             }
 
@@ -603,6 +624,19 @@ class LeaveRequestForm extends Form
         return [
             'end_at.after_or_equal' => __('leaves.validation.end-before-start'),
         ];
+    }
+
+    /**
+     * A request decided since the dialog opened (by someone else, or by this
+     * same decision sent twice) is reported as already decided, not as a 403
+     * (G-B-1). Only to someone who may still see it: anyone else gets the
+     * policy's refusal, which says nothing about the request.
+     */
+    private function assertStillPending(LeaveRequest $leaveRequest): void
+    {
+        if ((int) $leaveRequest->status !== LeaveRequestStatus::Pending && Gate::allows('view', $leaveRequest)) {
+            throw new LeaveDecisionAlreadyMade($leaveRequest);
+        }
     }
 
     private function storeOnce(?string $key): void
@@ -1031,9 +1065,7 @@ class LeaveRequestForm extends Form
      */
     private function deductionHours(LeaveRequest $leaveRequest): float
     {
-        return $leaveRequest->computed_hours !== null
-            ? round((float) $leaveRequest->computed_hours, 2)
-            : round(app(LeaveRequestPricing::class)->quoteLegacy($leaveRequest), 2);
+        return $leaveRequest->deductionHours();
     }
 
     /**
@@ -1142,6 +1174,14 @@ class LeaveRequestForm extends Form
             return Employee::query()
                 ->when($cityIds !== null, fn ($query) => $query->whereIn('city_id', $cityIds))
                 ->find($this->employee_id);
+        }
+
+        // An edit by anyone else (the owner, or a manager the policy let in)
+        // is about the request's own employee, never the editor's profile:
+        // a manager's edit was validated against the manager's own contract
+        // and always refused (G-B-6).
+        if ($this->leaveRequest) {
+            return $this->leaveRequest->leaveBalance?->contract?->employee;
         }
 
         return $user?->profile;

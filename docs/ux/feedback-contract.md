@@ -37,15 +37,24 @@ Delivery (`App\Livewire\Features\SupportToasts`, registered in `AppServiceProvid
 
 | Name | Kind | Use |
 |---|---|---|
-| `toast` | window event, detail `{type, message, undo, duration}` | Sent by `toast()`. Also usable from markup: `$dispatch('toast', {type: 'info', message: '…'})` (only for messages that need no server outcome). |
+| `toast` | window event, detail `{type, message, undo, duration}` | Sent by `toast()`. Also usable from markup: `$dispatch('toast', {type: 'info', message: '…'})` (only for messages that need no server outcome). An `action` in the detail is ignored (an event cannot carry a function). |
 | `confirm-dialog` | window event, detail `{componentId, method, payload, title, message, html, confirmLabel, danger}` | Sent by `confirm()`. |
-| `$store.toasts` | Alpine store | `push(opts)`, `dismiss(id)`, `pause(id)`, `resume(id)`, `undo(id)`. At most **4** visible; durations: success/info **5 s**, error **8 s**, with Undo **8 s**; paused while hovered or focused. |
+| `$store.toasts` | Alpine store | `push(opts) → id`, `dismiss(id)`, `pause(id)`, `resume(id)`, `undo(id)`, `act(id)`. At most **4** visible; durations: success/info **5 s**, error **8 s**, with Undo or an action **8 s**; paused while hovered or focused. `opts.action` (`{label, run}`, browser only) adds a button that dismisses the toast and calls `run()`; today only *Try again* (§2.3). |
 | `$store.confirm` | Alpine store | `ask(options) → Promise<boolean>`, `settle(bool)`. A second `ask` answers the first one "no". |
 | `$confirm(options)` | Alpine magic | From markup: `x-on:click="if (await $confirm()) $wire.deleteRole()"`. |
 
 Components, mounted **once** in `components/layouts/app.blade.php`: `<x-toasts/>` (live region `role="status"`, `aria-live="polite"`, present before any toast) and `<x-confirm-dialog/>` (`role="alertdialog"`, `aria-modal="true"`, labelled and described, focus trap, initial focus on **Cancel**).
 
-Translation keys: `general.toast.{success,error,info,undo,dismiss}` (screen-reader prefixes "Success:", "Error:", "Note:"; AR «تم بنجاح:», «خطأ:», «ملاحظة:», «تراجع», «إغلاق الإشعار»), `general.delete-item`, `general.confirm-delete-item`, `general.delete`, `general.cancel`.
+Translation keys: `general.toast.{success,error,info,undo,try-again,dismiss}` (screen-reader prefixes "Success:", "Error:", "Note:"; AR «تم بنجاح:», «خطأ:», «ملاحظة:», «تراجع», «إعادة المحاولة», «إغلاق الإشعار»), `general.network-error`, `general.delete-item`, `general.confirm-delete-item`, `general.delete`, `general.cancel`.
+
+### 2.3 Lost connection (G-B-2)
+
+When a Livewire request never reaches the server (fetch throws: connection lost, server down), `feedback.js` shows **one** error toast, `general.network-error`, with **Try again**. Before G-B-2 nothing was shown.
+
+- **Which failures:** only actions the user caused (a press or a key in the last 10 s). Polling (`wire:poll`) is left out; it pauses itself while offline. A server error response is not a lost connection and keeps Livewire's own error dialog. An aborted request reports nothing.
+- **One toast:** every action in the failed request, and any failing while the toast is up, join the same toast. Identical actions (two clicks on the same Save) count once.
+- **Try again** sends the same actions again with `Livewire.fireAction` (the B3 retry: repeat the same request). The entries are still on the page and Livewire sends them with the call. Focus goes back to the control that was used, if it is still on the page. A component that has left the page is skipped.
+- **Safe to repeat**, because the server already is: submission tokens on new leave requests (A3) and on employee and contract creation (B2), and a leave decision repeated after it was saved is reported as already decided (G-B-1).
 
 ## 3. Rules for consumers (task step 3)
 

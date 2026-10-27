@@ -77,6 +77,14 @@
                 </button>
             </template>
 
+            {{-- A browser-side action, such as Try again after a lost connection (G-B-2). --}}
+            <template x-if="toast.action">
+                <button type="button"
+                        x-on:click="$store.toasts.act(toast.id)"
+                        x-text="toast.action.label"
+                        class="shrink-0 rounded-control px-2 py-0.5 text-body font-semibold text-primary transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"></button>
+            </template>
+
             <button type="button"
                     x-on:click="$store.toasts.dismiss(toast.id)"
                     aria-label="{{ __('general.toast.dismiss') }}"

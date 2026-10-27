@@ -7,6 +7,7 @@ use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
+use App\Notifications\LeaveRequestObjected;
 use App\Notifications\NewLeaveRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -96,6 +97,25 @@ class LeaveNotificationService
         );
     }
 
+    /**
+     * HR objected (C3 G3): the direct manager is asked to decide again and the
+     * requester is told why the request is pending once more.
+     */
+    public function sendObjection(LeaveRequest $leaveRequest, ?User $actor, string $note): void
+    {
+        $leaveRequest = $this->loadContext($leaveRequest);
+        $excludedIds = [$actor?->id];
+
+        $managerRecipients = $this->eligibleUniqueUsers($this->managerRecipients($leaveRequest), $excludedIds);
+        Notification::send($managerRecipients, new LeaveRequestObjected($leaveRequest, $note, 'manager'));
+
+        $employeeRecipients = $this->eligibleUniqueUsers(
+            collect([$leaveRequest->leaveBalance->contract->employee->account]),
+            [...$excludedIds, ...$managerRecipients->pluck('id')->all()],
+        );
+        Notification::send($employeeRecipients, new LeaveRequestObjected($leaveRequest, $note, 'employee'));
+    }
+
     private function loadContext(LeaveRequest $leaveRequest): LeaveRequest
     {
         return $leaveRequest->loadMissing([
@@ -103,7 +123,6 @@ class LeaveNotificationService
             'leaveBalance.contract.employee.account',
             'leaveBalance.contract.employee.city',
             'leaveBalance.contract.position.directManager.activeContracts.employee.account',
-            'leaveBalance.contract.position.techManager.activeContracts.employee.account',
         ]);
     }
 
@@ -117,7 +136,8 @@ class LeaveNotificationService
     {
         $position = $leaveRequest->leaveBalance->contract->position;
 
-        return collect([$position->directManager, $position->techManager])
+        // The direct manager only: the technical manager no longer exists (C3 G2).
+        return collect([$position->directManager])
             ->filter()
             ->flatMap(fn ($managerPosition) => $managerPosition->activeContracts)
             ->map(fn ($contract) => $contract->employee)

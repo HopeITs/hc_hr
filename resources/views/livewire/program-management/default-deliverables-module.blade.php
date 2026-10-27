@@ -7,7 +7,6 @@
 
     <div class="flex justify-between items-center mb-6">
         <livewire:layout.breadcrumbs :title="__('general.default-deliverables')" :crumbs="[
-            ['label' => trans_choice('general.employee-management', 2)],
             ['label' => __('general.default-deliverables')],
         ]" :showButton="true" />
         @activerole('HR', 'super-admin')

@@ -217,6 +217,48 @@
       },
       "port": 8399,
       "autoPort": false
+    },
+    {
+      "name": "hc-hr G-B (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5.11/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8400",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-gb",
+        "X2_PORT": "8400"
+      },
+      "port": 8400,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr G-B-1/2 fixes (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5.11/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8401",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-gb12",
+        "X2_PORT": "8401"
+      },
+      "port": 8401,
+      "autoPort": false
     }
   ]
 }

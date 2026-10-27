@@ -241,6 +241,21 @@ class LeaveRequestWorkflowTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_the_decision_dialog_is_a_form_so_enter_submits_it(): void
+    {
+        [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        // G-B-7: Save is the form's submit button, not a separate click handler
+        // (both together would send the decision twice).
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->assertSeeHtml('wire:submit.prevent="submitDecision"')
+            ->assertDontSeeHtml('wire:click="submitDecision"')
+            ->assertSeeHtml('id="reject_reason"');
+    }
+
     public function test_decision_rejects_an_unknown_action_value(): void
     {
         [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
@@ -420,6 +435,7 @@ class LeaveRequestWorkflowTest extends TestCase
             'direct-manager',
         );
         $manager->assignRole(Role::findOrCreate('manager', 'web'));
+        $manager->givePermissionTo('leaves.decide');
 
         $managerPositionId = DB::table('contracts')
             ->where('employee_id', $manager->employee_id)
@@ -465,10 +481,15 @@ class LeaveRequestWorkflowTest extends TestCase
             ->where('id', $leaveRequest->leave_balance_id)
             ->value('used');
 
+        // A repeat (double click, retry after a lost response) is told its
+        // decision is already saved (G-B-1), never shown a Forbidden page.
         $component
             ->set('form.status', LeaveRequestStatus::Accepted)
             ->call('submitDecision')
-            ->assertForbidden();
+            ->assertOk()
+            ->assertHasNoErrors()
+            ->assertDispatched('toast', fn ($event, $params) => ($params['type'] ?? null) === 'info'
+                && str_contains($params['message'] ?? '', 'Your decision to accept this request was already saved'));
 
         $this->assertSame(
             $usedAfterFirstDecision,
@@ -481,6 +502,125 @@ class LeaveRequestWorkflowTest extends TestCase
             ActionLeaveRequest::class,
             1,
         );
+    }
+
+    /**
+     * G-B-1: two people had the same request open; the second to save is told
+     * who decided it and when, and nothing of theirs is written or sent.
+     */
+    public function test_a_decision_saved_after_someone_else_decided_reports_who_decided(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $colleague = $this->createHrUserForLeave($leaveRequest, 'colleague.hr@example.test');
+        $colleague->givePermissionTo('leaves.decide');
+        Notification::fake();
+
+        $staleDialog = Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->assertSet('decisionModal', true);
+
+        Livewire::actingAs($colleague)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'No cover for these dates.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $decidedAt = $leaveRequest->fresh()->approved_at->format('d-m-Y, H:i');
+
+        // Back in the first person's session (actingAs is global to the test).
+        $this->actingAs($hr);
+
+        $staleDialog
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->call('submitDecision')
+            ->assertOk()
+            ->assertHasNoErrors()
+            ->assertSet('decisionModal', false)
+            ->assertSet('showModal', true)
+            ->assertSet('linkedLeaveMode', 'details')
+            ->assertDispatched('leaveRequestDecisionSaved')
+            ->assertDispatched('toast', fn ($event, $params) => ($params['type'] ?? null) === 'info'
+                && str_contains($params['message'], 'already rejected by')
+                && str_contains($params['message'], $colleague->profile->name)
+                && str_contains($params['message'], $decidedAt)
+                && str_contains($params['message'], 'Your decision was not saved'));
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leaveRequest->id,
+            'status' => LeaveRequestStatus::Rejected,
+            'reject_reason' => 'No cover for these dates.',
+            'approved_by' => $colleague->employee_id,
+        ]);
+        $this->assertSame(0.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+        Notification::assertSentToTimes(
+            $leaveRequest->leaveBalance->contract->employee->account,
+            ActionLeaveRequest::class,
+            1,
+        );
+    }
+
+    /** A stale "reject without a reason" is not asked for a reason first. */
+    public function test_a_stale_decision_is_reported_before_validation(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        Notification::fake();
+
+        $staleDialog = Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id);
+
+        $leaveRequest->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()]);
+
+        $staleDialog
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->call('submitDecision')
+            ->assertHasNoErrors()
+            ->assertSet('showModal', true)
+            ->assertDispatched('toast', fn ($event, $params) => str_contains($params['message'], 'already accepted on'));
+
+        $this->assertSame(LeaveRequestStatus::Accepted, $leaveRequest->fresh()->status);
+    }
+
+    public function test_opening_the_decision_of_an_already_decided_request_shows_its_details(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        $colleague = $this->createHrUserForLeave($leaveRequest, 'colleague.hr@example.test');
+        $leaveRequest->update([
+            'status' => LeaveRequestStatus::Accepted,
+            'approved_at' => now(),
+            'approved_by' => $colleague->employee_id,
+        ]);
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->assertOk()
+            ->assertSet('decisionModal', false)
+            ->assertSet('showModal', true)
+            ->assertDispatched('toast', fn ($event, $params) => str_contains($params['message'], 'already accepted by')
+                && str_contains($params['message'], $colleague->profile->name));
+    }
+
+    /** Who decided is only told to someone who may still see the request. */
+    public function test_an_already_decided_request_out_of_scope_is_still_forbidden(): void
+    {
+        [, $targetLeave] = $this->createPendingDecisionFixture();
+        $targetLeave->update(['status' => LeaveRequestStatus::Rejected, 'approved_at' => now()]);
+        [$outOfScopeHr] = $this->createRejectedLeaveFixture(
+            null,
+            'stale.out-of-scope.hr@example.test',
+            'stale-out-of-scope-hr',
+        );
+        $outOfScopeHr->assignRole(Role::findOrCreate('HR-XXX', 'web'));
+
+        Livewire::actingAs($outOfScopeHr->fresh())
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $targetLeave->id)
+            ->assertForbidden()
+            ->assertNotDispatched('toast');
     }
 
     public function test_pending_request_cannot_generate_a_decision_notification_payload(): void
@@ -699,6 +839,40 @@ class LeaveRequestWorkflowTest extends TestCase
         Notification::assertCount(3);
     }
 
+    /** G-B-4/5: All leaves has phone cards; a decided request opens read-only, never the editor. */
+    public function test_gb45_all_leaves_cards_and_a_decided_request_opens_the_read_only_details(): void
+    {
+        [$hr, $pending] = $this->createPendingDecisionFixture();
+        [, $decided] = $this->createRejectedLeaveFixture('Busy week', 'colleague@example.test', 'colleague');
+        $sameCity = $pending->leaveBalance->contract->employee->city_id;
+        DB::table('employees')->where('id', $decided->leaveBalance->contract->employee_id)->update(['city_id' => $sameCity]);
+
+        $html = Livewire::actingAs($hr)->test(AllLeaveRequestTable::class)->html();
+
+        foreach ([$pending, $decided] as $leave) {
+            $this->assertStringContainsString('data-card="'.$leave->id.'"', $html);
+            $this->assertStringContainsString(e($leave->leaveBalance->contract->employee->name), $html);
+        }
+
+        // Pending opens the decision; decided opens the details (row and card alike).
+        $this->assertStringContainsString(e("\$dispatch('openDecisionRequestLeave', { id: {$pending->id} })"), $html);
+        $this->assertStringContainsString(e("\$dispatch('openShowRequestLeave', { id: {$decided->id} })"), $html);
+        $this->assertStringNotContainsString('x-on:click.prevent="'.e("\$dispatch('openRequestLeaveEdit', { id: {$decided->id} })").'"', $html);
+        $this->assertStringNotContainsString('x-on:click="'.e("\$dispatch('openRequestLeaveEdit', { id: {$decided->id} })").'"', $html);
+    }
+
+    /** G-B-4: My leaves has phone cards with the leave type first and the same actions. */
+    public function test_gb4_my_leaves_cards_show_the_request_and_its_actions(): void
+    {
+        [$employee, $leave] = $this->createRejectedLeaveFixture('Busy week');
+
+        $html = Livewire::actingAs($employee)->test(MyLeaveRequestTable::class)->html();
+
+        $this->assertStringContainsString('data-card="'.$leave->id.'"', $html);
+        $this->assertStringContainsString(e($leave->leaveBalance->leaveType->name_en), $html);
+        $this->assertStringContainsString(e("\$dispatch('openMyLeaveDetails', { id: {$leave->id} })"), $html);
+    }
+
     public function test_all_leaves_table_names_the_requesting_employee_for_a_super_admin(): void
     {
         [$decisionMaker, $leave] = $this->createPendingDecisionFixture();
@@ -901,6 +1075,374 @@ class LeaveRequestWorkflowTest extends TestCase
      * The all-leaves table lists other people's requests, so the employee
      * column has to be there for every role that can reach the page.
      */
+    public function test_gb6_a_manager_editing_a_team_members_request_sees_the_employee_and_can_save(): void
+    {
+        [$manager, $leave] = $this->createManagerEditFixture();
+        $employee = $leave->leaveBalance->contract->employee;
+
+        $component = Livewire::actingAs($manager)
+            ->test(AllLeaveRequestModule::class)
+            ->call('edit', $leave->id)
+            ->assertSet('formModal', true)
+            ->assertSet('form.employee_id', $employee->id)
+            ->assertSeeHtml('data-testid="leave-form-employee"')
+            ->assertSee($employee->name)
+            ->assertDontSeeHtml('id="employee_id"');
+
+        $component->set('form.reason', 'Changed by the direct manager')
+            ->call('confirmSave')
+            ->assertHasNoErrors()
+            ->call('processSave')
+            ->assertHasNoErrors();
+
+        $leave->refresh();
+        $this->assertSame('Changed by the direct manager', $leave->reason);
+        $this->assertSame($employee->id, $leave->leaveBalance->contract->employee_id);
+    }
+
+    public function test_gb6_a_manager_cannot_move_a_team_members_request_onto_their_own_balance(): void
+    {
+        [$manager, $leave] = $this->createManagerEditFixture();
+        $managerBalanceId = DB::table('leave_balances')
+            ->whereIn('contract_id', DB::table('contracts')->where('employee_id', $manager->employee_id)->pluck('id'))
+            ->value('id');
+        $this->assertNotNull($managerBalanceId);
+
+        Livewire::actingAs($manager)
+            ->test(AllLeaveRequestModule::class)
+            ->call('edit', $leave->id)
+            ->set('form.leave_balance_id', $managerBalanceId)
+            ->call('confirmSave')
+            ->assertHasErrors('form.leave_balance_id');
+
+        $this->assertSame($leave->leave_balance_id, $leave->fresh()->leave_balance_id);
+    }
+
+    /**
+     * A pending request whose employee reports to a manager (direct-manager
+     * position), the way test_direct_manager_can_open_a_pending_team_members_leave_decision builds it.
+     *
+     * @return array{0: User, 1: LeaveRequest}
+     */
+    // --- C3: who decides (DEC-05 revision, approval-source-contract.md §4.3, C3-Q1) ---
+
+    public function test_c3_the_direct_manager_decides_and_the_decision_records_it(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        Notification::fake();
+
+        Livewire::actingAs($manager)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'No cover.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id, 'status' => LeaveRequestStatus::Rejected,
+            'decision_basis' => 'manager', 'decided_on_behalf_of' => null,
+        ]);
+    }
+
+    public function test_c3_hr_cannot_decide_while_the_direct_manager_is_at_work(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $this->makeDirectManagerOf($leave);
+
+        // HR still sees the request, but may not decide it.
+        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('view', $leave));
+        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('decide', $leave));
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->assertForbidden();
+
+        $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+    }
+
+    public function test_c3_hr_decides_on_behalf_while_the_manager_is_on_accepted_leave(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $this->putOnAcceptedLeaveToday($manager);
+        Notification::fake();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'No cover while the manager is away.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $leave->refresh();
+        $this->assertSame('on_behalf', $leave->decision_basis);
+        $this->assertSame($manager->employee_id, $leave->decided_on_behalf_of);
+
+        app()->setLocale('en');
+        $this->assertStringContainsString('on behalf of', app(\App\Services\LeaveRequestNextStep::class)->describe($leave));
+        $this->assertStringContainsString($manager->profile->name, app(\App\Services\LeaveRequestNextStep::class)->describe($leave));
+    }
+
+    public function test_c3_hr_decides_when_there_is_no_direct_manager(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        Notification::fake();
+
+        $this->assertSame('no_manager', app(\App\Services\LeaveDecisionAuthority::class)->basisFor($hr, $leave));
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'Not this week.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertSame('no_manager', $leave->fresh()->decision_basis);
+    }
+
+    public function test_c3_the_technical_manager_neither_sees_nor_decides(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        [$tech] = $this->createRejectedLeaveFixture(null, 'tech.manager@example.test', 'tech-manager');
+        $tech->assignRole(Role::findOrCreate('manager', 'web'));
+        $tech->givePermissionTo(['leaves.decide', 'leaves.view-all']);
+        $techPositionId = DB::table('contracts')->where('employee_id', $tech->employee_id)->value('position_id');
+        DB::table('positions')
+            ->where('id', DB::table('contracts')->where('id', $leave->leaveBalance->contract_id)->value('position_id'))
+            ->update(['tech_manager_id' => $techPositionId]);
+
+        $tech = $tech->fresh();
+        $this->assertFalse(LeaveRequest::query()->manageableBy($tech)->whereKey($leave->id)->exists());
+        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($tech)->allows('decide', $leave));
+    }
+
+    // --- C3: HR review, note and objection (G3, G5, C3D-Q5, C3D-Q6) ---
+
+    public function test_c3_seen_by_hr_keeps_an_optional_note_and_is_one_way(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()]);
+        Notification::fake();
+
+        app(\App\Services\LeaveRequestReview::class)->markSeen($leave->id, $hr, '  Cover arranged with the center.  ');
+
+        $leave->refresh();
+        $this->assertTrue($leave->hr_approved);
+        $this->assertSame(['note', 'Cover arranged with the center.'], [$leave->notes->first()->kind, $leave->notes->first()->body]);
+
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        app(\App\Services\LeaveRequestReview::class)->markSeen($leave->id, $hr);
+    }
+
+    public function test_c3_an_objection_needs_a_note_returns_the_days_and_goes_back_to_the_manager(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now(), 'approved_by' => $manager->employee_id, 'computed_hours' => 16]);
+        $leave->leaveBalance->update(['used' => 40]);
+        Notification::fake();
+
+        // The note is required (C3D-Q5): nothing changes without it.
+        try {
+            app(\App\Services\LeaveRequestReview::class)->object($leave->id, $hr, '   ');
+            $this->fail('An objection without a note was accepted.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('note', $e->errors());
+        }
+        $this->assertSame(LeaveRequestStatus::Accepted, $leave->fresh()->status);
+        $this->assertEquals(40, $leave->leaveBalance->fresh()->used);
+
+        app(\App\Services\LeaveRequestReview::class)->object($leave->id, $hr, 'Dates overlap the center audit.');
+
+        $leave->refresh();
+        $this->assertSame(LeaveRequestStatus::Pending, $leave->status);
+        $this->assertNull($leave->approved_by);
+        $this->assertFalse($leave->hr_approved);
+        // The 16 hours deducted on acceptance come back in the same step (C3D-Q6).
+        $this->assertEquals(24, $leave->leaveBalance->fresh()->used);
+        $this->assertSame(['objection', 'Dates overlap the center audit.'], [$leave->notes->first()->kind, $leave->notes->first()->body]);
+
+        Notification::assertSentTo($manager, \App\Notifications\LeaveRequestObjected::class);
+        Notification::assertSentTo($leave->leaveBalance->contract->employee->account, \App\Notifications\LeaveRequestObjected::class);
+
+        // Pending again: a second objection is refused and gives nothing back twice.
+        try {
+            app(\App\Services\LeaveRequestReview::class)->object($leave->id, $hr, 'Again.');
+            $this->fail('A pending request was objected to.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+        }
+        $this->assertEquals(24, $leave->leaveBalance->fresh()->used);
+    }
+
+    public function test_c3_a_manager_cannot_object(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()]);
+
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        app(\App\Services\LeaveRequestReview::class)->object($leave->id, $manager, 'Not mine to object.');
+    }
+
+    // --- C3: the work inbox, leave rows (approval-source-contract.md §3, §4.1) ---
+
+    public function test_c3_inbox_rows_are_the_actionable_work_of_each_role(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $inbox = app(\App\Services\WorkInbox::class);
+
+        // Pending: the manager decides; HR, with the manager at work, has nothing to do yet.
+        $this->assertSame(["leave:{$leave->id}:decide"], $inbox->rows($manager)->pluck('key')->all());
+        $this->assertSame([], $inbox->rows($hr)->where('source', 'leave')->pluck('key')->all());
+
+        // Decided: the row leaves the manager's inbox and becomes HR's to review.
+        $leave->update(['status' => LeaveRequestStatus::Rejected, 'reject_reason' => 'x', 'approved_at' => now()]);
+        $this->assertSame(0, $inbox->count($manager));
+        $this->assertSame(["leave:{$leave->id}:review"], $inbox->rows($hr)->pluck('key')->all());
+
+        // Rows never carry the leave reason (§3.2).
+        $this->assertArrayNotHasKey('reason', $inbox->rows($hr)->first());
+    }
+
+    public function test_c3_deciding_from_the_inbox_uses_the_domain_decision_and_cannot_deduct_twice(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $leave->update(['computed_hours' => 8]);
+        $leave->leaveBalance->update(['used' => 0, 'deserved' => 160]);
+        Notification::fake();
+        $key = "leave:{$leave->id}:decide";
+        $version = app(\App\Services\WorkInbox::class)->leaveVersion($leave->fresh());
+
+        $inbox = Livewire::actingAs($manager)->test(\App\Livewire\Inbox\Index::class);
+        $inbox->call('decide', $key, $version, LeaveRequestStatus::Accepted)->assertHasNoErrors();
+
+        $this->assertSame(LeaveRequestStatus::Accepted, $leave->fresh()->status);
+        $this->assertSame('manager', $leave->fresh()->decision_basis);
+        Notification::assertSentTo($leave->leaveBalance->contract->employee->account, ActionLeaveRequest::class);
+        $usedAfterFirst = (float) $leave->leaveBalance->fresh()->used;
+
+        // The same decision again (double click / retry): already handled, nothing deducted twice.
+        $inbox->call('decide', $key, $version, LeaveRequestStatus::Accepted)
+            ->assertSet("outcomes.leave-{$leave->id}-decide.outcome", 'already_handled');
+        $this->assertEquals($usedAfterFirst, (float) $leave->leaveBalance->fresh()->used);
+    }
+
+    public function test_c3_a_request_changed_since_it_was_opened_is_not_decided(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $staleVersion = app(\App\Services\WorkInbox::class)->leaveVersion($leave->fresh());
+
+        // The requester moved the dates while the manager had the inbox open.
+        $this->travel(2)->seconds();
+        $leave->update(['start_at' => now()->addWeeks(2)->startOfDay(), 'end_at' => now()->addWeeks(2)->addDay()->startOfDay()]);
+
+        Livewire::actingAs($manager)->test(\App\Livewire\Inbox\Index::class)
+            ->call('decide', "leave:{$leave->id}:decide", $staleVersion, LeaveRequestStatus::Accepted)
+            ->assertSet("outcomes.leave-{$leave->id}-decide.outcome", 'changed');
+
+        $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+    }
+
+    public function test_c3_a_rejection_without_a_reason_is_invalid_on_its_row(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $version = app(\App\Services\WorkInbox::class)->leaveVersion($leave->fresh());
+
+        Livewire::actingAs($manager)->test(\App\Livewire\Inbox\Index::class)
+            ->call('decide', "leave:{$leave->id}:decide", $version, LeaveRequestStatus::Rejected)
+            ->assertHasErrors(["reasons.leave-{$leave->id}-decide"]);
+
+        $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+    }
+
+    public function test_c3_hr_reviews_and_objects_from_the_inbox(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Rejected, 'reject_reason' => 'x', 'approved_at' => now()]);
+        Notification::fake();
+        $key = "leave:{$leave->id}:review";
+        $slug = "leave-{$leave->id}-review";
+
+        $inbox = Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class);
+
+        // An objection needs its note; the error sits on the row's note field.
+        $inbox->call('object', $key)->assertHasErrors(["notes.{$slug}"]);
+        $this->assertSame(LeaveRequestStatus::Rejected, $leave->fresh()->status);
+
+        $inbox->set("notes.{$slug}", 'Please reconsider: cover was found.')->call('object', $key)->assertHasNoErrors();
+        $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+        $this->assertSame('objection', $leave->fresh()->notes->first()->kind);
+    }
+
+    /** C1: the sidebar's work inbox counts the team's pending request, and drops it once decided. */
+    public function test_c1_work_inbox_counts_pending_requests_of_the_managers_team(): void
+    {
+        [$manager, $leave] = $this->createManagerEditFixture();
+        $manager->setActiveRole($manager->roles()->where('name', 'manager')->value('roles.id'));
+
+        Livewire::actingAs($manager->fresh())
+            ->test(\App\Livewire\Layout\Sidebar::class)
+            ->assertSeeHtml('data-testid="nav-badge">1<');
+
+        $leave->update(['status' => LeaveRequestStatus::Rejected]);
+
+        Livewire::actingAs($manager->fresh())
+            ->test(\App\Livewire\Layout\Sidebar::class)
+            ->assertSeeHtml('data-testid="nav-badge">0<');
+    }
+
+    /** A manager who holds the position the requester's position reports to, with the real manager permissions. */
+    private function makeDirectManagerOf(LeaveRequest $leave): User
+    {
+        [$manager] = $this->createRejectedLeaveFixture(null, uniqid('manager.').'@example.test', uniqid('manager-'));
+        $role = \App\Models\Role::findOrCreate('manager', 'web');
+        $manager->assignRole($role);
+        $manager->setActiveRole($role->id);
+        $manager->givePermissionTo(['leaves.decide', 'leaves.view-all']);
+
+        $managerPositionId = DB::table('contracts')->where('employee_id', $manager->employee_id)->value('position_id');
+        DB::table('positions')
+            ->where('id', DB::table('contracts')->where('id', $leave->leaveBalance->contract_id)->value('position_id'))
+            ->update(['direct_manager_id' => $managerPositionId]);
+
+        return $manager->fresh();
+    }
+
+    private function putOnAcceptedLeaveToday(User $manager): void
+    {
+        LeaveRequest::query()
+            ->whereHas('leaveBalance.contract', fn ($contract) => $contract->where('employee_id', $manager->employee_id))
+            ->firstOrFail()
+            ->update([
+                'status' => LeaveRequestStatus::Accepted,
+                'type' => 'day',
+                'start_at' => today()->subDay(),
+                'end_at' => today()->addDay(),
+            ]);
+    }
+
+    private function createManagerEditFixture(): array
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        [$manager] = $this->createRejectedLeaveFixture(null, 'direct.manager@example.test', 'direct-manager');
+        $manager->assignRole(Role::findOrCreate('manager', 'web'));
+
+        $managerPositionId = DB::table('contracts')->where('employee_id', $manager->employee_id)->value('position_id');
+        $teamMemberPositionId = DB::table('contracts')->where('id', $leave->leaveBalance->contract_id)->value('position_id');
+        DB::table('positions')->where('id', $teamMemberPositionId)->update(['direct_manager_id' => $managerPositionId]);
+
+        return [$manager->fresh(), $leave->fresh()];
+    }
+
     private function assertAllLeavesTableNamesRequestingEmployee(string $roleName): void
     {
         [, $teamMemberLeave] = $this->createPendingDecisionFixture();
@@ -1079,6 +1621,9 @@ class LeaveRequestWorkflowTest extends TestCase
         $citySlug = $leaveRequest->leaveBalance->contract->employee->city->slug;
         $role = Role::findOrCreate('HR-'.$citySlug, 'web');
         $decisionMaker->assignRole($role);
+        // C3: the requester has no direct manager, so HR in scope decides
+        // (C3-Q1); deciding and reviewing need their permissions.
+        $decisionMaker->givePermissionTo(['leaves.decide', 'leaves.review', 'leaves.view-all']);
 
         return [$decisionMaker->fresh(), $leaveRequest->fresh()];
     }

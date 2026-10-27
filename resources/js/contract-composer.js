@@ -327,7 +327,9 @@ document.addEventListener('alpine:init', () => {
         terminatedAt: config.seed?.terminatedAt ?? '',
         terminationReasonId: str(config.seed?.terminationReasonId ?? ''),
         reasonOfTermination: config.seed?.reasonOfTermination ?? '',
-        autoRenew: Boolean(config.seed?.autoRenew),
+        // A new contract starts with auto-renew on (G-B-10; ContractObserver
+        // applies the same default); an edit or renewal shows what is saved.
+        autoRenew: config.seed ? Boolean(config.seed.autoRenew) : true,
 
         // ---- ui
         // An edit opens with every section collapsed and summarised: there is
@@ -914,9 +916,22 @@ document.addEventListener('alpine:init', () => {
             const defaults = this.typeDefaults[str(id)];
 
             if (defaults) {
-                this.startDate = defaults.start;
-                this.endDate = defaults.end;
-                this.flashDates();
+                // G-B-8: a date the user typed is theirs; the type only fills
+                // in what is still the default.
+                const keepStart = this.datesTyped.start && Boolean(this.startDate);
+                const keepEnd = this.datesTyped.end && Boolean(this.endDate);
+
+                if (!keepStart) {
+                    this.startDate = defaults.start;
+                }
+
+                if (!keepEnd) {
+                    this.endDate = keepStart ? this.defaultEndFrom(this.startDate, defaults) : defaults.end;
+                }
+
+                if (!keepStart || !keepEnd) {
+                    this.flashDates();
+                }
 
                 // Full/Part time only make sense for a volunteer or trial
                 // contract; Freelance only for a service one — switching
@@ -927,6 +942,34 @@ document.addEventListener('alpine:init', () => {
                     this.type = '1'; // Full Time
                 }
             }
+        },
+
+        // Set only by the user's own input in a date field, never by a type
+        // change or a seed.
+        datesTyped: { start: false, end: false },
+
+        /**
+         * The type's end date for a start the user chose, by the rules of
+         * ContractForm::updatedContractTypeId(): a trial runs three months
+         * (no overflow: 31 Jan → 30 Apr); any other type keeps its default end
+         * while that still follows the start, otherwise runs a full year.
+         */
+        defaultEndFrom(start, defaults) {
+            const [year, month, day] = start.split('-').map(Number);
+            const iso = (y, m, d) => [y, String(m).padStart(2, '0'), String(d).padStart(2, '0')].join('-');
+
+            if (defaults.category === 'trial') {
+                const target = new Date(Date.UTC(year, month - 1 + 3, 1));
+                const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+
+                return iso(target.getUTCFullYear(), target.getUTCMonth() + 1, Math.min(day, lastDay));
+            }
+
+            if (defaults.end && defaults.end > start) {
+                return defaults.end;
+            }
+
+            return new Date(Date.UTC(year + 1, month - 1, day - 1)).toISOString().slice(0, 10);
         },
 
         flashDates() {

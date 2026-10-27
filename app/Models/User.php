@@ -224,6 +224,20 @@ class User extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Whether the active role may open a reference page group (`centers`,
+     * `programs`, `positions`, `project-basics`): its read permission, unless
+     * config('access-control.reference_pages_hidden_from') refuses the role
+     * (G-B-13). The org chart is not one of these; it keeps positions.view.
+     */
+    public function canOpenReferencePage(string $page): bool
+    {
+        $hiddenFrom = config("access-control.reference_pages_hidden_from.{$page}", []);
+
+        return $this->hasActivePermission("{$page}.view")
+            && ($hiddenFrom === [] || ! $this->activeRoleIs(...$hiddenFrom));
+    }
+
+    /**
      * Check direct grants plus the currently active role only.
      *
      * Spatie's default check combines every assigned role, which is unsafe for

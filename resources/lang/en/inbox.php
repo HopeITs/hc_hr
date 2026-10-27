@@ -1,0 +1,80 @@
+<?php
+
+// C3: the work inbox (docs/ux/approval-source-contract.md).
+return [
+    'intro' => 'Everything waiting for you to act on. Each item opens the same check as its own page.',
+    'failed' => 'The inbox could not be loaded. Nothing was changed.',
+    'empty' => [
+        'title' => 'Nothing is waiting for you.',
+        'body' => 'New requests and items to confirm will appear here.',
+    ],
+    'filter' => [
+        'label' => 'Show',
+        'all' => 'All',
+        'decide' => 'Leave decisions',
+        'review' => 'To mark as seen',
+        'checklist' => 'Items',
+    ],
+    'action' => [
+        'decide' => 'Leave request to decide',
+        'review' => 'Decision to review',
+        'deliver' => 'Item to hand over',
+        'receive' => 'Item to take back',
+        'finalize' => 'Returned item to close',
+    ],
+    'waiting-since' => 'Waiting for :when',
+    'urgent' => 'Starts soon',
+    'details' => 'Details',
+    'basis' => [
+        'on_behalf' => 'You decide on behalf of :manager (on leave).',
+        'no_manager' => 'This employee has no direct manager, so HR decides.',
+    ],
+    'decision' => [
+        'label' => 'Decision',
+        'accept' => 'Accept',
+        'reject' => 'Reject',
+        'save' => 'Save decision',
+    ],
+    'review' => [
+        'accepted' => 'The manager accepted this request.',
+        'rejected' => 'The manager rejected this request.',
+        'note-optional' => 'Note (optional)',
+        'note-required' => 'Why are you objecting?',
+        'seen' => 'Seen by HR',
+        'object' => 'Object',
+        'object-help' => 'Objecting sends the request back to the manager as pending. If it was accepted, its days return to the balance.',
+    ],
+    'checklist' => [
+        'note' => 'Note (optional)',
+        'deliver' => 'Confirm handed over',
+        'receive' => 'Confirm taken back',
+        'finalize' => 'Close',
+    ],
+    'batch' => [
+        'hint' => 'Tick items to confirm several at once.',
+        'button' => '{0} Confirm selected|{1} Confirm 1 item|[2,*] Confirm :count items',
+        'select' => 'Select the item for :name',
+        'title' => 'Confirm these items?',
+        'preview' => '{1} 1 item will be confirmed.|[2,*] :count items will be confirmed.',
+        'gone' => '{1} 1 selected item was already handled and was left out.|[2,*] :count selected items were already handled and were left out.',
+        'confirm' => 'Confirm',
+        'nothing' => 'None of the selected items is still waiting.',
+        'result' => [
+            'done' => '{1} 1 confirmed|[2,*] :count confirmed',
+            'already_handled' => '{1} 1 already handled|[2,*] :count already handled',
+            'not_allowed' => '{1} 1 not allowed|[2,*] :count not allowed',
+        ],
+    ],
+    'outcome' => [
+        'accepted' => 'Leave request accepted.',
+        'rejected' => 'Leave request rejected.',
+        'seen' => 'Marked as seen by HR.',
+        'objected' => 'Sent back to the manager.',
+        'confirmed' => 'Confirmed.',
+        'finalized' => 'Closed.',
+        'changed' => 'This request changed since you opened it. Check the new details, then decide again.',
+        'already_reviewed' => 'Someone already handled this decision.',
+        'already_confirmed' => 'This item was already confirmed.',
+        'not_allowed' => 'This item is no longer available to you.',
+    ],
+];

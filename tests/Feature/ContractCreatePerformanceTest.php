@@ -58,10 +58,14 @@ class ContractCreatePerformanceTest extends TestCase
         // one lookup of active contracts so duplicates can be warned about.
         $this->assertLessThanOrEqual(14, count($queries), 'The renderless city option request exceeded its query budget.');
 
-        $employeeQuery = collect($queries)->first(fn (string $sql): bool => str_contains($sql, 'employees'));
+        // The employee options query: the one that reads names for the list.
+        // Picking "the first query that mentions employees" used to land on the
+        // HR user's own profile lookup, so this query was never checked (C1).
+        $employeeQuery = collect($queries)->first(fn (string $sql): bool => str_contains($sql, 'from "employees"') && str_contains($sql, 'first_name_en'));
 
         $this->assertNotNull($employeeQuery);
-        $this->assertStringNotContainsString('select *', strtolower($employeeQuery));
+        // Its own column list is explicit; a "select *" inside an EXISTS subquery reads no columns.
+        $this->assertDoesNotMatchRegularExpression('/^select \*/i', $employeeQuery);
     }
 
     public function test_the_composer_type_cards_carry_the_dates_the_form_would_apply(): void

@@ -36,6 +36,27 @@ class LeaveRequestNextStep
             : $this->decided($leaveRequest);
     }
 
+    /**
+     * For a decision that arrived too late (G-B-1): "This request was already
+     * rejected by Nour Halabi on 23-10-2026, 14:05. Your decision was not
+     * saved." When $viewer made it themselves (a repeated submit), it says so.
+     */
+    public function alreadyDecided(LeaveRequest $leaveRequest, ?User $viewer): string
+    {
+        $outcome = (int) $leaveRequest->status === LeaveRequestStatus::Accepted ? 'accepted' : 'rejected';
+        $date = $this->isolate($leaveRequest->approved_at?->format('d-m-Y, H:i') ?? '—');
+
+        if ($leaveRequest->approved_by !== null && (int) $leaveRequest->approved_by === (int) $viewer?->employee_id) {
+            return __("leaves.decision.already.{$outcome}-by-you", ['date' => $date]);
+        }
+
+        $decidedBy = $this->decidedByName($leaveRequest);
+
+        return $decidedBy
+            ? __("leaves.decision.already.{$outcome}-by", ['name' => $this->isolate($decidedBy), 'date' => $date])
+            : __("leaves.decision.already.{$outcome}", ['date' => $date]);
+    }
+
     private function pending(LeaveRequest $leaveRequest): string
     {
         $requester = $leaveRequest->leaveBalance?->contract?->employee;
@@ -67,20 +88,37 @@ class LeaveRequestNextStep
 
     private function decided(LeaveRequest $leaveRequest): string
     {
-        $decidedBy = $leaveRequest->approved_by
-            ? Employee::query()->find($leaveRequest->approved_by)?->name
-            : null;
+        $decidedBy = $this->decidedByName($leaveRequest);
         $date = $leaveRequest->approved_at?->format('d-m-Y');
 
-        $decision = $decidedBy
-            ? __('leaves.next-step.decided-by', ['name' => $this->isolate($decidedBy), 'date' => $this->isolate((string) $date)])
-            : __('leaves.next-step.decided', ['date' => $this->isolate((string) ($date ?? '—'))]);
+        // C3: a decision HR made in the manager's place says so.
+        $onBehalfOf = $leaveRequest->decided_on_behalf_of
+            ? Employee::query()->find($leaveRequest->decided_on_behalf_of)?->name
+            : null;
+
+        $decision = match (true) {
+            $decidedBy && $leaveRequest->decision_basis === LeaveDecisionAuthority::ON_BEHALF && $onBehalfOf => __('leaves.next-step.decided-on-behalf', [
+                'name' => $this->isolate($decidedBy), 'manager' => $this->isolate($onBehalfOf), 'date' => $this->isolate((string) $date),
+            ]),
+            $decidedBy && $leaveRequest->decision_basis === LeaveDecisionAuthority::NO_MANAGER => __('leaves.next-step.decided-no-manager', [
+                'name' => $this->isolate($decidedBy), 'date' => $this->isolate((string) $date),
+            ]),
+            (bool) $decidedBy => __('leaves.next-step.decided-by', ['name' => $this->isolate($decidedBy), 'date' => $this->isolate((string) $date)]),
+            default => __('leaves.next-step.decided', ['date' => $this->isolate((string) ($date ?? '—'))]),
+        };
 
         $after = $leaveRequest->hr_approved
             ? __('leaves.next-step.hr-seen')
             : __('leaves.next-step.awaiting-hr');
 
         return $decision.' '.$after;
+    }
+
+    private function decidedByName(LeaveRequest $leaveRequest): ?string
+    {
+        return $leaveRequest->approved_by
+            ? Employee::query()->find($leaveRequest->approved_by)?->name
+            : null;
     }
 
     /**

@@ -96,7 +96,9 @@ class LeaveRequestAccountingTest extends TestCase
         ]);
         $this->hr = User::query()->create(['employee_id' => $hrEmployeeId, 'email' => 'accounting.hr@example.test', 'password' => 'password']);
         $this->hr->assignRole(Role::findOrCreate('HR-HMS', 'web'));
-        $this->hr->givePermissionTo(['leaves.create', 'leaves.update']);
+        // C3: deciding needs leaves.decide; the requesters here have no direct
+        // manager, so HR in scope decides (C3-Q1).
+        $this->hr->givePermissionTo(['leaves.create', 'leaves.update', 'leaves.decide']);
         $this->hr = $this->hr->fresh();
     }
 

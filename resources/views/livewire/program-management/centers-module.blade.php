@@ -7,7 +7,6 @@
 
     <div class="flex justify-between items-center mb-6">
         <livewire:layout.breadcrumbs :title="__('general.centers')" :crumbs="[
-            ['label' => __('general.programs-management')],
             ['label' => __('general.centers'), 'route' => 'centers.index'],
         ]" :showButton="true" />
 

@@ -4,7 +4,6 @@
 
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <livewire:layout.breadcrumbs :title="__('general.edit')" :crumbs="[
-        ['label' => trans_choice('general.employee-management', 2)],
         ['label' => trans_choice('general.contracts', 2), 'url' => route('contracts.index')],
         ['label' => __('general.edit')],
     ]"/>

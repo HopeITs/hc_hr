@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Livewire\Concerns\RemembersReturnTo;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\DraftContractForm;
 use App\Livewire\Forms\Employee\PersonalInfoForm;
@@ -18,6 +19,7 @@ use Livewire\WithFileUploads;
 
 class EmployeeCreate extends Component
 {
+    use RemembersReturnTo;
     use WithFeedback, WithFileUploads;
 
     public PersonalInfoForm $infoForm;

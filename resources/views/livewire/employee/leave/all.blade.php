@@ -11,7 +11,6 @@ use App\Enums\LeaveRequestStatus;
         <livewire:layout.breadcrumbs
             :title="__('general.all-leaves')"
             :crumbs="[
-                ['label' => __('general.holidays-and-leaves')],
 
             ]"
             :showButton="true"
@@ -64,13 +63,21 @@ use App\Enums\LeaveRequestStatus;
             <x-forms.errors-validation-list/>
             <div class="grid md:grid-cols-2 gap-4">
                 <div class="md:col-span-1">
-                    <x-forms.input-label for="employee_id" required>{{trans_choice('general.employee',1)}}</x-forms.input-label>
-                    <x-forms.select2-input wire:model.live="form.employee_id" id="employee_id">
-                        <option value="">{{ __('leaves.select-employee') }}</option>
-                        @foreach($employees as $emp)
-                            <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                        @endforeach
-                    </x-forms.select2-input>
+                    {{-- Only HR has an employee list. A manager editing a team member's
+                         request sees whose it is; an empty dropdown there showed no
+                         one and could clear the leave type (G-B-6). --}}
+                    @if ($employees->isEmpty() && $form->leaveRequest)
+                        <x-forms.input-label>{{trans_choice('general.employee',1)}}</x-forms.input-label>
+                        <p class="py-2 text-neutral-800" data-testid="leave-form-employee"><bdi>{{ $form->leaveRequest->leaveBalance?->contract?->employee?->name }}</bdi></p>
+                    @else
+                        <x-forms.input-label for="employee_id" required>{{trans_choice('general.employee',1)}}</x-forms.input-label>
+                        <x-forms.select2-input wire:model.live="form.employee_id" id="employee_id">
+                            <option value="">{{ __('leaves.select-employee') }}</option>
+                            @foreach($employees as $emp)
+                                <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                            @endforeach
+                        </x-forms.select2-input>
+                    @endif
                     <x-error-span>{{ $errors->first('form.employee_id') }}</x-error-span>
                 </div>
             
@@ -246,6 +253,8 @@ use App\Enums\LeaveRequestStatus;
                         <p class="text-neutral-800">{{ $selectedLeave->reason }}</p>
                     </div>
 
+                    @include('livewire.employee.leave.partials.hr-notes', ['leaveRequest' => $selectedLeave])
+
                 </div>
 
                 <div class="flex justify-end gap-2 mt-4">
@@ -265,7 +274,8 @@ use App\Enums\LeaveRequestStatus;
 
     <x-modal.dialog id="decisionModal" :title="$modalTitle" wire:model.defer="decisionModal" close-action="requestClose" wire:ignore.self>
         @if($decisionLeave)
-            <div class="space-y-6 sheet:flex-1 sheet:flex sheet:flex-col">
+            {{-- A real form, so Enter in the reason field submits (G-B-7). --}}
+            <form wire:submit.prevent="submitDecision" class="space-y-6 sheet:flex-1 sheet:flex sheet:flex-col">
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
@@ -357,7 +367,7 @@ use App\Enums\LeaveRequestStatus;
                 <x-modal.actions class="mt-4">
 
                     <x-primary-button
-                        wire:click="submitDecision"
+                        type="submit"
                         wire:loading.attr="disabled"
                         wire:target="submitDecision"
                         class="!w-auto">
@@ -370,7 +380,7 @@ use App\Enums\LeaveRequestStatus;
                     </x-primary-button>
                 </x-modal.actions>
 
-            </div>
+            </form>
         @endif
     </x-modal.dialog>
 

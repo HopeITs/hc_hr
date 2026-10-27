@@ -11,11 +11,10 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Services\LeaveNotificationService;
+use App\Services\LeaveRequestReview;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\DateColumn;
@@ -95,28 +94,53 @@ class AllLeaveRequestTable extends LivewireTable
 
     public function markAsReviewed(array $payload): void
     {
-        $item = DB::transaction(function () use ($payload): LeaveRequest {
-            $leaveRequest = LeaveRequest::query()
-                ->lockForUpdate()
-                ->findOrFail($payload['id']);
+        // One writer for "Seen by HR", shared with the work inbox (C3): it locks,
+        // authorizes after the lock, writes and notifies after commit.
+        app(LeaveRequestReview::class)->markSeen((int) $payload['id'], auth()->user());
 
-            // Authorization runs after acquiring the lock so a concurrent
-            // request cannot pass with a stale, unreviewed model.
-            Gate::authorize('review', $leaveRequest);
-
-            $leaveRequest->update(['hr_approved' => true]);
-
-            return $leaveRequest;
-        });
-
-        app(LeaveNotificationService::class)->sendHrReview(
-            $item,
-            auth()->user(),
-        );
         $this->dispatch('notification-created');
         $this->dispatch('$refresh');
 
         $this->toast(__('general.item-updated'));
+    }
+
+    /** Below md each request becomes a card (B4-D §6, G-B-4). */
+    public function cardView(): ?string
+    {
+        return 'livewire.employee.leave.partials.all-card';
+    }
+
+    protected function rowOpenAction(Model $model): string
+    {
+        return $this->rowClickAction($model);
+    }
+
+    /** HR and super-admin see and set "Seen by HR". */
+    protected function showsHrReview(): bool
+    {
+        $role = (string) auth()->user()?->myRole();
+
+        return $role === 'super-admin' || str_starts_with($role, 'HR-');
+    }
+
+    /** The row's buttons, shared by the table's Actions column and the phone card. */
+    protected function leaveActions(Model $model): string
+    {
+        $key = $model->getKey();
+        $pending = $model->status === LeaveRequestStatus::Pending;
+
+        $decisionBtn = $pending
+            ? Blade::render('<x-table.decision-btn wire:click="$dispatch(\'openDecisionRequestLeave\', { id: '.$key.' })" />')
+            : '';
+
+        $showBtn = Blade::render('<x-table.show-btn wire:click="$dispatch(\'openShowRequestLeave\', { id: '.$key.' })" />');
+
+        // Editing a decided request is deliberate: its own button, after View.
+        $editBtn = ! $pending && auth()->user()?->hasActivePermission('leaves.update')
+            ? Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$key.' })" />')
+            : '';
+
+        return $decisionBtn.$showBtn.$editBtn;
     }
 
     protected function emptyScreenState(): array
@@ -144,11 +168,15 @@ class AllLeaveRequestTable extends LivewireTable
         $this->dispatch('leaveStatusFilterCleared');
     }
 
+    /**
+     * Pending: the decision. Decided: the read-only details, never the editor
+     * (B4D-Q2, G-B-5); editing is the separate Edit action.
+     */
     protected function rowClickAction(Model $model): ?string
     {
         return $model->status === LeaveRequestStatus::Pending
             ? "\$dispatch('openDecisionRequestLeave', { id: {$model->getKey()} })"
-            : "\$dispatch('openRequestLeaveEdit', { id: {$model->getKey()} })";
+            : "\$dispatch('openShowRequestLeave', { id: {$model->getKey()} })";
     }
 
     protected function query(): Builder
@@ -156,7 +184,7 @@ class AllLeaveRequestTable extends LivewireTable
         $user = auth()->user();
 
         $query = LeaveRequest::query()
-            ->with(['leaveBalance.contract.employee', 'leaveBalance.contract.position'])
+            ->with(['leaveBalance.contract.employee', 'leaveBalance.contract.position.center', 'leaveBalance.leaveType'])
             ->manageableBy($user)
             ->orderBy('created_at', 'desc');
 
@@ -204,8 +232,6 @@ class AllLeaveRequestTable extends LivewireTable
 
     protected function columns(): array
     {
-        $user = auth()->user();
-
         return [
 
             SelectColumn::make(trans_choice('general.employee', 1), 'leaveBalance.contract.employee_id')
@@ -225,11 +251,8 @@ class AllLeaveRequestTable extends LivewireTable
                 ->searchable(),
 
             Column::make(__('general.duration'), 'duration')->computed(),
-            Column::make(__('general.status'), function (mixed $value, Model $model): string {
-                $status = LeaveRequestStatus::getLocalizedName($value->status);
-
-                return Blade::render('<x-badge :color="$color">{{ $text }}</x-badge>', ['color' => $status['color'], 'text' => $status['value']]);
-            })->asHtml(),
+            Column::make(__('general.status'), fn (Model $model): string => view('livewire.employee.leave.partials.card-status', ['item' => $model])->render())
+                ->asHtml(),
             DateColumn::make(__('general.request_date'), 'created_at')
                 ->format('d-m-Y H:i') // keep it; used for default/export/sort context
                 ->displayUsing(function (mixed $value, Model $model): string {
@@ -276,26 +299,9 @@ class AllLeaveRequestTable extends LivewireTable
                         'modelId' => $model->getKey(),
                     ],
                 );
-            })->visible(
-                $user->myRole() === 'super-admin'
-                || str_starts_with((string) $user->myRole(), 'HR-'),
-            )->asHtml()->clickable(false),
-            Column::make(__('general.actions'), function (Model $model): string {
-
-                $decisionBtn = '';
-                $editBtn = '';
-
-                if ($model->status === LeaveRequestStatus::Pending) {
-                    $decisionBtn = Blade::render('<x-table.decision-btn wire:click="$dispatch(\'openDecisionRequestLeave\', { id: '.$model->getKey().' })" />');
-                }
-                if ($model->status !== LeaveRequestStatus::Pending) {
-                    $editBtn = Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$model->getKey().' })" />');
-                }
-
-                $showBtn = Blade::render('<x-table.show-btn wire:click="$dispatch(\'openShowRequestLeave\', { id: '.$model->getKey().' })" />');
-
-                return $decisionBtn.$editBtn.$showBtn;
-            })->asHtml()->clickable(false),
+            })->visible($this->showsHrReview())->asHtml()->clickable(false),
+            Column::make(__('general.actions'), fn (Model $model): string => $this->leaveActions($model))
+                ->asHtml()->clickable(false),
 
         ];
     }

@@ -271,7 +271,7 @@
     <div class="flex flex-col gap-3 mt-5 sm:flex-row sm:items-start">
         <div class="sm:flex-1">
             <x-forms.input-label for="composer_start_date" required>@lang('general.start-date')</x-forms.input-label>
-            <x-forms.date-input id="composer_start_date" x-model="startDate"
+            <x-forms.date-input id="composer_start_date" x-model="startDate" x-on:input="datesTyped.start = true"
                 x-bind:class="datesJustSet && 'border-primary ring-2 ring-neutral-300'" />
             <x-error-span>{{ $errors->first('form.start_date') }}</x-error-span>
         </div>
@@ -289,7 +289,7 @@
 
         <div class="sm:flex-1">
             <x-forms.input-label for="composer_end_date" required>@lang('general.end-date')</x-forms.input-label>
-            <x-forms.date-input id="composer_end_date" x-model="endDate" x-bind:max="maxEndDate"
+            <x-forms.date-input id="composer_end_date" x-model="endDate" x-bind:max="maxEndDate" x-on:input="datesTyped.end = true"
                 x-bind:class="[
                     datesJustSet && 'border-primary ring-2 ring-neutral-300',
                     endDateTooFar && 'border-primary',
@@ -308,6 +308,14 @@
     {{-- What "active" means for the contract this saves, and that it
          renews on its own unless it is a trial (ContractObserver). --}}
     <p class="mt-3 text-caption text-secondary-medium">@lang('contracts.composer-help.status')</p>
+
+    {{-- G-B-10 (answer 2): on create the switch is shown here, already on.
+         Editing keeps it in the termination section. --}}
+    @if(! $isEdit && $canManageAutoRenew)
+        <div class="mt-4">
+            @include('livewire.contract.composer._auto-renew')
+        </div>
+    @endif
 
     <x-contract.continue section="assignment" />
 </x-contract.section>

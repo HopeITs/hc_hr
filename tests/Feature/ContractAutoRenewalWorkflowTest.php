@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\SendContractExpirationWarnings;
+use App\Livewire\Contract\ContractCreate;
 use App\Livewire\Contract\ContractEdit;
 use App\Livewire\Contract\ContractsTable;
 use App\Models\Center;
@@ -309,6 +310,52 @@ class ContractAutoRenewalWorkflowTest extends TestCase
             ->assertStatus(403);
 
         $this->assertTrue($contract->fresh()->auto_renew);
+    }
+
+    /** G-B-10 (answer 2): HR sees the switch while creating, already on, and may turn it off. */
+    public function test_hr_sets_auto_renew_while_creating_a_contract(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $fixtures['hr']->roles->first()->givePermissionTo(\App\Models\Permission::findOrCreate('contracts.create', 'web'));
+        $hr = $fixtures['hr']->fresh();
+        $this->mock(LeaveBalanceService::class)->shouldReceive('create');
+
+        foreach ([false, true] as $autoRenew) {
+            $draft = $this->unsavedContract($fixtures, "create-{$autoRenew}");
+
+            Livewire::actingAs($hr)
+                ->test(ContractCreate::class)
+                ->assertSeeHtml('id="composer_auto_renew"')
+                ->call('submit', $this->composerPayload($fixtures, $draft, ['autoRenew' => $autoRenew]))
+                ->assertHasNoErrors();
+
+            $this->assertSame($autoRenew, Contract::query()->where('employee_id', $draft->employee_id)->sole()->auto_renew);
+        }
+
+        // A trial never renews, whatever the switch said.
+        $trial = $this->unsavedContract($fixtures, 'create-trial', ['contract_type_id' => $fixtures['trialType']->id, 'end_date' => '2026-03-31']);
+
+        Livewire::actingAs($hr)
+            ->test(ContractCreate::class)
+            ->call('submit', $this->composerPayload($fixtures, $trial, ['autoRenew' => true]))
+            ->assertHasNoErrors();
+
+        $this->assertFalse(Contract::query()->where('employee_id', $trial->employee_id)->sole()->auto_renew);
+    }
+
+    /**
+     * Another role holding contracts.create does not see the switch. (It cannot
+     * create from scratch anyway, being blind to pay; a renewal keeps the
+     * predecessor's value unless manageAutoRenew allows a change.)
+     */
+    public function test_a_role_other_than_hr_does_not_see_auto_renew_while_creating(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $generalManager = $this->makeUser($fixtures['city'], 'general-manager', ['contracts.create', 'contracts.view']);
+
+        Livewire::actingAs($generalManager)
+            ->test(ContractCreate::class)
+            ->assertDontSeeHtml('id="composer_auto_renew"');
     }
 
     public function test_terminating_a_contract_switches_auto_renew_off(): void
@@ -677,6 +724,26 @@ class ContractAutoRenewalWorkflowTest extends TestCase
             'work_hours_to' => '17:00:00',
             'is_active' => true,
         ], $overrides));
+    }
+
+    /** A contract not yet written: what the composer is about to create for a new employee. */
+    private function unsavedContract(array $fixtures, string $name, array $attributes = []): Contract
+    {
+        $employee = $this->makeEmployee($fixtures['city'], $name);
+        $position = $this->makePosition($fixtures, 'Position '.$name);
+
+        return new Contract(array_merge([
+            'employee_id' => $employee->id,
+            'position_id' => $position->id,
+            'contract_type_id' => $fixtures['annualType']->id,
+            'type' => 1,
+            'place' => 1,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'currency' => 2,
+            'salary' => 1000,
+            'salary_per' => 1,
+        ], $attributes));
     }
 
     private function composerPayload(array $fixtures, Contract $contract, array $overrides = []): array

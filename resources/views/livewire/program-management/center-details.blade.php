@@ -47,7 +47,7 @@
                                 @lang('general.back')
                             </a>
 
-                            @activepermission('positions.view')
+                            @if(auth()->user()->canOpenReferencePage('positions'))
                             <a
                                 href="{{ route('positions.index', ['center' => $center->id]) }}"
                                 wire:navigate
@@ -55,7 +55,7 @@
                             >
                                 @lang('general.view-positions')
                             </a>
-                            @endactivepermission
+                            @endif
                         </div>
                     </div>
 

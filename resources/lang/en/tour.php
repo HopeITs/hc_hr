@@ -39,68 +39,32 @@ return [
             'body' => 'Checklist items waiting to be handed over.',
         ],
         'nav-intro' => [
-            'title' => 'The sidebar',
-            'body' => 'Use this menu to move between pages. Next, a quick look at each page you can open.',
+            'title' => 'The menu',
+            'body' => 'The menu is grouped by whose work it is. Next, a quick look at each part you can open.',
         ],
-        'nav-statistics' => [
-            'title' => 'Statistics',
-            'body' => 'Charts and figures about employees and contracts across the organisation.',
+        'nav-inbox' => [
+            'title' => 'Work inbox',
+            'body' => 'Everything waiting for your decision, with a count. Start your day here.',
         ],
-        'nav-org-chart' => [
-            'title' => 'Organization chart',
-            'body' => 'Who reports to whom, position by position.',
+        'nav-my-space' => [
+            'title' => 'My space',
+            'body' => 'Your own work: your leaves, your items and your files.',
         ],
-        'nav-project-basics' => [
-            'title' => 'Project basics',
-            'body' => 'The lists the rest of the system relies on: cities, contract types, leave types, job levels, departments and more.',
+        'nav-organisation' => [
+            'title' => 'Organization',
+            'body' => "Find colleagues in the organization chart and directory, and read the organization's reference pages.",
         ],
-        'nav-programs' => [
-            'title' => 'Program management',
-            'body' => 'Programs, their centers, and the positions inside them.',
+        'nav-my-team' => [
+            'title' => 'My team',
+            'body' => "Your team's leave requests and contracts, and the items you hand out or take back.",
         ],
-        'nav-centers' => [
-            'title' => 'Centers',
-            'body' => 'The organisation\'s centers and the people who work in each one.',
+        'nav-hr' => [
+            'title' => 'HR operations',
+            'body' => 'Daily HR work: employees, contracts, leave requests and balances, badges, news and statistics.',
         ],
-        'nav-employees' => [
-            'title' => 'Employee management',
-            'body' => 'Employee files, their contracts, and the items handed over to new staff.',
-        ],
-        'nav-leaves-management' => [
-            'title' => 'Leaves management',
-            'body' => 'Review your team\'s leave requests and manage leave balances.',
-        ],
-        'nav-my-leaves' => [
-            'title' => 'My leaves',
-            'body' => 'Request a leave and follow up on your earlier requests.',
-        ],
-        'nav-archives' => [
-            'title' => 'Archived files',
-            'body' => 'Your own folders, and folders other people have shared with you.',
-        ],
-        'nav-checklists' => [
-            'title' => 'Checklist items',
-            'body' => 'Items waiting to be handed over or returned, and requests already completed.',
-        ],
-        'nav-my-items' => [
-            'title' => 'My items',
-            'body' => 'The equipment and items the organisation has handed over to you.',
-        ],
-        'nav-news' => [
-            'title' => 'News management',
-            'body' => 'Write and publish the news that appears on everyone\'s dashboard.',
-        ],
-        'nav-badges' => [
-            'title' => 'Badges',
-            'body' => 'Promotions, rewards and warnings recorded for employees.',
-        ],
-        'nav-activity-log' => [
-            'title' => 'Activity log',
-            'body' => 'A record of who changed what, and when.',
-        ],
-        'nav-access' => [
-            'title' => 'Roles & permissions',
-            'body' => 'Control which roles exist and what each one is allowed to do.',
+        'nav-settings' => [
+            'title' => 'Settings',
+            'body' => 'Setup and administration: the lists the system relies on, roles and permissions, and the activity log.',
         ],
         'replay' => [
             'title' => 'Need a reminder?',

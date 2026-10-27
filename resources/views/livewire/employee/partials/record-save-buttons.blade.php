@@ -25,7 +25,8 @@
         @lang('employees.onboarding.save-draft')
     </x-secondary-button>
     @if ($isCreateMode)
-        <x-secondary-button :href="route('employees.index')" class="!w-auto">@lang('general.cancel')</x-secondary-button>
+        {{-- C2: back to where New was pressed (EmployeeCreate only; the edit screen has no returnTo). --}}
+        <x-secondary-button :href="$returnTo ?? route('employees.index')" class="!w-auto">@lang('general.cancel')</x-secondary-button>
     @endif
 @else
     <x-primary-button type="button" wire:click="saveInformation" class="!w-auto" x-bind:disabled="! dirty"

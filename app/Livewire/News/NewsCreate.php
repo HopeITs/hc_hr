@@ -2,6 +2,7 @@
 
 namespace App\Livewire\News;
 
+use App\Livewire\Concerns\RemembersReturnTo;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\NewsForm;
 use App\Models\News;
@@ -10,6 +11,7 @@ use Livewire\WithFileUploads;
 
 class NewsCreate extends Component
 {
+    use RemembersReturnTo;
     use WithFeedback;
     use WithFileUploads;
 

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ActivePermissionMiddleware;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\ReferencePageMiddleware;
 use App\Http\Middleware\RememberUserLocale;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SecurityHeaders;
@@ -57,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'active_permission' => ActivePermissionMiddleware::class,
+            'reference_page' => ReferencePageMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

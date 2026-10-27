@@ -23,6 +23,8 @@
              'cancelLabel' => __('general.cancel'),
              'danger' => true,
          ]);
+         {{-- A request that never reached the server (resources/js/feedback.js, G-B-2). --}}
+         window.hcFeedbackText = @js(['networkError' => __('general.network-error'), 'tryAgain' => __('general.toast.try-again')]);
          {{-- Leaving a page with unsaved changes (resources/js/unsaved.js): A5-M's wording. --}}
          window.hcUnsaved && (window.hcUnsaved.labels = @js([
              'title' => __('general.unsaved.title'),

@@ -1,7 +1,6 @@
 <div>
     <div class="flex justify-between">
         <livewire:layout.breadcrumbs :title="trans_choice('general.employee', 2)" :crumbs="[
-            ['label' => trans_choice('general.employee-management', 2)],
             ['label' => trans_choice('general.employee', 2)],
         ]" :showButton="true" />
         <div>

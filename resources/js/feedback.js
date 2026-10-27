@@ -20,6 +20,26 @@ const FOCUSABLE = 'input:not([type=hidden]):not([disabled]), select:not([disable
 
 const isVisible = (el) => el.getClientRects().length > 0;
 
+/**
+ * Rendered *and* inside the visible area: within the window and within every
+ * scrolling container around it (a dialog's body on a phone). An element far
+ * down a long form is rendered but not seen (G-B-3).
+ */
+function isInView(el) {
+    if (!isVisible(el)) return false;
+
+    const rect = el.getBoundingClientRect();
+    const overlaps = (box) => rect.bottom > box.top && rect.top < box.bottom && rect.right > box.left && rect.left < box.right;
+
+    if (!overlaps({ top: 0, left: 0, bottom: window.innerHeight, right: window.innerWidth })) return false;
+
+    for (let box = el.parentElement; box && box !== document.body; box = box.parentElement) {
+        if (getComputedStyle(box).overflowY !== 'visible' && !overlaps(box.getBoundingClientRect())) return false;
+    }
+
+    return true;
+}
+
 // select2 hides the real <select> and takes focus on its own box.
 function focusTarget(el) {
     if (el?.classList?.contains('select2-hidden-accessible')) {
@@ -84,11 +104,105 @@ async function revealField(key, { section = null, reveal = null, wire = null, me
 
     if (!field) return;
 
-    field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    field.scrollIntoView({ block: 'center' });
     field.focus({ preventScroll: true });
 }
 
 window.hcRevealField = revealField;
+
+/*
+ * When did the user last press, click or tap? Lets the code below react only
+ * to requests the user caused (a Save), never to background polling.
+ */
+let lastInteraction = 0;
+['pointerdown', 'keydown'].forEach((type) =>
+    document.addEventListener(type, () => (lastInteraction = Date.now()), true),
+);
+const userJustActed = () => Date.now() - lastInteraction < 10000;
+
+/*
+ * G-B-2: a request that never reached the server (connection lost, server
+ * down) used to fail silently: no message, the button simply came back.
+ *
+ * Livewire reports it as an action failure: fetch itself threw. A server
+ * error is reported as an error instead and keeps Livewire's own dialog, and
+ * an aborted request reports neither. One toast says so and offers Try again,
+ * which sends the same actions again (the B3 retry: repeat the same request).
+ * Entries stay on the page and Livewire sends them again with the call; a
+ * repeat is safe (A3/B2 submission tokens; a leave decision already made is
+ * reported as such, G-B-1).
+ */
+let unreachable = { toastId: null, actions: [] };
+let failedTogether = [];
+
+function reportUnreachable(action) {
+    // Polling is not the user's doing, and pauses itself while offline.
+    if (action.metadata?.type === 'poll' || !userJustActed()) return;
+
+    // Every action in the failed request lands here in the same tick.
+    if (failedTogether.push(action) > 1) return;
+
+    queueMicrotask(() => {
+        const actions = failedTogether;
+
+        failedTogether = [];
+        showUnreachable(actions);
+    });
+}
+
+function showUnreachable(actions) {
+    const store = window.Alpine?.store('toasts');
+    const text = window.hcFeedbackText;
+
+    if (!store || !text?.networkError) return;
+
+    // Still on screen: one toast, whose Try again covers these as well.
+    if (store.find(unreachable.toastId)) {
+        unreachable.actions = withoutRepeats([...unreachable.actions, ...actions]);
+
+        return;
+    }
+
+    unreachable.actions = withoutRepeats(actions);
+    unreachable.toastId = store.push({
+        type: 'error',
+        message: text.networkError,
+        action: { label: text.tryAgain, run: tryAgain },
+    });
+}
+
+// Two failed clicks on the same Save are one thing to try again.
+function withoutRepeats(actions) {
+    return [...new Map(actions.map((action) => [action.fingerprint, action])).values()];
+}
+
+function tryAgain() {
+    const actions = unreachable.actions;
+
+    unreachable = { toastId: null, actions: [] };
+
+    // The toast that held focus is gone: give it back to the control used.
+    const origin = actions[0]?.origin;
+    const control = origin?.targetEl ?? origin?.el;
+
+    if (control?.isConnected && control.matches(FOCUSABLE) && isVisible(control)) {
+        control.focus({ preventScroll: true });
+    }
+
+    actions.forEach((action) => {
+        // A component that has left the page (dialog closed, page changed)
+        // has nothing to repeat.
+        if (!window.Livewire.find(action.component.id)) return;
+
+        window.Livewire.fireAction(action.component, action.name, action.params, action.metadata);
+    });
+}
+
+document.addEventListener('livewire:init', () => {
+    window.Livewire.interceptAction(({ action, onFailure }) => {
+        onFailure(() => reportUnreachable(action));
+    });
+});
 
 // Calls a method on the Livewire component that raised the toast or the
 // confirmation. A null payload means "call with no argument".
@@ -107,15 +221,21 @@ document.addEventListener('alpine:init', () => {
         items: [],
         nextId: 1,
 
-        push({ type = 'info', message = '', undo = null, duration = null } = {}) {
-            if (!message) return;
+        /**
+         * `undo` comes from the server (WithFeedback::toast) and calls a
+         * component back; `action` ({label, run}) is for toasts raised in the
+         * browser, such as Try again (G-B-2). Returns the toast's id.
+         */
+        push({ type = 'info', message = '', undo = null, action = null, duration = null } = {}) {
+            if (!message) return null;
 
             const toast = {
                 id: this.nextId++,
                 type,
                 message,
                 undo,
-                remaining: duration ?? (undo ? UNDO_DURATION : DURATION[type] ?? DURATION.info),
+                action,
+                remaining: duration ?? (undo || action ? UNDO_DURATION : DURATION[type] ?? DURATION.info),
                 timer: null,
                 startedAt: 0,
             };
@@ -123,6 +243,8 @@ document.addEventListener('alpine:init', () => {
             this.items.push(toast);
             this.items.splice(0, Math.max(0, this.items.length - MAX_VISIBLE)).forEach((old) => clearTimeout(old.timer));
             this.resume(toast.id);
+
+            return toast.id;
         },
 
         find(id) {
@@ -165,6 +287,15 @@ document.addEventListener('alpine:init', () => {
 
             this.dismiss(id);
             callBack(toast.undo);
+        },
+
+        act(id) {
+            const toast = this.find(id);
+
+            if (!toast?.action) return;
+
+            this.dismiss(id);
+            toast.action.run();
         },
     });
 
@@ -214,7 +345,12 @@ document.addEventListener('alpine:init', () => {
     // Called with no options it asks the standard delete question.
     Alpine.magic('confirm', () => (options) => Alpine.store('confirm').ask(options));
 
-    window.addEventListener('toast', (event) => Alpine.store('toasts').push(event.detail ?? {}));
+    // An event cannot carry a function, so `action` is browser-only.
+    window.addEventListener('toast', (event) => {
+        const { action, ...toast } = event.detail ?? {};
+
+        Alpine.store('toasts').push(toast);
+    });
 
     window.addEventListener('confirm-dialog', async (event) => {
         const { componentId, method, payload, ...options } = event.detail ?? {};
@@ -248,10 +384,21 @@ document.addEventListener('alpine:init', () => {
             this.sync();
             requestAnimationFrame(() => this.sync());
 
+            // G-B-3: this summary appears with the first failed save. Take the
+            // user to the first error, which may be off screen on a phone.
+            if (userJustActed()) this.afterPaint(() => this.focusFirstError());
+
             // Switching tab re-renders the form without clearing the errors, so
             // which messages are on screen changes after every round trip.
-            this.stopListening = window.Livewire?.hook('commit', ({ succeed }) => {
-                succeed(() => queueMicrotask(() => this.sync()));
+            this.stopListening = window.Livewire?.hook('commit', ({ component, commit, succeed }) => {
+                // A save (a method call on this summary's component), not a field update.
+                const isSave = component?.id === this.$wire?.$id && (commit?.calls?.length ?? 0) > 0;
+
+                succeed(() => queueMicrotask(() => {
+                    this.sync();
+
+                    if (isSave && this.keys.length) this.afterPaint(() => this.focusFirstError());
+                }));
             });
 
             // Collapsing a section or switching an Alpine-only tab hides
@@ -268,9 +415,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         sync() {
-            const visible = (el) => el.getClientRects().length > 0;
+            // Only a message the user can see now counts as shown. Re-checked
+            // after a save, a click or a key, not on scroll, so the list does
+            // not jump while the user scrolls to a field.
             const inline = [...document.querySelectorAll('[data-inline-error]')].filter(
-                (el) => visible(el) && !this.$el.contains(el),
+                (el) => isInView(el) && !this.$el.contains(el),
             );
             const items = [...this.$el.querySelectorAll('[data-error-key]')];
 
@@ -289,6 +438,38 @@ document.addEventListener('alpine:init', () => {
 
         isCovered(key) {
             return this.covered.includes(key);
+        },
+
+        afterPaint(callback) {
+            requestAnimationFrame(() => requestAnimationFrame(callback));
+        },
+
+        /**
+         * The first error's field, scrolled to the middle and focused; if that
+         * field is on another tab or in a closed section, the summary itself,
+         * whose entries lead there. Nothing moves when there is no error.
+         */
+        focusFirstError() {
+            const summary = this.$root;
+            const first = summary.querySelector('[data-error-key]');
+
+            if (!first) return;
+
+            const field = locateField(first.dataset.errorKey, first.textContent.trim(), summary);
+
+            if (field) {
+                field.scrollIntoView({ block: 'center' });
+                field.focus({ preventScroll: true });
+
+                return;
+            }
+
+            const entry = [...summary.querySelectorAll('[data-error-key] button')].find(isVisible);
+
+            if (entry) {
+                summary.scrollIntoView({ block: 'center' });
+                entry.focus({ preventScroll: true });
+            }
         },
 
         go(key, section = null) {

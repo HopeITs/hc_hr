@@ -11,7 +11,7 @@ use App\Livewire\Basics\TerminationReasonModule;
 use App\Livewire\Position\OrgChart;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('active_permission:project-basics.view')->group(function () {
+Route::middleware('reference_page:project-basics')->group(function () {
     Route::get('cities', CityModule::class)->name('cities.index');
     Route::get('contract-types', ContractTypeModule::class)->name('contract-types.index');
     Route::get('checklist-items', ChecklistItemModule::class)->name('basic-checklist-items.index');

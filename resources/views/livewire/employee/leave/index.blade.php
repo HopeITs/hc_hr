@@ -11,7 +11,6 @@ use App\Enums\LeaveRequestStatus;
         <livewire:layout.breadcrumbs
             :title="__('general.my-leaves')"
             :crumbs="[
-                ['label' => __('general.holidays-and-leaves')],
 
             ]"
             :showButton="true"
@@ -195,6 +194,10 @@ use App\Enums\LeaveRequestStatus;
                         <dd class="mt-1 whitespace-pre-line break-words text-neutral-800">{{ $selectedLeave->reason }}</dd>
                     </div>
                 </dl>
+
+                <div class="grid">
+                    @include('livewire.employee.leave.partials.hr-notes', ['leaveRequest' => $selectedLeave])
+                </div>
 
                 <div class="flex justify-end">
                     <x-primary-button type="button" wire:click="closeDetails" class="!w-auto !bg-secondary-light">

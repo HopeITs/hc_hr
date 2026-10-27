@@ -155,7 +155,7 @@ class CentersTable extends LivewireTable
     {
         $locale = app()->getLocale();
         $user = auth()->user();
-        $canViewPositions = $user?->hasActivePermission('positions.view') ?? false;
+        $canViewPositions = $user?->canOpenReferencePage('positions') ?? false;
         $canUpdate = $user?->hasActivePermission('centers.update') ?? false;
         $canDelete = $user?->hasActivePermission('centers.delete') ?? false;
 

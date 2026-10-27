@@ -716,7 +716,8 @@ class ContractForm extends Form
                 : null,
         ];
 
-        if ($this->canPersistAutoRenew()) {
+        // Unset (null) leaves the column to ContractObserver's default.
+        if ($this->auto_renew !== null && $this->canPersistAutoRenew()) {
             $payload['auto_renew'] = (bool) $this->auto_renew;
         }
 
@@ -775,7 +776,10 @@ class ContractForm extends Form
         }
 
         if (! $this->renewal_source_id) {
-            return false;
+            // A new contract (G-B-10): HR that may create it. Its city is
+            // already held to the role's by the identity validation.
+            return auth()->user()->activeRoleIs('HR')
+                && auth()->user()->hasActivePermission('contracts.create');
         }
 
         $source = Contract::query()->find($this->renewal_source_id);
