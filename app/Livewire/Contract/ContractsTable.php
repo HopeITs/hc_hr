@@ -263,34 +263,7 @@ class ContractsTable extends LivewireTable
     /** Narrow (never widen) what Contract::visibleTo() already allowed. */
     protected function applyPreset(Builder $query): void
     {
-        $today = today();
-        $notDraft = fn (Builder $q) => $q->where(fn (Builder $w) => $w
-            ->whereNull('contracts.type')->orWhere('contracts.type', '!=', ContractTypeEnum::Draft));
-        $running = function (Builder $q) use ($notDraft, $today) {
-            $notDraft($q);
-            $q->where('contracts.is_active', true)
-                ->whereNull('contracts.terminated_at')
-                ->whereNull('contracts.termination_reason_id')
-                ->where(fn (Builder $w) => $w->whereNull('contracts.end_date')->orWhereDate('contracts.end_date', '>=', $today));
-        };
-
-        match ($this->preset) {
-            'ending-soon' => $query->where(function (Builder $q) use ($running, $today) {
-                $running($q);
-                $q->whereNotNull('contracts.end_date')
-                    ->whereDate('contracts.end_date', '<=', $today->copy()->addDays(self::ENDING_SOON_DAYS));
-            }),
-            'ended' => $query->where(function (Builder $q) use ($notDraft, $today) {
-                $notDraft($q);
-                $q->where(fn (Builder $w) => $w
-                    ->whereNotNull('contracts.terminated_at')
-                    ->orWhereNotNull('contracts.termination_reason_id')
-                    ->orWhere('contracts.is_active', false)
-                    ->orWhereDate('contracts.end_date', '<', $today));
-            }),
-            'draft' => $query->where('contracts.type', ContractTypeEnum::Draft),
-            default => $query->where($running),
-        };
+        $query->inView($this->preset, self::ENDING_SOON_DAYS);
     }
 
     /** Add action only for roles that may open the create route (contracts.create). */

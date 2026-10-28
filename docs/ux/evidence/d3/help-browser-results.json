@@ -1,0 +1,567 @@
+[
+  {
+    "check": "tour",
+    "autostart": {
+      "overlays": 1,
+      "cards": 1,
+      "helpPanels": 1,
+      "marker": "same-document"
+    },
+    "afterSkip": {
+      "overlays": 1,
+      "cards": 0,
+      "helpPanels": 1,
+      "marker": "same-document"
+    },
+    "navs": [
+      {
+        "url": "/en/leaves",
+        "overlays": 1,
+        "cards": 0,
+        "helpPanels": 1,
+        "marker": "same-document"
+      },
+      {
+        "url": "/en/contracts",
+        "overlays": 1,
+        "cards": 0,
+        "helpPanels": 1,
+        "marker": "same-document"
+      },
+      {
+        "url": "/en/",
+        "overlays": 1,
+        "cards": 0,
+        "helpPanels": 1,
+        "marker": "same-document"
+      },
+      {
+        "url": "/en/leaves",
+        "overlays": 1,
+        "cards": 0,
+        "helpPanels": 1,
+        "marker": "same-document"
+      },
+      {
+        "url": "/en/",
+        "overlays": 1,
+        "cards": 0,
+        "helpPanels": 1,
+        "marker": "same-document"
+      }
+    ],
+    "replay": {
+      "overlays": 1,
+      "cards": 1,
+      "helpPanels": 1,
+      "marker": "same-document"
+    },
+    "afterEscape": {
+      "overlays": 1,
+      "cards": 0,
+      "helpPanels": 1,
+      "marker": "same-document"
+    },
+    "focusAfter": "tour.button"
+  },
+  {
+    "check": "leave-form",
+    "locale": "en",
+    "viewport": "1440",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 992,
+        "right": 1440,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "ltr"
+    },
+    "keyboardOpen": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 992,
+        "right": 1440,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "ltr"
+    },
+    "search": {
+      "results": [
+        "leave-units"
+      ],
+      "live": "1 topic matches"
+    },
+    "empty": "No topics match",
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": false,
+      "focus": "leave-units",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "ltr"
+    },
+    "before": {
+      "type": "13",
+      "reason": "Half-filled reason"
+    },
+    "after": {
+      "type": "13",
+      "reason": "Half-filled reason",
+      "dialogOpen": true,
+      "focusIsTrigger": true,
+      "marker": "kept"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "leave-form",
+    "locale": "en",
+    "viewport": "375",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "ltr"
+    },
+    "keyboardOpen": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "ltr"
+    },
+    "search": {
+      "results": [
+        "leave-units"
+      ],
+      "live": "1 topic matches"
+    },
+    "empty": "No topics match",
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "Days or hours: how leave is counted",
+      "topicShown": false,
+      "focus": "leave-units",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "ltr"
+    },
+    "before": {
+      "type": "13",
+      "reason": "Half-filled reason"
+    },
+    "after": {
+      "type": "13",
+      "reason": "Half-filled reason",
+      "dialogOpen": true,
+      "focusIsTrigger": true,
+      "marker": "kept"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "leave-form",
+    "locale": "ar",
+    "viewport": "1440",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 448,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "rtl"
+    },
+    "keyboardOpen": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 448,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "rtl"
+    },
+    "search": {
+      "results": [
+        "leave-units"
+      ],
+      "live": "موضوع واحد مطابق"
+    },
+    "empty": "لا توجد مواضيع مطابقة",
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": false,
+      "focus": "leave-units",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "rtl"
+    },
+    "before": {
+      "type": "13",
+      "reason": "سبب تجريبي نصف مكتمل"
+    },
+    "after": {
+      "type": "13",
+      "reason": "سبب تجريبي نصف مكتمل",
+      "dialogOpen": true,
+      "focusIsTrigger": true,
+      "marker": "kept"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "leave-form",
+    "locale": "ar",
+    "viewport": "375",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "rtl"
+    },
+    "keyboardOpen": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "rtl"
+    },
+    "search": {
+      "results": [
+        "leave-units"
+      ],
+      "live": "موضوع واحد مطابق"
+    },
+    "empty": "لا توجد مواضيع مطابقة",
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "أيام أم ساعات: كيف تُحسب الإجازة",
+      "topicShown": false,
+      "focus": "leave-units",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "rtl"
+    },
+    "before": {
+      "type": "13",
+      "reason": "سبب تجريبي نصف مكتمل"
+    },
+    "after": {
+      "type": "13",
+      "reason": "سبب تجريبي نصف مكتمل",
+      "dialogOpen": true,
+      "focusIsTrigger": true,
+      "marker": "kept"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "composer",
+    "locale": "en",
+    "viewport": "1440",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Contract types",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 992,
+        "right": 1440,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "ltr"
+    },
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "Contract types",
+      "topicShown": false,
+      "focus": "contract-types",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "ltr"
+    },
+    "list": {
+      "onThisPage": [
+        "contract-types",
+        "position-dependencies",
+        "auto-renew"
+      ],
+      "focus": "help-panel-search"
+    },
+    "backdropClosed": true,
+    "focusAfterBackdrop": "BUTTON",
+    "before": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "after": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "composer",
+    "locale": "en",
+    "viewport": "375",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "Contract types",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "ltr"
+    },
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "Contract types",
+      "topicShown": false,
+      "focus": "contract-types",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "ltr"
+    },
+    "list": {
+      "onThisPage": [
+        "contract-types",
+        "position-dependencies",
+        "auto-renew"
+      ],
+      "focus": "help-panel-search"
+    },
+    "backdropClosed": true,
+    "focusAfterBackdrop": "BUTTON",
+    "before": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "after": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "composer",
+    "locale": "ar",
+    "viewport": "1440",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أنواع العقود",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 448,
+        "width": 448
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "rtl"
+    },
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "أنواع العقود",
+      "topicShown": false,
+      "focus": "contract-types",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 1440,
+      "scrollW": 1440,
+      "dir": "rtl"
+    },
+    "list": {
+      "onThisPage": [
+        "contract-types",
+        "position-dependencies",
+        "auto-renew"
+      ],
+      "focus": "help-panel-search"
+    },
+    "backdropClosed": true,
+    "focusAfterBackdrop": "BUTTON",
+    "before": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "after": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  },
+  {
+    "check": "composer",
+    "locale": "ar",
+    "viewport": "375",
+    "opened": {
+      "panels": 1,
+      "visible": true,
+      "heading": "أنواع العقود",
+      "topicShown": true,
+      "focus": "help-panel-topic-title",
+      "rect": {
+        "left": 0,
+        "right": 375,
+        "width": 375
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "rtl"
+    },
+    "closed": {
+      "panels": 1,
+      "visible": false,
+      "heading": "أنواع العقود",
+      "topicShown": false,
+      "focus": "contract-types",
+      "rect": {
+        "left": 0,
+        "right": 0,
+        "width": 0
+      },
+      "vw": 375,
+      "scrollW": 375,
+      "dir": "rtl"
+    },
+    "list": {
+      "onThisPage": [
+        "contract-types",
+        "position-dependencies",
+        "auto-renew"
+      ],
+      "focus": "help-panel-search"
+    },
+    "backdropClosed": true,
+    "focusAfterBackdrop": "BUTTON",
+    "before": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "after": {
+      "type": "1",
+      "start": "2026-11-01"
+    },
+    "livewireCallsWhileHelp": 0,
+    "documentLoadsWhileHelp": 0
+  }
+]

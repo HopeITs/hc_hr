@@ -29,16 +29,26 @@ class PhoneShellTest extends TestCase
 
         $html = Livewire::actingAs($user)->test(Header::class)->html();
 
-        // The three icon links leave the top bar below `sm` (it could not hold them at 375px)...
-        $this->assertSame(3, substr_count($html, 'max-sm:hidden inline-flex'));
+        // The three icon links and the D3 help button leave the top bar below `sm`
+        // (it could not hold them at 375px)...
+        $this->assertSame(4, substr_count($html, 'max-sm:hidden inline-flex'));
+        $this->assertStringContainsString('data-help-button', $html);
+
+        // ...help is one tap away in the account menu, phones only, with a 44px target...
+        $this->assertMatchesRegularExpression('/data-help-menu-item[^>]*class="[^"]*min-h-11[^"]*sm:hidden/', $html);
 
         // ...and each of them is still one tap away, with a 44px target, in the account menu.
         $menu = substr($html, strpos($html, 'sm:hidden">'));
-        foreach (['docs.google.com/document', 'hcsyria.org/home', 'docs.google.com/forms'] as $href) {
+        foreach (['docs.google.com/document', 'hcsyria.org/home'] as $href) {
             $this->assertStringContainsString($href, $menu);
         }
-        $this->assertSame(3, substr_count($menu, 'role="menuitem"'));
+        $this->assertSame(2, substr_count($menu, 'role="menuitem"'));
         $this->assertStringContainsString('min-h-11', $menu);
+
+        // Feedback no longer leaves the server (DEC-08): both the top-bar icon and the
+        // account-menu item open the in-app dialog instead of the old Google Form.
+        $this->assertStringNotContainsString('docs.google.com/forms', $html);
+        $this->assertSame(2, substr_count($html, 'data-feedback-open'));
     }
 
     public function test_header_controls_that_stay_on_phones_are_44px_targets(): void

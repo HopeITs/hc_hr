@@ -58,9 +58,11 @@
 
 <section
     x-data="{ open: false }"
-    {{ $attributes->only('data-tour') }}
+    {{ $attributes->only(['data-tour', 'data-section']) }}
     class="rounded-surface border {{ $private ? 'border-primary' : 'border-neutral-200' }} bg-white p-4 shadow-e1 sm:rounded-surface sm:p-9"
 >
+    {{-- D1: an optional action (e.g. Edit) beside the heading, outside the phone toggle button. --}}
+    <div class="flex items-start gap-2">
     <button
         type="button"
         class="flex w-full items-center gap-3 text-start sm:mb-4 sm:cursor-default"
@@ -90,6 +92,10 @@
             <path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
     </button>
+    @isset($action)
+        <div class="shrink-0">{{ $action }}</div>
+    @endisset
+    </div>
 
     <div x-cloak x-show="open" x-collapse class="mt-4 sm:hidden">
         {{ $slot }}

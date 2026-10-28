@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Contract\ContractsTable;
 use App\Models\Contract;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -35,14 +36,11 @@ class SoonEndingContractsCard extends Component
 
     private function contracts(): Collection
     {
-        $today = Carbon::today();
-        $limit = $today->copy()->addDays(30);
-
+        // The same scope and rows as the home figure and the contracts table's
+        // ending-soon view (G-C-9 / F14): a city HR role sees its own cities only.
         $contracts = Contract::query()
-            ->where('is_active', true)
-            ->whereNull('terminated_at')
-            ->whereDate('end_date', '>=', $today)
-            ->whereDate('end_date', '<=', $limit)
+            ->visibleTo(auth()->user())
+            ->inView('ending-soon', ContractsTable::ENDING_SOON_DAYS)
             ->with(['employee.media', 'employee.city', 'position.department'])
             ->orderBy('end_date', 'asc')
             ->limit(5)

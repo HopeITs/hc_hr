@@ -145,6 +145,9 @@ class GlobalSearch extends Component
                         ->orWhereRaw(self::foldedColumn('last_name_ar').' like ?', ["%{$word}%"]));
                 }
             })
+            // "Former" only for someone who actually held a contract; a volunteer
+            // still awaiting a first one is inactive too (G-C-13 / F15).
+            ->withExists(['realContracts as was_employed'])
             ->with([
                 'city:id,name_en,name_ar',
                 // The current position tells two people with the same name apart.

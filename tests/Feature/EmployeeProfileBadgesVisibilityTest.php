@@ -65,15 +65,24 @@ class EmployeeProfileBadgesVisibilityTest extends TestCase
         }
     }
 
-    public function test_manager_without_the_permission_sees_no_badges_not_even_their_own(): void
+    /**
+     * D1 (profile-contract.md Q2 = C, HR 2026-10-27): the owner now sees their
+     * own rewards and warnings on their profile; still nobody else's without
+     * badges.view, and never a salary increase or a note.
+     */
+    public function test_manager_without_the_permission_sees_only_their_own_badges(): void
     {
         $managerEmployee = $this->withBadge($this->makeEmployee($this->aleppo, 'manager.self'), 'OWN-BADGE');
+        $managerEmployee->badges()->create(['type' => BadgeType::Salary_Increase, 'date' => now(), 'reason' => 'OWN-RAISE', 'new_salary' => 987654, 'notes' => 'HR-NOTE']);
         $manager = $this->makeUser($this->aleppo, 'manager', [], $managerEmployee);
 
         $this->profileAs($manager, $managerEmployee)
             ->assertSet('isSelf', true)
             ->assertSet('canViewBadges', false)
-            ->assertDontSee('OWN-BADGE');
+            ->assertSee('OWN-BADGE')
+            ->assertDontSee('OWN-RAISE')
+            ->assertDontSee('987654')
+            ->assertDontSee('HR-NOTE');
 
         $this->profileAs($manager, $this->aleppoSubject)
             ->assertSet('canViewBadges', false)
@@ -105,11 +114,12 @@ class EmployeeProfileBadgesVisibilityTest extends TestCase
             ->assertDontSee('ALEPPO-BADGE');
     }
 
-    public function test_employee_sees_no_badges_on_their_own_profile(): void
+    /** D1 (Q2 = C): the employee sees their own warning on their own profile. */
+    public function test_employee_sees_their_own_badges_on_their_own_profile(): void
     {
         $this->profileAs($this->makeUser($this->aleppo, 'employee', [], $this->aleppoSubject), $this->aleppoSubject)
             ->assertSet('canViewBadges', false)
-            ->assertDontSee('ALEPPO-BADGE');
+            ->assertSee('ALEPPO-BADGE');
     }
 
     private function profileAs(User $user, Employee $subject)
@@ -119,7 +129,8 @@ class EmployeeProfileBadgesVisibilityTest extends TestCase
 
     private function reportingTo(Position $managerPosition, City $city): Position
     {
-        return $this->makePosition($city, ['tech_manager_id' => $managerPosition->id]);
+        // Direct reports only, like Team contracts (G-C-8).
+        return $this->makePosition($city, ['direct_manager_id' => $managerPosition->id]);
     }
 
     private function withBadge(Employee $employee, string $reason): Employee

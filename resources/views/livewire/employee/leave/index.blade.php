@@ -225,7 +225,11 @@ use App\Enums\LeaveRequestStatus;
                 <div class="grid md:grid-cols-2 gap-4">
 
                     <div class="md:col-span-1" wire:key="container-leave-type-{{ $form->leaveRequest ? 'edit' : 'new' }}">
-                        <x-forms.input-label for="leave_balance_id" required>{{ trans_choice('general.leave-type', 1) }}</x-forms.input-label>
+                        {{-- D3: the "?" sits beside the label, not inside it. --}}
+                        <div class="flex items-start gap-1">
+                            <x-forms.input-label for="leave_balance_id" required>{{ trans_choice('general.leave-type', 1) }}</x-forms.input-label>
+                            <x-help.trigger topic="leave-units" :label="trans_choice('general.leave-type', 1)"/>
+                        </div>
                         <x-forms.select2-input wire:model.live="form.leave_balance_id" required id="leave_balance_id">
                             @if($allAvailableLeaves?->count() > 0)
                                 <option
@@ -262,7 +266,7 @@ use App\Enums\LeaveRequestStatus;
 
                     @if($form->leave_balance_id !== null)
                         @if($availableLeaves->find($form->leave_balance_id)?->leaveType?->id === LeaveTypeCases::Annual)
-                            <x-forms.radio-group class="mt-4" :legend="__('leaves.unit.legend')" error="form.type">
+                            <x-forms.radio-group class="mt-4" :legend="__('leaves.unit.legend')" error="form.type" help="leave-units">
                                 <x-forms.radio-input wire:model.live="form.type"
                                                      value="day">{{ __('leaves.unit.day') }}</x-forms.radio-input>
                                 <x-forms.radio-input wire:model.live="form.type"

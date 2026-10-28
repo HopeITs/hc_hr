@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LeaveRequestStatus;
 use App\Services\LeaveRequestPricing;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class LeaveRequest extends Model
 {
     use HasFactory, LogsActivity;
+
+    /** How many days ahead an undecided request counts as starting soon (C3/C4). */
+    public const STARTS_SOON_DAYS = 2;
 
     protected $fillable = [
         'leave_balance_id', 'type', 'start_at', 'end_at', 'reason',
@@ -37,6 +41,27 @@ class LeaveRequest extends Model
         'computed_hours' => 'float',
         'is_exceptional' => 'boolean',
     ];
+
+    /**
+     * Where an undecided request's first day stands (G-C-5): 'started' when it
+     * is already behind today, 'soon' from today to today + STARTS_SOON_DAYS,
+     * null otherwise. The inbox row and the home figure both read this, so the
+     * "starts soon" label and the "N start within two days" count agree.
+     */
+    public static function startFlag(?DateTimeInterface $startAt): ?string
+    {
+        if ($startAt === null) {
+            return null;
+        }
+
+        $day = Carbon::instance($startAt)->startOfDay();
+
+        return match (true) {
+            $day->lt(today()) => 'started',
+            $day->lte(today()->addDays(self::STARTS_SOON_DAYS)) => 'soon',
+            default => null,
+        };
+    }
 
     public function leaveBalance(): BelongsTo
     {
@@ -175,32 +200,44 @@ class LeaveRequest extends Model
             return $query;
         }
 
+        // The direct-manager position is the authority (DEC-05 revision 2,
+        // G-C-1): whoever holds it sees their direct reports' requests,
+        // whatever their system role. The technical manager no longer
+        // exists (DEC-05 revision, C3 G2); the column stays and grants nothing.
+        $managerPositionIds = $user->employee_id
+            ? Contract::query()->activeNow()->where('employee_id', $user->employee_id)->pluck('position_id')
+            : collect();
+        $directReports = fn (Builder $q) => $q->whereHas(
+            'leaveBalance.contract.position',
+            fn (Builder $positionQuery) => $positionQuery->whereIn('direct_manager_id', $managerPositionIds),
+        );
+
         if ($role && str_starts_with($role, 'HR-')) {
-            return $query->whereHas(
-                'leaveBalance.contract.employee',
-                fn (Builder $employeeQuery) => $employeeQuery->whereIn('city_id', $user->activeCityIds() ?? []),
-            );
+            return $query->where(fn (Builder $scoped) => $scoped
+                ->whereHas(
+                    'leaveBalance.contract.employee',
+                    fn (Builder $employeeQuery) => $employeeQuery->whereIn('city_id', $user->activeCityIds() ?? []),
+                )
+                ->when($managerPositionIds->isNotEmpty(), fn (Builder $q) => $q->orWhere($directReports)));
         }
 
-        if (in_array($role, ['manager', 'general-manager'], true)) {
-            $managerPositionIds = Contract::query()
-                ->activeNow()
-                ->where('employee_id', $user->employee_id)
-                ->pluck('position_id');
-
-            if ($managerPositionIds->isEmpty()) {
-                return $query->whereRaw('1 = 0');
-            }
-
-            // Direct reports only: the technical manager no longer exists
-            // (DEC-05 revision, C3 G2). The column stays; it grants nothing.
-            return $query->whereHas(
-                'leaveBalance.contract.position',
-                fn (Builder $positionQuery) => $positionQuery->whereIn('direct_manager_id', $managerPositionIds),
-            );
+        if ($managerPositionIds->isEmpty()) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereRaw('1 = 0');
+        return $directReports($query);
+    }
+
+    /**
+     * Leaves out a former employee's pending request: it is nobody's work to
+     * decide (approval-source-contract.md §5, G-C-11). Their decided requests
+     * stay, as history. The inbox, Team leaves and its counts all use this.
+     */
+    public function scopeExceptFormerStaffPending(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where('status', '!=', LeaveRequestStatus::Pending)
+            ->orWhereHas('leaveBalance.contract.employee', fn (Builder $employee) => $employee->where('is_active', true)));
     }
 
     public function scopeUpcoming($query)

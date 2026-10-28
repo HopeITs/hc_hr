@@ -6,7 +6,6 @@ use App\Enums\LeaveRequestStatus;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Position;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -31,7 +30,7 @@ class EmployeeDrawer extends Component
         abort_unless($user?->hasActivePermission('employees.view'), 403);
 
         $employee = Employee::query()
-            ->when($user->activeCityIds(), fn (Builder $q, array $cityIds) => $q->whereIn('city_id', $cityIds))
+            ->inActiveCities($user)
             ->findOrFail($id);
 
         // HR record ability in the active city scope, and the directory tier

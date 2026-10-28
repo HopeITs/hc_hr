@@ -31,6 +31,9 @@
 
 <div class="space-y-6">
 
+    {{-- C4 (C0-Q5): the active role's next actions first; the existing cards below, unchanged. --}}
+    <livewire:dashboard.for-you-now />
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
             @if(isset($failedSections['leaves']))

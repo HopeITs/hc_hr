@@ -186,6 +186,8 @@ class AllLeaveRequestTable extends LivewireTable
         $query = LeaveRequest::query()
             ->with(['leaveBalance.contract.employee', 'leaveBalance.contract.position.center', 'leaveBalance.leaveType'])
             ->manageableBy($user)
+            // A former employee's pending request is nobody's work (G-C-11).
+            ->exceptFormerStaffPending()
             ->orderBy('created_at', 'desc');
 
         if ($this->statusFilter !== 'all') {

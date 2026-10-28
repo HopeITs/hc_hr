@@ -133,6 +133,72 @@ class WorkInboxChecklistTest extends TestCase
         $this->assertTrue($rows->where('source', 'leave')->every(fn ($row) => $row['bulk'] === false));
     }
 
+    /** G-C-6 (F4): a leaver's item stays in the inbox, marked, and agrees with the Hand out counter. */
+    public function test_gc6_a_former_employees_item_is_listed_marked_and_counted_like_the_counter(): void
+    {
+        $item = $this->item('Laptop');
+        $item->employee->update(['is_active' => false]);
+        $key = "checklist:{$item->id}:deliver";
+
+        $row = app(WorkInbox::class)->rows($this->deliverer)->firstWhere('key', $key);
+        $this->assertNotNull($row);
+        $this->assertTrue($row['former']);
+
+        $counter = Livewire::actingAs($this->deliverer)->test(\App\Livewire\ChecklistItems\PendingDeliversCounter::class);
+        $this->assertSame(app(WorkInbox::class)->count($this->deliverer), $counter->viewData('pendingDeliversCount'));
+
+        app()->setLocale('en');
+        Livewire::actingAs($this->deliverer)->test(Inbox::class)
+            ->assertSeeHtml('data-testid="inbox-former"')
+            ->assertSee('Former employee');
+    }
+
+    /** G-C-7 (F5): past the per-source cap the count stays exact and the page says it shows fewer. */
+    public function test_gc7_the_count_is_exact_past_the_cap_and_the_page_says_so(): void
+    {
+        $holder = $this->makeEmployee($this->city, 'holder.'.uniqid());
+        $itemId = ChecklistItem::query()->firstOrCreate(['name' => 'Cable'], ['order' => 1])->id;
+        $total = WorkInbox::PER_SOURCE + 3;
+
+        for ($i = 0; $i < $total; $i++) {
+            Checklist::query()->create(['item_id' => $itemId, 'employee_id' => $holder->id, 'delivered_id' => $this->deliverer->employee_id, 'delivered_status' => 'pending']);
+        }
+
+        $snapshot = app(WorkInbox::class)->snapshot($this->deliverer);
+        $this->assertCount(WorkInbox::PER_SOURCE, $snapshot['rows']);
+        $this->assertSame($total, $snapshot['counts']['all']);
+        $this->assertSame($total, app(WorkInbox::class)->count($this->deliverer));
+
+        Livewire::actingAs($this->deliverer)->test(Inbox::class)
+            ->assertViewHas('counts', fn (array $counts) => $counts['checklist'] === $total)
+            ->assertSeeHtml('data-testid="inbox-capped"');
+    }
+
+    /** G-C-11 (D-05): an outcome that leaves the row (already handled) also tells the menu badge to recount. */
+    public function test_gc11_an_already_handled_outcome_refreshes_the_menu_badge(): void
+    {
+        $item = $this->item('Laptop');
+        app(\App\Services\ChecklistWorkflow::class)->markDelivered($item->id, $this->deliverer->employee_id, null);
+
+        Livewire::actingAs($this->deliverer)->test(Inbox::class)
+            ->call('confirmItem', "checklist:{$item->id}:deliver")
+            ->assertSet("outcomes.checklist-{$item->id}-deliver.outcome", 'already_handled')
+            ->assertDispatched('inbox-changed');
+    }
+
+    /** G-C-11 (F9): an employee-role deliverer's home shows the items the badge counts. */
+    public function test_gc11_the_home_shows_checklist_rows_for_an_employee_role(): void
+    {
+        $this->item('Laptop');
+        $this->item('Phone');
+        app()->setLocale('en');
+
+        Livewire::actingAs($this->deliverer)->test(\App\Livewire\Dashboard\ForYouNow::class)
+            ->assertViewHas('parts', fn (array $parts) => ($parts['inbox-items']['count'] ?? null) === 2)
+            ->assertSee('2 items to hand over or take back')
+            ->assertDontSee(__('dashboard.for-you.empty'));
+    }
+
     private function item(string $name, array $attributes = []): Checklist
     {
         $item = ChecklistItem::query()->firstOrCreate(['name' => $name], ['order' => 1]);

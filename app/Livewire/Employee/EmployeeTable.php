@@ -197,7 +197,7 @@ class EmployeeTable extends LivewireTable
     protected function scopedEmployee(mixed $id): Employee
     {
         return Employee::query()
-            ->when(auth()->user()->activeCityIds(), fn (Builder $q, array $cityIds) => $q->whereIn('city_id', $cityIds))
+            ->inActiveCities(auth()->user())
             ->findOrFail($id);
     }
 
@@ -211,10 +211,7 @@ class EmployeeTable extends LivewireTable
                 'media',
             ])
             ->withExists(['realContracts as has_real_contract'])
-            ->when(
-                auth()->user()->activeCityIds(),
-                fn (Builder $q, array $cityIds) => $q->whereIn('city_id', $cityIds),
-            )
+            ->inActiveCities(auth()->user())
             ->tap(fn (Builder $q) => match ($this->effectiveView()) {
                 // A draft is always inactive, so Active needs no extra condition.
                 'active' => $q->where('employees.is_active', true),
@@ -233,10 +230,7 @@ class EmployeeTable extends LivewireTable
     {
         return Employee::query()
             ->select(['id', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar'])
-            ->when(
-                auth()->user()->activeCityIds(),
-                fn (Builder $q, array $cityIds) => $q->whereIn('city_id', $cityIds),
-            )
+            ->inActiveCities(auth()->user())
             ->where('is_active', true)
             ->orderBy(transColumn('first_name'), 'asc')
             ->get()

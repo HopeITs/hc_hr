@@ -57,6 +57,33 @@ class NotificationRequestState
             ->all();
     }
 
+    /**
+     * The bell's number (G-C-12 D-07): unread notifications, less the unread
+     * ones this class marks "Already handled", so the bell never counts a
+     * request the list itself says needs nothing more. They stay unread.
+     */
+    public function unreadCount(User $user): int
+    {
+        $unread = $user->unreadNotifications()->count();
+
+        if ($unread === 0) {
+            return 0;
+        }
+
+        // Only a notice asking for a decision or a review can become handled.
+        $actionable = $user->unreadNotifications()
+            ->where(fn ($query) => $query
+                ->where('data', 'like', '%"action":"decide"%')
+                ->orWhere('data', 'like', '%"action":"review"%'))
+            ->get();
+
+        $handled = collect($this->forMany($user, $actionable))
+            ->where('state', self::HANDLED)
+            ->count();
+
+        return max(0, $unread - $handled);
+    }
+
     /** @return array{state: string, status: ?string, next_step: ?string} */
     public function forOne(User $user, array $data): ?array
     {
@@ -98,9 +125,18 @@ class NotificationRequestState
             default => null,
         };
 
+        // Handled means the request moved past the step the notice asked for.
+        // One this user may not act on that is still at that step (HR told of
+        // a request its manager decides) only informs (G-C-12).
+        $movedOn = match ($subject['action']) {
+            'decide' => (int) $request->status !== LeaveRequestStatus::Pending,
+            'review' => (int) $request->status === LeaveRequestStatus::Pending || (bool) $request->hr_approved,
+            default => null,
+        };
+
         $state = match (true) {
             $actionable === true => self::AWAITING,
-            $actionable === false => self::HANDLED,
+            $movedOn === true => self::HANDLED,
             default => null,
         };
 
@@ -109,7 +145,7 @@ class NotificationRequestState
             'status' => LeaveRequestStatus::getLocalizedName((int) $request->status)['value'],
             // Only a pending request has a next actor worth naming here.
             'next_step' => (int) $request->status === LeaveRequestStatus::Pending
-                ? $this->nextStep->describe($request)
+                ? $this->nextStep->describe($request, $user)
                 : null,
         ];
     }

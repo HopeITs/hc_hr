@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Notifications;
 
+use App\Services\NotificationRequestState;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -61,7 +62,8 @@ class Counter extends Component
     private function unreadTotal(): ?int
     {
         try {
-            return auth()->user()->unreadNotifications()->count();
+            // Unread, less those already handled (G-C-12): the same number as the list summary.
+            return app(NotificationRequestState::class)->unreadCount(auth()->user());
         } catch (Throwable $e) {
             report($e);
 

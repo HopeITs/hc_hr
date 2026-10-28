@@ -259,6 +259,90 @@
       },
       "port": 8401,
       "autoPort": false
+    },
+    {
+      "name": "hc-hr G-C (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8402",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-gc",
+        "X2_PORT": "8402"
+      },
+      "port": 8402,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr D3 help (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8404",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-d3help",
+        "X2_PORT": "8404"
+      },
+      "port": 8404,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr D3 feedback (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8403",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-d3",
+        "X2_PORT": "8403"
+      },
+      "port": 8403,
+      "autoPort": false
+    },
+    {
+      "name": "hc-hr G-C re-run (synthetic SQLite copy)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-S",
+        "127.0.0.1:8403",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-gc2",
+        "X2_PORT": "8403"
+      },
+      "port": 8403,
+      "autoPort": false
     }
   ]
 }

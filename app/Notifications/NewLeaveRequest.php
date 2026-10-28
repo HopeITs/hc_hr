@@ -65,10 +65,14 @@ class NewLeaveRequest extends Notification
                 'ar' => "طلب إجازة ({$leaveType->name_ar}) من {$employeeNameAr}",
             ],
 
-            'url' => route('leaves.all', [
-                'leave' => $leaveRequest->id,
-                'mode' => 'decision',
-            ]),
+            // A direct manager may decide without the All leaves page
+            // (DEC-05 revision 2): they open the request in the work inbox.
+            'url' => $notifiable instanceof \App\Models\User && ! $notifiable->hasActivePermission('leaves.view-all')
+                ? route('inbox', ['open' => "leave:{$leaveRequest->id}:decide"])
+                : route('leaves.all', [
+                    'leave' => $leaveRequest->id,
+                    'mode' => 'decision',
+                ]),
             'subject' => ['type' => 'leave_request', 'id' => $leaveRequest->id, 'action' => 'decide'],
         ];
     }

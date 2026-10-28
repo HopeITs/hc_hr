@@ -13,6 +13,8 @@ use App\Services\LeaveDecisionAuthority;
 use App\Services\LeaveNotificationService;
 use App\Services\LeaveRequestNextStep;
 use App\Services\LeaveRequestReview;
+use App\Services\ProfileChangeRequests;
+use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
@@ -60,7 +62,7 @@ class Index extends Component
 
     public function setFilter(string $filter): void
     {
-        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist'], true) ? $filter : 'all';
+        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist', 'profile'], true) ? $filter : 'all';
     }
 
     // --- S1 leave decision ------------------------------------------------
@@ -129,6 +131,46 @@ class Index extends Component
     {
         $outcome = $this->applyChecklist($key, trim((string) ($this->notes[$this->slug($key)] ?? '')) ?: null);
         $this->reportChecklist($key, $outcome);
+    }
+
+    /** D1: approve an employee's proposed profile change (HR of their city). */
+    public function approveProfile(string $key): void
+    {
+        $this->resetErrorBag();
+        [$id] = $this->parse($key, 'profile', ['approve']);
+
+        try {
+            $result = app(ProfileChangeRequests::class)->approve(auth()->user(), $id);
+        } catch (AuthorizationException) {
+            $this->report($key, 'not_allowed', __('inbox.outcome.not_allowed'));
+
+            return;
+        }
+
+        $result === ProfileChangeRequests::ALREADY_HANDLED
+            ? $this->report($key, 'already_handled', __('inbox.profile.already'))
+            : $this->done($key, __('inbox.profile.approved'));
+    }
+
+    /** D1: reject it, with a reason the employee reads (required). */
+    public function rejectProfile(string $key): void
+    {
+        $this->resetErrorBag();
+        [$id] = $this->parse($key, 'profile', ['approve']);
+
+        try {
+            $result = app(ProfileChangeRequests::class)->reject(auth()->user(), $id, (string) ($this->notes[$this->slug($key)] ?? ''));
+        } catch (AuthorizationException) {
+            $this->report($key, 'not_allowed', __('inbox.outcome.not_allowed'));
+
+            return;
+        } catch (ValidationException $e) {
+            throw $this->onRow($e, $key, ['reason' => 'notes']);
+        }
+
+        $result === ProfileChangeRequests::ALREADY_HANDLED
+            ? $this->report($key, 'already_handled', __('inbox.profile.already'))
+            : $this->done($key, __('inbox.profile.rejected'));
     }
 
     /** Close a returned item's cycle (HR). One by one (approval-source-contract.md §6.1). */
@@ -212,36 +254,42 @@ class Index extends Component
         $failed = false;
 
         try {
-            $rows = app(WorkInbox::class)->rows(auth()->user());
+            // Exact counts, the badge's (G-C-7); each source lists at most WorkInbox::PER_SOURCE.
+            ['rows' => $rows, 'counts' => $counts] = app(WorkInbox::class)->snapshot(auth()->user());
         } catch (Throwable $e) {
             report($e);
             $rows = collect();
+            $counts = ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0];
             $failed = true;
         }
-
-        $counts = [
-            'all' => $rows->count(),
-            'decide' => $rows->where('action', 'decide')->count(),
-            'review' => $rows->where('action', 'review')->count(),
-            'checklist' => $rows->where('source', 'checklist')->count(),
-        ];
 
         $visible = match ($this->filter) {
             'decide' => $rows->where('action', 'decide'),
             'review' => $rows->where('action', 'review'),
             'checklist' => $rows->where('source', 'checklist'),
+            'profile' => $rows->where('source', 'profile'),
             default => $rows,
         };
 
+        $shown = $visible->count();
+
         // Who the user decides for, on rows where HR stands in for the manager.
         $authority = app(LeaveDecisionAuthority::class);
-        $visible = $visible->map(function (array $row) use ($authority) {
+        $nextStep = app(LeaveRequestNextStep::class);
+        $visible = $visible->map(function (array $row) use ($authority, $nextStep) {
             if ($row['action'] === 'decide') {
                 $leave = LeaveRequest::query()->with('leaveBalance.contract.position')->find($row['id']);
                 $row['basis'] = $leave ? $authority->basisFor(auth()->user(), $leave) : null;
                 $row['managers'] = $leave && $row['basis'] === LeaveDecisionAuthority::ON_BEHALF
-                    ? $authority->directManagers($leave)->map->name->implode('، ')
+                    ? $authority->directManagers($leave)->map->name->implode(__('leaves.next-step.list-separator'))
                     : null;
+                // C5: others in the requester's team away on these days (advisory).
+                $row['overlap'] = $leave ? $this->overlapFor($leave) : null;
+            }
+            if ($row['action'] === 'review') {
+                // Who decided, from the stored basis, never assumed to be the manager (G-C-4).
+                $leave = LeaveRequest::query()->find($row['id']);
+                $row['decision'] = $leave ? $nextStep->decisionSummary($leave) : null;
             }
             $row['slug'] = $this->slug($row['key']);
 
@@ -251,9 +299,22 @@ class Index extends Component
         return view('livewire.inbox.index', [
             'rows' => $visible->values(),
             'counts' => $counts,
+            // Fewer listed than counted: some source reached its cap.
+            'capped' => $counts[$this->filter] > $shown ? ['shown' => $shown, 'total' => $counts[$this->filter]] : null,
             'failed' => $failed,
             'showCity' => auth()->user()->activeCityIds() === null || count(auth()->user()->activeCityIds() ?? []) > 1,
         ]);
+    }
+
+    private function overlapFor(LeaveRequest $leave): ?array
+    {
+        try {
+            return app(TeamCoverage::class)->teamOverlap($leave);
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     private function review(string $key, callable $write, string $doneMessage): void
@@ -359,7 +420,7 @@ class Index extends Component
     /** @return array{0: int, 1: string} */
     private function parse(string $key, string $source, array $actions): array
     {
-        if (! preg_match('/^(leave|checklist):(\d+):([a-z]+)$/', $key, $m) || $m[1] !== $source || ! in_array($m[3], $actions, true)) {
+        if (! preg_match('/^(leave|checklist|profile):(\d+):([a-z]+)$/', $key, $m) || $m[1] !== $source || ! in_array($m[3], $actions, true)) {
             abort(404);
         }
 
@@ -382,6 +443,8 @@ class Index extends Component
     private function report(string $key, string $outcome, string $message): void
     {
         $this->outcomes[$this->slug($key)] = ['outcome' => $outcome, 'message' => $message];
+        // The row may have left the list (someone else handled it): the menu badge recounts (G-C-11 D-05).
+        $this->dispatch('inbox-changed');
         $this->toast($message, $outcome === 'not_allowed' ? 'error' : 'info');
     }
 

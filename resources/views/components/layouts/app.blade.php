@@ -63,6 +63,17 @@
 
 <x-tour.overlay/>
 
+{{-- D3: page-context help, opened from the header and from "?" beside difficult fields. Client-side only. --}}
+@auth
+    <x-help.panel/>
+@endauth
+
+{{-- D3: "Send feedback to the IT team", opened from the user menu. The page's route
+     name is passed from here, on the server; the form never reads a URL. --}}
+@auth
+    <livewire:feedback.feedback-form :page-route="request()->route()?->getName()" />
+@endauth
+
 {{-- Outcome toasts (session('status') included) and delete confirmations, for every page. --}}
 <x-toasts/>
 <x-confirm-dialog/>

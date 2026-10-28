@@ -114,8 +114,12 @@
             </div>
             {{-- Position --}}
             <div>
-                <x-forms.input-label for="composer_position"
-                    required>{{ trans_choice('general.positions', 1) }}</x-forms.input-label>
+                {{-- D3: the "?" sits beside the label, not inside it. --}}
+                <div class="flex items-start gap-1">
+                    <x-forms.input-label for="composer_position"
+                        required>{{ trans_choice('general.positions', 1) }}</x-forms.input-label>
+                    <x-help.trigger topic="position-dependencies" :label="trans_choice('general.positions', 1)"/>
+                </div>
                 <x-forms.combobox id="composer_position" required variant="position" clearable options="positionOptions"
                     model="selected.position" disabled="loading || !selected.program" />
                 <x-error-span>{{ $errors->first('form.position_id') }}</x-error-span>
@@ -148,8 +152,11 @@
             @lang('general.composer.contract-terms')
         </p>
 
-        <x-forms.input-label class="mt-3"
-            required>{{ trans_choice('general.contract-type', 1) }}</x-forms.input-label>
+        <div class="mt-3 flex items-start gap-1">
+            <x-forms.input-label
+                required>{{ trans_choice('general.contract-type', 1) }}</x-forms.input-label>
+            <x-help.trigger topic="contract-types" :label="trans_choice('general.contract-type', 1)"/>
+        </div>
 
         {{--
             Each card states the dates it will write. Those dates come from

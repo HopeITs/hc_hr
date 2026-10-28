@@ -228,8 +228,9 @@ class BadgeAuthorizationTest extends TestCase
         $sameCityStranger = $this->createBadge($this->createEmployee($aleppo, 'manager.stranger'));
         $otherCityStranger = $this->createBadge($this->createEmployee($homs, 'manager.foreign'));
 
+        // Direct reports only, like Team contracts (G-C-8): the technical line reaches nobody.
         $this->assertEqualsCanonicalizing(
-            [$directBadge->id, $techBadge->id],
+            [$directBadge->id],
             Badge::query()->visibleTo($user)->pluck('id')->all(),
         );
 

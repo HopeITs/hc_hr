@@ -51,6 +51,9 @@ import './contract-composer.js';
 // Context-aware "Take a tour" walkthrough; steps live in config/tours.php.
 import './product-tour.js';
 
+// D3: page-context help panel; topics come from App\Support\HelpTopics.
+import './help-panel.js';
+
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
 import 'flowbite';

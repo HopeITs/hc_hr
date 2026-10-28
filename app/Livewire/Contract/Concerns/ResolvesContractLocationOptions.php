@@ -243,9 +243,10 @@ trait ResolvesContractLocationOptions
     {
         return City::select('id', $col)
             ->where('is_active', true)
+            // null is nationwide; an empty list (no such city) offers nothing (G-C-13).
             ->when(
-                auth()->user()?->activeCityIds(),
-                fn ($query, array $cityIds) => $query->whereKey($cityIds),
+                ($cityIds = auth()->user()?->activeCityIds()) !== null,
+                fn ($query) => $query->whereKey($cityIds),
             )
             ->get()
             ->each(fn (City $city) => $city->name = $city->{$col});

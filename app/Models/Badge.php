@@ -96,7 +96,7 @@ class Badge extends Model
      * HR role, so it cannot be the whole rule: a manager or employee granted
      * badges.view in Access Management would see the entire organisation.
      * Only the roles below are city-scoped; a manager follows the same line
-     * as Contract::scopeVisibleTo() (their direct/technical reports) and any
+     * as Contract::scopeVisibleTo() (their direct reports, G-C-8) and any
      * other role reaches nobody.
      */
     protected static function constrainEmployees(Builder $employees, User $user): Builder

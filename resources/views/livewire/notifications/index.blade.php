@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <h2 class="text-h4 font-semibold text-neutral-800">@lang('general.notifications')</h2>
 
-        @if(! $loadFailed && $unreadCount > 0)
+        @if(! $loadFailed && $hasUnread)
             <button
                 type="button"
                 wire:click="markAllAsRead"

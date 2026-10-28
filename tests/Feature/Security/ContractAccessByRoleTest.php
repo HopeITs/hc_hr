@@ -98,7 +98,12 @@ class ContractAccessByRoleTest extends TestCase
     // Manager
     // ────────────────────────────────────────────────
 
-    public function test_manager_lists_only_direct_and_technical_reports(): void
+    /**
+     * G-C-8: Team contracts is the direct-report team, the same set as Team
+     * leaves, the calendar and the inbox. A report on the technical line only
+     * is not on it.
+     */
+    public function test_manager_lists_only_direct_reports(): void
     {
         $manager = $this->manager();
 
@@ -106,8 +111,8 @@ class ContractAccessByRoleTest extends TestCase
 
         Livewire::actingAs($manager)
             ->test(ContractsTable::class)
-            ->assertSee(['Directreport', 'Techreport', 'Bothreport'])
-            ->assertDontSee(['Aleppoworker', 'Latakiaworker'])
+            ->assertSee(['Directreport', 'Bothreport'])
+            ->assertDontSee(['Techreport', 'Aleppoworker', 'Latakiaworker'])
             // No edit link, and clicking the row opens the read-only drawer (never an editor).
             ->assertDontSee(route('contracts.edit', $this->directReport))
             ->assertSee("Livewire.dispatch('open-contract-drawer', { contractId: {$this->directReport->id} })");
@@ -117,7 +122,7 @@ class ContractAccessByRoleTest extends TestCase
     {
         $this->actingAs($this->manager());
 
-        foreach ([$this->directReport, $this->techReport, $this->bothLinesReport] as $contract) {
+        foreach ([$this->directReport, $this->bothLinesReport] as $contract) {
             $this->get(route('contracts.show', $contract))
                 ->assertOk()
                 ->assertDontSee(route('contracts.edit', $contract))
@@ -131,6 +136,8 @@ class ContractAccessByRoleTest extends TestCase
 
         $this->get(route('contracts.show', $this->alpContract))->assertForbidden();
         $this->get(route('contracts.show', $this->latContract))->assertForbidden();
+        // The technical line alone no longer opens a contract (G-C-8).
+        $this->get(route('contracts.show', $this->techReport))->assertForbidden();
     }
 
     public function test_manager_can_neither_create_nor_edit(): void

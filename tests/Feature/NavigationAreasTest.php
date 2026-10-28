@@ -27,7 +27,8 @@ class NavigationAreasTest extends TestCase
         'departments.index', 'course-categories.index',
     ];
 
-    private const MY_SPACE = ['dashboard', 'leaves.index', 'checklist-items.index', 'my-folders.index', 'shared-folders.index'];
+    // C5 added the team calendar to everyone's My space.
+    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'checklist-items.index', 'my-folders.index', 'shared-folders.index'];
 
     protected function setUp(): void
     {
@@ -55,6 +56,7 @@ class NavigationAreasTest extends TestCase
             'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'inbox', ...$recruiting],
             'HR-ALP' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'inbox', ...$hrRecruiting],
             'HR-SYR' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$hrRecruiting, 'recruitment.indicator-rules'],
+            // The D3 feedback list follows an IT contract, not a role (InAppFeedbackTest).
             'super-admin' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
         ];
 

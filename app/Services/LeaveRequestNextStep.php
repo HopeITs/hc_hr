@@ -13,10 +13,9 @@ use Illuminate\Support\Collection;
  * code that actually runs, not from an assumed approval chain:
  *
  *  - Pending: LeaveNotificationService::newRequestAudience() lists the people
- *    told about the request. A manager among them can decide only while
- *    holding the manager or general-manager role (LeaveRequest::scopeManageableBy
- *    via LeaveRequestPolicy::decide), so only those are named. City HR can
- *    always decide. Any one of them decides; there is no second approval.
+ *    told about the request. Every direct manager among them decides,
+ *    whatever their role (DEC-05 revision 2); HR only stands in (C3-Q1).
+ *    Any one of them decides; there is no second approval.
  *  - Accepted / rejected: the decision is final; the only remaining step is
  *    HR marking it as seen (hr_approved, LeaveRequestPolicy::review).
  *
@@ -25,15 +24,46 @@ use Illuminate\Support\Collection;
  */
 class LeaveRequestNextStep
 {
-    private const DECIDING_MANAGER_ROLES = ['manager', 'general-manager'];
-
     public function __construct(private readonly LeaveNotificationService $notifications) {}
 
-    public function describe(LeaveRequest $leaveRequest): string
+    /**
+     * Worded for the requester ("your manager …") unless $viewer is someone
+     * else: a deciding manager reads "Waiting for your decision", anyone else
+     * "the direct manager …" (G-C-12).
+     */
+    public function describe(LeaveRequest $leaveRequest, ?User $viewer = null): string
     {
         return (int) $leaveRequest->status === LeaveRequestStatus::Pending
-            ? $this->pending($leaveRequest)
+            ? $this->pending($leaveRequest, $viewer)
             : $this->decided($leaveRequest);
+    }
+
+    /**
+     * Who decided, on the basis stored with the decision (G-C-4): "The manager
+     * A accepted", "HR (B) accepted on behalf of A", "HR (B) accepted (no
+     * direct manager)". A decision from before C3 has no basis and names only
+     * the person who made it.
+     */
+    public function decisionSummary(LeaveRequest $leaveRequest): string
+    {
+        $outcome = (int) $leaveRequest->status === LeaveRequestStatus::Accepted ? 'accepted' : 'rejected';
+        $decidedBy = $this->decidedByName($leaveRequest);
+        $onBehalfOf = $leaveRequest->decided_on_behalf_of
+            ? Employee::query()->find($leaveRequest->decided_on_behalf_of)?->name
+            : null;
+
+        if ($decidedBy === null) {
+            return __("leaves.decision.summary.{$outcome}");
+        }
+
+        $name = $this->isolate($decidedBy);
+
+        return match (true) {
+            $leaveRequest->decision_basis === LeaveDecisionAuthority::ON_BEHALF && $onBehalfOf !== null => __("leaves.decision.summary.{$outcome}-on-behalf", ['name' => $name, 'manager' => $this->isolate($onBehalfOf)]),
+            $leaveRequest->decision_basis === LeaveDecisionAuthority::NO_MANAGER => __("leaves.decision.summary.{$outcome}-no-manager", ['name' => $name]),
+            $leaveRequest->decision_basis === LeaveDecisionAuthority::MANAGER => __("leaves.decision.summary.{$outcome}-manager", ['name' => $name]),
+            default => __("leaves.decision.summary.{$outcome}-by", ['name' => $name]),
+        };
     }
 
     /**
@@ -57,25 +87,51 @@ class LeaveRequestNextStep
             : __("leaves.decision.already.{$outcome}", ['date' => $date]);
     }
 
-    private function pending(LeaveRequest $leaveRequest): string
+    private function pending(LeaveRequest $leaveRequest, ?User $viewer): string
     {
         $requester = $leaveRequest->leaveBalance?->contract?->employee;
         $audience = $this->notifications->newRequestAudience($leaveRequest, $requester?->account);
 
+        if ($viewer !== null && $audience['managers']->contains('id', $viewer->id)) {
+            return __('leaves.next-step.pending-you');
+        }
+
+        // HR reading its own notice (N-03): "you", never "the HR team".
+        if ($viewer !== null && $audience['hr']->contains('id', $viewer->id)) {
+            if (app(LeaveDecisionAuthority::class)->basisFor($viewer, $leaveRequest) !== null) {
+                return __('leaves.next-step.pending-you');
+            }
+
+            $managers = $this->decidingManagerNames($audience['managers']);
+
+            if ($managers->isNotEmpty()) {
+                $female = $this->isOneFemale($audience['managers']);
+
+                return __('leaves.next-step.pending-managers-hr-reader', [
+                    'managers' => $this->managerPhrase($managers, false, $female),
+                    'to' => $this->notifiedPronoun($managers, $female),
+                ]);
+            }
+        }
+
+        $forRequester = $viewer === null || ($requester !== null && (int) $viewer->employee_id === (int) $requester->id);
         $managers = $this->decidingManagerNames($audience['managers']);
+        $female = $this->isOneFemale($audience['managers']);
         $city = $requester?->city?->name;
         $hrNotified = $audience['hr']->isNotEmpty();
 
         if ($managers->isNotEmpty() && $hrNotified) {
             return __('leaves.next-step.pending-managers-and-hr', [
-                'managers' => $this->managerPhrase($managers),
+                'managers' => $this->managerPhrase($managers, $forRequester, $female),
                 'city' => $city ?? '—',
+                'to' => $this->notifiedPronoun($managers, $female),
             ]);
         }
 
         if ($managers->isNotEmpty()) {
             return __('leaves.next-step.pending-managers', [
-                'managers' => $this->managerPhrase($managers),
+                'managers' => $this->managerPhrase($managers, $forRequester, $female),
+                'to' => $this->notifiedPronoun($managers, $female),
             ]);
         }
 
@@ -128,7 +184,6 @@ class LeaveRequestNextStep
     private function decidingManagerNames(Collection $managers): Collection
     {
         return $managers
-            ->filter(fn (User $user) => $user->hasAnyRole(self::DECIDING_MANAGER_ROLES))
             ->map(fn (User $user) => $user->profile?->name)
             ->filter()
             ->unique()
@@ -136,12 +191,15 @@ class LeaveRequestNextStep
     }
 
     /**
-     * "your manager A" / "your managers A or B" / "… A, B or C".
+     * "your manager A" / "your managers A or B" / "… A, B or C"; "the direct
+     * manager A" when the reader is not the requester.
      *
      * @param  Collection<int, string>  $names
      */
-    private function managerPhrase(Collection $names): string
+    private function managerPhrase(Collection $names, bool $forRequester = true, bool $female = false): string
     {
+        $key = ($forRequester ? 'leaves.next-step.managers' : 'leaves.next-step.managers-other').($female ? '-female' : '');
+
         $names = $names->map(fn (string $name) => $this->isolate($name));
 
         $joined = $names->count() === 1
@@ -151,7 +209,24 @@ class LeaveRequestNextStep
                 'last' => $names->last(),
             ]);
 
-        return trans_choice('leaves.next-step.managers', $names->count(), ['names' => $joined]);
+        return trans_choice($key, $names->count(), ['names' => $joined]);
+    }
+
+    /** One deciding manager, recorded as female: Arabic agrees with her (N-09). */
+    private function isOneFemale(Collection $managers): bool
+    {
+        return $managers->count() === 1
+            && (int) $managers->first()->profile?->gender === \App\Enums\Gender::Female;
+    }
+
+    /** "him / her / them" after "a notification was sent to" (Arabic only; English needs none). */
+    private function notifiedPronoun(Collection $names, bool $female): string
+    {
+        return __('leaves.next-step.notified-'.match (true) {
+            $names->count() > 1 => 'many',
+            $female => 'female',
+            default => 'male',
+        });
     }
 
     /**

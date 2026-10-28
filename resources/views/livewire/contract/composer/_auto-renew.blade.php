@@ -8,9 +8,12 @@
         <div class="md:col-span-2" x-show="selectedType?.category !== 'trial'">
             <div class="flex min-h-[2.625rem] items-center justify-between gap-4 rounded-control border border-neutral-200 bg-neutral-50 px-3 py-2">
                 <div class="min-w-0">
-                    <x-forms.input-label for="composer_auto_renew">
-                        @lang('general.auto-renew')
-                    </x-forms.input-label>
+                    <div class="flex items-start gap-1">
+                        <x-forms.input-label for="composer_auto_renew">
+                            @lang('general.auto-renew')
+                        </x-forms.input-label>
+                        <x-help.trigger topic="auto-renew" :label="__('general.auto-renew')"/>
+                    </div>
                     <p class="mt-0.5 text-caption text-secondary-medium">
                         @lang('general.auto-renew-hint')
                     </p>

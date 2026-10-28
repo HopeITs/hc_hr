@@ -108,7 +108,7 @@ return [
             'badges.view',
         ],
         'manager' => [
-            // Read-only, and only their direct/technical reports' contracts:
+            // Read-only, and only their direct reports' contracts (G-C-8):
             // see Contract::scopeVisibleTo().
             'contracts.view',
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
@@ -764,6 +764,17 @@ return [
             'retryLoad', // B3: re-renders the read-only list; marks nothing read
         ],
         'notifications.counter' => ['updateCount', 'syncCount'],
+        // D3 / DEC-08 feedback form: every signed-in role may send feedback, so
+        // there is no permission to check. open() only shows the dialog;
+        // submit() aborts for a guest, validates, is rate limited per user, and
+        // writes one row owned by the caller whose role, language and page are
+        // derived on the server (InAppFeedbackRecorder). Reading is separate.
+        'feedback.feedback-form' => ['open', 'submit', ...$closeGuard],
+        // D3 reading list: boot() runs Gate feedback.read (User::canReadFeedback)
+        // on every request; a permission name here would be wrong, since
+        // hasActivePermission() says yes to HR-SYR. updatedCategory is a
+        // lifecycle hook that only changes the filter.
+        'feedback.feedback-index' => ['updatedCategory'],
         'layout.sidebar' => ['toggle', 'close', 'refreshCounts'],
 
         // --- Component-state only -------------------------------------------
@@ -815,7 +826,13 @@ return [
         // ChecklistWorkflow (row scoped to the actor, plus checklists.deliver/receive),
         // finalizeItem -> Gate update on the employee + ChecklistWorkflow::finalizeReturn.
         // previewBatch writes nothing; setFilter changes the view only.
-        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch'],
+        // C5 team calendar: move/goToday/openDay only change the period shown.
+        // What is shown comes from TeamCoverage on every render, scoped to the
+        // active role; the URL values are re-checked there.
+        'team.calendar' => ['move', 'goToday', 'openDay'],
+        // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
+        // HR of the employee's city through EmployeePolicy::update, under a row lock.
+        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.
@@ -848,5 +865,15 @@ return [
         // and both now apply the caller's city scope to every aggregate.
         'statistics.contract-statistics' => ['loadData', 'resetFilters'],
         'employee.employee-statistics' => ['getStatistics'],
+        // D1 profile section editing. Not a single permission: openSection and
+        // saveSection check EmployeeProfile::canEditSection() on every call
+        // (EmployeePolicy::update for HR in scope, or the active owner for
+        // their own contact and skills, profile-contract.md Q5), write only
+        // that section's columns, and refuse a stale save. reloadSection
+        // re-opens through the same check; the close guard writes nothing.
+        // openProposal/submitProposal: the active owner only, for their own record
+        // (ProfileChangeRequests::canPropose); nothing reaches the profile until
+        // HR of the employee's city approves it in the inbox (section 5.1).
+        'employee.employee-profile' => ['openSection', 'saveSection', 'reloadSection', 'openProposal', 'submitProposal', ...$closeGuard],
     ],
 ];

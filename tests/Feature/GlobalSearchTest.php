@@ -123,6 +123,24 @@ class GlobalSearchTest extends TestCase
         }
     }
 
+    /** G-C-13 (F15): a volunteer awaiting a first contract is not "former"; someone who held one is. */
+    public function test_only_someone_who_was_employed_is_labelled_former(): void
+    {
+        $this->person($this->aleppo, 'Ziad', 'Former', 'زياد', 'سابق', ['is_active' => false]);
+        $waiting = $this->person($this->aleppo, 'Wael', 'Former', 'وائل', 'سابق', ['is_active' => false]);
+        $waiting->contracts()->update(['type' => \App\Enums\ContractType::Draft]);
+
+        app()->setLocale('en');
+        $html = $this->search($this->makeUser($this->aleppo, 'HR-ALP'), 'Former')
+            ->assertSee(['Ziad Former', 'Wael Former'])
+            ->html();
+
+        $label = '('.__('general.global-search.former').')';
+        $this->assertSame(1, substr_count($html, $label));
+        // Livewire's block markers aside, the label sits right after Ziad's name.
+        $this->assertMatchesRegularExpression('/Ziad Former<\/bdi>\s*<span[^>]*>'.preg_quote(e($label), '/').'/', preg_replace('/<!--.*?-->/s', '', $html));
+    }
+
     /** AC-C2-02: results follow the active role; a role switch shows the new role's results. */
     public function test_results_follow_the_active_role_after_a_switch(): void
     {

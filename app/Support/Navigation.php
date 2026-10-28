@@ -43,6 +43,7 @@ final class Navigation
         $mySpace = array_values(array_filter([
             self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'employee.dashboard'], 'dashboard', 'nav.dashboard'),
             $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
+            $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             $can('archives.view') ? self::item('nav.my-space.files', __('general.my-folders'), 'my-folders.index', ['my-folders.*'], 'archived', 'nav.archives') : null,
             $can('archives.view') ? self::item('nav.my-space.shared-files', __('general.shared-folders'), 'shared-folders.index', ['shared-folders.*'], 'folder') : null,
@@ -128,6 +129,8 @@ final class Navigation
             $editsBasics && $can('project-basics.view') ? $basics : null,
             $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
             $can('activity-log.view') ? self::item('nav.settings.activity', __('general.activity-log'), 'activity-log.index', ['activity-log.*'], 'activity-log', 'nav.activity-log') : null,
+            // D3 / DEC-08: the IT team only; not a role permission (User::canReadFeedback()).
+            $user->canReadFeedback() ? self::item('nav.settings.feedback', __('feedback.inbox.title'), 'feedback.index', ['feedback.*'], 'activity-log') : null,
         ]));
 
         // Organisation (reference pages, C0-Q4) comes last: C0 put it under My

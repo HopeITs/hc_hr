@@ -224,6 +224,29 @@ class User extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * May this user read in-app feedback (D3, DEC-08: the IT team only)?
+     *
+     * "The IT team" is anyone whose employee holds a contract in force today
+     * (Contract::activeNow) on a position of the IT department
+     * (config('feedback.reader_department_code')). Roles and permissions play
+     * no part: an HR administrator passes every hasActivePermission() check,
+     * and an IT member reads feedback whatever role is active.
+     */
+    public function canReadFeedback(): bool
+    {
+        if (! $this->employee_id) {
+            return false;
+        }
+
+        return Contract::query()
+            ->activeNow()
+            ->where('employee_id', $this->employee_id)
+            ->whereHas('position.department', fn ($department) => $department
+                ->where('code', config('feedback.reader_department_code')))
+            ->exists();
+    }
+
+    /**
      * Whether the active role may open a reference page group (`centers`,
      * `programs`, `positions`, `project-basics`): its read permission, unless
      * config('access-control.reference_pages_hidden_from') refuses the role

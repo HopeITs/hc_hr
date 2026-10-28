@@ -170,9 +170,10 @@ class BadgesTable extends LivewireTable
     protected function programOptions(): array
     {
         return Program::query()
+            // null is nationwide; an empty list (no such city) offers nothing (G-C-13).
             ->when(
-                auth()->user()->activeCityIds(),
-                fn (Builder $query, array $cityIds) => $query->whereHas(
+                ($cityIds = auth()->user()->activeCityIds()) !== null,
+                fn (Builder $query) => $query->whereHas(
                     'positions',
                     fn (Builder $query) => $query->inCity($cityIds),
                 ),
@@ -185,9 +186,10 @@ class BadgesTable extends LivewireTable
     protected function departmentOptions(): array
     {
         return Department::query()
+            // null is nationwide; an empty list (no such city) offers nothing (G-C-13).
             ->when(
-                auth()->user()->activeCityIds(),
-                fn (Builder $query, array $cityIds) => $query->whereHas(
+                ($cityIds = auth()->user()->activeCityIds()) !== null,
+                fn (Builder $query) => $query->whereHas(
                     'positions',
                     fn (Builder $query) => $query->inCity($cityIds),
                 ),

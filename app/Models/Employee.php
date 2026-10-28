@@ -199,6 +199,19 @@ class Employee extends Model implements HasMedia
         return $this->hasMany(Contract::class, 'employee_id')->where('type', '!=', ContractTypeEnum::Draft);
     }
 
+    /**
+     * Employees inside $user's active-role city scope (User::activeCityIds()):
+     * every city when that is null, none at all when it is an empty list (a
+     * regional role whose city does not exist). Never test the list for
+     * truthiness: `when([])` skips the filter and shows everything (G-C-13 / F13).
+     */
+    public function scopeInActiveCities(Builder $query, User $user): Builder
+    {
+        $cityIds = $user->activeCityIds();
+
+        return $query->when($cityIds !== null, fn (Builder $q) => $q->whereIn($q->qualifyColumn('city_id'), $cityIds));
+    }
+
     public function scopeDrafts(Builder $query): Builder
     {
         return $query->where('employees.record_status', self::RECORD_DRAFT);
@@ -614,6 +627,10 @@ class Employee extends Model implements HasMedia
                 'board_member_end_at',
                 'is_active',
                 'is_board_member',
+                // D1: the owner edits these themself (profile-contract.md §5.1), so who
+                // changed them is kept. Not sensitive; contact fields are logged by name only.
+                'skills',
+                'interests',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

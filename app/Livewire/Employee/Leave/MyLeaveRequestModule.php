@@ -15,6 +15,7 @@ use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveNotificationService;
+use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
 use Blade;
 use Carbon\Carbon;
@@ -438,7 +439,47 @@ class MyLeaveRequestModule extends Component
             'warnings' => array_map(fn (string $code): string => __(LeaveQuote::messageKey($code)), $quote->warnings),
             'errors' => array_map(fn (string $code): string => __(LeaveQuote::messageKey($code)), $quote->errors),
             'explanation' => array_map(fn (array $line): string => __($line['key'], $line['params']), $quote->explanation),
+            'team' => $this->teamHint(),
         ];
+    }
+
+    /**
+     * C5 (§4.5 team_overlap_hint, manager_absent): from TeamCoverage, the
+     * reader the team calendar uses. A count of colleagues already away on an
+     * accepted leave, never their names, and whether the direct manager is
+     * away. Advisory: it never blocks the request. Null when it cannot be
+     * read, so the preview still shows.
+     *
+     * @return array{colleagues: int, manager_away: bool}|null
+     */
+    protected function teamHint(): ?array
+    {
+        try {
+            $window = $this->form->window();
+
+            if ($window === null || $window->endDate->lt($window->startDate)) {
+                return null;
+            }
+
+            $from = $window->startDate;
+            $to = $window->endDate;
+
+            if ($from->diffInDays($to) + 1 > (int) config('team-coverage.max_days')) {
+                return null;
+            }
+
+            $coverage = app(TeamCoverage::class);
+            $user = auth()->user();
+
+            return [
+                'colleagues' => $coverage->colleaguesAwayCount($user, $from, $to),
+                'manager_away' => $coverage->managerAway($user, $from, $to),
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     private function finishSave(LeaveRequest $leaveRequest, string $kind): void

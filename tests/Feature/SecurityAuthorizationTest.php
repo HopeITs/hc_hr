@@ -57,10 +57,12 @@ class SecurityAuthorizationTest extends TestCase
         $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
 
+        // D1 (profile-contract.md section 7): refused like an unknown file, so
+        // the id does not confirm that a private document exists.
         $outsider = User::factory()->create();
         $this->actingAs($outsider)
             ->get(route('employee-files.download', $media))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     /**

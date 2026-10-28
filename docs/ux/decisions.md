@@ -78,6 +78,17 @@ Replaces the "Leave approval chain" row above **for leave requests only**. Other
 
 Implementation notes (not decided here): today `LeaveRequestPolicy::decide` also allows HR at any time and the technical manager (`tech_manager_id` in `manageableBy` and in notifications); both must change. An objection on an accepted request must release its hours from `used` when it returns to pending (A3-D §3.4).
 
+### DEC-05 revision 2 — G-C decisions (settled 2026-10-27, HR product owner, from [g-c-gate.md](g-c-gate.md))
+
+| Point | Decision |
+|---|---|
+| Who decides (G-C-1, replaces the escalation answer given earlier the same day) | **The holder of the direct-manager position decides. There is no escalation**: a manager who is at work has no reason not to answer. Holding the position **is** the authority: the holder sees and decides their direct reports' requests whatever their system role (e.g. `employee` only). A holder with **no login account** cannot act; HR creates the account (data task, not a rule change). |
+| Reminder (G-C-1) | If the manager has not answered a pending request **3 days after it was submitted**, or **1 day before the leave starts** (whichever comes first), the manager gets **one in-app notification**, with a copy to **HR in the requester's city**. Once per request; no email, no repeat. |
+| Manager on leave | **Unchanged** (C3-Q1): HR decides on behalf while every direct manager is on accepted leave today. |
+| Own request (G-C-2) | Nobody decides their own request, on any basis. Built in `99529cf3`. |
+| Team contracts (G-C-8) | "Team contracts" follows **direct reports only**, like team leaves, the calendar and the inbox. |
+| Leavers' checklist items (G-C-6) | Hand-out / take-back items of former employees **appear in the inbox**, so the inbox and the counters agree. |
+
 ## DEC-01 / DEC-02 — Directory and public card (settled 2026-10-16)
 | Point | Decision |
 |---|---|

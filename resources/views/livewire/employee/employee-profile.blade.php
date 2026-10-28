@@ -28,6 +28,9 @@
             <div
                 class="relative flex flex-col items-start gap-3 p-4 pt-4 sm:gap-6 sm:p-8 min-[900px]:flex-row min-[900px]:items-center">
                 <div class="shrink-0 self-start">
+                    @if ($canPropose)
+                        <div class="mb-2">@include('livewire.employee.partials.proposal-slot', ['section' => 'photo'])</div>
+                    @endif
                     <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}"
                         class="h-20 w-20 rounded-surface border-2 border-white object-fit shadow-e2 ring-1 ring-neutral-200 sm:h-40 sm:w-40 sm:rounded-surface sm:border-4 sm:shadow-e3">
                 </div>
@@ -128,6 +131,43 @@
 
         <div class="grid gap-4 xl:grid-cols-3">
             <main class="space-y-4 xl:col-span-2">
+                {{-- D1 timeline (profile-contract.md section 4, Q1 = B): career and badges,
+                     built on the server for this viewer; a Directory-only viewer gets none. --}}
+                @if ($canViewRecords)
+                    <x-profile-section data-section="timeline" :title="__('employees.profile.timeline')" :subtitle="__('employees.profile.timeline-subtitle')" icon="icons.clock">
+                        @if ($timeline === [])
+                            <p class="text-body text-secondary-light">@lang('employees.profile.timeline-empty')</p>
+                        @else
+                            <ol class="relative space-y-3 border-s-2 border-neutral-200 ps-4" data-testid="profile-timeline">
+                                @foreach ($timeline as $i => $event)
+                                    <li wire:key="event-{{ $i }}" data-event="{{ $event['kind'] }}" class="relative">
+                                        <span aria-hidden="true" @class([
+                                            'absolute -start-[1.4rem] top-1.5 size-3 rounded-full ring-2 ring-white',
+                                            'bg-primary' => ! str_starts_with($event['kind'], 'badge.'),
+                                            'bg-amber-500' => $event['kind'] === 'badge.warning',
+                                            'bg-emerald-500' => $event['kind'] === 'badge.reward' || $event['kind'] === 'badge.salary',
+                                        ])></span>
+                                        <p class="text-small text-secondary-light"><bdi>{{ $formatDate($event['date']) }}</bdi></p>
+                                        <p class="text-body font-bold text-secondary-dark">
+                                            {{-- Event codes carry a dot, which the translator reads as nesting: the keys use a dash. --}}
+                                            {{ __('employees.profile.events.'.str_replace('.', '-', $event['kind'])) }}
+                                            @if ($event['title'] && ! str_starts_with($event['kind'], 'badge.'))
+                                                · <span class="font-semibold">{{ $event['title'] }}</span>
+                                            @endif
+                                        </p>
+                                        @if ($event['detail'])
+                                            <p class="text-small text-secondary-medium">{{ $event['detail'] }}</p>
+                                        @endif
+                                        @if ($event['pay'] && $event['pay']['amount'])
+                                            <p class="text-small font-semibold text-secondary-dark"><bdi>{{ number_format((float) $event['pay']['amount']) }} {{ $currency[$event['pay']['currency'] ?? 0] ?? '' }}</bdi></p>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @endif
+                    </x-profile-section>
+                @endif
+
                 <x-profile-section data-tour="profile.overview" :title="__('general.employment-overview')" :subtitle="__('general.professional-information')" icon="icons.user">
                     <dl class="grid gap-4 sm:grid-cols-2">
                         @foreach ([[__('general.position'), $positionName], [trans_choice('general.job-level', 1), $currentPosition?->jobLevel?->name ?? $notSpecified], [__('general.direct-manager'), $directManagerName ?? $notSpecified], [trans_choice('general.program', 1), $currentPosition?->program?->name ?? $notSpecified], [trans_choice('general.city', 1), $currentPosition?->city?->name ?? $notSpecified]] as [$label, $value])
@@ -185,7 +225,8 @@
 
                 @if ($canViewRecords)
                     <div class="grid gap-4 lg:grid-cols-2">
-                        <x-profile-section :title="__('general.education')" icon="icons.education">
+                        <x-profile-section data-section="education" :title="__('general.education')" icon="icons.education">
+                        @include('livewire.employee.partials.proposal-slot', ['section' => 'education'])
                             <div class="space-y-4">
                                 @forelse($employee->educations as $education)
                                     <div class="border-s-2 border-primary ps-4">
@@ -206,7 +247,8 @@
                             </div>
                         </x-profile-section>
 
-                        <x-profile-section :title="__('general.experience')" icon="icons.experience">
+                        <x-profile-section data-section="experience" :title="__('general.experience')" icon="icons.experience">
+                        @include('livewire.employee.partials.proposal-slot', ['section' => 'experience'])
                             <div class="space-y-4">
                                 @forelse($employee->experiences as $experience)
                                     <div class="border-s-2 border-primary ps-4">
@@ -241,7 +283,16 @@
             </main>
 
             <aside class="space-y-4">
-                <x-profile-section :title="__('general.work-contact')" icon="icons.contact">
+                <x-profile-section data-section="work-contact" :title="__('general.work-contact')" icon="icons.contact">
+                    @if (in_array('work-contact', $editable, true))
+                        <x-slot:action>
+                            <button type="button" wire:click="openSection('work-contact')" data-testid="edit-work-contact"
+                                class="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-3 text-small font-semibold text-secondary-dark hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                <span class="sr-only">{{ __('general.work-contact') }}</span>
+                            </button>
+                        </x-slot:action>
+                    @endif
                     <div class="space-y-3 text-body">
                         @foreach ([[__('general.email'), $workEmail, 'icons.envelope', $workEmail ? 'mailto:' . $workEmail : null], [__('general.work-phone'), $employee->work_phone, 'icons.phone', $employee->work_phone ? 'tel:' . $employee->work_phone : null], ['WhatsApp', $employee->whatsapp_work, 'icons.whatsapp', null], ['Telegram', $employee->telegram_work, 'icons.telegram', null]] as [$label, $value, $icon, $href])
                             @if ($value)
@@ -268,7 +319,16 @@
                 <livewire:employee-cards.manage-digital-id :employee="$employee" :key="'digital-id-'.$employee->id" />
 
                 @if ($canViewPrivate)
-                    <x-profile-section :title="__('general.personal-contact')" icon="icons.phone" private>
+                    <x-profile-section data-section="personal-contact" :title="__('general.personal-contact')" icon="icons.phone" private>
+                        @if (in_array('personal-contact', $editable, true))
+                        <x-slot:action>
+                            <button type="button" wire:click="openSection('personal-contact')" data-testid="edit-personal-contact"
+                                class="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-3 text-small font-semibold text-secondary-dark hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                <span class="sr-only">{{ __('general.personal-contact') }}</span>
+                            </button>
+                        </x-slot:action>
+                    @endif
                         <div class="space-y-3 text-body">
                             @foreach ([[__('general.email'), $employee->personal_email], [__('general.personal-phone'), $employee->personal_phone]] as [$label, $value])
                                 <div class="rounded-surface bg-neutral-50 p-3">
@@ -285,7 +345,16 @@
                 @endif
 
                 @if ($canViewRecords)
-                    <x-profile-section :title="__('general.skills-and-interests')" icon="icons.statistics">
+                    <x-profile-section data-section="skills" :title="__('general.skills-and-interests')" icon="icons.statistics">
+                        @if (in_array('skills', $editable, true))
+                        <x-slot:action>
+                            <button type="button" wire:click="openSection('skills')" data-testid="edit-skills"
+                                class="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-3 text-small font-semibold text-secondary-dark hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                <span class="sr-only">{{ __('general.skills-and-interests') }}</span>
+                            </button>
+                        </x-slot:action>
+                    @endif
                         <div class="mb-4 flex flex-wrap gap-2">
                             @forelse($skills as $skill)
                                 <span
@@ -309,7 +378,8 @@
                 @endif
 
                 @if ($canViewRecords)
-                    <x-profile-section :title="__('general.courses')" icon="icons.courses">
+                    <x-profile-section data-section="courses" :title="__('general.courses')" icon="icons.courses">
+                        @include('livewire.employee.partials.proposal-slot', ['section' => 'course'])
                         <div class="space-y-4">
                             @forelse($employee->courses->take(5) as $course)
                                 <div class="border-s-2 border-primary ps-3">
@@ -325,10 +395,10 @@
                     </x-profile-section>
                 @endif
 
-                @if($canViewBadges)
-                    <x-profile-section :title="__('general.badges')" icon="icons.badges">
+                @if($canViewBadges || ($isSelf && $badges->isNotEmpty()))
+                    <x-profile-section data-section="badges" :title="__('general.badges')" icon="icons.badges">
                         <div class="space-y-3">
-                            @forelse($employee->badges->take(5) as $badge)
+                            @forelse($badges->take(5) as $badge)
                                 <div class="rounded-surface bg-neutral-50 p-3">
                                     <div class="flex items-start justify-between gap-3">
                                         <p class="text-body font-bold text-secondary-dark">
@@ -346,8 +416,9 @@
                     </x-profile-section>
                 @endif
 
-                @if ($canViewPrivate && $employee->relatives->isNotEmpty())
-                    <x-profile-section :title="__('general.family-information')" icon="icons.relatives" private>
+                @if ($canViewPrivate && ($employee->relatives->isNotEmpty() || $canPropose))
+                    <x-profile-section data-section="family" :title="__('general.family-information')" icon="icons.relatives" private>
+                        @include('livewire.employee.partials.proposal-slot', ['section' => 'relative'])
                         <div class="space-y-3">
                             @foreach ($employee->relatives as $relative)
                                 <div class="rounded-surface bg-neutral-50 p-3">
@@ -365,4 +436,58 @@
             </aside>
         </div>
     </div>
+
+    {{-- D1 section editing (profile-contract.md section 5): one section, its own fields only.
+         Closing with changes asks first (A5-M); a stale save keeps the entries. --}}
+    @php
+        $sectionTitles = ['personal-contact' => __('general.personal-contact'), 'skills' => __('general.skills-and-interests'), 'work-contact' => __('general.work-contact')];
+        $sectionTitle = isset($sectionTitles[$editing]) ? __('employees.profile.edit-section', ['section' => $sectionTitles[$editing]]) : '';
+    @endphp
+    <x-modal.dialog id="sectionModal" :title="$sectionTitle" wire:model.defer="sectionModal" close-action="requestClose" wire:ignore.self>
+        @if ($sectionModal)
+            <form wire:submit.prevent="saveSection" class="space-y-4" data-testid="section-form">
+                @error('section')
+                    <div class="rounded-control border-s-4 border-primary bg-neutral-50 p-3 text-small text-secondary-dark" role="alert" data-testid="section-stale">
+                        <p>{{ $message }}</p>
+                        <button type="button" wire:click="reloadSection" class="mt-1 inline-flex min-h-11 items-center font-semibold text-primary hover:underline">@lang('employees.profile.show-current')</button>
+                    </div>
+                @enderror
+
+                @php
+                    $fieldLabels = [
+                        'personal_phone' => [__('general.personal-phone'), 'tel'],
+                        'personal_email' => [__('general.email'), 'email'],
+                        'address_ar' => [__('employees.profile.address-ar'), 'text'],
+                        'address_en' => [__('employees.profile.address-en'), 'text'],
+                        'skills' => [__('general.skills'), 'text'],
+                        'interests' => [__('general.interests'), 'text'],
+                        'work_phone' => [__('general.work-phone'), 'tel'],
+                        'whatsapp_work' => ['WhatsApp', 'text'],
+                        'telegram_work' => ['Telegram', 'text'],
+                    ];
+                @endphp
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {{-- The section's own columns, never whatever keys the browser sent. --}}
+                    @foreach (\App\Livewire\Employee\EmployeeProfile::SECTIONS[$editing] ?? [] as $field)
+                        <div @class(['sm:col-span-2' => in_array($field, ['skills', 'interests', 'address_ar', 'address_en'], true)])>
+                            <x-forms.input-label for="section_{{ $field }}">{{ $fieldLabels[$field][0] }}</x-forms.input-label>
+                            <x-forms.input id="section_{{ $field }}" type="{{ $fieldLabels[$field][1] }}" wire:model="sectionFields.{{ $field }}"
+                                :dir="in_array($field, ['personal_phone', 'personal_email', 'work_phone', 'whatsapp_work', 'telegram_work'], true) ? 'ltr' : null" />
+                            <x-forms.input-error field="sectionFields.{{ $field }}" input-id="section_{{ $field }}" />
+                            @if (in_array($field, ['skills', 'interests'], true))
+                                <p class="mt-1 text-caption text-secondary-light">@lang('employees.profile.comma-hint')</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                <x-modal.actions>
+                    <x-primary-button type="submit" wire:target="saveSection" class="!w-auto">@lang('general.save')</x-primary-button>
+                    <x-primary-button type="button" :show-spinner="false" x-on:click="close()" class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+                </x-modal.actions>
+            </form>
+        @endif
+    </x-modal.dialog>
+
+    @include('livewire.employee.partials.proposal-dialog')
 </div>

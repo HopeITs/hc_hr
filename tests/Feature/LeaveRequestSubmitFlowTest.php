@@ -292,18 +292,16 @@ class LeaveRequestSubmitFlowTest extends TestCase
             ->assertSee('حلب');
     }
 
-    public function test_without_a_deciding_manager_only_hr_is_named(): void
+    public function test_a_direct_manager_without_the_manager_role_is_still_named(): void
     {
         $this->manager->removeRole('manager');
 
-        // Rami still receives the notification (he holds the manager
-        // position), but without the manager role he cannot decide, so the
-        // next step names HR only. (His name may still appear elsewhere on
-        // the page, e.g. in the alternative-employee list.)
+        // DEC-05 revision 2 (G-C-1): Rami holds the manager position, which is
+        // the authority whatever his role, so he is still the one who decides.
         $this->openDetailsFor($this->pending)
             ->assertSee(__('leaves.next-step.title'))
-            ->assertSee(__('leaves.next-step.pending-hr', ['city' => 'Aleppo']))
-            ->assertDontSee('Waiting for a decision from your manager');
+            ->assertSee('Waiting for a decision from your manager')
+            ->assertDontSee(__('leaves.next-step.pending-hr', ['city' => 'Aleppo']));
     }
 
     public function test_details_show_who_decided_and_the_remaining_hr_step(): void

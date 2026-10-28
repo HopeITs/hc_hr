@@ -118,9 +118,9 @@
                             <span class="min-w-0">
                                 <span class="block font-semibold text-neutral-900">
                                     <bdi>{{ $person->name }}</bdi>
-                                    @unless ($person->is_active)
+                                    @if (! $person->is_active && $person->was_employed)
                                         <span class="ms-1 text-caption font-normal text-secondary-medium">({{ __('general.global-search.former') }})</span>
-                                    @endunless
+                                    @endif
                                 </span>
                                 {{-- The other script's name, the position and the city tell namesakes apart. --}}
                                 <span class="block text-small text-secondary-medium">

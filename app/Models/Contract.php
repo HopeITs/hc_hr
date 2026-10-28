@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\EncryptedSalary;
+use App\Enums\ContractType as ContractTypeEnum;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
 use Closure;
@@ -140,12 +141,54 @@ class Contract extends Model
     }
 
     /**
+     * A named contracts view (B4 presets): `active` (default), `ending-soon`,
+     * `ended`, `draft`. Shared by the contracts table and the home page's
+     * "ending soon" figure (C4), so the count and the list it opens agree.
+     * It only narrows; combine it with visibleTo() for the role's scope.
+     */
+    public function scopeInView(Builder $query, string $view, int $endingSoonDays = 30): Builder
+    {
+        $today = today();
+        $notDraft = fn (Builder $q) => $q->where(fn (Builder $w) => $w
+            ->whereNull('contracts.type')->orWhere('contracts.type', '!=', ContractTypeEnum::Draft));
+        $running = function (Builder $q) use ($notDraft, $today) {
+            $notDraft($q);
+            $q->where('contracts.is_active', true)
+                ->whereNull('contracts.terminated_at')
+                ->whereNull('contracts.termination_reason_id')
+                ->where(fn (Builder $w) => $w->whereNull('contracts.end_date')->orWhereDate('contracts.end_date', '>=', $today));
+        };
+
+        match ($view) {
+            'ending-soon' => $query->where(function (Builder $q) use ($running, $today, $endingSoonDays) {
+                $running($q);
+                $q->whereNotNull('contracts.end_date')
+                    ->whereDate('contracts.end_date', '<=', $today->copy()->addDays($endingSoonDays));
+            }),
+            'ended' => $query->where(function (Builder $q) use ($notDraft, $today) {
+                $notDraft($q);
+                $q->where(fn (Builder $w) => $w
+                    ->whereNotNull('contracts.terminated_at')
+                    ->orWhereNotNull('contracts.termination_reason_id')
+                    ->orWhere('contracts.is_active', false)
+                    ->orWhereDate('contracts.end_date', '<', $today));
+            }),
+            'draft' => $query->where('contracts.type', ContractTypeEnum::Draft),
+            default => $query->where($running),
+        };
+
+        return $query;
+    }
+
+    /**
      * The contracts $user's active role may see. The single source of truth for
      * contract visibility: ContractsTable lists through it and ContractPolicy
      * checks single records through it, so a direct URL can never reach a
      * contract the list would not show.
      *
-     * - manager: contracts on positions they manage, directly or technically.
+     * - manager: contracts of their direct reports (the direct_manager_id
+     *   line), the same team as Team leaves, the calendar and the inbox
+     *   (DEC-05 rev. 2, G-C-8: the technical-manager line no longer counts).
      *   "Their" positions are the ones on their own currently active contracts,
      *   so someone who has left a managerial post stops seeing that team.
      * - regional HR: contracts of employees in the role's cities.
@@ -162,11 +205,7 @@ class Contract extends Model
                 return $query->whereRaw('1 = 0');
             }
 
-            return $query->whereHas('position', fn (Builder $position): Builder => $position->where(
-                fn (Builder $line): Builder => $line
-                    ->whereIn('direct_manager_id', $managedPositionIds)
-                    ->orWhereIn('tech_manager_id', $managedPositionIds),
-            ));
+            return $query->whereHas('position', fn (Builder $position): Builder => $position->whereIn('direct_manager_id', $managedPositionIds));
         }
 
         $cityIds = $user->activeCityIds();

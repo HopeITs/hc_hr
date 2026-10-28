@@ -104,6 +104,23 @@
             </div>
         @endif
 
+        {{-- C5: who else is away, from TeamCoverage (the team calendar's reader).
+             A count only, never names; advisory, never an error (§4.5). --}}
+        @php($team = $impact['team'] ?? null)
+        @if($team && ($team['colleagues'] > 0 || $team['manager_away']))
+            <div class="rounded-control border-s-4 border-secondary-dark bg-white p-2 ring-1 ring-neutral-200" data-testid="leave-impact-team" role="note">
+                <ul class="space-y-0.5 text-sm text-neutral-800">
+                    @if($team['colleagues'] > 0)
+                        <li data-testid="leave-impact-team-count">{{ trans_choice('team_calendar.hint.colleagues_away', $team['colleagues'], ['count' => $team['colleagues']]) }}</li>
+                    @endif
+                    @if($team['manager_away'])
+                        <li data-testid="leave-impact-manager-away">{{ __('team_calendar.hint.manager_away') }}</li>
+                    @endif
+                </ul>
+                <p class="mt-1 text-xs text-neutral-600">{{ __('team_calendar.hint.advisory') }}</p>
+            </div>
+        @endif
+
         <details class="text-sm text-neutral-700">
             <summary class="inline-flex min-h-11 cursor-pointer items-center rounded-control font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 @lang('leave_quote.preview.how')
