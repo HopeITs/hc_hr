@@ -85,9 +85,10 @@
         </div>
     @endif
     <div
+            tabindex="0"
             @if(method_exists($this, 'stateAnnouncement')) wire:loading.class="opacity-60" wire:target="globalSearch,search,filters,perPage,clearAll,removeChip,clearAllFilters,retryLoad,gotoPage,previousPage,nextPage,setPage" @endif
             @class([
-                'overflow-x-auto bg-white border border-[var(--line-hairline)] shadow-e1 rounded-surface overscroll-x-none',
+                'overflow-x-auto bg-white border border-[var(--line-hairline)] shadow-e1 rounded-surface overscroll-x-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40',
                 'hidden md:block' => $cardView,
             ])>
         @include('livewire-table::table.table')

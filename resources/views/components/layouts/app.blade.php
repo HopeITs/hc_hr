@@ -109,7 +109,8 @@
         exclude: ['[data-csb-exclude]'],
     };
 </script>
-<script src="{{ asset('js/custom-scrollbar.js') }}" defer></script>
+{{-- Served as immutable for a year: the mtime query is what makes an edit reach browsers. --}}
+<script src="{{ asset('js/custom-scrollbar.js') }}?v={{ filemtime(public_path('js/custom-scrollbar.js')) }}" defer></script>
 </body>
 
 </html>
