@@ -69,10 +69,11 @@ class ForYouNowTest extends TestCase
         $this->assertSame(['inbox', 'contracts-ending', 'employees-waiting'], $this->parts('huda'));
 
         // The manager's next action: the decision, opening the inbox's decide filter.
+        // The requests themselves are the dashboard header's decision card (prompt 7), not listed twice.
         Livewire::actingAs($this->user('sami'))->test(ForYouNow::class)
             ->assertSee('2 leave requests are waiting for you')
             ->assertSeeHtml('href="'.route('inbox', ['show' => 'decide']).'"')
-            ->assertSee('Lina Haddad');
+            ->assertDontSeeHtml('?open=leave');
 
         // The employee's next action: Request leave, and the step their request is at.
         Livewire::actingAs($this->user('lina'))->test(ForYouNow::class)

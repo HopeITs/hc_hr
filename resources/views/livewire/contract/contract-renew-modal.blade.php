@@ -1,7 +1,7 @@
 {{--
     Palette rule for this modal: neutral greys plus the single brand red
     (--color-primary). Never tint the red down for a surface — a low-opacity
-    #c2151c reads as pink, which resources/css/app.css explicitly disallows.
+    #BE1F24 reads as pink, which resources/css/app.css explicitly disallows.
     Emphasis surfaces use --color-selection (#e6e7e8) instead.
 --}}
 <div>

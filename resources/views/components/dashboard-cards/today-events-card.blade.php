@@ -1,5 +1,5 @@
 <div
-    class="w-full h-full bg-white rounded-surface shadow-e1 ring-1 ring-neutral-200 overflow-hidden relative flex flex-col">
+    class="relative flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <div class="js-today-events flex h-full min-h-0 flex-col">
         <x-dashboard-cards.card-header :title="__('general.today-events')" :count="now()->format('j/n/Y')" />
 
@@ -9,7 +9,7 @@
 
                     @foreach($events as $event)
                         <div class="swiper-slide">
-                            <div class="relative h-full min-h-[240px] flex flex-col items-center justify-center">
+                            <div class="relative flex h-full min-h-0 flex-col items-center justify-center">
                                 @if($event['type'] === 'birthday')
                                     {{-- Decorative celebration animation: the birthday is
                                          already stated in the text below, so an empty alt
@@ -72,58 +72,52 @@
             </div>
         @endif
     </div>
-    {{-- Swiper Assets --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <script nonce="{{ Vite::cspNonce() }}" src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" data-navigate-once></script>
-    <script nonce="{{ Vite::cspNonce() }}">
-        // Runs on a normal load and again when wire:navigate swaps this page in,
-        // where DOMContentLoaded has already fired and would never call back.
-        (() => {
-        const init = () => {
-            // After wire:navigate the bundle above may still be downloading.
-            if (!window.Swiper) {
-                document.querySelector('script[src*="swiper-bundle"]')?.addEventListener('load', init, { once: true });
-                return;
-            }
-
-            const el = document.querySelector(".js-today-events .swiper");
-            if (!el || el.swiper) return;
-
-            // wire:navigate drops this element without stopping the autoplay timer.
-            document.addEventListener('livewire:navigating', () => el.swiper?.destroy(true, true), { once: true });
-
-            new Swiper(el, {
-                slidesPerView: 1,
-                loop: true,
-                autoplay: {
-                    delay: 4500,
-                    disableOnInteraction: false
-                },
-                pagination: {
-                    el: ".js-today-events .swiper-pagination",
-                    clickable: true
-                },
-            });
-        };
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-        })();
-    </script>
-
     <style>
         .js-today-events .swiper-pagination-bullet {
             width: 6px;
             height: 6px;
-            background: #d1d5db;
+            background: var(--color-line);
             opacity: 1;
         }
 
         .js-today-events .swiper-pagination-bullet-active {
-            background: #6b7280;
+            background: var(--color-ink);
         }
     </style>
 </div>
+
+{{-- The card is a lazy dashboard tile: it arrives in a Livewire update, where a
+     plain <script> would not run. @assets loads Swiper once per page (Livewire
+     waits for it), @script then starts the slider. --}}
+@assets
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <script nonce="{{ Vite::cspNonce() }}" src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+@endassets
+
+@script
+<script>
+    const init = () => {
+        const el = document.querySelector('.js-today-events .swiper');
+        if (! el || el.swiper || ! window.Swiper) return;
+
+        // wire:navigate drops this element without stopping the autoplay timer.
+        document.addEventListener('livewire:navigating', () => el.swiper?.destroy(true, true), { once: true });
+
+        new Swiper(el, {
+            slidesPerView: 1,
+            loop: true,
+            autoplay: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : {
+                delay: 4500,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: '.js-today-events .swiper-pagination',
+                clickable: true,
+            },
+        });
+    };
+
+    // Runs just before the card replaces its placeholder: wait a frame for the slides.
+    requestAnimationFrame(init);
+</script>
+@endscript

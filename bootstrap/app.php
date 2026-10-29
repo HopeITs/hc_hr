@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ActivePermissionMiddleware;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\RecordPresence;
 use App\Http\Middleware\ReferencePageMiddleware;
 use App\Http\Middleware\RememberUserLocale;
 use App\Http\Middleware\RoleMiddleware;
@@ -33,6 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureAccountIsActive::class,
             // Language for mail sent outside a request (A4).
             RememberUserLocale::class,
+            // users.last_seen_at, at most once a minute (who is online, on the big clock).
+            RecordPresence::class,
         ]);
 
         $middleware->alias([

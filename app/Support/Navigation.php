@@ -204,6 +204,80 @@ final class Navigation
     }
 
     /**
+     * Every page of the active role's menu that may sit on the dashboard as a
+     * shortcut tile (DashboardLayout), keyed by item id, with its icon and
+     * counter. The same menu, so a page the role cannot open is never offered;
+     * the dashboard itself is left out (it is the page the tiles sit on).
+     *
+     * @return array<string, array{route: string, label: string, icon: ?string, counter: ?string}>
+     */
+    public static function shortcuts(User $user, bool $isDeliverResponsible = false): array
+    {
+        return self::shortcutsFrom(self::for($user, $isDeliverResponsible, countInbox: false));
+    }
+
+    /**
+     * shortcuts() for a menu already built (the sidebar has one), so the
+     * permission checks are not run twice on one render.
+     *
+     * @return array<string, array{route: string, label: string, icon: ?string, counter: ?string}>
+     */
+    public static function shortcutsFrom(array $nav): array
+    {
+        $pages = [];
+
+        if ($nav['inbox']) {
+            $pages['nav.inbox'] = ['route' => $nav['inbox']['route'], 'label' => __('general.nav.work-inbox'), 'icon' => 'inbox', 'counter' => null];
+        }
+
+        foreach ($nav['areas'] as $area) {
+            foreach ($area['items'] as $item) {
+                foreach ($item['children'] ?? [$item] as $page) {
+                    if ($page['route'] === 'dashboard') {
+                        continue;
+                    }
+
+                    $pages[$page['id']] = [
+                        'route' => $page['route'],
+                        'label' => $page['label'],
+                        'icon' => $page['icon'] ?? $item['icon'] ?? null,
+                        'counter' => $page['counter'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        return $pages;
+    }
+
+    /**
+     * The menu item a route belongs to (its `active` patterns), or null when
+     * the route is not in this menu: what a visit is recorded as in recents.
+     */
+    public static function pageFor(array $nav, ?string $routeName): ?string
+    {
+        if ($routeName === null) {
+            return null;
+        }
+
+        if ($nav['inbox'] && $routeName === $nav['inbox']['route']) {
+            return 'nav.inbox';
+        }
+
+        foreach ($nav['areas'] as $area) {
+            foreach ($area['items'] as $item) {
+                foreach ($item['children'] ?? [$item] as $page) {
+                    if (\Illuminate\Support\Str::is($page['active'], $routeName)) {
+                        return $page['id'];
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * What the header's New button may start for the active role (C2, C0-Q3):
      * the same permission each create screen checks on the server, which
      * checks it again when used. Contract also needs pay visibility: a contract
@@ -301,7 +375,7 @@ final class Navigation
         }
 
         try {
-            $count = $inbox->count($user);
+            $count = $inbox->shared($user)['counts']['all'];
         } catch (Throwable $e) {
             // A badge must not take every page down with it.
             report($e);

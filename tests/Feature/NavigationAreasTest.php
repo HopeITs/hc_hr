@@ -207,8 +207,9 @@ class NavigationAreasTest extends TestCase
             ->call('toggle')
             ->html();
 
-        $this->assertMatchesRegularExpression('/data-nav="nav\.my-space\.leaves"[^>]*bg-primary|bg-primary[^>]*data-nav="nav\.my-space\.leaves"/s', $html);
-        $this->assertDoesNotMatchRegularExpression('/data-nav="nav\.my-space\.home"[^>]*bg-primary|bg-primary[^>]*data-nav="nav\.my-space\.home"/s', $html);
+        // Prompt 9: the current page is marked by aria-current (ink text and a red bar), not a red fill.
+        $this->assertMatchesRegularExpression('/aria-current="page"[^>]*data-nav="nav\.my-space\.leaves"/s', $html);
+        $this->assertDoesNotMatchRegularExpression('/aria-current="page"[^>]*data-nav="nav\.my-space\.home"/s', $html);
     }
 
     private function sidebarHtml(User $user): string

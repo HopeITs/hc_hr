@@ -1,4 +1,4 @@
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.pending-delivers')" :count="$pendingRequests->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/pending-delivers.svg') }}" alt="">

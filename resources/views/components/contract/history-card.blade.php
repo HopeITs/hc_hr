@@ -28,15 +28,12 @@
             </p>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:flex-nowrap sm:items-stretch">
-            <span
-                class="inline-flex items-center justify-center rounded-full px-3 py-1 text-small font-bold {{ $isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-secondary-medium' }}">
-                {{ $isActive ? __('general.active') : __('general.inactive') }}
-            </span>
+            <x-status class="justify-center" :status="$isActive ? \App\Enums\ContractStatus::Active : \App\Enums\ContractStatus::Inactive" />
             {{-- Sized like the status badge above it; label and icon as the contracts table's View button. --}}
             @can('view', $contract)
                 <a href="{{ route('contracts.show', $contract) }}" wire:navigate
                     aria-describedby="contract-history-title-{{ $contract->id }}"
-                    class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-red-50 px-3 py-1 text-small font-bold text-primary ring-1 ring-inset ring-primary/15 transition-colors hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    class="hc-btn hc-btn--outline hc-btn--sm">
                     <x-icons.eye class="h-4 w-4" />
                     <span>{{ __('general.view') }}</span>
                 </a>

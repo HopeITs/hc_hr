@@ -58,9 +58,9 @@ function initSalaryTypeScatter() {
                 y: {
                     beginAtZero: true,
                     suggestedMax,
-                    grid: { color: "#e5e7eb" },
+                    // Grid and tick colours come from the brand defaults
+                    // (charts/chartjs-brand.js), which follow light / dark.
                     ticks: {
-                        color: "#6b7280",
                         font: {
                             size: 12,
                             family: "SomarSans"

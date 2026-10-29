@@ -27,9 +27,9 @@
     'id' => $id,
     'name' => $name,
     'type' => 'radio',
-    'class' => 'size-4 shrink-0 text-red-600 bg-neutral-100 border-neutral-300 focus:border-red-200 focus:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+    'class' => 'hc-check focus:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2',
 ]))}}
     >
     {{-- min-h-11: the label is the touch target, 44px tall (product target). --}}
-    <label for="{{$id}}" class="inline-flex min-h-11 cursor-pointer items-center ps-2 pe-1 text-body font-medium text-neutral-900">{{$slot}}</label>
+    <label for="{{$id}}" class="inline-flex min-h-11 cursor-pointer items-center ps-2 pe-1 text-body font-medium text-ink">{{$slot}}</label>
 </div>

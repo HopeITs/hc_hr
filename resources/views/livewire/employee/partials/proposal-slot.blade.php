@@ -16,9 +16,7 @@
             @endunless
         </button>
         @if ($state['pending'] ?? false)
-            <span class="rounded-full bg-amber-50 px-2 py-1 text-caption font-semibold text-amber-800 ring-1 ring-amber-200" data-testid="proposal-pending-{{ $section }}">
-                {{ __('employees.profile.change.pending', ['what' => __('employees.profile.change.sections.'.$section)]) }}
-            </span>
+            <x-status tone="wait" icon="clock" data-testid="proposal-pending-{{ $section }}" :label="__('employees.profile.change.pending', ['what' => __('employees.profile.change.sections.'.$section)])" />
         @elseif ($state['rejected'] ?? null)
             <span class="text-caption text-secondary-medium" data-testid="proposal-rejected-{{ $section }}">
                 {{ __('employees.profile.change.last-rejected', ['reason' => $state['rejected']]) }}

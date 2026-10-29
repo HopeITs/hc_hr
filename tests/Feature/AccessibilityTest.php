@@ -232,6 +232,84 @@ class AccessibilityTest extends TestCase
         $this->assertSame([], $offenders);
     }
 
+    /**
+     * The dashboard's own dialogs (prompts 6, 10 and the notes tile): each is a
+     * real modal, named by its heading, focus held inside and given back, and
+     * Escape closes it. They render inside Livewire components that need data,
+     * so their markup is read from the view.
+     */
+    public function test_the_dashboard_dialogs_are_named_modals_that_trap_focus_and_close_on_escape(): void
+    {
+        $dialogs = [
+            'calendar day' => ['livewire/dashboard/calendar-card.blade.php', 'aria-labelledby="{{ $dialogId }}-title"', 'id="{{ $dialogId }}-title"'],
+            'keyboard shortcuts' => ['components/keyboard-shortcuts.blade.php', 'aria-labelledby="keyboard-shortcuts-title"', 'id="keyboard-shortcuts-title"'],
+            'notes' => ['livewire/dashboard/employee-notes-card.blade.php', 'aria-labelledby="notes-dialog-title"', 'id="notes-dialog-title"'],
+        ];
+
+        foreach ($dialogs as $name => [$view, $labelledBy, $heading]) {
+            $source = file_get_contents(resource_path('views/'.$view));
+
+            $this->assertStringContainsString('role="dialog"', $source, "{$name}: no dialog role");
+            $this->assertStringContainsString('aria-modal="true"', $source, "{$name}: not aria-modal");
+            $this->assertStringContainsString($labelledBy, $source, "{$name}: not named by its heading");
+            $this->assertStringContainsString($heading, $source, "{$name}: the heading it names is missing");
+            $this->assertMatchesRegularExpression('/x-trap[.\w]*="/', $source, "{$name}: focus is not trapped and restored");
+            $this->assertMatchesRegularExpression('/(x-on:|@)keydown\.escape/', $source, "{$name}: Escape does not close it");
+        }
+    }
+
+    public function test_the_notes_dialog_field_has_a_real_label(): void
+    {
+        $source = file_get_contents(resource_path('views/livewire/dashboard/employee-notes-card.blade.php'));
+
+        $this->assertStringContainsString('<label for="notes-dialog-content"', $source);
+        $this->assertStringContainsString('id="notes-dialog-content"', $source);
+    }
+
+    public function test_the_theme_toggle_is_a_named_44px_toggle_button(): void
+    {
+        foreach (['en' => 'Dark mode', 'ar' => 'الوضع الداكن'] as $locale => $name) {
+            app()->setLocale($locale);
+            $html = Blade::render('<x-theme-toggle />');
+
+            $this->assertStringContainsString(':aria-pressed="dark.toString()"', $html);
+            $this->assertStringContainsString('aria-label="'.$name.'"', $html);
+            $this->assertStringContainsString('size-11', $html, '44px target');
+        }
+
+        // In the account menu it is a checkbox menu item, a full-width 44px row.
+        $menu = Blade::render('<x-theme-toggle :menu="true" />');
+        $this->assertStringContainsString('role="menuitemcheckbox"', $menu);
+        $this->assertStringContainsString(':aria-checked="dark.toString()"', $menu);
+        $this->assertStringContainsString('min-h-11', $menu);
+    }
+
+    public function test_the_active_sidebar_item_is_marked_as_the_current_page(): void
+    {
+        $active = Blade::render('<x-layouts.app.sidebar.nav-item :active="true" href="/en/leaves">Leaves</x-layouts.app.sidebar.nav-item>');
+        $other = Blade::render('<x-layouts.app.sidebar.nav-item href="/en/contracts">Contracts</x-layouts.app.sidebar.nav-item>');
+
+        $this->assertStringContainsString('aria-current="page"', $active);
+        $this->assertStringNotContainsString('aria-current', $other);
+        // Not colour alone: ink weight and the start-edge bar, and a 44px row.
+        $this->assertStringContainsString('font-semibold', $active);
+        $this->assertStringContainsString('min-h-11', $other);
+    }
+
+    public function test_the_shared_button_and_dialog_close_buttons_are_44px(): void
+    {
+        $css = file_get_contents(resource_path('css/components.css'));
+        $this->assertMatchesRegularExpression('/\.hc-btn\s*\{[^}]*min-height:\s*44px/s', $css, 'x-button must be 44px tall');
+
+        foreach (['components/keyboard-shortcuts.blade.php', 'livewire/dashboard/employee-notes-card.blade.php'] as $view) {
+            $this->assertMatchesRegularExpression(
+                '/<button type="button"[^>]*(x-on:click|@click)="(close\(\)|showModal=false)"[^>]*aria-label="[^"]+"[^>]*size-11/s',
+                file_get_contents(resource_path('views/'.$view)),
+                "{$view}: the close button must be a named 44px target",
+            );
+        }
+    }
+
     /** Render a modal; @entangle needs the surrounding Livewire component's id. */
     private function renderModal(string $template): string
     {

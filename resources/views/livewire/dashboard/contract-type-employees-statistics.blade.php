@@ -1,4 +1,4 @@
-<div class="flex w-full h-full min-h-64 flex-col rounded-surface border border-neutral-200 bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] overflow-hidden p-9">
+<div class="flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm p-6">
     <div class="flex w-full">
         <div class="text-h4 font-semibold text-secondary-medium mb-4">@lang('general.contract-type-employees')  </div>
     </div>

@@ -114,11 +114,11 @@
                                     @endforeach
                                 </span>
                             </span>
-                            <span @class([
-                                'size-2 shrink-0 rounded-full',
-                                'bg-emerald-500' => $user->profile->is_active,
-                                'bg-gray-300' => ! $user->profile->is_active,
-                            ]) aria-hidden="true"></span>
+                            {{-- Active or not by shape (check / pause), not by a coloured dot; the words are for screen readers. --}}
+                            <span class="shrink-0 {{ $user->profile->is_active ? 'text-ink' : 'text-ink-3' }}">
+                                <x-ic :name="$user->profile->is_active ? 'check' : 'pause'" class="size-4" />
+                                <span class="sr-only">{{ $user->profile->is_active ? __('access.active') : __('access.inactive') }}</span>
+                            </span>
                         </button>
                     @empty
                         <div class="flex flex-col items-center justify-center px-5 py-12 text-center">
@@ -183,13 +183,8 @@
                                     @endif
                                 </p>
                             </div>
-                            <span @class([
-                                'inline-flex min-h-7 items-center rounded-md border px-2.5 text-xs font-bold',
-                                'border-emerald-200 bg-emerald-50 text-emerald-700' => $selectedUser->profile->is_active,
-                                'border-gray-200 bg-gray-50 text-gray-600' => ! $selectedUser->profile->is_active,
-                            ])>
-                                {{ $selectedUser->profile->is_active ? __('access.active') : __('access.inactive') }}
-                            </span>
+                            <x-status :tone="$selectedUser->profile->is_active ? 'done' : 'stop'" :icon="$selectedUser->profile->is_active ? 'check' : 'pause'"
+                                      :label="$selectedUser->profile->is_active ? __('access.active') : __('access.inactive')" />
                         </div>
 
                         <div class="space-y-[clamp(1.25rem,2vw,2rem)] p-[clamp(1rem,2vw,1.5rem)]">
@@ -503,18 +498,8 @@
                             </div>
 
                             @if ($roleProfile)
-                                <span @class([
-                                    'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold',
-                                    'border-emerald-200 bg-emerald-50 text-emerald-700' => $roleProfile->is_active,
-                                    'border-gray-200 bg-gray-50 text-gray-500' => ! $roleProfile->is_active,
-                                ])>
-                                    <span @class([
-                                        'size-1.5 rounded-full',
-                                        'bg-emerald-500' => $roleProfile->is_active,
-                                        'bg-gray-400' => ! $roleProfile->is_active,
-                                    ]) aria-hidden="true"></span>
-                                    {{ $roleProfile->is_active ? __('access.active') : __('access.inactive') }}
-                                </span>
+                                <x-status class="shrink-0" :tone="$roleProfile->is_active ? 'done' : 'stop'" :icon="$roleProfile->is_active ? 'check' : 'pause'"
+                                          :label="$roleProfile->is_active ? __('access.active') : __('access.inactive')" />
                             @endif
                         </article>
                     @empty

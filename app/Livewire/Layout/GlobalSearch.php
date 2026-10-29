@@ -3,16 +3,24 @@
 namespace App\Livewire\Layout;
 
 use App\Models\Employee;
+use App\Support\CommandPalette;
 use App\Support\DirectoryAccess;
 use App\Support\Navigation;
+use App\Support\NavigationMemory;
+use App\Support\SearchText;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Throwable;
 
 /**
  * The header search (C2, C0-Q6): pages of the active role's menu and people
- * by name, in Arabic or English whatever the interface language.
+ * by name, in Arabic or English whatever the interface language, and (prompt
+ * 10) commands: what the role's New menu may start, plus a few for the page
+ * itself (CommandPalette).
  *
  * People are the Directory tier and nothing more (DirectoryAccess, A2):
  * the same row set the directory list shows (constrain(): former employees
@@ -35,16 +43,35 @@ class GlobalSearch extends Component
     /** Searches per user per minute before the box asks them to wait. */
     public const PER_MINUTE = 60;
 
-    /**
-     * Arabic letters people type interchangeably, folded to one form, plus
-     * lower case: «أحمد» = «احمد», «سارة» = «ساره», «مصطفى» = «مصطفي».
-     * The same folding is applied to the stored Arabic names in SQL.
-     */
-    private const FOLD = ['أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ٱ' => 'ا', 'ى' => 'ي', 'ة' => 'ه', 'ـ' => ''];
-
     public string $q = '';
 
+    /**
+     * This page in the other language, for the "Switch language" command. Kept
+     * from the page request: a later update runs on Livewire's update route,
+     * whose URL is not the page's.
+     */
+    #[Locked]
+    public string $otherLocaleUrl = '';
+
     public bool $throttled = false;
+
+    /**
+     * Recents (prompt 9) are loaded only once the box is opened with nothing
+     * typed, so a page load does not pay for a list nobody looked at.
+     */
+    public bool $recents = false;
+
+    public function mount(): void
+    {
+        $other = app()->getLocale() === 'ar' ? 'en' : 'ar';
+        $this->otherLocaleUrl = (string) LaravelLocalization::getLocalizedURL($other, null, [], true);
+    }
+
+    /** Opened with an empty box: show recent pages and people. A self-scoped read. */
+    public function showRecents(): void
+    {
+        $this->recents = true;
+    }
 
     /** Each new term counts towards the per-user limit. Livewire refuses direct calls to updated*. */
     public function updatedQ(): void
@@ -65,12 +92,23 @@ class GlobalSearch extends Component
         $term = trim($this->q);
         $pages = [];
         $people = collect();
+        $commands = [];
         $failed = false;
+        $showingRecents = false;
 
-        if (mb_strlen($term) >= self::MIN_LENGTH && ! $this->throttled) {
+        if ($term === '' && $this->recents) {
+            try {
+                [$pages, $people] = $this->recentItems();
+                $showingRecents = true;
+            } catch (Throwable $e) {
+                report($e);
+                $failed = true;
+            }
+        } elseif (mb_strlen($term) >= self::MIN_LENGTH && ! $this->throttled) {
             try {
                 $pages = $this->pages($term);
                 $people = $this->people($term);
+                $commands = CommandPalette::search(auth()->user(), $term, $this->otherLocaleUrl ?: null);
             } catch (Throwable $e) {
                 report($e);
                 $failed = true;
@@ -81,38 +119,58 @@ class GlobalSearch extends Component
             'term' => $term,
             'pages' => $pages,
             'people' => $people,
+            'commands' => $commands,
             'failed' => $failed,
+            'showingRecents' => $showingRecents,
             'tooShort' => $term !== '' && mb_strlen($term) < self::MIN_LENGTH,
         ]);
+    }
+
+    /**
+     * The last pages and profiles this person opened, checked again now:
+     * pages through the active role's menu, people through the directory
+     * scope (NavigationMemory), so a lost page or an out-of-scope colleague
+     * is never offered, whatever was recorded.
+     *
+     * @return array{0: list<array<string, string>>, 1: Collection}
+     */
+    private function recentItems(): array
+    {
+        $user = auth()->user();
+        $allowed = Navigation::shortcuts($user, Navigation::isDeliverResponsible($user));
+
+        $pages = array_map(
+            fn (string $id) => ['route' => $allowed[$id]['route'], 'label' => $allowed[$id]['label'], 'area' => ''],
+            NavigationMemory::recentPages($user, $allowed),
+        );
+
+        return [$pages, NavigationMemory::recentPeople($user, $this->directoryQuery())];
     }
 
     /** @return list<array<string, string>> */
     private function pages(string $term): array
     {
         $user = auth()->user();
-        $needle = self::fold($term);
+        $needle = SearchText::normalize($term);
 
         return collect(Navigation::pages($user, Navigation::isDeliverResponsible($user)))
-            ->filter(fn (array $page) => str_contains(self::fold($page['label_en']), $needle)
-                || str_contains(self::fold($page['label_ar']), $needle))
+            ->filter(fn (array $page) => str_contains(SearchText::normalize($page['label_en']), $needle)
+                || str_contains(SearchText::normalize($page['label_ar']), $needle))
             ->unique('route')
             ->take(self::MAX_PAGES)
             ->values()
             ->all();
     }
 
-    private static function fold(string $text): string
-    {
-        // Short vowels and other diacritics (harakat) are dropped too.
-        return mb_strtolower(strtr(preg_replace('/[\x{064B}-\x{0652}\x{0670}]/u', '', $text), self::FOLD));
-    }
-
-    /** SQL for a stored Arabic name folded like fold(); REPLACE works on MySQL and SQLite. */
+    /**
+     * SQL for a stored Arabic name with SearchText's letters folded (diacritics
+     * are left: REPLACE cannot match a range). Works on MySQL and SQLite.
+     */
     private static function foldedColumn(string $column): string
     {
         $sql = $column;
 
-        foreach (self::FOLD as $from => $to) {
+        foreach (SearchText::FOLD as $from => $to) {
             $sql = "REPLACE({$sql}, '{$from}', '{$to}')";
         }
 
@@ -123,7 +181,7 @@ class GlobalSearch extends Component
     private function people(string $term)
     {
         // LIKE wildcards typed by the user are not wildcards; names never contain them.
-        $words = collect(preg_split('/\s+/u', str_replace(['%', '_', '\\'], '', self::fold($term))))
+        $words = collect(preg_split('/\s+/u', str_replace(['%', '_', '\\'], '', SearchText::normalize($term))))
             ->filter(fn ($word) => $word !== '')
             ->take(4);
 
@@ -131,9 +189,7 @@ class GlobalSearch extends Component
             return collect();
         }
 
-        $query = Employee::query()->select(DirectoryAccess::COLUMNS);
-
-        return DirectoryAccess::constrain($query, auth()->user())
+        return DirectoryAccess::constrain($this->directoryQuery(), auth()->user())
             // The directory's row set: people who hold a visible position.
             ->whereHas('contracts.position', fn (Builder $position) => $position->visible())
             ->where(function (Builder $names) use ($words): void {
@@ -145,6 +201,15 @@ class GlobalSearch extends Component
                         ->orWhereRaw(self::foldedColumn('last_name_ar').' like ?', ["%{$word}%"]));
                 }
             })
+            ->orderBy(transColumn('first_name'))
+            ->limit(self::MAX_PEOPLE)
+            ->get();
+    }
+
+    /** Directory columns and what a result line shows; the caller adds the scope. */
+    private function directoryQuery(): Builder
+    {
+        return Employee::query()->select(DirectoryAccess::COLUMNS)
             // "Former" only for someone who actually held a contract; a volunteer
             // still awaiting a first one is inactive too (G-C-13 / F15).
             ->withExists(['realContracts as was_employed'])
@@ -156,9 +221,6 @@ class GlobalSearch extends Component
                     ->whereHas('position', fn (Builder $position) => $position->visible())
                     ->orderByDesc('start_date')
                     ->with('position:id,title_en,title_ar'),
-            ])
-            ->orderBy(transColumn('first_name'))
-            ->limit(self::MAX_PEOPLE)
-            ->get();
+            ]);
     }
 }

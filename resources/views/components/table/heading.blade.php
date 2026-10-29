@@ -21,13 +21,13 @@
             <span>
                 @if ($direction === 'asc')
                     {{-- Up arrow --}}
-                    <svg class="size-3 text-neutral-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    <svg class="size-3 text-neutral-800" xmlns="http://www.w3.org/2000/svg" fill="none"
                          viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8 10 4 4 4-4"/>
                     </svg>
                 @elseif ($direction === 'desc')
                     {{-- Down arrow --}}
-                    <svg class="size-3 text-neutral-800 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    <svg class="size-3 text-neutral-800" xmlns="http://www.w3.org/2000/svg" fill="none"
                          viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m16 14-4-4-4 4"/>
                     </svg>

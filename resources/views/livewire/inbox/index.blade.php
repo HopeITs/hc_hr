@@ -104,7 +104,7 @@
                                 {{ __('inbox.waiting-since', ['when' => $row['waiting_since']?->diffForHumans(null, \Carbon\CarbonInterface::DIFF_ABSOLUTE)]) }}
                                 {{-- G-C-5: an undecided leave already under way is not "starts soon"; the home block uses the same rule. --}}
                                 @if ($startFlag = \App\Livewire\Dashboard\ForYouNow::startFlag($row))
-                                    <span class="ms-1 rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 ring-1 ring-amber-200">{{ __($startFlag === 'started' ? 'inbox.started' : 'inbox.urgent') }}</span>
+                                    <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                 @endif
                             </p>
                             @if (($row['basis'] ?? null) === 'on_behalf')
@@ -135,11 +135,9 @@
                                   class="flex flex-col gap-2">
                                 <div role="radiogroup" aria-label="{{ __('inbox.decision.label') }}" class="flex flex-wrap gap-2">
                                     <button type="button" role="radio" :aria-checked="(choice === 1).toString()" x-on:click="choice = 1"
-                                            :class="choice === 1 ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-neutral-300 bg-white text-neutral-800'"
-                                            class="min-h-11 rounded-control border px-4 font-semibold">{{ __('inbox.decision.accept') }}</button>
+                                            class="hc-choice inline-flex min-h-11 items-center gap-2 px-4 font-semibold text-ink"><x-ic name="check" class="size-4" />{{ __('inbox.decision.accept') }}</button>
                                     <button type="button" role="radio" :aria-checked="(choice === 2).toString()" x-on:click="choice = 2; $nextTick(() => $refs.reason.focus())"
-                                            :class="choice === 2 ? 'border-primary bg-[#fbeaea] text-primary' : 'border-neutral-300 bg-white text-neutral-800'"
-                                            class="min-h-11 rounded-control border px-4 font-semibold">{{ __('inbox.decision.reject') }}</button>
+                                            class="hc-choice inline-flex min-h-11 items-center gap-2 px-4 font-semibold text-ink"><x-ic name="x" class="size-4" />{{ __('inbox.decision.reject') }}</button>
                                 </div>
                                 <div x-show="choice === 2" x-cloak>
                                     <label for="reason-{{ $slug }}" class="text-small font-semibold text-neutral-800">{{ __('general.reject-reason') }} <span class="text-primary">*</span></label>

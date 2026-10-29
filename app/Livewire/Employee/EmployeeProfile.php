@@ -12,6 +12,7 @@ use App\Services\EmployeeTimeline;
 use App\Services\ProfileChangeRequests;
 use App\Services\TaskTelemetry;
 use App\Support\DirectoryAccess;
+use App\Support\NavigationMemory;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Throwable;
 
 /**
  * The full profile page. Who may open it, and which sections they get, is
@@ -117,6 +119,16 @@ class EmployeeProfile extends Component
         // X2-I task B: opening someone's profile completes an open lookup.
         if ($employee?->exists) {
             app(TaskTelemetry::class)->completeLookup();
+
+            // Prompt 9: recent people, recorded only once the page has
+            // authorized the visit (and checked again when listed).
+            if (! $this->isSelf) {
+                try {
+                    NavigationMemory::recordPerson(Auth::user(), (int) $this->employee->id);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+            }
         }
 
         // A deep link to a section the viewer may not edit just opens the page.

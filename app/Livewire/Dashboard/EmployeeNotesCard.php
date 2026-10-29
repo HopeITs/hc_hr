@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\EmployeeNote;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,6 +30,7 @@ use Livewire\Component;
 class EmployeeNotesCard extends Component
 {
     use HandlesLoadFailure;
+    use IsDashboardTile;
     use WithFeedback;
 
     #[Locked]

@@ -3,7 +3,7 @@
     $titleField = 'title_' . $locale;
 @endphp
 
-<div class="relative w-full h-full min-h-64 bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] overflow-hidden flex flex-col">
+<div class="relative flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
 
     <!-- Header (IDENTICAL to No Leaves) -->
     <div class="flex items-center gap-2 px-6 pt-6 pb-4">

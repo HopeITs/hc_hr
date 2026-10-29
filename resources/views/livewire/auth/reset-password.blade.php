@@ -19,7 +19,7 @@
                 </p>
             </div>
 
-            <x-auth-session-status class="text-center text-green-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="text-center text-body" :status="session('status')" />
 
             <form wire:submit.prevent="resetPassword" class="space-y-4">
                 {{-- Hidden Email --}}

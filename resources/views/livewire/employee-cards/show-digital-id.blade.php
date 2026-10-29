@@ -12,7 +12,7 @@
 <div class="digital-id-page">
     <style>
         .digital-id-page {
-            --id-primary: var(--color-primary, #c2151c);
+            --id-primary: var(--color-primary, #BE1F24);
             --id-black: var(--color-black, #414042);
             --id-icon: #414042;
             --id-card-width: min(88vw, 21rem, 43dvh);

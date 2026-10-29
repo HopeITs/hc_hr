@@ -94,9 +94,9 @@
         @endif
 
         @if($impact['warnings'] !== [])
-            <div class="rounded-control border-s-4 border-amber-500 bg-amber-50 p-2" data-testid="leave-impact-warnings">
-                <p class="text-sm font-semibold text-amber-900">@lang('leave_quote.preview.warnings')</p>
-                <ul class="mt-1 list-disc space-y-0.5 ps-5 text-sm text-amber-900">
+            <div class="rounded-control border-s-4 border-ink bg-soft p-2" data-testid="leave-impact-warnings">
+                <p class="flex items-center gap-1.5 text-small font-bold text-ink"><x-ic name="warning" class="size-4" />@lang('leave_quote.preview.warnings')</p>
+                <ul class="mt-1 list-disc space-y-0.5 ps-5 text-small text-ink">
                     @foreach($impact['warnings'] as $message)
                         <li>{{ $message }}</li>
                     @endforeach

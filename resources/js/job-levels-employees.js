@@ -1,21 +1,11 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
+import { brandColors, brandPalette } from "./charts/brand-colors.js";
 
-const chartPalette = () => {
-    const rootStyle = getComputedStyle(document.documentElement);
-
-    return [
-        rootStyle.getPropertyValue("--color-primary").trim(),
-        rootStyle.getPropertyValue("--color-secondary-dark").trim(),
-        rootStyle.getPropertyValue("--color-secondary-medium").trim(),
-        rootStyle.getPropertyValue("--color-secondary-light").trim(),
-        rootStyle.getPropertyValue("--color-secondary-soft").trim(),
-        rootStyle.getPropertyValue("--color-neutral-600").trim(),
-        rootStyle.getPropertyValue("--color-neutral-400").trim(),
-        rootStyle.getPropertyValue("--color-neutral-800").trim(),
-    ].map((color) => color || "#c2151c");
-};
+// Identity colours only, re-read on every draw so the chart follows light / dark.
+const chartPalette = () => brandPalette();
 
 // Read the Livewire-published globals on every call rather than once at module
 // evaluation. A module body runs a single time, so the previous top-level
@@ -49,6 +39,7 @@ export default function initJobLevelsChart() {
             .forEach((r) => r.dispose());
 
         const root = am5.Root.new("jobLevelsChart");
+        applyBrandInterfaceColors(root);
 
         root.setThemes([am5themes_Animated.new(root)]);
 
@@ -76,7 +67,7 @@ export default function initJobLevelsChart() {
         });
         yRenderer.labels.template.setAll({
             fontSize: 13,
-            fill: am5.color(0x333333),
+            fill: am5.color(brandColors().ink),
             oversizedBehavior: "wrap",
             textAlign: "left",
         });

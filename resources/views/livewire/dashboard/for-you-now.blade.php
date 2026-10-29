@@ -12,8 +12,9 @@
     $button = 'inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 @endphp
 
-<section aria-labelledby="for-you-title" data-testid="for-you-now" data-tour="dashboard.for-you"
-         class="rounded-surface bg-white p-4 ring-1 ring-neutral-200 shadow-sm sm:p-5">
+{{-- The tour anchor (dashboard.for-you) is on the dashboard tile around this card. --}}
+<section aria-labelledby="for-you-title" data-testid="for-you-now"
+         class="overflow-y-auto rounded-surface border border-line-soft bg-card shadow-sm p-4 sm:p-5">
     <h2 id="for-you-title" class="text-h5 font-semibold text-secondary-dark">{{ __('dashboard.for-you.title') }}</h2>
 
     @if ($parts === [] && $failed === [])
@@ -40,15 +41,17 @@
                             </p>
                         @endif
                         @if ($part['started'] > 0)
-                            <p class="mt-0.5 text-caption font-semibold text-amber-800" data-testid="for-you-{{ $key }}-started">
-                                <span aria-hidden="true">⚠</span> {{ trans_choice('dashboard.for-you.already-started', $part['started'], ['count' => $part['started']]) }}
+                            <p class="mt-1" data-testid="for-you-{{ $key }}-started">
+                                <x-tag variant="late">{{ trans_choice('dashboard.for-you.already-started', $part['started'], ['count' => $part['started']]) }}</x-tag>
                             </p>
                         @endif
                         @if ($part['soon'] > 0)
-                            <p class="mt-0.5 text-caption font-semibold text-amber-800" data-testid="for-you-{{ $key }}-soon">
-                                <span aria-hidden="true">⚠</span> {{ trans_choice('dashboard.for-you.starts-soon', $part['soon'], ['count' => $part['soon']]) }}
+                            <p class="mt-1" data-testid="for-you-{{ $key }}-soon">
+                                <x-tag variant="rush">{{ trans_choice('dashboard.for-you.starts-soon', $part['soon'], ['count' => $part['soon']]) }}</x-tag>
                             </p>
                         @endif
+                        {{-- Decisions are the header's decision card (prompt 7): only the other rows are previewed here. --}}
+                        @if ($part['rows'] !== [])
                         <ul class="mt-2 divide-y divide-neutral-200">
                             @foreach ($part['rows'] as $i => $row)
                                 <li wire:key="for-you-{{ $key }}-{{ $i }}">
@@ -60,12 +63,13 @@
                                             </span>
                                         </span>
                                         @if ($row['start_flag'])
-                                            <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-caption font-semibold text-amber-800 ring-1 ring-amber-200">{{ __($row['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</span>
+                                            <x-tag class="shrink-0" :variant="$row['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($row['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                         @endif
                                     </a>
                                 </li>
                             @endforeach
                         </ul>
+                        @endif
                         <a href="{{ $part['url'] }}" wire:navigate class="{{ $link }} mt-auto self-start">{{ __('dashboard.for-you.see-all') }}<span aria-hidden="true" class="rtl:rotate-180">→</span></a>
                         @break
 

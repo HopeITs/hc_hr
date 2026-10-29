@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Enums\LeaveRequestStatus;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Livewire\Team\Calendar;
 use App\Models\Checklist;
 use App\Models\Contract;
@@ -38,7 +39,12 @@ use Throwable;
  */
 class ForYouNow extends Component
 {
+    use IsDashboardTile;
+
     public const PREVIEW_ROWS = 3;
+
+    /** One WorkInbox snapshot per render, shared by the parts that read it. */
+    protected ?array $inbox = null;
 
     public function render()
     {
@@ -103,10 +109,14 @@ class ForYouNow extends Component
 
     // ── Parts ───────────────────────────────────────────────────────────
 
-    /** Manager / general manager: what waits for my decision (C3 inbox, decide rows only). */
+    /**
+     * Manager / general manager: what waits for my decision (C3 inbox, decide
+     * rows only). The figures only: the decisions themselves are the
+     * dashboard header's decision card (prompt 7), so they are not listed twice.
+     */
     private function partDecisions(User $user): ?array
     {
-        ['rows' => $rows, 'counts' => $counts] = app(WorkInbox::class)->snapshot($user);
+        ['rows' => $rows, 'counts' => $counts] = $this->snapshot($user);
         $rows = $rows->where('action', 'decide')->values();
 
         if ($rows->isEmpty()) {
@@ -118,15 +128,15 @@ class ForYouNow extends Component
             'count' => $counts['decide'],
             'soon' => $this->countStarting($rows, 'soon'),
             'started' => $this->countStarting($rows, 'started'),
-            'rows' => $rows->take(self::PREVIEW_ROWS)->map(fn (array $row) => $this->inboxRow($row))->all(),
+            'rows' => [],
             'url' => route('inbox', ['show' => 'decide']),
         ];
     }
 
-    /** HR and super-admin: the whole work inbox by kind (C3). */
+    /** HR and super-admin: the whole work inbox by kind (C3); the preview leaves out the header's decisions. */
     private function partInbox(User $user): ?array
     {
-        ['rows' => $rows, 'counts' => $counts] = app(WorkInbox::class)->snapshot($user);
+        ['rows' => $rows, 'counts' => $counts] = $this->snapshot($user);
 
         if ($rows->isEmpty()) {
             return null;
@@ -142,7 +152,7 @@ class ForYouNow extends Component
             ]),
             'soon' => $this->countStarting($rows, 'soon'),
             'started' => $this->countStarting($rows, 'started'),
-            'rows' => $rows->take(self::PREVIEW_ROWS)->map(fn (array $row) => $this->inboxRow($row))->all(),
+            'rows' => $rows->whereNotIn('action', Header::DECISIONS)->take(self::PREVIEW_ROWS)->map(fn (array $row) => $this->inboxRow($row))->values()->all(),
             'url' => route('inbox'),
         ];
     }
@@ -150,7 +160,7 @@ class ForYouNow extends Component
     /** Roles without the whole inbox part: the checklist rows of the inbox (G-C-11 F9). */
     private function partInboxItems(User $user): ?array
     {
-        ['rows' => $rows, 'counts' => $counts] = app(WorkInbox::class)->snapshot($user);
+        ['rows' => $rows, 'counts' => $counts] = $this->snapshot($user);
         $rows = $rows->where('source', 'checklist')->values();
 
         if ($rows->isEmpty()) {
@@ -336,6 +346,12 @@ class ForYouNow extends Component
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
+
+    /** @return array{rows: \Illuminate\Support\Collection<int, array<string, mixed>>, counts: array<string, int>} */
+    private function snapshot(User $user): array
+    {
+        return $this->inbox ??= app(WorkInbox::class)->snapshot($user);
+    }
 
     private function countStarting($rows, string $flag): int
     {

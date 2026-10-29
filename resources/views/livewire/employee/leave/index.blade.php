@@ -70,14 +70,12 @@ use App\Enums\LeaveRequestStatus;
                  x-data="{ open: true }" x-show="open"
                  aria-labelledby="submitted-leave-title"
                  data-testid="leave-submitted-result"
-                 class="mb-6 rounded-surface border border-s-4 border-neutral-200 border-s-green-600 bg-white p-4 shadow-e2">
+                 class="mb-6 rounded-surface border border-s-4 border-line-soft border-s-ink bg-card p-4 shadow-e2">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0 flex-1 space-y-2">
                     <h2 id="submitted-leave-title" class="flex flex-wrap items-center gap-2 font-semibold text-neutral-900">
                         <span>{{ __('leaves.submit.'.($submittedKind === 'updated' ? 'updated' : 'sent').'-title') }}</span>
-                        <span class="inline-flex rounded-full bg-amber-100 px-3 py-0.5 text-sm font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
-                            <span class="sr-only">@lang('general.status'): </span>{{ LeaveRequestStatus::getLocalizedName((int) $submittedLeave->status)['value'] }}
-                        </span>
+                        <span><span class="sr-only">@lang('general.status'): </span><x-status :status="LeaveRequestStatus::of($submittedLeave->status)" /></span>
                     </h2>
                     <p class="text-body text-neutral-700">
                         <span class="font-medium">@lang('leaves.next-step.title'):</span>
@@ -332,11 +330,11 @@ use App\Enums\LeaveRequestStatus;
                     {{-- D-7: December leave only as an exception. Offered only
                          when the typed period touches December. --}}
                     @if($form->periodTouchesDecember())
-                        <div class="col-span-full rounded-control border border-amber-200 bg-amber-50 px-3 py-2" wire:key="leave-exceptional">
+                        <div class="col-span-full rounded-control border-[1.5px] border-ink bg-card px-3 py-2" wire:key="leave-exceptional">
                             <label for="is_exceptional" class="flex min-h-11 cursor-pointer items-start gap-3">
                                 <input type="checkbox" id="is_exceptional" wire:model.live="form.is_exceptional"
                                        aria-describedby="is_exceptional-hint"
-                                       class="mt-1 size-5 shrink-0 rounded-inset border-neutral-300 text-primary focus-visible:ring-2 focus-visible:ring-primary">
+                                       class="hc-check mt-1 rounded-inset focus:ring-0">
                                 <span>
                                     <span class="block font-medium text-neutral-900">@lang('leave_quote.exceptional.label')</span>
                                     <span id="is_exceptional-hint" class="block text-sm text-neutral-700">@lang('leave_quote.exceptional.hint')</span>

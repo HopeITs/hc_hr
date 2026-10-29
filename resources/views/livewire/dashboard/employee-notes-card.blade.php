@@ -3,7 +3,7 @@
         x-data="notesBoard()"
         x-init="init(@js($this->notes->pluck('id')))"
         class="relative h-full w-full">
-        <div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-gray-200 bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
             <x-dashboard-cards.card-header :title="__('general.notes')" :count="$loadFailed ? null : $this->notes->count()">
                 <x-slot:icon>
                     <img class="block size-full object-contain" src="{{ asset('assets/icons/notes.svg') }}" alt="">
@@ -111,6 +111,9 @@
             </div>
         </div>
 
+        {{-- Moved to <body>: inside a dashboard tile (a size container that clips its card)
+             a fixed dialog would be held to the tile. --}}
+        <template x-teleport="body">
         <div
             x-show="showModal"
             x-cloak
@@ -118,11 +121,15 @@
             @click.self="showModal=false"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
             x-transition>
-            <div class="w-full max-w-md rounded-surface bg-white p-9 shadow-e3 border border-neutral-100">
+            {{-- A real modal: named by its heading, focus held inside while open and
+                 returned to the button that opened it when it closes (x-trap). --}}
+            <div role="dialog" aria-modal="true" aria-labelledby="notes-dialog-title"
+                 x-trap.noscroll="showModal"
+                 class="w-full max-w-md rounded-surface bg-white p-9 shadow-e3 border border-neutral-100">
                 <div class="flex items-start justify-between mb-4">
-                    <h3 class="text-h4 font-semibold text-neutral-900 tracking-tight"
+                    <h3 id="notes-dialog-title" class="text-h4 font-semibold text-neutral-900 tracking-tight"
                         x-text="modalMode === 'create' ? @js(__('general.add-new-note')) : @js(__('general.edit-note'))"></h3>
-                    <button type="button" @click="showModal=false" aria-label="{{ __('dashboard.close') }}" class="text-secondary-light hover:text-secondary-medium transition">
+                    <button type="button" @click="showModal=false" aria-label="{{ __('dashboard.close') }}" class="-m-3 inline-grid size-11 shrink-0 place-items-center rounded-control text-secondary-light hover:text-secondary-medium transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
                              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -133,8 +140,9 @@
                 <div class="space-y-4">
 
                     <div>
-                        <label class="block text-body font-medium text-neutral-800 mb-1">@lang('general.note-content')</label>
+                        <label for="notes-dialog-content" class="block text-body font-medium text-neutral-800 mb-1">@lang('general.note-content')</label>
                         <textarea
+                            id="notes-dialog-content"
                             x-model="modalContent"
                             placeholder="{{__('general.write-your-note')}}..."
                             class="block w-full h-28 rounded-surface border border-neutral-300 text-body text-neutral-800 py-2 px-3 resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
@@ -156,11 +164,16 @@
                 </div>
             </div>
         </div>
+        </template>
 
     </div>
 
-    <script nonce="{{ Vite::cspNonce() }}">
-        function notesBoard() {
+    {{-- @script, not a plain <script>: the card is a lazy dashboard tile, which arrives
+         in a Livewire update where a plain script never runs. Livewire runs this
+         before the card's markup is morphed in, so notesBoard() exists by then. --}}
+    @script
+    <script>
+        window.notesBoard = function () {
             return {
                 showModal: false,
                 modalMode: 'create',
@@ -207,8 +220,9 @@
                     lw.call('toggleDone', id);
                 },
             };
-        }
+        };
     </script>
+    @endscript
 
     <style>
         .custom-scrollbar::-webkit-scrollbar {

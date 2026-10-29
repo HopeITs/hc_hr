@@ -1,5 +1,21 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+{{-- Light or dark as the person last chose on this device (else the system's), applied
+     before the first paint so nothing flashes. wire:navigate copies the new page's <html>
+     attributes over the old ones, which drops data-theme; the observer puts it back in
+     the same task, before anything paints, and livewire:navigated re-applies it too.
+     The switch is in the header (livewire/layout/header.blade.php). --}}
+<meta name="color-scheme" content="light dark" />
+<script nonce="{{ Vite::cspNonce() }}">
+    (function () {
+        var root = document.documentElement;
+        var stored = function () { try { var t = localStorage.getItem('hopehr-theme'); return t === 'light' || t === 'dark' ? t : null; } catch (e) { return null; } };
+        var apply = function () { var t = stored(); if (t && root.dataset.theme !== t) root.dataset.theme = t; };
+        apply();
+        new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+        document.addEventListener('livewire:navigated', apply);
+    })();
+</script>
 <meta name="description" content="{{ $description ?? __('Secure human resources management for Christian Hope Center teams across Syria.') }}" />
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
 
@@ -43,7 +59,8 @@
      data, a photo or a file. On the sign-in page, and whenever the signed-in
      user or active role differs from the last one seen on this device, it is
      told to start from a clean cache. --}}
-<meta name="theme-color" content="#c2151c">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161617" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="HopeHR">
 <meta name="mobile-web-app-capable" content="yes">
 @php($pwaSession = auth()->check() ? hash('sha256', auth()->id().'|'.auth()->user()->myRole().'|'.config('app.key')) : 'signed-out')

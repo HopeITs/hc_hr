@@ -1,5 +1,5 @@
 <div
-    class="w-full h-full rounded-surface bg-white border border-neutral-200 shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
+    class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm p-6">
 
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-h4 font-semibold text-secondary-medium flex items-center gap-2">
@@ -19,11 +19,10 @@
 
 </div>
 
-@push('scripts')
-    <script nonce="{{ Vite::cspNonce() }}">
-        // Runs on a normal load and again when wire:navigate swaps this page in,
-        // where DOMContentLoaded has already fired and would never call back.
-        (() => {
+{{-- @script, not @push: on the dashboard this card is a lazy tile, which arrives
+     in a Livewire update that never reaches the layout's script stack. --}}
+@script
+    <script>
         const init = () => {
 
             const ctx = document.getElementById("departmentEmployeesChart");
@@ -36,7 +35,7 @@
             const countLabels = @json(collect($employeeCounts)->unique()->mapWithKeys(fn ($count) => [$count => trans_choice('dashboard.employees-count', $count)]));
             const isRtl = document.documentElement.dir === 'rtl';
 
-            const primaryColor = "#c2151c";
+            const primaryColor = "#BE1F24";
             const gridColor    = "#dcddde";
 
             new Chart(ctx, {
@@ -127,11 +126,7 @@
 
         };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-        })();
+        // A lazy tile runs this just before its card replaces the placeholder: wait a frame for the canvas.
+        requestAnimationFrame(init);
     </script>
-@endpush
+@endscript

@@ -2,16 +2,19 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import * as am5percent from "@amcharts/amcharts5/percent";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
+import { brandColors } from "./charts/brand-colors.js";
 
 // The presence check that used to guard this block now lives in
 // charts/lazy-charts.js, which is also what triggers the dynamic import.
 export default function initContractTypeChart() {
     am5.ready(function () {
 
-        const rootStyle = getComputedStyle(document.documentElement);
-        const primaryColor = am5.color(rootStyle.getPropertyValue("--color-primary").trim() || "#2563eb");
-        const secondaryColor = am5.color(rootStyle.getPropertyValue("--color-secondary-medium").trim() || "#fbbf24");
-        const neutralColor = am5.color(rootStyle.getPropertyValue("--color-neutral-300").trim() || "#9ca3af");
+        // Identity colours only, re-read on every draw (light / dark).
+        const brand = brandColors();
+        const primaryColor = am5.color(brand.primary);
+        const secondaryColor = am5.color(brand.ink2);
+        const neutralColor = am5.color(brand.line);
 
         var data = JSON.parse(
             document.getElementById("chartdiv").dataset.chart
@@ -30,6 +33,7 @@ export default function initContractTypeChart() {
             .forEach((r) => r.dispose());
 
         var root = am5.Root.new("chartdiv");
+        applyBrandInterfaceColors(root);
         root.setThemes([am5themes_Animated.new(root)]);
 
         // ============================
@@ -120,7 +124,7 @@ export default function initContractTypeChart() {
 
         xAxis.get("renderer").labels.template.setAll({
             fontSize: 9,
-            fill: am5.color("#555"),
+            fill: am5.color(brand.ink2),
             textAlign: "center",
             dy: 4
         });
@@ -146,7 +150,7 @@ export default function initContractTypeChart() {
 
         yAxis.get("renderer").labels.template.setAll({
             fontSize: 11,
-            fill: am5.color("#777")
+            fill: am5.color(brand.ink2)
         });
 
         // Invisible line series (only bullets)
@@ -168,9 +172,9 @@ export default function initContractTypeChart() {
             return am5.Bullet.new(root, {
                 sprite: am5.Circle.new(root, {
                     radius: 4,
-                    stroke: am5.color("#ffffff"),
+                    stroke: am5.color(brand.card),
                     strokeWidth: 2,
-                    fill: dataItem.dataContext._dotColor || am5.color("#c2151c")
+                    fill: dataItem.dataContext._dotColor || primaryColor
                 })
             });
         });

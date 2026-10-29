@@ -21,19 +21,18 @@
                                 default => __('general.on_hold'),
                             };
 
-                            $statusColor = match ($status) {
-                                __('employees.items.received') => 'bg-blue-100 text-blue-700',
-                                __('employees.items.delivered') => 'bg-green-100 text-green-700',
-                                default => 'bg-yellow-100 text-yellow-700',
+                            // Returned = done; delivered = the employee holds it (in progress); otherwise waiting.
+                            [$statusTone, $statusIcon] = match (true) {
+                                $item->returned_status === 'received' => ['done', 'return'],
+                                $item->delivered_status === 'delivered' => ['work', 'box'],
+                                default => ['wait', 'clock'],
                             };
                         @endphp
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-body text-neutral-900">{{ $item->item?->name ?? __('general.not-specified') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-body text-secondary-medium">{{ $item->notes ?: '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-body">
-                                <span class="px-2 py-1 inline-flex text-small font-medium rounded-full {{ $statusColor }}">
-                                    {{ $status }}
-                                </span>
+                                <x-status :tone="$statusTone" :icon="$statusIcon" :label="$status" />
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-body text-secondary-medium">
                                 {{-- Fix: Only show date if status is delivered AND date exists --}}

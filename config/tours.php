@@ -33,6 +33,9 @@ return [
         'autostart' => true,
         'steps' => [
             'welcome' => [],
+            // Prompt 11: the page is a home screen the person arranges, and Ctrl+K finds and acts.
+            'customise' => ['target' => 'dashboard.customise', 'placement' => 'bottom'],
+            'search' => ['target' => 'header.search', 'placement' => 'bottom'],
             'my-leaves' => ['target' => 'dashboard.my-leaves', 'placement' => 'bottom'],
             'notes' => ['target' => 'dashboard.notes', 'placement' => 'bottom'],
             'team' => ['target' => 'dashboard.team', 'placement' => 'start'],
@@ -43,6 +46,8 @@ return [
             // Sidebar (C1): one step per area of the menu. An area the role
             // does not see is not rendered, so its step is skipped.
             'nav-intro' => ['target' => 'nav', 'placement' => 'end'],
+            // Only once something is starred (the section is not drawn before); nav-intro says how.
+            'favourites' => ['target' => 'nav.favourites', 'placement' => 'end'],
             'nav-inbox' => ['target' => 'nav.inbox', 'placement' => 'end'],
             'nav-my-space' => ['target' => 'nav.area.my-space', 'placement' => 'end'],
             'nav-my-team' => ['target' => 'nav.area.my-team', 'placement' => 'end'],

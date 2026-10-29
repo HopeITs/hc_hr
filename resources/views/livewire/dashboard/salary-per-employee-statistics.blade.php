@@ -1,4 +1,4 @@
-<div class="w-full h-full bg-white rounded-surface shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] border border-neutral-200 px-6 py-3 flex flex-col">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm px-6 py-3">
 
     <div class="flex items-center gap-4 mt-3">
         <h3 class="text-h4 font-semibold text-secondary-medium">

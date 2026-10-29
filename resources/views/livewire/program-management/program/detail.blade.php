@@ -37,7 +37,7 @@
                         </div>
                     </div>
 
-                    <p class="text-neutral-600 dark:text-neutral-400 max-w-prose line-clamp-3">
+                    <p class="text-neutral-600 max-w-prose line-clamp-3">
                         {{ $program->{'description_' . app()->getLocale()} }}
                     </p>
 

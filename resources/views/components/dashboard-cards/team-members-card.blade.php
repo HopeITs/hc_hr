@@ -1,11 +1,12 @@
+@props(['members' => collect()])
+
 @php
-    $query = request()->get('search');
     $locale = app()->getLocale();
     $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
 @endphp
 
 <div x-data="{ search: '' }"
-    class="relative w-full h-full bg-white rounded-surface shadow-e1 overflow-hidden flex flex-col">
+    class="relative flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
 
     <x-dashboard-cards.card-header :title="__('general.contact-the-team')">
         <x-slot:actions>
@@ -23,11 +24,11 @@
     <!-- Team List -->
     <div
         data-csb-exclude
-        class="relative px-6 pt-2 space-y-3 overflow-y-auto flex-grow
+        class="relative min-h-0 flex-1 space-y-3 overflow-y-auto px-6 pt-2
                 scrollbar-thin scrollbar-thumb-[var(--color-neutral-300)] scrollbar-track-transparent
-                hover:scrollbar-thumb-[var(--color-secondary-medium)] max-h-[440px]">
+                hover:scrollbar-thumb-[var(--color-secondary-medium)]">
 
-        @forelse($this->teamMembers as $member)
+        @forelse($members as $member)
             @php
                 // Work contact only — personal numbers are never shown to colleagues.
                 $phone = preg_replace('/\D+/', '', $member->work_phone ?? '');
@@ -140,7 +141,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="border-t border-[var(--color-neutral-200)] bg-white px-6 py-3 text-center mt-auto">
+    <div class="mt-auto border-t border-line-soft bg-card px-6 py-3 text-center">
         <a href="{{ route('org.chart') }}" wire:navigate
             class="text-small font-semibold text-[var(--color-primary)] hover:underline">
             @lang('general.view-all') <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span>

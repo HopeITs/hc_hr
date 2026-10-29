@@ -50,16 +50,15 @@
                                 {{ $item->item->name }}
                             </td>
                             <td class="ps-6 pe-2 py-4 text-body">
-                                <span class="px-2 py-1 inline-flex text-small ltr:-ms-2 rtl:text-right font-medium rounded-full
-                                    @if(strtolower($item->display_status) === 'delivered')
-                                        bg-green-100 text-green-700
-                                    @elseif(strtolower($item->display_status) === 'on hold')
-                                        bg-yellow-100 text-yellow-700
-                                    @else
-                                        bg-neutral-100 text-neutral-800
-                                    @endif">
-                                    {{ $item->display_status }}
-                                </span>
+                                {{-- Same mapping as the employee's Items tab: delivered = held (in progress), returned = done. --}}
+                                @php
+                                    [$itemTone, $itemIcon, $itemLabel] = match (strtolower($item->display_status)) {
+                                        'delivered' => ['work', 'box', __('employees.items.delivered')],
+                                        'returned' => ['done', 'return', __('employees.items.received')],
+                                        default => ['wait', 'clock', __('general.on_hold')],
+                                    };
+                                @endphp
+                                <x-status :tone="$itemTone" :icon="$itemIcon" :label="$itemLabel" />
                             </td>
                             <td class="px-6 py-4 text-body  text-secondary-medium">
                                 {{ $item->delivered_at ? $item->delivered_at->format('Y-m-d') : '-' }}

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\SalaryPer;
 use App\Exports\ContractExport;
@@ -51,7 +52,7 @@ class ContractsTable extends LivewireTable
     public const ENDING_SOON_DAYS = 30;
 
     /** Presets other than the default are for HR / general manager only (table-contract.md §5). */
-    private const PRESETS = ['active', 'ending-soon', 'ended', 'draft'];
+    private const PRESETS = ['active', 'ending-soon', 'ended', 'not-renewed', 'draft'];
 
     // Open alphabetically by employee name; clicking the header still toggles
     // desc and then clears back to the package's id order.
@@ -209,23 +210,6 @@ class ContractsTable extends LivewireTable
         return $days >= 0 && $days <= self::ENDING_SOON_DAYS ? $days : null;
     }
 
-    /**
-     * The status word and badge colour for one row. A draft and a terminated
-     * contract are both inactive, but they are not the same state.
-     *
-     * @return array{0: string, 1: string}
-     */
-    public static function statusOf(Model $contract): array
-    {
-        return match (true) {
-            (int) $contract->type === ContractTypeEnum::Draft => [ContractTypeEnum::getLocalizedName(ContractTypeEnum::Draft)['value'], 'gray'],
-            $contract->isTerminated() => [__('contracts.status-terminated'), 'red'],
-            (bool) $contract->is_active => [__('general.active'), 'green'],
-            $contract->end_date !== null && $contract->end_date->isPast() => [__('contracts.status-expired'), 'gray'],
-            default => [__('general.inactive'), 'gray'],
-        };
-    }
-
     /** @return array<string, string> preset => label, as the active role may use them */
     protected function presetOptions(): array
     {
@@ -233,6 +217,7 @@ class ContractsTable extends LivewireTable
             'active' => __('contracts.view-active'),
             'ending-soon' => __('contracts.view-ending-soon', ['days' => self::ENDING_SOON_DAYS]),
             'ended' => __('contracts.view-ended'),
+            'not-renewed' => __('contracts.view-not-renewed', ['days' => self::ENDING_SOON_DAYS]),
             'draft' => __('contracts.view-draft'),
         ];
 
@@ -474,7 +459,7 @@ class ContractsTable extends LivewireTable
             Column::make(__('general.period'), 'period')
                 ->displayUsing(fn ($v, Model $m) => Blade::render(
                     '<div><x-period :start="$start" :end="$end" />'
-                    .'@if($days !== null)<p class="mt-1 text-center text-small font-medium text-amber-800">{{ trans_choice(\'contracts.ends-in-days\', $days, [\'count\' => $days]) }}</p>@endif</div>',
+                    .'@if($days !== null)<p class="mt-1 text-center"><x-tag variant="rush">{{ trans_choice(\'contracts.ends-in-days\', $days, [\'count\' => $days]) }}</x-tag></p>@endif</div>',
                     ['start' => $m->start_date, 'end' => $m->end_date, 'days' => self::endsInDays($m)],
                 ))->asHtml(),
             // The reason rides along as a tooltip rather than its own column:
@@ -531,14 +516,9 @@ class ContractsTable extends LivewireTable
                     1 => __('general.active'),
                     0 => __('general.inactive'),
                 ])
-                ->displayUsing(function ($v, Model $m) {
-                    [$label, $color] = self::statusOf($m);
-
-                    return Blade::render('<x-badge :color="$color">{{ $text }}</x-badge>', [
-                        'color' => $color,
-                        'text' => $label,
-                    ]);
-                })
+                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-status :status="$status" />', [
+                    'status' => ContractStatus::for($m),
+                ]))
                 ->sortable()
                 ->searchable()
                 ->asHtml(),

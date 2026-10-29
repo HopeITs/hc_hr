@@ -49,14 +49,40 @@ final class WorkInbox
     }
 
     /**
+     * snapshot() read once per HTTP request, for the places that only show it:
+     * the sidebar badge, the bottom bar, the dashboard header and its inbox
+     * shortcut all draw on one dashboard load (they were four passes, ~25
+     * queries each for city HR). Kept on the request, so the next request
+     * reads afresh. The inbox page itself decides and re-reads within one
+     * request, so it keeps calling snapshot().
+     *
+     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int}}
+     */
+    public function shared(User $user): array
+    {
+        $attributes = request()->attributes;
+        $key = 'work-inbox:'.$user->getKey().':'.$user->myRole();
+
+        if (! $attributes->has($key)) {
+            $attributes->set($key, $this->snapshot($user));
+        }
+
+        return $attributes->get($key);
+    }
+
+    /**
      * The listed rows and the exact counts, from one pass over the sources.
      *
      * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int}}
      */
     public function snapshot(User $user): array
     {
-        [$decide, $decideTotal] = $this->leaveDecisions($user);
-        [$review, $reviewTotal] = $this->leaveReviews($user);
+        // One authority for the pass, so the managers of a position, whether
+        // each is on leave and the user's scope are read once, not per request.
+        $authority = LeaveDecisionAuthority::forOnePass();
+
+        [$decide, $decideTotal] = $this->leaveDecisions($user, $authority);
+        [$review, $reviewTotal] = $this->leaveReviews($user, $authority);
         [$checklist, $checklistTotal] = $this->checklistConfirmations($user);
         [$finalize, $finalizeTotal] = $this->checklistFinalizations($user);
         [$profile, $profileTotal] = $this->profileChanges($user);
@@ -97,7 +123,7 @@ final class WorkInbox
     }
 
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */
-    private function leaveDecisions(User $user): array
+    private function leaveDecisions(User $user, LeaveDecisionAuthority $authority): array
     {
         // No permission check here: the direct manager decides whatever their
         // role (DEC-05 revision 2); the decide policy below is the gate. It
@@ -110,8 +136,8 @@ final class WorkInbox
         $this->leaveQuery($user)
             ->where('status', LeaveRequestStatus::Pending)
             ->lazy(self::PER_SOURCE)
-            ->each(function (LeaveRequest $leave) use ($user, $rows, &$total): void {
-                if (! Gate::forUser($user)->allows('decide', $leave)) {
+            ->each(function (LeaveRequest $leave) use ($user, $rows, &$total, $authority): void {
+                if (! Gate::forUser($user)->allows('decide', [$leave, $authority])) {
                     return;
                 }
 
@@ -126,7 +152,7 @@ final class WorkInbox
     }
 
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */
-    private function leaveReviews(User $user): array
+    private function leaveReviews(User $user, LeaveDecisionAuthority $authority): array
     {
         if (! $this->isHr($user) || ! $user->hasActivePermission('leaves.review')) {
             return [collect(), 0];
@@ -142,9 +168,12 @@ final class WorkInbox
                 ->whereNull('approved_by')
                 ->orWhere('approved_by', '!=', $user->employee_id)));
 
+        $listed = (clone $query)->limit(self::PER_SOURCE)->get();
+        $authority->primeScope($user, $listed->modelKeys());
+
         return [
-            (clone $query)->limit(self::PER_SOURCE)->get()
-                ->filter(fn (LeaveRequest $leave) => Gate::forUser($user)->allows('review', $leave))
+            $listed
+                ->filter(fn (LeaveRequest $leave) => Gate::forUser($user)->allows('review', [$leave, $authority]))
                 ->map(fn (LeaveRequest $leave) => $this->leaveRow($leave, 'review')),
             $query->count(),
         ];

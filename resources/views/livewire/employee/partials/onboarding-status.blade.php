@@ -85,7 +85,7 @@
                             <li>
                                 <button type="button" x-on:click="go(@js($key))"
                                     class="inline-flex items-center gap-2 text-start hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                                    <span x-show="filled(@js($key))" class="text-emerald-700" aria-hidden="true">✓</span>
+                                    <span x-show="filled(@js($key))" class="font-bold text-ink" aria-hidden="true">✓</span>
                                     <span x-show="! filled(@js($key))" class="text-secondary-light" aria-hidden="true">○</span>
                                     <span>{{ $label }}</span>
                                     <span class="sr-only" x-text="filled(@js($key)) ? @js(__('employees.onboarding.filled')) : @js(__('employees.onboarding.missing'))"></span>
@@ -101,7 +101,7 @@
                             <li>
                                 <button type="button" x-on:click="go(@js($key))"
                                     class="inline-flex items-center gap-2 text-start hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                                    <span x-show="filled(@js($key))" class="text-emerald-700" aria-hidden="true">✓</span>
+                                    <span x-show="filled(@js($key))" class="font-bold text-ink" aria-hidden="true">✓</span>
                                     <span x-show="! filled(@js($key))" class="text-secondary-light" aria-hidden="true">○</span>
                                     <span>{{ $label }}</span>
                                     <span class="sr-only" x-text="filled(@js($key)) ? @js(__('employees.onboarding.filled')) : @js(__('employees.onboarding.missing'))"></span>

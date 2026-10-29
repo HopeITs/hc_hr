@@ -17,8 +17,8 @@
     background/border for "required" reads as an error at a glance, which it
     is not.
 --}}
-<div {{ $attributes->class('rounded-control border border-neutral-200 p-3 transition') }}>
-    <x-forms.input type="checkbox" x-model="{{ $model }}" id="{{ $id }}" label-class="font-medium text-body text-neutral-800">
+<div {{ $attributes->class('hc-choice p-3') }}>
+    <x-forms.input type="checkbox" x-model="{{ $model }}" id="{{ $id }}" label-class="font-semibold text-body text-ink">
         {{ $slot }}
     </x-forms.input>
 

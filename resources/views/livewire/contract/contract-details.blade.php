@@ -89,7 +89,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
-        <x-badge color="red">
+        <x-badge>
             {{ $contract->contractType?->name
                 ?? $contract->contractType?->name
                 ?? __('general.na') }}

@@ -9,10 +9,8 @@
         $statusLabel = ! $isActive
             ? __('digital_id.panel.status_inactive')
             : ($isEnabled ? __('digital_id.panel.status_valid') : __('digital_id.panel.status_disabled'));
-        $statusClasses = $isActive && $isEnabled
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-            : 'bg-neutral-100 text-secondary-medium ring-neutral-200';
-        $statusDot = $isActive && $isEnabled ? 'bg-emerald-500' : 'bg-neutral-400';
+        // Valid = done; disabled or inactive = stopped (icon + words, never colour).
+        [$statusTone, $statusIcon] = $isActive && $isEnabled ? ['done', 'check'] : ['stop', $isActive ? 'ban' : 'pause'];
     @endphp
 
         <x-profile-section :title="__('digital_id.panel.title')" :subtitle="__('digital_id.panel.subtitle')" icon="icons.employee">
@@ -21,10 +19,7 @@
                     <div class="rounded-surface bg-neutral-50 p-3">
                         <dt class="text-small text-secondary-light">@lang('digital_id.panel.status')</dt>
                         <dd class="mt-1">
-                            <span class="inline-flex items-center rounded-full px-2 py-1 text-small font-bold ring-1 {{ $statusClasses }}">
-                                <span class="me-2 h-2 w-2 rounded-full {{ $statusDot }}"></span>
-                                {{ $statusLabel }}
-                            </span>
+                            <x-status :tone="$statusTone" :icon="$statusIcon" :label="$statusLabel" />
                         </dd>
                     </div>
 
@@ -64,8 +59,8 @@
                         </div>
                     </div>
                 @elseif ($missingLink)
-                    <p class="rounded-surface bg-amber-50 p-3 text-small font-semibold text-amber-700 ring-1 ring-amber-200">
-                        {{ __($missingLink) }}
+                    <p class="flex items-start gap-2 rounded-control border-s-4 border-ink bg-soft p-3 text-small font-semibold text-ink">
+                        <x-ic name="warning" class="mt-0.5 size-4" />{{ __($missingLink) }}
                     </p>
                 @endif
 

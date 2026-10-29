@@ -16,7 +16,7 @@
 
 <nav id="app-navbar" dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
     style="padding-top: env(safe-area-inset-top, 0px)"
-    class="fixed inset-x-0 top-0 z-30 w-screen bg-white md:w-full dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+    class="fixed inset-x-0 top-0 z-30 w-screen bg-base md:w-full border-b border-line-soft">
 
     {{--
         Everything below `sm` is tightened purely to buy horizontal room. The row
@@ -42,7 +42,7 @@
             {{-- Island 1: language segmented (EN | AR). On phones only the other
                  language is shown (C2): with search and New in the row, two
                  buttons here pushed the menu button off the screen. --}}
-            <div class="flex items-center shrink-0 rounded-[18px] bg-[#f6f6f6] p-0.5 sm:p-1">
+            <div class="flex items-center shrink-0 rounded-[18px] bg-soft p-0.5 sm:p-1">
                 <a href="{{ $enUrl }}"
                     class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-white text-neutral-900 shadow-e1 max-sm:hidden' : 'text-secondary-light font-semibold hover:text-secondary-dark' }}"
                     aria-label="English" @if($curr === 'en') aria-current="true" @endif>EN</a>
@@ -51,8 +51,12 @@
                     aria-label="العربية" @if($curr === 'ar') aria-current="true" @endif>AR</a>
             </div>
 
+            {{-- Light / dark, beside the language switch. Not on phones (no room at 375px):
+                 there it is a row in the account menu. --}}
+            <x-theme-toggle class="max-sm:hidden" />
+
             {{-- Island 2: utility icons grouped in one capsule --}}
-            <div class="flex items-center shrink-0 gap-0.5 rounded-[18px] bg-[#f6f6f6] p-0.5 sm:p-1">
+            <div class="flex items-center shrink-0 gap-0.5 rounded-[18px] bg-soft p-0.5 sm:p-1">
                 {{-- D3. Not on phones: one more 44px button pushed the menu button off the
                      screen at 375px (M1). There it is in the account menu, and the "?"
                      beside each difficult field opens the same panel. --}}
@@ -96,7 +100,7 @@
 
                             <span
                                 class="absolute bottom-0.5 {{ $isRtl ? 'start-0.5' : 'end-0.5' }}
-                                         size-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                                         size-2 rounded-full bg-ink-2 ring-2 ring-card"></span>
                         </span>
                     </button>
 
@@ -161,6 +165,9 @@
                                 </svg>
                                 <span>@lang('help.panel.open')</span>
                             </button>
+
+                            {{-- Phones: the header's light / dark button does not fit there. --}}
+                            <x-theme-toggle menu class="sm:hidden" />
 
                             {{-- D3: opens the feedback dialog over the current page; nothing navigates. --}}
                             <button type="button" role="menuitem" data-feedback-open

@@ -6,7 +6,7 @@
 @php
     $name = $item->employee?->name ?? __('general.na');
     $title = app()->getLocale() === 'ar' ? 'title_ar' : 'title_en';
-    [$statusLabel, $statusColor] = \App\Livewire\Contract\ContractsTable::statusOf($item);
+    $contractStatus = \App\Enums\ContractStatus::for($item);
     $days = \App\Livewire\Contract\ContractsTable::endsInDays($item);
 @endphp
 <div class="flex items-start gap-2" data-card="{{ $item->getKey() }}">
@@ -18,9 +18,9 @@
         <span class="block break-words font-semibold" dir="auto">{{ $name }}</span>
         <span class="block break-words text-small text-neutral-600" dir="auto">{{ $item->contractType?->name }} · <bdi>{{ $item->start_date?->format('Y-m-d') }} – {{ $item->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></span>
         <span class="mt-1 flex flex-wrap items-center gap-2">
-            <x-badge :color="$statusColor">{{ $statusLabel }}</x-badge>
+            <x-status :status="$contractStatus" />
             @if($days !== null)
-                <span class="text-small font-medium text-amber-800">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</span>
+                <x-tag variant="rush">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</x-tag>
             @endif
         </span>
     </button>

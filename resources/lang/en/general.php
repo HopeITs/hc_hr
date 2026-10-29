@@ -958,13 +958,13 @@ return [
     // A4: sidebar group headings.
     // C2: header search and the New button (docs/ux/interaction-contract.md §6).
     'global-search' => [
-        'label' => 'Search people and pages',
-        'placeholder' => 'Search people and pages',
+        'label' => 'Search people, pages and commands',
+        'placeholder' => 'Search people, pages and commands',
         'loading' => 'Searching…',
         'too-short' => 'Type at least :count letters.',
         'throttled' => 'Too many searches in a short time. Wait a minute, then try again.',
         'failed' => 'Search is not available right now. Try again.',
-        'empty' => 'No people or pages found for “:term”.',
+        'empty' => 'No people, pages or commands found for “:term”.',
         'count' => ':count result|:count results',
         'pages' => 'Pages',
         'people' => 'People',

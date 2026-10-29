@@ -21,7 +21,7 @@
             </div>
 
             {{-- Status --}}
-            <x-auth-session-status class="text-center text-green-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="text-center text-body" :status="session('status')" />
 
             {{-- Form --}}
             <form wire:submit.prevent="sendPasswordResetLink" class="space-y-4">

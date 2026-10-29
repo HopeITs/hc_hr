@@ -82,7 +82,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.first_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="first_name_{{ $locale }}" />
+                            id="first_name_{{ $locale }}" :examples="__('examples.first_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.first_name_' . $locale) }}</x-error-span>
                     </div>
 
@@ -91,7 +92,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.last_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="last_name_{{ $locale }}" />
+                            id="last_name_{{ $locale }}" :examples="__('examples.last_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.last_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach
@@ -181,7 +183,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.father_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="father_name_{{ $locale }}" />
+                            id="father_name_{{ $locale }}" :examples="__('examples.father_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.father_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach
@@ -193,7 +196,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.mother_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="mother_name_{{ $locale }}" />
+                            id="mother_name_{{ $locale }}" :examples="__('examples.mother_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.mother_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach

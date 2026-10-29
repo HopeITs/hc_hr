@@ -99,7 +99,7 @@
                     </div>
 
                     <div class="text-end">
-                        <span class="inline-block px-2 py-1 text-caption font-semibold text-white rounded-control scale-[0.8] ltr:origin-right rtl:origin-left
+                        <span class="inline-block px-2 py-1 text-caption font-semibold rounded-control scale-[0.8] ltr:origin-right rtl:origin-left
                                      {{ $card['color'] }}">
                             {{ $cardType === 'program'
                                 ? trans_choice('general.program', 2)

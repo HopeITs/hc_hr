@@ -1,4 +1,4 @@
-<div class="flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface bg-white ring-1 ring-neutral-200 shadow-sm">
+<div class="flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.upcoming-leaves')" :count="$loadFailed ? null : $upcomingLeaves->count()" />
 
     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-5 pt-2 text-start scrollbar-thin scrollbar-thumb-[var(--color-secondary-light)] scrollbar-track-transparent">

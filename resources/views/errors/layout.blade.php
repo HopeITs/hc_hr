@@ -40,7 +40,7 @@
         .btn-home {
             display: inline-block;
             padding: 10px 20px;
-            color: #c2151c;
+            color: #BE1F24;
             border-radius: 8px;
             font-weight:400;
             font-size: 11px;

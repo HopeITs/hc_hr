@@ -1,19 +1,7 @@
-@php
-    use App\Models\News;
-    use Carbon\Carbon;
+{{-- newsItems: the past week's news, loaded by Dashboard\NewsCard. --}}
+@props(['newsItems' => collect()])
 
-    $today = Carbon::today();
-
-    $newsItems = News::with(['newsable', 'creator.profile'])
-        ->whereDate('event_date', '<', $today)
-        ->whereDate('event_date', '>=', $today->copy()->subDays(7))
-        ->orderByDesc('event_date')
-        ->get();
-@endphp
-
-
-
-<div x-data="{ open: false, selected: null }" class="relative flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+<div x-data="{ open: false, selected: null }" class="relative flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.news')" :count="$newsItems->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/news.svg') }}" alt="">

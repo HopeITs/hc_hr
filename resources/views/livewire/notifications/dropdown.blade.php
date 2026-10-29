@@ -56,7 +56,7 @@
                         : 'bg-white hover:bg-neutral-50' }}">
 
             {{-- Unread accent bar --}}
-            <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-[#c2151c]' : 'bg-transparent' }}"
+            <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-primary' : 'bg-transparent' }}"
                   x-bind:style="clicked ? 'background-color: transparent' : ''"></span>
 
             {{-- Text --}}
@@ -75,11 +75,11 @@
                     @if($state && $state['state'] !== 'info')
                         <p class="mt-1 flex flex-wrap items-center gap-x-2 text-caption">
                             @if($state['state'] === 'awaiting')
-                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-primary">@lang('general.notification-state.awaiting')</span>
+                                <x-status tone="attn" icon="alert" :label="__('general.notification-state.awaiting')" />
                             @elseif($state['state'] === 'handled')
-                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-secondary-medium">@lang('general.notification-state.handled')</span>
+                                <x-status tone="done" icon="check" :label="__('general.notification-state.handled')" />
                             @else
-                                <span class="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold text-secondary-medium">@lang('general.notification-state.unavailable')</span>
+                                <x-status tone="stop" icon="ban" :label="__('general.notification-state.unavailable')" />
                             @endif
                             @if($state['status'])
                                 <span class="text-secondary-medium">@lang('general.notification-state.status', ['status' => $state['status']])</span>
@@ -96,7 +96,7 @@
             </div>
 
             {{-- Unread dot (fades + shrinks out on read) --}}
-            <span class="mt-2 size-2 shrink-0 rounded-full bg-[#c2151c] transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
+            <span class="mt-2 size-2 shrink-0 rounded-full bg-primary transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
                   x-bind:style="clicked ? 'opacity: 0; transform: scale(0)' : ''"></span>
         </a>
     @empty

@@ -36,11 +36,14 @@ class LeaveRequestPolicy
     /**
      * Only the direct manager decides; HR only on their behalf while they are
      * on leave, or when there is no direct manager (C3, DEC-05 revision, C3-Q1).
+     *
+     * $authority lets a caller checking many requests in one pass share a
+     * LeaveDecisionAuthority::forOnePass() (WorkInbox); the rule is the same.
      */
-    public function decide(User $user, LeaveRequest $leaveRequest): bool
+    public function decide(User $user, LeaveRequest $leaveRequest, ?LeaveDecisionAuthority $authority = null): bool
     {
         return $leaveRequest->status === LeaveRequestStatus::Pending
-            && app(LeaveDecisionAuthority::class)->basisFor($user, $leaveRequest) !== null;
+            && ($authority ?? app(LeaveDecisionAuthority::class))->basisFor($user, $leaveRequest) !== null;
     }
 
     /**
@@ -56,8 +59,11 @@ class LeaveRequestPolicy
             && $this->canManage($user, $leaveRequest);
     }
 
-    /** "Seen by HR": the permission is checked here, not only by the menu or the route (G-C-3). */
-    public function review(User $user, LeaveRequest $leaveRequest): bool
+    /**
+     * "Seen by HR": the permission is checked here, not only by the menu or the route (G-C-3).
+     * $authority: as for decide(), a one-pass authority answers the scope question.
+     */
+    public function review(User $user, LeaveRequest $leaveRequest, ?LeaveDecisionAuthority $authority = null): bool
     {
         return $leaveRequest->status !== LeaveRequestStatus::Pending
             && ! $leaveRequest->hr_approved
@@ -65,7 +71,7 @@ class LeaveRequestPolicy
             && ! ($user->employee_id !== null && (int) $leaveRequest->approved_by === (int) $user->employee_id)
             && $this->isHr($user)
             && $user->hasActivePermission('leaves.review')
-            && $this->canManage($user, $leaveRequest);
+            && ($authority ? $authority->isManageableBy($user, $leaveRequest) : $this->canManage($user, $leaveRequest));
     }
 
     private function isHr(User $user): bool

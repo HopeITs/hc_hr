@@ -22,11 +22,7 @@
      * inside the quotes and break the whole binding.
      */
     $control = preg_replace('/\s+/', ' ', trim(
-        'w-full min-h-[2.375rem] py-2 ps-3 pe-9 text-body rounded-control border bg-white shadow-e1
-         transition outline-none placeholder:text-neutral-400
-         focus:ring-2 focus:ring-neutral-300 focus:border-primary
-         disabled:bg-neutral-100 disabled:text-secondary-medium disabled:cursor-not-allowed
-         disabled:shadow-none'
+        'hc-field pe-9 outline-none'
     ));
 @endphp
 
@@ -55,7 +51,7 @@
         x-ref="input"
         x-bind:class="[
             '{{ $control }}',
-            hasError ? 'border-primary text-primary' : 'border-neutral-300 text-neutral-900',
+            hasError ? '!border-2 !border-primary' : '',
         ]"
         x-bind:value="open ? query : selectedLabel"
         x-bind:placeholder="isDisabled() ? '' : placeholder"

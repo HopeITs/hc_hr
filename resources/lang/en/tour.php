@@ -14,6 +14,14 @@ return [
             'title' => 'Welcome to your dashboard',
             'body' => 'Everything you need day to day is on this page. This short tour points out the main cards.',
         ],
+        'customise' => [
+            'title' => 'Make it yours',
+            'body' => 'Press Customise to move, resize, hide or pin the cards, add shortcuts to the pages you use, then press Done. Your layout is kept for each of your roles.',
+        ],
+        'search' => [
+            'title' => 'Search and act: Ctrl+K',
+            'body' => 'Press Ctrl+K (⌘K on a Mac) to find a person or a page, or to run a command such as New leave request or Toggle dark mode. Press ? for every keyboard shortcut.',
+        ],
         'my-leaves' => [
             'title' => 'Your leave balance',
             'body' => 'See how many leave days you have left and how many you have used.',
@@ -40,7 +48,11 @@ return [
         ],
         'nav-intro' => [
             'title' => 'The menu',
-            'body' => 'The menu is grouped by whose work it is. Next, a quick look at each part you can open.',
+            'body' => 'The menu is grouped by whose work it is. Point at a page and press its star to pin it to My favorites at the top. Next, a quick look at each part you can open.',
+        ],
+        'favourites' => [
+            'title' => 'My favorites',
+            'body' => 'The pages you starred, up to eight. Drag one onto another, or focus its handle and use the arrow keys, to change the order.',
         ],
         'nav-inbox' => [
             'title' => 'Work inbox',

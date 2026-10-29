@@ -9,7 +9,7 @@
     @if($contract)
         @php
             $titleKey = app()->getLocale() === 'ar' ? 'title_ar' : 'title_en';
-            [$statusLabel, $statusColor] = \App\Livewire\Contract\ContractsTable::statusOf($contract);
+            $contractStatus = \App\Enums\ContractStatus::for($contract);
             $days = \App\Livewire\Contract\ContractsTable::endsInDays($contract);
             $position = $contract->position;
             $city = $position?->city?->name ?? $position?->center?->city?->name;
@@ -50,9 +50,9 @@
 
                 <div class="flex flex-col gap-4 p-4">
                     <div class="flex flex-wrap items-center gap-2">
-                        <x-badge :color="$statusColor">{{ $statusLabel }}</x-badge>
+                        <x-status :status="$contractStatus" />
                         @if($days !== null)
-                            <span class="text-small font-medium text-amber-800">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</span>
+                            <x-tag variant="rush">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</x-tag>
                         @endif
                     </div>
 

@@ -16,7 +16,7 @@
                 <p class="text-sm text-gray-500">{{ __('auth.sign-in-text') }}</p>
             </div>
 
-            <x-auth-session-status class="mb-2 text-center text-green-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="mb-2 text-center text-body" :status="session('status')" />
 
             <form
                 x-data

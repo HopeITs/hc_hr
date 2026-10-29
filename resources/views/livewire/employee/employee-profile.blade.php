@@ -38,18 +38,9 @@
                 <div class="min-w-0 w-full flex-1 min-[900px]:basis-[calc(100%-11.5rem)]">
                     <div class="mb-2 flex flex-wrap items-center gap-2 sm:mb-3 sm:gap-2">
                         @if ($isOnLeave)
-                            <span
-                                class="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-caption font-bold text-amber-700 ring-1 ring-amber-200 sm:px-3 sm:py-1 sm:text-small">
-                                <span class="me-1 h-1.5 w-1.5 rounded-full bg-amber-500 sm:me-2 sm:h-2 sm:w-2"></span>
-                                @lang('general.on-leave')
-                            </span>
+                            <x-status tone="work" icon="calendar" :label="__('general.on-leave')" />
                         @else
-                            <span
-                                class="inline-flex items-center rounded-full px-2 py-1 text-caption font-bold sm:px-3 sm:py-1 sm:text-small {{ $employee->is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-neutral-100 text-secondary-medium ring-1 ring-neutral-200' }}">
-                                <span
-                                    class="me-1 h-1.5 w-1.5 rounded-full sm:me-2 sm:h-2 sm:w-2 {{ $employee->is_active ? 'bg-emerald-500' : 'bg-neutral-400' }}"></span>
-                                {{ $employee->is_active ? __('general.active') : __('general.inactive') }}
-                            </span>
+                            <x-status :status="$employee->is_active ? \App\Enums\EmployeeStatus::Active : \App\Enums\EmployeeStatus::Inactive" />
                         @endif
                         @if ($employee->is_board_member)
                             <span
@@ -141,12 +132,14 @@
                             <ol class="relative space-y-3 border-s-2 border-neutral-200 ps-4" data-testid="profile-timeline">
                                 @foreach ($timeline as $i => $event)
                                     <li wire:key="event-{{ $i }}" data-event="{{ $event['kind'] }}" class="relative">
-                                        <span aria-hidden="true" @class([
-                                            'absolute -start-[1.4rem] top-1.5 size-3 rounded-full ring-2 ring-white',
-                                            'bg-primary' => ! str_starts_with($event['kind'], 'badge.'),
-                                            'bg-amber-500' => $event['kind'] === 'badge.warning',
-                                            'bg-emerald-500' => $event['kind'] === 'badge.reward' || $event['kind'] === 'badge.salary',
-                                        ])></span>
+                                        {{-- The kind is told by its icon (and the words below), not by a coloured dot. --}}
+                                        <span aria-hidden="true" class="absolute -start-[1.6rem] top-1 grid size-4 place-items-center rounded-full bg-card text-ink">
+                                            <x-ic class="size-3.5" :name="match (true) {
+                                                $event['kind'] === 'badge.warning' => 'warning',
+                                                $event['kind'] === 'badge.reward', $event['kind'] === 'badge.salary' => 'star',
+                                                default => 'dot',
+                                            }" />
+                                        </span>
                                         <p class="text-small text-secondary-light"><bdi>{{ $formatDate($event['date']) }}</bdi></p>
                                         <p class="text-body font-bold text-secondary-dark">
                                             {{-- Event codes carry a dot, which the translator reads as nesting: the keys use a dash. --}}
@@ -197,10 +190,7 @@
                                                 @endif
                                             </p>
                                         </div>
-                                        <span
-                                            class="shrink-0 rounded-full px-3 py-1 text-small font-bold {{ $contract->is_active && !$contract->terminated_at ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-secondary-medium' }}">
-                                            {{ $contract->is_active && !$contract->terminated_at ? __('general.active') : __('general.inactive') }}
-                                        </span>
+                                        <x-status class="shrink-0" :status="$contract->is_active && ! $contract->terminated_at ? \App\Enums\ContractStatus::Active : \App\Enums\ContractStatus::Inactive" />
                                     </div>
                                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-small text-secondary-light">
                                         <span><bdi>{{ $formatDate($contract->start_date) }}</bdi> –

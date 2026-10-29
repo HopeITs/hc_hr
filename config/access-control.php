@@ -498,6 +498,7 @@ return [
         // permission to protect.
         'dashboard.employee-notes-card' => [
             'addText', 'createNote', 'toggleDone', 'updateContent', 'delete', 'restoreNote', 'retryLoad',
+            'placeholder', // prompt 4: renders the dashboard tile's loading skeleton, reads nothing
         ],
         'notifications.dropdown' => [
             'markAsRead', 'markAllAsRead', 'openNotification', 'refreshList', 'safeNotificationUrl',
@@ -519,9 +520,17 @@ return [
         // hasActivePermission() says yes to HR-SYR. updatedCategory is a
         // lifecycle hook that only changes the filter.
         'feedback.feedback-index' => ['updatedCategory'],
-        'layout.sidebar' => ['toggle', 'close', 'refreshCounts'],
+        // toggleFavourite/moveFavourite (prompt 9) write only the caller's own
+        // navigation_preferences row, and only ids of the active role's menu
+        // (NavigationMemory, Navigation::shortcuts); nothing else is accepted.
+        'layout.sidebar' => ['toggle', 'close', 'refreshCounts', 'toggleFavourite', 'moveFavourite'],
         // D2 phone bar: re-renders its own links and the inbox count (WorkInbox, scoped to the caller).
-        'layout.bottom-nav' => ['refreshInbox'],
+        // refreshBar (prompt 10) only re-renders after the picker changed the caller's own shortcuts.
+        'layout.bottom-nav' => ['refreshInbox', 'refreshBar'],
+        // Prompt 10 phone bar picker: setSlot/resetBar write only the caller's own
+        // navigation_preferences row, and only shortcuts the active role may use
+        // (BottomBar::options: Home, My profile, the role's menu pages and New actions).
+        'layout.bottom-bar-picker' => ['setSlot', 'resetBar'],
 
         // --- Component-state only -------------------------------------------
         // Tab switches, wizard steps, modal open/close, filter changes, zoom
@@ -546,16 +555,47 @@ return [
         // Dismisses the modal and clears its state. Writes nothing; the two
         // actions that do write are mapped to contracts.create above.
         'contract.contract-renew-modal' => ['close', ...$closeGuard],
-        'dashboard.calendar-card' => ['next', 'prev'],
         // B3: retryLoad re-renders read-only data; placeholder renders the lazy skeleton.
-        'dashboard.contract-type-employees-statistics' => ['retryLoad'],
-        'dashboard.department-employee-statistics' => ['retryLoad'],
-        'dashboard.index' => ['retryLoad'],
-        'dashboard.job-level-employee-statistics' => ['retryLoad'],
-        'dashboard.salary-per-employee-statistics' => ['retryLoad'],
-        'dashboard.upcoming-leaves-card' => ['retryLoad'],
+        // Every dashboard tile (prompt 4) is lazy, so each has placeholder
+        // (IsDashboardTile: the card skeleton, reads nothing). The cards that were
+        // sections of dashboard.index (team, news, upcoming events, pending
+        // requests, checklist, badges) read only the caller's own records, or
+        // what the dashboard has always shown everyone, exactly as before.
+        'dashboard.calendar-card' => ['next', 'prev', 'goToday', 'jumpTo', 'retryLoad', 'placeholder'],
+        'dashboard.contract-type-employees-statistics' => ['retryLoad', 'placeholder'],
+        'dashboard.department-employee-statistics' => ['retryLoad', 'placeholder'],
+        // saveLayout/resetLayout (HasDashboardLayout) are self-scoped: only the caller's
+        // own row for the active role, cleaned so a tile the role may not have is dropped.
+        // addTile is saveLayout followed by a render (the tile being added was never drawn).
+        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile'],
+        'dashboard.job-level-employee-statistics' => ['retryLoad', 'placeholder'],
+        'dashboard.salary-per-employee-statistics' => ['retryLoad', 'placeholder'],
+        'dashboard.upcoming-leaves-card' => ['retryLoad', 'placeholder'],
         'dashboard.no-leaves-employees-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.soon-ending-contracts-card' => ['retryLoad', 'placeholder'],
+        'dashboard.for-you-now' => ['placeholder'],
+        'dashboard.my-leaves-card' => ['placeholder'],
+        'dashboard.team-card' => ['retryLoad', 'placeholder'],
+        'dashboard.news-card' => ['retryLoad', 'placeholder'],
+        'dashboard.upcoming-events-card' => ['retryLoad', 'placeholder'],
+        'dashboard.pending-requests-card' => ['retryLoad', 'placeholder'],
+        'dashboard.checklist-card' => ['retryLoad', 'placeholder'],
+        'dashboard.badges-card' => ['retryLoad', 'placeholder'],
+        // Prompt 8 tiles, read-only. Who is out and birthdays read TeamCoverage on the
+        // team calendar's default scope for the active role; next holiday and leave
+        // balance read the caller's own contract only.
+        'dashboard.who-is-out-card' => ['retryLoad', 'placeholder'],
+        'dashboard.next-holiday-card' => ['retryLoad', 'placeholder'],
+        'dashboard.leave-balance-card' => ['retryLoad', 'placeholder'],
+        'dashboard.birthdays-card' => ['retryLoad', 'placeholder'],
+        // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.
+        'dashboard.clock-card' => ['retryLoad', 'placeholder'],
+        // The late band and decision cards read the caller's own WorkInbox::shared
+        // snapshot and Contract::visibleTo(); a big shortcut's card re-checks its key
+        // against DashboardLayout::allowed() on every render and keeps its page's scope.
+        'dashboard.late-card' => ['retryLoad', 'placeholder'],
+        'dashboard.decisions-card' => ['retryLoad', 'placeholder'],
+        'dashboard.app-card' => ['retryLoad', 'placeholder'],
         // skipDraft is pure navigation (a redirect, no data read or write) and
         // updatedDraftCityId/updatedDraftProgramId only reset the draft
         // cascade's own in-memory selections — the same class as
@@ -572,17 +612,19 @@ return [
         // ChecklistWorkflow (row scoped to the actor, plus checklists.deliver/receive),
         // finalizeItem -> Gate update on the employee + ChecklistWorkflow::finalizeReturn.
         // previewBatch writes nothing; setFilter changes the view only.
-        // C5 team calendar: move/goToday/openDay only change the period shown.
+        // C5 team calendar: move/goToday/openDay/jumpTo only change the period shown.
         // What is shown comes from TeamCoverage on every render, scoped to the
         // active role; the URL values are re-checked there.
-        'team.calendar' => ['move', 'goToday', 'openDay'],
+        'team.calendar' => ['move', 'goToday', 'openDay', 'jumpTo'],
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
         'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.
-        'layout.global-search' => ['updatedQ'],
+        // showRecents (prompt 9) only flags the empty box open; the caller's own recents are
+        // read and filtered the same way (NavigationMemory) on render.
+        'layout.global-search' => ['updatedQ', 'showRecents'],
         // The add*/openInitiateReturnModal methods stage rows in the in-memory
         // form object; nothing is written until the mapped save* action runs,
         // and mount() has already authorized 'update' on this employee.
@@ -604,7 +646,7 @@ return [
         'position.position-create' => ['updatedFormCityId'],
         'position.position-edit' => ['updatedFormCityId'],
         'program-management.center.center-details' => ['switchTab'],
-        'news.today-events-card' => ['loadEvents'],
+        'news.today-events-card' => ['loadEvents', 'placeholder'],
 
         // --- Route-gated reads ----------------------------------------------
         // Reached only through routes carrying active_permission:statistics.view,

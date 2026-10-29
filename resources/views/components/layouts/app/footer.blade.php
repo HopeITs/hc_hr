@@ -3,7 +3,7 @@
     'class' => 'border-t-1 shadow-e1 flex  items-center justify-center p-3  antialiased'
 ])}}
   style="width: -webkit-fill-available;">
-    <p class="mb-2 text-body text-center text-secondary-medium dark:text-secondary-light sm:mb-0">
+    <p class="mb-2 text-body text-center text-secondary-medium sm:mb-0">
         &copy; {{date('Y') .' - '. __('auth.copyright')}}
 
     </p>

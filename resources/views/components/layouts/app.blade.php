@@ -82,6 +82,11 @@
     <x-help.panel/>
 @endauth
 
+{{-- Prompt 10: "g" then a letter opens a page; "?" lists the keys. Client-side only. --}}
+@auth
+    <x-keyboard-shortcuts/>
+@endauth
+
 {{-- D3: "Send feedback to the IT team", opened from the user menu. The page's route
      name is passed from here, on the server; the form never reads a URL. --}}
 @auth

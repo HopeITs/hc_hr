@@ -6,12 +6,12 @@
     is never an error. $overlap = ['dates' => [...], 'members' => [...]].
 --}}
 @if (! empty($overlap['members']))
-    <div class="rounded-control border-s-4 border-amber-500 bg-amber-50 p-2" role="note" data-testid="team-overlap">
-        <p class="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
-            <svg class="size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2l8.66 15H1.34L10 2zm-1 6v4h2V8H9zm0 5v2h2v-2H9z"/></svg>
+    <div class="rounded-control border-s-4 border-ink bg-soft p-2" role="note" data-testid="team-overlap">
+        <p class="flex items-center gap-1.5 text-small font-bold text-ink">
+            <x-ic name="warning" class="size-4" />
             {{ __('team_calendar.overlap.title') }}
         </p>
-        <ul class="mt-1 space-y-0.5 text-sm text-amber-900">
+        <ul class="mt-1 space-y-0.5 text-small text-ink">
             @foreach ($overlap['members'] as $member)
                 <li>{{ __('team_calendar.overlap.line', [
                     'name' => $member['name'],
@@ -20,6 +20,6 @@
                 ]) }}</li>
             @endforeach
         </ul>
-        <p class="mt-1 text-xs text-amber-900">{{ __('team_calendar.overlap.advisory') }}</p>
+        <p class="mt-1 text-caption text-ink-2">{{ __('team_calendar.overlap.advisory') }}</p>
     </div>
 @endif

@@ -1,20 +1,19 @@
+{{--
+    Card: card fill, 1px line-soft border, 12px radius, shadow-sm, 18px/800 title.
+    title: optional heading; slot `icon` sits at its end. The body is the slot.
+--}}
 @props(['title' => null])
 <div {{$attributes->merge([
-    'class' => ' p-6 bg-white flex flex-col justify-between border border-neutral-100 rounded-surface shadow-e1'
+    'class' => 'flex flex-col justify-between rounded-surface border border-line-soft bg-card p-5 shadow-e1'
 ])}}
 >
-
     @isset($title)
-        <div class="flex justify-between ">
-
-            <h5 class="mb-2 text-h4 font-semibold text-start line-clamp-2 tracking-tight text-neutral-900 w-2/3  ">{{$title}}</h5>
+        <div class="mb-3 flex items-start justify-between gap-3">
+            <h2 class="line-clamp-2 text-start text-h4 font-extrabold text-ink">{{$title}}</h2>
             {{$icon ?? ''}}
         </div>
-
     @endisset
-    <p class="mb-3 font-normal text-secondary-medium line-clamp-3 ">
-    {{$slot}}
-    </p>
-
-
+    <div class="text-body text-ink-2">
+        {{$slot}}
+    </div>
 </div>

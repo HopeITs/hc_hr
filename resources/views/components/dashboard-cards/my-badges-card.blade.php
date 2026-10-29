@@ -2,11 +2,12 @@
     $locale = app()->getLocale();
     $nameCol = "name_{$locale}";
 
+    // No hue per kind: the kind's name is written next to it. A warning keeps the red (it concerns the viewer).
     $badgeColors = [
-        'unknown' => 'text-[#58595B]',
-        'reward' => 'text-green-600',
+        'unknown' => 'text-ink-2',
+        'reward' => 'text-ink',
         'warning' => 'text-primary',
-        'bonus' => 'text-blue-600',
+        'bonus' => 'text-ink',
     ];
 
     $badgeTypes = [
@@ -17,7 +18,7 @@
     ];
 @endphp
 
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.badges-warnings')" :count="$myBadges->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/badges.svg') }}" alt="">

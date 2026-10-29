@@ -21,8 +21,8 @@
                 class="relative inline-grid place-items-center rounded-full shrink-0 ring-2 ring-primary/30">
                 <img class="size-14 border border-1 border-primary rounded-full object-cover"
                      src="{{ $user->profile->avatar_url }}" alt=""/>
-                <span
-                    class="absolute bottom-1.5 {{ $isRtl ? 'left-1.5' : 'right-1.5' }} size-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                <span aria-hidden="true"
+                    class="absolute bottom-1.5 end-1.5 size-2 rounded-full bg-ink ring-2 ring-card"></span>
             </span>
 
             <div class="min-w-0 text-start">
