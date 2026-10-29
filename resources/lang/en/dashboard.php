@@ -61,69 +61,6 @@ return [
         'terminated' => 'Terminated',
     ],
 
-    // C4: the "For you now" section at the top of the home page.
-    'for-you' => [
-        'title' => 'For you now',
-        'failed' => 'This part could not be loaded.',
-        'empty' => 'Nothing is waiting for you right now.',
-        'open' => 'Open',
-        'see-all' => 'See all',
-        'starts-soon' => '{1} 1 starts within two days|[2,*] :count start within two days',
-        'already-started' => '{1} 1 has already started|[2,*] :count have already started',
-        'decisions' => [
-            'title' => 'Needs my decision',
-            'count' => '{1} 1 leave request is waiting for you|[2,*] :count leave requests are waiting for you',
-        ],
-        'inbox' => [
-            'title' => 'Work inbox',
-            'count' => '{1} 1 item is waiting for you|[2,*] :count items are waiting for you',
-        ],
-        'inbox-items' => [
-            'title' => 'Items to confirm',
-            'count' => '{1} 1 item to hand over or take back|[2,*] :count items to hand over or take back',
-        ],
-        'team-off' => [
-            'title' => 'Who in my team is off',
-            'today' => 'Today',
-            'week' => 'Later this week',
-            'nobody-today' => 'Nobody is off today.',
-        ],
-        'balance' => [
-            'title' => 'My leave',
-            'remaining' => ':type left: :amount',
-            'pending' => 'Reserved by pending requests: :amount',
-            'holiday' => 'Next holiday: :date',
-            'request' => 'Request leave',
-            'my-leaves' => 'My leaves',
-        ],
-        'my-requests' => [
-            'title' => 'My open requests',
-        ],
-        'my-items' => [
-            'title' => 'My items',
-            'receive' => '{1} 1 item to receive|[2,*] :count items to receive',
-            'return' => '{1} 1 item to hand back|[2,*] :count items to hand back',
-        ],
-        'contracts-ending' => [
-            'title' => 'Contracts ending in 30 days',
-            'count' => '{1} 1 contract|[2,*] :count contracts',
-        ],
-        'employees-waiting' => [
-            'title' => 'Employees waiting on HR',
-            'awaiting' => '{1} 1 volunteer awaiting a contract|[2,*] :count volunteers awaiting a contract',
-            'incomplete' => '{1} 1 incomplete record|[2,*] :count incomplete records',
-        ],
-        'key-figures' => [
-            'title' => 'Key figures',
-            'employees' => 'Active employees',
-            'contracts' => 'Running contracts',
-            'statistics' => 'Statistics',
-        ],
-        'admin-shortcuts' => [
-            'title' => 'Settings',
-        ],
-    ],
-
     // Prompt 8 tiles: who is out, next holiday, leave balance, birthdays.
     'out-today' => [
         'calendar' => 'Team calendar',
@@ -150,8 +87,7 @@ return [
     // Customisable dashboard: tile names (DashboardLayout::label)
     'tiles' => [
         'late' => 'Past the deadline',
-        'decide' => 'Decisions for you',
-        'for-you' => 'For you now',
+        'decide' => 'Work inbox',
         'my-leaves' => 'My leaves',
         'notes' => 'Notes',
         'team' => 'Team',
@@ -232,7 +168,9 @@ return [
         'none' => 'Nothing is past its deadline.',
     ],
     'decide-tile' => [
-        'none' => 'No decision waits for you.',
+        'none' => 'Your inbox is clear.',
+        'open' => 'Open inbox',
+        'items' => '{1} 1 item to hand over or take back|[2,*] :count items to hand over or take back',
     ],
 
     // A shortcut made big: its data as a small card (Dashboard\AppCard).

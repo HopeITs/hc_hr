@@ -146,8 +146,8 @@ class DashboardLayoutTest extends TestCase
         $shown = array_values(array_filter($this->layout()->defaults($user), fn ($item) => ! $item['hidden']));
 
         $this->assertSame(
-            ['for-you', 'my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice($this->keys($shown), 0, 12),
+            ['my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
+            array_slice($this->keys($shown), 0, 11),
         );
         $this->assertContains('app.nav.my-space.leaves', $this->keys($shown));
     }
@@ -184,7 +184,7 @@ class DashboardLayoutTest extends TestCase
         $this->actingAs($user);
 
         $probe = Livewire::test(DashboardLayoutProbe::class);
-        $this->assertSame('for-you', $probe->get('layout')[0]['key'], 'employee sees its default, not the HR layout');
+        $this->assertSame('my-leaves', $probe->get('layout')[0]['key'], 'employee sees its default, not the HR layout');
 
         $probe->call('saveLayout', [$this->item('badges', pinned: true)]);
 
@@ -251,7 +251,7 @@ class DashboardLayoutTest extends TestCase
             ->call('resetLayout');
 
         $this->assertNull(SavedDashboardLayout::query()->sole()->layout);
-        $this->assertSame('for-you', $probe->get('layout')[0]['key']);
+        $this->assertSame('my-leaves', $probe->get('layout')[0]['key']);
     }
 
     public function test_the_dashboard_page_saves_and_resets_the_layout(): void
@@ -279,7 +279,8 @@ class DashboardLayoutTest extends TestCase
         $reset = Livewire::test(Index::class)->call('resetLayout');
         $this->assertArrayHasKey('html', $reset->effects, 'resetLayout re-renders');
         $this->assertNull($row->fresh()->layout);
-        $this->assertSame('for-you', $this->drawnKeys($reset->html())[0]);
+        // "My leaves" leads the defaults but the page leaves it out without a balance, so notes is drawn first.
+        $this->assertSame('notes', $this->drawnKeys($reset->html())[0]);
         $this->assertSame(
             $this->keys($this->layout()->defaults($user)),
             $this->keys($this->homeConfig($reset->html())['layout']),

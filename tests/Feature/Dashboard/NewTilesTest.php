@@ -263,11 +263,11 @@ class NewTilesTest extends TestCase
         $shown = fn (User $u) => array_values(array_diff(array_column(array_filter($layout->defaults($u), fn ($i) => ! $i['hidden'] && $layout->isWidget($i['key'])), 'key'), ['late', 'decide']));
 
         $this->assertSame(
-            ['for-you', 'my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice(array_values($shown($this->user('lina'))), 0, 12),
+            ['my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
+            array_slice(array_values($shown($this->user('lina'))), 0, 11),
         );
-        $this->assertSame(['next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('lina'))), 12));
-        $this->assertSame(['who-is-out', 'next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('sami'))), 12));
+        $this->assertSame(['next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('lina'))), 11));
+        $this->assertSame(['who-is-out', 'next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('sami'))), 11));
     }
 
     public function test_each_new_tile_has_bounds_a_component_and_a_name_in_both_languages(): void

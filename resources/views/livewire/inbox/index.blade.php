@@ -103,7 +103,7 @@
                                 {{-- A length ("3 days"), not "3 days ago": the sentence around it says since when. --}}
                                 {{ __('inbox.waiting-since', ['when' => $row['waiting_since']?->diffForHumans(null, \Carbon\CarbonInterface::DIFF_ABSOLUTE)]) }}
                                 {{-- G-C-5: an undecided leave already under way is not "starts soon"; the home block uses the same rule. --}}
-                                @if ($startFlag = \App\Livewire\Dashboard\ForYouNow::startFlag($row))
+                                @if ($startFlag = \App\Support\Dashboard\WaitingOnYou::startFlag($row))
                                     <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                 @endif
                             </p>

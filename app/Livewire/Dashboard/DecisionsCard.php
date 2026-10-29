@@ -8,10 +8,11 @@ use App\Support\Dashboard\WaitingOnYou;
 use Livewire\Component;
 
 /**
- * "Decisions for you": the inbox rows that need the viewer's decision, oldest
- * first, one at a time (WaitingOnYou::decisions). It was a block fixed above
- * the grid; now a tile (media-request b183c0c). None: one quiet line, which
- * the grid folds to the bottom (data-tile-empty).
+ * "Work inbox": the inbox rows that need the viewer's decision, oldest first,
+ * one at a time, then the rest of the inbox as a short list
+ * (WaitingOnYou::decisions). It was a block fixed above the grid; now a tile
+ * (media-request b183c0c), and it took over "For you now". Nothing: one quiet
+ * line, which the grid folds to the bottom (data-tile-empty).
  */
 class DecisionsCard extends Component
 {
@@ -24,8 +25,8 @@ class DecisionsCard extends Component
 
         return view('livewire.dashboard.decisions-card', [
             'decisions' => $user
-                ? $this->guardedLoad(fn () => app(WaitingOnYou::class)->decisions($user), ['cards' => [], 'total' => 0])
-                : ['cards' => [], 'total' => 0],
+                ? $this->guardedLoad(fn () => app(WaitingOnYou::class)->decisions($user), ['cards' => [], 'total' => 0, 'items' => [], 'others' => 0, 'all' => 0])
+                : ['cards' => [], 'total' => 0, 'items' => [], 'others' => 0, 'all' => 0],
             'inboxUrl' => route('inbox'),
         ]);
     }

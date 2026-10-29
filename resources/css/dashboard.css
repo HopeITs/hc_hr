@@ -1053,6 +1053,62 @@
     border-inline-start-color: var(--color-line-soft);
 }
 
+/* Work inbox: the decisions, then the rest of the inbox as a short list. */
+.hc-decide-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.hc-decide-sub h3,
+.hc-inbox-items h3 {
+    flex: 1;
+    margin: 0;
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: var(--color-ink-2);
+}
+
+.hc-inbox-items {
+    margin-top: 14px;
+}
+
+[data-testid="decision-card"] + .hc-inbox-items {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line-soft);
+}
+
+.hc-inbox-items ul {
+    margin: 6px 0 4px;
+}
+
+.hc-inbox-items li + li {
+    border-top: 1px solid var(--color-line-soft);
+}
+
+.hc-inbox-items a:not(.hc-btn) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 44px;
+    padding-block: 6px;
+    font-size: var(--text-small);
+}
+
+.hc-inbox-items a:not(.hc-btn):hover {
+    background: var(--color-hover);
+}
+
+.hc-inbox-go {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-ink-3);
+}
+
 .hc-decide-tile .hc-decide {
     flex: 1;
     min-height: 0;

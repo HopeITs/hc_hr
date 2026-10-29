@@ -573,7 +573,6 @@ return [
         'dashboard.upcoming-leaves-card' => ['retryLoad', 'placeholder'],
         'dashboard.no-leaves-employees-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.soon-ending-contracts-card' => ['retryLoad', 'placeholder'],
-        'dashboard.for-you-now' => ['placeholder'],
         'dashboard.my-leaves-card' => ['placeholder'],
         'dashboard.team-card' => ['retryLoad', 'placeholder'],
         'dashboard.news-card' => ['retryLoad', 'placeholder'],

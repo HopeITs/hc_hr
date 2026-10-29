@@ -11,7 +11,6 @@ use App\Livewire\Dashboard\ContractTypeEmployeesStatistics;
 use App\Livewire\Dashboard\DecisionsCard;
 use App\Livewire\Dashboard\DepartmentEmployeeStatistics;
 use App\Livewire\Dashboard\EmployeeNotesCard;
-use App\Livewire\Dashboard\ForYouNow;
 use App\Livewire\Dashboard\JobLevelEmployeeStatistics;
 use App\Livewire\Dashboard\LateCard;
 use App\Livewire\Dashboard\LeaveBalanceCard;
@@ -63,8 +62,8 @@ class DashboardLayout
     public const WIDGETS = [
         // Were fixed above the grid (prompt 7); tiles now, to move, resize, pin or hide (media-request b183c0c).
         'late' => ['clock', [3, 1], [12, 3], [12, 1], true],
-        'decide' => ['alert', [3, 2], [12, 6], [4, 3], true],
-        'for-you' => ['bolt', [4, 1], [12, 4], [8, 2], true],
+        // The work inbox: the decisions, then the rest of the inbox (it took over "For you now").
+        'decide' => ['inbox', [3, 2], [12, 6], [6, 3], true],
         'my-leaves' => ['my-leaves', [3, 1], [12, 2], [5, 1], true],
         'notes' => ['edit', [2, 2], [12, 8], [5, 3], true],
         'team' => ['users', [3, 2], [12, 8], [3, 4], true],
@@ -104,7 +103,6 @@ class DashboardLayout
     public const COMPONENTS = [
         'late' => LateCard::class,
         'decide' => DecisionsCard::class,
-        'for-you' => ForYouNow::class,
         'my-leaves' => MyLeavesCard::class,
         'notes' => EmployeeNotesCard::class,
         'team' => TeamCard::class,
@@ -153,7 +151,6 @@ class DashboardLayout
     private const PAGES = [
         'late' => ['nav.inbox', 'nav.hr.contracts', 'nav.my-team.contracts'],
         'decide' => ['nav.inbox'],
-        'for-you' => ['nav.inbox'],
         'pending-requests' => ['nav.my-team.hand-out', 'nav.inbox'],
         'my-leaves' => ['nav.my-space.leaves'],
         'leave-balance' => ['nav.my-space.leaves'],
@@ -402,7 +399,7 @@ class DashboardLayout
     }
 
     /**
-     * Today's dashboard, in today's order (for-you, my leaves, notes, team,
+     * Today's dashboard, in today's order (late, work inbox, my leaves, notes, team,
      * news, calendar, upcoming leaves, today's and upcoming events, pending
      * requests, checklist, badges); then the role family's shortcuts; then,
      * hidden, everything else the person may add.

@@ -40,16 +40,16 @@ class DashboardHomeScreenTest extends TestCase
 
         // Today's order. "My leaves" is left out, as it always was, for someone without a balance.
         $this->assertSame(
-            ['for-you', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice($this->drawnKeys($html), 0, 11),
+            ['notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
+            array_slice($this->drawnKeys($html), 0, 10),
         );
         $this->assertContains('app.nav.my-space.leaves', $this->drawnKeys($html));
         $this->assertNotContains('my-leaves', $this->drawnKeys($html));
         // The employee family's own defaults (prompt 8) follow today's cards.
-        $this->assertSame(['next-holiday', 'birthdays'], array_slice($this->drawnKeys($html), 11, 2));
+        $this->assertSame(['next-holiday', 'birthdays'], array_slice($this->drawnKeys($html), 10, 2));
 
         // Every card waits behind its placeholder, named, so the page never waits for one.
-        $this->assertSame(13, substr_count($html, 'data-state="loading"'));
+        $this->assertSame(12, substr_count($html, 'data-state="loading"'));
         $this->assertStringContainsString(e(__('dashboard.tiles.today-events')), $html);
     }
 
@@ -147,7 +147,7 @@ class DashboardHomeScreenTest extends TestCase
 
         $this->assertStringContainsString('href="'.route('leaves.index').'" wire:navigate', $html);
         // On the tile itself, so the tour finds a card before it has loaded.
-        foreach (['notes', 'team', 'news', 'upcoming-leaves', 'pending-requests', 'for-you'] as $key) {
+        foreach (['notes', 'team', 'news', 'upcoming-leaves', 'pending-requests'] as $key) {
             $this->assertMatchesRegularExpression('/data-key="'.preg_quote($key, '/').'"\s+data-tour="dashboard\.'.preg_quote($key, '/').'"/', $html, $key);
         }
         // The page's own script, on this page only.

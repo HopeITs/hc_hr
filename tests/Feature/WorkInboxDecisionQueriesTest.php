@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
-use App\Livewire\Dashboard\ForYouNow;
+use App\Livewire\Dashboard\DecisionsCard;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Contract;
@@ -110,7 +110,7 @@ class WorkInboxDecisionQueriesTest extends TestCase
             $this->assertGreaterThan($before[$who]['decide'], $after[$who]['decide'], "{$who} decide count");
             // ...and asked the same number of queries for them.
             $this->assertSame($before[$who]['snapshot'], $after[$who]['snapshot'], "{$who} snapshot queries");
-            $this->assertSame($before[$who]['for-you'], $after[$who]['for-you'], "{$who} for-you queries");
+            $this->assertSame($before[$who]['tile'], $after[$who]['tile'], "{$who} tile queries");
         }
 
         $this->assertGreaterThan($before['hr-hms']['review'], $after['hr-hms']['review'], 'hr-hms review count');
@@ -199,7 +199,7 @@ class WorkInboxDecisionQueriesTest extends TestCase
         return app(LeaveDecisionAuthority::class)->basisFor($viewer->fresh(), $leave);
     }
 
-    /** @return array<string, array{snapshot: int, for-you: int, decide: int, review: int}> */
+    /** @return array<string, array{snapshot: int, tile: int, decide: int, review: int}> */
     private function measure(): array
     {
         $result = [];
@@ -215,17 +215,17 @@ class WorkInboxDecisionQueriesTest extends TestCase
             DB::disableQueryLog();
 
             $this->actingAs($viewer->fresh());
-            Livewire::test(ForYouNow::class); // warm
+            Livewire::test(DecisionsCard::class); // warm
             $this->actingAs($viewer->fresh());
             DB::flushQueryLog();
             DB::enableQueryLog();
-            Livewire::test(ForYouNow::class);
-            $forYouQueries = count(DB::getQueryLog());
+            Livewire::test(DecisionsCard::class);
+            $tileQueries = count(DB::getQueryLog());
             DB::disableQueryLog();
 
             $result[$who] = [
                 'snapshot' => $snapshotQueries,
-                'for-you' => $forYouQueries,
+                'tile' => $tileQueries,
                 'decide' => $snapshot['counts']['decide'],
                 'review' => $snapshot['counts']['review'],
             ];
