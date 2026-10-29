@@ -136,6 +136,75 @@ class Calendar extends Component
     }
 
     /**
+     * The month grid as week rows, each absence laid out once per week as a
+     * bar across its days (Google Calendar style) instead of a chip per day.
+     * Bars take the first free lane, longer ones first; what does not fit in
+     * $lanes is counted per day as "+N more".
+     *
+     * @param  array<string, array<string, mixed>>  $days  TeamCoverage::coverage() output
+     * @return list<array{days: list<array<string, mixed>>, bars: list<array<string, mixed>>, lanes: int, hidden: array<int, int>}>
+     */
+    public static function monthWeeks(array $days, int $lanes = 3): array
+    {
+        $weeks = [];
+
+        foreach (array_chunk(array_values($days), 7) as $week) {
+            $dates = array_column($week, 'date');
+            $entries = [];
+
+            foreach ($week as $col => $day) {
+                foreach ($day['members'] as $entry) {
+                    $entries[$entry['key']] ??= ['entry' => $entry, 'start' => $col, 'end' => $col];
+                    $entries[$entry['key']]['end'] = $col;
+                }
+            }
+
+            uasort($entries, fn (array $a, array $b) => [$a['start'], $b['end'] - $b['start'], $a['entry']['name']]
+                <=> [$b['start'], $a['end'] - $a['start'], $b['entry']['name']]);
+
+            $laneEnds = [];
+            $bars = [];
+            $hidden = array_fill(0, count($week), 0);
+
+            foreach ($entries as $segment) {
+                $lane = 0;
+
+                while (isset($laneEnds[$lane]) && $laneEnds[$lane] >= $segment['start']) {
+                    $lane++;
+                }
+
+                $laneEnds[$lane] = $segment['end'];
+
+                if ($lane >= $lanes) {
+                    for ($col = $segment['start']; $col <= $segment['end']; $col++) {
+                        $hidden[$col]++;
+                    }
+
+                    continue;
+                }
+
+                $bars[] = [
+                    'entry' => $segment['entry'],
+                    'col' => $segment['start'] + 1,
+                    'span' => $segment['end'] - $segment['start'] + 1,
+                    'lane' => $lane,
+                    'continues_before' => $segment['entry']['from'] < $dates[$segment['start']],
+                    'continues_after' => $segment['entry']['to'] > $dates[$segment['end']],
+                ];
+            }
+
+            $weeks[] = [
+                'days' => $week,
+                'bars' => $bars,
+                'lanes' => min($lanes, count($laneEnds)),
+                'hidden' => $hidden,
+            ];
+        }
+
+        return $weeks;
+    }
+
+    /**
      * Holiday names per day: the viewer's own (national + their project), and,
      * for someone who sets holidays, the ones they look after — so a holiday
      * added from this page shows up on it.

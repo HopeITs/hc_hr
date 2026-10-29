@@ -156,26 +156,38 @@
                         @endforeach
                     </div>
 
-                    <div class="grid grid-cols-7">
-                        @foreach ($days as $day)
-                            @php
-                                $date = \Carbon\CarbonImmutable::parse($day['date']);
-                                $inMonth = $date->format('Y-m') === $anchor->format('Y-m');
-                                $dayHolidays = $holidays[$day['date']] ?? [];
-                                $isHoliday = $day['is_holiday'] || $dayHolidays !== [];
-                                $awayCount = $day['away'] + $day['partial'];
-                            @endphp
-                            <div wire:key="cell-{{ $day['date'] }}"
-                                 @class([
-                                     'group relative flex min-h-32 flex-col gap-1 border-neutral-100 p-2 transition-colors',
-                                     'border-e' => $loop->iteration % 7 !== 0,
-                                     'border-t' => $loop->iteration > 7,
-                                     'bg-white hover:bg-neutral-50/70' => $inMonth && ! $isHoliday && ! $day['is_weekend'],
-                                     'bg-neutral-50/70' => $inMonth && $day['is_weekend'] && ! $isHoliday,
-                                     'bg-primary/[0.04]' => $inMonth && $isHoliday,
-                                     'bg-neutral-50/40' => ! $inMonth,
-                                 ])>
-                                <div class="flex items-center justify-between gap-1">
+                    @foreach (\App\Livewire\Team\Calendar::monthWeeks($days) as $week)
+                        @php
+                            // Rows: date, holidays, one per bar lane, "+N more", the away count.
+                            $lanes = $week['lanes'];
+                            $moreRow = 3 + $lanes;
+                            $rows = 'auto auto'.($lanes > 0 ? " repeat({$lanes}, auto)" : '').' auto 1fr';
+                        @endphp
+                        <div wire:key="week-{{ $week['days'][0]['date'] }}"
+                             @class(['grid min-h-32 grid-cols-7 gap-y-1', 'border-t border-neutral-100' => ! $loop->first])
+                             style="grid-template-rows: {{ $rows }}">
+                            @foreach ($week['days'] as $day)
+                                @php
+                                    $col = $loop->iteration;
+                                    $date = \Carbon\CarbonImmutable::parse($day['date']);
+                                    $inMonth = $date->format('Y-m') === $anchor->format('Y-m');
+                                    $dayHolidays = $holidays[$day['date']] ?? [];
+                                    $isHoliday = $day['is_holiday'] || $dayHolidays !== [];
+                                    $awayCount = $day['away'] + $day['partial'];
+                                @endphp
+                                {{-- The cell's background, under its date, holidays and the bars crossing it. --}}
+                                <div wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
+                                     style="grid-column: {{ $col }}; grid-row: 1 / -1"
+                                     @class([
+                                         'border-neutral-100',
+                                         'border-e' => $col !== 7,
+                                         'bg-white' => $inMonth && ! $isHoliday && ! $day['is_weekend'],
+                                         'bg-neutral-50/70' => $inMonth && $day['is_weekend'] && ! $isHoliday,
+                                         'bg-primary/[0.04]' => $inMonth && $isHoliday,
+                                         'bg-neutral-50/40' => ! $inMonth,
+                                     ])></div>
+
+                                <div class="group flex items-center justify-between gap-1 px-2 pt-2" style="grid-column: {{ $col }}; grid-row: 1">
                                     <span @class([
                                         'inline-flex size-7 items-center justify-center rounded-full text-sm',
                                         'bg-primary font-bold text-white shadow-sm' => $date->isToday(),
@@ -202,54 +214,64 @@
                                     </div>
                                 </div>
 
-                                @foreach ($dayHolidays as $holiday)
-                                    @if ($holiday['editable'])
-                                        <button type="button" wire:click="$dispatch('openHolidayEdit', { id: {{ $holiday['id'] }} })"
-                                                class="flex w-full items-center gap-1 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-start text-[11px] font-semibold text-primary-hover transition hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary"
-                                                title="{{ $holiday['name'] }}">
-                                            <svg class="size-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2.75a.75.75 0 011.5 0V3h9.25a.75.75 0 01.6 1.2L13.06 7.25l2.29 3.05a.75.75 0 01-.6 1.2H5.5v5.75a.75.75 0 01-1.5 0V2.75z"/></svg>
-                                            <span class="truncate">{{ $holiday['name'] }}</span>
-                                        </button>
-                                    @else
-                                        <span class="flex items-center gap-1 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary-hover" title="{{ $holiday['name'] }}">
-                                            <svg class="size-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2.75a.75.75 0 011.5 0V3h9.25a.75.75 0 01.6 1.2L13.06 7.25l2.29 3.05a.75.75 0 01-.6 1.2H5.5v5.75a.75.75 0 01-1.5 0V2.75z"/></svg>
-                                            <span class="truncate">{{ $holiday['name'] }}</span>
-                                        </span>
-                                    @endif
-                                @endforeach
-                                @if ($day['is_holiday'] && $dayHolidays === [])
-                                    <span class="truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary-hover">{{ __('team_calendar.holiday') }}</span>
+                                @if ($dayHolidays !== [] || $day['is_holiday'])
+                                    <div class="flex min-w-0 flex-col gap-1 px-2" style="grid-column: {{ $col }}; grid-row: 2">
+                                        @foreach ($dayHolidays as $holiday)
+                                            @if ($holiday['editable'])
+                                                <button type="button" wire:click="$dispatch('openHolidayEdit', { id: {{ $holiday['id'] }} })"
+                                                        class="flex w-full items-center gap-1 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-start text-[11px] font-semibold text-primary-hover transition hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary"
+                                                        title="{{ $holiday['name'] }}">
+                                                    <svg class="size-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2.75a.75.75 0 011.5 0V3h9.25a.75.75 0 01.6 1.2L13.06 7.25l2.29 3.05a.75.75 0 01-.6 1.2H5.5v5.75a.75.75 0 01-1.5 0V2.75z"/></svg>
+                                                    <span class="truncate">{{ $holiday['name'] }}</span>
+                                                </button>
+                                            @else
+                                                <span class="flex items-center gap-1 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary-hover" title="{{ $holiday['name'] }}">
+                                                    <svg class="size-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2.75a.75.75 0 011.5 0V3h9.25a.75.75 0 01.6 1.2L13.06 7.25l2.29 3.05a.75.75 0 01-.6 1.2H5.5v5.75a.75.75 0 01-1.5 0V2.75z"/></svg>
+                                                    <span class="truncate">{{ $holiday['name'] }}</span>
+                                                </span>
+                                            @endif
+                                        @endforeach
+                                        @if ($day['is_holiday'] && $dayHolidays === [])
+                                            <span class="truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary-hover">{{ __('team_calendar.holiday') }}</span>
+                                        @endif
+                                    </div>
                                 @endif
 
-                                <ul class="space-y-1">
-                                    @foreach (array_slice($day['members'], 0, 3) as $entry)
-                                        <li wire:key="cell-{{ $day['date'] }}-{{ $entry['key'] }}" class="min-w-0">
-                                            @include('livewire.team.partials.chip', ['entry' => $entry, 'card' => true])
-                                        </li>
-                                    @endforeach
-                                    @if (count($day['members']) > 3)
-                                        <li>
-                                            <button type="button" wire:click="openDay('{{ $day['date'] }}')"
-                                                    class="rounded-full px-1.5 text-[11px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary">
-                                                {{ __('team_calendar.more', ['count' => count($day['members']) - 3]) }}
-                                            </button>
-                                        </li>
-                                    @endif
-                                </ul>
+                                @if ($week['hidden'][$col - 1] > 0)
+                                    <div class="px-2" style="grid-column: {{ $col }}; grid-row: {{ $moreRow }}">
+                                        <button type="button" wire:click="openDay('{{ $day['date'] }}')"
+                                                class="rounded-full px-1.5 text-[11px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary">
+                                            {{ __('team_calendar.more', ['count' => $week['hidden'][$col - 1]]) }}
+                                        </button>
+                                    </div>
+                                @endif
 
                                 @if ($showCounts && $day['expected'] > 0 && $awayCount > 0)
-                                    <div class="mt-auto pt-1" title="{{ __('team_calendar.away_of', ['away' => $awayCount, 'expected' => $day['expected']]) }}">
-                                        <div class="flex items-center justify-between text-[10px] font-medium text-neutral-500">
-                                            <span>{{ __('team_calendar.away_of', ['away' => $awayCount, 'expected' => $day['expected']]) }}</span>
-                                        </div>
+                                    <div class="self-end px-2 pb-2" style="grid-column: {{ $col }}; grid-row: {{ $moreRow + 1 }}"
+                                         title="{{ __('team_calendar.away_of', ['away' => $awayCount, 'expected' => $day['expected']]) }}">
+                                        <div class="text-[10px] font-medium text-neutral-500">{{ __('team_calendar.away_of', ['away' => $awayCount, 'expected' => $day['expected']]) }}</div>
                                         <div class="mt-0.5 h-1 overflow-hidden rounded-full bg-neutral-100" aria-hidden="true">
                                             <div class="h-full rounded-full bg-primary/70" style="width: {{ min(100, max(4, round($awayCount / $day['expected'] * 100))) }}%"></div>
                                         </div>
                                     </div>
                                 @endif
-                            </div>
-                        @endforeach
-                    </div>
+                            @endforeach
+
+                            {{-- One bar per absence per week, across the days it covers. --}}
+                            @foreach ($week['bars'] as $bar)
+                                <div wire:key="bar-{{ $week['days'][0]['date'] }}-{{ $bar['entry']['key'] }}"
+                                     @class(['min-w-0', 'ps-1.5' => ! $bar['continues_before'], 'pe-1.5' => ! $bar['continues_after']])
+                                     style="grid-column: {{ $bar['col'] }} / span {{ $bar['span'] }}; grid-row: {{ 3 + $bar['lane'] }}">
+                                    @include('livewire.team.partials.chip', [
+                                        'entry' => $bar['entry'],
+                                        'bar' => true,
+                                        'before' => $bar['continues_before'],
+                                        'after' => $bar['continues_after'],
+                                    ])
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
                 </div>
             @endif
 
