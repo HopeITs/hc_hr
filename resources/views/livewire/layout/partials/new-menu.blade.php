@@ -1,7 +1,7 @@
 {{--
     The header's New button (C2, C0-Q3): only what the active role may start
     (Navigation::newActions(); each screen checks the permission again).
-    Each link carries ?from=<this page> so Cancel can come back here
+    Links marked `returns` carry ?from=<this page> so Cancel can come back here
     (SafeReturn decides whether that page is allowed). A WAI-ARIA menu button.
 --}}
 @if ($actions !== [])
@@ -14,7 +14,12 @@
              move(step) { const all = this.items(); all[(all.indexOf(document.activeElement) + step + all.length) % all.length]?.focus(); },
              go(event) {
                  const url = new URL(event.currentTarget.href);
-                 url.searchParams.set('from', location.pathname + location.search);
+                 if (event.currentTarget.dataset.returns !== undefined) {
+                     const here = new URLSearchParams(location.search);
+                     here.delete('from');
+                     const query = here.toString();
+                     url.searchParams.set('from', location.pathname + (query ? '?' + query : ''));
+                 }
                  this.open = false;
                  Livewire.navigate(url.toString());
              },
@@ -35,9 +40,9 @@
              x-on:keydown.tab="hide(false)"
              class="absolute end-0 top-full z-50 mt-2 min-w-56 rounded-surface border border-[var(--line-hairline)] bg-white p-1.5 shadow-e3">
             @foreach ($actions as $action)
-                <a role="menuitem" href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}"
+                <a role="menuitem" href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}" @if ($action['returns']) data-returns @endif
                    x-on:click.prevent="go($event)"
-                   class="flex min-h-11 items-center rounded-control px-3 text-body font-medium text-neutral-800 hover:bg-secondary-soft focus:bg-secondary-soft focus:outline-none">
+                   class="flex min-h-11 items-center rounded-control px-3 text-body font-medium text-neutral-800 hover:bg-secondary-soft focus:outline-none focus-visible:bg-secondary-soft">
                     {{ $action['label'] }}
                 </a>
             @endforeach

@@ -154,6 +154,7 @@ document.addEventListener('livewire:navigating', () => {
 document.addEventListener('livewire:navigated', () => {
     initFlowbite();
     initClockTimepickers();
+    dropReturnParam();
 });
 
 // A Livewire action that opens or closes an inline panel names the element
@@ -174,6 +175,16 @@ window.addEventListener('focus-element', (event) => {
     const top = target.getBoundingClientRect().top;
     if (top < bar) window.scrollBy({ top: top - bar - 16 });
 });
+
+// ?from= (set by the header's New menu) is read once by the server when the
+// page mounts (RemembersReturnTo) and kept there, so the address bar does not
+// need to show it. Keep history.state: Livewire's back/forward relies on it.
+function dropReturnParam() {
+    const url = new URL(location.href);
+    if (!url.searchParams.has('from')) return;
+    url.searchParams.delete('from');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+}
 
 // When a Select2 dropdown opens, flag its results list with `.results--scroll`
 // only if it actually scrolls, so the hover highlight can be trimmed on the

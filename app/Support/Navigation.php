@@ -224,8 +224,10 @@ final class Navigation
      * the same permission each create screen checks on the server, which
      * checks it again when used. Contract also needs pay visibility: a contract
      * is its pay clause, and the salary-blind super-admin cannot fill it in.
+     * `returns`: the screen sends Cancel back to where New was pressed, so the
+     * link carries ?from=; the leave dialogs close in place and do not need it.
      *
-     * @return list<array{id: string, label: string, route: string, params: array<string, mixed>}>
+     * @return list<array{id: string, label: string, route: string, params: array<string, mixed>, returns: bool}>
      */
     public static function newActions(User $user): array
     {
@@ -233,16 +235,16 @@ final class Navigation
 
         return array_values(array_filter([
             $can('leaves.create') && $can('leaves.view-own')
-                ? ['id' => 'new.leave', 'label' => __('general.new-menu.leave'), 'route' => 'leaves.index', 'params' => ['new' => 1]] : null,
+                ? ['id' => 'new.leave', 'label' => __('general.new-menu.leave'), 'route' => 'leaves.index', 'params' => ['new' => 1], 'returns' => false] : null,
             // HR files a request for an employee from All leaves (the same rule as its Add button).
             $can('leaves.create') && $can('leaves.view-all') && $user->activeRoleIs('HR', 'super-admin')
-                ? ['id' => 'new.leave-for-employee', 'label' => __('general.new-menu.leave-for-employee'), 'route' => 'leaves.all', 'params' => ['new' => 1]] : null,
+                ? ['id' => 'new.leave-for-employee', 'label' => __('general.new-menu.leave-for-employee'), 'route' => 'leaves.all', 'params' => ['new' => 1], 'returns' => false] : null,
             $can('employees.create')
-                ? ['id' => 'new.employee', 'label' => __('general.new-menu.employee'), 'route' => 'employees.create', 'params' => []] : null,
+                ? ['id' => 'new.employee', 'label' => __('general.new-menu.employee'), 'route' => 'employees.create', 'params' => [], 'returns' => true] : null,
             $can('contracts.create') && $user->canViewSalary()
-                ? ['id' => 'new.contract', 'label' => __('general.new-menu.contract'), 'route' => 'contracts.create', 'params' => []] : null,
+                ? ['id' => 'new.contract', 'label' => __('general.new-menu.contract'), 'route' => 'contracts.create', 'params' => [], 'returns' => true] : null,
             $can('news.create')
-                ? ['id' => 'new.news', 'label' => __('general.new-menu.news'), 'route' => 'news.create', 'params' => []] : null,
+                ? ['id' => 'new.news', 'label' => __('general.new-menu.news'), 'route' => 'news.create', 'params' => [], 'returns' => true] : null,
         ]));
     }
 

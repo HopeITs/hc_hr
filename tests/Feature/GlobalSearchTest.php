@@ -219,26 +219,16 @@ class GlobalSearchTest extends TestCase
         }
     }
 
-    /** AC-C2-03: New → Leave request opens the dialog; closing it unsent returns to where New was pressed. */
-    public function test_new_leave_request_opens_the_dialog_and_cancel_returns_to_the_origin(): void
+    /** AC-C2-03: New → Leave request opens the dialog; closing it unsent stays on the leaves page. */
+    public function test_new_leave_request_opens_the_dialog_and_cancel_stays_on_the_page(): void
     {
         $user = $this->userWithRole('employee');
-        $from = parse_url(route('leaves.index'), PHP_URL_PATH).'?status=1';
 
-        Livewire::actingAs($user)
-            ->withQueryParams(['new' => 1, 'from' => $from])
+        $closed = Livewire::actingAs($user)
+            ->withQueryParams(['new' => 1, 'from' => '/en/employees'])
             ->test(MyLeaveRequestModule::class)
             ->assertSet('showModal', true)
             ->assertSet('startNew', false)
-            ->assertSet('returnTo', url($from))
-            ->call('requestClose')
-            ->assertRedirect(url($from));
-
-        // Without a valid origin the dialog just closes on the page.
-        $closed = Livewire::actingAs($user)
-            ->withQueryParams(['new' => 1, 'from' => 'https://evil.example/'])
-            ->test(MyLeaveRequestModule::class)
-            ->assertSet('returnTo', null)
             ->call('requestClose')
             ->assertSet('showModal', false);
         $this->assertArrayNotHasKey('redirect', $closed->effects);
