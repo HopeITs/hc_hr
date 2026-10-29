@@ -1,6 +1,5 @@
 <form wire:submit.prevent="saveCourses" class="space-y-6">
     @php
-        $courseCategories = \App\Models\CourseCategory::pluck(transColumn('name'), 'id')->toArray();
         // The keys are the stored values; only the labels are translated.
         $organizationOptions = [
             'Hope Center' => __('employees.courses.organization-hope-center'),
@@ -36,17 +35,6 @@
                 </div>
 
                 <div>
-                    <x-forms.input-label for="course_category_{{ $index }}" required>@lang('general.category')</x-forms.input-label>
-                    <x-forms.select2-input id="course_category_{{ $index }}" wire:model.defer="courseForm.courses.{{ $index }}.category_id">
-                        <option value="">-- @lang('general.select') --</option>
-                        @foreach ($courseCategories as $id => $label)
-                            <option value="{{ $id }}">{{ $label }}</option>
-                        @endforeach
-                    </x-forms.select2-input>
-                    <x-error-span>{{ $errors->first("courseForm.courses.$index.category_id") }}</x-error-span>
-                </div>
-
-                <div>
                     <x-forms.input-label for="course_title_{{ $index }}" required>@lang('general.title')</x-forms.input-label>
                     <x-forms.input id="course_title_{{ $index }}" type="text" wire:model.defer="courseForm.courses.{{ $index }}.title" />
                     <x-error-span>{{ $errors->first("courseForm.courses.$index.title") }}</x-error-span>
@@ -78,20 +66,6 @@
                     <x-forms.input-label for="course_granted_by_{{ $index }}">@lang('general.granted_by')</x-forms.input-label>
                     <x-forms.input id="course_granted_by_{{ $index }}" type="text" wire:model.defer="courseForm.courses.{{ $index }}.granted_by" />
                     <x-error-span>{{ $errors->first("courseForm.courses.$index.granted_by") }}</x-error-span>
-                </div>
-
-                <div>
-                    <x-forms.input-label for="course_end_date_{{ $index }}" required>@lang('general.end_date')</x-forms.input-label>
-                    <x-forms.input id="course_end_date_{{ $index }}" type="date" wire:model.defer="courseForm.courses.{{ $index }}.end_date" />
-                    <x-error-span>{{ $errors->first("courseForm.courses.$index.end_date") }}</x-error-span>
-                </div>
-
-                <div>
-                    <x-forms.input-label for="course_duration_{{ $index }}">
-                        @lang('general.duration') (@lang('general.e.g_20_hours_2_weeks'))
-                    </x-forms.input-label>
-                    <x-forms.input id="course_duration_{{ $index }}" type="text" wire:model.defer="courseForm.courses.{{ $index }}.duration" />
-                    <x-error-span>{{ $errors->first("courseForm.courses.$index.duration") }}</x-error-span>
                 </div>
 
                 <div>
