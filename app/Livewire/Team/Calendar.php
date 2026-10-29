@@ -63,6 +63,20 @@ class Calendar extends Component
         $this->date = $next->toDateString();
     }
 
+    /**
+     * Straight to a month picked from the month picker, keeping the day of
+     * the month (clamped) so the week and day views stay on a similar date.
+     */
+    public function jumpTo(int $year, int $month): void
+    {
+        if ($year < 1900 || $year > 2100 || $month < 1 || $month > 12) {
+            return;
+        }
+
+        $first = CarbonImmutable::create($year, $month, 1);
+        $this->date = $first->setDay(min($this->anchor()->day, $first->daysInMonth))->toDateString();
+    }
+
     /** From a full month cell to that day's list. */
     public function openDay(string $date): void
     {

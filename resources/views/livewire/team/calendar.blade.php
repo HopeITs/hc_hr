@@ -109,7 +109,9 @@
             <button type="button" wire:click="move(1)" class="{{ $iconBtn }}" aria-label="{{ __('team_calendar.nav_buttons.next') }}">
                 <svg class="size-4 rtl:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7.5 4.5L13 10l-5.5 5.5"/></svg>
             </button>
-            <h2 class="ms-1 text-xl font-bold tracking-tight text-neutral-900" aria-live="polite" data-testid="calendar-range">{{ $rangeLabel }}</h2>
+            <h2 class="ms-1 text-xl font-bold tracking-tight text-ink" aria-live="polite" data-testid="calendar-range">
+                <x-month-picker :value="$anchor" :label="$rangeLabel" class="px-2 py-1" />
+            </h2>
             <button type="button" wire:click="goToday"
                     class="ms-1 min-h-9 rounded-full border border-neutral-200 bg-white px-3.5 text-sm font-semibold text-neutral-700 shadow-xs transition hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                 {{ __('team_calendar.nav_buttons.today') }}
@@ -141,7 +143,7 @@
     </div>
     <p class="sr-only">{{ __('team_calendar.legend') }}</p>
 
-    <div wire:loading.class="opacity-60" wire:target="move,goToday,view,scope,status,cityId" class="transition-opacity">
+    <div wire:loading.class="opacity-60" wire:target="move,jumpTo,goToday,view,scope,status,cityId" class="transition-opacity">
         @if ($failed)
             <div class="rounded-2xl border border-neutral-200 bg-white p-6 text-center" role="alert">
                 <p class="text-body text-neutral-800">{{ __('team_calendar.failed') }}</p>
