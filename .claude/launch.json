@@ -324,6 +324,29 @@
       "autoPort": false
     },
     {
+      "name": "hc-hr holidays check (synthetic SQLite, opcache off)",
+      "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
+      "runtimeArgs": [
+        "-d",
+        "extension=pdo_sqlite",
+        "-d",
+        "extension=sqlite3",
+        "-d",
+        "opcache.enable=0",
+        "-S",
+        "127.0.0.1:8405",
+        "-t",
+        "public",
+        "tests/Usability/Baseline/router.php"
+      ],
+      "env": {
+        "X2_HOME": "C:/laragon/tmp/hc-hr-gc2",
+        "X2_PORT": "8405"
+      },
+      "port": 8405,
+      "autoPort": false
+    },
+    {
       "name": "hc-hr G-C re-run (synthetic SQLite copy)",
       "runtimeExecutable": "C:/laragon/bin/php/php-8.5/php.exe",
       "runtimeArgs": [

@@ -197,7 +197,8 @@ function checkResult() {
     }
 
     // Only a lookup: the component answers from the operation key.
-    window.Livewire.find(action.component.id)?.$wire.reconcileOperation();
+    // Livewire.find() already returns the component's $wire.
+    window.Livewire.find(action.component.id)?.$call('reconcileOperation');
 }
 
 function showUnreachable(actions) {

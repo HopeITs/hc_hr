@@ -99,7 +99,7 @@
 
 
 
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
     window.CustomScrollbarConfig = {
         trackWidth: 8,
         offset: 5,
