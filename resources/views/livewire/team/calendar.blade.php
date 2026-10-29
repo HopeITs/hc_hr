@@ -23,7 +23,7 @@
     // The list shows the days that matter: in a month, only those of that month with someone away or a holiday.
     $listDays = collect($days)->filter(fn (array $day) => match ($viewName) {
         'week', 'day' => true,
-        default => ($day['members'] !== [] || isset($holidays[$day['date']])) && substr($day['date'], 0, 7) === $anchor->format('Y-m'),
+        default => ($day['members'] !== [] || isset($holidays[$day['date']]) || isset($birthdays[$day['date']])) && substr($day['date'], 0, 7) === $anchor->format('Y-m'),
     });
     $iconBtn = 'inline-flex size-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 shadow-xs transition hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 @endphp
@@ -133,6 +133,10 @@
                 <span class="size-3 rounded-sm bg-primary/15 ring-1 ring-primary/30"></span>
                 {{ __('team_calendar.holiday') }}
             </li>
+            <li class="inline-flex items-center gap-1.5">
+                <svg class="size-3.5 text-neutral-600" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3.5 17h13M4.5 17v-5.5a1.5 1.5 0 011.5-1.5h8a1.5 1.5 0 011.5 1.5V17M4.5 13.5c1 .8 2.2.8 3 0s2.2-.8 3 0 2.2.8 3 0 1.5-.5 2 0M10 10V7.5M10 5.5c-.8-.7-.8-1.6 0-2.5.8.9.8 1.8 0 2.5z"/></svg>
+                {{ __('team_calendar.birthday') }}
+            </li>
         </ul>
     </div>
     <p class="sr-only">{{ __('team_calendar.legend') }}</p>
@@ -174,20 +178,40 @@
                                     $dayHolidays = $holidays[$day['date']] ?? [];
                                     $isHoliday = $day['is_holiday'] || $dayHolidays !== [];
                                     $awayCount = $day['away'] + $day['partial'];
+                                    $dayBirthdays = $birthdays[$day['date']] ?? [];
+                                    $requestHere = $requestUrl !== null && $day['date'] >= $today;
+                                    $cellClasses = [
+                                        'border-neutral-100',
+                                        'border-e' => $col !== 7,
+                                        'bg-white' => $inMonth && ! $isHoliday && ! $day['is_weekend'],
+                                        'bg-neutral-50/70' => $inMonth && $day['is_weekend'] && ! $isHoliday,
+                                        'bg-primary/[0.04]' => $inMonth && $isHoliday,
+                                        'bg-neutral-50/40' => ! $inMonth,
+                                    ];
                                 @endphp
-                                {{-- The cell's background, under its date, holidays and the bars crossing it. --}}
-                                <div wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
-                                     style="grid-column: {{ $col }}; grid-row: 1 / -1"
-                                     @class([
-                                         'border-neutral-100',
-                                         'border-e' => $col !== 7,
-                                         'bg-white' => $inMonth && ! $isHoliday && ! $day['is_weekend'],
-                                         'bg-neutral-50/70' => $inMonth && $day['is_weekend'] && ! $isHoliday,
-                                         'bg-primary/[0.04]' => $inMonth && $isHoliday,
-                                         'bg-neutral-50/40' => ! $inMonth,
-                                     ])></div>
+                                {{-- The cell's background, under its date, holidays and the bars crossing it.
+                                     From today on, its empty space opens the leave form on that day. --}}
+                                @if ($requestHere)
+                                    <a wire:key="cell-{{ $day['date'] }}" href="{{ str_replace('__DATE__', $day['date'], $requestUrl) }}" wire:navigate
+                                       data-testid="calendar-request-{{ $day['date'] }}"
+                                       aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}"
+                                       style="grid-column: {{ $col }}; grid-row: 1 / -1"
+                                       @class([...$cellClasses, 'group/cell relative transition-colors hover:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary'])>
+                                        <span class="pointer-events-none absolute inset-x-0 top-2.5 flex justify-center opacity-0 transition-opacity group-hover/cell:opacity-100 group-focus-visible/cell:opacity-100" aria-hidden="true">
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                                                <svg class="size-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+                                                {{ __('team_calendar.request_leave') }}
+                                            </span>
+                                        </span>
+                                    </a>
+                                @else
+                                    <div wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
+                                         style="grid-column: {{ $col }}; grid-row: 1 / -1"
+                                         @class($cellClasses)></div>
+                                @endif
 
-                                <div class="group flex items-center justify-between gap-1 px-2 pt-2" style="grid-column: {{ $col }}; grid-row: 1">
+                                {{-- Clicks pass through to the cell's link; only the buttons take them. --}}
+                                <div class="group pointer-events-none flex items-center justify-between gap-1 px-2 pt-2 [&_button]:pointer-events-auto" style="grid-column: {{ $col }}; grid-row: 1">
                                     <span @class([
                                         'inline-flex size-7 items-center justify-center rounded-full text-sm',
                                         'bg-primary font-bold text-white shadow-sm' => $date->isToday(),
@@ -214,7 +238,7 @@
                                     </div>
                                 </div>
 
-                                @if ($dayHolidays !== [] || $day['is_holiday'])
+                                @if ($dayHolidays !== [] || $day['is_holiday'] || $dayBirthdays !== [])
                                     <div class="flex min-w-0 flex-col gap-1 px-2" style="grid-column: {{ $col }}; grid-row: 2">
                                         @foreach ($dayHolidays as $holiday)
                                             @if ($holiday['editable'])
@@ -234,6 +258,9 @@
                                         @if ($day['is_holiday'] && $dayHolidays === [])
                                             <span class="truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary-hover">{{ __('team_calendar.holiday') }}</span>
                                         @endif
+                                        @foreach ($dayBirthdays as $person)
+                                            @include('livewire.team.partials.birthday', ['person' => $person])
+                                        @endforeach
                                     </div>
                                 @endif
 
@@ -319,6 +346,14 @@
                                             @if ($day['pending'] > 0)
                                                 <span>· {{ __('team_calendar.pending_count', ['count' => $day['pending']]) }}</span>
                                             @endif
+                                            @if ($requestUrl !== null && $day['date'] >= $today)
+                                                <a href="{{ str_replace('__DATE__', $day['date'], $requestUrl) }}" wire:navigate
+                                                   aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}"
+                                                   class="inline-flex min-h-7 items-center gap-1 rounded-full border border-neutral-200 px-2.5 font-semibold text-primary hover:border-primary focus-visible:outline-2 focus-visible:outline-primary">
+                                                    <svg class="size-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+                                                    {{ __('team_calendar.request_leave') }}
+                                                </a>
+                                            @endif
                                             @if ($canManageHolidays)
                                                 <button type="button" wire:click="$dispatch('openHolidayCreate', { date: '{{ $day['date'] }}' })"
                                                         aria-label="{{ __('team_calendar.add_holiday_on', ['date' => $date->locale($locale)->translatedFormat('j F')]) }}"
@@ -341,6 +376,14 @@
                                             @empty
                                                 <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-caption font-semibold text-primary-hover">{{ __('team_calendar.holiday') }}</span>
                                             @endforelse
+                                        </div>
+                                    @endif
+
+                                    @if (($birthdays[$day['date']] ?? []) !== [])
+                                        <div class="mt-2 flex flex-wrap gap-1.5">
+                                            @foreach ($birthdays[$day['date']] as $person)
+                                                @include('livewire.team.partials.birthday', ['person' => $person, 'inline' => true])
+                                            @endforeach
                                         </div>
                                     @endif
 

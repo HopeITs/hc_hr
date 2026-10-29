@@ -4,6 +4,7 @@ namespace App\Livewire\Team;
 
 use App\Models\City;
 use App\Models\Holiday;
+use App\Services\Dashboard\CalendarFeed;
 use App\Services\HolidayProjects;
 use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
@@ -89,9 +90,11 @@ class Calendar extends Component
         [$from, $to] = $this->range($view);
 
         $failed = false;
+        $birthdays = [];
 
         try {
             $days = $coverage->coverage($user, $scope, $from, $to, ['status' => $status, 'city_id' => $cityId]);
+            $birthdays = $coverage->birthdays($user, $scope, $from, $to, $cityId);
         } catch (Throwable $e) {
             report($e);
             $days = [];
@@ -103,6 +106,10 @@ class Calendar extends Component
 
         return view('livewire.team.calendar', [
             'holidays' => $this->holidayLabels($user, $from, $to, $holidayProjects, $canManageHolidays),
+            'birthdays' => $birthdays,
+            // A day from today on opens the leave form on that date (the dashboard calendar's link).
+            'requestUrl' => app(CalendarFeed::class)->canRequestLeave($user) ? route('leaves.index', ['new' => 1, 'date' => '__DATE__']) : null,
+            'today' => CarbonImmutable::today()->toDateString(),
             'canManageHolidays' => $canManageHolidays,
             'days' => $days,
             'failed' => $failed,

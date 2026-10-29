@@ -315,6 +315,49 @@ class TeamCoverageTest extends TestCase
         }
     }
 
+    /** Birthdays of the people the scope shows: the day only, never the year, and nobody outside the scope. */
+    public function test_the_calendar_shows_birthdays_of_the_visible_team_only(): void
+    {
+        $this->p['lina']['employee']->forceFill(['actual_dob' => '1994-11-03'])->save();
+        $this->p['rana']['employee']->forceFill(['actual_dob' => '1990-11-03'])->save();
+
+        $birthdays = $this->coverage()->birthdays($this->user('omar'), 'directManager', $this->d('2026-11-01'), $this->d('2026-11-30'));
+
+        $this->assertSame(['2026-11-03'], array_keys($birthdays));
+        $this->assertSame(['Lina Haddad'], array_column($birthdays['2026-11-03'], 'name'));
+        $this->assertSame(['key', 'name', 'avatar', 'is_self'], array_keys($birthdays['2026-11-03'][0]));
+
+        Livewire::actingAs($this->user('omar'))
+            ->test(Calendar::class)
+            ->set('date', '2026-11-03')
+            ->set('scope', 'directManager')
+            ->assertSeeHtml('data-testid="calendar-birthday"')
+            ->assertSee('Lina Haddad')
+            ->assertDontSee('1994')
+            ->assertDontSee('Rana Saad');
+
+        Livewire::actingAs($this->user('lina'))
+            ->test(Calendar::class)
+            ->set('date', '2026-11-03')
+            ->assertSee(__('team_calendar.your_birthday'));
+    }
+
+    /** A day from today on opens the leave form on that date; a past day, or someone who cannot request, gets no link. */
+    public function test_a_day_from_today_on_links_to_a_leave_request(): void
+    {
+        $request = fn (string $date) => 'data-testid="calendar-request-'.$date.'"';
+
+        Livewire::actingAs($this->user('omar'))
+            ->test(Calendar::class)
+            ->assertSeeHtml($request('2026-10-27'))
+            ->assertSeeHtml(e(route('leaves.index', ['new' => 1, 'date' => '2026-10-28'])))
+            ->assertDontSeeHtml($request('2026-10-26'));
+
+        Livewire::actingAs($this->p['huda']['user']->fresh())
+            ->test(Calendar::class)
+            ->assertDontSeeHtml('data-testid="calendar-request-');
+    }
+
     /** A forbidden scope from the URL falls back to the default; it never widens anything. */
     public function test_a_scope_from_the_url_is_checked_against_the_role(): void
     {
