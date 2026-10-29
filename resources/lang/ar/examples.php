@@ -15,13 +15,13 @@ return [
         'امتحان في الجامعة',
     ],
 
-    'first_name' => ['رامي', 'لينا', 'جورج', 'ميرنا', 'فادي'],
+    'first_name' => ['رامي', 'جمانة', 'جورج', 'ميرنا', 'فادي'],
     'last_name' => ['خوري', 'حداد', 'عبود', 'نصر'],
     'father_name' => ['يوسف', 'إلياس', 'سمير', 'نبيل'],
     'mother_name' => ['ماري', 'سعاد', 'نوال', 'حنان'],
 
     'phone' => ['0933000111', '0944000222', '0955000333'],
-    'personal_email' => ['rami.k@example.com', 'lina.haddad@example.org'],
+    'personal_email' => ['rami.k@example.com', 'joumana.haddad@example.org'],
 
     'news' => [
         'title' => [

@@ -44,7 +44,7 @@
                 </button>
             </div>
         @empty
-            <div class="flex flex-col items-center justify-center h-full text-sm font-light text-secondary-light">
+            <div data-tile-empty class="flex flex-col items-center justify-center h-full text-sm font-light text-secondary-light">
                 <span class="text-[10.5px]">@lang('general.no-available-data')</span>
             </div>
         @endforelse

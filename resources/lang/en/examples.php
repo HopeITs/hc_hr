@@ -20,13 +20,13 @@ return [
         'University exam',
     ],
 
-    'first_name' => ['Rami', 'Lina', 'George', 'Mirna', 'Fadi'],
+    'first_name' => ['Rami', 'Joumana', 'George', 'Mirna', 'Fadi'],
     'last_name' => ['Khoury', 'Haddad', 'Abboud', 'Nasr'],
     'father_name' => ['Youssef', 'Elias', 'Samir', 'Nabil'],
     'mother_name' => ['Mary', 'Suad', 'Nawal', 'Hanan'],
 
     'phone' => ['0933000111', '0944000222', '0955000333'],
-    'personal_email' => ['rami.k@example.com', 'lina.haddad@example.org'],
+    'personal_email' => ['rami.k@example.com', 'joumana.haddad@example.org'],
 
     'news' => [
         'title' => [

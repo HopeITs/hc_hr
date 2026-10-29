@@ -8,7 +8,7 @@
     label:  the trigger's words; the month and year by default.
 
     Tiles clip what overflows them, so the panel lives on <body>, anchored
-    to the trigger. The current month is the current page (red); this
+    to the trigger (wire:ignore keeps a re-render from morphing it there). The current month is the current page (red); this
     month gets an ink outline.
 --}}
 @props(['value', 'method' => 'jumpTo', 'label' => null])
@@ -20,7 +20,8 @@
     $minYear = min($value->year, $today->year) - 15;
     $maxYear = max($value->year, $today->year) + 5;
     $months = collect(range(1, 12))->map(fn (int $m) => $value->setDate($value->year, $m, 1));
-    $panelId = 'month-picker-'.\Illuminate\Support\Str::random(6);
+    // Stable across re-renders: the trigger's aria-controls must keep naming the panel.
+    $panelId = 'month-picker-'.$value->format('Y-m').'-'.substr(md5($method), 0, 6);
 @endphp
 
 {{-- Keyed by month: a new month replaces the element, so Alpine starts fresh. --}}
@@ -58,8 +59,10 @@
         <x-ic name="chevron" class="size-4 shrink-0 rotate-90 text-ink-2 transition" x-bind:class="open && '-rotate-90'" />
     </button>
 
+    {{-- wire:ignore: a re-render would morph away Alpine's display:none and anchor
+         position, leaving the panel in the page flow. A new month replaces it (wire:key). --}}
     <template x-teleport="body">
-        <div id="{{ $panelId }}" role="dialog" aria-label="{{ __('month_picker.label') }}"
+        <div id="{{ $panelId }}" role="dialog" aria-label="{{ __('month_picker.label') }}" wire:ignore
              x-cloak x-show="open" x-transition.opacity.duration.100ms
              x-anchor.bottom-start.offset.6="$refs.trigger"
              x-on:click.outside="$refs.trigger.contains($event.target) || close(false)"
