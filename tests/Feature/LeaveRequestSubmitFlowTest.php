@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
+use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\TaskAttempt;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Notifications\NewLeaveRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -378,6 +380,64 @@ class LeaveRequestSubmitFlowTest extends TestCase
         $this->openNewRequest()->call('create');
 
         $this->assertSame(['cancelled', null], TaskAttempt::query()->orderBy('id')->pluck('outcome')->all());
+    }
+
+    /** X1-I: the answer to the save was lost, the save itself was applied. */
+    public function test_x1i_reconciling_a_lost_answer_finds_the_request_without_writing_again(): void
+    {
+        Notification::fake();
+        $before = LeaveRequest::query()->count();
+
+        $first = $this->fillValidNewRequest();
+        $token = $first->get('form.submission_token');
+        $first->call('processSave');
+        $created = LeaveRequest::query()->latest('id')->firstOrFail();
+
+        // The browser never saw that answer: its copy of the form is still open.
+        $this->fillValidNewRequest()
+            ->set('form.submission_token', $token)
+            ->call('reconcileOperation')
+            ->assertSet('showModal', false)
+            ->assertSet('submittedLeaveId', $created->id)
+            ->assertDispatched('toast', fn ($event, $params) => ($params['type'] ?? null) === 'success');
+
+        $this->assertSame($before + 1, LeaveRequest::query()->count());
+        Notification::assertCount(2);
+    }
+
+    public function test_x1i_reconciling_a_save_that_never_arrived_keeps_the_entries_and_writes_nothing(): void
+    {
+        $before = LeaveRequest::query()->count();
+
+        $this->fillValidNewRequest()
+            ->call('reconcileOperation')
+            ->assertSet('showModal', true)
+            ->assertSet('form.reason', 'A valid one-day request.')
+            ->assertSet('form.start_at', '2026-11-23')
+            ->assertDispatched('toast', type: 'info', message: __('general.unknown-result.not-applied'));
+
+        $this->assertSame($before, LeaveRequest::query()->count());
+    }
+
+    public function test_x1i_a_token_never_reveals_another_employees_request(): void
+    {
+        $first = $this->fillValidNewRequest();
+        $token = $first->get('form.submission_token');
+        $first->call('processSave');
+
+        // Same token, other account: the key is per user, so nothing is found.
+        $this->assertNotNull(Cache::get(LeaveRequestForm::submissionKey($this->user->id, $token)));
+        $this->assertNull(Cache::get(LeaveRequestForm::submissionKey($this->manager->id, $token)));
+    }
+
+    public function test_x1i_reconciling_after_the_role_lost_leave_creation_is_forbidden(): void
+    {
+        $outsider = User::factory()->create();
+
+        Livewire::actingAs($outsider)
+            ->test(MyLeaveRequestModule::class)
+            ->call('reconcileOperation')
+            ->assertForbidden();
     }
 
     private function openNewRequest()

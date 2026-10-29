@@ -5,6 +5,7 @@ use App\Livewire\Basics\ChecklistItemModule;
 use App\Livewire\Basics\CityModule;
 use App\Livewire\Basics\ContractTypeModule;
 use App\Livewire\Basics\DepartmentModule;
+use App\Livewire\Basics\HolidayModule;
 use App\Livewire\Basics\JobLevelModule;
 use App\Livewire\Basics\LeaveTypeModule;
 use App\Livewire\Basics\TerminationReasonModule;
@@ -21,5 +22,9 @@ Route::middleware('reference_page:project-basics')->group(function () {
     Route::get('annual-leave-rules', AnnualLeaveRuleModule::class)->name('annual-leave-rules.index');
     Route::get('termination-reasons', TerminationReasonModule::class)->name('termination-reasons.index');
 });
+
+// National HR and program managers (team-coverage-contract §6.1); the
+// component checks who may set which holidays, so no reference-page gate here.
+Route::get('holidays', HolidayModule::class)->name('holidays.index');
 
 Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positions.view')->name('org.chart');

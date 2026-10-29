@@ -1,6 +1,7 @@
 @php($cardView = method_exists($this, 'cardView') ? $this->cardView() : null)
 <div class="flex flex-col gap-3 relative"
-    wire:init="init"
+    {{-- Deferred loading only: otherwise the page arrives rendered and wire:init would re-render it at once (X1-I). --}}
+    @if($this->deferLoading) wire:init="init" @endif
     {{-- The Clear filters button disappears with the empty state; hand focus to the search box so keyboard users keep their place. --}}
     x-on:list-filters-cleared="$nextTick(() => $el.querySelector('input[type=search]')?.focus())"
     @if(strlen($polling = $this->polling()) > 0) wire:poll.{{ $polling }} @endif

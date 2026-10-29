@@ -136,8 +136,8 @@ class LeaveRequestAccountingTest extends TestCase
 
         if ($fixture === 'F4') {
             $this->insert('holidays', [
-                'name' => 'Holiday', 'start_date' => '2026-11-04', 'end_date' => '2026-11-04',
-                'holidayable_type' => (new City)->getMorphClass(), 'holidayable_id' => $this->nationalCityId, 'is_recurring' => false,
+                'name_en' => 'Holiday', 'name_ar' => 'عطلة', 'start_date' => '2026-11-04', 'end_date' => '2026-11-04',
+                'scope' => 'national', 'is_recurring' => false,
             ]);
         }
 

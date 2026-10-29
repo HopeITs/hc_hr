@@ -562,6 +562,94 @@ class LeaveRequestWorkflowTest extends TestCase
         );
     }
 
+    /** X1-I: the answer to Save was lost; the decision itself was applied once. */
+    public function test_x1i_reconciling_a_lost_decision_reports_it_without_deciding_again(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+        Notification::fake();
+
+        $lost = Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Accepted);
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $used = (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used');
+        $this->assertGreaterThan(0.0, $used);
+
+        $lost->call('reconcileOperation')
+            ->assertSet('decisionModal', false)
+            ->assertSet('linkedLeaveMode', 'details')
+            ->assertDispatched('toast', fn ($event, $params) => ($params['type'] ?? null) === 'info'
+                && str_contains($params['message'], 'already'));
+
+        // The lookup decided nothing and moved no balance.
+        $this->assertSame($used, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+        Notification::assertSentToTimes(
+            $leaveRequest->leaveBalance->contract->employee->account,
+            ActionLeaveRequest::class,
+            1,
+        );
+    }
+
+    public function test_x1i_reconciling_a_decision_that_never_arrived_keeps_the_choice(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'No cover for these dates.')
+            ->call('reconcileOperation')
+            ->assertSet('decisionModal', true)
+            ->assertSet('form.reject_reason', 'No cover for these dates.')
+            ->assertDispatched('toast', type: 'info', message: __('general.unknown-result.undecided'));
+
+        $this->assertEquals(LeaveRequestStatus::Pending, $leaveRequest->fresh()->status);
+    }
+
+    public function test_x1i_a_decision_sent_twice_moves_the_balance_once(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id)
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->call('submitDecision')
+            ->call('submitDecision');
+
+        $balance = fn () => (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used');
+        $once = $balance();
+
+        $this->assertGreaterThan(0.0, $once);
+        $this->assertEquals(LeaveRequestStatus::Accepted, $leaveRequest->fresh()->status);
+
+        // A retry from a dialog that was opened before: still once.
+        $this->assertSame($once, $balance());
+    }
+
+    public function test_x1i_reconciling_a_decision_without_access_to_the_request_is_forbidden(): void
+    {
+        [$hr, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        $dialog = Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leaveRequest->id);
+
+        // Their role changed meanwhile: the same session now holds no access.
+        $this->actingAs(User::factory()->create());
+
+        $dialog->call('reconcileOperation')->assertForbidden();
+    }
+
     /** A stale "reject without a reason" is not asked for a reason first. */
     public function test_a_stale_decision_is_reported_before_validation(): void
     {

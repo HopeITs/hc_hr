@@ -6,9 +6,11 @@ use Closure;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
@@ -28,6 +30,23 @@ class User extends Authenticatable implements HasLocalePreference
     protected $hidden = ['password', 'remember_token'];
 
     /**
+     * Answers derived from this user's roles and grants, kept for the life of
+     * this instance (one request). A profile page asks the same policy
+     * questions hundreds of times; each used to go back to the database.
+     *
+     * Dropped whenever the user's role or permission pivots are written (see
+     * newMorphToMany), when the roles / permissions relations are set, unset
+     * or reloaded, on refresh(), and whenever Spatie's permission cache is
+     * cleared (dropStaleAccess), so a switched role never serves a stale answer.
+     *
+     * @var array<string, mixed>
+     */
+    private array $requestMemo = [];
+
+    /** The registrar generation the memo and loaded roles/permissions belong to. */
+    private ?int $memoGeneration = null;
+
+    /**
      * The language mail to this user is rendered in: the interface language
      * they last worked in (RememberUserLocale). Null (not seen since the
      * column was added) falls back to the current locale, which outside a
@@ -37,16 +56,6 @@ class User extends Authenticatable implements HasLocalePreference
     {
         return $this->locale ?: null;
     }
-
-    /**
-     * Answers derived from this user's roles and grants, kept for the life of
-     * this instance (one request). A profile page asks the same policy
-     * questions hundreds of times; each used to go back to the database.
-     */
-    private array $requestMemo = [];
-
-    /** The registrar generation the memo and loaded roles/permissions belong to. */
-    private ?int $memoGeneration = null;
 
     public function profile(): BelongsTo
     {
@@ -66,6 +75,17 @@ class User extends Authenticatable implements HasLocalePreference
     public function forgetRemembered(): void
     {
         $this->requestMemo = [];
+    }
+
+    /**
+     * A role or permission pivot was written: the loaded relations describe
+     * the old state too (activeRole() reads is_active from them), so they go
+     * with the memo.
+     */
+    public function forgetLoadedAccess(): void
+    {
+        $this->unsetRelation('roles');
+        $this->unsetRelation('permissions');
     }
 
     /**
@@ -152,6 +172,31 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->activeRole()?->name
             ?? $this->roles->first()?->name
             ?? null;
+    }
+
+    public function refresh()
+    {
+        $this->forgetRemembered();
+
+        return parent::refresh();
+    }
+
+    public function setRelation($relation, $value)
+    {
+        if (in_array($relation, ['roles', 'permissions'], true)) {
+            $this->forgetRemembered();
+        }
+
+        return parent::setRelation($relation, $value);
+    }
+
+    public function unsetRelation($relation)
+    {
+        if (in_array($relation, ['roles', 'permissions'], true)) {
+            $this->forgetRemembered();
+        }
+
+        return parent::unsetRelation($relation);
     }
 
     public function activeRoleSlug(): ?string
@@ -268,11 +313,8 @@ class User extends Authenticatable implements HasLocalePreference
      */
     public function hasActivePermission(string $permission): bool
     {
-        if ($this->activeRoleIs(...config('access-control.administrator_roles', []))) {
-            return true;
-        }
-
-        return $this->hasExplicitPermission($permission);
+        return $this->remember('perm:'.$permission, fn (): bool => $this->activeRoleIs(...config('access-control.administrator_roles', []))
+            || $this->hasExplicitPermission($permission));
     }
 
     /**
@@ -313,11 +355,12 @@ class User extends Authenticatable implements HasLocalePreference
             return null;
         }
 
-        return City::query()
+        // Keyed by role, and dropped with the rest of the memo (X1-I: ~60 lookups per page).
+        return $this->remember('cities:'.$roleName, fn () => City::query()
             ->whereIn('slug', City::slugsForHrRole($roleName))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
-            ->all();
+            ->all());
     }
 
     /**
@@ -413,6 +456,35 @@ class User extends Authenticatable implements HasLocalePreference
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Every many-to-many from the user (roles, permissions) is a morph one.
+     * Writing its pivot (attach, detach, sync, updateExistingPivot, as the
+     * role switcher and AccessRevoker do) drops the memo before the write.
+     */
+    protected function newMorphToMany(Builder $query, Model $parent, $name, $table, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey, $relationName = null, $inverse = false)
+    {
+        return new class($query, $parent, $name, $table, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey, $relationName, $inverse) extends MorphToMany
+        {
+            public function newPivotQuery()
+            {
+                if ($this->parent instanceof User) {
+                    $this->parent->forgetLoadedAccess();
+                }
+
+                return parent::newPivotQuery();
+            }
+
+            public function newPivotStatement()
+            {
+                if ($this->parent instanceof User) {
+                    $this->parent->forgetLoadedAccess();
+                }
+
+                return parent::newPivotStatement();
+            }
+        };
     }
 
     protected function casts(): array

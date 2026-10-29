@@ -149,7 +149,7 @@ class LeaveRequestPricingTest extends TestCase
     public function test_f4_a_national_holiday_inside_the_range_is_skipped(): void
     {
         [$contract, $balance] = $this->annual('A');
-        $this->holiday(City::class, $this->nationalCityId, '2026-11-04');
+        $this->holiday('2026-11-04');
 
         $quote = $this->quote($contract, $balance, LeaveWindow::days('2026-11-01', '2026-11-05'));
 
@@ -236,7 +236,7 @@ class LeaveRequestPricingTest extends TestCase
     {
         $contract = $this->contract('B');
         $balance = $this->balance($contract, LeaveTypeCases::MaternityFirst, deserved: 960);
-        $this->holiday(City::class, $this->nationalCityId, '2026-11-04');
+        $this->holiday('2026-11-04');
 
         $quote = $this->quote($contract, $balance, LeaveWindow::days('2026-11-02', '2026-12-01'));
 
@@ -430,15 +430,18 @@ class LeaveRequestPricingTest extends TestCase
         $this->assertTrue($quote->hasWarning(LeaveQuote::BALANCE_UNKNOWN_WEEKEND));
     }
 
-    public function test_city_program_and_recurring_holidays_apply_but_other_cities_do_not(): void
+    /** §6.1: national + the holder's project (program × governorate); no city- or program-wide level. */
+    public function test_national_project_and_recurring_holidays_apply_but_other_projects_do_not(): void
     {
         [$contract, $balance] = $this->annual('A');
-        $this->holiday(City::class, $this->cityId, '2026-11-02');
-        $this->holiday(Program::class, $this->programId, '2026-11-03');
-        $this->holiday(City::class, $this->nationalCityId, '2019-11-04', recurring: true);
-        $this->holiday(City::class, $this->otherCityId, '2026-11-05');
+        $this->holiday('2026-11-02', projects: [[$this->programId, $this->cityId]]);
+        // Shared with another project: still applies.
+        $this->holiday('2026-11-03', projects: [[$this->programId, $this->otherCityId], [$this->programId, $this->cityId]]);
+        $this->holiday('2019-11-04', recurring: true);
+        // Same program, other governorate: not this holder's project.
+        $this->holiday('2026-11-05', projects: [[$this->programId, $this->otherCityId]]);
         // On Friday (weekend at A): listed once, as weekend.
-        $this->holiday(City::class, $this->nationalCityId, '2026-11-06');
+        $this->holiday('2026-11-06');
 
         $quote = $this->quote($contract, $balance, LeaveWindow::days('2026-11-01', '2026-11-07'));
 
@@ -682,16 +685,21 @@ class LeaveRequestPricingTest extends TestCase
         return LeaveRequest::query()->findOrFail($id);
     }
 
-    private function holiday(string $morphClass, int $id, string $date, bool $recurring = false): void
+    /** @param  list<array{0: int, 1: int}>  $projects  [programId, cityId] pairs; none = national */
+    private function holiday(string $date, bool $recurring = false, array $projects = []): void
     {
-        $this->insert('holidays', [
-            'name' => 'Holiday',
+        $id = $this->insert('holidays', [
+            'name_en' => 'Holiday',
+            'name_ar' => 'عطلة',
             'start_date' => $date,
             'end_date' => $date,
-            'holidayable_type' => $morphClass,
-            'holidayable_id' => $id,
+            'scope' => $projects === [] ? 'national' : 'projects',
             'is_recurring' => $recurring,
         ]);
+
+        foreach ($projects as [$programId, $cityId]) {
+            DB::table('holiday_project')->insert(['holiday_id' => $id, 'program_id' => $programId, 'city_id' => $cityId]);
+        }
     }
 
     /**

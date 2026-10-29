@@ -111,7 +111,7 @@ class ContractCreate extends Component
      */
     public function submit(array $payload): mixed
     {
-        $key = 'contract-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
+        $key = $this->submissionKey();
 
         try {
             return Cache::lock($key.':lock', 30)->block(10, fn () => $this->submitOnce($payload, $key));
@@ -120,6 +120,28 @@ class ContractCreate extends Component
 
             return null;
         }
+    }
+
+    /**
+     * X1-I: the browser lost the answer to submit() and asks whether the
+     * operation was applied. A lookup by this composer's token, never a
+     * second write; when nothing was created every entry stays on the page.
+     */
+    public function reconcileOperation(): mixed
+    {
+        abort_unless(auth()->user()?->hasActivePermission($this->locationOptionsPermission()), 403);
+
+        $created = $this->createdBy($this->submissionKey());
+
+        if ($created === null) {
+            $this->toast(__('general.unknown-result.not-applied'), type: 'info');
+
+            return null;
+        }
+
+        $this->toast(__('general.unknown-result.applied'));
+
+        return $this->redirectRoute('contracts.show', $created->id, navigate: true);
     }
 
     /**
@@ -231,6 +253,11 @@ class ContractCreate extends Component
     protected function contractTermAnchor(): ?string
     {
         return $this->isRenewal() ? $this->form->start_date : null;
+    }
+
+    private function submissionKey(): string
+    {
+        return 'contract-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
     }
 
     private function submitOnce(array $payload, string $key): mixed

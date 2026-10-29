@@ -27,6 +27,8 @@ use App\Enums\LeaveRequestStatus;
 
     </div>
 
+    <livewire:employee.leave.birthday-holiday-card />
+
     @if($loadFailed)
         <x-ui.load-error class="mb-6" :message="__('states.balances-unavailable')" />
     @elseif($availableLeaves !== null && $availableLeaves->isNotEmpty())

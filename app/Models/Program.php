@@ -31,11 +31,6 @@ class Program extends Model implements HasMedia
         return $this->belongsToMany(City::class, 'positions', 'program_id', 'city_id');
     }
 
-    public function holidays()
-    {
-        return $this->morphMany(Holiday::class, 'holidayable');
-    }
-
     public function centers(): BelongsToMany
     {
         return $this->belongsToMany(Center::class, 'positions', 'program_id', 'center_id')->distinct();

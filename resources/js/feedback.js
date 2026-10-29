@@ -150,11 +150,70 @@ function reportUnreachable(action) {
     });
 }
 
+/*
+ * X1-I: a write that may have been applied before the connection dropped.
+ * For the actions listed in App\Support\UnknownOutcome the honest state is
+ * "result unknown", not "nothing was saved", and the button looks the
+ * outcome up by operation key (reconcileOperation) instead of repeating the
+ * write. The entries stay on the page either way.
+ */
+let unknown = { toastId: null, action: null };
+
+function ambiguousWrite(actions) {
+    const registry = window.hcFeedbackText?.reconcile ?? {};
+
+    return actions.find((action) => registry[action.component?.name]?.includes(action.name));
+}
+
+function showUnknownResult(action) {
+    const store = window.Alpine?.store('toasts');
+    const text = window.hcFeedbackText;
+
+    if (!store || !text?.unknownResult) return;
+
+    unknown.action = action;
+
+    if (store.find(unknown.toastId)) return;
+
+    unknown.toastId = store.push({
+        type: 'info',
+        message: text.unknownResult,
+        action: { label: text.checkResult, run: checkResult },
+    });
+}
+
+function checkResult() {
+    const action = unknown.action;
+
+    unknown = { toastId: null, action: null };
+
+    if (!action) return;
+
+    const origin = action.origin;
+    const control = origin?.targetEl ?? origin?.el;
+
+    if (control?.isConnected && control.matches(FOCUSABLE) && isVisible(control)) {
+        control.focus({ preventScroll: true });
+    }
+
+    // Only a lookup: the component answers from the operation key.
+    // Livewire.find() already returns the component's $wire.
+    window.Livewire.find(action.component.id)?.$call('reconcileOperation');
+}
+
 function showUnreachable(actions) {
     const store = window.Alpine?.store('toasts');
     const text = window.hcFeedbackText;
 
     if (!store || !text?.networkError) return;
+
+    const write = ambiguousWrite(actions);
+
+    if (write) {
+        showUnknownResult(write);
+
+        return;
+    }
 
     // Still on screen: one toast, whose Try again covers these as well.
     if (store.find(unreachable.toastId)) {

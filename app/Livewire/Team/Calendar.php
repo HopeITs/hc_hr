@@ -3,6 +3,9 @@
 namespace App\Livewire\Team;
 
 use App\Models\City;
+use App\Models\Holiday;
+use App\Services\HolidayProjects;
+use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
 use Carbon\CarbonImmutable;
 use Livewire\Attributes\Url;
@@ -40,6 +43,9 @@ class Calendar extends Component
 
     #[Url(as: 'city', except: 0)]
     public int $cityId = 0;
+
+    /** The embedded holiday dialog saved: redraw with the new day names. */
+    protected $listeners = ['holidaysChanged' => '$refresh'];
 
     /** Previous (-1) or next (1) month, week or day, by the current view. */
     public function move(int $step): void
@@ -92,7 +98,12 @@ class Calendar extends Component
             $failed = true;
         }
 
+        $holidayProjects = app(HolidayProjects::class);
+        $canManageHolidays = $holidayProjects->canManage($user);
+
         return view('livewire.team.calendar', [
+            'holidays' => $this->holidayLabels($user, $from, $to, $holidayProjects, $canManageHolidays),
+            'canManageHolidays' => $canManageHolidays,
             'days' => $days,
             'failed' => $failed,
             'from' => $from,
@@ -122,6 +133,47 @@ class Calendar extends Component
         $start = $day->startOfDay()->subDays($day->dayOfWeek);
 
         return [$start, $start->addDays(6)];
+    }
+
+    /**
+     * Holiday names per day: the viewer's own (national + their project), and,
+     * for someone who sets holidays, the ones they look after — so a holiday
+     * added from this page shows up on it.
+     *
+     * @return array<string, list<array{id: int, name: string, editable: bool, national: bool}>>
+     */
+    private function holidayLabels($user, CarbonImmutable $from, CarbonImmutable $to, HolidayProjects $projects, bool $canManage): array
+    {
+        $pricing = app(LeaveRequestPricing::class);
+        $position = $user?->profile?->latestActiveContract()?->position;
+        $cityId = $position?->center?->city_id ?? $position?->city_id;
+
+        $byDate = $pricing->holidaysOn($position?->program_id ? (int) $position->program_id : null, $cityId !== null ? (int) $cityId : null, $from, $to);
+
+        if ($canManage) {
+            $managed = $projects->holidaysOf($user)->occurringBetween($from, $to)->get();
+
+            foreach ($pricing->spread($managed, $from, $to) as $date => $rows) {
+                $byDate[$date] = [...($byDate[$date] ?? []), ...$rows];
+            }
+        }
+
+        $labels = [];
+
+        foreach ($byDate as $date => $rows) {
+            $labels[$date] = collect($rows)
+                ->unique('id')
+                ->map(fn (Holiday $h) => [
+                    'id' => (int) $h->id,
+                    'name' => (string) $h->name,
+                    'national' => $h->isNational(),
+                    'editable' => $canManage && $projects->canChange($user, $h),
+                ])
+                ->values()
+                ->all();
+        }
+
+        return $labels;
     }
 
     private function normalisedView(): string

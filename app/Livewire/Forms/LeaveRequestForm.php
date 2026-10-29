@@ -359,6 +359,19 @@ class LeaveRequestForm extends Form
         return $this->replayed;
     }
 
+    /**
+     * X1-I: was this form's operation applied? Looks the token up and never
+     * writes. Null when it was not (or there is no token).
+     */
+    public function consumedRequest(): ?LeaveRequest
+    {
+        if (! $this->submission_token) {
+            return null;
+        }
+
+        return $this->consumedSubmission(self::submissionKey((int) auth()->id(), (string) $this->submission_token));
+    }
+
     public static function submissionKey(int $userId, string $token): string
     {
         return 'leave-request-submission:'.$userId.':'.sha1($token);

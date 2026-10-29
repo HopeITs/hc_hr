@@ -86,7 +86,8 @@ FLOWS = {
     "employee_search": {
         "persona": "hr",
         "path": "/employees",
-        "content": 'tr[data-tour="table.row"]',
+        # X1-I: below md the table renders its rows as cards (the <tr> is hidden).
+        "content": 'tr[data-tour="table.row"], li[wire\\:key^="card-"]',
         "ready": None,
         "interaction": "search",
     },
@@ -170,7 +171,11 @@ INIT_JS = r"""
     const overlay = document.getElementById('page-gif-overlay');
     if (overlay && overlay.style.opacity === '0') mark('overlay_fade_start');
     if (overlay && overlay.style.display === 'none') mark('overlay_hidden');
-    if (CONTENT && visible(document.querySelector(CONTENT))) mark('content_visible');
+    if (CONTENT && [...document.querySelectorAll(CONTENT)].some(visible)) mark('content_visible');
+    // X1-I: A7 removed the page-covering loader. With no overlay in the page
+    // once content shows, nothing hides it; the overlay precedes the content
+    // in the markup, so pages that still have one are measured as before.
+    if (!overlay && 'content_visible' in X.marks) mark('overlay_hidden', X.marks.content_visible);
     if (READY) { try { if (eval(READY)) mark('flow_ready'); } catch (e) {} }
     const m = X.marks;
     const done = 'overlay_hidden' in m && 'content_visible' in m && (!READY || 'flow_ready' in m);
@@ -488,7 +493,8 @@ def interact(page, flow, manifest):
             const box = document.querySelector('input[type=search][wire\\\\:model\\\\.live\\\\.debounce\\\\.500ms="globalSearch"]');
             box.addEventListener('input', () => { X.ix.input = performance.now(); }, { once: true });
             const check = () => {
-                const rows = [...document.querySelectorAll('tr[data-tour="table.row"]')];
+                const shown = (el) => el.getBoundingClientRect().height > 0;
+                const rows = [...document.querySelectorAll('tr[data-tour="table.row"], li[wire\\\\:key^="card-"]')].filter(shown);
                 if (X.ix.input && rows.length === expected && rows.every(r => r.textContent.includes(term))) {
                     X.ix.rendered = performance.now(); return;
                 }

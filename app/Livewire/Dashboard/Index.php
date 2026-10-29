@@ -385,7 +385,7 @@ class Index extends Component
                     ->where('title_en', 'like', '%deputy%')
                     ->orWhere('title_ar', 'like', '%نائب%')))
             ->when($ceo, fn ($query) => $query->where('employee_id', '!=', $ceo->id))
-            ->with(['position', 'employee.media'])
+            ->with(['position', 'employee.media', 'employee.contracts.position'])
             ->latest('start_date')
             ->get()
             ->unique('employee_id')
@@ -466,8 +466,19 @@ class Index extends Component
             ->values();
 
         // The card links each member's work email (account login) — load it in one query.
-        return (new EloquentCollection($members->merge($allEmployees)->unique('id')->values()))
+        $team = (new EloquentCollection($members->merge($allEmployees)->unique('id')->values()))
             ->loadMissing('account');
+
+        // Decide once, here, who may be shown a photo (the same ability the
+        // avatar endpoint enforces). The card then renders an <img> only for
+        // those people: a forbidden photo is never requested, so it neither
+        // costs a 403 round trip nor puts its URL in the HTML.
+        $team->each(function (Employee $employee) use ($viewer): void {
+            $employee->canViewAvatar = $viewer !== null
+                && Gate::forUser($viewer)->allows('viewAvatar', $employee);
+        });
+
+        return $team;
     }
 
     /**

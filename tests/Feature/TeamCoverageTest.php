@@ -9,7 +9,6 @@ use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Livewire\Inbox\Index as Inbox;
 use App\Livewire\Team\Calendar;
 use App\Models\Center;
-use App\Models\City;
 use App\Models\Contract;
 use App\Models\Department;
 use App\Models\Employee;
@@ -326,7 +325,9 @@ class TeamCoverageTest extends TestCase
             ->set('date', '2026-11-03')
             ->set('scope', 'org')
             ->assertDontSee('Rana Saad')
-            ->assertSeeHtml('data-testid="calendar-empty"');
+            // Nobody visible is away; the month list keeps only Lina's own project holiday.
+            ->assertDontSeeHtml('data-testid="calendar-empty"')
+            ->assertSee('Homs holiday');
     }
 
     /** The manager's view: pending marked by text, status filter, week and day views and navigation. */
@@ -477,11 +478,12 @@ class TeamCoverageTest extends TestCase
             LeaveType::query()->forceCreate(['id' => $id, 'name_en' => $name, 'name_ar' => $name === 'Annual' ? 'سنوية' : 'مرضية كاملة', 'base_days' => 14]);
         }
 
-        // Wed 4 Nov 2026: a Homs holiday (A3 reads City-attached holidays).
-        Holiday::query()->forceCreate([
-            'name' => 'Homs holiday', 'start_date' => '2026-11-04', 'end_date' => '2026-11-04', 'is_recurring' => false,
-            'holidayable_type' => (new City)->getMorphClass(), 'holidayable_id' => $this->cities['HMS']->id,
+        // Wed 4 Nov 2026: a holiday of the project Study Zone × Homs (§6.1).
+        $holiday = Holiday::query()->forceCreate([
+            'name_en' => 'Homs holiday', 'name_ar' => 'عطلة حمص', 'start_date' => '2026-11-04', 'end_date' => '2026-11-04',
+            'is_recurring' => false, 'scope' => Holiday::SCOPE_PROJECTS,
         ]);
+        $holiday->projects()->create(['program_id' => $this->program->id, 'city_id' => $this->cities['HMS']->id]);
 
         $this->person('sami', 'Sami', 'Khoury', 'HMS', 'A', 'MGMT', 5, null, 'manager', 'سامي', 'خوري');
         $samiPosition = $this->p['sami']['position']->id;

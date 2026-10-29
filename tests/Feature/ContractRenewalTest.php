@@ -20,6 +20,7 @@ use App\Models\TerminationReason;
 use App\Services\LeaveBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
@@ -152,6 +153,100 @@ class ContractRenewalTest extends TestCase
 
         $this->assertSame('2027-02-01', $renewal->start_date->toDateString());
         $this->assertSame('2027-07-31', $renewal->end_date->toDateString());
+    }
+
+    /** X1-I: one renewal and one set of leave balances, however often it is sent. */
+    public function test_x1i_renew_as_is_sent_twice_creates_one_successor_and_one_set_of_balances(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $source = $this->makeContract($fixtures);
+
+        $this->mock(LeaveBalanceService::class)
+            ->shouldReceive('create')
+            ->once()
+            ->andReturnNull();
+
+        $dialog = Livewire::actingAs($fixtures['hr'])
+            ->test(ContractRenewModal::class)
+            ->call('open', $source->id)
+            ->call('renewAsIs')
+            ->assertHasNoErrors();
+
+        $renewal = Contract::query()->where('id', '!=', $source->id)->sole();
+
+        // Double click, or a retry whose first answer was lost.
+        $dialog->call('renewAsIs')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('contracts.show', $renewal->id));
+
+        $this->assertSame(2, Contract::query()->count());
+    }
+
+    public function test_x1i_a_renewal_sent_while_the_first_is_still_saving_writes_nothing(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $source = $this->makeContract($fixtures);
+        $this->ignoreLeaveBalances();
+
+        $dialog = Livewire::actingAs($fixtures['hr'])
+            ->test(ContractRenewModal::class)
+            ->call('open', $source->id);
+
+        $key = 'contract-renew-submission:'.$fixtures['hr']->id.':'.sha1($dialog->get('submissionToken'));
+        $held = Cache::lock($key.':lock', 30);
+        $this->assertTrue($held->get());
+
+        $dialog->call('renewAsIs')
+            ->assertDispatched('toast', type: 'info', message: __('general.composer.submit-in-progress'));
+
+        $held->release();
+        $this->assertSame(1, Contract::query()->count());
+    }
+
+    public function test_x1i_reconciling_a_lost_renewal_goes_to_the_successor_without_renewing_again(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $source = $this->makeContract($fixtures);
+        $this->ignoreLeaveBalances();
+
+        $dialog = Livewire::actingAs($fixtures['hr'])
+            ->test(ContractRenewModal::class)
+            ->call('open', $source->id)
+            ->call('renewAsIs');
+
+        $renewal = Contract::query()->where('id', '!=', $source->id)->sole();
+
+        $dialog->call('reconcileOperation')
+            ->assertRedirect(route('contracts.show', $renewal->id));
+
+        $this->assertSame(2, Contract::query()->count());
+    }
+
+    public function test_x1i_reconciling_a_renewal_that_never_arrived_keeps_the_period_on_screen(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $source = $this->makeContract($fixtures);
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractRenewModal::class)
+            ->call('open', $source->id)
+            ->set('form.end_date', '2027-06-30')
+            ->call('reconcileOperation')
+            ->assertNoRedirect()
+            ->assertSet('show', true)
+            ->assertSet('form.end_date', '2027-06-30')
+            ->assertDispatched('toast', type: 'info', message: __('general.unknown-result.not-applied'));
+
+        $this->assertSame(1, Contract::query()->count());
+    }
+
+    public function test_x1i_a_renewal_token_cannot_be_swapped_by_the_browser(): void
+    {
+        $fixtures = $this->makeFixtures();
+
+        $this->expectException(CannotUpdateLockedPropertyException::class);
+
+        Livewire::actingAs($fixtures['hr'])->test(ContractRenewModal::class)->set('submissionToken', 'forged');
     }
 
     public function test_renew_as_is_succeeds_on_a_position_that_is_already_full(): void

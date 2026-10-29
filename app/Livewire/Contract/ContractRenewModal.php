@@ -7,7 +7,11 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Contract;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -36,6 +40,15 @@ class ContractRenewModal extends Component
     #[Locked]
     public ?int $contractId = null;
 
+    /**
+     * One per opened dialog (X1-I, the same rule as ContractCreate's B2
+     * token): a double-sent or retried renewAsIs carries the same token and
+     * finds the successor the first one created. Locked: the browser cannot
+     * swap or clear it.
+     */
+    #[Locked]
+    public string $submissionToken = '';
+
     #[On('open-renew-modal')]
     public function open(int $contractId): void
     {
@@ -44,6 +57,7 @@ class ContractRenewModal extends Component
         $this->resetErrorBag();
 
         $this->contractId = $contract->id;
+        $this->submissionToken = (string) Str::uuid();
         [$this->form->start_date, $this->form->end_date] = $contract->renewalWindow();
         $this->markClean('contractRenewModal');
         $this->show = true;
@@ -61,28 +75,35 @@ class ContractRenewModal extends Component
      */
     public function renewAsIs(): mixed
     {
-        $source = $this->authorizedContract($this->contractId);
+        $key = $this->submissionKey();
 
-        // Keep whatever period is on screen; everything else comes from source.
-        $this->form->fillFromRenewal(
-            $source,
-            (string) $this->form->start_date,
-            (string) $this->form->end_date,
-        );
+        try {
+            return Cache::lock($key.':lock', 30)->block(10, fn () => $this->renewOnce($key));
+        } catch (LockTimeoutException) {
+            $this->toast(__('general.composer.submit-in-progress'), type: 'info');
 
-        $this->form->validateIdentity();
-        $this->form->validateTerms();
-        $this->form->validatePay();
+            return null;
+        }
+    }
 
-        $renewal = $this->form->create();
+    /**
+     * X1-I: the browser lost the answer to renewAsIs and asks whether the
+     * operation was applied. A lookup by the dialog's token; it never renews,
+     * and the period on screen stays when nothing was created.
+     */
+    public function reconcileOperation(): mixed
+    {
+        $this->authorizedContract($this->contractId);
 
-        // Same as ContractCreate::submit() — a renewal is entitled to its own
-        // leave balances, including the carry-over from the contract it follows.
-        $this->balanceForm->store($renewal->id);
+        $renewal = $this->createdBy($this->submissionKey());
 
-        $this->show = false;
+        if ($renewal === null) {
+            $this->toast(__('general.unknown-result.not-applied'), type: 'info');
 
-        $this->toast();
+            return null;
+        }
+
+        $this->toast(__('general.unknown-result.applied'));
 
         return $this->redirectRoute('contracts.show', $renewal->id, navigate: true);
     }
@@ -140,6 +161,66 @@ class ContractRenewModal extends Component
     protected function closeGuardedDialog(string $dialog): void
     {
         $this->close();
+    }
+
+    private function renewOnce(string $key): mixed
+    {
+        $source = $this->authorizedContract($this->contractId);
+
+        if ($renewal = $this->createdBy($key)) {
+            return $this->redirectRoute('contracts.show', $renewal->id, navigate: true);
+        }
+
+        // Keep whatever period is on screen; everything else comes from source.
+        $this->form->fillFromRenewal(
+            $source,
+            (string) $this->form->start_date,
+            (string) $this->form->end_date,
+        );
+
+        $this->form->validateIdentity();
+        $this->form->validateTerms();
+        $this->form->validatePay();
+
+        // The contract and its leave balances are one operation: a failure in
+        // between must not leave a successor that a retry would then repeat.
+        $renewal = DB::transaction(function (): Contract {
+            $renewal = $this->form->create();
+
+            // Same as ContractCreate::submit() — a renewal is entitled to its
+            // own leave balances, including the carry-over from the contract
+            // it follows.
+            $this->balanceForm->store($renewal->id);
+
+            return $renewal;
+        });
+
+        Cache::put($key, $renewal->id, now()->addDay());
+
+        $this->show = false;
+
+        $this->toast();
+
+        return $this->redirectRoute('contracts.show', $renewal->id, navigate: true);
+    }
+
+    private function submissionKey(): string
+    {
+        return 'contract-renew-submission:'.auth()->id().':'.sha1($this->submissionToken);
+    }
+
+    /** The successor an earlier send created, if it is still this user's to see. */
+    private function createdBy(string $key): ?Contract
+    {
+        $id = Cache::get($key);
+
+        if (! $id) {
+            return null;
+        }
+
+        $contract = Contract::query()->find($id);
+
+        return $contract && auth()->user()->can('view', $contract) ? $contract : null;
     }
 
     /**

@@ -338,6 +338,35 @@ class MyLeaveRequestModule extends Component
         $this->keepConsumedToken($token);
     }
 
+    /**
+     * X1-I: the browser lost the answer to processSave and asks whether the
+     * operation was applied. A lookup by the form's submission token: it never
+     * writes, so it cannot create a second request. The typed entries stay
+     * unless the request is confirmed saved.
+     */
+    public function reconcileOperation(): void
+    {
+        $this->authorizeActivePermission('leaves.create');
+
+        $token = $this->form->submission_token;
+        $leaveRequest = $this->form->id ? null : $this->form->consumedRequest();
+
+        if ($leaveRequest === null) {
+            $this->toast(__('general.unknown-result.not-applied'), type: 'info');
+
+            return;
+        }
+
+        if (! $this->showModal) {
+            $this->toast(__('general.unknown-result.applied'));
+
+            return;
+        }
+
+        $this->finishSave($leaveRequest, 'sent');
+        $this->keepConsumedToken($token);
+    }
+
     /** The request dialog's entries, for the close guard. */
     protected function guardedEntries(string $dialog): array
     {

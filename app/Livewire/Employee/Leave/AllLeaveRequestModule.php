@@ -216,6 +216,32 @@ class AllLeaveRequestModule extends Component
         $this->dispatch('leaveRequestDecisionSaved')->to(AllLeaveRequestTable::class);
     }
 
+    /**
+     * X1-I: the browser lost the answer to submitDecision. The operation key is
+     * the request itself (a request is decided once, under a row lock), so the
+     * answer is its current state. A lookup only: nothing is decided here, and
+     * someone who may no longer see the request gets the policy's 403.
+     */
+    public function reconcileOperation(): void
+    {
+        $leaveRequest = $this->decisionLeave
+            ? LeaveRequest::query()->find($this->decisionLeave->id)
+            : null;
+
+        abort_if($leaveRequest === null, 404);
+        Gate::authorize('view', $leaveRequest);
+
+        if ((int) $leaveRequest->status === LeaveRequestStatus::Pending) {
+            $this->toast(__('general.unknown-result.undecided'), type: 'info');
+
+            return;
+        }
+
+        $this->decisionModal = false;
+        $this->decisionLeave = null;
+        $this->showAlreadyDecided($leaveRequest);
+    }
+
     public function setActiveTab(string $status)
     {
         $this->statusFilter = $status;

@@ -1,5 +1,5 @@
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
 <meta name="description" content="{{ $description ?? __('Secure human resources management for Christian Hope Center teams across Syria.') }}" />
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
 
@@ -38,6 +38,29 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicons/favicon-32x32.png') }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicons/favicon-16x16.png') }}">
 <link rel="manifest" href="{{ asset('favicons/site.webmanifest') }}">
+{{-- D2-PWA (DEC-07): installable. The service worker stores only the offline
+     page, icons and fingerprinted build files (public/sw.js); never a page,
+     data, a photo or a file. On the sign-in page, and whenever the signed-in
+     user or active role differs from the last one seen on this device, it is
+     told to start from a clean cache. --}}
+<meta name="theme-color" content="#c2151c">
+<meta name="apple-mobile-web-app-title" content="HopeHR">
+<meta name="mobile-web-app-capable" content="yes">
+@php($pwaSession = auth()->check() ? hash('sha256', auth()->id().'|'.auth()->user()->myRole().'|'.config('app.key')) : 'signed-out')
+{{-- The CSP allows inline scripts only with its nonce (SecurityHeaders). --}}
+<script nonce="{{ Vite::cspNonce() }}">
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then((registration) => {
+            const session = @js($pwaSession);
+            let last = null;
+            try { last = localStorage.getItem('hopehr-sw-session'); } catch (e) {}
+            if (session === 'signed-out' || last !== session) {
+                registration.active?.postMessage('hopehr:clear');
+            }
+            try { localStorage.setItem('hopehr-sw-session', session); } catch (e) {}
+        }).catch(() => {});
+    }
+</script>
 
 {{-- Preload the critical brand font weights so text paints without a flash.
      Vite::asset() resolves the same fingerprinted URL app.css uses, so the preload is never a wasted second download. --}}

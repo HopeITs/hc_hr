@@ -53,6 +53,12 @@
                 // Localized job title for each member
                 $memberContract = $member->latestActiveContract();
                 $memberTitle = $memberContract?->position?->$titleCol ?? ($memberContract?->position?->title_en ?? '—');
+
+                $memberName = $member->displayName ?? $member->name;
+                $memberInitials = collect(preg_split('/\s+/u', trim((string) $memberName), -1, PREG_SPLIT_NO_EMPTY))
+                    ->take(2)
+                    ->map(fn ($part) => mb_substr($part, 0, 1))
+                    ->implode('');
             @endphp
 
             <!-- Member Row -->
@@ -71,8 +77,16 @@
                     <div
                         class="flex items-center justify-center size-[34px] flex-shrink-0 rounded-full overflow-hidden
                                 bg-[var(--color-primary)] text-white font-semibold uppercase shadow-e1">
-                        <img src="{{ $member->avatar_url }}"
-                            alt="{{ $member->displayName ?? $member->name }}" class="object-fit w-full h-full">
+                        @if ($member->canViewAvatar ?? false)
+                            {{-- Fixed size reserves the space (no layout shift); lazy + async keep ~190 photos off the critical path. --}}
+                            <img src="{{ $member->avatar_url }}" alt="{{ $memberName }}"
+                                width="34" height="34" loading="lazy" decoding="async"
+                                class="object-cover size-full">
+                        @else
+                            {{-- Not allowed to see this photo: initials, and no request at all. --}}
+                            <span aria-hidden="true" class="text-xs">{{ $memberInitials }}</span>
+                            <span class="sr-only">{{ $memberName }}</span>
+                        @endif
                     </div>
 
                     <!-- Name + Position -->

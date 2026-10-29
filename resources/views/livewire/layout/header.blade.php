@@ -15,6 +15,7 @@
 @endphp
 
 <nav id="app-navbar" dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
+    style="padding-top: env(safe-area-inset-top, 0px)"
     class="fixed inset-x-0 top-0 z-30 w-screen bg-white md:w-full dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
 
     {{--

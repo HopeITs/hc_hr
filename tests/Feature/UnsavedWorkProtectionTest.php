@@ -209,6 +209,47 @@ class UnsavedWorkProtectionTest extends TestCase
         $this->assertSame(1, $fixtures['position']->fresh()->exist_emp);
     }
 
+    /** X1-I: a lookup by the composer's token, never a second write. */
+    public function test_x1i_reconciling_a_lost_create_goes_to_the_contract_it_made(): void
+    {
+        $fixtures = $this->contractFixtures();
+        $this->ignoreLeaveBalances();
+        $composer = Livewire::actingAs($fixtures['hr'])->test(ContractCreate::class);
+
+        $composer->call('submit', $this->contractPayload($fixtures))->assertHasNoErrors();
+        $contract = Contract::query()->sole();
+
+        $composer->call('reconcileOperation')
+            ->assertRedirect(route('contracts.show', $contract->id));
+
+        $this->assertSame(1, Contract::query()->count());
+        $this->assertSame(1, $fixtures['position']->fresh()->exist_emp);
+    }
+
+    public function test_x1i_reconciling_a_create_that_never_arrived_writes_nothing_and_keeps_the_composer(): void
+    {
+        $fixtures = $this->contractFixtures();
+
+        Livewire::actingAs($fixtures['hr'])->test(ContractCreate::class)
+            ->call('reconcileOperation')
+            ->assertNoRedirect()
+            ->assertDispatched('toast', type: 'info', message: __('general.unknown-result.not-applied'));
+
+        $this->assertSame(0, Contract::query()->count());
+    }
+
+    public function test_x1i_reconciling_after_the_role_lost_contract_creation_is_forbidden(): void
+    {
+        $fixtures = $this->contractFixtures();
+        $composer = Livewire::actingAs($fixtures['hr'])->test(ContractCreate::class);
+
+        $fixtures['hr']->getRoleNames()->each(fn ($role) => $fixtures['hr']->removeRole($role));
+        $fixtures['hr']->revokePermissionTo($fixtures['hr']->getAllPermissions());
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $composer->call('reconcileOperation')->assertForbidden();
+    }
+
     public function test_a_second_composer_is_a_new_contract(): void
     {
         $fixtures = $this->contractFixtures();

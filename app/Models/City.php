@@ -81,11 +81,6 @@ class City extends Model
         return $roles->isNotEmpty() ? $roles->values()->all() : ['HR-'.$slug];
     }
 
-    public function holidays()
-    {
-        return $this->morphMany(Holiday::class, 'holidayable');
-    }
-
     public function centers()
     {
         return $this->hasMany(Center::class);

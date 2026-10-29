@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentJobOffer;
 use App\Models\User;
+use App\Services\HolidayProjects;
 use App\Services\RecruitmentApproverEligibility;
 use App\Services\WorkInbox;
 use Throwable;
@@ -49,7 +50,7 @@ final class Navigation
             $can('archives.view') ? self::item('nav.my-space.shared-files', __('general.shared-folders'), 'shared-folders.index', ['shared-folders.*'], 'folder') : null,
         ]));
 
-        $basics = self::group('nav.basics', __('general.project-basics'), 'home', [
+        $basics = self::group('nav.basics', __('general.project-basics'), 'home', array_values(array_filter([
             self::item('nav.basics.cities', trans_choice('general.city', 2), 'cities.index', ['cities.*']),
             self::item('nav.basics.contract-types', trans_choice('general.contract-type', 2), 'contract-types.index', ['contract-types.*']),
             self::item('nav.basics.leave-types', trans_choice('general.leave-type', 2), 'leave-types.index', ['leave-types.*']),
@@ -59,7 +60,11 @@ final class Navigation
             self::item('nav.basics.job-levels', trans_choice('general.job-level', 2), 'job-levels.index', ['job-levels.*']),
             self::item('nav.basics.departments', trans_choice('general.department', 2), 'departments.index', ['departments.*']),
             self::item('nav.basics.course-categories', trans_choice('general.course-category', 2), 'course-categories.index', ['course-categories.*']),
-        ], 'nav.project-basics');
+            // Set by national HR only (D-4 refinement); others never see the link.
+            $user->activeRoleIs(...config('access-control.administrator_roles', []))
+                ? self::item('nav.basics.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'])
+                : null,
+        ])), 'nav.project-basics');
 
         $programs = self::item('nav.programs', trans_choice('general.program', 2), 'programs.index', ['programs.*'], 'program', 'nav.programs');
         $positions = self::item('nav.positions', __('general.positions'), 'positions.index', ['positions.*'], 'layers');
@@ -106,7 +111,12 @@ final class Navigation
             ! $newsInHr && $can('news.view') ? $news : null,
         ]));
 
+        // A program manager sets holidays for their projects (§6.1); national HR finds the page under Settings.
+        $holidaysForProjects = ! $user->activeRoleIs(...config('access-control.administrator_roles', []))
+            && app(HolidayProjects::class)->managesAnyProject($user);
+
         $myTeam = array_values(array_filter([
+            $holidaysForProjects ? self::item('nav.my-team.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'], 'calendar') : null,
             $isManager && $can('leaves.view-all') ? self::item('nav.my-team.leaves', __('general.nav.team-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $isManager && $can('contracts.view') ? self::item('nav.my-team.contracts', __('general.nav.team-contracts'), 'contracts.index', ['contracts.*'], 'contracts') : null,
             $isDeliverResponsible && $can('checklists.deliver') ? self::item('nav.my-team.hand-out', __('general.pending-delivers'), 'checklist-items.pending-delivers', ['checklist-items.pending-delivers'], 'items', 'nav.checklists', 'checklist-items.pending-delivers-counter') : null,

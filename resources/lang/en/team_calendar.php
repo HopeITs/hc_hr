@@ -57,6 +57,9 @@ return [
     'failed' => 'The calendar could not be loaded.',
     'empty' => 'Nobody you can see is away in this period.',
     'range' => ':from – :to',
+    'legend_label' => 'Legend',
+    'add_holiday' => 'Add holiday',
+    'add_holiday_on' => 'Add a holiday on :date',
     'legend' => 'Accepted leave has a solid border and a tick; pending leave has a dashed border and a clock. Part-day leave is marked with a half circle.',
 
     'hint' => [

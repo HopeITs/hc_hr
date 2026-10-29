@@ -2,12 +2,17 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Services\LeaveRequestPricing;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Livewire\Component;
 
 class CalendarCard extends Component
 {
     public Carbon $current;
+
+    /** @var array<string, true> Holiday dates on the viewer's own calendar, keyed Y-m-d. */
+    private array $holidayDates = [];
 
     public function mount()
     {
@@ -26,6 +31,8 @@ class CalendarCard extends Component
 
     public function render()
     {
+        $this->holidayDates = $this->loadHolidayDates();
+
         $startOfMonth = $this->current->clone()->startOfMonth();
         $startWeekday = $startOfMonth->dayOfWeekIso;
         $daysInMonth = $this->current->daysInMonth;
@@ -85,15 +92,36 @@ class CalendarCard extends Component
             ->all();
     }
 
+    /**
+     * National, city and program holidays for the viewer's active contract
+     * across the six weeks the grid shows — the same rule leave pricing uses,
+     * so a day marked here is a day a leave request will skip.
+     *
+     * @return array<string, true>
+     */
+    private function loadHolidayDates(): array
+    {
+        $contract = auth()->user()?->profile?->latestActiveContract();
+
+        if (! $contract) {
+            return [];
+        }
+
+        $from = CarbonImmutable::parse($this->current->toDateString())->startOfMonth()->subDays(7);
+        $to = $from->addDays(55);
+
+        return app(LeaveRequestPricing::class)->holidayDates($contract, $from, $to);
+    }
+
     private function formatDay(Carbon $date, bool $isCurrentMonth)
     {
-        $fakeHolidays = config('samples.calendar.holidays', []);
+        $holidays = $this->holidayDates;
         $fakeEvents = config('samples.calendar.events', []);
         $fakeSaints = config('samples.calendar.saints', []);
 
         $iso = $date->toDateString();
 
-        $isHoliday = array_key_exists($iso, $fakeHolidays);
+        $isHoliday = isset($holidays[$iso]);
         $isSaint = array_key_exists($iso, $fakeSaints);
         $hasEvent = array_key_exists($iso, $fakeEvents);
         $isToday = $date->isToday();
@@ -151,9 +179,7 @@ class CalendarCard extends Component
         $tooltip = [];
 
         if ($isHoliday) {
-            foreach ($fakeHolidays[$iso] as $h) {
-                $tooltip[] = $h;
-            }
+            $tooltip[] = __('holidays.title');
         }
 
         if ($isSaint) {

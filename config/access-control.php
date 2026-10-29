@@ -326,6 +326,7 @@ return [
         // contract (see ContractCreate::draftContractFor()).
         'contract.contract-create' => [
             'submit' => 'contracts.create',
+            'reconcileOperation' => 'contracts.create', // X1-I: lookup by token, never writes
             'locationOptions' => 'contracts.create',
             'employeeSearchOptions' => 'contracts.create',
             'leavePreview' => 'contracts.create',
@@ -344,6 +345,7 @@ return [
         'contract.contract-renew-modal' => [
             'open' => 'contracts.create',
             'renewAsIs' => 'contracts.create',
+            'reconcileOperation' => 'contracts.create', // X1-I: lookup by token, never writes
             'renewWithEdit' => 'contracts.create',
         ],
         // Both auto-renew actions also run ContractPolicy::manageAutoRenew on
@@ -398,6 +400,7 @@ return [
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
             'openDecision' => 'leaves.decide', 'submitDecision' => 'leaves.decide',
+            'reconcileOperation' => 'leaves.decide', // X1-I: reads the request's state, decides nothing
         ],
         'employee.leave.all-leave-request-table' => [
             'delete' => 'leaves.delete', 'markAsReviewed' => 'leaves.review',
@@ -619,6 +622,10 @@ return [
         'basics.job-level-table' => ['confirmDelete'],
         'basics.leave-type-table' => ['confirmDelete'],
         'basics.termination-reason-table' => ['confirmDelete'],
+        // Holidays are set by national HR and by program managers, who hold no
+        // project-basics permission: every action checks HolidayProjects
+        // (who may change which holiday) in the component itself.
+        'basics.holiday-table' => ['confirmDelete', 'delete'],
         // updatedPaginators (not a dialog) stores the caller's own page
         // position in their own session (the key includes auth()->id()); the
         // rows still come from query(), which applies Contract::scopeVisibleTo.
@@ -682,6 +689,11 @@ return [
         'basics.job-level-module' => ['save', ...$closeGuard],
         'basics.leave-type-module' => ['save', ...$closeGuard],
         'basics.termination-reason-module' => ['save', ...$closeGuard],
+        'basics.holiday-module' => ['create', 'createOn', 'edit', 'save', 'selectGovernorate', ...$closeGuard],
+        // choose() records the caller's own request for their own birthday;
+        // decide() is refused unless the caller holds the volunteer's
+        // direct-manager position (BirthdayHoliday::canDecide).
+        'employee.leave.birthday-holiday-card' => ['choose', 'decide'],
         // save() writes only cities.hr_hotline (the ID card's emergency number,
         // A2D-Q7) after its own project-basics.update check.
         'basics.city-module' => ['save', ...$closeGuard],
@@ -703,6 +715,7 @@ return [
         // check on the specific record, which is the stronger control.
         'employee.leave.my-leave-request-module' => [
             'create', 'edit', 'processSave', 'confirmSave', 'openDetails',
+            'reconcileOperation', // X1-I: lookup by the form's token; authorizes leaves.create in the method
             'closeDetails', 'selectedLeave', 'submittedLeave', 'refreshCounts', 'setActiveTab',
             // B3: list states. resetStatusFilter only sets the tab to "all" (a filter on the
             // caller's own requests); retryLoad re-renders and writes nothing.
@@ -776,6 +789,8 @@ return [
         // lifecycle hook that only changes the filter.
         'feedback.feedback-index' => ['updatedCategory'],
         'layout.sidebar' => ['toggle', 'close', 'refreshCounts'],
+        // D2 phone bar: re-renders its own links and the inbox count (WorkInbox, scoped to the caller).
+        'layout.bottom-nav' => ['refreshInbox'],
 
         // --- Component-state only -------------------------------------------
         // Tab switches, wizard steps, modal open/close, filter changes, zoom

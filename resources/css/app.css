@@ -1347,3 +1347,39 @@ li:has(> ul:not(.hidden)) .nav-chevron {
         scroll-padding-bottom: 10rem;
     }
 }
+
+/* ── D2: bottom navigation ─────────────────────────────────────────────────
+   Below md (where the sidebar is a drawer) a five-item bar sits at the bottom.
+   It must never cover a focused control, an error or a submit row (AC-D2-02),
+   so it steps aside:
+     - while a text field has focus (the on-screen keyboard is up);
+     - on pages that have their own sticky save bar (M1 action bars, the
+       contract composer), whose row takes the bottom instead.
+   The page reserves room for it, and toasts and the offline notice sit above it.
+   Dialogs and sheets (z-50) cover it. */
+@media (max-width: 47.99rem) {
+    body:has(.app-bottom-nav) #main-content {
+        padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    html:has(.m1-action-bar) .app-bottom-nav,
+    html:has([data-tour="contract.save"]) .app-bottom-nav,
+    body:has(:is(input:not([type=checkbox], [type=radio], [type=file], [type=button], [type=submit]), textarea, select, [contenteditable="true"]):focus) .app-bottom-nav,
+    .app-bottom-nav[data-typing="true"] {
+        display: none;
+    }
+
+    body:has(.app-bottom-nav) [data-toasts] {
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .app-offline-notice {
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (min-width: 48rem) {
+    .app-offline-notice {
+        bottom: 1.5rem;
+    }
+}

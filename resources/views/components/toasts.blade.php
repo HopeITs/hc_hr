@@ -26,6 +26,7 @@
      x-init="@js($flashed->values()).forEach((toast) => $store.toasts.push(toast))"
      role="status"
      aria-live="polite"
+     data-toasts
      class="pointer-events-none fixed inset-x-4 bottom-4 z-[9500] flex flex-col gap-2 sm:inset-x-auto sm:end-6 sm:bottom-6 sm:w-96">
     <template x-for="toast in $store.toasts.items" :key="toast.id">
         <div x-on:mouseenter="$store.toasts.pause(toast.id)"

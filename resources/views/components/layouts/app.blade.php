@@ -61,6 +61,20 @@
     <x-layouts.app.footer class="bg-app-surface"/>
 </div>
 
+{{-- D2: phone bottom navigation (below md) and a connection notice. Nothing is
+     cached for offline use: without a connection the app says so, and entries
+     stay on the page until a save can reach the server (G-B-2). --}}
+<livewire:layout.bottom-nav/>
+
+<div x-data="{ online: navigator.onLine }"
+     x-on:online.window="online = true" x-on:offline.window="online = false"
+     x-show="!online" x-cloak role="status" data-testid="offline-notice"
+     class="app-offline-notice fixed inset-x-0 z-[9400] mx-auto max-w-lg px-4">
+    <p class="rounded-control bg-secondary-dark px-4 py-2 text-center text-small font-semibold text-white shadow-e3">
+        {{ __('general.connection.offline') }}
+    </p>
+</div>
+
 <x-tour.overlay/>
 
 {{-- D3: page-context help, opened from the header and from "?" beside difficult fields. Client-side only. --}}
