@@ -103,8 +103,16 @@
   function injectCSS() {
     if (document.getElementById("csb-style")) return;
     var css =
-      ".has-csb{scrollbar-width:none;}" +
-      ".has-csb::-webkit-scrollbar{width:0;height:0;display:none;}" +
+      ".has-csb:not(.has-csb-x){scrollbar-width:none;}" +
+      ".has-csb:not(.has-csb-x)::-webkit-scrollbar{width:0;height:0;display:none;}" +
+      // Sideways scrollers keep a horizontal bar: the overlay only replaces the
+      // vertical one, so only that one may be hidden. Styling ::-webkit-scrollbar
+      // at all makes Chrome paint only the parts styled, so thumb and track must
+      // be drawn here too or the bar keeps its space but turns invisible.
+      ".has-csb-x::-webkit-scrollbar{width:0;height:" + TRACKW + "px;}" +
+      ".has-csb-x::-webkit-scrollbar-track{background:transparent;}" +
+      ".has-csb-x::-webkit-scrollbar-thumb{background:var(--csb-color," + C.color + ");border-radius:" + C.trackRadius + "px;}" +
+      ".has-csb-x::-webkit-scrollbar-thumb:hover{background:var(--csb-hover," + C.hoverColor + ");}" +
       ".csb{position:fixed;width:" + TRACKW + "px;pointer-events:none;opacity:0;transition:opacity .18s;}" +
       ".csb.on{opacity:1;}" +
       ".csb-track{position:absolute;inset:0;border:" + C.trackBorder + "px solid var(--csb-color," + C.color + ");border-radius:" + C.trackRadius + "px;box-sizing:border-box;pointer-events:auto;}" +
@@ -134,6 +142,9 @@
 
     function update() {
       if (!document.body.contains(el)) { wrap.classList.remove("on"); return; }
+      // Content wider than the box (a wide table) keeps its native sideways bar.
+      // Computed overflow-x can't tell: overflow-y:auto forces it to auto too.
+      el.classList.toggle("has-csb-x", el.scrollWidth > el.clientWidth + 1);
       var r = el.getBoundingClientRect(), ch = el.clientHeight, sh = el.scrollHeight;
       if (r.width === 0 || r.height === 0 || sh <= ch + 1) { wrap.classList.remove("on"); return; }
       var rtl = getComputedStyle(el).direction === "rtl";

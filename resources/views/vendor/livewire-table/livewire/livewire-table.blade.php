@@ -86,6 +86,7 @@
         </div>
     @endif
     <div
+            tabindex="0"
             @if(method_exists($this, 'stateAnnouncement')) wire:loading.class="opacity-60" wire:target="globalSearch,search,filters,perPage,clearAll,removeChip,clearAllFilters,retryLoad,gotoPage,previousPage,nextPage,setPage" @endif
             @class([
                 'overflow-x-auto bg-card border border-line-soft shadow-e1 rounded-surface overscroll-x-none',
