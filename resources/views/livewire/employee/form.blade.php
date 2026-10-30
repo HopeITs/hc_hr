@@ -48,6 +48,7 @@
 
     @unless ($isCreateMode)
         <livewire:employee.onboarding-journey-panel :employee="$employee" :key="'journey-'.$employee->id" />
+        <livewire:employee.offboarding-journey-panel :employee="$employee" :key="'exit-journey-'.$employee->id" />
     @endunless
 
     @php
