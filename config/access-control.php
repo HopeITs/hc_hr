@@ -423,11 +423,47 @@ return [
             'disable' => 'recruitment-links.manage',
             'addInvite' => 'recruitment-links.manage',
             'cancelInvite' => 'recruitment-links.manage',
+            // Re-points the live address at the newest post and form; the
+            // component also asks PublicRecruitmentLinkPolicy::update.
+            'refreshVersions' => 'recruitment-links.manage',
         ],
         // Team 2's invite screen (also embedded in the publishing page). Each
         // action also runs RecruitmentCampaignInvitePolicy (campaign scope).
-        'recruitment.campaigns.invites' => ['add' => 'recruitment-applicants.manage'],
-        'recruitment.campaigns.invite-table' => ['cancelInvite' => 'recruitment-applicants.manage'],
+        'recruitment.campaigns.invites' => [
+            'add' => 'recruitment-applicants.manage',
+            'sendPending' => 'recruitment-applicants.manage',
+        ],
+        'recruitment.campaigns.invite-table' => [
+            'cancelInvite' => 'recruitment-applicants.manage',
+            'sendInvite' => 'recruitment-applicants.manage',
+        ],
+        // Opening a campaign on a seat. HiringCampaignService::create asks the
+        // create policy for that seat (manage + request scope) under a lock.
+        'recruitment.campaigns.create' => ['save' => 'recruitment-campaigns.manage'],
+        // Every write goes through HiringCampaignService::act, which asks the
+        // campaign policy (publish / update / manage, all campaigns.manage plus
+        // request scope). editDetails opens that form, like beginScheduleEdit.
+        'recruitment.campaigns.show' => [
+            'launch' => 'recruitment-campaigns.manage',
+            'act' => 'recruitment-campaigns.manage',
+            'editDetails' => 'recruitment-campaigns.manage',
+            'saveDetails' => 'recruitment-campaigns.manage',
+        ],
+        // Request lifecycle. Each re-resolves the request through visibleTo()
+        // and asks RecruitmentRequestPolicy (submit / cancel / execute), whose
+        // permission is the one named here; cancel is re-asked under a lock in
+        // RecruitmentRequestSubmissionService.
+        'recruitment.requests.details' => [
+            'submit' => 'recruitment-requests.submit',
+            'cancelRequest' => 'recruitment-requests.cancel',
+            'executeNow' => 'recruitment-requests.manage',
+        ],
+        // boot() asks the directOpen policy (HR active role + this permission);
+        // RecruitmentDirectOpenService re-derives the governorate boundary.
+        'recruitment.requests.direct-open' => ['save' => 'recruitment-requests.direct-open'],
+        // request() asks the update policy (manage + scope + ownership) on
+        // every call, save included.
+        'recruitment.requests.edit' => ['save' => 'recruitment-requests.manage'],
         'news.news-table' => ['delete' => 'news.delete'],
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
@@ -504,6 +540,32 @@ return [
             'changeStatus' => 'recruitment-applicants.change-status',
             'beginArchive' => 'recruitment-applicants.archive-cv',
             'archiveCv' => 'recruitment-applicants.archive-cv',
+            // Second step of beginStatusChange: raises the confirmation for
+            // the decision already authorized there.
+            'openStatusConfirmation' => 'recruitment-applicants.change-status',
+        ],
+        // Tagging one application. Each method re-resolves it through
+        // visibleTo() and asks the tag policy; a new name also needs
+        // RecruitmentTagPolicy::create (manage-tags).
+        'recruitment.applicants.application-tags' => [
+            'attach' => 'recruitment-applicants.tag',
+            'detach' => 'recruitment-applicants.tag',
+            'createAndAttach' => 'recruitment-applicants.manage-tags',
+        ],
+        // Tagging a selection. Both ask the bulkTag policy; the ids are
+        // re-scoped in RecruitmentTagService before any write.
+        'recruitment.applicants.bulk-tags' => [
+            'open' => 'recruitment-applicants.bulk-tag',
+            'apply' => 'recruitment-applicants.bulk-tag',
+        ],
+        // The shared tag list. Every method asks RecruitmentTagPolicy, which
+        // is manage-tags throughout; beginRename reads the tag into the form.
+        'recruitment.applicants.tag-manager' => [
+            'create' => 'recruitment-applicants.manage-tags',
+            'beginRename' => 'recruitment-applicants.manage-tags',
+            'rename' => 'recruitment-applicants.manage-tags',
+            'delete' => 'recruitment-applicants.manage-tags',
+            'restore' => 'recruitment-applicants.manage-tags',
         ],
         // The selection is re-scoped in RecruitmentApplicationStatusService,
         // which also asks the bulkReject policy itself.
@@ -588,8 +650,43 @@ return [
     'livewire_exempt' => [
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
         'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
+        // The same resets, inherited from Create (Edit pins the type back to
+        // the stored one). save() re-asks the update policy.
+        'recruitment.requests.edit' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
+        // Form-only resets of dependent pickers; boot() asks the directOpen
+        // policy on every request and the service refuses anything outside
+        // the governorate boundary on save.
+        'recruitment.requests.direct-open' => [
+            'updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId',
+            'updatedDocumentationActualRequesterUserId',
+        ],
+        // askForChanges / askToReject / cancelChangeRequest only open or close
+        // the second step of the decision panel (component state). decide()
+        // needs a different permission per action (approve / reject /
+        // request-changes), so no single name fits: it resolves the step this
+        // user is waited on for, and RecruitmentApprovalService asks the
+        // matching policy under a row lock before writing.
+        'recruitment.requests.details' => ['askForChanges', 'askToReject', 'cancelChangeRequest', 'decide'],
+        // View switch, validated against the views this user's counts allow;
+        // rows still come from the visibleTo() query.
+        'recruitment.requests.index' => ['setRequestView'],
+        // Display state only (collapsed rows, view, density, vacant filter);
+        // boot() and render() ask the create policy and the tree comes from
+        // RecruitmentScopeResolver.
+        'recruitment.requests.team-staffing' => [
+            'toggle', 'expandAll', 'collapseAll', 'toggleVacantOnly', 'setView', 'toggleDensity',
+        ],
         // Close an open panel; they clear component state and touch no record.
         'recruitment.applicants.show' => ['cancelStatusChange', 'cancelArchive'],
+        // Filter clicks on the status / endorsement counters; render() asks
+        // viewAny and counts through visibleTo().
+        'recruitment.applicants.index' => ['filterByStatus', 'filterByEndorsementGroup'],
+        // cancelRename clears the rename form (component state only).
+        'recruitment.applicants.tag-manager' => ['cancelRename'],
+        // refreshTags re-renders through the same scoped lookup.
+        'recruitment.applicants.application-tags' => ['refreshTags'],
+        // cancel closes the panel; open/apply are mapped.
+        'recruitment.applicants.bulk-tags' => ['cancel'],
         // refreshNotes only re-renders, through the same scoped query as the first render.
         'recruitment.applicants.notes' => ['cancelDelete', 'refreshNotes'],
         // Re-render through the same scoped query; they write nothing.
@@ -597,6 +694,9 @@ return [
         // executeAction/executeItemAction authorize their action code by policy.
         'recruitment.applicants.application-table' => [
             'refreshDecisions', 'selectTable', 'executeAction', 'executeItemAction',
+            // Filter changes and the tag refresh: they clear the selection and
+            // reset the page; rows still come from query() -> visibleTo().
+            'refreshTags', 'filterByStatus', 'updatedStageStatus', 'updatedCampaignFilter',
         ],
         'recruitment.applicants.bulk-reject' => ['cancel'],
         // Phase 2 Task 7. Form-only state: the participant list is validated
@@ -604,7 +704,19 @@ return [
         // which is the mapped action. closePanel clears component state only.
         'recruitment.interviews.form' => ['addParticipant', 'removeParticipant'],
         // dismissPanel closes the action popup: component state only.
-        'recruitment.interviews.show' => ['dismissPanel'],
+        // refreshEvaluationDue is an empty listener: it only re-renders.
+        'recruitment.interviews.show' => ['dismissPanel', 'refreshEvaluationDue'],
+        // Lane paging (capped at 500) and filter reset; every lane is read
+        // through RecruitmentInterview::visibleTo().
+        'recruitment.interviews.board' => ['showMore', 'clearFilters'],
+        // Campaign pages: the listeners re-read the campaign that mount()
+        // authorized with the view policy (the model id is locked);
+        // cancelDetails refills the form from the scoped resolve().
+        'recruitment.campaigns.publishing-hub' => ['refreshCampaignStatus'],
+        'recruitment.campaigns.show' => ['cancelDetails', 'refreshAfterLinkChange'],
+        // Same listeners on the link manager; useCampaignExpiry resets the
+        // expiry field to the campaign's own end date (form state only).
+        'recruitment.public-links.manager' => ['refreshCampaign', 'refreshCampaignStatus', 'useCampaignExpiry'],
         // Month navigation; re-renders through the same visibleTo() query.
         'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth'],
         // Phase 2 Task 8. save() writes the caller's OWN evaluation, which
