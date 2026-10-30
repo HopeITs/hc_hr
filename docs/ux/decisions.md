@@ -149,7 +149,16 @@ Decided by the product owner for the first slice. Full record: [journeys.md](jou
 | ID card | The **digital card activates automatically** at the first contract. HR then marks **"printed card handed over"**. |
 | Orientation due date | **14 days after the first contract's start date**. |
 | Overdue | The step shows a red **"Late"** tag, and city HR gets **one** in-app reminder. |
-| Renewal and exit journeys | Not selected: only onboarding is in the first slice. They stay **deferred** as linked checklists; the next increment is named in journeys.md §5. |
+| Renewal and exit journeys | ~~Deferred~~ **Superseded 2026-10-30 (product owner): build both now** (see DEC-09 increment 2). |
+
+### DEC-09 increment 2 (2026-10-30, product owner)
+Asked and answered in the D4 review. Full design: [journeys.md](journeys.md) §5.
+
+| Point | Decision |
+|---|---|
+| Renewal and exit journeys | **Build both now**, before release, as linked journeys like onboarding. |
+| Last contract ended | **Automatic deactivation.** The system deactivates a volunteer whose last contract has ended (this revokes their access and disables their card, as manual deactivation does). Implementation default, reversible: a **7-day grace period** after the end date, with one heads-up to city HR at the end date, so a renewal entered a few days late does not cut someone off. |
+| Where unfinished journeys show | In HR's **work inbox** (onboarding, renewal and exit steps that wait on HR, with the Late tag). |
 
 ## DEC-10 — Usage telemetry (settled 2026-10-16)
 Yes, anonymous: no names or personal data, stored on our own server only, deleted after 90 days.
