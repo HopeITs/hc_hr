@@ -622,8 +622,14 @@ return [
         // check. send() answers only about the caller: EmployeeTools reads the
         // signed-in user's own record and takes no parameters, and each call is
         // counted against the per-user hourly limit. clear() empties the caller's
-        // own conversation, which lives only in this component's state.
-        'assistant.chat' => ['send', 'clear'],
+        // own conversation, which lives only in the caller's session.
+        // confirmLeave() takes only the id of a draft kept in the caller's own
+        // session (never the draft itself from the browser), can succeed once per
+        // draft (an atomic cache claim), and hands it to LeaveRequestSubmitter,
+        // which re-checks the caller's permission and re-validates it exactly as
+        // the My leaves page does. cancelLeave() only marks that session draft
+        // discarded. placeholder() is the lazy panel's loading markup.
+        'assistant.chat' => ['send', 'clear', 'confirmLeave', 'cancelLeave', 'placeholder'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.

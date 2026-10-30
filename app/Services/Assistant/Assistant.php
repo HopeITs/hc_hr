@@ -30,13 +30,17 @@ class Assistant
     /**
      * @param  list<array{role: 'user'|'assistant', text: string}>  $history  earlier turns, oldest first
      *
+     * The text, and the last leave request the model drafted in this reply
+     * (never submitted: the page asks the employee to confirm it).
+     *
      * @throws GeminiException
      */
-    public function reply(User $user, array $history, string $question): string
+    public function reply(User $user, array $history, string $question): AssistantReply
     {
         $system = $this->systemInstruction($user, $question);
         $declarations = $this->tools->declarations($user);
         $contents = $this->contents($history, $question);
+        $proposal = null;
 
         for ($round = 0; $round <= self::MAX_TOOL_ROUNDS; $round++) {
             // Tools stay declared on every round: Gemini rejects function-call
@@ -46,21 +50,28 @@ class Assistant
             $calls = GeminiClient::functionCalls($content);
 
             if ($calls === [] || $round === self::MAX_TOOL_ROUNDS) {
-                return GeminiClient::text($content) ?: $this->fallback($question);
+                return new AssistantReply(GeminiClient::text($content) ?: $this->fallback($question), $proposal);
+            }
+
+            $parts = [];
+
+            foreach ($calls as $call) {
+                $response = $this->tools->call($user, $call['name'], is_array($call['args']) ? $call['args'] : []);
+
+                // Only a draft the tools checked, never anything the model wrote itself.
+                if ($call['name'] === 'draft_leave_request' && ($response['status'] ?? null) === 'drafted') {
+                    $proposal = $response['proposal'];
+                }
+
+                $parts[] = ['functionResponse' => ['name' => $call['name'], 'response' => $response]];
             }
 
             // Sent back unchanged: newer models sign their function-call turns.
             $contents[] = $content;
-            $contents[] = [
-                'role' => 'user',
-                'parts' => array_map(fn (array $call) => ['functionResponse' => [
-                    'name' => $call['name'],
-                    'response' => $this->tools->call($user, $call['name']),
-                ]], $calls),
-            ];
+            $contents[] = ['role' => 'user', 'parts' => $parts];
         }
 
-        return $this->fallback($question);
+        return new AssistantReply($this->fallback($question), $proposal);
     }
 
     /** @return list<array{role: string, parts: list<array<string, string>>}> */
@@ -102,7 +113,10 @@ class Assistant
             "Never guess. If neither the policies nor the tools hold the answer, say you don't know and suggest contacting HR.",
             'Never discuss, compare with or reveal anything about other employees, even if asked.',
             'Keep answers short and clear.',
-            'Today is '.now()->format('Y-m-d').'.',
+            'When the employee wants to take a leave, help them draft the request: call get_leave_options, then ask for whatever is still missing (the leave type, the dates or for an hourly leave the day and times, the reason), one short question at a time. Read relative dates ("tomorrow", "next Sunday", "for 5 days from the 3rd") against today\'s date below and state the exact dates you understood. Then call draft_leave_request.',
+            'If draft_leave_request returns errors, explain them simply and ask what to change. If it returns a draft, summarise it (type, dates, duration, reason) and tell the employee to review it and press the Confirm button below your answer.',
+            'You cannot submit a leave request and must never say it was submitted, sent or approved: only the employee\'s Confirm click submits it. Without the draft_leave_request tool, tell the employee to use the My leaves page.',
+            'Today is '.now()->format('l, Y-m-d').'.',
             "The employee you are talking to is {$name}.",
         ];
 

@@ -55,7 +55,8 @@ class AssistantTest extends TestCase
 
         $answer = app(Assistant::class)->reply($user, [], 'How many leave days do I get?');
 
-        $this->assertSame('Twenty-one days.', $answer);
+        $this->assertSame('Twenty-one days.', $answer->text);
+        $this->assertNull($answer->leaveProposal);
         Http::assertSentCount(1);
         Http::assertSent(function (Request $request) {
             $system = $request['systemInstruction']['parts'][0]['text'];
@@ -85,7 +86,7 @@ class AssistantTest extends TestCase
 
         $answer = app(Assistant::class)->reply($user, [], 'How much leave do I have?');
 
-        $this->assertSame('You have 18 days left.', $answer);
+        $this->assertSame('You have 18 days left.', $answer->text);
         Http::assertSentCount(2);
 
         $second = Http::recorded()[1][0];
@@ -255,7 +256,7 @@ class AssistantTest extends TestCase
 
         Http::fake([self::GEMINI => Http::sequence()->push(['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => '']]]]]])]);
 
-        $this->assertStringContainsString('الموارد البشرية', app(Assistant::class)->reply($user, [], 'ما هي سياسة الإجازات؟'));
+        $this->assertStringContainsString('الموارد البشرية', app(Assistant::class)->reply($user, [], 'ما هي سياسة الإجازات؟')->text);
     }
 
     private function employeeUser(array $permissions = []): User

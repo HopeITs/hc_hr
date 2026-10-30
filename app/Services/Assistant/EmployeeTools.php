@@ -14,16 +14,22 @@ use App\Models\Folder;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Services\LeaveAlternativeEmployees;
+use App\Support\Leave\LeaveQuote;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * The functions the assistant may call to read the asking employee's record.
  *
- * None of them takes a parameter: whose record is read always comes from the
- * signed-in user, never from the model, so no wording of a question can point
- * a tool at a colleague. A tool the user may not use is not declared at all,
- * and call() refuses it again in case the model names it anyway.
+ * Whose record is read always comes from the signed-in user, never from the
+ * model, so no wording of a question can point a tool at a colleague. The
+ * only tool with parameters, draft_leave_request, takes ids the model read
+ * from get_leave_options, and the page's own form checks each one against
+ * the user's record again (a balance of their latest active contract, an
+ * alternative from their allowed list). A tool the user may not use is not
+ * declared at all, and call() refuses it again in case the model names it.
  */
 class EmployeeTools
 {
@@ -36,19 +42,54 @@ class EmployeeTools
         'get_my_leave_requests' => "The employee's own 15 most recent leave requests: type, start, end, duration and status.",
         'get_my_salary' => "The employee's own pay on their current contract: amount (or pay tiers), currency and period.",
         'get_my_files' => 'Names, categories and dates of the files in the employee\'s own record and in the archive folders shared with them. No file contents.',
+        'get_leave_options' => 'What the employee can request a new leave from: their own leave balances (id, leave type, remaining, whether it can be taken by the hour) and the colleagues they may name as their alternative while away (optional). Call it before drafting a leave request.',
+        'draft_leave_request' => 'Checks a new leave request of the employee with every rule of the leave page (balance, dates, overlap, December, working hours) and prepares it for the employee to confirm. It never submits anything. Returns either the errors to tell the employee, or the checked draft. Only the employee can submit it, with the Confirm button shown under your answer.',
     ];
 
-    /** @return list<array{name: string, description: string}> */
+    /**
+     * Gemini parameter schemas (OpenAPI subset) of the tools that take any.
+     * The values are only a request: every id is checked against the asking
+     * employee's own record before anything is read or drafted.
+     */
+    private const PARAMETERS = [
+        'draft_leave_request' => [
+            'type' => 'object',
+            'properties' => [
+                'leave_balance_id' => ['type' => 'integer', 'description' => 'The id of one of the employee\'s own balances, from get_leave_options.'],
+                'type' => ['type' => 'string', 'enum' => ['day', 'hour'], 'description' => 'day for whole days; hour for part of one day (only for balances where hours_allowed is true).'],
+                'start' => ['type' => 'string', 'description' => 'First day as YYYY-MM-DD, or for an hourly leave the day and start time as YYYY-MM-DD HH:MM (24-hour).'],
+                'end' => ['type' => 'string', 'description' => 'Last day as YYYY-MM-DD (the same as start for one day), or for an hourly leave the same day and end time as YYYY-MM-DD HH:MM.'],
+                'reason' => ['type' => 'string', 'description' => 'The reason in the employee\'s own words. Required by the leave rules: ask for it if it is missing.'],
+                'alternative_employee_id' => ['type' => 'integer', 'description' => 'Optional: the id of the colleague covering, only from the alternatives listed by get_leave_options.'],
+                'is_exceptional' => ['type' => 'boolean', 'description' => 'Only for leave in December, when the employee explicitly asks for an exceptional December leave (it needs manager and HR approval).'],
+            ],
+            'required' => ['leave_balance_id', 'type', 'start', 'end'],
+        ],
+    ];
+
+    // The longest list of alternatives sent to the model.
+    private const MAX_ALTERNATIVES = 60;
+
+    public function __construct(private ?LeaveRequestDrafter $drafter = null)
+    {
+        $this->drafter ??= app(LeaveRequestDrafter::class);
+    }
+
+    /** @return list<array{name: string, description: string, parameters?: array<string, mixed>}> */
     public function declarations(User $user): array
     {
         return array_map(
-            fn (string $name) => ['name' => $name, 'description' => self::DESCRIPTIONS[$name]],
+            fn (string $name) => ['name' => $name, 'description' => self::DESCRIPTIONS[$name]]
+                + (isset(self::PARAMETERS[$name]) ? ['parameters' => self::PARAMETERS[$name]] : []),
             $this->available($user),
         );
     }
 
-    /** @return array<string, mixed> */
-    public function call(User $user, string $name): array
+    /**
+     * @param  array<string, mixed>  $args  the model's arguments, untrusted
+     * @return array<string, mixed>
+     */
+    public function call(User $user, string $name, array $args = []): array
     {
         $employee = $user->profile;
 
@@ -62,6 +103,8 @@ class EmployeeTools
             'get_my_leave_requests' => $this->leaveRequests($employee),
             'get_my_salary' => $this->salary($employee),
             'get_my_files' => $this->files($user, $employee),
+            'get_leave_options' => $this->leaveOptions($employee),
+            'draft_leave_request' => $this->draftLeaveRequest($user, $args),
         };
     }
 
@@ -73,6 +116,8 @@ class EmployeeTools
         }
 
         $canSeeLeaves = $user->hasActivePermission('leaves.view-own');
+        // The same permission the My leaves page requires for a new request.
+        $canRequestLeave = $user->hasActivePermission('leaves.create');
 
         return array_values(array_filter([
             'get_my_profile',
@@ -80,6 +125,8 @@ class EmployeeTools
             $canSeeLeaves ? 'get_my_leave_requests' : null,
             config('assistant.share_salary') ? 'get_my_salary' : null,
             'get_my_files',
+            $canRequestLeave ? 'get_leave_options' : null,
+            $canRequestLeave ? 'draft_leave_request' : null,
         ]));
     }
 
@@ -145,6 +192,62 @@ class EmployeeTools
             'duration' => $this->plain($request->duration),
             'status' => LeaveRequestStatus::of($request->status)->label(),
         ])->values()->all()];
+    }
+
+    /**
+     * The balances the page's request form offers (allAvailableLeaves: the
+     * latest active contract's, with something left) and the alternatives
+     * LeaveAlternativeEmployees allows. The form validates against the same.
+     */
+    private function leaveOptions(Employee $employee): array
+    {
+        $balances = $employee->allAvailableLeaves() ?? collect();
+        $alternatives = app(LeaveAlternativeEmployees::class)->for($employee);
+        $locale = app()->getLocale();
+
+        return array_filter([
+            'balances' => $balances->map(fn (LeaveBalance $balance) => [
+                'id' => $balance->id,
+                'leave_type' => $balance->leaveType?->name,
+                'remaining' => $this->plain($balance->remaining),
+                'hours_allowed' => $balance->isAnnual(),
+            ])->values()->all(),
+            'note' => $balances->isEmpty() ? 'No balance on the current contract can be requested from; the employee should contact HR.' : null,
+            'alternative_employee_optional' => true,
+            'alternatives' => $alternatives->take(self::MAX_ALTERNATIVES)->map(fn (Employee $candidate) => [
+                'id' => $candidate->id,
+                'name' => $candidate->nameForLocale($locale),
+            ])->values()->all(),
+            'alternatives_truncated' => $alternatives->count() > self::MAX_ALTERNATIVES ?: null,
+        ], fn ($value) => $value !== null);
+    }
+
+    /**
+     * Never writes. On success the result carries the proposal Assistant
+     * hands to the page (AssistantReply::$leaveProposal).
+     */
+    private function draftLeaveRequest(User $user, array $args): array
+    {
+        try {
+            ['proposal' => $proposal, 'quote' => $quote] = $this->drafter->draft($user, $args);
+        } catch (ValidationException $e) {
+            return [
+                'status' => 'invalid',
+                'errors' => LeaveRequestDrafter::messages($e),
+                'note' => 'Nothing was drafted. Tell the employee what to change, then draft again.',
+            ];
+        }
+
+        return [
+            'status' => 'drafted',
+            'proposal' => $proposal,
+            'counted_days' => $quote?->countedDays,
+            'balance_after' => $quote
+                ? ($quote->projectedHours < 0 ? '-' : '').$this->drafter->formatSplit(abs($quote->projectedHours), $quote->hoursPerDay)
+                : null,
+            'warnings' => $quote ? array_map(fn (string $code) => __(LeaveQuote::messageKey($code)), $quote->warnings) : [],
+            'note' => 'Not submitted. Summarise the draft and ask the employee to review it and press Confirm below your answer.',
+        ];
     }
 
     private function salary(Employee $employee): array
