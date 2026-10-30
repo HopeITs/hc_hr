@@ -57,12 +57,7 @@ return [
 
     // Prompt 10: the phone bar (livewire/layout/bottom-nav, App\Support\BottomBar) and its picker.
     'bottom-bar' => [
-        'more' => 'More',
-        'more-label' => 'More: open the menu',
         'title' => 'Phone bar',
-        'lead' => 'Choose the shortcut at the bottom of your phone screen. The last place is always More, which opens the menu.|Choose the :count shortcuts at the bottom of your phone screen. The last place is always More, which opens the menu.',
-        'place' => 'Place :number',
-        'more-place' => 'Place :number: More, always',
         'pages' => 'Pages',
         'new' => 'Start something new',
         'reset' => 'Back to the default bar',
