@@ -418,6 +418,18 @@ class Employee extends Model implements HasMedia
         return $this->hasOne(OnboardingJourney::class);
     }
 
+    /** DEC-09 increment 2: one exit journey per departure (employee + last contract). */
+    public function offboardingJourneys(): HasMany
+    {
+        return $this->hasMany(OffboardingJourney::class);
+    }
+
+    /** The most recent departure, which the edit page's exit panel shows. */
+    public function latestOffboardingJourney(): HasOne
+    {
+        return $this->hasOne(OffboardingJourney::class)->latestOfMany();
+    }
+
     public function availableLeaves()
     {
         $leaves = $this->latestActiveContract()?->leaveBalances()

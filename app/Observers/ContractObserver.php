@@ -4,8 +4,11 @@ namespace App\Observers;
 
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Models\Contract;
+use App\Models\OffboardingJourney;
 use App\Models\Position;
+use App\Models\User;
 use App\Services\ChecklistWorkflow;
+use App\Services\OffboardingJourneys;
 use App\Support\StatisticsCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -156,6 +159,14 @@ class ContractObserver
             app(ChecklistWorkflow::class)->requestBelongingsReturn($contract->employee);
         }
 
+        // DEC-09 increment 2: stopping auto-renewal (E1) or terminating (E4) the
+        // volunteer's last contract starts their exit journey. The service
+        // decides whether it is the last one, and a repeat lands on the same row.
+        if ($trigger = $this->departureTrigger($contract)) {
+            $actor = auth()->user();
+            app(OffboardingJourneys::class)->startForDeparture($contract, $trigger, $actor instanceof User ? $actor : null);
+        }
+
         if ($this->wasUpgradedFromDraft($contract)) {
             $pos = Position::query()
                 ->whereKey($contract->position_id)
@@ -227,6 +238,22 @@ class ContractObserver
     public function saved(Contract $contract): void
     {
         StatisticsCache::flush();
+    }
+
+    /** Did the write that just completed terminate $contract (E4) or stop its auto-renewal (E1)? */
+    private function departureTrigger(Contract $contract): ?string
+    {
+        $wasTerminated = filled($contract->getOriginal('terminated_at')) || filled($contract->getOriginal('termination_reason_id'));
+
+        if (! $wasTerminated && $contract->isTerminated()) {
+            return OffboardingJourney::TRIGGER_TERMINATED;
+        }
+
+        if ($contract->wasChanged('auto_renew') && (bool) $contract->getOriginal('auto_renew') && ! $contract->auto_renew) {
+            return OffboardingJourney::TRIGGER_AUTO_RENEW_STOPPED;
+        }
+
+        return null;
     }
 
     /** Is $contract's pending write the transition from Draft to a real type? */
