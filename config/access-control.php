@@ -322,6 +322,19 @@ return [
             'confirmReopen' => 'employees.update',
             'reopen' => 'employees.update',
         ],
+        // Renewal journey (DEC-09 increment 2): HR's renew/stop decision and
+        // its undo. contracts.update is the coarse gate; each method re-runs
+        // ContractPolicy::manageAutoRenew on the journey's contract (HR active
+        // role, contracts.update, the contract in the user's city), and "stop"
+        // writes auto_renew through ContractAutoRenewalService::setAutoRenew,
+        // which checks the same policy again.
+        'employee.renewal-journey-panel' => [
+            'decideRenew' => 'contracts.update',
+            'confirmStop' => 'contracts.update',
+            'stop' => 'contracts.update',
+            'confirmUndo' => 'contracts.update',
+            'undo' => 'contracts.update',
+        ],
         // B4: opens the read-only drawer; the method re-runs EmployeePolicy::view and
         // ::viewDirectory on the record inside the active city scope.
         'employee.employee-drawer' => ['open' => 'employees.view'],
@@ -912,6 +925,8 @@ return [
         ],
         // refreshJourney only re-renders the panel after the edit page saves.
         'employee.onboarding-journey-panel' => ['refreshJourney'],
+        // refreshJourneys only re-renders the renewal panel after the edit page saves.
+        'employee.renewal-journey-panel' => ['refreshJourneys'],
         // toggleVacancies only flips whether empty positions are drawn and
         // rebuilds the same tree; vacant positions hold no person's data.
         'position.org-chart' => [

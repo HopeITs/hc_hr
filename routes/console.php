@@ -14,6 +14,7 @@ use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
 use App\Console\Commands\SweepRecruitmentRetention;
 use App\Console\Commands\SyncRecruitmentCampaignStates;
+use App\Console\Commands\TrackRenewalJourneys;
 use App\Models\InAppFeedback;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -31,6 +32,8 @@ Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 // D4-I: one reminder to city HR per overdue orientation session.
 Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
 Schedule::command(ProcessContractAutoRenewals::class)->dailyAt('21:35');
+// Renewal journey: start at 30 days before the end, settle after tonight's renewals.
+Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');
 Schedule::command(DeactivateEmployee::class)->weekly();
 // Early, so a reduction effective today is carried out before the contract
 // sweeps that read `exist_emp` run in the evening.

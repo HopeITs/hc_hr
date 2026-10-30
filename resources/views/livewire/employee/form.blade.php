@@ -48,6 +48,10 @@
 
     @unless ($isCreateMode)
         <livewire:employee.onboarding-journey-panel :employee="$employee" :key="'journey-'.$employee->id" />
+        {{-- Renewal journeys: only for HR who may decide renewals (manageAutoRenew); the panel filters per contract. --}}
+        @if (auth()->user()?->activeRoleIs('HR') && auth()->user()?->hasActivePermission('contracts.update'))
+            <livewire:employee.renewal-journey-panel :employee="$employee" :key="'renewal-journey-'.$employee->id" />
+        @endif
     @endunless
 
     @php
