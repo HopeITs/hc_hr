@@ -4,6 +4,7 @@ namespace Tests\Feature\Assistant;
 
 use App\Models\PolicyDocument;
 use App\Services\Assistant\DrivePolicySync;
+use App\Services\Assistant\GeminiClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -141,8 +142,24 @@ class PolicySyncTest extends TestCase
         $this->assertSame('نص pdf2', PolicyDocument::sole()->content);
     }
 
+    public function test_a_busy_model_falls_back_to_the_next_one(): void
+    {
+        config(['assistant.gemini.model' => 'busy-model', 'assistant.gemini.fallback_models' => ['spare-model']]);
+        Http::fake([
+            '*models/busy-model:generateContent' => Http::response(['error' => ['message' => 'high demand']], 503),
+            '*models/spare-model:generateContent' => Http::response(['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => 'نص']]]]]]),
+        ]);
+
+        $text = app(GeminiClient::class)->transcribe('%PDF', 'application/pdf');
+
+        $this->assertSame('نص', $text);
+        Http::assertSentCount(2);
+    }
+
     public function test_a_rate_limited_transcription_waits_and_retries_once(): void
     {
+        // No spare model, so the only way forward is to wait.
+        config(['assistant.gemini.fallback_models' => []]);
         $this->fakeDrive([self::FOLDER => [$this->file('pdf1', 'Leave.pdf', 'application/pdf')]], rateLimitOnce: true);
 
         $summary = app(DrivePolicySync::class)->run(self::FOLDER);

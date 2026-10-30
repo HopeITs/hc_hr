@@ -223,16 +223,17 @@ class DrivePolicySync
 
         $this->transcribedOnce = true;
 
-        try {
-            return $this->gemini->transcribe($bytes, $mime);
-        } catch (GeminiException $e) {
-            if (! $e->isTemporary()) {
-                throw $e;
+        // Every model busy: wait longer each time before the next attempt.
+        foreach ([self::RATE_LIMIT_WAIT, self::RATE_LIMIT_WAIT * 2, 0] as $wait) {
+            try {
+                return $this->gemini->transcribe($bytes, $mime);
+            } catch (GeminiException $e) {
+                if (! $e->isTemporary() || $wait === 0) {
+                    throw $e;
+                }
+
+                Sleep::for($wait)->seconds();
             }
-
-            Sleep::for(self::RATE_LIMIT_WAIT)->seconds();
-
-            return $this->gemini->transcribe($bytes, $mime);
         }
     }
 

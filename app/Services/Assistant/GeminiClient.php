@@ -40,28 +40,22 @@ class GeminiClient
             'generationConfig' => ['temperature' => $temperature],
         ]);
 
-        $url = rtrim(config('assistant.gemini.base_url'), '/').'/models/'.config('assistant.gemini.model').':generateContent';
+        // The free tier answers "high demand" (503) for minutes at a time, one
+        // model at a time: the next model in the list usually still answers.
+        $models = array_values(array_unique(array_filter([
+            config('assistant.gemini.model'),
+            ...(array) config('assistant.gemini.fallback_models', []),
+        ])));
 
-        try {
-            $response = Http::withHeaders(['x-goog-api-key' => config('assistant.gemini.key')])
-                ->timeout($timeout ?? config('assistant.gemini.timeout', 60))
-                ->acceptJson()
-                ->post($url, $body);
-        } catch (ConnectionException $e) {
-            throw new GeminiException('Gemini is unreachable: '.$e->getMessage(), 0, $e);
+        foreach ($models as $i => $model) {
+            try {
+                return $this->request($model, $body, $timeout);
+            } catch (GeminiException $e) {
+                if (! $e->isTemporary() || $i === count($models) - 1) {
+                    throw $e;
+                }
+            }
         }
-
-        if ($response->failed()) {
-            throw new GeminiException('Gemini answered '.$response->status().': '.$response->json('error.message', ''), $response->status());
-        }
-
-        $content = $response->json('candidates.0.content');
-
-        if (! is_array($content) || empty($content['parts'])) {
-            throw new GeminiException('Gemini returned no answer ('.$response->json('candidates.0.finishReason', $response->json('promptFeedback.blockReason', 'empty')).').');
-        }
-
-        return ['role' => $content['role'] ?? 'model', 'parts' => $content['parts']];
     }
 
     /** The text parts of a model turn, joined. */
@@ -97,5 +91,33 @@ class GeminiClient
         ]], temperature: 0.0, timeout: config('assistant.gemini.transcribe_timeout', 600));
 
         return self::text($content);
+    }
+
+    /** @return array{role: string, parts: list<array<string, mixed>>} */
+    private function request(string $model, array $body, ?int $timeout): array
+    {
+        $url = rtrim(config('assistant.gemini.base_url'), '/').'/models/'.$model.':generateContent';
+
+        try {
+            $response = Http::withHeaders(['x-goog-api-key' => config('assistant.gemini.key')])
+                ->timeout($timeout ?? config('assistant.gemini.timeout', 60))
+                ->acceptJson()
+                ->post($url, $body);
+        } catch (ConnectionException $e) {
+            // Reported as a gateway timeout so it counts as temporary.
+            throw new GeminiException('Gemini is unreachable: '.$e->getMessage(), 504, $e);
+        }
+
+        if ($response->failed()) {
+            throw new GeminiException('Gemini answered '.$response->status().': '.$response->json('error.message', ''), $response->status());
+        }
+
+        $content = $response->json('candidates.0.content');
+
+        if (! is_array($content) || empty($content['parts'])) {
+            throw new GeminiException('Gemini returned no answer ('.$response->json('candidates.0.finishReason', $response->json('promptFeedback.blockReason', 'empty')).').');
+        }
+
+        return ['role' => $content['role'] ?? 'model', 'parts' => $content['parts']];
     }
 }
