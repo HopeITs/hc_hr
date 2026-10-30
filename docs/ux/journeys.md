@@ -59,7 +59,9 @@ Journey complete when H6, H8 and H10 are all done (`onboarding_journeys.complete
 | R4a | Auto-renewal | System (`ContractAutoRenewalService`, 21:35) | Automated, follows R2 | new `contracts` row; pay tiers copied | starts the day after `end_date`, ends 31 Dec of the run year | Skipped if a successor on the same position and start date exists (retry-safe). Runs in console, so no capacity check. |
 | R4b | Manual renewal ("renew as is" / "renew with edit") | HR with `contracts.create`, city (`ContractPolicy::renew`) | **Human** | new `contracts` row | HR chooses | Only an active, non-terminated contract. Runs `EmployeeActivation`: creates a missing account, starts **no** journey (the employee is already active). |
 
-**Not checked:** whether an auto-renewed contract gets its leave balances (`ContractAutoRenewalService` does not call `LeaveBalanceService`). To verify in the renewal increment.
+**Leave balances on auto-renewal: verified and fixed (2026-10-30).** `ContractAutoRenewalService` did not call `LeaveBalanceService`, so every auto-renewed contract started with no leave balances. It now creates them the same way `ContractCreate` does (in a savepoint, so an unpriceable balance is reported without undoing the renewal). Contracts renewed before the fix need `leaves:backfill`. Details: [renewal-journey-implementation.md](renewal-journey-implementation.md) §3.
+
+**Built as the renewal journey (DEC-09 increment 2, 2026-10-30):** one `renewal_journeys` row per expiring contract, started by `renewals:track-journeys` 30 days before `end_date` (not for trial, terminated or Draft contracts). Steps: R1 warning (read from the notification ledger), R2 decision (the one record the journey stores: renew or stop, by whom, when, with undo; "stop" switches auto-renew off through the same `ContractAutoRenewalService::setAutoRenew` path as the contracts list, under `manageAutoRenew`), new contract (R4a/R4b, read from `contracts`), leave balances (read from `leave_balances`). Owner HR of the city; decision due on `end_date`, Late within 7 days of it. Panel on the employee edit page. See [renewal-journey-implementation.md](renewal-journey-implementation.md).
 
 ### 3.3 Exit
 
@@ -94,10 +96,10 @@ Journey complete when H6, H8 and H10 are all done (`onboarding_journeys.complete
 | Part | Status | Note |
 |---|---|---|
 | Hire map (§3.1) | **Designed** | From source. |
-| Renewal map (§3.2) | **Designed** | Describes today; nothing new. |
+| Renewal map (§3.2) | **Designed** | Describes today, plus the renewal journey below. |
 | Exit map (§3.3) | **Designed** | Describes today; nothing new. |
 | Onboarding journey H4–H10 with one record per step, owner, due date, Late tag, one reminder | **Selected** (DEC-09, DEC-09 detail) → **built as D4-I** | [d4-i-implementation.md](d4-i-implementation.md) |
-| Renewal journey as a linked checklist | **Deferred** | Next increment below. |
+| Renewal journey as a linked checklist | ~~Deferred~~ **Selected (DEC-09 increment 2) → built, 2026-10-30, awaiting tests on PHP 8.5 and review** | [renewal-journey-implementation.md](renewal-journey-implementation.md). Also fixes the auto-renewal leave-balance gap (§3.2). |
 | Exit journey as a linked checklist | **Deferred** | Next increment below. |
 | Equipment checklist inside the onboarding journey | **Deferred** | It already has its own workflow (`ChecklistWorkflow`). |
 | Journey items in the work inbox / dashboard tile; "Onboarding" employee-list view | **Deferred** | Open points in D4-I §8. |
@@ -128,7 +130,7 @@ Decided 2026-10-30 (DEC-09 detail).
 |---|---|---|
 | 1 | Early termination may not free the position seat (§3.3 E4). Source reading only; needs a test before it is called a defect. | Backend |
 | 2 | **Resolved 2026-10-30 (product owner chose to fix it):** a recruitment hire (`RecruitmentHiringConversionService`) now starts the journey too, right after its contract. Their login account is still created by HR from the hire page, so the account step shows "no login account yet" until then. | Done |
-| 3 | Auto-renewed contracts and leave balances (§3.2). | Backend |
+| 3 | **Fixed 2026-10-30:** auto-renewed contracts now get their leave balances (§3.2). Older ones need `leaves:backfill`. | Done (backfill: Ops) |
 | 4 | Journeys are not a work-inbox source (C3-D) and have no dashboard tile. | Next increment |
 | 5 | Weekly sweep does not cover "last contract ended" (§3.3 E6′); deactivation stays manual. Keep, or change by decision. | Product owner |
 
