@@ -141,10 +141,11 @@ class DashboardHomeBehavioursTest extends TestCase
         $this->assertStringContainsString('class="hc-appcard" id="hc-panel-app-nav-my-space-leaves" popover="manual"', $html);
         $this->assertStringContainsString('aria-haspopup="dialog"', $html);
 
-        // The phone does not draw the slideshow (the saved layout keeps it).
+        // The phone does not draw the slideshow or the charts (the saved layout keeps it).
         $config = $this->homeConfig($html);
         $this->assertSame(DashboardLayout::PHONE_HIDDEN, $config['phoneHidden']);
         $this->assertContains('today-events', DashboardLayout::PHONE_HIDDEN);
+        $this->assertContains('stats-salary', DashboardLayout::PHONE_HIDDEN);
         $this->assertNotEmpty($config['text']['nothing']);
     }
 

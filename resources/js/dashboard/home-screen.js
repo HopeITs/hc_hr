@@ -49,7 +49,7 @@
  * keeps that attribute current, so after Reset the new layout is read back).
  */
 
-import { clampSize, iconish, inlineDelta, isApp, moveStep, pack, parse, resizeStep, stepCells } from './layout-math.js';
+import { bakedSize, clampSize, iconish, inlineDelta, isApp, moveStep, pack, parse, phoneView, resizeStep, stepCells } from './layout-math.js';
 // The clock tile's x-data (hcClock), on the dashboard only, like this script.
 import './clock.js';
 
@@ -296,9 +296,10 @@ function homeScreen() {
         shownHere(key) {
             return ! this.hidden(key) && ! (this.phone() && this.phoneHidden.includes(key));
         },
-        // Nothing in it right now: one closed line at the bottom (never while customising).
+        // Nothing in it right now: one closed line at the bottom (never while customising, never when pinned).
+        // A pinned tile stays where it was pinned and shows its own empty state.
         closed(key) {
-            return ! this.editing && this.empty[key] !== undefined && ! isApp(key);
+            return ! this.editing && this.empty[key] !== undefined && ! isApp(key) && ! this.pinned(key);
         },
         closedText(key) {
             return this.empty[key] || this.text.nothing || '';
@@ -348,8 +349,10 @@ function homeScreen() {
             const shown = this.items.filter((i) => this.shownHere(i.key) && ! this.absent.includes(i.key));
             // Tiles with nothing in them go last, closed (the saved order is not changed); customising shows them whole.
             const closed = new Set(this.editing ? [] : shown.filter((i) => this.closed(i.key)).map((i) => i.key));
-            const sig = this.cols + '|' + [...closed].join(',') + '|' + shown.map((i) => i.key + ':' + i.size + (i.fixed ? '!' : '')).join(',');
-            if (packCache.sig !== sig) packCache = { sig, value: pack(shown, this.cols, this.bounds, closed) };
+            // A phone shows the clock one row high (phoneView): the packer is told, so nothing is left empty under it.
+            const view = phoneView(shown, this.bounds, this.cols, this.editing);
+            const sig = this.cols + '|' + (this.editing ? 'e' : '') + '|' + [...closed].join(',') + '|' + view.shown.map((i) => i.key + ':' + i.size + (i.fixed ? '!' : '')).join(',');
+            if (packCache.sig !== sig) packCache = { sig, value: pack(view.shown, this.cols, view.bounds, closed) };
 
             return packCache.value;
         },
@@ -431,8 +434,9 @@ function homeScreen() {
             const at = (i) => (p[i.key] ? p[i.key].y * 1000 + p[i.key].x : 1e9);
             this.items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || at(a) - at(b));
             for (const it of this.items) {
-                // A closed tile keeps its own size: customising shows it whole.
-                if (p[it.key] && ! it.fixed && ! this.closed(it.key)) it.size = p[it.key].w + 'x' + p[it.key].h;
+                // A closed tile keeps its own size: customising shows it whole. A size
+                // that only comes from this screen's width is not taken (bakedSize).
+                if (p[it.key] && ! it.fixed && ! this.closed(it.key)) it.size = bakedSize(it.size, p[it.key], this.cols);
             }
             this.restoreOrder();
         },

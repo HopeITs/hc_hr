@@ -301,17 +301,32 @@
     box-shadow: 0 18px 40px rgb(65 64 66 / 0.32);
 }
 
-/* Edit controls: 32px to the eye, 44px to the finger. Hide sits outside the
-   top start corner (like a phone); pin, look and resize inside the tile, so
-   they never touch a neighbour's. */
+/* Edit controls: 32px to the eye, 44px to the finger (and 44px to the eye on a
+   touch screen). Hide sits outside the top start corner (like a phone); pin,
+   look and resize inside the tile, so they never touch a neighbour's. */
+/* On the tile, so SortableJS's drag image (a copy of the tile in <body>) has them too. */
+.hc-tile {
+    --hc-ctl: 32px;
+    --hc-ctl-out: -10px; /* how far hide sits outside the corner */
+    --hc-ctl-in: 8px; /* pin and look: from the top inline-end corner */
+}
+
+@media (pointer: coarse) {
+    .hc-tile {
+        --hc-ctl: 44px;
+        --hc-ctl-out: -12px;
+        --hc-ctl-in: 6px;
+    }
+}
+
 .hc-tbtn,
 .hc-grip {
     position: absolute;
     z-index: 3;
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: var(--hc-ctl);
+    height: var(--hc-ctl);
     padding: 0;
     border: 0;
     cursor: pointer;
@@ -335,8 +350,8 @@
 }
 
 .hc-t-remove {
-    top: -10px;
-    inset-inline-start: -10px;
+    top: var(--hc-ctl-out);
+    inset-inline-start: var(--hc-ctl-out);
     background: var(--color-ink);
     color: var(--color-on-ink);
 }
@@ -348,14 +363,14 @@
 
 .hc-t-pin,
 .hc-t-look {
-    top: 8px;
+    top: var(--hc-ctl-in);
     background: var(--color-card);
     box-shadow: 0 0 0 1px var(--color-line), var(--shadow-sm);
     color: var(--color-ink);
 }
 
 .hc-t-pin {
-    inset-inline-end: 8px;
+    inset-inline-end: var(--hc-ctl-in);
 }
 
 /* Pressed: a solid ink fill, not red (a pin is none of red's three jobs). */
@@ -369,8 +384,9 @@
     display: flex;
     gap: 6px;
     width: auto;
-    padding: 0 12px 0 10px;
-    inset-inline-end: 48px;
+    padding-block: 0;
+    padding-inline: 10px 12px;
+    inset-inline-end: calc(var(--hc-ctl-in) + var(--hc-ctl) + 8px);
     font-size: var(--text-small);
     font-weight: 700;
 }
@@ -400,6 +416,14 @@
 
 [dir="rtl"] .hc-grip svg {
     transform: scaleX(-1);
+}
+
+/* While customising, a card's head makes room for the controls over its
+   corners (hide at the start, pin at the end), so its title, its link or its
+   search box is never under them. Only the head: the card keeps its size. */
+.hc-grid.editing .hc-tile.is-widget > .hc-tile-body :is(header, .hc-decide-head) {
+    padding-inline-start: calc(var(--hc-ctl) + var(--hc-ctl-out) + 8px);
+    padding-inline-end: calc(var(--hc-ctl) + var(--hc-ctl-in) + 8px);
 }
 
 /* "2×3" while resizing, centred on the tile. */
@@ -752,6 +776,23 @@
         display: none;
     }
 }
+/* The phone clock: one row, digital even when analogue is chosen. Only how it
+   is shown changes; the saved size and look stay as set. The packer knows the
+   row (layout-math.js phoneView) and places the tile inline; this rule is the
+   first paint before it does (not !important, so the placed row wins). */
+@container hc-home (max-width: 759.98px) {
+    .hc-grid:not(.editing) > .hc-tile[data-key="clock"] {
+        grid-row: span 1;
+    }
+
+    .hc-grid .hc-tile[data-look="analog"] .hc-clock-digital {
+        display: flex;
+    }
+
+    .hc-grid .hc-tile[data-look="analog"] .hc-clock-analog {
+        display: none;
+    }
+}
 /* ---------- end clock tile ---------- */
 
 /* dashboard header ===================================================
@@ -1044,6 +1085,26 @@
     box-shadow: none;
 }
 
+/* The tile, not the screen, decides the button's width: it never runs past the
+   strip (a phone's one-row tile cut "Open the oldest" off on both sides). */
+.hc-late-tile .hc-lateband {
+    min-width: 0;
+}
+
+.hc-late-tile .hc-lateband .hc-btn {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Wrapped below the words (two rows and more, narrow): the whole width. */
+@container tile (min-height: 140px) and (max-width: 559.98px) {
+    .hc-late-tile .hc-lateband .hc-btn {
+        flex-basis: 100%;
+    }
+}
+
 .hc-decide-tile {
     border-inline-start: 3px solid var(--color-primary);
 }
@@ -1142,8 +1203,28 @@
         height: 32px;
     }
 
+    .hc-late-tile .hc-lateband-text {
+        min-width: 0;
+    }
+
     .hc-late-tile .hc-lateband-text span {
         display: none;
+    }
+}
+
+/* One row and narrow: the button needs the room more than the clock does. */
+@container tile (max-height: 139.98px) and (max-width: 359.98px) {
+    .hc-late-tile .hc-lateband {
+        gap: 10px;
+        padding-inline: 10px;
+    }
+
+    .hc-late-tile .hc-lateband-ico {
+        display: none;
+    }
+
+    .hc-late-tile .hc-lateband .hc-btn {
+        padding-inline: 12px;
     }
 }
 

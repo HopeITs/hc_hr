@@ -18,6 +18,25 @@ export function clampSize(bounds, cols, c, r) {
 }
 
 /**
+ * The size a tile keeps when customising starts (home-screen.js bake()): the
+ * size it is seen at, so nothing jumps, unless that size only comes from this
+ * screen. A phone (4 columns) shows every tile at most 4 wide and grows tiles
+ * into its own gaps, and any grid narrower than the saved width cuts it down:
+ * saving that would overwrite the computer's sizes (calendar 8x3 became 4x3
+ * after a phone only pinned a tile). Then the saved size stays; the grid still
+ * shows it clamped. A size the person sets by hand (setCells) is saved as set.
+ *
+ * @param {string} stored  the saved size, "CxR"
+ * @param {{w: number, h: number}|undefined} placed  where pack() put it
+ * @returns {string}
+ */
+export function bakedSize(stored, placed, cols) {
+    if (! placed || cols <= 4 || parse(stored)[0] > cols) return stored;
+
+    return placed.w + 'x' + placed.h;
+}
+
+/**
  * The resize grip sits in the inline-end corner, so dragging towards the
  * inline end grows the tile: right in English, left in Arabic. The pointer's
  * x movement is mirrored in RTL; y is the same in both.
@@ -54,6 +73,36 @@ export function iconish(key, size, bounds, cols) {
     const [w, h] = parse(size);
 
     return Math.min(w, cols) < Math.min(card[0], cols) || h < card[1];
+}
+
+/**
+ * Tiles a phone (4 columns) shows one row high whatever their saved size: the
+ * clock, drawn there as one digital line (dashboard.css, "phone clock").
+ */
+export const PHONE_ONE_ROW = ['clock'];
+
+/**
+ * What the packer is given on a phone at rest: the one-row tiles as one row,
+ * kept from growing taller, so the tiles below close up under them instead of
+ * leaving the rows the CSS no longer fills. Customising shows the real size;
+ * the saved sizes are never changed.
+ *
+ * @returns {{shown: {key: string, size: string}[], bounds: Object}}
+ */
+export function phoneView(shown, bounds, cols, editing = false) {
+    if (editing || cols > 4) return { shown, bounds };
+    const keys = shown.filter((i) => PHONE_ONE_ROW.includes(i.key)).map((i) => i.key);
+    if (! keys.length) return { shown, bounds };
+    const out = { ...bounds };
+    for (const key of keys) {
+        const b = bounds[key] || { min: [1, 1], max: [1, 1] };
+        out[key] = { ...b, min: [b.min[0], 1], max: [b.max[0], 1] };
+    }
+
+    return {
+        shown: shown.map((i) => (keys.includes(i.key) ? { ...i, size: parse(i.size)[0] + 'x1' } : i)),
+        bounds: out,
+    };
 }
 
 /** How wide a closed tile (nothing in it right now) is: one line, at most four cells. */

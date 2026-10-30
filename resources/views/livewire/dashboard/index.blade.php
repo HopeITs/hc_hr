@@ -56,9 +56,10 @@
          data-home="{{ json_encode($home, JSON_UNESCAPED_UNICODE) }}"
          x-on:keydown.escape.window="escape($event)">
 
-        {{-- Customise, and while customising: Reset, Add, Done. --}}
+        {{-- Customise, and while customising: Reset, Add, Done. The words need about
+             16rem: where the buttons leave less (a phone), they sit above them, full width. --}}
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="min-w-0 flex-1 text-hint text-ink-2" aria-live="polite">
+            <p class="min-w-0 flex-[1_1_16rem] text-hint text-ink-2" aria-live="polite">
                 <span x-show="! editing">{{ __('dashboard.home.lead') }}</span>
                 <span x-show="editing" x-cloak>{{ __('dashboard.home.edit-lead') }}</span>
             </p>

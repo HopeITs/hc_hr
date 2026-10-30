@@ -129,10 +129,10 @@ class DashboardLayout
 
     /**
      * Tiles a phone does not draw, to keep its home screen light (media-request
-     * 88a5e75): the today's-events slideshow. Only what is shown changes; the
-     * saved layout keeps them for a larger screen.
+     * 88a5e75): the today's-events slideshow and the statistics charts. Only
+     * what is shown changes; the saved layout keeps them for a larger screen.
      */
-    public const PHONE_HIDDEN = ['today-events'];
+    public const PHONE_HIDDEN = ['today-events', 'stats-department', 'stats-job-level', 'stats-contract-type', 'stats-no-leaves', 'stats-salary'];
 
     /** Tiles that come in more than one look: key => allowed looks, the first is the default. */
     public const LOOKS = ['clock' => ['digital', 'analog']];

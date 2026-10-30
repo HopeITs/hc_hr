@@ -100,7 +100,8 @@
                         @empty
                             <tr>
                                 <td colspan="4" class="text-center py-6 pt-[76px] text-secondary-light font-light text-[11.2px]">
-                                    <p>@lang('general.no-notes-1') <span class="text-red-600 font-light">“@lang('general.add-note')”</span> @lang('general.no-notes-2') </p>
+                                    {{-- data-tile-empty: the grid folds the tile to one line (DESIGN.md, Dashboard tiles). --}}
+                                    <p data-tile-empty>@lang('general.no-notes-1') <span class="text-red-600 font-light">“@lang('general.add-note')”</span> @lang('general.no-notes-2') </p>
                                 </td>
                             </tr>
                         @endforelse

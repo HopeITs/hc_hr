@@ -131,3 +131,38 @@ test('a size set by hand is shown exactly; the others grow into the gaps', () =>
     assert.deepEqual([placed.notes.w, placed.notes.h], [3, 2]);
     assert.ok(placed.team.w > 3, 'the other card grew into the gap');
 });
+
+test('a phone packs the clock one row high, so the tiles below close up under it', async () => {
+    const { phoneView } = await import('../../resources/js/dashboard/layout-math.js');
+    const b = { ...bounds, clock: { min: [1, 1], max: [12, 6], card: [2, 1] } };
+    const shown = [
+        { key: 'clock', size: '4x3' },
+        { key: 'notes', size: '4x3' },
+    ];
+
+    const view = phoneView(shown, b, 4);
+    const placed = pack(view.shown, 4, view.bounds);
+    assert.deepEqual([placed.clock.h, placed.notes.y], [1, 1]);
+    // Never grown taller into a gap either.
+    const alone = phoneView([{ key: 'clock', size: '2x2' }], b, 4);
+    assert.equal(pack(alone.shown, 4, alone.bounds).clock.h, 1);
+
+    // A wider grid, or customising, keeps the real size; the saved list is untouched.
+    assert.equal(phoneView(shown, b, 8).shown, shown);
+    assert.equal(phoneView(shown, b, 4, true).shown, shown);
+    assert.equal(shown[0].size, '4x3');
+});
+
+test('customising on a phone or a narrow grid never takes a size the grid cut down', async () => {
+    const { bakedSize } = await import('../../resources/js/dashboard/layout-math.js');
+    // A phone shows the calendar 8x3 as 4x3 and news 8x7 as 4x7: the saved sizes stay.
+    assert.equal(bakedSize('8x3', { w: 4, h: 3 }, 4), '8x3');
+    assert.equal(bakedSize('8x7', { w: 4, h: 7 }, 4), '8x7');
+    // A phone's own gap filling is not saved either (a 2x2 grown to 4x2).
+    assert.equal(bakedSize('2x2', { w: 4, h: 2 }, 4), '2x2');
+    // An 8-column computer showing a 12-wide tile at 8: kept at 12.
+    assert.equal(bakedSize('12x3', { w: 8, h: 3 }, 8), '12x3');
+    // A computer that shows the tile at its own width: what is seen is what is kept.
+    assert.equal(bakedSize('4x2', { w: 6, h: 2 }, 8), '6x2');
+    assert.equal(bakedSize('4x2', undefined, 8), '4x2');
+});
