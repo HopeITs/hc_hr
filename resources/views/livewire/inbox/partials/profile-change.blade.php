@@ -44,31 +44,29 @@
 
 <div class="flex flex-col gap-2" data-testid="inbox-profile-change">
     @if (($row['proposed'] ?? []) !== [])
-        <dl class="grid gap-x-4 gap-y-1 rounded-control bg-neutral-50 p-3 text-small sm:grid-cols-2">
+        <dl class="grid gap-x-4 gap-y-1 rounded-control bg-soft p-3 text-small sm:grid-cols-2">
             @foreach ($row['proposed'] as $field => $value)
                 <div class="min-w-0">
-                    <dt class="text-caption text-secondary-light">{{ $labels[$field] ?? $field }}</dt>
-                    <dd class="break-words font-semibold text-neutral-900"><bdi>{{ $shown($field, $value) }}</bdi></dd>
+                    <dt class="text-caption text-ink-3">{{ $labels[$field] ?? $field }}</dt>
+                    <dd class="break-words font-semibold text-ink"><bdi>{{ $shown($field, $value) }}</bdi></dd>
                 </div>
             @endforeach
         </dl>
     @endif
     @if ($row['file_url'])
-        <a href="{{ $row['file_url'] }}" target="_blank" rel="noopener" class="inline-flex min-h-11 items-center self-start text-small font-semibold text-primary hover:underline">{{ __('inbox.profile.file') }}</a>
+        <a href="{{ $row['file_url'] }}" target="_blank" rel="noopener" class="inline-flex min-h-11 items-center self-start text-small font-semibold text-ink underline underline-offset-4">{{ __('inbox.profile.file') }}</a>
     @endif
 
     <form x-data="{ rejecting: false }"
           x-on:submit.prevent="rejecting ? $wire.rejectProfile(@js($row['key'])) : $wire.approveProfile(@js($row['key']))"
           class="flex flex-col gap-2">
-        <label for="note-{{ $slug }}" class="text-small font-semibold text-neutral-800">{{ __('inbox.profile.reason') }}</label>
+        <label for="note-{{ $slug }}" class="text-small font-semibold text-ink">{{ __('inbox.profile.reason') }}</label>
         <input id="note-{{ $slug }}" type="text" maxlength="500" wire:model="notes.{{ $slug }}"
-               class="h-11 w-full rounded-control border border-neutral-300 px-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light">
+               class="h-11 w-full rounded-control border border-line bg-field px-3">
         @error('notes.'.$slug) <p class="text-small text-primary">{{ $message }}</p> @enderror
         <div class="flex flex-wrap gap-2">
-            <button type="submit" x-on:click="rejecting = false" data-testid="inbox-profile-approve"
-                    class="min-h-11 rounded-control bg-primary px-5 font-semibold text-white">{{ __('inbox.profile.approve') }}</button>
-            <button type="submit" x-on:click="rejecting = true" data-testid="inbox-profile-reject"
-                    class="min-h-11 rounded-control border border-primary bg-white px-5 font-semibold text-primary">{{ __('inbox.profile.reject') }}</button>
+            <x-button type="submit" x-on:click="rejecting = false" data-testid="inbox-profile-approve">{{ __('inbox.profile.approve') }}</x-button>
+            <x-button type="submit" variant="outline" x-on:click="rejecting = true" data-testid="inbox-profile-reject">{{ __('inbox.profile.reject') }}</x-button>
         </div>
     </form>
 </div>

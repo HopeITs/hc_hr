@@ -11,12 +11,12 @@
 @endphp
 <div class="flex items-start gap-2" data-card="{{ $item->getKey() }}">
     <button type="button"
-        class="min-h-11 min-w-0 flex-1 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="min-h-11 min-w-0 flex-1 text-start"
         data-contract-view="{{ $item->getKey() }}"
         aria-label="{{ __('contracts.view-named', ['name' => $name]) }}"
         x-on:click="{{ $table->openDrawerJs($item->getKey()) }}">
         <span class="block break-words font-semibold" dir="auto">{{ $name }}</span>
-        <span class="block break-words text-small text-neutral-600" dir="auto">{{ $item->contractType?->name }} · <bdi>{{ $item->start_date?->format('Y-m-d') }} – {{ $item->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></span>
+        <span class="block break-words text-small text-ink-2" dir="auto">{{ $item->contractType?->name }} · <bdi>{{ $item->start_date?->format('Y-m-d') }} – {{ $item->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></span>
         <span class="mt-1 flex flex-wrap items-center gap-2">
             <x-status :status="$contractStatus" />
             @if($days !== null)

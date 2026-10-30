@@ -54,7 +54,7 @@ use App\Enums\LeaveRequestStatus;
             @endforeach
         </div>
     @else
-        <div class="rounded-surface shadow-e2 mb-6 text-center font-semibold text-secondary-medium p-4" role="status">
+        <div class="rounded-surface shadow-e2 mb-6 text-center font-semibold text-ink-2 p-4" role="status">
             @lang('general.no-available-data')
         </div>
 
@@ -73,25 +73,24 @@ use App\Enums\LeaveRequestStatus;
                  class="mb-6 rounded-surface border border-s-4 border-line-soft border-s-ink bg-card p-4 shadow-e2">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0 flex-1 space-y-2">
-                    <h2 id="submitted-leave-title" class="flex flex-wrap items-center gap-2 font-semibold text-neutral-900">
+                    <h2 id="submitted-leave-title" class="flex flex-wrap items-center gap-2 font-semibold text-ink">
                         <span>{{ __('leaves.submit.'.($submittedKind === 'updated' ? 'updated' : 'sent').'-title') }}</span>
                         <span><span class="sr-only">@lang('general.status'): </span><x-status :status="LeaveRequestStatus::of($submittedLeave->status)" /></span>
                     </h2>
-                    <p class="text-body text-neutral-700">
+                    <p class="text-body text-ink">
                         <span class="font-medium">@lang('leaves.next-step.title'):</span>
                         {{ app(\App\Services\LeaveRequestNextStep::class)->describe($submittedLeave) }}
                     </p>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                    <button type="button"
-                            wire:click="openDetails({{ $submittedLeave->id }})"
-                            class="min-h-11 rounded-control px-3 text-sm font-semibold text-primary hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    <x-button variant="outline" size="sm"
+                            wire:click="openDetails({{ $submittedLeave->id }})">
                         @lang('leaves.submit.view-details')
-                    </button>
+                    </x-button>
                     <button type="button"
                             x-on:click="open = false"
                             aria-label="{{ __('leaves.submit.dismiss') }}"
-                            class="grid size-11 place-items-center rounded-control text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                            class="grid size-11 place-items-center rounded-control text-ink-3 hover:bg-hover hover:text-ink">
                         <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                             <path d="M6 6l12 12M18 6L6 18"/>
@@ -148,25 +147,25 @@ use App\Enums\LeaveRequestStatus;
                 <x-leave.decision-summary :leave-request="$selectedLeave" />
 
                 {{-- Who acts next, for every status (A3). --}}
-                <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-4" data-testid="leave-next-step">
-                    <h3 class="text-sm text-neutral-500">@lang('leaves.next-step.title')</h3>
-                    <p class="mt-1 font-semibold text-neutral-800">{{ app(\App\Services\LeaveRequestNextStep::class)->describe($selectedLeave) }}</p>
+                <div class="rounded-xl border border-line-soft bg-soft p-4" data-testid="leave-next-step">
+                    <h3 class="text-small text-ink-2">@lang('leaves.next-step.title')</h3>
+                    <p class="mt-1 font-semibold text-ink">{{ app(\App\Services\LeaveRequestNextStep::class)->describe($selectedLeave) }}</p>
                 </div>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div class="rounded-xl border border-neutral-200 p-4">
-                        <dt class="text-sm text-neutral-500">{{ trans_choice('general.leave-type', 1) }}</dt>
-                        <dd class="mt-1 font-semibold text-neutral-800">{{ $selectedLeave->leaveBalance->leaveType->name }}</dd>
+                    <div class="rounded-xl border border-line-soft p-4">
+                        <dt class="text-small text-ink-2">{{ trans_choice('general.leave-type', 1) }}</dt>
+                        <dd class="mt-1 font-semibold text-ink">{{ $selectedLeave->leaveBalance->leaveType->name }}</dd>
                     </div>
 
-                    <div class="rounded-xl border border-neutral-200 p-4">
-                        <dt class="text-sm text-neutral-500">@lang('general.type')</dt>
-                        <dd class="mt-1 font-semibold text-neutral-800">{{ __('leaves.unit.'.($selectedLeave->type === 'hour' ? 'hour' : 'day')) }}</dd>
+                    <div class="rounded-xl border border-line-soft p-4">
+                        <dt class="text-small text-ink-2">@lang('general.type')</dt>
+                        <dd class="mt-1 font-semibold text-ink">{{ __('leaves.unit.'.($selectedLeave->type === 'hour' ? 'hour' : 'day')) }}</dd>
                     </div>
 
-                    <div class="rounded-xl border border-neutral-200 p-4">
-                        <dt class="text-sm text-neutral-500">@lang('general.during-period')</dt>
-                        <dd class="mt-1 font-semibold text-neutral-800">
+                    <div class="rounded-xl border border-line-soft p-4">
+                        <dt class="text-small text-ink-2">@lang('general.during-period')</dt>
+                        <dd class="mt-1 font-semibold text-ink">
                             @if($selectedLeave->type === 'hour')
                                 <bdi dir="ltr">{{ $selectedLeave->start_at->format('d-m-Y, H:i') }}</bdi>
                                 <span aria-hidden="true">{{ __('leaves.range-separator') }}</span>
@@ -179,19 +178,19 @@ use App\Enums\LeaveRequestStatus;
                         </dd>
                     </div>
 
-                    <div class="rounded-xl border border-neutral-200 p-4">
-                        <dt class="text-sm text-neutral-500">@lang('general.duration')</dt>
-                        <dd class="mt-1 font-semibold text-neutral-800">{{ $selectedLeave->duration }}</dd>
+                    <div class="rounded-xl border border-line-soft p-4">
+                        <dt class="text-small text-ink-2">@lang('general.duration')</dt>
+                        <dd class="mt-1 font-semibold text-ink">{{ $selectedLeave->duration }}</dd>
                     </div>
 
-                    <div class="rounded-xl border border-neutral-200 p-4 sm:col-span-2">
-                        <dt class="text-sm text-neutral-500">@lang('general.alternative-employee')</dt>
-                        <dd class="mt-1 font-semibold text-neutral-800"><bdi>{{ $selectedLeave->alternativeEmployee?->name ?? '—' }}</bdi></dd>
+                    <div class="rounded-xl border border-line-soft p-4 sm:col-span-2">
+                        <dt class="text-small text-ink-2">@lang('general.alternative-employee')</dt>
+                        <dd class="mt-1 font-semibold text-ink"><bdi>{{ $selectedLeave->alternativeEmployee?->name ?? '—' }}</bdi></dd>
                     </div>
 
-                    <div class="rounded-xl border border-neutral-200 p-4 sm:col-span-2">
-                        <dt class="text-sm text-neutral-500">@lang('general.reason')</dt>
-                        <dd class="mt-1 whitespace-pre-line break-words text-neutral-800">{{ $selectedLeave->reason }}</dd>
+                    <div class="rounded-xl border border-line-soft p-4 sm:col-span-2">
+                        <dt class="text-small text-ink-2">@lang('general.reason')</dt>
+                        <dd class="mt-1 whitespace-pre-line break-words text-ink">{{ $selectedLeave->reason }}</dd>
                     </div>
                 </dl>
 
@@ -200,9 +199,9 @@ use App\Enums\LeaveRequestStatus;
                 </div>
 
                 <div class="flex justify-end">
-                    <x-primary-button type="button" wire:click="closeDetails" class="!w-auto !bg-secondary-light">
+                    <x-button variant="quiet" wire:click="closeDetails">
                         @lang('general.cancel')
-                    </x-primary-button>
+                    </x-button>
                 </div>
             </div>
         @endif
@@ -218,7 +217,7 @@ use App\Enums\LeaveRequestStatus;
         wire:ignore.self
         class="flex items-center justify-center px-2">
         {{-- Phones (M1): the sheet itself scrolls, so there is no nested scroll area; sm and up keeps the capped panel. --}}
-        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-white rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-12 dialog:md:py-6">
+        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-12 dialog:md:py-6">
             {{-- Enter in a field takes the same path as Save (there is no save()). --}}
             <form wire:submit.prevent="confirmSave" class="space-y-4 sheet:flex-1 sheet:flex sheet:flex-col">
                 <x-forms.errors-validation-list/>
@@ -233,7 +232,7 @@ use App\Enums\LeaveRequestStatus;
                         <x-forms.select2-input wire:model.live="form.leave_balance_id" required id="leave_balance_id">
                             @if($allAvailableLeaves?->count() > 0)
                                 <option
-                                    class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                                    class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
                                     @lang('general.select')
                                 </option>
                                 @foreach($allAvailableLeaves  as $availableLeave)
@@ -242,7 +241,7 @@ use App\Enums\LeaveRequestStatus;
                                 @endforeach
                             @else
                                 <option
-                                    class="text-secondary-light" disabled>
+                                    class="text-ink-3" disabled>
                                     @lang('general.no-available-data')
                                 </option>
                             @endif
@@ -253,7 +252,7 @@ use App\Enums\LeaveRequestStatus;
                         <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                         <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
                             <option
-                                class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                                class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
 
                                 @lang('general.select')
                             </option>
@@ -334,10 +333,10 @@ use App\Enums\LeaveRequestStatus;
                             <label for="is_exceptional" class="flex min-h-11 cursor-pointer items-start gap-3">
                                 <input type="checkbox" id="is_exceptional" wire:model.live="form.is_exceptional"
                                        aria-describedby="is_exceptional-hint"
-                                       class="hc-check mt-1 rounded-inset focus:ring-0">
+                                       class="hc-check mt-1 rounded-inset">
                                 <span>
-                                    <span class="block font-medium text-neutral-900">@lang('leave_quote.exceptional.label')</span>
-                                    <span id="is_exceptional-hint" class="block text-sm text-neutral-700">@lang('leave_quote.exceptional.hint')</span>
+                                    <span class="block font-medium text-ink">@lang('leave_quote.exceptional.label')</span>
+                                    <span id="is_exceptional-hint" class="block text-small text-ink">@lang('leave_quote.exceptional.hint')</span>
                                 </span>
                             </label>
                             <x-error-span>{{ $errors->first('form.is_exceptional') }}</x-error-span>
@@ -375,13 +374,9 @@ use App\Enums\LeaveRequestStatus;
 
                     {{-- Closes locally, like Escape and the header close: no
                          navigation, no reload, nothing submitted. --}}
-                    <x-primary-button
-                        type="button"
-                        :show-spinner="false"
-                        x-on:click="close()"
-                        class="!bg-secondary-light !w-auto">
+                    <x-button variant="quiet" :loading="false" x-on:click="close()">
                         @lang('general.cancel')
-                    </x-primary-button>
+                    </x-button>
                 </x-modal.actions>
             </form>
         </div>

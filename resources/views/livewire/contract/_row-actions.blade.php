@@ -35,7 +35,7 @@
     x-on:resize.window="hide(false)">
     @if($context === 'row')
         <button type="button"
-            class="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-primary hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="inline-flex min-h-11 items-center gap-1 rounded-control px-3 text-small font-semibold text-ink hover:bg-hover"
             data-contract-view="{{ $contract->getKey() }}"
             aria-label="{{ __('contracts.view-named', ['name' => $name]) }}"
             x-on:click.stop="{{ $openJs }}">
@@ -46,7 +46,7 @@
 
     @if($hasMenu)
         <button type="button" x-ref="trigger"
-            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control text-ink hover:bg-hover"
             aria-haspopup="menu" aria-controls="{{ $menuId }}" x-bind:aria-expanded="open ? 'true' : 'false'"
             aria-label="{{ __('contracts.more-actions-for', ['name' => $name]) }}"
             x-on:click.stop="open ? hide() : show()"
@@ -56,7 +56,7 @@
 
         <div id="{{ $menuId }}" role="menu" x-ref="menu" x-show="open" x-cloak
             aria-label="{{ __('contracts.more-actions-for', ['name' => $name]) }}"
-            class="fixed z-40 min-w-52 overflow-hidden rounded-surface border border-[var(--line-hairline)] bg-white py-1 text-start shadow-e2"
+            class="fixed z-40 min-w-52 overflow-hidden rounded-surface border border-line-soft bg-card py-1 text-start shadow-e2"
             x-bind:style="`top:${top}px;left:${left}px`"
             x-on:keydown.escape.prevent.stop="hide()"
             x-on:keydown.arrow-down.prevent="move(1)"
@@ -64,7 +64,7 @@
             x-on:keydown.home.prevent="items()[0]?.focus()"
             x-on:keydown.end.prevent="items().at(-1)?.focus()"
             x-on:keydown.tab="hide(false)">
-            @php($itemClass = 'flex min-h-11 w-full items-center gap-2 px-4 text-start text-sm hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary')
+            @php($itemClass = 'flex min-h-11 w-full items-center gap-2 px-4 text-start text-small hover:bg-hover focus-visible:bg-surface focus-visible:-outline-offset-2')
             @if($canEdit)
                 <a role="menuitem" href="{{ route('contracts.edit', $contract->getKey()) }}" wire:navigate class="{{ $itemClass }}">{{ __('general.edit') }}</a>
             @endif
@@ -86,7 +86,7 @@
                     x-on:click="hide(false)">{{ $contract->auto_renew ? __('contracts.auto-renew-turn-off') : __('contracts.auto-renew-turn-on') }}</button>
             @endif
             @if($canDelete)
-                <button type="button" role="menuitem" class="{{ $itemClass }} text-red-700"
+                <button type="button" role="menuitem" class="{{ $itemClass }}"
                     wire:click="confirmDelete({{ (int) $contract->getKey() }})"
                     x-on:click="hide(false)">{{ __('general.delete') }}</button>
             @endif

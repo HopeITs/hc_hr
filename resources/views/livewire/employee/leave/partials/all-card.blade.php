@@ -11,15 +11,15 @@
     <button type="button"
         x-on:click="{{ $table->rowOpenAction($item) }}"
         aria-haspopup="dialog"
-        class="block min-h-11 w-full min-w-0 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-        <span class="block break-words font-semibold text-black"><bdi>{{ $name }}</bdi></span>
+        class="block min-h-11 w-full min-w-0 text-start">
+        <span class="block break-words font-semibold text-ink"><bdi>{{ $name }}</bdi></span>
         @include('livewire.employee.leave.partials.card-summary', ['item' => $item])
     </button>
     <div class="flex flex-wrap items-center justify-between gap-2">
         <span class="flex flex-wrap items-center gap-2">
             @include('livewire.employee.leave.partials.card-status', ['item' => $item])
             @if($decided && $table->showsHrReview())
-                <span class="inline-flex items-center gap-1.5 text-small text-secondary-medium">
+                <span class="inline-flex items-center gap-1.5 text-small text-ink-2">
                     <x-table.hr-review :reviewed="$item->hr_approved" :model-id="$item->getKey()" />
                     {{ __('general.seen-by-hr') }}
                 </span>

@@ -5,7 +5,7 @@
 --}}
 @php($inline ??= false)
 <span @class([
-          'flex min-w-0 items-center gap-1 truncate border border-neutral-200 bg-white text-[11px] text-neutral-700',
+          'flex min-w-0 items-center gap-1 truncate border border-line-soft bg-card text-caption text-ink',
           'rounded-md px-1.5 py-0.5' => ! $inline,
           'rounded-full px-2.5 py-0.5' => $inline,
           'font-semibold' => $person['is_self'],

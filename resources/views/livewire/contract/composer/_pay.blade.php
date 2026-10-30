@@ -9,7 +9,7 @@
     /*
      * Inlined rather than pulled from x-icons.*, because those components bake a
      * colour utility into their own class list (icons.calendar carries
-     * text-secondary-light). Merged classes cannot beat it, so the icon stayed
+     * text-ink-3). Merged classes cannot beat it, so the icon stayed
      * grey on the selected red card. These inherit currentColor and nothing else.
      */
     $perOptions = [
@@ -57,14 +57,14 @@
          (ContractForm::fillFromModel). Saying so plainly is also the only way
          the screen can explain why the rest of the form saves fine while the
          pay clause stays exactly as it was — see preserveHiddenPay(). --}}
-    <div class="mt-4 flex items-start gap-3 rounded-control border border-neutral-200 bg-neutral-50 p-4">
-        <svg class="mt-0.5 size-5 shrink-0 text-secondary-medium" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <div class="mt-4 flex items-start gap-3 rounded-control border border-line-soft bg-soft p-4">
+        <svg class="mt-0.5 size-5 shrink-0 text-ink-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path d="M10 2a3.5 3.5 0 00-3.5 3.5V8H6a1.5 1.5 0 00-1.5 1.5v6A1.5 1.5 0 006 17h8a1.5 1.5 0 001.5-1.5v-6A1.5 1.5 0 0014 8h-.5V5.5A3.5 3.5 0 0010 2zm2 6H8V5.5a2 2 0 114 0V8z"/>
         </svg>
 
         <div class="min-w-0">
-            <p class="font-semibold text-body text-neutral-900">@lang('general.salary-hidden-title')</p>
-            <p class="mt-1 text-small text-secondary-medium">@lang('general.salary-hidden-body')</p>
+            <p class="font-semibold text-body text-ink">@lang('general.salary-hidden-title')</p>
+            <p class="mt-1 text-small text-ink-2">@lang('general.salary-hidden-body')</p>
             <x-error-span>{{ $errors->first('form.salary') }}</x-error-span>
         </div>
     </div>
@@ -96,7 +96,7 @@
          taller than "Salary" and left a lopsided gap underneath it. Now it
          spans the full card below both, so the card's height always tracks
          its content instead of whichever column happens to be tallest. --}}
-    <div x-cloak x-show="payMode === '1'" class="mt-5 rounded-control border border-neutral-200 bg-neutral-50/60 p-4">
+    <div x-cloak x-show="payMode === '1'" class="mt-5 rounded-control border border-line-soft bg-soft/60 p-4">
         <div class="grid gap-5 sm:grid-cols-2">
             <div>
                 <x-forms.input-label for="composer_salary" required>@lang('general.salary')</x-forms.input-label>
@@ -116,19 +116,19 @@
                     x-model="salary"
                     x-bind:aria-invalid="salaryError ? 'true' : null"
                     x-bind:aria-describedby="salaryError ? 'composer_salary-error' : null"
-                    x-bind:class="salaryError ? 'border-primary' : 'border-neutral-300'"
+                    x-bind:class="salaryError ? 'border-primary' : 'border-line'"
                     class="w-full min-w-0 rounded-control border
-                           bg-white px-3 py-2 text-end font-mono text-body tabular-nums text-neutral-900
-                           shadow-e1 transition placeholder:text-neutral-400
-                           focus:border-primary focus:outline-none focus:ring-2 focus:ring-neutral-300"
+                           bg-card px-3 py-2 text-end font-mono text-body tabular-nums text-ink
+                           shadow-e1 transition placeholder:text-ink-3
+                              "
                 />
 
                 {{-- Echoed back formatted, and annualised when paid monthly. Goes
                      quiet on a figure the form will not take, so the slot below can
                      say why instead of this one confirming a number that is wrong. --}}
                 <p x-cloak x-show="salaryEcho"
-                   class="mt-2 rounded-control border border-neutral-200 bg-white px-3 py-1.5
-                          text-small font-medium text-neutral-800"
+                   class="mt-2 rounded-control border border-line-soft bg-card px-3 py-1.5
+                          text-small font-medium text-ink"
                    x-text="salaryEcho"></p>
 
                 {{-- The client-side twin of <x-forms.input-error>: same id
@@ -155,12 +155,12 @@
                             <input type="radio" class="peer sr-only" name="composer_salary_per"
                                    value="{{ $value }}" x-model="salaryPer"/>
                             <span class="flex min-h-10.5 items-center justify-center gap-1.5 rounded-control
-                                         border-2 border-neutral-200 bg-white px-2 py-2 text-body text-neutral-800
+                                         border-2 border-line-soft bg-card px-2 py-2 text-body text-ink
                                          shadow-e1 transition
-                                         hover:border-neutral-400
-                                         peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white
+                                         hover:border-ink-3
+                                         peer-checked:border-ink peer-checked:bg-surface peer-checked:text-ink
                                          peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
-                                         peer-focus-visible:outline-primary">
+                                         peer-focus-visible:outline-focus">
                                 <svg class="size-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                                      stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                     {!! $option['path'] !!}
@@ -194,12 +194,12 @@
 
     {{-- ───────────────────────── Flexible ───────────────────────── --}}
     <div x-cloak x-show="payMode === '2'" class="mt-5 space-y-3">
-        <p class="text-small text-secondary-medium">@lang('general.composer.pay-flexible-hint')</p>
+        <p class="text-small text-ink-2">@lang('general.composer.pay-flexible-hint')</p>
 
         <template x-for="(tier, index) in payTiers" :key="index">
-            <div class="space-y-3 rounded-control border border-neutral-200 p-3">
+            <div class="space-y-3 rounded-control border border-line-soft p-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-caption font-semibold text-secondary-medium" x-text="'#' + (index + 1)"></span>
+                    <span class="text-caption font-semibold text-ink-2" x-text="'#' + (index + 1)"></span>
                     <x-contract.mini-button x-on:click="removePayTier(index)">
                         @lang('general.composer.remove-condition')
                     </x-contract.mini-button>
@@ -228,7 +228,7 @@
                 <div class="max-w-40">
                     <x-forms.input-label x-bind:for="'composer_pay_tier_' + index + '_amount'">@lang('general.amount')</x-forms.input-label>
                     {{-- No border swap here, unlike the fixed-mode salary box:
-                         x-forms.input bakes border-neutral-300 into its own
+                         x-forms.input bakes border-line into its own
                          class list, and an Alpine binding adds to that list
                          rather than replacing it, so the two reds would race.
                          The message below carries the state instead. --}}

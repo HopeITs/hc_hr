@@ -16,7 +16,7 @@
     </div>
 
     @unless ($isNationalHr)
-        <p class="mb-3 text-sm text-neutral-600">@lang('holidays.manager-hint')</p>
+        <p class="mb-3 text-small text-ink-2">@lang('holidays.manager-hint')</p>
     @endunless
 
     <livewire:basics.holiday-table />

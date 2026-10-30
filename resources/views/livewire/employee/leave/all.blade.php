@@ -68,7 +68,7 @@ use App\Enums\LeaveRequestStatus;
                          one and could clear the leave type (G-B-6). --}}
                     @if ($employees->isEmpty() && $form->leaveRequest)
                         <x-forms.input-label>{{trans_choice('general.employee',1)}}</x-forms.input-label>
-                        <p class="py-2 text-neutral-800" data-testid="leave-form-employee"><bdi>{{ $form->leaveRequest->leaveBalance?->contract?->employee?->name }}</bdi></p>
+                        <p class="py-2 text-ink" data-testid="leave-form-employee"><bdi>{{ $form->leaveRequest->leaveBalance?->contract?->employee?->name }}</bdi></p>
                     @else
                         <x-forms.input-label for="employee_id" required>{{trans_choice('general.employee',1)}}</x-forms.input-label>
                         <x-forms.select2-input wire:model.live="form.employee_id" id="employee_id">
@@ -89,7 +89,7 @@ use App\Enums\LeaveRequestStatus;
                     </div>
                     <x-forms.select2-input wire:model.live="form.leave_balance_id" id="leave_balance_id">
                         <option
-                            class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                            class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
                             @lang('general.select')..
                         </option>
                         @foreach($allAvailableLeaves ?? [] as $availableLeave)
@@ -102,7 +102,7 @@ use App\Enums\LeaveRequestStatus;
                     <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                     <x-forms.select2-input wire:model.live="form.alternative_employee" id="alternative_employee">
                         <option
-                            class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                            class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
                             @lang('general.select')..
                         </option>
                         @foreach($alternativeEmployees as $emp)
@@ -155,7 +155,7 @@ use App\Enums\LeaveRequestStatus;
                             <x-forms.date-input id="leave_date" wire:model.live="form.leave_date" :label="__('general.leave-date')"/>
                             <x-error-span>{{ $errors->first('form.leave_date') }}</x-error-span>
                         </div>
-                        <div class=" md:grid md:grid-cols-2 md:gap-4">
+                        <div class="md:grid md:grid-cols-2 md:gap-4">
                             <div>
                                 <x-forms.input-label for="start_time" required>{{__('general.start-time')}}</x-forms.input-label>
                                 <x-forms.time-picker id="start_time" wire-model="form.start_hour" format="HH:mm" />
@@ -183,8 +183,7 @@ use App\Enums\LeaveRequestStatus;
                 <x-primary-button type="button" wire:click="confirmSave"
                                   class="!w-auto">@lang('general.save')</x-primary-button>
                 {{-- Closes through the guard, like Escape and the header close: no link, no submit. --}}
-                <x-primary-button type="button" :show-spinner="false" x-on:click="close()"
-                                  class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+                <x-button variant="quiet" :loading="false" x-on:click="close()">@lang('general.cancel')</x-button>
             </x-modal.actions>
         </form>
     </x-modal.dialog>
@@ -197,21 +196,21 @@ use App\Enums\LeaveRequestStatus;
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <x-forms.input-label>{{ __('general.name') }}</x-forms.input-label>
-                        <p class="text-neutral-800"><bdi>{{ $selectedLeave->leaveBalance->contract->employee->name }}</bdi></p>
+                        <p class="text-ink"><bdi>{{ $selectedLeave->leaveBalance->contract->employee->name }}</bdi></p>
                     </div>
                     <div>
                         <x-forms.input-label>{{ __('general.request_date') }}</x-forms.input-label>
-                        <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->created_at->format('d-m-Y') }}</bdi></p>
+                        <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->created_at->format('d-m-Y') }}</bdi></p>
                     </div>
 
                     <div>
                         <x-forms.input-label>{{ __('general.type') }}</x-forms.input-label>
-                        <p class="text-neutral-800">{{ $selectedLeave->leaveType->name }}</p>
+                        <p class="text-ink">{{ $selectedLeave->leaveType->name }}</p>
                     </div>
 
                     <div>
                         <x-forms.input-label>{{ __('general.alternative-employee') }}</x-forms.input-label>
-                        <p class="text-neutral-800">
+                        <p class="text-ink">
                             <bdi>{{ optional($selectedLeave->alternativeEmployee)->name ?? '—' }}</bdi>
                         </p>
                     </div>
@@ -220,42 +219,42 @@ use App\Enums\LeaveRequestStatus;
                     @if($selectedLeave->type === 'day')
                         <div>
                             <x-forms.input-label>{{ __('general.start-date') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->start_at->format('d-m-Y') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->start_at->format('d-m-Y') }}</bdi></p>
                         </div>
 
                         <div>
                             <x-forms.input-label>{{ __('general.end-date') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->end_at->format('d-m-Y') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->end_at->format('d-m-Y') }}</bdi></p>
                         </div>
                         <div>
                             <x-forms.input-label>{{ __('general.duration') }}</x-forms.input-label>
-                            <p class="text-neutral-800">{{ $selectedLeave->duration }}</p>
+                            <p class="text-ink">{{ $selectedLeave->duration }}</p>
                         </div>
                     @else
 
                         <div>
                             <x-forms.input-label>{{ __('general.leave-date') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->start_at->format('d-m-Y') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->start_at->format('d-m-Y') }}</bdi></p>
                         </div>
                         <div>
                             <x-forms.input-label>{{ __('general.duration') }}</x-forms.input-label>
-                            <p class="text-neutral-800">{{ $selectedLeave->duration }}</p>
+                            <p class="text-ink">{{ $selectedLeave->duration }}</p>
                         </div>
 
                         <div>
                             <x-forms.input-label>{{ __('general.start-at') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->start_at->format('H:i') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->start_at->format('H:i') }}</bdi></p>
                         </div>
                         <div>
                             <x-forms.input-label>{{ __('general.end-at') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $selectedLeave->end_at->format('H:i') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $selectedLeave->end_at->format('H:i') }}</bdi></p>
                         </div>
 
                     @endif
 
                     <div class="col-span-full">
                         <x-forms.input-label>{{ __('general.reason') }}</x-forms.input-label>
-                        <p class="text-neutral-800">{{ $selectedLeave->reason }}</p>
+                        <p class="text-ink">{{ $selectedLeave->reason }}</p>
                     </div>
 
                     @include('livewire.employee.leave.partials.hr-notes', ['leaveRequest' => $selectedLeave])
@@ -264,13 +263,12 @@ use App\Enums\LeaveRequestStatus;
 
                 <div class="flex justify-end gap-2 mt-4">
                     <x-primary-button wire:click="confirmDelete({{$selectedLeave->id}})"
-                                      class=" !w-auto">
+                                      class="!w-auto">
                         {{ __('general.delete') }}
                     </x-primary-button>
-                    <x-primary-button wire:click="closeDetails"
-                                      class="!bg-secondary-light !w-auto">
+                    <x-button variant="quiet" wire:click="closeDetails">
                         {{ __('general.cancel') }}
-                    </x-primary-button>
+                    </x-button>
                 </div>
 
             </div>
@@ -285,22 +283,22 @@ use App\Enums\LeaveRequestStatus;
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <x-forms.input-label>{{ __('general.name') }}</x-forms.input-label>
-                        <p class="text-neutral-800"><bdi>{{ $decisionLeave->leaveBalance->contract->employee->name }}</bdi></p>
+                        <p class="text-ink"><bdi>{{ $decisionLeave->leaveBalance->contract->employee->name }}</bdi></p>
                     </div>
 
                     <div>
                         <x-forms.input-label>{{ __('general.request_date') }}</x-forms.input-label>
-                        <p class="text-neutral-800"><bdi dir="ltr">{{ $decisionLeave->created_at->format('d-m-Y') }}</bdi></p>
+                        <p class="text-ink"><bdi dir="ltr">{{ $decisionLeave->created_at->format('d-m-Y') }}</bdi></p>
                     </div>
 
                     <div>
                         <x-forms.input-label>{{ __('general.type') }}</x-forms.input-label>
-                        <p class="text-neutral-800">{{ $decisionLeave->leaveType->name }}</p>
+                        <p class="text-ink">{{ $decisionLeave->leaveType->name }}</p>
                     </div>
 
                     <div>
                         <x-forms.input-label>{{ __('general.alternative-employee') }}</x-forms.input-label>
-                        <p class="text-neutral-800">
+                        <p class="text-ink">
                             <bdi>{{ optional($decisionLeave->alternativeEmployee)->name ?? '—' }}</bdi>
                         </p>
                     </div>
@@ -308,36 +306,36 @@ use App\Enums\LeaveRequestStatus;
                     @if($decisionLeave->type === 'day')
                         <div>
                             <x-forms.input-label>{{ __('general.during-period') }}</x-forms.input-label>
-                            <p class="text-neutral-800"><bdi dir="ltr">{{ $decisionLeave->start_at->format('d-m-Y') }}</bdi> {{ __('leaves.range-separator') }} <bdi dir="ltr">{{ $decisionLeave->end_at->format('d-m-Y') }}</bdi></p>
+                            <p class="text-ink"><bdi dir="ltr">{{ $decisionLeave->start_at->format('d-m-Y') }}</bdi> {{ __('leaves.range-separator') }} <bdi dir="ltr">{{ $decisionLeave->end_at->format('d-m-Y') }}</bdi></p>
                         </div>
 
                         <div>
                             <x-forms.input-label>{{ __('general.duration') }}</x-forms.input-label>
-                            <p class="text-neutral-800">{{ $decisionLeave->duration }}</p>
+                            <p class="text-ink">{{ $decisionLeave->duration }}</p>
                         </div>
                     @else
 
                         <div>
                             <x-forms.input-label>{{ __('general.during-period') }}</x-forms.input-label>
-                            <div class="text-neutral-800 flex items-center gap-2">
+                            <div class="text-ink flex items-center gap-2">
                                 <x-icons.calendar class="!size-4"/>
                                 <bdi dir="ltr">{{ $decisionLeave->start_at->format('d-m-Y') }}</bdi>
                             </div>
-                            <div class="text-neutral-800 flex items-center gap-2">
+                            <div class="text-ink flex items-center gap-2">
                                 <x-icons.clock class="!size-4"/>
                                 <span><bdi dir="ltr">{{ $decisionLeave->start_at->format('H:i') }}</bdi> {{ __('leaves.range-separator') }} <bdi dir="ltr">{{ $decisionLeave->end_at->format('H:i') }}</bdi></span>
                             </div>
                         </div>
                         <div>
                             <x-forms.input-label>{{ __('general.duration') }}</x-forms.input-label>
-                            <p class="text-neutral-800">{{ $decisionLeave->duration }}</p>
+                            <p class="text-ink">{{ $decisionLeave->duration }}</p>
                         </div>
 
                     @endif
 
                     <div class="col-span-full">
                         <x-forms.input-label>{{ __('general.reason') }}</x-forms.input-label>
-                        <p class="text-neutral-800">{{ $decisionLeave->reason }}</p>
+                        <p class="text-ink">{{ $decisionLeave->reason }}</p>
                     </div>
                 </div>
 
@@ -383,10 +381,9 @@ use App\Enums\LeaveRequestStatus;
                         {{ __('general.save') }}
                     </x-primary-button>
 
-                    <x-primary-button type="button" :show-spinner="false" x-on:click="close()"
-                                      class="!bg-secondary-light !w-auto">
+                    <x-button variant="quiet" :loading="false" x-on:click="close()">
                         {{ __('general.cancel') }}
-                    </x-primary-button>
+                    </x-button>
                 </x-modal.actions>
 
             </form>

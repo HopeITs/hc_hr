@@ -5,15 +5,12 @@
 <div class="w-8/12 mx-auto space-y-4">
     {{-- Page header --}}
     <div class="flex items-center justify-between">
-        <h2 class="text-h4 font-semibold text-neutral-800">@lang('general.notifications')</h2>
+        <h2 class="text-h4 font-semibold text-ink">@lang('general.notifications')</h2>
 
         @if(! $loadFailed && $hasUnread)
-            <button
-                type="button"
-                wire:click="markAllAsRead"
-                class="text-body font-medium text-secondary-medium transition hover:text-neutral-900 hover:underline">
+            <x-button variant="link" size="sm" wire:click="markAllAsRead">
                 @lang('general.mark-all-read')
-            </button>
+            </x-button>
         @endif
     </div>
 
@@ -27,7 +24,7 @@
         <x-ui.load-error />
     @else
     {{-- Card list --}}
-    <div class="overflow-hidden rounded-surface border border-neutral-100 bg-white shadow-[0_25px_80px_-40px_rgba(2,6,23,0.35)] ring-1 ring-black/5">
+    <div class="overflow-hidden rounded-surface border border-line-soft bg-card shadow-e1">
         @forelse ($notifications as $notification)
             @php
                 $isUnread = is_null($notification->read_at);
@@ -53,10 +50,10 @@
                 @endif
                 @if($isUnread) @click="clicked = true" @endif
                 x-bind:style="clicked ? 'background-color: transparent' : ''"
-                class="group relative flex items-start gap-3 border-b border-neutral-100 px-4 py-4 transition-colors duration-300 last:border-b-0
+                class="group relative flex items-start gap-3 border-b border-line-soft px-4 py-4 transition-colors duration-300 last:border-b-0
                        {{ $isUnread
-                            ? 'bg-neutral-100 hover:bg-neutral-200 cursor-pointer'
-                            : 'bg-white hover:bg-neutral-50' }}">
+                            ? 'bg-surface hover:bg-surface cursor-pointer'
+                            : 'bg-card hover:bg-hover' }}">
 
                 {{-- Unread accent bar --}}
                 <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-primary' : 'bg-transparent' }}"
@@ -64,17 +61,17 @@
 
                 {{-- Icon bubble --}}
                 <span class="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-300
-                             {{ $isUnread ? 'bg-neutral-200 text-secondary-medium' : 'bg-neutral-100 text-secondary-light' }}">
+                             {{ $isUnread ? 'bg-surface text-ink-2' : 'bg-surface text-ink-3' }}">
                     <x-icons.notification class="size-4" />
                 </span>
 
                 {{-- Text --}}
                 <div class="min-w-0 flex-1">
-                    <p class="text-body font-semibold transition-colors duration-300 {{ $isUnread ? 'text-neutral-900' : 'text-neutral-800' }}">
+                    <p class="text-body font-semibold transition-colors duration-300 text-ink">
                         {{ $notification->data['title'][app()->getLocale()] ?? 'Notification' }}
                     </p>
 
-                    <p class="mt-1 text-small transition-colors duration-300 {{ $isUnread ? 'text-secondary-medium' : 'text-secondary-medium' }}">
+                    <p class="mt-1 text-small transition-colors duration-300 text-ink-2">
                         {{ ($states[$notification->id]['state'] ?? null) === 'unavailable' ? __('general.notification-target-unavailable') : ($notification->data['body'][app()->getLocale()] ?? '') }}
                     </p>
 
@@ -89,15 +86,15 @@
                                 <x-status tone="stop" icon="ban" :label="__('general.notification-state.unavailable')" />
                             @endif
                             @if($state['status'])
-                                <span class="text-secondary-medium">@lang('general.notification-state.status', ['status' => $state['status']])</span>
+                                <span class="text-ink-2">@lang('general.notification-state.status', ['status' => $state['status']])</span>
                             @endif
                         </p>
                         @if($state['next_step'] && $state['state'] !== 'handled')
-                            <p class="mt-1 text-caption text-secondary-medium">{{ $state['next_step'] }}</p>
+                            <p class="mt-1 text-caption text-ink-2">{{ $state['next_step'] }}</p>
                         @endif
                     @endif
 
-                    <p class="mt-1 text-caption text-secondary-light">
+                    <p class="mt-1 text-caption text-ink-3">
                         {{ $notification->created_at?->diffForHumans() }}
                     </p>
                 </div>
@@ -108,11 +105,11 @@
             </a>
         @empty
             <div class="flex min-h-72 flex-col items-center justify-center gap-2 px-4 py-16 text-center" data-state="empty">
-                <span class="inline-flex size-12 items-center justify-center rounded-full bg-neutral-100 text-secondary-light" aria-hidden="true">
+                <span class="inline-flex size-12 items-center justify-center rounded-full bg-surface text-ink-3" aria-hidden="true">
                     <x-icons.notification class="size-5" />
                 </span>
-                <h3 class="text-body font-semibold text-neutral-800">@lang('general.no-notifications')</h3>
-                <p class="text-small text-secondary-light">@lang('states.notifications-empty-help')</p>
+                <h3 class="text-body font-semibold text-ink">@lang('general.no-notifications')</h3>
+                <p class="text-small text-ink-2">@lang('states.notifications-empty-help')</p>
             </div>
         @endforelse
     </div>

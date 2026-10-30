@@ -384,7 +384,7 @@ class ContractsTable extends LivewireTable
             // Identity: the name with the position as a second line.
             Column::make(trans_choice('general.employee', 1), 'employee')
                 ->displayUsing(fn ($v, Model $m) => Blade::render(
-                    '<div class="min-w-0"><button type="button" x-on:click.stop="{{ $open }}" aria-haspopup="dialog" data-contract-view="{{ $id }}" aria-label="{{ $label }}" class="block max-w-full truncate text-start font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" dir="auto">{{ $name }}</button><div class="truncate text-small text-neutral-600" dir="auto">{{ $position }}</div></div>',
+                    '<div class="min-w-0"><button type="button" x-on:click.stop="{{ $open }}" aria-haspopup="dialog" data-contract-view="{{ $id }}" aria-label="{{ $label }}" class="block max-w-full truncate text-start font-medium hover:underline" dir="auto">{{ $name }}</button><div class="truncate text-small text-ink-2" dir="auto">{{ $position }}</div></div>',
                     [
                         'name' => $m->employee?->name ?? '—',
                         'position' => $m->position?->{$title} ?? '',
@@ -467,7 +467,7 @@ class ContractsTable extends LivewireTable
             Column::make(__('general.terminated-at'), 'terminated_at')
                 ->displayUsing(fn ($v, Model $m) => $m->isTerminated()
                     ? Blade::render(
-                        '<span title="{{ $reason }}" class="px-2 py-1 font-medium text-red-800 bg-red-100 whitespace-nowrap rounded-inset text-small"><bdi>{{ $date }}</bdi></span>',
+                        '<x-status tone="stop" icon="ban" :title="$reason"><bdi>{{ $date }}</bdi></x-status>',
                         [
                             'date' => $m->terminated_at?->format('Y-m-d') ?? __('general.terminated-at'),
                             'reason' => $m->terminationReason?->title ?? $m->reason_of_termination ?? '',

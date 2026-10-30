@@ -33,18 +33,18 @@
                 if (! f.length) return;
                 if ($event.shiftKey && document.activeElement === f[0]) { $event.preventDefault(); f.at(-1).focus(); }
                 else if (! $event.shiftKey && document.activeElement === f.at(-1)) { $event.preventDefault(); f[0].focus(); }">
-            <div class="absolute inset-0 bg-black/40" x-on:click="$wire.close()" aria-hidden="true"></div>
+            <div class="absolute inset-0 bg-backdrop" x-on:click="$wire.close()" aria-hidden="true"></div>
             <section x-ref="panel" role="dialog" aria-modal="true" aria-labelledby="contract-drawer-title"
-                class="absolute inset-y-0 end-0 flex w-full max-w-md flex-col overflow-y-auto bg-white shadow-e2">
-                <header class="flex items-start justify-between gap-3 border-b border-neutral-200 p-4">
+                class="absolute inset-y-0 end-0 flex w-full max-w-md flex-col overflow-y-auto bg-card shadow-e2">
+                <header class="flex items-start justify-between gap-3 border-b border-line-soft p-4">
                     <div class="min-w-0">
-                        <p class="text-small text-neutral-600">{{ __('contracts.drawer-title') }}</p>
+                        <p class="text-small text-ink-2">{{ __('contracts.drawer-title') }}</p>
                         <h2 id="contract-drawer-title" class="break-words text-h4 font-semibold" dir="auto">{{ $contract->employee?->name ?? __('general.na') }}</h2>
                     </div>
                     <button type="button" x-ref="close" wire:click="close"
                         aria-label="{{ __('contracts.drawer-close') }}"
-                        class="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                        <span aria-hidden="true" class="text-xl">&times;</span>
+                        class="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-control text-ink-2 hover:bg-hover hover:text-ink">
+                        <x-ic name="x" class="size-5" />
                     </button>
                 </header>
 
@@ -56,16 +56,16 @@
                         @endif
                     </div>
 
-                    <dl class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-3 gap-y-3 text-sm">
-                        <dt class="text-neutral-600">{{ __('general.period') }}</dt>
+                    <dl class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-3 gap-y-3 text-small">
+                        <dt class="text-ink-2">{{ __('general.period') }}</dt>
                         <dd class="font-medium" dir="auto"><bdi>{{ $contract->start_date?->format('Y-m-d') }} – {{ $contract->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></dd>
                         @foreach($fields as $label => $value)
                             @continue(blank($value))
-                            <dt class="text-neutral-600">{{ $label }}</dt>
+                            <dt class="text-ink-2">{{ $label }}</dt>
                             <dd class="break-words font-medium" dir="auto">{{ $value }}</dd>
                         @endforeach
                         @if($contract->isTerminated())
-                            <dt class="text-neutral-600">{{ __('general.terminated-at') }}</dt>
+                            <dt class="text-ink-2">{{ __('general.terminated-at') }}</dt>
                             <dd class="break-words font-medium" dir="auto">
                                 <bdi>{{ $contract->terminated_at?->format('Y-m-d') }}</bdi>
                                 {{ $contract->terminationReason?->title ?? $contract->reason_of_termination }}
@@ -74,12 +74,10 @@
                     </dl>
                 </div>
 
-                <footer class="sticky bottom-0 mt-auto flex flex-wrap gap-2 border-t border-neutral-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:[&>a]:flex-1 max-sm:[&>a]:justify-center">
-                    <a href="{{ route('contracts.show', $contract->getKey()) }}" wire:navigate
-                        class="inline-flex min-h-11 items-center rounded-control bg-primary px-4 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ __('contracts.drawer-open-full') }}</a>
+                <footer class="sticky bottom-0 mt-auto flex flex-wrap gap-2 border-t border-line-soft bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:[&>a]:flex-1 max-sm:[&>a]:justify-center">
+                    <x-button :href="route('contracts.show', $contract->getKey())">{{ __('contracts.drawer-open-full') }}</x-button>
                     @if($canEdit)
-                        <a href="{{ route('contracts.edit', $contract->getKey()) }}" wire:navigate
-                            class="inline-flex min-h-11 items-center rounded-control border border-neutral-300 px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ __('general.edit') }}</a>
+                        <x-button variant="outline" :href="route('contracts.edit', $contract->getKey())">{{ __('general.edit') }}</x-button>
                     @endif
                 </footer>
             </section>

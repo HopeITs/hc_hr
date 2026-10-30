@@ -26,7 +26,7 @@
             <livewire:dashboard.soon-ending-contracts-card />
         </div>
 
-        <div data-tour="stats.no-leaves" class=" max-h-68 md:col-start-2 md:row-start-3">
+        <div data-tour="stats.no-leaves" class="max-h-68 md:col-start-2 md:row-start-3">
             <livewire:dashboard.no-leaves-employees-statistics/>
         </div>
 

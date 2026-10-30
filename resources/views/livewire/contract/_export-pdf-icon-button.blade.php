@@ -13,9 +13,9 @@
             x-bind:title="exporting ? @js(__('contracts.export-loading')) : (exportError ? @js(__('contracts.export-retry-label')) : @js(__('general.export-pdf')))"
             x-bind:aria-disabled="exporting ? 'true' : 'false'"
             x-bind:aria-busy="exporting ? 'true' : 'false'"
-            x-bind:class="exportError ? 'text-primary' : 'text-secondary-medium'"
-            class="cursor-pointer p-2 inline-flex items-center justify-center max-sm:min-h-11 max-sm:min-w-11
-                   aria-disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            x-bind:class="exportError ? 'text-primary' : 'text-ink-2'"
+            class="cursor-pointer p-2 inline-flex items-center justify-center min-h-11 min-w-11
+                   aria-disabled:cursor-wait">
         <x-icons.export x-show="!exporting" />
         <x-icons.spinner x-cloak x-show="exporting" class="size-5 motion-reduce:animate-none" aria-hidden="true" />
     </button>

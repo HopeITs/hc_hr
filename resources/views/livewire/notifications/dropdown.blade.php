@@ -1,17 +1,14 @@
 <div>
     {{-- Header --}}
-    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-100 bg-neutral-50/90 px-4 py-3 backdrop-blur">
-        <span class="text-body font-semibold text-neutral-800">
+    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-line-soft bg-soft/90 px-4 py-3 backdrop-blur">
+        <span class="text-body font-semibold text-ink">
             @lang('general.notifications')
         </span>
 
         @if($hasUnread && ! $loadFailed)
-            <button
-                type="button"
-                wire:click="markAllAsRead"
-                class="text-small font-medium text-secondary-medium transition hover:text-neutral-900 hover:underline">
+            <x-button variant="link" size="sm" wire:click="markAllAsRead">
                 @lang('general.mark-all-read')
-            </button>
+            </x-button>
         @endif
     </div>
 
@@ -50,10 +47,10 @@
             @endif
             @if($isUnread) @click="clicked = true" @endif
             x-bind:style="clicked ? 'background-color: transparent' : ''"
-            class="notif-row group relative flex items-start gap-3 border-b border-neutral-100 px-4 py-3 transition-colors duration-300 last:border-b-0
+            class="notif-row group relative flex items-start gap-3 border-b border-line-soft px-4 py-3 transition-colors duration-300 last:border-b-0
                    {{ $isUnread
-                        ? 'bg-neutral-100 hover:bg-neutral-200 cursor-pointer'
-                        : 'bg-white hover:bg-neutral-50' }}">
+                        ? 'bg-surface hover:bg-surface cursor-pointer'
+                        : 'bg-card hover:bg-hover' }}">
 
             {{-- Unread accent bar --}}
             <span class="absolute inset-y-0 start-0 w-[3px] transition-all duration-300 {{ $isUnread ? 'bg-primary' : 'bg-transparent' }}"
@@ -62,12 +59,12 @@
             {{-- Text --}}
             <div class="min-w-0 flex-1">
                 <p class="truncate text-body font-semibold transition-colors duration-300
-                          {{ $isUnread ? 'text-neutral-900' : 'text-neutral-800' }}">
+                          text-ink">
                     {{ $note->data['title'][app()->getLocale()] ?? 'Notification' }}
                 </p>
 
                 <p class="mt-1 line-clamp-2 text-small transition-colors duration-300
-                          {{ $isUnread ? 'text-secondary-medium' : 'text-secondary-medium' }}">
+                          text-ink-2">
                     {{ ($states[$note->id]['state'] ?? null) === 'unavailable' ? __('general.notification-target-unavailable') : ($note->data['body'][app()->getLocale()] ?? '') }}
                 </p>
 
@@ -82,15 +79,15 @@
                                 <x-status tone="stop" icon="ban" :label="__('general.notification-state.unavailable')" />
                             @endif
                             @if($state['status'])
-                                <span class="text-secondary-medium">@lang('general.notification-state.status', ['status' => $state['status']])</span>
+                                <span class="text-ink-2">@lang('general.notification-state.status', ['status' => $state['status']])</span>
                             @endif
                         </p>
                         @if($state['next_step'] && $state['state'] !== 'handled')
-                            <p class="mt-1 text-caption text-secondary-medium">{{ $state['next_step'] }}</p>
+                            <p class="mt-1 text-caption text-ink-2">{{ $state['next_step'] }}</p>
                         @endif
                     @endif
 
-                <p class="mt-1 text-caption text-secondary-light">
+                <p class="mt-1 text-caption text-ink-3">
                     {{ $note->created_at?->diffForHumans() }}
                 </p>
             </div>
@@ -102,11 +99,11 @@
     @empty
         @unless($loadFailed)
             <div class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center" data-state="empty">
-                <span class="inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 text-secondary-light" aria-hidden="true">
+                <span class="inline-flex size-11 items-center justify-center rounded-full bg-surface text-ink-3" aria-hidden="true">
                     <x-icons.notification class="size-5" />
                 </span>
-                <span class="text-body font-semibold text-neutral-800">@lang('general.no-notifications')</span>
-                <span class="text-small text-secondary-light">@lang('states.notifications-empty-help')</span>
+                <span class="text-body font-semibold text-ink">@lang('general.no-notifications')</span>
+                <span class="text-small text-ink-2">@lang('states.notifications-empty-help')</span>
             </div>
         @endunless
     @endforelse

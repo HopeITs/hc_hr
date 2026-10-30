@@ -11,7 +11,7 @@
 <div>
     <div class="mb-4">
         <livewire:layout.breadcrumbs :title="__('general.nav.work-inbox')" :crumbs="[]" />
-        <p class="text-small text-secondary-medium">{{ __('inbox.intro') }}</p>
+        <p class="text-small text-ink-2">{{ __('inbox.intro') }}</p>
     </div>
 
     {{-- Filters with the same counts as the menu badge. --}}
@@ -21,42 +21,40 @@
                 <button type="button" wire:click="setFilter('{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
                         data-testid="inbox-filter-{{ $key }}"
                         @class([
-                            'inline-flex min-h-11 items-center gap-2 rounded-control border px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-                            'border-primary bg-primary text-white' => $filter === $key,
-                            'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50' => $filter !== $key,
+                            'inline-flex min-h-11 items-center gap-2 rounded-control border-[1.5px] px-4 text-small font-semibold',
+                            'border-ink bg-surface text-ink' => $filter === $key,
+                            'border-line bg-card text-ink hover:bg-hover' => $filter !== $key,
                         ])>
                     {{ __("inbox.filter.{$key}") }}
-                    <span @class(['rounded-full px-2 text-caption', 'bg-white/25' => $filter === $key, 'bg-neutral-100' => $filter !== $key])>{{ $counts[$key] }}</span>
+                    <span @class(['rounded-full px-2 text-caption', 'bg-card' => $filter === $key, 'bg-surface' => $filter !== $key])>{{ $counts[$key] }}</span>
                 </button>
             @endif
         @endforeach
     </div>
 
     @if ($failed)
-        <div class="rounded-surface border border-[var(--line-hairline)] bg-white p-6 text-center" role="alert">
-            <p class="text-body text-neutral-800">{{ __('inbox.failed') }}</p>
-            <button type="button" wire:click="$refresh" class="mt-3 min-h-11 rounded-control border border-primary px-4 font-semibold text-primary">{{ __('general.toast.try-again') }}</button>
+        <div class="rounded-surface border border-line-soft bg-card p-6 text-center" role="alert">
+            <p class="text-body text-ink">{{ __('inbox.failed') }}</p>
+            <x-button variant="outline" class="mt-3" wire:click="$refresh">{{ __('general.toast.try-again') }}</x-button>
         </div>
     @elseif ($rows->isEmpty())
-        <div class="rounded-surface border border-[var(--line-hairline)] bg-white p-8 text-center" data-testid="inbox-empty">
-            <p class="text-h4 font-semibold text-neutral-900">{{ __('inbox.empty.title') }}</p>
-            <p class="mt-1 text-body text-secondary-medium">{{ __('inbox.empty.body') }}</p>
-        </div>
+        <x-center-empty-state data-testid="inbox-empty" :title="__('inbox.empty.title')" :description="__('inbox.empty.body')">
+            <x-slot:icon><x-ic name="inbox" class="size-9" /></x-slot:icon>
+        </x-center-empty-state>
     @else
         {{-- Batch: only checklist confirmations (C3D-Q4). --}}
         @if ($rows->where('bulk', true)->isNotEmpty())
-            <div class="mb-3 flex flex-wrap items-center gap-3 rounded-surface border border-[var(--line-hairline)] bg-white px-4 py-2">
-                <span class="text-small text-secondary-medium">{{ __('inbox.batch.hint') }}</span>
-                <button type="button" wire:click="previewBatch" data-testid="inbox-batch"
-                        @disabled(count($selected) === 0)
-                        class="ms-auto min-h-11 rounded-control bg-primary px-4 font-semibold text-white disabled:opacity-50">
+            <div class="mb-3 flex flex-wrap items-center gap-3 rounded-surface border border-line-soft bg-card px-4 py-2">
+                <span class="text-small text-ink-2">{{ __('inbox.batch.hint') }}</span>
+                <x-button wire:click="previewBatch" data-testid="inbox-batch" class="ms-auto"
+                        :disabled="count($selected) === 0">
                     {{ trans_choice('inbox.batch.button', count($selected), ['count' => count($selected)]) }}
-                </button>
+                </x-button>
             </div>
         @endif
 
         @if ($capped)
-            <p class="mb-3 text-small text-secondary-medium" data-testid="inbox-capped">{{ __('inbox.capped', $capped) }}</p>
+            <p class="mb-3 text-small text-ink-2" data-testid="inbox-capped">{{ __('inbox.capped', $capped) }}</p>
         @endif
 
         <ul class="flex flex-col gap-3" wire:loading.class="opacity-70" wire:target="decide,markSeen,object,confirmItem,finalizeItem,approveProfile,rejectProfile,applyBatch,setFilter">
@@ -70,27 +68,27 @@
                 <li wire:key="row-{{ $slug }}" id="inbox-{{ $slug }}" data-key="{{ $row['key'] }}" data-testid="inbox-row"
                     x-data x-init="@js($open === $row['key']) && $el.scrollIntoView({ block: 'center' })"
                     @class([
-                        'rounded-surface border bg-white p-4 shadow-e1',
-                        'border-primary ring-2 ring-primary/20' => $open === $row['key'],
-                        'border-[var(--line-hairline)]' => $open !== $row['key'],
+                        'rounded-surface border bg-card p-4 shadow-e1',
+                        'border-primary ring-1 ring-primary' => $open === $row['key'],
+                        'border-line-soft' => $open !== $row['key'],
                     ])>
                     <div class="flex flex-wrap items-start gap-3">
                         @if ($row['bulk'])
-                            <input type="checkbox" value="{{ $row['key'] }}" wire:model.live="selected" class="mt-1 size-5 shrink-0 accent-[var(--color-primary)]"
+                            <input type="checkbox" value="{{ $row['key'] }}" wire:model.live="selected" class="mt-1 size-5 shrink-0 accent-ink"
                                    aria-label="{{ __('inbox.batch.select', ['name' => $subject?->name]) }}">
                         @endif
                         <div class="min-w-0 flex-1">
-                            <p class="font-semibold text-neutral-900">
+                            <p class="font-semibold text-ink">
                                 <bdi>{{ $subject?->name ?? __('general.na') }}</bdi>
                                 @if ($row['former'] ?? false)
-                                    <span class="ms-1 rounded-full bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-medium" data-testid="inbox-former">{{ __('inbox.former') }}</span>
+                                    <x-tag variant="soft" class="ms-1" data-testid="inbox-former">{{ __('inbox.former') }}</x-tag>
                                 @endif
                                 @if ($showCity && $row['city'])
-                                    <span class="text-small font-normal text-secondary-medium">· <bdi>{{ $row['city'] }}</bdi></span>
+                                    <span class="text-small font-normal text-ink-2">· <bdi>{{ $row['city'] }}</bdi></span>
                                 @endif
                             </p>
-                            <p class="text-small text-secondary-medium">
-                                <span class="font-semibold text-secondary-dark">{{ __("inbox.action.{$row['action']}") }}</span>
+                            <p class="text-small text-ink-2">
+                                <span class="font-semibold text-ink">{{ __("inbox.action.{$row['action']}") }}</span>
                                 @if ($row['source'] === 'leave')
                                     · <bdi>{{ $row['leave_type'] }}</bdi>
                                     · <bdi dir="ltr">{{ $row['type'] === 'hour' ? $row['start_at']?->format('d-m-Y H:i').'–'.$row['end_at']?->format('H:i') : $row['start_at']?->format('d-m-Y').($row['end_at'] && ! $row['start_at']->isSameDay($row['end_at']) ? ' – '.$row['end_at']->format('d-m-Y') : '') }}</bdi>
@@ -99,7 +97,7 @@
                                     · <bdi>{{ $row['item'] }}</bdi>
                                 @endif
                             </p>
-                            <p class="text-caption text-secondary-light">
+                            <p class="text-caption text-ink-3">
                                 {{-- A length ("3 days"), not "3 days ago": the sentence around it says since when. --}}
                                 {{ __('inbox.waiting-since', ['when' => $row['waiting_since']?->diffForHumans(null, \Carbon\CarbonInterface::DIFF_ABSOLUTE)]) }}
                                 {{-- G-C-5: an undecided leave already under way is not "starts soon"; the home block uses the same rule. --}}
@@ -108,22 +106,21 @@
                                 @endif
                             </p>
                             @if (($row['basis'] ?? null) === 'on_behalf')
-                                <p class="mt-1 text-small text-primary">{{ __('inbox.basis.on_behalf', ['manager' => $row['managers']]) }}</p>
+                                <p class="mt-1 text-small font-semibold text-ink">{{ __('inbox.basis.on_behalf', ['manager' => $row['managers']]) }}</p>
                             @elseif (($row['basis'] ?? null) === 'no_manager')
-                                <p class="mt-1 text-small text-primary">{{ __('inbox.basis.no_manager') }}</p>
+                                <p class="mt-1 text-small font-semibold text-ink">{{ __('inbox.basis.no_manager') }}</p>
                             @endif
                             @if (! empty($row['overlap']['members']))
                                 <div class="mt-2">@include('livewire.team.partials.overlap-warning', ['overlap' => $row['overlap']])</div>
                             @endif
                         </div>
                         @if ($row['source'] === 'leave')
-                            <a href="{{ route('leaves.all', ['leave' => $row['id'], 'mode' => 'details']) }}" wire:navigate
-                               class="min-h-11 shrink-0 content-center rounded-control px-3 text-small font-semibold text-primary hover:bg-neutral-50">{{ __('inbox.details') }}</a>
+                            <x-button variant="link" size="sm" class="shrink-0" :href="route('leaves.all', ['leave' => $row['id'], 'mode' => 'details'])">{{ __('inbox.details') }}</x-button>
                         @endif
                     </div>
 
                     @if ($outcome)
-                        <p class="mt-2 rounded-control bg-neutral-50 px-3 py-2 text-small text-neutral-800" role="status" data-testid="inbox-outcome">{{ $outcome['message'] }}</p>
+                        <p class="mt-2 rounded-control bg-soft px-3 py-2 text-small text-ink" role="status" data-testid="inbox-outcome">{{ $outcome['message'] }}</p>
                     @endif
 
                     {{-- Actions --}}
@@ -140,55 +137,51 @@
                                             class="hc-choice inline-flex min-h-11 items-center gap-2 px-4 font-semibold text-ink"><x-ic name="x" class="size-4" />{{ __('inbox.decision.reject') }}</button>
                                 </div>
                                 <div x-show="choice === 2" x-cloak>
-                                    <label for="reason-{{ $slug }}" class="text-small font-semibold text-neutral-800">{{ __('general.reject-reason') }} <span class="text-primary">*</span></label>
+                                    <label for="reason-{{ $slug }}" class="text-small font-semibold text-ink">{{ __('general.reject-reason') }} <span class="text-primary">*</span></label>
                                     <input id="reason-{{ $slug }}" x-ref="reason" type="text" maxlength="255" wire:model="reasons.{{ $slug }}"
-                                           class="mt-1 h-11 w-full rounded-control border border-neutral-300 px-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light">
+                                           class="mt-1 h-11 w-full rounded-control border border-line bg-field px-3">
                                     @error('reasons.'.$slug) <p class="mt-1 text-small text-primary">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <button type="submit" :disabled="!choice" data-testid="inbox-decide"
-                                            class="min-h-11 rounded-control bg-primary px-5 font-semibold text-white disabled:opacity-50">{{ __('inbox.decision.save') }}</button>
+                                    <x-button type="submit" ::disabled="!choice" data-testid="inbox-decide">{{ __('inbox.decision.save') }}</x-button>
                                 </div>
                             </form>
                         @elseif ($row['action'] === 'review')
-                            <p class="mb-2 text-small text-secondary-medium">
+                            <p class="mb-2 text-small text-ink-2">
                                 {{ $row['decision'] }}
                             </p>
                             {{-- Seen by HR with an optional note; objection needs one (C3D-Q5). --}}
                             <form x-data="{ objecting: false }"
                                   x-on:submit.prevent="objecting ? $wire.object(@js($row['key'])) : $wire.markSeen(@js($row['key']))"
                                   class="flex flex-col gap-2">
-                                <label for="note-{{ $slug }}" class="text-small font-semibold text-neutral-800">
+                                <label for="note-{{ $slug }}" class="text-small font-semibold text-ink">
                                     <span x-show="!objecting">{{ __('inbox.review.note-optional') }}</span>
                                     <span x-show="objecting" x-cloak>{{ __('inbox.review.note-required') }} <span class="text-primary">*</span></span>
                                 </label>
                                 <input id="note-{{ $slug }}" type="text" maxlength="{{ \App\Services\LeaveRequestReview::NOTE_MAX }}" wire:model="notes.{{ $slug }}"
-                                       class="h-11 w-full rounded-control border border-neutral-300 px-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light">
+                                       class="h-11 w-full rounded-control border border-line bg-field px-3">
                                 @error('notes.'.$slug) <p class="text-small text-primary">{{ $message }}</p> @enderror
                                 <div class="flex flex-wrap gap-2">
-                                    <button type="submit" x-on:click="objecting = false" data-testid="inbox-seen"
-                                            class="min-h-11 rounded-control bg-primary px-5 font-semibold text-white">{{ __('inbox.review.seen') }}</button>
-                                    <button type="submit" x-on:click="objecting = true" data-testid="inbox-object"
-                                            class="min-h-11 rounded-control border border-primary bg-white px-5 font-semibold text-primary">{{ __('inbox.review.object') }}</button>
+                                    <x-button type="submit" x-on:click="objecting = false" data-testid="inbox-seen">{{ __('inbox.review.seen') }}</x-button>
+                                    <x-button type="submit" variant="outline" x-on:click="objecting = true" data-testid="inbox-object">{{ __('inbox.review.object') }}</x-button>
                                 </div>
-                                <p class="text-caption text-secondary-medium">{{ __('inbox.review.object-help') }}</p>
+                                <p class="text-caption text-ink-2">{{ __('inbox.review.object-help') }}</p>
                             </form>
                         @elseif ($row['source'] === 'profile')
                             {{-- D1: what the employee proposed, so HR approves what it has seen. --}}
                             @include('livewire.inbox.partials.profile-change', ['row' => $row, 'slug' => $slug])
                         @elseif ($row['action'] === 'finalize')
-                            <button type="button" wire:click="finalizeItem(@js($row['key']))"
-                                    class="min-h-11 rounded-control bg-primary px-5 font-semibold text-white">{{ __('inbox.checklist.finalize') }}</button>
+                            <x-button wire:click="finalizeItem({{ \Illuminate\Support\Js::from($row['key']) }})">{{ __('inbox.checklist.finalize') }}</x-button>
                         @else
                             <form wire:submit="confirmItem(@js($row['key']))" class="flex flex-wrap items-end gap-2">
                                 <div class="min-w-48 flex-1">
-                                    <label for="note-{{ $slug }}" class="text-small font-semibold text-neutral-800">{{ __('inbox.checklist.note') }}</label>
+                                    <label for="note-{{ $slug }}" class="text-small font-semibold text-ink">{{ __('inbox.checklist.note') }}</label>
                                     <input id="note-{{ $slug }}" type="text" maxlength="255" wire:model="notes.{{ $slug }}"
-                                           class="mt-1 h-11 w-full rounded-control border border-neutral-300 px-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light">
+                                           class="mt-1 h-11 w-full rounded-control border border-line bg-field px-3">
                                 </div>
-                                <button type="submit" class="min-h-11 rounded-control bg-primary px-5 font-semibold text-white">
+                                <x-button type="submit">
                                     {{ __("inbox.checklist.{$row['action']}") }}
-                                </button>
+                                </x-button>
                             </form>
                         @endif
                     </div>

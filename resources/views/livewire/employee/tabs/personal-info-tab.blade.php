@@ -6,7 +6,7 @@
 @if ($isCreateMode && $showDraftPrompt)
     <div class="flex flex-col space-y-6" data-tour="employee.draft">
         <x-heading-label>@lang('general.assign-position-draft')</x-heading-label>
-        <p class="text-sm text-neutral-500">@lang('general.assign-position-draft-description')</p>
+        <p class="text-small text-ink-2">@lang('general.assign-position-draft-description')</p>
 
         <div wire:key="draft-city-{{ $this->canPickAnyDraftCity() ? 'open' : 'locked' }}">
             <x-forms.input-label for="draft_city_id">{{ trans_choice('general.city', 1) }}</x-forms.input-label>
@@ -263,9 +263,9 @@
 
         </div>
         <div class="grid pb-8 mb-8 border-b md:grid-cols-1 gap-x-6 gap-y-3">
-            <x-heading-label class="col-span-1 ">@lang('general.membership')</x-heading-label>
+            <x-heading-label class="col-span-1">@lang('general.membership')</x-heading-label>
 
-            <div class="flex items-center col-span-1 space-x-2 ">
+            <div class="flex items-center col-span-1 space-x-2">
                 <x-forms.input type="checkbox" wire:model.live="infoForm.is_board_member"
                     wire:change="toggleBoardMember($event.target.checked)" value="1" id="is_board_member" />
                 <x-forms.input-label for="is_board_member">@lang('general.is_board_member')</x-forms.input-label>
@@ -310,7 +310,7 @@
             </div>
         </div>
 
-        <x-forms.dirty-gate watch="infoForm" :active="!$isCreateMode" class="flex justify-end space-x-2 ">
+        <x-forms.dirty-gate watch="infoForm" :active="!$isCreateMode" class="flex justify-end space-x-2">
             {{--
             The tab is deliberately NOT advanced here. In create mode
             saveInformation() redirects into the edit form on success, so

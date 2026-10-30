@@ -12,9 +12,9 @@
                 <button type="button" wire:key="preset-{{ $key }}" wire:click="setPreset('{{ $key }}')"
                     aria-pressed="{{ $this->preset === $key ? 'true' : 'false' }}"
                     @class([
-                        'inline-flex min-h-11 items-center rounded-control border px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-                        'border-primary bg-primary text-white' => $this->preset === $key,
-                        'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50' => $this->preset !== $key,
+                        'inline-flex min-h-11 items-center rounded-control border-[1.5px] px-4 text-small font-semibold',
+                        'border-ink bg-surface text-ink' => $this->preset === $key,
+                        'border-line bg-card text-ink hover:bg-hover' => $this->preset !== $key,
                     ])>{{ $label }}</button>
             @endforeach
         </div>
