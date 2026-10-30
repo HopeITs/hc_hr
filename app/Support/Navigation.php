@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Services\Assistant\Assistant;
 use App\Services\HolidayProjects;
 use App\Services\WorkInbox;
 use Throwable;
@@ -45,6 +46,8 @@ final class Navigation
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             $can('archives.view') ? self::item('nav.my-space.files', __('general.my-folders'), 'my-folders.index', ['my-folders.*'], 'archived', 'nav.archives') : null,
             $can('archives.view') ? self::item('nav.my-space.shared-files', __('general.shared-folders'), 'shared-folders.index', ['shared-folders.*'], 'folder') : null,
+            // Every signed-in user may ask; shown only while it is switched on and has a key.
+            app(Assistant::class)->isAvailable() ? self::item('nav.my-space.assistant', __('assistant.nav'), 'assistant', ['assistant'], 'assistant') : null,
         ]));
 
         $basics = self::group('nav.basics', __('general.project-basics'), 'home', array_values(array_filter([

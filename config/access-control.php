@@ -618,6 +618,12 @@ return [
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
         'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
+        // AI assistant: every signed-in user may ask, so there is no permission to
+        // check. send() answers only about the caller: EmployeeTools reads the
+        // signed-in user's own record and takes no parameters, and each call is
+        // counted against the per-user hourly limit. clear() empties the caller's
+        // own conversation, which lives only in this component's state.
+        'assistant.chat' => ['send', 'clear'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.

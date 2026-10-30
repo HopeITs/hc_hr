@@ -39,5 +39,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- A developer's Gemini key must not put the assistant into every menu the suite checks. -->
+        <env name="GEMINI_API_KEY" value="" force="true"/>
     </php>
 </phpunit>

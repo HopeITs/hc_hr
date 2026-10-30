@@ -77,6 +77,10 @@ Route::group(
             // C3: the work inbox. No permission of its own: every row comes from a
             // source's scoped query and every action re-checks its domain policy.
             Route::get('inbox', App\Livewire\Inbox\Index::class)->name('inbox');
+            // The AI assistant. No permission of its own: every signed-in user may
+            // ask, and the Assistant service only reads the asker's own record. The
+            // page 404s while the assistant is switched off or has no key.
+            Route::get('assistant', App\Livewire\Assistant\Chat::class)->name('assistant');
 
             // Basic project routes
             require __DIR__.'/basic-project.php';
