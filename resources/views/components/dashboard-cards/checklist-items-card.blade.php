@@ -18,20 +18,20 @@
                 hover:scrollbar-thumb-[var(--color-secondary-medium)]">
 
         @forelse ($deliveredItems as $item)
-            <div class="pb-2 border-b border-b-secondary-light">
+            <div class="pb-2 border-b border-b-line-soft">
 
                 <div class="flex justify-between items-center">
-                    <p class="text-[13px] font-bold text-[#58595B]">
+                    <p class="text-small font-bold text-ink">
                         {{ $item->item?->name ?? __('dashboard.item-fallback', ['id' => $item->item_id]) }}
                     </p>
 
-                    <span class="text-[11px] text-[#58595B]">
+                    <span class="text-caption text-ink">
                         <bdi>{{ optional($item->delivered_at)->format('d/m/Y') }}</bdi>
                     </span>
                 </div>
             </div>
         @empty
-            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
                 <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse

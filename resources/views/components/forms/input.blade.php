@@ -81,7 +81,7 @@
                 $base = [
                     'id' => $inputId,
                     'type' => 'checkbox',
-                    'class' => 'hc-check rounded-inset focus:ring-0',
+                    'class' => 'hc-check rounded-inset',
                 ];
                 if ($wireAttr) { $base[$wireAttr] = $model; }
                 $base = array_merge($base, $aria);

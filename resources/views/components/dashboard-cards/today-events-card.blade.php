@@ -24,18 +24,18 @@
                                     {{-- Avatar --}}
                                     @php $isDefaultIcon = str_ends_with($event['photo'], '.svg'); @endphp
                                     @if($isDefaultIcon)
-                                        <div class="relative z-20 flex items-center justify-center bg-white border border-primary w-18 h-18 rounded-full">
+                                        <div class="relative z-20 flex items-center justify-center bg-card border border-primary w-18 h-18 rounded-full">
                                             <img src="{{ $event['photo'] }}" alt="{{ $event['name'] }}"
                                                  class="w-10 h-10 opacity-70">
                                         </div>
                                     @else
                                         <img src="{{ $event['photo'] }}" alt="{{ $event['name'] }}"
-                                             class="relative z-20 bg-white border border-primary w-18 h-18 rounded-full object-cover">
+                                             class="relative z-20 bg-card border border-primary w-18 h-18 rounded-full object-cover">
                                     @endif
 
                                     {{-- Info --}}
                                     <div class="mt-2 z-20 text-center w-full">
-                                        <p class="font-semibold text-body mt-2 text-[#58595B]">{{ $event['name'] }}</p>
+                                        <p class="font-semibold text-body mt-2 text-ink">{{ $event['name'] }}</p>
 
                                         @php
                                             $details = trim(
@@ -44,10 +44,10 @@
                                         @endphp
 
                                         @if ($details)
-                                            <p class="text-small tracking-wider font-light text-[#58595B]">{{ $details }}</p>
+                                            <p class="text-small tracking-wider font-light text-ink">{{ $details }}</p>
                                         @endif
 
-                                        <p class="text-small text-secondary-light mt-1">{{ $event['message'] }}</p>
+                                        <p class="text-small text-ink-3 mt-1">{{ $event['message'] }}</p>
                                     </div>
                                 </div>
 
@@ -67,7 +67,7 @@
 
         @else
 
-            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
                 <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endif

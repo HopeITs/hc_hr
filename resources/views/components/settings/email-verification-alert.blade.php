@@ -3,7 +3,7 @@
         {{ __('general.profile.email-unverified') }}
         <flux:link
             wire:click.prevent="resendVerificationNotification"
-            class="ms-1 underline font-medium text-primary hover:text-secondary-dark cursor-pointer">
+            class="ms-1 underline font-medium text-ink hover:text-ink-2 cursor-pointer">
             {{ __('general.profile.resend-email') }}
         </flux:link>
 

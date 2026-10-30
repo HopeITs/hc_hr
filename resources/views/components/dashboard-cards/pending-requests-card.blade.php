@@ -13,19 +13,19 @@
                 hover:scrollbar-thumb-[var(--color-secondary-medium)]">
 
         @forelse ($pendingRequests as $req)
-            <div class="flex justify-between items-center pb-2 border-b border-b-secondary-light"
+            <div class="flex justify-between items-center pb-2 border-b border-b-line-soft"
                  wire:key="pending-request-{{ $req['id'] }}">
 
-                <p class="text-[13px] font-bold text-[#58595B]">
+                <p class="text-small font-bold text-ink">
                     {{ ucfirst($req['item']) }}
                 </p>
 
-                <span class="text-[11px] text-[#888]">
+                <span class="text-caption text-ink-2">
                     <bdi>{{ $req['request_date'] }}</bdi>
                 </span>
             </div>
         @empty
-            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
                 <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse

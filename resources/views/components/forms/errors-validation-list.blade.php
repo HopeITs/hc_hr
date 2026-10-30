@@ -33,13 +33,13 @@
         };
     @endphp
     <div x-data="errorSummary(@js($reveal))" x-show="hasUncovered" role="alert" data-testid="error-summary"
-         class="mb-4 rounded-control border border-s-4 border-neutral-200 border-s-primary bg-white p-3 text-body text-primary">
+         class="mb-4 rounded-control border border-s-4 border-line-soft border-s-primary bg-card p-3 text-body text-ink">
         <ul class="list-inside list-disc space-y-1">
             @foreach($errors->messages() as $field => $messages)
                 @foreach($messages as $message)
                     <li data-error-key="{{ $field }}" x-show="! isCovered(@js($field))">
                         <button type="button"
-                                class="text-start underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                class="text-start underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2"
                                 x-on:click="go(@js($field), @js($sectionFor($field)))">{{ $message }}</button>
                     </li>
                 @endforeach

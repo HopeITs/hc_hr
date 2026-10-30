@@ -14,10 +14,10 @@
 <button
     type="button"
     {{ $attributes->class(
-        'inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white
-         px-2.5 py-1 text-caption font-semibold text-secondary-dark shadow-e1 transition
-         hover:border-primary hover:text-primary active:scale-[0.98]
-         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+        'inline-flex items-center gap-1.5 rounded-control border border-line bg-card
+         px-2.5 py-1 text-caption font-semibold text-ink shadow-e1 transition
+         hover:border-ink-2 hover:text-ink active:scale-[0.98]
+         focus-visible:outline-2 focus-visible:outline-offset-2'
     ) }}
 >
     @if ($plus)

@@ -7,7 +7,7 @@
 --}}
 @props(['variant' => 'block', 'lines' => 3])
 
-@php $bar = 'rounded bg-neutral-200 motion-safe:animate-pulse'; @endphp
+@php $bar = 'rounded bg-surface motion-safe:animate-pulse'; @endphp
 
 @if ($variant === 'line')
     <div {{ $attributes->class(['space-y-3']) }} aria-hidden="true">
@@ -16,7 +16,7 @@
         @endfor
     </div>
 @elseif ($variant === 'card')
-    <div {{ $attributes->class(['rounded-surface border border-neutral-200 bg-white p-5 shadow-e1']) }} aria-hidden="true">
+    <div {{ $attributes->class(['rounded-surface border border-line-soft bg-card p-5 shadow-e1']) }} aria-hidden="true">
         <div class="flex items-center gap-3">
             <div class="{{ $bar }} size-10 shrink-0 rounded-full"></div>
             <div class="{{ $bar }} h-4 w-1/2"></div>

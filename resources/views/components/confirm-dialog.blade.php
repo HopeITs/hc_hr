@@ -94,13 +94,11 @@
                 {{ __('general.cancel') }}
             </x-button>
 
-            <x-primary-button type="button"
-                              :showSpinner="false"
-                              x-on:click="$store.confirm.settle(true)"
-                              x-text="$store.confirm.confirmLabel"
-                              x-bind:class="$store.confirm.danger ? '' : '!bg-ink !text-on-ink'"
-                              data-testid="confirm-dialog-accept"
-                              class="!w-auto"></x-primary-button>
+            <x-button :loading="false"
+                      x-on:click="$store.confirm.settle(true)"
+                      x-text="$store.confirm.confirmLabel"
+                      x-bind:class="$store.confirm.danger ? '' : '!bg-ink !text-on-ink'"
+                      data-testid="confirm-dialog-accept"></x-button>
         </div>
     </div>
 </div>

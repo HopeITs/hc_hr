@@ -12,9 +12,9 @@
         <x-slot:actions>
             <div class="relative w-36 shrink-0">
                 <input x-model="search" type="text" placeholder="{{ __('general.search') }}"
-                    class="h-6 w-full rounded-full border border-gray-300 bg-white pe-3 ps-8 text-xs leading-none text-gray-700
-                           placeholder-secondary-light outline-none transition focus:border-gray-400 focus:ring-0">
-                <div class="pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    class="h-6 w-full rounded-full border border-line bg-card pe-3 ps-8 text-xs leading-none text-ink
+                           placeholder-ink-3 transition hover:border-ink-2">
+                <div class="pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-ink-3">
                     <x-icons.search class="size-2" />
                 </div>
             </div>
@@ -69,7 +69,7 @@
                     {{ \Illuminate\Support\Js::from(mb_strtolower($memberTitle)) }}.includes(search.toLowerCase())
                 "
                 x-transition
-                class="flex items-center justify-between py-2 border-b border-[var(--color-neutral-200)] last:border-0">
+                class="flex items-center justify-between py-2 border-b border-line-soft last:border-0">
 
                 <!-- Avatar + Name + Title -->
                 <div class="flex items-center flex-1 min-w-0 gap-3">
@@ -77,7 +77,7 @@
                     <!-- Avatar -->
                     <div
                         class="flex items-center justify-center size-[34px] flex-shrink-0 rounded-full overflow-hidden
-                                bg-[var(--color-primary)] text-white font-semibold uppercase shadow-e1">
+                                bg-surface text-ink font-semibold uppercase shadow-e1">
                         @if ($member->canViewAvatar ?? false)
                             {{-- Fixed size reserves the space (no layout shift); lazy + async keep ~190 photos off the critical path. --}}
                             <img src="{{ $member->avatar_url }}" alt="{{ $memberName }}"
@@ -92,11 +92,11 @@
 
                     <!-- Name + Position -->
                     <div class="min-w-0">
-                        <p class="text-[12.1px] font-bold text-secondary-medium truncate">
+                        <p class="text-caption font-bold text-ink-2 truncate">
                             {{ $member->displayName ?? $member->name }}
                         </p>
 
-                        <p class="text-[9.6px] font-light truncate text-secondary-light">
+                        <p class="text-caption font-light truncate text-ink-3">
                             {{ Str::limit($memberTitle, 40) }}
                         </p>
                     </div>
@@ -106,26 +106,26 @@
                 <div class="flex items-center flex-shrink-0 gap-2 ms-4">
 
                     <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" wire:navigate title="{{ __('general.view-profile') }}" aria-label="{{ __('general.view-profile') }}">
-                        <x-icons.user class="transition text-secondary-light hover:text-primary" />
+                        <x-icons.user class="transition text-ink-3 hover:text-ink" />
                     </a>
 
                     @if ($phone)
                         <a href="tel:{{ $phone }}" title="{{ __('dashboard.call') }}" aria-label="{{ __('dashboard.call') }}">
-                            <x-icons.phone class="text-secondary-light ms-1 hover:text-primary transition" />
+                            <x-icons.phone class="text-ink-3 ms-1 hover:text-ink transition" />
                         </a>
                     @endif
 
                     @if ($telegramHref)
                         <a href="{{ $telegramHref }}" target="_blank" rel="noopener"
-                            class="transition text-secondary-light hover:text-primary" title="{{ __('dashboard.chat-on-telegram') }}" aria-label="{{ __('dashboard.chat-on-telegram') }}">
-                            <x-icons.telegram class="transition text-secondary-light hover:text-primary" />
+                            class="transition text-ink-3 hover:text-ink" title="{{ __('dashboard.chat-on-telegram') }}" aria-label="{{ __('dashboard.chat-on-telegram') }}">
+                            <x-icons.telegram class="transition text-ink-3 hover:text-ink" />
                         </a>
                     @endif
 
                     @if ($email)
                         <a href="mailto:{{ $email }}"
-                            class="transition text-secondary-light hover:text-primary" title="{{ __('dashboard.send-email') }}" aria-label="{{ __('dashboard.send-email') }}">
-                            <x-icons.envelope class="transition text-secondary-light ms-1 hover:text-primary" />
+                            class="transition text-ink-3 hover:text-ink" title="{{ __('dashboard.send-email') }}" aria-label="{{ __('dashboard.send-email') }}">
+                            <x-icons.envelope class="transition text-ink-3 ms-1 hover:text-ink" />
                         </a>
                     @endif
 
@@ -133,7 +133,7 @@
             </div>
 
         @empty
-            <div data-tile-empty class="flex flex-col items-center justify-center h-full text-body font-light text-secondary-light">
+            <div data-tile-empty class="flex flex-col items-center justify-center h-full text-body font-light text-ink-3">
                 <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse
@@ -143,7 +143,7 @@
     <!-- Footer -->
     <div class="mt-auto border-t border-line-soft bg-card px-6 py-3 text-center">
         <a href="{{ route('org.chart') }}" wire:navigate
-            class="text-small font-semibold text-[var(--color-primary)] hover:underline">
+            class="text-small font-semibold text-ink underline-offset-4 hover:underline">
             @lang('general.view-all') <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span>
         </a>
     </div>

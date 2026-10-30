@@ -37,19 +37,19 @@
                 $colorClass = $badgeColors[strtolower($typeName)] ?? 'text-primary';
             @endphp
 
-            <div class="flex justify-between items-center pb-2 border-b border-b-secondary-light"
+            <div class="flex justify-between items-center pb-2 border-b border-b-line-soft"
                  wire:key="badge-{{ $badge->id }}">
 
-                <p class="text-[13px] font-bold uppercase {{ $colorClass }}">
+                <p class="text-small font-bold uppercase {{ $colorClass }}">
                     {{ $badge->reason ?: \App\Enums\BadgeSubtype::getLocalizedName($badge->subtype) }}
                 </p>
 
-                <span class="text-[11px] text-[#888]">
+                <span class="text-caption text-ink-2">
                     <bdi>{{ optional($badge->date)->format('d/m/Y') }}</bdi>
                 </span>
             </div>
         @empty
-            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
                 <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse

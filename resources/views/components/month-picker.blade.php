@@ -75,7 +75,7 @@
                 </button>
                 <label class="sr-only" for="{{ $panelId }}-year">{{ __('month_picker.year') }}</label>
                 <select id="{{ $panelId }}-year" x-model.number="year"
-                        class="num min-h-9 flex-1 rounded-control border border-line bg-card px-2 text-center text-base font-bold text-ink">
+                        class="num min-h-9 flex-1 rounded-control border-[1.5px] border-line bg-card px-2 text-center text-base font-bold text-ink hover:border-ink-2">
                     @foreach (range($maxYear, $minYear) as $y)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endforeach
@@ -91,7 +91,7 @@
                     <button type="button" data-month="{{ $month->month }}" x-on:click="pick({{ $month->month }})"
                             :aria-current="year === shownYear && {{ $month->month }} === shownMonth ? 'date' : null"
                             :class="year === shownYear && {{ $month->month }} === shownMonth
-                                ? 'bg-primary text-white hover:bg-primary-hover'
+                                ? 'bg-primary text-on-brand hover:bg-primary-hover'
                                 : (year === todayYear && {{ $month->month }} === todayMonth ? 'border-ink hover:bg-hover' : 'hover:bg-hover')"
                             class="min-h-10 rounded-control border border-transparent px-1 text-small font-semibold transition">
                         {{ $month->translatedFormat('F') }}

@@ -30,6 +30,6 @@
     @endforeach
     <span><b>@lang('general.reason'):</b> {{ $reason }}</span>
     @if($projected !== null)
-        <span class="text-sm text-neutral-600">@lang('leave_quote.preview.estimate')</span>
+        <span class="text-sm text-ink-2">@lang('leave_quote.preview.estimate')</span>
     @endif
 </div>

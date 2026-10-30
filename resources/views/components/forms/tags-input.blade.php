@@ -44,12 +44,12 @@
     <!-- suggestions -->
     <template x-if="showSuggestions && filtered.length">
         <ul
-            class="absolute top-full left-0 z-10 w-full bg-white border border-neutral-300 mt-1 rounded-control shadow-e2 max-h-40 overflow-y-auto"
+            class="absolute top-full left-0 z-10 w-full bg-card border border-line mt-1 rounded-control shadow-e2 max-h-40 overflow-y-auto"
         >
             <template x-for="(s, i) in filtered" :key="i">
                 <li
                     @mousedown.prevent="selectSuggestion(s)"
-                    class="px-3 py-1 cursor-pointer hover:bg-neutral-100"
+                    class="px-3 py-1 cursor-pointer hover:bg-hover"
                     x-text="s.label"
                 ></li>
             </template>
@@ -59,10 +59,10 @@
     <!-- current tags -->
     <template x-for="(tag, i) in tags" :key="i">
         <span
-            class="inline-flex mt-2 items-center shadow-e2 gap-1 text-secondary-dark rounded-full bg-neutral-100 px-2 py-1 text-body"
+            class="inline-flex mt-2 items-center gap-1 text-ink rounded-full bg-surface px-2 py-1 text-small"
         >
             <span x-text="displayLabel(tag)"></span>
-            <button type="button" @click="remove(i)" class=" hover:text-primary">×</button>
+            <button type="button" @click="remove(i)" class="hover:text-ink">×</button>
         </span>
     </template>
 </div>

@@ -27,7 +27,7 @@
     'id' => $id,
     'name' => $name,
     'type' => 'radio',
-    'class' => 'hc-check focus:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2',
+    'class' => 'hc-check',
 ]))}}
     >
     {{-- min-h-11: the label is the touch target, 44px tall (product target). --}}
