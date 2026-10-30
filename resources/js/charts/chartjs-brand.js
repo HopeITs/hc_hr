@@ -27,6 +27,11 @@ function apply(Chart, colors) {
 export default function applyChartJsBrandDefaults(Chart) {
     apply(Chart, brandColors());
 
+    // The dashboard's inline Chart.js cards (Blade @script blocks) colour their
+    // marks from here too: scriptable options calling window.brandColors() are
+    // re-resolved by the update below, so they follow light / dark.
+    window.brandColors = brandColors;
+
     // Light <-> dark: new defaults, and every chart on the page redrawn with them.
     onThemeChange((colors) => {
         apply(Chart, colors);

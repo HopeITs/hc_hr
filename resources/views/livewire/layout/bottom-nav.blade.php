@@ -7,8 +7,9 @@
     each side of the raised +. + opens the New sheet (Navigation::newActions:
     only what the role may start); More opens the More sheet (the role's whole
     menu). Both sheets are dialogs: aria-modal, focus trapped and given back
-    (x-trap), Escape, backdrop, swipe down on the handle. Red is the + alone;
-    the current page is marked with aria-current and an ink bar. Flex follows
+    (x-trap), Escape, backdrop, swipe down on the handle. Red only for its jobs:
+    the + (the primary action), the current page (aria-current, ink text and a
+    red bar, as in the sidebar) and the inbox count (what waits on the viewer). Flex follows
     the document direction, so the bar and the sheets mirror in Arabic.
     Hidden from md up, behind dialogs (z-30 < z-50), and, by app.css, while a
     field has focus or a page shows its own sticky save bar.
@@ -61,12 +62,12 @@
                            'text-ink-2 hover:text-ink' => ! $active,
                        ])>
                         @if ($active)
-                            <span class="absolute inset-x-4 top-0 h-0.5 rounded-full bg-ink" aria-hidden="true"></span>
+                            <span class="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" aria-hidden="true"></span>
                         @endif
                         <span class="relative">
                             <x-dynamic-component :component="'icons.'.$item['icon']" class="size-6" aria-hidden="true" />
                             @if (($item['count'] ?? 0) > 0)
-                                <span class="num absolute -end-2.5 -top-1.5 min-w-4 rounded-full bg-primary px-1 text-center text-caption leading-4 text-white" data-testid="bottom-nav-count" aria-hidden="true">
+                                <span class="num absolute -end-2.5 -top-1.5 min-w-4 rounded-full bg-primary px-1 text-center text-caption leading-4 text-on-brand" data-testid="bottom-nav-count" aria-hidden="true">
                                     {{ $item['count'] > 99 ? '99+' : $item['count'] }}
                                 </span>
                             @endif
@@ -86,7 +87,7 @@
                             x-on:click="open('new')"
                             aria-haspopup="dialog" aria-controls="bottom-sheet-new" x-bind:aria-expanded="(sheet === 'new').toString()"
                             aria-label="{{ __('mobile.bar.new-label') }}"
-                            class="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-white shadow-e3 ring-4 ring-base transition-transform hover:bg-primary-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2">
+                            class="-mt-5 grid size-14 place-items-center rounded-full bg-primary text-on-brand shadow-e3 ring-4 ring-base transition-transform hover:bg-primary-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2">
                         <x-icons.plus class="size-7" stroke-width="2.25" aria-hidden="true" />
                     </button>
                 </li>
@@ -115,7 +116,7 @@
                  x-trap.inert.noscroll="sheet === 'new'"
                  x-on:keydown.escape.prevent.stop="close()"
                  class="fixed inset-0 z-50 flex items-end md:hidden" data-testid="bottom-sheet-new-root">
-                <div class="absolute inset-0 bg-ink/50" x-on:click="close()" aria-hidden="true"
+                <div class="absolute inset-0 bg-backdrop" x-on:click="close()" aria-hidden="true"
                      x-show="sheet === 'new'" x-transition.opacity></div>
                 <div id="bottom-sheet-new" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-new-title"
                      data-testid="bottom-sheet-new"
@@ -159,7 +160,7 @@
              x-trap.inert.noscroll="sheet === 'more'"
              x-on:keydown.escape.prevent.stop="close()"
              class="fixed inset-0 z-50 flex items-end md:hidden" data-testid="bottom-sheet-more-root">
-            <div class="absolute inset-0 bg-ink/50" x-on:click="close()" aria-hidden="true"
+            <div class="absolute inset-0 bg-backdrop" x-on:click="close()" aria-hidden="true"
                  x-show="sheet === 'more'" x-transition.opacity></div>
             <div id="bottom-sheet-more" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-more-title"
                  data-testid="bottom-sheet-more"
@@ -194,13 +195,13 @@
                                     <li @class(['ps-4' => isset($row['group'])])>
                                         <a href="{{ $row['href'] }}" wire:navigate x-on:click="close()" data-testid="bottom-more-{{ $row['id'] }}"
                                            @if ($row['current']) aria-current="page" @endif
-                                           @class([$tile, 'bg-soft text-ink' => $row['current'], 'text-ink hover:bg-hover' => ! $row['current']])>
+                                           @class([$tile, 'relative bg-soft text-ink before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-primary' => $row['current'], 'text-ink hover:bg-hover' => ! $row['current']])>
                                             <x-dynamic-component :component="'icons.'.$row['icon']" class="size-5 shrink-0 text-ink-2" aria-hidden="true" />
                                             <span class="min-w-0 flex-1 truncate">
                                                 @isset($row['group'])<span class="sr-only">{{ $row['group'] }}: </span>@endisset{{ $row['label'] }}
                                             </span>
                                             @if ($row['count'] > 0)
-                                                <span class="num min-w-6 rounded-full bg-primary px-1.5 text-center text-caption leading-5 text-white" aria-hidden="true">{{ $row['count'] > 99 ? '99+' : $row['count'] }}</span>
+                                                <span class="num min-w-6 rounded-full bg-primary px-1.5 text-center text-caption leading-5 text-on-brand" aria-hidden="true">{{ $row['count'] > 99 ? '99+' : $row['count'] }}</span>
                                                 <span class="sr-only">{{ __('general.nav.work-inbox-count', ['count' => $row['count']]) }}</span>
                                             @endif
                                         </a>

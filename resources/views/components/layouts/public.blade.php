@@ -4,7 +4,7 @@
     @include('partials.head', ['title' => $title ?? config('app.name', 'Hope HR')])
     @stack('styles')
 </head>
-<body class="min-h-screen bg-white antialiased">
+<body class="min-h-screen bg-base antialiased">
     {{ $slot }}
 </body>
 </html>

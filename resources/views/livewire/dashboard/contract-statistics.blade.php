@@ -5,7 +5,7 @@
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8  py-12">
 
     <div class="mb-12 ">
-        <h1 class="text-h1 font-black text-neutral-900 tracking-tight mb-6">
+        <h1 class="text-h1 font-black text-ink tracking-tight mb-6">
             @lang('general.contract-statistics')
         </h1>
 
@@ -13,7 +13,7 @@
         <div data-tour="contract-stats.filters" class="filter-select-box grid gap-8 sm:grid-cols-2 lg:grid-cols-3 items-end">
 
         <div class="flex flex-col gap-2">
-            <label class="text-small font-semibold text-secondary-dark uppercase tracking-wide">
+            <label class="text-small font-semibold text-ink uppercase tracking-wide">
                 {{ trans_choice('general.city', 1) }}
             </label>
 
@@ -26,7 +26,7 @@
         </div>
 
             <div class="flex flex-col gap-2">
-                <label class="text-small font-semibold text-secondary-dark uppercase tracking-wide">
+                <label class="text-small font-semibold text-ink uppercase tracking-wide">
                     {{ trans_choice('general.program', 1) }}
                 </label>
 
@@ -39,29 +39,10 @@
             </div>
 
             <div class="flex sm:col-span-2 lg:col-span-1 justify-start lg:justify-start">
-                {{-- <button wire:click="resetFilters"
-                        class="px-4 py-3 text-body text-secondary-dark font-semibold border border-secondary-soft
-           rounded-surface bg-white hover:shadow-e1 cursor-pointer transition w-full sm:w-auto
-           flex items-center justify-center"> --}}
-
-              <button wire:click="resetFilters" data-tour="contract-stats.reset"
-                        class="px-4 h-[38px] text-body text-secondary-dark font-semibold border border-secondary-soft
-           rounded-surface bg-white hover:shadow-e1 cursor-pointer transition w-full sm:w-auto
-           flex items-center justify-center gap-2">
-
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         viewBox="0 0 24 24"
-                         class="w-5 h-5"
-                         fill="currentColor">
-                        <path fill-rule="evenodd" clip-rule="evenodd"
-                              d="M18.364 3.05762C18.7782 3.05762 19.114 3.3934 19.114 3.80762V8.05026C19.114 8.46447 18.7782 8.80026 18.364 8.80026H14.1213C13.7071 8.80026 13.3713 8.46447 13.3713 8.05026C13.3713 7.63604 13.7071 7.30026 14.1213 7.30026H16.4817C13.6363 5.05718 9.4987 5.24825 6.87348 7.87348C4.04217 10.7048 4.04217 15.2952 6.87348 18.1265C9.70478 20.9578 14.2952 20.9578 17.1265 18.1265C19.0234 16.2297 19.6504 13.5428 19.0039 11.1219C18.897 10.7217 19.1348 10.3106 19.535 10.2038C19.9352 10.0969 20.3462 10.3347 20.4531 10.7349C21.2321 13.6518 20.478 16.8964 18.1872 19.1872C14.7701 22.6043 9.2299 22.6043 5.81282 19.1872C2.39573 15.7701 2.39573 10.2299 5.81282 6.81282C9.04483 3.5808 14.1762 3.40576 17.614 6.28768V3.80762C17.614 3.3934 17.9497 3.05762 18.364 3.05762Z"/>
-                    </svg>
-
-                        <span>
-        @lang('general.reset-filters')
-    </span>
-
-                </button>
+                <x-button variant="outline" size="sm" icon="reset" wire:click="resetFilters" data-tour="contract-stats.reset"
+                          class="w-full sm:w-auto">
+                    @lang('general.reset-filters')
+                </x-button>
 
             </div>
         </div>
@@ -69,8 +50,8 @@
 
 
     <div wire:loading.flex wire:target="applyFilters, resetFilters" class="justify-center py-12">
-        <div class="text-body text-secondary-dark flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+        <div class="text-body text-ink-2 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-ink-3 animate-pulse"></span>
             @lang('dashboard.updating-statistics')
         </div>
     </div>
@@ -81,25 +62,25 @@
 
         @forelse ($cards as $card)
 
-            <article data-tour="contract-stats.card" class="border border-secondary-soft rounded-surface bg-white
-                            shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] hover:shadow-e2 transition-all duration-200
+            <article data-tour="contract-stats.card" class="border border-line-soft rounded-surface bg-card
+                            shadow-sm hover:shadow-e2 transition-all duration-200
                             hover:-translate-y-1 flex flex-col">
 
 
                 <div class="p-6 pb-1.5 flex justify-between items-start">
                     <div class="flex flex-col">
-                        <span class="text-h4 font-black text-neutral-900">
+                        <span class="text-h4 font-black text-ink">
                             {{ $card['name'] }}
                         </span>
 
-                        <span class="text-body text-secondary-dark mt-2">
+                        <span class="text-body text-ink-2 mt-2">
                             {{ trans_choice('general.employee', 2) }}:
-                            <span class="font-bold text-[#414141]">{{ $card['employees'] }}</span>
+                            <span class="font-bold text-ink num">{{ $card['employees'] }}</span>
                         </span>
                     </div>
 
                     <div class="text-end">
-                        <span class="inline-block px-2 py-1 text-caption font-semibold rounded-control scale-[0.8] ltr:origin-right rtl:origin-left
+                        <span class="inline-block px-2 py-1 text-caption font-semibold rounded-control
                                      {{ $card['color'] }}">
                             {{ $cardType === 'program'
                                 ? trans_choice('general.program', 2)
@@ -107,9 +88,9 @@
                         </span>
 
                         @if ($card['centers'] !== null)
-                            <p class="text-body text-center text-secondary-dark mt-[10.2px]">
+                            <p class="text-body text-center text-ink-2 mt-2.5">
                                 {{ trans_choice('general.center', 2) }}:
-                                <span class="font-semibold text-neutral-800">{{ $card['centers'] }}</span>
+                                <span class="font-semibold text-ink">{{ $card['centers'] }}</span>
                             </p>
                         @endif
                     </div>
@@ -133,11 +114,11 @@
                                 : $data['full'] + $data['part'];
                         @endphp
 
-                        <div class="rounded-surface bg-neutral-50 border border-neutral-200
-                    p-3 shadow-inner hover:bg-neutral-100 transition">
+                        <div class="rounded-surface bg-soft border border-line-soft
+                    p-3 hover:bg-hover transition">
 
-                            <p class="text-small font-semibold text-neutral-800
-                      border-b border-neutral-200 pb-1 mb-1">
+                            <p class="text-small font-semibold text-ink
+                      border-b border-line-soft pb-1 mb-1">
                                 {{ $label }}
                             </p>
 
@@ -145,29 +126,29 @@
 
                                 @if ($isService)
                                     <div class="flex justify-between">
-                                        <span class="text-neutral-600">@lang('general.online')</span>
-                                        <span class="font-semibold text-neutral-800">{{ $data['online'] }}</span>
+                                        <span class="text-ink-2">@lang('general.online')</span>
+                                        <span class="font-semibold text-ink">{{ $data['online'] }}</span>
                                     </div>
 
                                     <div class="flex justify-between">
-                                        <span class="text-neutral-600">@lang('general.onsite')</span>
-                                        <span class="font-semibold text-neutral-800">{{ $data['onsite'] }}</span>
+                                        <span class="text-ink-2">@lang('general.onsite')</span>
+                                        <span class="font-semibold text-ink">{{ $data['onsite'] }}</span>
                                     </div>
                                 @else
                                     <div class="flex justify-between">
-                                        <span class="text-neutral-600">@lang('general.full-time')</span>
-                                        <span class="font-semibold text-neutral-800">{{ $data['full'] }}</span>
+                                        <span class="text-ink-2">@lang('general.full-time')</span>
+                                        <span class="font-semibold text-ink">{{ $data['full'] }}</span>
                                     </div>
 
                                     <div class="flex justify-between">
-                                        <span class="text-neutral-600">@lang('general.part-time')</span>
-                                        <span class="font-semibold text-neutral-800">{{ $data['part'] }}</span>
+                                        <span class="text-ink-2">@lang('general.part-time')</span>
+                                        <span class="font-semibold text-ink">{{ $data['part'] }}</span>
                                     </div>
                                 @endif
 
-                                <div class="border-t border-neutral-200 pt-1 mt-1 flex justify-between">
-                                    <span class="text-neutral-600">@lang('general.total')</span>
-                                    <span class="font-bold text-[#414141]">{{ $total }}</span>
+                                <div class="border-t border-line-soft pt-1 mt-1 flex justify-between">
+                                    <span class="text-ink-2">@lang('general.total')</span>
+                                    <span class="font-bold text-ink num">{{ $total }}</span>
                                 </div>
 
                             </div>
@@ -186,7 +167,7 @@
                                     : '#') }}"
                        @if (in_array($cardType, ['program', 'center'], true)) wire:navigate @endif
                        data-tour="contract-stats.show-more"
-                       class="text-small flex justify-end  text-primary hover:underline">
+                       class="text-small font-bold flex justify-end text-ink underline-offset-4 hover:underline">
                         @lang('general.show-more') <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span>
                     </a>
                 </div>
@@ -196,9 +177,7 @@
 
         @empty
 
-            <div class="col-span-full text-center py-12 text-secondary-dark">
-                @lang('general.no-data-filters')
-            </div>
+            <x-center-empty-state variant="filtered" class="col-span-full" :description="__('general.no-data-filters')" />
 
         @endforelse
 

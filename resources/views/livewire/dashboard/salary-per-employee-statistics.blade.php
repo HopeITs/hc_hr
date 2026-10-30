@@ -1,7 +1,7 @@
 <div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm px-6 py-3">
 
     <div class="flex items-center gap-4 mt-3">
-        <h3 class="text-h4 font-semibold text-secondary-medium">
+        <h3 class="text-h4 font-extrabold text-ink">
             @lang('general.employees-per-salary-type')
         </h3>
 
@@ -22,12 +22,13 @@
                 data-percentage="{{ $highlightPercentage }}"
             ></div>
 
-            <div class="flex flex-row justify-center items-center  ms-24 gap-8 mt-12">
+            {{-- Swatches in the series order of charts/brand-colors.js brandPalette():
+                 neutrals only, so the legend and both charts agree in light and dark. --}}
+            <div class="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 mt-6">
                 @foreach($series as $item)
                     <div class="flex items-center gap-1">
-                        <span class="w-[7.7px] h-[7.7px] rounded-full"
-                              style="background: {{ $item['color'] }}"></span>
-                        <span class="text-neutral-700 font-normal whitespace-nowrap text-[9.24px]">
+                        <span class="size-2 rounded-full {{ ['bg-ink', 'bg-ink-3', 'bg-line', 'bg-ink-2'][$loop->index % 4] }}" aria-hidden="true"></span>
+                        <span class="text-ink-2 font-normal whitespace-nowrap text-caption">
                             {{ $item['label'] }}
                         </span>
                     </div>

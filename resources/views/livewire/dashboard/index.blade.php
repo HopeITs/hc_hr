@@ -65,22 +65,16 @@
             </p>
 
             <div class="flex flex-wrap items-center gap-2">
-                <button type="button" x-ref="customise" class="hc-btn hc-btn--outline hc-btn--sm"
-                        x-show="! editing" x-on:click="startEdit()" data-tour="dashboard.customise">
-                    <x-ic name="layout" />{{ __('dashboard.home.customise') }}
-                </button>
+                {{-- :loading="false": these drive the browser-side grid; a background layout
+                     save must not disable them. --}}
+                <x-button variant="outline" size="sm" icon="layout" :loading="false" x-ref="customise"
+                          x-show="! editing" x-on:click="startEdit()" data-tour="dashboard.customise">{{ __('dashboard.home.customise') }}</x-button>
 
                 <span class="flex flex-wrap items-center gap-2" x-show="editing" x-cloak>
-                    <button type="button" class="hc-btn hc-btn--quiet hc-btn--sm" x-on:click="reset()">
-                        <x-ic name="reset" />{{ __('dashboard.home.reset') }}
-                    </button>
-                    <button type="button" x-ref="add" class="hc-btn hc-btn--outline hc-btn--sm"
-                            x-on:click="openGallery()" :disabled="addable().length === 0">
-                        <x-ic name="plus" />{{ __('dashboard.home.add') }}
-                    </button>
-                    <button type="button" x-ref="done" class="hc-btn hc-btn--primary hc-btn--sm" x-on:click="done()">
-                        <x-ic name="check" />{{ __('dashboard.home.done') }}
-                    </button>
+                    <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()">{{ __('dashboard.home.reset') }}</x-button>
+                    <x-button variant="outline" size="sm" icon="plus" :loading="false" x-ref="add"
+                              x-on:click="openGallery()" x-bind:disabled="addable().length === 0">{{ __('dashboard.home.add') }}</x-button>
+                    <x-button size="sm" icon="check" :loading="false" x-ref="done" x-on:click="done()">{{ __('dashboard.home.done') }}</x-button>
                 </span>
             </div>
         </div>
@@ -119,7 +113,7 @@
         <template x-ref="tileError">
             <div class="flex h-full flex-col items-center justify-center gap-3 rounded-surface border-[1.5px] border-dashed border-line bg-card p-4 text-center">
                 <p class="text-body font-bold text-ink">{{ __('general.state-error-title') }}</p>
-                <button type="button" class="hc-btn hc-btn--primary hc-btn--sm" x-on:click="window.location.reload()">{{ __('general.retry') }}</button>
+                <x-button size="sm" :loading="false" x-on:click="window.location.reload()">{{ __('general.retry') }}</x-button>
             </div>
         </template>
 
@@ -129,9 +123,7 @@
                  x-show="gallery" x-trap.noscroll="gallery" x-on:keydown.escape.stop.prevent="closeGallery()">
                 <div class="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-3">
                     <h2 id="hc-gallery-title" class="text-h4 font-extrabold text-ink">{{ __('dashboard.home.add-title') }}</h2>
-                    <button type="button" class="hc-btn hc-btn--quiet hc-btn--sm" x-on:click="closeGallery()" aria-label="{{ __('dashboard.home.close') }}">
-                        <x-ic name="x" />
-                    </button>
+                    <x-button variant="quiet" size="sm" icon="x" :loading="false" x-on:click="closeGallery()" aria-label="{{ __('dashboard.home.close') }}" />
                 </div>
 
                 <div class="overflow-y-auto p-3">

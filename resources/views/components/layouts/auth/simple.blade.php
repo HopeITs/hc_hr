@@ -3,7 +3,7 @@
 <head>
     @include('partials.head')
 </head>
-<body class="font-SomarSans h-full  bg-neutral-100">
+<body class="font-SomarSans h-full bg-surface">
 
 <main class=" flex items-center justify-center px-4">
 

@@ -26,23 +26,23 @@
          }"
          x-on:click.outside="hide(false)"
          x-on:keydown.escape="hide()">
-        <button type="button" x-ref="trigger" data-testid="new-menu-button"
-                class="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-[14px] bg-primary px-3 text-body font-bold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary sm:h-10"
-                aria-haspopup="menu" aria-controls="new-menu" :aria-expanded="open.toString()"
-                x-on:click="open ? hide() : show()" x-on:keydown.arrow-down.prevent="show()">
-            <x-icons.plus class="size-4" />
+        {{-- The header's one primary action. x-bind:, not :, so Blade leaves it to Alpine. --}}
+        <x-button size="sm" icon="plus" :loading="false" x-ref="trigger" data-testid="new-menu-button"
+                  class="min-w-11 shrink-0"
+                  aria-haspopup="menu" aria-controls="new-menu" x-bind:aria-expanded="open.toString()"
+                  x-on:click="open ? hide() : show()" x-on:keydown.arrow-down.prevent="show()">
             <span class="max-sm:sr-only">{{ __('general.new-menu.label') }}</span>
-        </button>
+        </x-button>
 
         <div id="new-menu" role="menu" x-ref="menu" x-show="open" x-cloak
              aria-label="{{ __('general.new-menu.label') }}"
              x-on:keydown.arrow-down.prevent="move(1)" x-on:keydown.arrow-up.prevent="move(-1)"
              x-on:keydown.tab="hide(false)"
-             class="absolute end-0 top-full z-50 mt-2 min-w-56 rounded-surface border border-[var(--line-hairline)] bg-white p-1.5 shadow-e3">
+             class="absolute end-0 top-full z-50 mt-2 min-w-56 rounded-surface border border-line-soft bg-card p-1.5 shadow-e3">
             @foreach ($actions as $action)
                 <a role="menuitem" href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}" @if ($action['returns']) data-returns @endif
                    x-on:click.prevent="go($event)"
-                   class="flex min-h-11 items-center rounded-control px-3 text-body font-medium text-neutral-800 hover:bg-secondary-soft focus:outline-none focus-visible:bg-secondary-soft">
+                   class="flex min-h-11 items-center rounded-control px-3 text-body font-medium text-ink hover:bg-hover focus-visible:bg-hover">
                     {{ $action['label'] }}
                 </a>
             @endforeach

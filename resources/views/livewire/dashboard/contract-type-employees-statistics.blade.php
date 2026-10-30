@@ -1,6 +1,6 @@
 <div class="flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm p-6">
     <div class="flex w-full">
-        <div class="text-h4 font-semibold text-secondary-medium mb-4">@lang('general.contract-type-employees')  </div>
+        <div class="text-h4 font-extrabold text-ink mb-4">@lang('general.contract-type-employees')  </div>
     </div>
 
 

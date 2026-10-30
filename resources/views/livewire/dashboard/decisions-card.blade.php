@@ -40,7 +40,7 @@
                     <x-ic name="inbox" />{{ __('dashboard.tiles.decide') }}
                     <span class="num hc-decide-count" data-testid="work-inbox-count">{{ $decisions['all'] }}</span>
                 </h2>
-                <a href="{{ $inboxUrl }}" wire:navigate class="hc-btn hc-btn--link hc-btn--sm">{{ __('dashboard.decide-tile.open') }}</a>
+                <x-button variant="link" size="sm" :href="$inboxUrl">{{ __('dashboard.decide-tile.open') }}</x-button>
             </div>
 
             @if ($n > 0)
@@ -50,17 +50,17 @@
                         @if ($n > 1)
                             <span class="flex flex-wrap items-center gap-1">
                                 <span class="flex items-center gap-1" x-show="! all">
-                                    <button type="button" class="hc-btn hc-btn--quiet hc-btn--sm hc-decide-arrow" x-on:click="show(i - 1)" aria-label="{{ __('dashboard.header.decide.prev') }}">
+                                    <x-button variant="quiet" size="sm" :loading="false" class="hc-decide-arrow" x-on:click="show(i - 1)" aria-label="{{ __('dashboard.header.decide.prev') }}">
                                         <x-ic name="chevron" class="rotate-180 rtl:rotate-0" />
-                                    </button>
+                                    </x-button>
                                     <span class="num hc-decide-count" aria-live="polite"><span x-text="i + 1">1</span> / {{ $n }}</span>
-                                    <button type="button" class="hc-btn hc-btn--quiet hc-btn--sm hc-decide-arrow" x-on:click="show(i + 1)" aria-label="{{ __('dashboard.header.decide.next') }}">
+                                    <x-button variant="quiet" size="sm" :loading="false" class="hc-decide-arrow" x-on:click="show(i + 1)" aria-label="{{ __('dashboard.header.decide.next') }}">
                                         <x-ic name="chevron" class="rtl:rotate-180" />
-                                    </button>
+                                    </x-button>
                                 </span>
-                                <button type="button" class="hc-btn hc-btn--link hc-btn--sm" x-on:click="toggle()" :aria-pressed="all.toString()">
-                                    <x-ic name="layout" /><span x-text="all ? @js(__('dashboard.header.decide.one')) : @js(__('dashboard.header.decide.all'))">{{ __('dashboard.header.decide.all') }}</span>
-                                </button>
+                                <x-button variant="link" size="sm" icon="layout" :loading="false" x-on:click="toggle()" x-bind:aria-pressed="all.toString()">
+                                    <span x-text="all ? @js(__('dashboard.header.decide.one')) : @js(__('dashboard.header.decide.all'))">{{ __('dashboard.header.decide.all') }}</span>
+                                </x-button>
                             </span>
                         @endif
                     </div>
@@ -81,9 +81,9 @@
                                         <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                     @endif
                                 </span>
-                                <a href="{{ $card['url'] }}" wire:navigate class="hc-btn hc-btn--primary hc-btn--sm hc-dcard-go">
+                                <x-button size="sm" :href="$card['url']" class="hc-dcard-go">
                                     <x-ic name="arrow" class="rtl:-scale-x-100" />{{ __('dashboard.header.decide.verb.'.$card['action']) }}
-                                </a>
+                                </x-button>
                             </article>
                         @endforeach
                     </div>
@@ -98,7 +98,7 @@
 
                     @if ($decisions['total'] > $n)
                         <p class="mt-2 text-hint text-ink-2">
-                            <a href="{{ route('inbox', ['show' => 'decide']) }}" wire:navigate class="hc-btn hc-btn--link hc-btn--sm">{{ trans_choice('dashboard.header.decide.more', $decisions['total'] - $n, ['count' => $decisions['total'] - $n]) }}</a>
+                            <x-button variant="link" size="sm" :href="route('inbox', ['show' => 'decide'])">{{ trans_choice('dashboard.header.decide.more', $decisions['total'] - $n, ['count' => $decisions['total'] - $n]) }}</x-button>
                         </p>
                     @endif
                 </div>
@@ -121,7 +121,7 @@
                         @endforeach
                     </ul>
                     @if ($decisions['others'] > count($items))
-                        <a href="{{ route('inbox', ['show' => 'checklist']) }}" wire:navigate class="hc-btn hc-btn--link hc-btn--sm">{{ trans_choice('dashboard.header.decide.more', $decisions['others'] - count($items), ['count' => $decisions['others'] - count($items)]) }}</a>
+                        <x-button variant="link" size="sm" :href="route('inbox', ['show' => 'checklist'])">{{ trans_choice('dashboard.header.decide.more', $decisions['others'] - count($items), ['count' => $decisions['others'] - count($items)]) }}</x-button>
                     @endif
                 </div>
             @endif

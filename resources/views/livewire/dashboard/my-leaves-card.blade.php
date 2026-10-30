@@ -14,13 +14,13 @@
             </p>
         </div>
         <span class="hc-leaves-bar" aria-hidden="true"><span style="inline-size: {{ max(0, min(100, 100 - (int) $percentage)) }}%"></span></span>
-        <a href="{{ route('leaves.index') }}" wire:navigate class="hc-btn hc-btn--outline hc-btn--sm shrink-0">{{ __('general.show-more') }}</a>
+        <x-button variant="outline" size="sm" :href="route('leaves.index')" class="shrink-0">{{ __('general.show-more') }}</x-button>
     </div>
 
     <div class="hc-leaves-full min-h-0 flex-1 flex-col">
         <x-dashboard-cards.card-header :title="__('general.my-leaves')">
             <x-slot:actions>
-                <a href="{{ route('leaves.index') }}" wire:navigate class="hc-btn hc-btn--outline hc-btn--sm">{{ __('general.show-more') }}</a>
+                <x-button variant="outline" size="sm" :href="route('leaves.index')">{{ __('general.show-more') }}</x-button>
             </x-slot:actions>
         </x-dashboard-cards.card-header>
 
@@ -59,12 +59,13 @@
 <script>
     const init = () => {
         const canvas = document.getElementById('leavesGaugeChart');
-        if (! canvas || ! window.Chart) return;
+        if (! canvas || ! window.Chart || ! window.brandColors) return;
         const ctx = canvas.getContext('2d');
         const value = Number(@js((int) $percentage));
-        const css = getComputedStyle(document.documentElement);
-        const track = css.getPropertyValue('--color-surface').trim() || '#E6E7E8';
-        const brand = css.getPropertyValue('--color-primary').trim() || '#BE1F24';
+        // Brand colours (charts/brand-colors.js), read on every draw so a light <-> dark
+        // switch (which redraws every Chart.js chart) repaints the gauge too. The fill
+        // is ink: a leave balance is none of red's three jobs.
+        const colors = () => window.brandColors();
 
         new Chart(ctx, {
             type: 'doughnut',
@@ -89,6 +90,8 @@
                     const startAngle = Math.PI;
                     const percentAngle = startAngle + (value / 100) * Math.PI;
 
+                    const { surface: track, ink: fill } = colors();
+
                     ctx.save();
                     ctx.lineWidth = radius * 0.24;
                     ctx.lineCap = 'round';
@@ -98,7 +101,7 @@
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.strokeStyle = brand;
+                    ctx.strokeStyle = fill;
                     ctx.arc(centerX, centerY, radius, startAngle, percentAngle);
                     ctx.stroke();
 

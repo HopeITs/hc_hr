@@ -2,10 +2,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
-import { brandColors, brandPalette } from "./charts/brand-colors.js";
-
-// Identity colours only, re-read on every draw so the chart follows light / dark.
-const chartPalette = () => brandPalette();
+import { brandColors } from "./charts/brand-colors.js";
 
 // Read the Livewire-published globals on every call rather than once at module
 // evaluation. A module body runs a single time, so the previous top-level
@@ -14,12 +11,9 @@ const chartPalette = () => brandPalette();
 const buildChartData = () => {
     const dynamicLabels = window.jobLevelLabels || [];
     const dynamicCounts = window.employeeCounts || [];
-    const palette = chartPalette();
-
     return dynamicLabels.map((label, index) => ({
         category: label,
         value: dynamicCounts[index],
-        color: am5.color(palette[index % palette.length]),
     }));
 };
 
@@ -37,6 +31,10 @@ export default function initJobLevelsChart() {
         am5.registry.rootElements
             .filter((r) => r.dom.id === "jobLevelsChart")
             .forEach((r) => r.dispose());
+
+        // One series, so one colour: ink bars, told apart by their axis labels.
+        // Re-read on every draw, so the light <-> dark redraw follows.
+        const brand = brandColors();
 
         const root = am5.Root.new("jobLevelsChart");
         applyBrandInterfaceColors(root);
@@ -67,7 +65,7 @@ export default function initJobLevelsChart() {
         });
         yRenderer.labels.template.setAll({
             fontSize: 13,
-            fill: am5.color(brandColors().ink),
+            fill: am5.color(brand.ink),
             oversizedBehavior: "wrap",
             textAlign: "left",
         });
@@ -109,8 +107,8 @@ export default function initJobLevelsChart() {
             cornerRadiusTR: 6,
             cornerRadiusBR: 6,
             strokeOpacity: 0,
+            fill: am5.color(brand.ink),
         });
-        series.columns.template.adapters.add("fill", (fill, target) => target.dataItem.dataContext.color);
 
         series.data.setAll(data);
 
@@ -119,7 +117,7 @@ export default function initJobLevelsChart() {
                 locationX: 0.5,
                 sprite: am5.Label.new(root, {
                     text: "{valueX}",
-                    fill: am5.color(0xffffff),
+                    fill: am5.color(brand.onInk),
                     centerY: am5.percent(50),
                     centerX: am5.percent(50),
                     fontSize: 13,

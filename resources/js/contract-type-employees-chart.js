@@ -3,27 +3,25 @@ import * as am5xy from "@amcharts/amcharts5/xy";
 import * as am5percent from "@amcharts/amcharts5/percent";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
-import { brandColors } from "./charts/brand-colors.js";
+import { brandColors, brandPalette } from "./charts/brand-colors.js";
 
 // The presence check that used to guard this block now lives in
 // charts/lazy-charts.js, which is also what triggers the dynamic import.
 export default function initContractTypeChart() {
     am5.ready(function () {
 
-        // Identity colours only, re-read on every draw (light / dark).
+        // Identity colours only, re-read on every draw (light / dark). Slices
+        // are told apart by neutral steps and their label, never by red.
         const brand = brandColors();
-        const primaryColor = am5.color(brand.primary);
-        const secondaryColor = am5.color(brand.ink2);
-        const neutralColor = am5.color(brand.line);
+        const inkColor = am5.color(brand.ink);
+        const sliceColors = brandPalette().map((color) => am5.color(color));
 
         var data = JSON.parse(
             document.getElementById("chartdiv").dataset.chart
         );
 
         data.forEach((item, index) => {
-            const colors = [primaryColor, secondaryColor, neutralColor];
-
-            item.sliceSettings = { fill: colors[index % colors.length] };
+            item.sliceSettings = { fill: sliceColors[index % sliceColors.length] };
         });
 
         // Re-runs (initial load + livewire:navigated, Livewire re-renders) must
@@ -123,7 +121,7 @@ export default function initContractTypeChart() {
         );
 
         xAxis.get("renderer").labels.template.setAll({
-            fontSize: 9,
+            fontSize: 12,
             fill: am5.color(brand.ink2),
             textAlign: "center",
             dy: 4
@@ -149,7 +147,7 @@ export default function initContractTypeChart() {
         });
 
         yAxis.get("renderer").labels.template.setAll({
-            fontSize: 11,
+            fontSize: 12,
             fill: am5.color(brand.ink2)
         });
 
@@ -174,7 +172,7 @@ export default function initContractTypeChart() {
                     radius: 4,
                     stroke: am5.color(brand.card),
                     strokeWidth: 2,
-                    fill: dataItem.dataContext._dotColor || primaryColor
+                    fill: dataItem.dataContext._dotColor || inkColor
                 })
             });
         });
@@ -189,7 +187,9 @@ export default function initContractTypeChart() {
                 currentSlice.set("active", false);
             }
 
-            var color = slice.get("fill");
+            // The selected slice is named in the centre; its dots and figure are
+            // ink, readable on the card whatever neutral the slice has.
+            var color = inkColor;
 
             slice.dataItem.dataContext.breakdown.forEach(item => {
                 item._dotColor = color;

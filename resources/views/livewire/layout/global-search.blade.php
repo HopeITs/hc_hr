@@ -47,7 +47,7 @@
      data-tour="header.search">
 
     {{-- Below xl: a button that opens the panel; the full box needs room the header lacks once the sidebar is beside it. --}}
-    <button type="button" class="grid size-11 place-items-center rounded-[14px] text-secondary-light hover:text-secondary-dark xl:hidden"
+    <button type="button" class="grid size-11 place-items-center rounded-[14px] text-ink-2 hover:text-ink xl:hidden"
             x-on:click="focus()" aria-label="{{ __('general.global-search.label') }}" data-testid="search-open">
         <x-icons.search class="size-5" />
     </button>
@@ -56,7 +56,7 @@
          :class="mobile ? '' : 'max-xl:hidden'">
         <label for="global-search-input" class="sr-only">{{ __('general.global-search.label') }}</label>
         <div class="relative">
-            <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-secondary-light" aria-hidden="true">
+            <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-ink-3" aria-hidden="true">
                 <x-icons.search class="size-4" />
             </span>
             {{-- wire:ignore.self: a re-render (recents, results) must not put the server's
@@ -68,21 +68,21 @@
                    :aria-expanded="open.toString()"
                    :aria-activedescendant="active >= 0 ? 'global-search-option-' + active : null"
                    placeholder="{{ __('general.global-search.placeholder') }}" data-typewriter="{{ json_encode(__('examples.global_search'), JSON_UNESCAPED_UNICODE) }}"
-                   class="h-11 w-full rounded-[14px] border border-line bg-soft ps-9 pe-3 xl:pe-14 text-body text-ink placeholder:text-ink-3 focus:bg-card focus:outline-none focus:ring-2 focus:ring-secondary-light sm:h-10"
+                   class="h-11 w-full rounded-[14px] border border-line bg-soft ps-9 pe-3 xl:pe-14 text-body text-ink placeholder:text-ink-3 focus:bg-card sm:h-10"
                    x-on:focus="open = true; recent()"
                    x-on:input="open = true; active = -1"
                    x-on:keydown.arrow-down.prevent="move(1)"
                    x-on:keydown.arrow-up.prevent="move(-1)"
                    x-on:keydown.enter.prevent="active < 0 ? move(1) : null; choose()"
                    x-on:keydown.escape.prevent="$wire.q ? $wire.set('q', '') : close()" />
-            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded border border-line px-1.5 text-caption text-secondary-light xl:flex" aria-hidden="true">Ctrl K</kbd>
+            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded border border-line px-1.5 text-caption text-ink-2 xl:flex" aria-hidden="true">Ctrl K</kbd>
         </div>
 
         <div x-show="open && ($wire.q.trim().length > 0 || $wire.recents)" x-cloak
              class="absolute start-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] max-xl:w-auto overflow-y-auto rounded-surface border border-line-soft bg-card p-1.5 shadow-e3 max-xl:static max-xl:mt-2 max-xl:shadow-none">
 
             {{-- Polite status for screen readers and the visible state line. --}}
-            <p class="px-3 py-2 text-small text-secondary-medium" role="status" aria-live="polite">
+            <p class="px-3 py-2 text-small text-ink-2" role="status" aria-live="polite">
                 <span wire:loading wire:target="q,showRecents">{{ __('general.global-search.loading') }}</span>
                 <span wire:loading.remove wire:target="q,showRecents">
                     @if ($showingRecents && $options->isEmpty())
@@ -106,7 +106,7 @@
             <ul id="global-search-list" x-ref="list" role="listbox" aria-label="{{ __('general.global-search.label') }}" wire:loading.class="opacity-60" wire:target="q,showRecents">
                 @php($i = 0)
                 @if (count($pages))
-                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-secondary-light">{{ $showingRecents ? __('navigation.recent.pages') : __('general.global-search.pages') }}</li>
+                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2">{{ $showingRecents ? __('navigation.recent.pages') : __('general.global-search.pages') }}</li>
                     @foreach ($pages as $page)
                         <li id="global-search-option-{{ $i }}" role="option" data-href="{{ route($page['route']) }}" data-testid="{{ $showingRecents ? 'recent-page' : 'search-page' }}"
                             :aria-selected="(active === {{ $i }}).toString()"
@@ -116,7 +116,7 @@
                             class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2">
                             <span class="font-semibold text-ink">{{ $page['label'] }}</span>
                             @if ($page['area'] !== '')
-                                <span class="text-small text-secondary-medium">{{ $page['area'] }}</span>
+                                <span class="text-small text-ink-2">{{ $page['area'] }}</span>
                             @endif
                         </li>
                         @php($i++)
@@ -124,7 +124,7 @@
                 @endif
 
                 @if ($people->isNotEmpty())
-                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-secondary-light">{{ $showingRecents ? __('navigation.recent.people') : __('general.global-search.people') }}</li>
+                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2">{{ $showingRecents ? __('navigation.recent.people') : __('general.global-search.people') }}</li>
                     @foreach ($people as $person)
                         @php($position = $person->contracts->first()?->position)
                         <li id="global-search-option-{{ $i }}" role="option" data-href="{{ route('employees.show', $person->username) }}" data-testid="{{ $showingRecents ? 'recent-person' : 'search-person' }}"
@@ -137,11 +137,11 @@
                                 <span class="block font-semibold text-ink">
                                     <bdi>{{ $person->name }}</bdi>
                                     @if (! $person->is_active && $person->was_employed)
-                                        <span class="ms-1 text-caption font-normal text-secondary-medium">({{ __('general.global-search.former') }})</span>
+                                        <span class="ms-1 text-caption font-normal text-ink-2">({{ __('general.global-search.former') }})</span>
                                     @endif
                                 </span>
                                 {{-- The other script's name, the position and the city tell namesakes apart. --}}
-                                <span class="block text-small text-secondary-medium">
+                                <span class="block text-small text-ink-2">
                                     <bdi>{{ trim($person->{'first_name_'.$other}.' '.$person->{'last_name_'.$other}) }}</bdi>
                                     @if ($position) · <bdi>{{ $position->{'title_'.app()->getLocale()} ?? $position->title_en }}</bdi>@endif
                                     @if ($person->city) · <bdi>{{ $person->city->name }}</bdi>@endif
@@ -154,7 +154,7 @@
 
                 {{-- Prompt 10: what the role may start, and commands for the page itself (CommandPalette). --}}
                 @if (count($commands))
-                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-secondary-light">{{ __('navigation.commands.title') }}</li>
+                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2">{{ __('navigation.commands.title') }}</li>
                     @foreach ($commands as $command)
                         <li id="global-search-option-{{ $i }}" role="option" data-testid="search-command" data-command="{{ $command['id'] }}"
                             data-action="{{ $command['action'] }}" @if ($command['href']) data-href="{{ $command['href'] }}" @endif @if ($command['returns']) data-returns @endif
@@ -165,7 +165,7 @@
                             class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2">
                             <span class="font-semibold text-ink">{{ $command['label'] }}</span>
                             @if ($command['hint'])
-                                <span class="text-small text-secondary-medium" @if ($command['hint_lang']) lang="{{ $command['hint_lang'] }}" dir="{{ $command['hint_lang'] === 'ar' ? 'rtl' : 'ltr' }}" @endif>{{ $command['hint'] }}</span>
+                                <span class="text-small text-ink-2" @if ($command['hint_lang']) lang="{{ $command['hint_lang'] }}" dir="{{ $command['hint_lang'] === 'ar' ? 'rtl' : 'ltr' }}" @endif>{{ $command['hint'] }}</span>
                             @endif
                         </li>
                         @php($i++)

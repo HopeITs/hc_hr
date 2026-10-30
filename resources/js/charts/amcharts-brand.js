@@ -8,7 +8,7 @@ function apply(root, colors) {
     const ink3 = am5.color(colors.ink3);
     const line = am5.color(colors.lineSoft);
     const card = am5.color(colors.card);
-    const onBrand = am5.color("#ffffff");
+    const onBrand = am5.color(colors.onBrand);
 
     root.interfaceColors.setAll({
         stroke: line,

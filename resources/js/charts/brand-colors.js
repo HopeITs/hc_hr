@@ -18,6 +18,7 @@ const TOKENS = {
     surface: ["--color-surface", "#e6e7e8"],
     card: ["--color-card", "#ffffff"],
     onInk: ["--color-on-ink", "#ffffff"],
+    onBrand: ["--color-on-brand", "#ffffff"],
 };
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -42,12 +43,16 @@ export function brandColors() {
     return colors;
 }
 
-// Series order. A chart with more than five categories repeats it, and this
-// order keeps neighbouring slices and bars distinguishable in both themes.
+// Series order: neutrals only. Red has three jobs (the primary action, what is
+// current, what waits on the viewer or is late) and telling series apart is not
+// one of them, so a chart separates its series by these steps and its labels.
+// A chart with more than four categories repeats the order, which keeps
+// neighbouring slices and bars distinguishable in both themes. Legends drawn in
+// Blade use the same order: bg-ink, bg-ink-3, bg-line, bg-ink-2.
 export function brandPalette() {
     const colors = brandColors();
 
-    return [colors.primary, colors.ink, colors.ink2, colors.ink3, colors.line];
+    return [colors.ink, colors.ink3, colors.line, colors.ink2];
 }
 
 export function isDarkTheme() {

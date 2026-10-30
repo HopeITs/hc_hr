@@ -23,9 +23,9 @@
                     <span>{{ implode($locale === 'ar' ? '، ' : ', ', $late['names']) }}@if ($late['more']) …@endif</span>
                 @endif
             </span>
-            <a href="{{ $late['oldest']['url'] }}" wire:navigate class="hc-btn hc-btn--primary hc-btn--sm" data-testid="late-open-oldest">
+            <x-button size="sm" :href="$late['oldest']['url']" data-testid="late-open-oldest">
                 <x-ic name="arrow" class="shrink-0 rtl:-scale-x-100" /><span class="min-w-0 truncate">{{ __('dashboard.header.late.open') }}</span>
-            </a>
+            </x-button>
         </section>
     @endif
 </div>
