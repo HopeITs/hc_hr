@@ -27,18 +27,18 @@ class DeactivateContract extends Command
     public function handle(): void
     {
 
-        $contracts = Contract::with('position')
+        $contracts = Contract::query()
             ->where('is_active', true)
             ->whereDate('end_date', '<', today())
             ->get();
 
+        // ContractObserver::updated() frees the seat (exist_emp - 1) when
+        // is_active turns false, the same path a termination takes, so this
+        // command must not decrement as well. (It used to, unguarded: that
+        // also freed a seat for an ended draft, which never held one, and
+        // could take the counter below zero.)
         foreach ($contracts as $contract) {
-
             $contract->update(['is_active' => false]);
-
-            if ($contract->position) {
-                $contract->position()->decrement('exist_emp');
-            }
         }
         $this->info('Finished deactivating '.$contracts->count().' contract ');
     }
