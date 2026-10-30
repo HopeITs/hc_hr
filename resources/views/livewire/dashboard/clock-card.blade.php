@@ -4,7 +4,7 @@
     "clock tile"), and the tile's size decides how much of it shows: one row is
     the time only, two rows add the date, three rows the weekday and the HR line;
     taller, a bar of the working day, and taller still who is online
-    (ClockPresence). On a phone it is one row, digital (styles at the end).
+    (ClockPresence). On a phone it is one row, digital (dashboard.css, "phone clock").
     It ticks in the browser (resources/js/dashboard/clock.js); the server draws
     the first frame. The time is read out through the label, never announced
     as it changes.
@@ -85,8 +85,8 @@
     @endif
 
 @assets
-    {{-- The big clock and the phone clock. Here rather than in dashboard.css so the
-         whole clock stays in its own files; identity only (ink, neutrals, the red bar). --}}
+    {{-- The big clock (working day, who is online). The phone clock is in dashboard.css,
+         next to the grid it changes; identity only (ink, neutrals, the red bar). --}}
     <style>
         .hc-clock-work,
         .hc-clock-presence { display: none; }
@@ -113,13 +113,6 @@
             .hc-clock-time { font-size: clamp(34px, min(16cqh, 22cqw), 120px); }
         }
 
-        /* A phone keeps the clock light: one row, digital even when analogue is chosen.
-           Only how it is shown changes; the saved size and look stay as set. */
-        @container hc-home (max-width: 759.98px) {
-            .hc-grid:not(.editing) > .hc-tile[data-key="clock"] { grid-row: span 1 !important; }
-            .hc-grid .hc-tile[data-look="analog"] .hc-clock-digital { display: flex; }
-            .hc-grid .hc-tile[data-look="analog"] .hc-clock-analog { display: none; }
-        }
     </style>
 @endassets
 </div>

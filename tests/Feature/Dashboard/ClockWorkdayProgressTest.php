@@ -115,14 +115,17 @@ class ClockWorkdayProgressTest extends TestCase
             ->assertSeeHtml('data-clock-presence');
     }
 
-    public function test_the_phone_and_big_clock_styles_ship_with_the_card(): void
+    public function test_the_phone_and_big_clock_styles_ship(): void
     {
         // @assets travel beside the HTML, not in it: read them from the view.
         $view = file_get_contents(resource_path('views/livewire/dashboard/clock-card.blade.php'));
 
-        // One row, digital, on a phone (the saved size and look are untouched)...
-        $this->assertStringContainsString('.hc-tile[data-key="clock"] { grid-row: span 1 !important; }', $view);
-        $this->assertStringContainsString('.hc-tile[data-look="analog"] .hc-clock-digital { display: flex; }', $view);
+        // One row, digital, on a phone (the saved size and look are untouched): in
+        // dashboard.css beside the grid, and the packer knows the row (layout-math.js phoneView)...
+        $css = preg_replace('/\s+/', ' ', file_get_contents(resource_path('css/dashboard.css')));
+        $this->assertStringContainsString('.hc-grid:not(.editing) > .hc-tile[data-key="clock"] { grid-row: span 1; }', $css);
+        $this->assertStringContainsString('.hc-grid .hc-tile[data-look="analog"] .hc-clock-digital { display: flex; }', $css);
+        $this->assertStringNotContainsString('data-key="clock"', $view);
         // ...and the bar only moves smoothly for those who have not asked for less motion.
         $this->assertStringContainsString('prefers-reduced-motion: no-preference', $view);
         // Identity only: no colour but the brand variables.
