@@ -10,6 +10,7 @@ use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
 use App\Console\Commands\ScanRecruitmentFiles;
 use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
+use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
 use App\Console\Commands\SweepRecruitmentRetention;
 use App\Console\Commands\SyncRecruitmentCampaignStates;
@@ -27,6 +28,8 @@ Schedule::command(DeactivateContract::class)->dailyAt('21:30');
 Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 // DEC-05 revision 2 (G-C-1): one reminder per pending leave request.
 Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
+// D4-I: one reminder to city HR per overdue orientation session.
+Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
 Schedule::command(ProcessContractAutoRenewals::class)->dailyAt('21:35');
 Schedule::command(DeactivateEmployee::class)->weekly();
 // Early, so a reduction effective today is carried out before the contract

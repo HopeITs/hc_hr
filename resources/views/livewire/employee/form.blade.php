@@ -46,6 +46,10 @@
 
     @include('livewire.employee.partials.onboarding-status')
 
+    @unless ($isCreateMode)
+        <livewire:employee.onboarding-journey-panel :employee="$employee" :key="'journey-'.$employee->id" />
+    @endunless
+
     @php
         // One definition feeds the desktop list and the phone selector, so the
         // two can never disagree about which sections exist or are unlocked.

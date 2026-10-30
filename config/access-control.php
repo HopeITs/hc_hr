@@ -312,6 +312,16 @@ return [
             'initiateReturn' => 'employees.update',
             'finalizeReturnCycle' => 'employees.update',
         ],
+        // D4-I: the onboarding journey's own steps. Each method re-runs
+        // EmployeePolicy::update (HR for the volunteer's city) before
+        // OnboardingJourneys writes and logs the step.
+        'employee.onboarding-journey-panel' => [
+            'scheduleOrientation' => 'employees.update',
+            'completeOrientation' => 'employees.update',
+            'markCardHandedOver' => 'employees.update',
+            'confirmReopen' => 'employees.update',
+            'reopen' => 'employees.update',
+        ],
         // B4: opens the read-only drawer; the method re-runs EmployeePolicy::view and
         // ::viewDirectory on the record inside the active city scope.
         'employee.employee-drawer' => ['open' => 'employees.view'],
@@ -900,6 +910,8 @@ return [
             'setActiveTab', 'toggleBoardMember', 'addEducation', 'addCourse',
             'addExperience', 'addRelative', 'addAttachment', 'openInitiateReturnModal',
         ],
+        // refreshJourney only re-renders the panel after the edit page saves.
+        'employee.onboarding-journey-panel' => ['refreshJourney'],
         // toggleVacancies only flips whether empty positions are drawn and
         // rebuilds the same tree; vacant positions hold no person's data.
         'position.org-chart' => [
