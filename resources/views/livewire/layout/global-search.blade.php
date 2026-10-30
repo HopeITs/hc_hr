@@ -52,31 +52,34 @@
         <x-icons.search class="size-5" />
     </button>
 
-    <div class="max-xl:fixed max-sm:inset-x-2 sm:max-xl:end-4 sm:max-xl:w-[28rem] max-xl:top-[4.25rem] max-xl:z-50 max-xl:rounded-surface max-xl:bg-white max-xl:p-2 max-xl:shadow-e3"
+    <div class="max-xl:fixed max-sm:inset-x-2 sm:max-xl:end-4 sm:max-xl:w-[28rem] max-xl:top-[4.25rem] max-xl:z-50 max-xl:rounded-surface max-xl:bg-card max-xl:p-2 max-xl:shadow-e3"
          :class="mobile ? '' : 'max-xl:hidden'">
         <label for="global-search-input" class="sr-only">{{ __('general.global-search.label') }}</label>
         <div class="relative">
             <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-secondary-light" aria-hidden="true">
                 <x-icons.search class="size-4" />
             </span>
+            {{-- wire:ignore.self: a re-render (recents, results) must not put the server's
+                 placeholder back over the typewriter's; every attribute here is static. --}}
             <input id="global-search-input" x-ref="input" type="search" autocomplete="off" spellcheck="false"
+                   wire:ignore.self
                    wire:model.live.debounce.300ms="q"
                    role="combobox" aria-autocomplete="list" aria-controls="global-search-list"
                    :aria-expanded="open.toString()"
                    :aria-activedescendant="active >= 0 ? 'global-search-option-' + active : null"
                    placeholder="{{ __('general.global-search.placeholder') }}" data-typewriter="{{ json_encode(__('examples.global_search'), JSON_UNESCAPED_UNICODE) }}"
-                   class="h-11 w-full rounded-[14px] border border-neutral-300 bg-[#f6f6f6] ps-9 pe-3 xl:pe-14 text-body text-neutral-900 placeholder-neutral-400 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-secondary-light sm:h-10"
+                   class="h-11 w-full rounded-[14px] border border-line bg-soft ps-9 pe-3 xl:pe-14 text-body text-ink placeholder:text-ink-3 focus:bg-card focus:outline-none focus:ring-2 focus:ring-secondary-light sm:h-10"
                    x-on:focus="open = true; recent()"
                    x-on:input="open = true; active = -1"
                    x-on:keydown.arrow-down.prevent="move(1)"
                    x-on:keydown.arrow-up.prevent="move(-1)"
                    x-on:keydown.enter.prevent="active < 0 ? move(1) : null; choose()"
                    x-on:keydown.escape.prevent="$wire.q ? $wire.set('q', '') : close()" />
-            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded border border-neutral-300 px-1.5 text-caption text-secondary-light xl:flex" aria-hidden="true">Ctrl K</kbd>
+            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded border border-line px-1.5 text-caption text-secondary-light xl:flex" aria-hidden="true">Ctrl K</kbd>
         </div>
 
         <div x-show="open && ($wire.q.trim().length > 0 || $wire.recents)" x-cloak
-             class="absolute start-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] max-xl:w-auto overflow-y-auto rounded-surface border border-[var(--line-hairline)] bg-white p-1.5 shadow-e3 max-xl:static max-xl:mt-2 max-xl:shadow-none">
+             class="absolute start-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] max-xl:w-auto overflow-y-auto rounded-surface border border-line-soft bg-card p-1.5 shadow-e3 max-xl:static max-xl:mt-2 max-xl:shadow-none">
 
             {{-- Polite status for screen readers and the visible state line. --}}
             <p class="px-3 py-2 text-small text-secondary-medium" role="status" aria-live="polite">
@@ -107,11 +110,11 @@
                     @foreach ($pages as $page)
                         <li id="global-search-option-{{ $i }}" role="option" data-href="{{ route($page['route']) }}" data-testid="{{ $showingRecents ? 'recent-page' : 'search-page' }}"
                             :aria-selected="(active === {{ $i }}).toString()"
-                            :class="active === {{ $i }} ? 'bg-secondary-soft' : ''"
+                            :class="active === {{ $i }} ? 'bg-hover' : ''"
                             x-on:mouseenter="active = {{ $i }}"
                             x-on:click="active = {{ $i }}; choose()"
                             class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2">
-                            <span class="font-semibold text-neutral-900">{{ $page['label'] }}</span>
+                            <span class="font-semibold text-ink">{{ $page['label'] }}</span>
                             @if ($page['area'] !== '')
                                 <span class="text-small text-secondary-medium">{{ $page['area'] }}</span>
                             @endif
@@ -126,12 +129,12 @@
                         @php($position = $person->contracts->first()?->position)
                         <li id="global-search-option-{{ $i }}" role="option" data-href="{{ route('employees.show', $person->username) }}" data-testid="{{ $showingRecents ? 'recent-person' : 'search-person' }}"
                             :aria-selected="(active === {{ $i }}).toString()"
-                            :class="active === {{ $i }} ? 'bg-secondary-soft' : ''"
+                            :class="active === {{ $i }} ? 'bg-hover' : ''"
                             x-on:mouseenter="active = {{ $i }}"
                             x-on:click="active = {{ $i }}; choose()"
                             class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-3 py-2">
                             <span class="min-w-0">
-                                <span class="block font-semibold text-neutral-900">
+                                <span class="block font-semibold text-ink">
                                     <bdi>{{ $person->name }}</bdi>
                                     @if (! $person->is_active && $person->was_employed)
                                         <span class="ms-1 text-caption font-normal text-secondary-medium">({{ __('general.global-search.former') }})</span>
@@ -156,11 +159,11 @@
                         <li id="global-search-option-{{ $i }}" role="option" data-testid="search-command" data-command="{{ $command['id'] }}"
                             data-action="{{ $command['action'] }}" @if ($command['href']) data-href="{{ $command['href'] }}" @endif @if ($command['returns']) data-returns @endif
                             :aria-selected="(active === {{ $i }}).toString()"
-                            :class="active === {{ $i }} ? 'bg-secondary-soft' : ''"
+                            :class="active === {{ $i }} ? 'bg-hover' : ''"
                             x-on:mouseenter="active = {{ $i }}"
                             x-on:click="active = {{ $i }}; choose()"
                             class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2">
-                            <span class="font-semibold text-neutral-900">{{ $command['label'] }}</span>
+                            <span class="font-semibold text-ink">{{ $command['label'] }}</span>
                             @if ($command['hint'])
                                 <span class="text-small text-secondary-medium" @if ($command['hint_lang']) lang="{{ $command['hint_lang'] }}" dir="{{ $command['hint_lang'] === 'ar' ? 'rtl' : 'ltr' }}" @endif>{{ $command['hint'] }}</span>
                             @endif

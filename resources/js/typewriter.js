@@ -8,8 +8,10 @@
  * attribute; any other field can carry it by hand. While the field is empty and
  * not focused, its placeholder types one example after another. Rules:
  *   - only the placeholder changes, never the value (nothing reaches wire:model);
- *   - focus or any text in the field stops the typing and leaves the current
- *     example whole; it carries on once the field is empty and left again;
+ *   - focus or any text in the field stops the typing and puts the field's own
+ *     static placeholder back (the one the server rendered), so a Livewire
+ *     re-render that restores that attribute changes nothing on screen; the
+ *     typing starts the current example again once the field is empty and left;
  *   - prefers-reduced-motion: the first example, still, and nothing more;
  *   - a hidden tab pauses; a field removed from the page ends its loop.
  * Plain DOM, no Alpine: these fields often sit inside an element that already
@@ -33,6 +35,9 @@ function bind(el) {
     const list = readExamples(el);
     if (!list.length) return;
     bound.add(el);
+    // The server-rendered placeholder: what a Livewire morph puts back, so it is
+    // also what a focused or filled field shows (no flicker on re-render).
+    const original = el.getAttribute('placeholder') ?? '';
 
     if (reducedMotion()) {
         el.placeholder = list[0];
@@ -60,10 +65,10 @@ function bind(el) {
         // A hidden tab: check again later, keep the place.
         if (document.hidden) return schedule(1000);
         // The person is in the field or has written something: wait quietly
-        // with the whole current example showing.
+        // with the static placeholder showing, and type afresh afterwards.
         if (document.activeElement === el || el.value) {
-            el.placeholder = list[i];
-            n = chars[i].length;
+            if (el.placeholder !== original) el.placeholder = original;
+            n = 0;
             back = false;
             return schedule(700);
         }
@@ -87,8 +92,8 @@ function bind(el) {
     // Stop at once on focus or typing, without waiting for the next tick.
     const settle = () => {
         clearTimeout(timer);
-        el.placeholder = list[i];
-        n = chars[i].length;
+        if (el.placeholder !== original) el.placeholder = original;
+        n = 0;
         back = false;
         schedule(700);
     };

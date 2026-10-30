@@ -135,6 +135,9 @@ class FormHintsTest extends TestCase
     {
         $views = [
             'livewire/employee/leave/form.blade.php' => ['examples.leave_reason', 'examples.hints.leave_reason'],
+            // The staff dialog (/leaves?new=1) and HR's form: the ones people actually open.
+            'livewire/employee/leave/index.blade.php' => ['examples.leave_reason', 'examples.hints.leave_reason'],
+            'livewire/employee/leave/all.blade.php' => ['examples.leave_reason', 'examples.hints.leave_reason'],
             'livewire/employee/tabs/personal-info-tab.blade.php' => ['examples.first_name', 'examples.hints.name'],
             'livewire/employee/tabs/contact-info-fields.blade.php' => ['examples.phone', 'examples.hints.phone'],
             'livewire/news/_form-fields.blade.php' => ['examples.news.title', 'examples.news.description'],

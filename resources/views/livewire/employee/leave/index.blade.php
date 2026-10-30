@@ -354,7 +354,8 @@ use App\Enums\LeaveRequestStatus;
 
                     <div class="col-span-full">
                         <x-forms.input-label for="reason" required>{{__('general.reason')}}</x-forms.input-label>
-                        <x-forms.input id="reason" wire:model="form.reason" required/>
+                        <x-forms.input id="reason" wire:model="form.reason" required examples="examples.leave_reason"
+                            :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                         <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                     </div>
                 </div>
