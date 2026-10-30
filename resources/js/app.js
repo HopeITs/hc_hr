@@ -114,6 +114,9 @@ import './feedback.js';
 // Asks before leaving a page with unsaved changes (B2).
 import './unsaved.js';
 
+// Server-side autosave of an employee draft (B5 phase 2); never browser storage.
+import './employee-autosave.js';
+
 // Typed examples in empty fields' placeholders (data-typewriter).
 import './typewriter.js';
 

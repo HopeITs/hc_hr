@@ -133,6 +133,23 @@ const unsaved = {
         }
     },
 
+    /**
+     * After a save that covered only part of what is on screen (autosave,
+     * resources/js/employee-autosave.js): `build(baseline, current)` returns
+     * the state now known to be saved, which becomes the new baseline. Typing
+     * that happened while the save was on its way stays unsaved.
+     */
+    markSaved(path, build) {
+        for (const entry of entries.values()) {
+            if (entry.path !== path || !alive(entry)) continue;
+
+            const baseline = JSON.parse(entry.baseline);
+            const current = JSON.parse(snapshot(entry.wireId, path));
+
+            entry.baseline = JSON.stringify(build(baseline, current));
+        }
+    },
+
     pageIsDirty() {
         prune();
 

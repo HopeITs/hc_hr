@@ -294,12 +294,16 @@ class PersonalInfoForm extends Form
      * Save what is there as a draft (B5D-Q1-Q3, Q10): the eight name fields,
      * governorate, national ID and username are required; everything else is
      * checked only when filled in. Never for a record that is already complete.
+     *
+     * Autosave (phase 2, employee-lifecycle.md §5.6) passes $withPhoto = false:
+     * a picked photo is re-encoded and stored by an explicit save only, not
+     * every few seconds while someone types.
      */
-    public function saveDraft(): Employee
+    public function saveDraft(bool $withPhoto = true): Employee
     {
         abort_if($this->employee && ! $this->employee->isDraft(), 403);
 
-        return $this->persist(complete: false);
+        return $this->persist(complete: false, withPhoto: $withPhoto);
     }
 
     /** Whether this form may create or keep a login account for its employee. */
@@ -347,7 +351,7 @@ class PersonalInfoForm extends Form
         Password::sendResetLink(['email' => $user->email]);
     }
 
-    private function persist(bool $complete): Employee
+    private function persist(bool $complete, bool $withPhoto = true): Employee
     {
         // Drafts and volunteers without a contract get no account (DEC-04),
         // whatever the browser sends.
@@ -396,7 +400,7 @@ class PersonalInfoForm extends Form
             $this->persistAccount();
         }
 
-        if ($this->photo instanceof TemporaryUploadedFile) {
+        if ($withPhoto && $this->photo instanceof TemporaryUploadedFile) {
             // Employee photographs are protection-sensitive: they are stored
             // re-encoded, under a random server-chosen name, on the private
             // disk, and served only through EmployeeAvatarController.
