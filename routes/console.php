@@ -2,6 +2,7 @@
 
 use App\Console\Commands\ApplyDueRecruitmentRequests;
 use App\Console\Commands\DeactivateContract;
+use App\Console\Commands\DeactivateDepartedEmployees;
 use App\Console\Commands\DeactivateEmployee;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\ProcessContractAutoRenewals;
@@ -34,6 +35,11 @@ Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
 Schedule::command(ProcessContractAutoRenewals::class)->dailyAt('21:35');
 // Renewal journey: start at 30 days before the end, settle after tonight's renewals.
 Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');
+// DEC-09 increment 2: after the contract sweep and the auto-renewals, so a
+// contract that just rolled over already has its successor. Deactivates a
+// volunteer whose last contract ended config('journeys.exit_grace_days') ago,
+// and warns city HR once when it ends.
+Schedule::command(DeactivateDepartedEmployees::class)->dailyAt('21:50')->withoutOverlapping();
 Schedule::command(DeactivateEmployee::class)->weekly();
 // Early, so a reduction effective today is carried out before the contract
 // sweeps that read `exist_emp` run in the evening.

@@ -73,7 +73,8 @@ Journey complete when H6, H8 and H10 are all done (`onboarding_journeys.complete
 | E4 | Early termination | HR with `contracts.update`, city (`ContractEdit`) | **Human** | `contracts.terminated_at`, `termination_reason_id` → `is_active = false`, auto-renew forced off | Clearing the date does not reactivate. **Seat:** the observer has no `is_active` branch and `deactivate:contract` only picks active contracts, so a terminated contract appears **not** to free its seat. From source reading; to verify (§7). |
 | E5 | Contract ends | System (`deactivate:contract`) | Automated | as R3 | — |
 | E6 | Employee deactivated | HR toggle (`employees.update`, city, with confirmation) | **Human** | `employees.is_active = false` | Not offered for drafts or volunteers awaiting a first contract. |
-| E6′ | Weekly sweep | System (`deactivate:employee`) | Automated | `is_active = false` | Only active employees with **no contracts at all**. A volunteer whose last contract ended is **not** deactivated by it: E6 stays a human step. |
+| E6′ | Weekly sweep | System (`deactivate:employee`) | Automated | `is_active = false` | Unchanged. Intended for active employees with no contracts at all; note it filters on `contracts()`, which is scoped to *currently active* contracts ([exit-journey-implementation.md](exit-journey-implementation.md) §8 #1). |
+| E6″ | Automatic deactivation after the last contract (**built**, DEC-09 increment 2) | System (`employees:deactivate-departed`, daily 21:45, after auto-renewals) | Automated | `is_active = false` through the same save as E6, so E7 follows | Only an active, complete volunteer with no current, future or pending auto-renewed real contract, **7 days** (`config/journeys.php` `exit_grace_days`) after the last one ended. One in-app heads-up to city HR when it ends. Logged under `offboarding` with the reason. |
 | E7 | Access revoked and card disabled | System (`EmployeeObserver` → `AccessRevoker`, `DigitalIdManager::disable`) | Automated, follows E6/E6′ | sessions deleted, remember token cleared, roles stood down; `digital_id_enabled = false` | Idempotent; logged under `security` / digital-ID log. |
 
 ## 4. Consequential and irreversible actions
@@ -100,11 +101,12 @@ Journey complete when H6, H8 and H10 are all done (`onboarding_journeys.complete
 | Exit map (§3.3) | **Designed** | Describes today; nothing new. |
 | Onboarding journey H4–H10 with one record per step, owner, due date, Late tag, one reminder | **Selected** (DEC-09, DEC-09 detail) → **built as D4-I** | [d4-i-implementation.md](d4-i-implementation.md) |
 | Renewal journey as a linked checklist | ~~Deferred~~ **Selected (DEC-09 increment 2) → built, 2026-10-30, awaiting tests on PHP 8.5 and review** | [renewal-journey-implementation.md](renewal-journey-implementation.md). Also fixes the auto-renewal leave-balance gap (§3.2). |
-| Exit journey as a linked checklist | **Deferred** | Next increment below. |
+| Exit journey as a linked checklist | ~~Deferred~~ **Selected (DEC-09 increment 2) → built, 2026-10-30, awaiting tests on PHP 8.5 and review** | One row per departure; steps equipment / contract / deactivated / access and card / optional exit interview. [exit-journey-implementation.md](exit-journey-implementation.md) |
+| Automatic deactivation when the last contract ends (7-day grace, one heads-up) | **Selected** (DEC-09 increment 2) → **built** | `employees:deactivate-departed`; §3.3 E6″. |
 | Equipment checklist inside the onboarding journey | **Deferred** | It already has its own workflow (`ChecklistWorkflow`). |
 | Journey items in the work inbox / dashboard tile; "Onboarding" employee-list view | **Deferred** | Open points in D4-I §8. |
 
-**Next increment (proposed, not started): "exit journey".** One row per leaving volunteer, started by HR stopping auto-renewal (E1) or terminating (E4). Steps: equipment return (read from `checklists`), contract end (read from `contracts`), deactivation (human, E6), card and access (read, E7). Owner: HR of the city. It needs a product-owner decision on: who starts it, whether the weekly sweep should cover "last contract ended", and the termination seat question in §3.3. Renewal follows after, built on R1/R2.
+**Next increment: "exit journey" — built (DEC-09 increment 2).** One row per departure, started by HR stopping auto-renewal (E1), terminating (E4), or the last contract ending with no successor (daily run). Steps: equipment return (read from `checklists`), contract end (read from `contracts`), deactivation (automatic after the 7-day grace period, or HR's E6), card and access (read, E7), optional exit interview (the one step the journey stores). Owner: HR of the city. Details: [exit-journey-implementation.md](exit-journey-implementation.md). Still open: the termination seat question in §3.3, and journey items in the work inbox. Renewal is built separately on R1/R2.
 
 ## 6. First-slice contract (input to D4-I)
 
@@ -132,7 +134,7 @@ Decided 2026-10-30 (DEC-09 detail).
 | 2 | **Resolved 2026-10-30 (product owner chose to fix it):** a recruitment hire (`RecruitmentHiringConversionService`) now starts the journey too, right after its contract. Their login account is still created by HR from the hire page, so the account step shows "no login account yet" until then. | Done |
 | 3 | **Fixed 2026-10-30:** auto-renewed contracts now get their leave balances (§3.2). Older ones need `leaves:backfill`. | Done (backfill: Ops) |
 | 4 | Journeys are not a work-inbox source (C3-D) and have no dashboard tile. | Next increment |
-| 5 | Weekly sweep does not cover "last contract ended" (§3.3 E6′); deactivation stays manual. Keep, or change by decision. | Product owner |
+| 5 | **Resolved 2026-10-30 (DEC-09 increment 2, built):** "last contract ended" is now deactivated automatically after a 7-day grace period (§3.3 E6″); the weekly sweep is unchanged. | Done |
 
 ## 8. Acceptance criteria
 

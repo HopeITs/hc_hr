@@ -335,6 +335,15 @@ return [
             'confirmUndo' => 'contracts.update',
             'undo' => 'contracts.update',
         ],
+        // DEC-09 increment 2: the exit journey's one own step (the optional
+        // exit interview) and its undo. Each method re-runs
+        // EmployeePolicy::update (HR for the volunteer's city) before
+        // OffboardingJourneys writes and logs it.
+        'employee.offboarding-journey-panel' => [
+            'markExitInterviewHeld' => 'employees.update',
+            'confirmReopen' => 'employees.update',
+            'reopen' => 'employees.update',
+        ],
         // B4: opens the read-only drawer; the method re-runs EmployeePolicy::view and
         // ::viewDirectory on the record inside the active city scope.
         'employee.employee-drawer' => ['open' => 'employees.view'],
@@ -927,6 +936,8 @@ return [
         'employee.onboarding-journey-panel' => ['refreshJourney'],
         // refreshJourneys only re-renders the renewal panel after the edit page saves.
         'employee.renewal-journey-panel' => ['refreshJourneys'],
+        // refreshJourney only re-renders the exit panel after the edit page saves.
+        'employee.offboarding-journey-panel' => ['refreshJourney'],
         // toggleVacancies only flips whether empty positions are drawn and
         // rebuilds the same tree; vacant positions hold no person's data.
         'position.org-chart' => [

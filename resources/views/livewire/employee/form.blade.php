@@ -52,6 +52,7 @@
         @if (auth()->user()?->activeRoleIs('HR') && auth()->user()?->hasActivePermission('contracts.update'))
             <livewire:employee.renewal-journey-panel :employee="$employee" :key="'renewal-journey-'.$employee->id" />
         @endif
+        <livewire:employee.offboarding-journey-panel :employee="$employee" :key="'exit-journey-'.$employee->id" />
     @endunless
 
     @php
