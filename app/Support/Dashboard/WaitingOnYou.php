@@ -55,13 +55,13 @@ class WaitingOnYou
     }
 
     /**
-     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int}}
+     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int, journey: int}}
      */
     public function inbox(User $user): array
     {
         return $this->inbox->hasSources($user)
             ? $this->inbox->shared($user)
-            : ['rows' => collect(), 'counts' => ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0]];
+            : ['rows' => collect(), 'counts' => ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0, 'journey' => 0]];
     }
 
     /**
@@ -160,6 +160,8 @@ class WaitingOnYou
         return [
             'key' => $row['key'],
             'action' => $row['action'],
+            // What the row is, in words: a journey row names itself (journey_inbox.*).
+            'label' => $row['label'] ?? __('inbox.action.'.$row['action']),
             'name' => (string) ($row['subject']?->name ?? ''),
             'what' => $row['source'] === 'leave' ? $row['leave_type'] : $row['item'],
             'city' => $row['city'] ?? null,

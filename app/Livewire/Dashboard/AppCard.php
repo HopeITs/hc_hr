@@ -70,7 +70,7 @@ class AppCard extends Component
                     'unit' => trans_choice('dashboard.app-card.in-inbox', $counts['all']),
                     'rows' => $rows->take(self::ROWS)->map(fn (array $row) => [
                         't' => (string) ($row['subject']?->name ?? ''),
-                        's' => __('inbox.action.'.$row['action']),
+                        's' => $row['label'] ?? __('inbox.action.'.$row['action']),
                         'href' => route('inbox', ['open' => $row['key']]),
                     ])->values()->all(),
                     'empty' => __('dashboard.app-card.inbox-empty'),

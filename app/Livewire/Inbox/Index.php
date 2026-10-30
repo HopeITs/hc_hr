@@ -41,7 +41,7 @@ class Index extends Component
 
     public LeaveRequestForm $form;
 
-    /** all | decide | review | checklist */
+    /** all | decide | review | checklist | profile | journey */
     #[Url(as: 'show', except: 'all')]
     public string $filter = 'all';
 
@@ -62,7 +62,7 @@ class Index extends Component
 
     public function setFilter(string $filter): void
     {
-        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist', 'profile'], true) ? $filter : 'all';
+        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist', 'profile', 'journey'], true) ? $filter : 'all';
     }
 
     // --- S1 leave decision ------------------------------------------------
@@ -259,7 +259,7 @@ class Index extends Component
         } catch (Throwable $e) {
             report($e);
             $rows = collect();
-            $counts = ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0];
+            $counts = ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0, 'journey' => 0];
             $failed = true;
         }
 
@@ -268,6 +268,8 @@ class Index extends Component
             'review' => $rows->where('action', 'review'),
             'checklist' => $rows->where('source', 'checklist'),
             'profile' => $rows->where('source', 'profile'),
+            // Employee journeys (onboarding, renewal, exit): listed, opened on the employee page.
+            'journey' => $rows->where('action', 'journey'),
             default => $rows,
         };
 

@@ -16,7 +16,7 @@
 
     {{-- Filters with the same counts as the menu badge. --}}
     <div role="group" aria-label="{{ __('inbox.filter.label') }}" class="mb-4 flex flex-wrap gap-2">
-        @foreach (['all', 'decide', 'review', 'checklist', 'profile'] as $key)
+        @foreach (['all', 'decide', 'review', 'checklist', 'profile', 'journey'] as $key)
             @if ($key === 'all' || $counts[$key] > 0 || $filter === $key)
                 <button type="button" wire:click="setFilter('{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
                         data-testid="inbox-filter-{{ $key }}"
@@ -25,7 +25,7 @@
                             'border-ink bg-surface text-ink' => $filter === $key,
                             'border-line bg-card text-ink hover:bg-hover' => $filter !== $key,
                         ])>
-                    {{ __("inbox.filter.{$key}") }}
+                    {{ $key === 'journey' ? __('journey_inbox.filter') : __("inbox.filter.{$key}") }}
                     <span @class(['rounded-full px-2 text-caption', 'bg-card' => $filter === $key, 'bg-surface' => $filter !== $key])>{{ $counts[$key] }}</span>
                 </button>
             @endif
@@ -88,12 +88,12 @@
                                 @endif
                             </p>
                             <p class="text-small text-ink-2">
-                                <span class="font-semibold text-ink">{{ __("inbox.action.{$row['action']}") }}</span>
+                                <span class="font-semibold text-ink">{{ $row['label'] ?? __("inbox.action.{$row['action']}") }}</span>
                                 @if ($row['source'] === 'leave')
                                     · <bdi>{{ $row['leave_type'] }}</bdi>
                                     · <bdi dir="ltr">{{ $row['type'] === 'hour' ? $row['start_at']?->format('d-m-Y H:i').'–'.$row['end_at']?->format('H:i') : $row['start_at']?->format('d-m-Y').($row['end_at'] && ! $row['start_at']->isSameDay($row['end_at']) ? ' – '.$row['end_at']->format('d-m-Y') : '') }}</bdi>
                                     · <bdi>{{ $row['duration'] }}</bdi>
-                                @else
+                                @elseif ($row['action'] !== 'journey')
                                     · <bdi>{{ $row['item'] }}</bdi>
                                 @endif
                             </p>
@@ -170,6 +170,9 @@
                         @elseif ($row['source'] === 'profile')
                             {{-- D1: what the employee proposed, so HR approves what it has seen. --}}
                             @include('livewire.inbox.partials.profile-change', ['row' => $row, 'slug' => $slug])
+                        @elseif ($row['action'] === 'journey')
+                            {{-- DEC-09 increment 2: listed only; the journey acts on the employee page. --}}
+                            @include('livewire.inbox.partials.journey', ['row' => $row])
                         @elseif ($row['action'] === 'finalize')
                             <x-button wire:click="finalizeItem({{ \Illuminate\Support\Js::from($row['key']) }})">{{ __('inbox.checklist.finalize') }}</x-button>
                         @else

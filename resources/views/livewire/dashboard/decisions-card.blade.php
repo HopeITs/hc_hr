@@ -113,7 +113,7 @@
                                 <a href="{{ $item['url'] }}" wire:navigate>
                                     <span class="min-w-0">
                                         <span class="block truncate font-medium text-ink" dir="auto">{{ $item['name'] }}</span>
-                                        <span class="block truncate text-caption text-ink-2">{{ __('inbox.action.'.$item['action']) }}@if ($item['what']) · <span dir="auto">{{ $item['what'] }}</span>@endif</span>
+                                        <span class="block truncate text-caption text-ink-2">{{ $item['label'] ?? __('inbox.action.'.$item['action']) }}@if ($item['what']) · <span dir="auto">{{ $item['what'] }}</span>@endif</span>
                                     </span>
                                     <x-ic name="chevron" class="hc-inbox-go rtl:rotate-180" aria-hidden="true" />
                                 </a>
