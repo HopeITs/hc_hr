@@ -2,21 +2,19 @@
     {{ __('auth.sign-in') }}
 </x-slot:title>
 
-<section class="min-h-[86.7dvh]  rtl:text-right bg-surface flex items-center justify-center px-4">
-    <x-auth-card-wrapper>
+<section class="flex min-h-[86.7dvh] items-center justify-center bg-surface px-4 py-10 rtl:text-right">
+    <div class="w-full max-w-[26rem]">
 
-        <div class="mb-6 text-center">
-            <x-app-logo class="mx-auto w-[207px]" />
-        </div>
+        <x-app-logo class="mx-auto mb-8 w-[200px]" />
 
-        <x-auth-card class="space-y-6 w-full max-w-96">
+        <x-auth-card class="w-full border border-line-soft p-6 sm:p-9">
 
-            <div class="space-y-1 text-center">
-                <h1 class="text-2xl font-bold text-ink">{{ __('auth.sign-in') }}</h1>
-                <p class="text-sm text-ink-2">{{ __('auth.sign-in-text') }}</p>
-            </div>
+            <header class="mb-7 text-center">
+                <h1 class="text-[1.75rem] leading-tight font-extrabold text-balance text-ink">{{ __('auth.sign-in') }}</h1>
+                <p class="mt-2 text-small text-ink-2">{{ __('auth.sign-in-text') }}</p>
+            </header>
 
-            <x-auth-session-status class="mb-2 text-center text-body" :status="session('status')" />
+            <x-auth-session-status class="mb-5" :status="session('status')" />
 
             <form
                 x-data
@@ -25,7 +23,7 @@
                     $wire.set('password', document.getElementById('password').value, false);
                     $wire.login()
                 "
-                class="space-y-4"
+                class="space-y-5"
             >
 
                 <div>
@@ -38,6 +36,7 @@
                         wire:model.live.debounce.500ms="email"
                         placeholder="email@example.com"
                         autocomplete="email"
+                        dir="ltr"
                     />
 
                     <x-forms.input-error field="email" input-id="email" />
@@ -57,25 +56,35 @@
                     <x-forms.input-error field="password" input-id="password" />
                 </div>
 
-                <div class="flex items-center justify-between text-body text-ink-2">
-                    <x-forms.checkbox-input type="checkbox" id="remember" wire:model="remember">
-                    {{ __('auth.remember-me') }}
-                    </x-forms.checkbox-input>
+                {{-- Wraps onto two lines on a narrow phone instead of running the two labels together. --}}
+                <div class="flex flex-wrap items-center justify-between gap-x-4">
+                    <x-forms.input
+                        type="checkbox"
+                        id="remember"
+                        wire:model="remember"
+                        label-class="text-small font-medium text-ink-2"
+                    >
+                        {{ __('auth.remember-me') }}
+                    </x-forms.input>
 
                     @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" wire:navigate class="font-semibold text-ink underline underline-offset-4 hover:no-underline">
+                        <a
+                            href="{{ route('password.request') }}"
+                            wire:navigate
+                            class="inline-flex min-h-11 items-center text-small font-semibold text-ink underline decoration-line underline-offset-4 hover:decoration-ink"
+                        >
                             {{ __('auth.forgot-password') }}
                         </a>
                     @endif
                 </div>
-                <x-primary-button class="w-full">
+
+                <x-primary-button full class="justify-center">
                     {{ __('auth.sign-in') }}
                 </x-primary-button>
-
 
             </form>
 
         </x-auth-card>
 
-    </x-auth-card-wrapper>
+    </div>
 </section>
