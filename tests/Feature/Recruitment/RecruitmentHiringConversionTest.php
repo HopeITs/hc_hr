@@ -25,6 +25,7 @@ use App\Models\Employee;
 use App\Models\HiringCampaign;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\OnboardingJourney;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentApplicationDecision;
 use App\Models\RecruitmentHiringConversion as Conversion;
@@ -160,6 +161,10 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertStringNotContainsString('1500', (string) DB::table('contracts')->where('id', $contract->id)->value('salary'), 'Encrypted at rest, like every contract.');
         $this->assertGreaterThan(0, LeaveBalance::query()->where('contract_id', $contract->id)->count(), 'Leave balances, as the contract page creates them.');
         $this->assertSame(1, $position->fresh()->exist_emp);
+
+        // D4-I: the hire starts the onboarding journey, due 14 days after the start.
+        $journey = OnboardingJourney::query()->where('employee_id', $employee->id)->sole();
+        $this->assertSame([$contract->id, '2026-11-15'], [$journey->contract_id, $journey->orientation_due_on->toDateString()]);
 
         // The vacancy needed one person: it is filled, and its campaign closed.
         $vacancy = $offer->vacancy->fresh();
@@ -598,6 +603,7 @@ class RecruitmentHiringConversionTest extends TestCase
         ]);
         $this->assertSame(1, $conversion->fresh()->attempt_count);
         $this->assertSame(1, Activity::query()->where('description', 'recruitment_hiring_conversion.converted')->count());
+        $this->assertSame(1, OnboardingJourney::query()->count(), 'One onboarding journey, however often the hire is retried.');
 
         // The hire page shows what was done instead of the form.
         $this->actingAs($this->hr);

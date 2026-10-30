@@ -127,7 +127,7 @@ Decided 2026-10-30 (DEC-09 detail).
 | # | Item | Owner |
 |---|---|---|
 | 1 | Early termination may not free the position seat (§3.3 E4). Source reading only; needs a test before it is called a defect. | Backend |
-| 2 | Volunteers hired through the recruitment conversion (`RecruitmentHiringConversionService`) are created **already active**, so `EmployeeActivation` never starts their journey. Decide whether they should get one. | Product owner + backend |
+| 2 | **Resolved 2026-10-30 (product owner chose to fix it):** a recruitment hire (`RecruitmentHiringConversionService`) now starts the journey too, right after its contract. Their login account is still created by HR from the hire page, so the account step shows "no login account yet" until then. | Done |
 | 3 | Auto-renewed contracts and leave balances (§3.2). | Backend |
 | 4 | Journeys are not a work-inbox source (C3-D) and have no dashboard tile. | Next increment |
 | 5 | Weekly sweep does not cover "last contract ended" (§3.3 E6′); deactivation stays manual. Keep, or change by decision. | Product owner |

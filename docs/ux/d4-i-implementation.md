@@ -112,7 +112,7 @@ Known gap: if the account was missing (work email taken) and HR creates it later
 | 1 | No work-inbox item or dashboard tile for journeys yet; HR finds them on the employee page and through the reminder. | Next increment |
 | 2 | No "Onboarding" view in the employee list (who is mid-journey, who is late). | Next increment |
 | 3 | Browser check not done (EN/AR, desktop/phone, keyboard, screen reader). | QA |
-| 4 | Recruitment conversions create employees already active, so they get no journey (journeys.md §7 #2). | Product owner + backend |
+| 4 | **Fixed 2026-10-30:** a recruitment hire now starts the journey (`RecruitmentHiringConversionService::run`, after the contract), and `RecruitmentHiringConversionTest` asserts one journey even across retries. Not run yet: PHP 8.5 needed. | Done (untested) |
 | 5 | A journey stays visible after the volunteer is deactivated; the card step then shows Blocked and no reminder is sent. Acceptable for now; revisit with the exit journey. | Product owner |
 | 6 | A backdated first contract can start a journey that is already Late; the one reminder then goes out at the next run. | Product owner (accept or set a floor) |
 | 7 | Renewal and exit journeys deferred ([journeys.md](journeys.md) §5). | Product owner |

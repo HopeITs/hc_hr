@@ -114,6 +114,7 @@ class RecruitmentHiringConversionService
         private readonly HiringCampaignService $campaigns,
         private readonly HiringCampaignStateMachine $campaignStates,
         private readonly LeaveBalanceService $leaveBalances,
+        private readonly OnboardingJourneys $onboarding,
     ) {}
 
     /**
@@ -353,6 +354,11 @@ class RecruitmentHiringConversionService
         $contract = new Contract($this->contractAttributes($employee, $offer, $version, $sessionDuration));
         $contract->save();
         $this->leaveBalances->create($contract);
+
+        // D4-I: a hire is a first contract like any other, so it starts the
+        // onboarding journey (card, orientation). Someone hired back who
+        // already had a real contract gets none, as on the contract page.
+        $this->onboarding->startForContract($employee, $contract);
 
         [$vacancyStatus, $campaignsClosed, $campaignsLeftOpen] = $this->fillSeat($actor, $vacancy);
 

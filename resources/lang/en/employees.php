@@ -103,7 +103,7 @@ return [
             'problem' => 'Blocked',
         ],
         'open-contract' => 'Open contract',
-        'account-missing' => 'No account was created: the work email from the username is already in use. Create the account from Access Management.',
+        'account-missing' => 'No login account yet. Volunteers hired through recruitment get theirs from HR, and a contract whose work email was already in use creates none. Create it from Access Management.',
         'card-not-valid' => 'The digital card is not valid yet (inactive or disabled). Check it on the profile page.',
         'card-help' => 'The digital card works. Print it and hand it to the volunteer, then mark it here.',
         'card-action' => 'Card printed and handed over',
