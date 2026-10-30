@@ -2,7 +2,7 @@
     {{ __('auth.reset-password') }}
 </x-slot:title>
 
-<section class="min-h-[90dvh] rtl:text-right bg-neutral-100 flex items-center justify-center px-4">
+<section class="min-h-[90dvh] rtl:text-right bg-surface flex items-center justify-center px-4">
     <x-auth-card-wrapper>
 
         {{-- Logo --}}
@@ -13,8 +13,8 @@
         {{-- Reset Password Card --}}
         <x-auth-card class="w-96 space-y-6">
             <div class="text-center space-y-1">
-                <h2 class="text-h3 font-bold text-neutral-900">{{ __('auth.reset-password') }}</h2>
-                <p class="text-body text-secondary-medium">
+                <h2 class="text-h3 font-bold text-ink">{{ __('auth.reset-password') }}</h2>
+                <p class="text-body text-ink-2">
                     {{ __('auth.reset-password-text') }}
                 </p>
             </div>
@@ -41,14 +41,14 @@
 
                     {{-- Password Strength Bar --}}
                     <div class="flex mt-2 gap-2" id="passwordStrengthBar">
-                        <span class="w-1/4 h-[5px] rounded bg-neutral-200"></span>
-                        <span class="w-1/4 h-[5px] rounded bg-neutral-200"></span>
-                        <span class="w-1/4 h-[5px] rounded bg-neutral-200"></span>
-                        <span class="w-1/4 h-[5px] rounded bg-neutral-200"></span>
+                        <span class="w-1/4 h-[5px] rounded bg-surface"></span>
+                        <span class="w-1/4 h-[5px] rounded bg-surface"></span>
+                        <span class="w-1/4 h-[5px] rounded bg-surface"></span>
+                        <span class="w-1/4 h-[5px] rounded bg-surface"></span>
                     </div>
 
                     {{-- Hint --}}
-                    <p class="text-small text-secondary-medium mt-1">
+                    <p class="text-small text-ink-2 mt-1">
                         {{ __('auth.password-text') }}
                     </p>
 

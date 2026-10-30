@@ -2,7 +2,7 @@
     {{ __('auth.forgot-password') }}
 </x-slot:title>
 
-<section class="min-h-[90dvh] rtl:text-right bg-neutral-100 flex items-center justify-center px-4">
+<section class="min-h-[90dvh] rtl:text-right bg-surface flex items-center justify-center px-4">
     <x-auth-card-wrapper>
 
         {{-- Logo --}}
@@ -14,8 +14,8 @@
         <x-auth-card class="w-96 space-y-6">
             {{-- Title --}}
             <div class="text-center space-y-1">
-                <h2 class="text-h3 font-bold text-neutral-900">{{ __('auth.forgot-password') }}</h2>
-                <p class="text-body text-secondary-medium">
+                <h2 class="text-h3 font-bold text-ink">{{ __('auth.forgot-password') }}</h2>
+                <p class="text-body text-ink-2">
                     {{ __('auth.forgot-password-text') }}
                 </p>
             </div>
@@ -46,9 +46,9 @@
         </x-auth-card>
 
         {{-- Back to Login --}}
-        <div class="text-center text-secondary-medium text-body mt-6">
+        <div class="text-center text-ink-2 text-body mt-6">
             {{ __('auth.back-to') }}
-            <a href="{{ route('login') }}" wire:navigate class="text-primary hover:underline">
+            <a href="{{ route('login') }}" wire:navigate class="font-semibold text-ink underline underline-offset-4 hover:no-underline">
                 {{ __('auth.sign-in') }}
             </a>
         </div>

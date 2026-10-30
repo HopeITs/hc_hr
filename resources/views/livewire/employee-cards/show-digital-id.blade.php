@@ -12,15 +12,18 @@
 <div class="digital-id-page">
     <style>
         .digital-id-page {
-            --id-primary: var(--color-primary, #BE1F24);
-            --id-black: var(--color-black, #414042);
-            --id-icon: #414042;
+            --id-primary: var(--color-primary);
+            /* The card is a replica of the printed card: it keeps its white face and
+               light-theme ink in both themes. Only the page around it follows the theme. */
+            --id-card: #FFFFFF;
+            --id-ink: #414042;
+            --id-line: #BCBEC0;
             --id-card-width: min(88vw, 21rem, 43dvh);
             min-height: 100vh;
             min-height: 100dvh;
             padding: clamp(0.5rem, 1.5dvh, 1rem) 1rem;
-            color: var(--id-black);
-            background: #ffffff;
+            color: var(--color-ink);
+            background: var(--color-base);
             font-family: 'SomarSans', 'Lato', sans-serif;
             display: flex;
             align-items: center;
@@ -48,7 +51,8 @@
             min-height: 0;
             overflow: hidden;
             border-radius: calc(var(--id-card-width) * 0.095);
-            background: #ffffff;
+            color: var(--id-ink);
+            background: var(--id-card);
             box-shadow: 0 calc(var(--id-card-width) * 0.04) calc(var(--id-card-width) * 0.08) rgb(65 64 66 / 22%);
             container-type: inline-size;
         }
@@ -57,7 +61,7 @@
             position: relative;
             flex: 0 0 44%;
             overflow: hidden;
-            background: #ffffff;
+            background: var(--id-card);
         }
 
         .digital-id-photo-bar {
@@ -105,7 +109,7 @@
         .digital-id-position {
             max-width: 100%;
             margin-top: 2.8cqw;
-            color: var(--id-black);
+            color: var(--id-ink);
             font-size: clamp(0.78rem, 6.8cqw, 1.36rem);
             font-weight: 700;
             line-height: 1.02;
@@ -115,7 +119,7 @@
         .digital-id-center {
             max-width: 100%;
             margin-top: 1cqw;
-            color: var(--id-black);
+            color: var(--id-ink);
             font-size: clamp(0.58rem, 4.9cqw, 0.98rem);
             font-weight: 700;
             line-height: 1.05;
@@ -138,7 +142,7 @@
             width: 70%;
             height: max(1px, 0.45cqw);
             margin-top: 4.4cqw;
-            background: #bcbec0;
+            background: var(--id-line);
         }
 
         .digital-id-icons {
@@ -156,8 +160,8 @@
             align-items: center;
             justify-content: center;
             border-radius: 1.4cqw;
-            color: #ffffff;
-            background: var(--id-icon);
+            color: var(--id-card);
+            background: var(--id-ink);
             transition: transform 160ms ease, background-color 160ms ease;
         }
 
@@ -175,7 +179,7 @@
 
         .digital-id-emergency {
             margin-top: clamp(0.75rem, 2.1dvh, 1.25rem);
-            color: var(--id-black);
+            color: var(--color-ink);
             font-size: clamp(0.72rem, 3.8vw, 1rem);
             font-weight: 500;
             line-height: 1.2;
@@ -183,7 +187,7 @@
 
         .digital-id-emergency a,
         .digital-id-emergency strong {
-            color: var(--id-black);
+            color: var(--color-ink);
             font-size: clamp(0.8rem, 4.2vw, 1.08rem);
             font-weight: 700;
             text-decoration: none;
@@ -243,7 +247,7 @@
     </style>
 
     <main class="digital-id-wrap" aria-label="{{ __('digital_id.card.label') }}">
-        <img class="digital-id-logo" src="{{ asset('assets/img/001_HC.svg') }}" alt="Christian Hope Center">
+        <img class="digital-id-logo app-logo" src="{{ asset('assets/img/001_HC.svg') }}" alt="Christian Hope Center">
 
         <section class="digital-id-card">
             <div class="digital-id-photo-panel">
