@@ -45,10 +45,10 @@ class ContractObserver
 
         // A draft contract (a placeholder position/center reservation
         // created from the employee-create screen) does not claim a seat
-        // yet: no capacity check here, and created() below skips the
-        // matching inc(). The seat is claimed only when the draft is
-        // upgraded to a real type — see updating()/updated().
-        if ((int) $contract->type === ContractTypeEnum::Draft) {
+        // yet, and neither does one entered already inactive: no capacity
+        // check here, and created() below skips the matching inc(). A draft
+        // claims its seat when upgraded to a real type — see updating()/updated().
+        if (! $this->holdsSeat($contract->type, $contract->is_active)) {
             return;
         }
 
@@ -78,7 +78,7 @@ class ContractObserver
 
     public function created(Contract $contract): void
     {
-        if ((int) $contract->type === ContractTypeEnum::Draft) {
+        if (! $this->holdsSeat($contract->type, $contract->is_active)) {
             return;
         }
 
@@ -92,55 +92,32 @@ class ContractObserver
         }
     }
 
+    /**
+     * A write that makes this contract claim a seat it did not hold — a draft
+     * upgraded to a real type, a contract switched back on, an active one
+     * moved to another position — is checked against the capacity of the
+     * position it lands on, exactly as a new contract is. Releasing a seat, or
+     * keeping the one it holds, needs no check. updated() moves the counter.
+     */
     public function updating(Contract $contract): void
     {
-        // Upgrading a draft to a real type claims the seat now, exactly as
-        // if this were the contract's first creation: check capacity here,
-        // and updated() below applies the matching inc(). No decrement is
-        // needed on any "old" position, because a draft never incremented
-        // one in the first place.
-        if ($this->isUpgradingFromDraft($contract)) {
-            $pos = Position::query()
-                ->whereKey($contract->position_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        $claimId = $this->seatMove($contract)['claim'];
 
-            if (! $pos->canAssign()) {
-                throw ValidationException::withMessages([
-                    'form.position_id' => __('contracts.errors.position-full'),
-                ]);
-            }
-
+        if ($claimId === null) {
             return;
         }
 
-        // A contract that stays a draft carries no capacity bookkeeping at all.
-        if ((int) $contract->type === ContractTypeEnum::Draft) {
-            return;
-        }
-
-        if (! $contract->isDirty('position_id')) {
-            return;
-        }
-
-        $oldId = (int) $contract->getOriginal('position_id');
-        $newId = (int) $contract->position_id;
-
-        [$a, $b] = $oldId < $newId ? [$oldId, $newId] : [$newId, $oldId];
-
-        $locked = Position::query()
-            ->whereIn('id', [$a, $b])
+        $pos = Position::query()
+            ->whereKey($claimId)
             ->lockForUpdate()
-            ->get()
-            ->keyBy('id');
+            ->first();
 
-        $new = $locked[$newId] ?? null;
-        if (! $new) {
+        if (! $pos) {
             throw ValidationException::withMessages([
                 'form.position_id' => __('validation.exists', ['attribute' => 'position']),
             ]);
         }
-        if (! $new->canAssign()) {
+        if (! $pos->canAssign()) {
             throw ValidationException::withMessages([
                 'form.position_id' => __('contracts.errors.position-full'),
             ]);
@@ -167,60 +144,46 @@ class ContractObserver
             app(OffboardingJourneys::class)->startForDeparture($contract, $trigger, $actor instanceof User ? $actor : null);
         }
 
-        if ($this->wasUpgradedFromDraft($contract)) {
-            $pos = Position::query()
-                ->whereKey($contract->position_id)
-                ->lockForUpdate()
-                ->first();
+        // exist_emp counts the position's active, non-draft contracts. Every
+        // way a write can change that — a termination or the nightly
+        // deactivation switching is_active off (E4/R3), a reactivation, a
+        // draft upgraded, a move to another position — comes down to the
+        // seat it held before and the seat it holds now.
+        ['release' => $releaseId, 'claim' => $claimId] = $this->seatMove($contract);
 
-            if ($pos) {
-                $pos->inc();
-            }
-
+        if ($releaseId === null && $claimId === null) {
             return;
         }
-
-        if ((int) $contract->type === ContractTypeEnum::Draft) {
-            return;
-        }
-
-        if (! $contract->wasChanged('position_id')) {
-            return;
-        }
-
-        $oldId = (int) $contract->getOriginal('position_id');
-        $newId = (int) $contract->position_id;
-
-        [$a, $b] = $oldId < $newId ? [$oldId, $newId] : [$newId, $oldId];
 
         $locked = Position::query()
-            ->whereIn('id', [$a, $b])
+            ->whereIn('id', array_values(array_filter([$releaseId, $claimId], fn ($id) => $id !== null)))
+            ->orderBy('id')
             ->lockForUpdate()
             ->get()
             ->keyBy('id');
 
-        $old = $locked[$oldId] ?? null;
-        $new = $locked[$newId] ?? null;
-
-        if ($old) {
-            $old->dec();
+        if ($releaseId !== null) {
+            $locked->get($releaseId)?->dec();
         }
-        if ($new) {
-            $new->inc();
+        if ($claimId !== null) {
+            $locked->get($claimId)?->inc();
         }
     }
 
     public function deleted(Contract $contract): void
     {
         DB::transaction(function () use ($contract) {
+            // A draft or an inactive contract never held a seat to give back.
+            if (! $this->holdsSeat($contract->getOriginal('type'), $contract->getOriginal('is_active'))) {
+                return;
+            }
+
             $pos = Position::query()
-                ->whereKey($contract->position_id)
+                ->whereKey($contract->getOriginal('position_id'))
                 ->lockForUpdate()
                 ->first();
 
-            if ($pos && $pos->exist_emp > 0) {
-                $pos->decrement('exist_emp');
-            }
+            $pos?->dec();
         });
 
         StatisticsCache::flush();
@@ -256,18 +219,36 @@ class ContractObserver
         return null;
     }
 
-    /** Is $contract's pending write the transition from Draft to a real type? */
-    private function isUpgradingFromDraft(Contract $contract): bool
+    /**
+     * Does a contract of this type and active flag hold a seat on its
+     * position? A draft never does; anything else does while it is active.
+     * An unset flag is the column default (true): a contract created without
+     * one is active, and was counted by created().
+     */
+    private function holdsSeat(mixed $type, mixed $isActive): bool
     {
-        return (int) $contract->getOriginal('type') === ContractTypeEnum::Draft
-            && (int) $contract->type !== ContractTypeEnum::Draft;
+        return (int) $type !== ContractTypeEnum::Draft && ($isActive === null || (bool) $isActive);
     }
 
-    /** Did the write that just completed transition $contract from Draft to a real type? */
-    private function wasUpgradedFromDraft(Contract $contract): bool
+    /**
+     * The seat $contract's pending (updating) or just-completed (updated)
+     * write gives up and the one it takes, as position ids; null for neither.
+     * getOriginal() still holds the stored row in both hooks.
+     *
+     * @return array{release: ?int, claim: ?int}
+     */
+    private function seatMove(Contract $contract): array
     {
-        return $contract->wasChanged('type')
-            && (int) $contract->getOriginal('type') === ContractTypeEnum::Draft
-            && (int) $contract->type !== ContractTypeEnum::Draft;
+        $held = $this->holdsSeat($contract->getOriginal('type'), $contract->getOriginal('is_active'));
+        $holds = $this->holdsSeat($contract->type, $contract->is_active);
+
+        $oldId = (int) $contract->getOriginal('position_id');
+        $newId = (int) $contract->position_id;
+        $samePosition = $oldId === $newId;
+
+        return [
+            'release' => $held && (! $holds || ! $samePosition) ? $oldId : null,
+            'claim' => $holds && (! $held || ! $samePosition) ? $newId : null,
+        ];
     }
 }
