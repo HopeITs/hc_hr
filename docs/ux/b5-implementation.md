@@ -178,7 +178,7 @@ The first contract activating an account was verified by tests (§4), not throug
 |---|---|---|
 | 1 | **Decided 2026-10-23 (product owner, for HR):** an "awaiting contract" volunteer is **not** activated by hand; only the first contract activates them (B5D-Q4). This also covers older inactive records that never had a contract: they are offered in the contract composer instead. Former staff keep the toggle. | Done |
 | 2 | **Decided 2026-10-23 (product owner, for HR):** the composer offers active staff plus everyone awaiting a first contract (new volunteers and older records without one). Never drafts; former staff are re-activated first, as before. | Done |
-| 3 | Phase 2 autosave (B5D-Q10) not built; it was decided for a later step | later task |
+| 3 | **Phase 2 autosave (B5D-Q10): built 2026-10-30**, see §8. Server-side only, never browser storage. Not yet checked in a browser or run through the suite on PHP 8.5 (§8.5). | QA |
 | 4 | Live migration not run; run with the deploy only after authorization. Additive and reversible (§4 pilot). | Tech lead |
 | 5 | National-number uniqueness at the database level is missing (found in B2, separate task); validation still refuses duplicates | Backend |
 | 6 | Phone checks were in an emulated viewport. Clicks did not always register there, so some buttons were pressed with the keyboard. No real device, no screen reader. | QA / M1 |
@@ -193,3 +193,61 @@ The first contract activating an account was verified by tests (§4), not throug
 | **AC-B5-03** Existing active/inactive employees and contract draft upgrades retain their expected behavior. | **Met** | §2.5–2.6, §5; tests; full suite green; migration pilot forward/back/forward |
 
 **Formal review (QA engineer + technical lead): pending.** B5 is **not** marked done.
+
+## 8. Phase 2: server-side autosave (DEC-04, B5D-Q10)
+
+Date: 2026-10-30. Decision: [employee-lifecycle.md §5.6](employee-lifecycle.md), B5D-Q10, DEC-04 in [decisions.md](decisions.md).
+
+### 8.1 What it does
+
+| Rule (§5.6) | How |
+|---|---|
+| Server-side, debounced on a field or section change | `resources/js/employee-autosave.js` watches `infoForm` and calls the component's `autosaveDraft()` **2.5 s** after the last change, at once on a section (tab) change, and when the browser tab is hidden. One request at a time; whatever changed meanwhile is sent right after. |
+| Only after the draft minimum is valid | The browser asks only once the 8 names, governorate, national ID and username are filled in. The server then runs **the same draft rules as "Save draft"** (`PersonalInfoForm::saveDraft()`): governorate in scope, national ID unique (and 11 digits if Syrian), username unique. If they fail it answers `incomplete`: nothing written, **no error added** (and errors an explicit save is showing are left as they were). |
+| Always the same row | Edit page: the draft being edited. Create page: the first autosave creates the draft through `saveRecord`'s path (same cache lock, same `#[Locked] submissionToken` key), so every later autosave, and a later "Save draft" or "Save", updates that row. An autosave that finds an explicit save holding the lock does not wait: it answers `busy` and the browser tries again. |
+| Same "Saved at hh:mm by …" | The status line in the onboarding panel (`partials/onboarding-status.blade.php`, `role="status"`, `aria-live="polite"`): **Saving…** / **Saved at hh:mm by {name}** / **Not saved yet: fill in names, governorate, national ID and username** (EN/AR in `employees.onboarding.autosave-*`). On a draft it starts with the stored "Saved {date, time} by {name}". |
+| Never browser storage | Nothing is written to `localStorage` or `sessionStorage`; the draft is in the database or nowhere. |
+| A complete record is never autosaved to draft | No status line, no autosave on a complete record. The server re-checks: a record that is no longer a draft (completed here, in another tab, or by a forged request) answers `complete` and nothing is written. |
+| Never completes or activates | Autosave only calls `saveDraft()`, which keeps `record_status = draft`, never takes `is_active` or `create_account` from the browser, and creates no account, reset email or card token. |
+| B2 leave guard | After a successful autosave the guard's baseline for `infoForm` becomes **what was sent** (`window.hcUnsaved.markSaved`), so leaving no longer asks; anything typed while the request was on its way still counts as unsaved. |
+
+### 8.2 Behaviour choices
+
+| Choice | Why |
+|---|---|
+| **The create page stays put after the first autosave.** No draft-position step, no redirect, no toast; the action is `#[Renderless]`, so nothing re-renders under the cursor. A link **"Open the saved draft for the other sections"** appears under the status line. | "Save draft" moves on (draft-position step, then the edit page) because the person asked to stop there. An autosave happens mid-typing: moving the page then would lose their place. The other sections need the edit page (their forms live on `EmployeeEdit`), so they stay locked on the create page and the link takes the person there when they choose; the B2 guard is already clean, so it asks nothing unless something is unsaved. |
+| Explicit "Save draft" / "Save" after an autosave | Unchanged: they update the autosaved row, then show the draft-position step as before. Autosave stops once the form has made way for that step. |
+| The photo is not autosaved | It is re-encoded and stored by an explicit save only (`saveDraft(withPhoto: false)`), not every few seconds. A picked photo therefore keeps the leave guard "unsaved" until Save draft or Save. |
+| Errors | Silent when the minimum fails. The app's existing per-field checks (`#[Validate]` on phones, e-mail, URLs, dates) still run on whatever a request carries, so a malformed phone number can show its error after an autosave, as it already did on a section change. |
+| The two save buttons became `<x-button>` | The legacy buttons went disabled on every request of the component; with autosave they flickered every pause and could swallow a click. `<x-button>` is busy only for its own action. |
+| Cancel on the create page | After an autosave the draft exists: Cancel leaves it, listed under Incomplete, where Discard deletes it. The status line says it was saved. |
+
+### 8.3 Security
+
+- **New action `autosaveDraft`** on `employee.employee-create` (`employees.create`) and `employee.employee-edit` (`employees.update`), classified in `config/access-control.php`. No new route.
+- **Re-authorized on every call:** create page, `employees.create`, then `Gate::authorize('update')` once the record exists; edit page, `Gate::authorize('update')` as `saveDraftRecord` does. Then `PersonalInfoForm::authorizeScope()` runs again inside the save. HR of another city gets 403. A governorate outside the officer's scope is "not saved yet" (part of the minimum), not a 403 while typing.
+- The response carries status, time, the saver's name and, on the create page, the draft's edit URL: nothing the page did not already show.
+
+### 8.4 Files
+
+- `app/Livewire/Concerns/AutosavesEmployeeDraft.php` (new): silent run and result.
+- `app/Livewire/Employee/EmployeeCreate.php`, `EmployeeEdit.php`: `autosaveDraft()`.
+- `app/Livewire/Forms/Employee/PersonalInfoForm.php`: `saveDraft(bool $withPhoto = true)`.
+- `resources/js/employee-autosave.js` (new), `resources/js/unsaved.js` (`markSaved`), `resources/js/app.js`.
+- `resources/views/livewire/employee/partials/onboarding-status.blade.php` (status line), `record-save-buttons.blade.php`, `form.blade.php` (sections stay locked on the create page).
+- `resources/lang/{en,ar}/employees.php` (`onboarding.autosave-*`, `sections-after-draft`).
+- `tests/Feature/EmployeeAutosaveTest.php` (new).
+
+### 8.5 Verification
+
+**Not run yet.** The build machine's CLI is PHP 8.3 and the framework needs 8.4+, so the tests were written and read through, linted (`php -l`, Pint, `node --check`), but not executed. Run on the dev machine (PHP 8.5):
+
+```bash
+php artisan test --filter='EmployeeAutosaveTest|EmployeeOnboardingTest|PhoneEmployeeContractFlowTest'
+composer test
+```
+
+`EmployeeAutosaveTest` covers: below the minimum writes nothing and shows no errors (also a taken national ID and an out-of-scope city); errors of an explicit save survive an autosave; the first valid autosave creates one draft and later ones (and a later Save draft) update that row, without redirect or toast; a draft's edit page updates that draft; a complete record is never autosaved (edit page, and a record completed on the create page even with a forged `showDraftPrompt`); HR of another city gets 403 (edit page, and on a draft the create page autosaved); no `employees.create` → 403; autosave never activates, never creates an account, sends nothing; `last_saved_by` is the autosaving officer; the status line shows on the create page until an explicit save.
+
+**Browser check still to do** (AR and EN, desktop and phone): type the minimum, pause, see Saving… then Saved at; keep typing during a save; switch section; leave the page (no question once saved); open the saved draft from the link; screen reader announces the status line once per save.
+
