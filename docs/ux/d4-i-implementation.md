@@ -94,14 +94,16 @@ B5 activation rules, contract composer, capacity checks, checklist workflow, dig
 
 | Item | Result |
 |---|---|
-| Test file(s) | _TBD_ |
-| D4-I tests | _TBD_ passed / _TBD_ failed |
-| Full suite | _TBD_ passed / _TBD_ failed (baseline: _TBD_) |
-| Pint | _TBD_ |
+| Test file(s) | `tests/Feature/OnboardingJourneyTest.php`, 19 tests |
+| D4-I tests | **Not run.** The cloud environment has PHP 8.3; the framework needs 8.4+ (Symfony property hooks). Run on PHP 8.5 before review. |
+| Full suite | **Not run** (same reason) |
+| Pint | `pint --test` passes on every new PHP file and the test |
 | Migration forward / back / forward on a synthetic copy | _not run_ |
 | Browser (EN/AR, desktop/phone) | **not done** |
 
-AC → tests mapping: _TBD_ (AC-D4-I-01 end-to-end slice; AC-D4-I-02 retry/no duplicates; AC-D4-I-03 city 403, audit log, undo).
+AC → tests mapping: AC-D4-I-01 first contract starts one journey (due +14 days), step states for draft / awaiting / started, completion and undo; AC-D4-I-02 retried activation, second contract and repeated actions write once, a Draft reservation starts nothing; AC-D4-I-03 another city's HR gets 403 on every action, causer recorded, no completion before the session date, no card while the digital card is invalid; reminder sent once to city HR only.
+
+Known gap: if the account was missing (work email taken) and HR creates it later from Access Management, `completed_at` is set only at the next journey action.
 
 ## 8. Open points and limits
 
