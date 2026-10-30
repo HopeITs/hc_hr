@@ -121,5 +121,5 @@ Coverage: deactivation only after the grace period (and from config); never with
 | 3 | A volunteer with two concurrent contracts: stopping auto-renew on one starts nothing while the other carries on; the journey starts from the daily run when the last one ends. | Accepted |
 | 4 | An unfinished journey (e.g. equipment never returned) shows as "called off" if the person is later re-hired. | Accepted |
 | 5 | Completion after an equipment return or a manual access fix is recorded at the next daily run or HR action, not instantly (the panel's step states are always live). | Accepted |
-| 6 | Termination seat question (journeys.md §7 #1) not addressed here. | Backend |
+| 6 | Termination seat question (journeys.md §7 #1): **fixed 2026-10-30** in `ContractObserver`; see there. | Done |
 | 7 | Browser check not done. | QA |
