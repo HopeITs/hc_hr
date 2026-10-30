@@ -139,5 +139,17 @@ Yes: make it installable (PWA) without offline caching of private data.
 ## DEC-09 — First lifecycle journey (settled 2026-10-16)
 Onboarding a new volunteer: draft → contract → login account → ID card → orientation session.
 
+### DEC-09 detail (2026-10-30, D4)
+Decided by the product owner for the first slice. Full record: [journeys.md](journeys.md) §6; built as D4-I ([d4-i-implementation.md](d4-i-implementation.md)).
+
+| Point | Decision |
+|---|---|
+| Orientation session | HR **sets a date**, then **marks it held**: the record is the date plus done / not done. |
+| Orientation owner | HR of the volunteer's **city**. |
+| ID card | The **digital card activates automatically** at the first contract. HR then marks **"printed card handed over"**. |
+| Orientation due date | **14 days after the first contract's start date**. |
+| Overdue | The step shows a red **"Late"** tag, and city HR gets **one** in-app reminder. |
+| Renewal and exit journeys | Not selected: only onboarding is in the first slice. They stay **deferred** as linked checklists; the next increment is named in journeys.md §5. |
+
 ## DEC-10 — Usage telemetry (settled 2026-10-16)
 Yes, anonymous: no names or personal data, stored on our own server only, deleted after 90 days.
