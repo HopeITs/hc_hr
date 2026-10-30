@@ -18,12 +18,12 @@
         title="{{ $title }}"
 
         class="nav-press cursor-pointer
-            group flex items-center w-full px-3 py-2 rounded-control
+            group flex items-center w-full min-h-11 px-3 py-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
             font-medium
 
             {{ $active
-                ? 'text-white font-semibold bg-primary'
-                : 'text-secondary-light hover:text-secondary-dark hover:bg-black/[0.03]' }}
+                ? 'text-ink font-semibold'
+                : 'text-ink-2 hover:text-ink hover:bg-hover' }}
         "
         :class="sidebarCollapsed && !open ? 'md:justify-center md:size-11 md:px-0 md:mx-auto' : ''"
     >
@@ -34,7 +34,7 @@
 
         {{-- Label --}}
         <span
-            class="flex-1 text-body text-left  ms-2 rtl:me-2 rtl:text-right whitespace-nowrap text-inherit group-hover:text-inherit"
+            class="flex-1 text-body text-start ms-2 whitespace-nowrap text-inherit group-hover:text-inherit"
             x-show="!sidebarCollapsed || open"
         >
             {{ $title }}

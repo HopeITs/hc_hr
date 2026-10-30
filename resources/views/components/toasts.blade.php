@@ -41,26 +41,26 @@
              x-transition:leave-end="opacity-0"
              data-testid="toast"
              :data-type="toast.type"
-             class="pointer-events-auto flex items-start gap-3 rounded-surface border border-s-4 border-neutral-200 bg-white p-3 shadow-e3"
+             class="pointer-events-auto flex items-start gap-3 rounded-surface border border-s-4 border-line-soft bg-card p-3 shadow-e3"
              :class="{
-                 'border-s-neutral-800': toast.type === 'success',
+                 'border-s-ink': toast.type === 'success',
                  'border-s-primary': toast.type === 'error',
-                 'border-s-secondary-light': toast.type === 'info',
+                 'border-s-line': toast.type === 'info',
              }">
             {{-- The icon tells the variants apart without relying on colour alone. --}}
             <span aria-hidden="true"
-                  class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-round text-white"
+                  class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-round"
                   :class="{
-                      'bg-neutral-800': toast.type === 'success',
-                      'bg-primary': toast.type === 'error',
-                      'bg-secondary-light': toast.type === 'info',
+                      'bg-ink text-on-ink': toast.type === 'success',
+                      'bg-primary text-on-brand': toast.type === 'error',
+                      'bg-surface text-ink': toast.type === 'info',
                   }">
                 <svg x-show="toast.type === 'success'" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                 <svg x-show="toast.type === 'error'" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v7M12 17.5v.5"/></svg>
                 <svg x-show="toast.type === 'info'" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 11v7M12 6v.5"/></svg>
             </span>
 
-            <p class="min-w-0 flex-1 py-0.5 text-body font-medium text-neutral-800">
+            <p class="min-w-0 flex-1 py-0.5 text-body font-medium text-ink">
                 <span class="sr-only"
                       x-text="@js([
                           'success' => __('general.toast.success'),
@@ -73,7 +73,7 @@
             <template x-if="toast.undo">
                 <button type="button"
                         x-on:click="$store.toasts.undo(toast.id)"
-                        class="shrink-0 rounded-control px-2 py-0.5 text-body font-semibold text-primary transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        class="shrink-0 rounded-control px-2 py-0.5 text-body font-semibold text-ink underline underline-offset-2 transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2">
                     {{ __('general.toast.undo') }}
                 </button>
             </template>
@@ -83,13 +83,13 @@
                 <button type="button"
                         x-on:click="$store.toasts.act(toast.id)"
                         x-text="toast.action.label"
-                        class="shrink-0 rounded-control px-2 py-0.5 text-body font-semibold text-primary transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"></button>
+                        class="shrink-0 rounded-control px-2 py-0.5 text-body font-semibold text-ink underline underline-offset-2 transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2"></button>
             </template>
 
             <button type="button"
                     x-on:click="$store.toasts.dismiss(toast.id)"
                     aria-label="{{ __('general.toast.dismiss') }}"
-                    class="-m-1 grid size-8 shrink-0 place-items-center rounded-control text-secondary-medium transition hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    class="-m-1 grid size-8 shrink-0 place-items-center rounded-control text-ink-2 transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2">
                 <svg aria-hidden="true" class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
         </div>

@@ -8,7 +8,7 @@
 --}}
 <div data-sheet-actions {{ $attributes->class([
     'flex justify-end gap-2 pt-4',
-    'sheet:mt-auto sheet:sticky sheet:bottom-0 sheet:z-10 sheet:-mx-4 sheet:border-t sheet:border-neutral-200 sheet:bg-white sheet:px-4 sheet:pt-3 sheet:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+    'sheet:mt-auto sheet:sticky sheet:bottom-0 sheet:z-10 sheet:-mx-4 sheet:border-t sheet:border-line-soft sheet:bg-card sheet:px-4 sheet:pt-3 sheet:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
     'sheet:[&>*]:flex-1',
 ]) }}>
     {{ $slot }}

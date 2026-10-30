@@ -1,21 +1,8 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-
-const chartPalette = () => {
-    const rootStyle = getComputedStyle(document.documentElement);
-
-    return [
-        rootStyle.getPropertyValue("--color-primary").trim(),
-        rootStyle.getPropertyValue("--color-secondary-dark").trim(),
-        rootStyle.getPropertyValue("--color-secondary-medium").trim(),
-        rootStyle.getPropertyValue("--color-secondary-light").trim(),
-        rootStyle.getPropertyValue("--color-secondary-soft").trim(),
-        rootStyle.getPropertyValue("--color-neutral-600").trim(),
-        rootStyle.getPropertyValue("--color-neutral-400").trim(),
-        rootStyle.getPropertyValue("--color-neutral-800").trim(),
-    ].map((color) => color || "#c2151c");
-};
+import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
+import { brandColors } from "./charts/brand-colors.js";
 
 // Read the Livewire-published globals on every call rather than once at module
 // evaluation. A module body runs a single time, so the previous top-level
@@ -24,12 +11,9 @@ const chartPalette = () => {
 const buildChartData = () => {
     const dynamicLabels = window.jobLevelLabels || [];
     const dynamicCounts = window.employeeCounts || [];
-    const palette = chartPalette();
-
     return dynamicLabels.map((label, index) => ({
         category: label,
         value: dynamicCounts[index],
-        color: am5.color(palette[index % palette.length]),
     }));
 };
 
@@ -48,7 +32,12 @@ export default function initJobLevelsChart() {
             .filter((r) => r.dom.id === "jobLevelsChart")
             .forEach((r) => r.dispose());
 
+        // One series, so one colour: ink bars, told apart by their axis labels.
+        // Re-read on every draw, so the light <-> dark redraw follows.
+        const brand = brandColors();
+
         const root = am5.Root.new("jobLevelsChart");
+        applyBrandInterfaceColors(root);
 
         root.setThemes([am5themes_Animated.new(root)]);
 
@@ -76,7 +65,7 @@ export default function initJobLevelsChart() {
         });
         yRenderer.labels.template.setAll({
             fontSize: 13,
-            fill: am5.color(0x333333),
+            fill: am5.color(brand.ink),
             oversizedBehavior: "wrap",
             textAlign: "left",
         });
@@ -118,8 +107,8 @@ export default function initJobLevelsChart() {
             cornerRadiusTR: 6,
             cornerRadiusBR: 6,
             strokeOpacity: 0,
+            fill: am5.color(brand.ink),
         });
-        series.columns.template.adapters.add("fill", (fill, target) => target.dataItem.dataContext.color);
 
         series.data.setAll(data);
 
@@ -128,7 +117,7 @@ export default function initJobLevelsChart() {
                 locationX: 0.5,
                 sprite: am5.Label.new(root, {
                     text: "{valueX}",
-                    fill: am5.color(0xffffff),
+                    fill: am5.color(brand.onInk),
                     centerY: am5.percent(50),
                     centerX: am5.percent(50),
                     fontSize: 13,

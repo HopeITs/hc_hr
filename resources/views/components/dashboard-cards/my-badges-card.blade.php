@@ -2,11 +2,12 @@
     $locale = app()->getLocale();
     $nameCol = "name_{$locale}";
 
+    // No hue per kind: the kind's name is written next to it. A warning keeps the red (it concerns the viewer).
     $badgeColors = [
-        'unknown' => 'text-[#58595B]',
-        'reward' => 'text-green-600',
+        'unknown' => 'text-ink-2',
+        'reward' => 'text-ink',
         'warning' => 'text-primary',
-        'bonus' => 'text-blue-600',
+        'bonus' => 'text-ink',
     ];
 
     $badgeTypes = [
@@ -17,7 +18,7 @@
     ];
 @endphp
 
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.badges-warnings')" :count="$myBadges->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/badges.svg') }}" alt="">
@@ -36,20 +37,20 @@
                 $colorClass = $badgeColors[strtolower($typeName)] ?? 'text-primary';
             @endphp
 
-            <div class="flex justify-between items-center pb-2 border-b border-b-secondary-light"
+            <div class="flex justify-between items-center pb-2 border-b border-b-line-soft"
                  wire:key="badge-{{ $badge->id }}">
 
-                <p class="text-[13px] font-bold uppercase {{ $colorClass }}">
+                <p class="text-small font-bold uppercase {{ $colorClass }}">
                     {{ $badge->reason ?: \App\Enums\BadgeSubtype::getLocalizedName($badge->subtype) }}
                 </p>
 
-                <span class="text-[11px] text-[#888]">
+                <span class="text-caption text-ink-2">
                     <bdi>{{ optional($badge->date)->format('d/m/Y') }}</bdi>
                 </span>
             </div>
         @empty
-            <div class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
-                <span class="text-[10.5px]">@lang('general.no-available-data')</span>
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
+                <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse
     </div>

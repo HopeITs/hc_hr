@@ -26,10 +26,10 @@
         <span><b>@lang('leave_quote.preview.projected'):</b> <bdi>{{ $projected }}</bdi></span>
     @endif
     @foreach($warnings as $warning)
-        <span class="text-amber-800">{{ $warning }}</span>
+        <span class="inline-flex items-center gap-1.5 font-semibold text-ink"><x-ic name="warning" class="size-4" />{{ $warning }}</span>
     @endforeach
     <span><b>@lang('general.reason'):</b> {{ $reason }}</span>
     @if($projected !== null)
-        <span class="text-sm text-neutral-600">@lang('leave_quote.preview.estimate')</span>
+        <span class="text-sm text-ink-2">@lang('leave_quote.preview.estimate')</span>
     @endif
 </div>

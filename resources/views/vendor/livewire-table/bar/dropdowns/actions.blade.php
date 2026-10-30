@@ -11,14 +11,14 @@
         <div class="flex flex-col" x-data="{ selected: @entangle('selected') }">
             @php($standaloneActions = $allActions->filter(fn ($action): bool => $action->isStandalone()))
             @if($standaloneActions->isNotEmpty())
-                <div class="flex flex-col border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+                <div class="flex flex-col border-b border-neutral-200 last:border-b-0">
                     <span
-                        class="px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+                        class="px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500">
                         @lang('Standalone Actions')
                     </span>
                     @foreach($standaloneActions as $standaloneAction)
                         @if($standaloneAction->callback() === null)
-                            <button class="px-3 py-1 text-left truncate hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                            <button class="px-3 py-1 text-left truncate hover:bg-neutral-100"
                                     x-on:click="
                                         {{ $standaloneAction->code() }}
                                         show = false
@@ -27,7 +27,7 @@
                                 {{ $standaloneAction->label() }}
                             </button>
                         @else
-                            <button class="px-3 py-1 text-left truncate hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                            <button class="px-3 py-1 text-left truncate hover:bg-neutral-100"
                                     wire:key="{{ $standaloneAction->code() }}"
                                     wire:click="executeAction('{{ $standaloneAction->code() }}')"
                                     x-on:click="show = false"
@@ -41,15 +41,15 @@
 
             @php($actions = $allActions->filter(fn ($action): bool => ! $action->isStandalone()))
             @if($actions->isNotEmpty())
-                <div class="flex flex-col border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+                <div class="flex flex-col border-b border-neutral-200 last:border-b-0">
                     <span
-                        class="px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+                        class="px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500">
                         @lang('Actions')
                     </span>
                     @foreach($actions as $action)
                         @if($action->callback() === null)
                             <button
-                                class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500 dark:hover:bg-neutral-700 dark:disabled:hover:bg-neutral-800"
+                                class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
                                 x-bind:disabled="selected.length === 0"
                                 x-on:click="
                                     {{ $action->code() }}
@@ -60,7 +60,7 @@
                             </button>
                         @else
                             <button
-                                class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500 dark:hover:bg-neutral-700 dark:disabled:hover:bg-neutral-800"
+                                class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
                                 x-bind:disabled="selected.length === 0"
                                 wire:key="{{ $action->code() }}"
                                 wire:click="executeAction('{{ $action->code() }}')"

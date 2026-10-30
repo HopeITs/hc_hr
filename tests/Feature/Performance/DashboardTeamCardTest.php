@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Performance;
 
-use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Dashboard\TeamCard;
 use App\Models\City;
 use App\Models\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +17,8 @@ use Tests\TestCase;
  * The dashboard team card used to render an <img> for every colleague at full
  * size, eagerly, whether or not the viewer could fetch that photo (each refusal
  * was a wasted 403). It now renders photos lazily at a reserved size, and only
- * for people the viewer may see.
+ * for people the viewer may see. Since prompt 4 the card is its own dashboard
+ * tile (TeamCard) instead of a section of Dashboard\Index.
  */
 class DashboardTeamCardTest extends TestCase
 {
@@ -42,7 +43,7 @@ class DashboardTeamCardTest extends TestCase
         $viewer = $this->viewer();
         $other = $this->colleague($this->homs, 'Hamsa');
 
-        $html = Livewire::actingAs($viewer)->test(DashboardIndex::class)->html();
+        $html = Livewire::actingAs($viewer)->test(TeamCard::class)->html();
 
         $this->assertStringContainsString($other->avatar_url, $html);
         $this->assertMatchesRegularExpression('/<img[^>]+loading="lazy"[^>]*>/', $html);
@@ -60,7 +61,7 @@ class DashboardTeamCardTest extends TestCase
         // Same ability the avatar endpoint enforces; refuse one person.
         Gate::before(fn ($user, $ability, $args) => $ability === 'viewAvatar' && ($args[0] ?? null)?->is($forbidden) ? false : null);
 
-        $html = Livewire::actingAs($viewer)->test(DashboardIndex::class)->html();
+        $html = Livewire::actingAs($viewer)->test(TeamCard::class)->html();
 
         $this->assertStringContainsString($allowed->avatar_url, $html);
         $this->assertStringNotContainsString(route('employees.avatar', ['employee' => $forbidden->id]), $html);
@@ -80,7 +81,7 @@ class DashboardTeamCardTest extends TestCase
         $count = function () use ($viewer): int {
             DB::flushQueryLog();
             DB::enableQueryLog();
-            Livewire::actingAs($viewer)->test(DashboardIndex::class);
+            Livewire::actingAs($viewer)->test(TeamCard::class);
 
             return count(DB::getQueryLog());
         };

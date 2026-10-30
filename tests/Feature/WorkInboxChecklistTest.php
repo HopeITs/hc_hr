@@ -193,10 +193,10 @@ class WorkInboxChecklistTest extends TestCase
         $this->item('Phone');
         app()->setLocale('en');
 
-        Livewire::actingAs($this->deliverer)->test(\App\Livewire\Dashboard\ForYouNow::class)
-            ->assertViewHas('parts', fn (array $parts) => ($parts['inbox-items']['count'] ?? null) === 2)
-            ->assertSee('2 items to hand over or take back')
-            ->assertDontSee(__('dashboard.for-you.empty'));
+        Livewire::actingAs($this->deliverer)->test(\App\Livewire\Dashboard\DecisionsCard::class)
+            ->assertViewHas('decisions', fn (array $decisions) => $decisions['others'] === 2 && count($decisions['items']) === 2)
+            ->assertSeeHtml('data-testid="work-inbox-items"')
+            ->assertSee('2 items to hand over or take back');
     }
 
     private function item(string $name, array $attributes = []): Checklist

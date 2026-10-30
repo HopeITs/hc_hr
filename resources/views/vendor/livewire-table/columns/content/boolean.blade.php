@@ -1,9 +1,10 @@
-<div class="px-3 py-2">
+{{-- Yes / no as an icon and a word (sr-only), not a coloured dot. --}}
+<div class="flex justify-center px-3 py-2 text-ink">
     @if($value === null)
-        <div class="mx-auto size-3 border-2 border-neutral-300 rounded-full"></div>
+        <span class="text-ink-3" aria-hidden="true">&mdash;</span>
     @elseif($value)
-        <div class="mx-auto size-3 border-2 border-green-500 rounded-full"></div>
+        <x-ic name="check" class="size-4" /><span class="sr-only">{{ __('general.yes') }}</span>
     @else
-        <div class="mx-auto size-3 border-2 border-red-500 rounded-full"></div>
+        <x-ic name="minus" class="size-4 text-ink-2" /><span class="sr-only">{{ __('general.no') }}</span>
     @endif
 </div>

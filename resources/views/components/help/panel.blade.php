@@ -41,7 +41,7 @@
          x-transition.opacity.duration.200ms
          x-on:click="close()"
          aria-hidden="true"
-         class="absolute inset-0 bg-neutral-900/40 motion-reduce:transition-none"></div>
+         class="absolute inset-0 bg-backdrop motion-reduce:transition-none"></div>
 
     {{-- tabindex="-1": a click on plain text inside keeps focus in the panel instead of dropping it to <body>. --}}
     <section x-show="open"
@@ -58,25 +58,25 @@
              aria-modal="true"
              aria-labelledby="help-panel-title"
              data-testid="help-panel"
-             class="absolute inset-y-0 end-0 flex w-full flex-col bg-white shadow-e3 focus:outline-none sm:w-[28rem] sm:max-w-[calc(100vw-2rem)]">
+             class="absolute inset-y-0 end-0 flex w-full flex-col bg-card shadow-e3 focus:outline-none sm:w-[28rem] sm:max-w-[calc(100vw-2rem)]">
 
-        <header class="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <h2 id="help-panel-title" class="text-h4 font-semibold text-neutral-900">{{ __('help.panel.title') }}</h2>
+        <header class="flex items-center justify-between gap-3 border-b border-line-soft px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <h2 id="help-panel-title" class="text-h4 font-semibold text-ink">{{ __('help.panel.title') }}</h2>
 
             <button type="button"
                     x-on:click="close()"
                     aria-label="{{ __('help.panel.close') }}"
-                    class="-me-2 grid size-11 shrink-0 place-items-center rounded-control text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none">
+                    class="-me-2 grid size-11 shrink-0 place-items-center rounded-control text-ink-3 transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none">
                 <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
                     <path d="M6 6l12 12M18 6L6 18"/>
                 </svg>
             </button>
         </header>
 
-        <div class="border-b border-neutral-100 px-4 py-3">
+        <div class="border-b border-line-soft px-4 py-3">
             <label for="help-panel-search" class="sr-only">{{ __('help.panel.search-label') }}</label>
             <div class="relative">
-                <svg class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-secondary-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                <svg class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
                     <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
                 </svg>
                 <input id="help-panel-search"
@@ -87,7 +87,7 @@
                        autocomplete="off"
                        enterkeyhint="search"
                        placeholder="{{ __('help.panel.search-placeholder') }}"
-                       class="block h-11 w-full rounded-control border border-neutral-300 bg-white ps-9 pe-3 text-body text-neutral-900 placeholder:text-secondary-light focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30">
+                       class="hc-field block ps-9 pe-3">
             </div>
             {{-- Spoken when the result count changes while typing. --}}
             <p class="sr-only" aria-live="polite" aria-atomic="true"
@@ -102,7 +102,7 @@
                     <div class="space-y-5">
                         <template x-if="pageTopics.length">
                             <section aria-labelledby="help-panel-page-heading">
-                                <h3 id="help-panel-page-heading" class="mb-2 text-caption font-semibold uppercase tracking-wide text-secondary-medium">{{ __('help.panel.on-this-page') }}</h3>
+                                <h3 id="help-panel-page-heading" class="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-2">{{ __('help.panel.on-this-page') }}</h3>
                                 <ul class="space-y-2">
                                     <template x-for="item in pageTopics" :key="item.key">
                                         <li>@include('components.help.partials.topic-link')</li>
@@ -113,7 +113,7 @@
 
                         <template x-if="otherTopics.length">
                             <section aria-labelledby="help-panel-other-heading">
-                                <h3 id="help-panel-other-heading" class="mb-2 text-caption font-semibold uppercase tracking-wide text-secondary-medium"
+                                <h3 id="help-panel-other-heading" class="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-2"
                                     x-text="pageTopics.length ? @js(__('help.panel.other-topics')) : @js(__('help.panel.all-topics'))"></h3>
                                 <ul class="space-y-2">
                                     <template x-for="item in otherTopics" :key="item.key">
@@ -132,7 +132,7 @@
                                 <li>@include('components.help.partials.topic-link')</li>
                             </template>
                         </ul>
-                        <p x-show="!results.length" class="rounded-control bg-neutral-50 px-3 py-4 text-body text-secondary-medium"
+                        <p x-show="!results.length" class="rounded-control bg-soft px-3 py-4 text-body text-ink-2"
                            x-text="@js(__('help.panel.no-results', ['query' => '__Q__'])).replace('__Q__', query.trim())"></p>
                     </div>
                 </template>
@@ -142,7 +142,7 @@
             <article x-show="active" aria-labelledby="help-panel-topic-title">
                 <button type="button"
                         x-on:click="back()"
-                        class="-ms-2 mb-3 inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-small font-semibold text-secondary-dark transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none">
+                        class="-ms-2 mb-3 inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-small font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none">
                     <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
@@ -150,14 +150,14 @@
                 </button>
 
                 <h3 id="help-panel-topic-title" x-ref="heading" tabindex="-1"
-                    class="text-h4 font-bold text-neutral-900 focus:outline-none"
+                    class="text-h4 font-bold text-ink focus:outline-none"
                     x-text="topic?.title"></h3>
-                <p class="mt-1.5 text-body text-secondary-medium" x-text="topic?.summary"></p>
+                <p class="mt-1.5 text-body text-ink-2" x-text="topic?.summary"></p>
 
                 <ul class="mt-4 space-y-3">
                     <template x-for="(point, i) in (topic?.points ?? [])" :key="i">
-                        <li class="flex gap-2.5 text-body leading-relaxed text-neutral-800">
-                            <span class="mt-2.5 size-1.5 shrink-0 rounded-round bg-primary" aria-hidden="true"></span>
+                        <li class="flex gap-2.5 text-body leading-relaxed text-ink">
+                            <span class="mt-2.5 size-1.5 shrink-0 rounded-round bg-ink-3" aria-hidden="true"></span>
                             <span x-text="point"></span>
                         </li>
                     </template>
@@ -165,7 +165,7 @@
             </article>
         </div>
 
-        <p class="border-t border-neutral-100 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-caption text-secondary-medium">
+        <p class="border-t border-line-soft px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-caption text-ink-2">
             {{ __('help.panel.stays-open') }}
         </p>
     </section>

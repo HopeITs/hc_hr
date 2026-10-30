@@ -76,19 +76,19 @@
             exactly as the desktop list shows them.
         --}}
         <div class="lg:hidden" data-employee-section-nav>
-            <label for="employee-section-select" class="mb-1 flex items-baseline justify-between text-small font-semibold text-secondary-medium">
+            <label for="employee-section-select" class="mb-1 flex items-baseline justify-between text-small font-semibold text-ink-2">
                 <span>@lang('mobile.section')</span>
                 <span class="font-normal" aria-live="polite">{{ $digits($currentIndex + 1) }} / {{ $digits(count($sections)) }}</span>
             </label>
             <select id="employee-section-select"
-                class="min-h-11 w-full rounded-control border border-neutral-300 bg-white px-3 text-body font-semibold text-neutral-900 shadow-e1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light"
+                class="min-h-11 w-full rounded-control border border-line bg-card px-3 text-body font-semibold text-ink shadow-e1"
                 x-on:change="$wire.setActiveTab($event.target.value)">
                 @foreach ($sections as $section)
                     <option value="{{ $section['key'] }}" @selected($section['key'] === $activeTab) @disabled($section['locked'])>{{ $section['title'] }}</option>
                 @endforeach
             </select>
             @unless ($hasEmployee)
-                <p class="mt-1 text-small text-secondary-medium">@lang('mobile.sections-unlock-after-save')</p>
+                <p class="mt-1 text-small text-ink-2">@lang('mobile.sections-unlock-after-save')</p>
             @endunless
         </div>
 

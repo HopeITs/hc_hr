@@ -11,7 +11,7 @@
     </style>
 </head>
 
-<body class="antialiased min-h-screen bg-white"
+<body class="antialiased min-h-screen bg-base"
       x-data="{ sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
@@ -25,8 +25,7 @@
 --}}
 <a href="#main-content"
    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[10000]
-          focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-white
-          focus:outline-none focus:ring-2 focus:ring-white">
+          focus:rounded-control focus:bg-ink focus:px-4 focus:py-2 focus:text-on-ink">
     {{ __('general.a11y.skip-to-content') }}
 </a>
 
@@ -70,7 +69,7 @@
      x-on:online.window="online = true" x-on:offline.window="online = false"
      x-show="!online" x-cloak role="status" data-testid="offline-notice"
      class="app-offline-notice fixed inset-x-0 z-[9400] mx-auto max-w-lg px-4">
-    <p class="rounded-control bg-secondary-dark px-4 py-2 text-center text-small font-semibold text-white shadow-e3">
+    <p class="rounded-control bg-ink px-4 py-2 text-center text-small font-semibold text-on-ink shadow-e3">
         {{ __('general.connection.offline') }}
     </p>
 </div>
@@ -80,6 +79,11 @@
 {{-- D3: page-context help, opened from the header and from "?" beside difficult fields. Client-side only. --}}
 @auth
     <x-help.panel/>
+@endauth
+
+{{-- Prompt 10: "g" then a letter opens a page; "?" lists the keys. Client-side only. --}}
+@auth
+    <x-keyboard-shortcuts/>
 @endauth
 
 {{-- D3: "Send feedback to the IT team", opened from the user menu. The page's route

@@ -109,7 +109,7 @@ class AnnualLeaveRuleExport implements FromCollection, ShouldAutoSize, WithHeadi
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FFC2151C'],
+                    'startColor' => ['argb' => 'FFBE1F24'],
                 ],
             ],
         ];

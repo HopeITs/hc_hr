@@ -3,6 +3,12 @@
 @import '../../vendor/livewire/flux/dist/flux.css';
 
 @import "flowbite/src/themes/default";
+/* After Flowbite's theme, so every hue family resolves to a brand value. */
+@import './palette-lock.css';
+/* Shared component classes (chips, tags, buttons, fields, tables). */
+@import './components.css';
+/* The dashboard's tile grid (resources/js/dashboard/home-screen.js). */
+@import './dashboard.css';
 
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
@@ -115,7 +121,19 @@
 }
 
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Dark follows the system unless the person picked a theme: <html data-theme="light|dark">,
+   set before first paint by partials/head.blade.php and by the switch in the header. */
+@custom-variant dark {
+    &:where([data-theme="dark"], [data-theme="dark"] *) {
+        @slot;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+            @slot;
+        }
+    }
+}
 
 /* M1: a dialog becomes a full-screen "sheet" on phones, portrait AND landscape (a landscape phone is wider
    than `sm` but only ~375px tall, so a width breakpoint alone would leave a cramped centred dialog).
@@ -147,86 +165,239 @@
     }
 }
 
-body {
-    font-family: 'SomarSans', sans-serif;
+/* ==================================================================
+   Visual identity — Hope Center, as implemented in media-request
+   (media-request/public/css/app.css is the reference).
+   ------------------------------------------------------------------
+   One flat red (#BE1F24) and the Hope Center neutrals. No other hue,
+   anywhere: not for statuses, charts, alerts or success messages
+   (palette-lock.css enforces it). Red has exactly three jobs: the
+   primary action, the current stage / current page, and what waits on
+   the viewer or is late. Status = icon + words + fill shape.
 
-    /* The type scale's base. Without this, any element that carries no
-       size utility falls back to the browser's 16px, which is a step
-       the scale does not contain. */
-    font-size: var(--text-body);
-    line-height: 1.55;
-}
-
+   Every colour is a Tailwind theme variable, so it is also a utility
+   (bg-card, text-ink-2, border-line-soft …). Dark mode redefines the
+   same variables further down: the neutrals invert, the red stays.
+   ================================================================== */
 @theme {
     --font-sans: 'SomarSans', 'Lato', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /* --- Brand ------------------------------------------------------ */
+    --color-primary: #BE1F24; /* flat brand red — never tinted, never a pale/pink fill */
+    /* Hover: the same red at 90%, as media-request does. A darker mix is
+       not part of the identity. */
+    --color-primary-hover: color-mix(in srgb, #BE1F24 90%, transparent);
+    --color-on-brand: #FFFFFF;
 
-    --color-accent: #414042;
-    --color-accent-content: #414042;
-    --color-accent-foreground: var(--color-white);
+    /* --- Semantic (all new work uses these) ------------------------- */
+    --color-ink: #414042; /* headings, body text, solid neutral fills */
+    --color-ink-2: #6D6E71; /* secondary text, labels */
+    --color-ink-3: #939598; /* placeholders, decorative icons */
+    --color-on-ink: #FFFFFF; /* text on a solid ink fill */
+    --color-line: #BCBEC0; /* control borders */
+    --color-line-soft: #E6E7E8; /* card borders, dividers */
+    --color-surface: #E6E7E8; /* quiet fills: secondary buttons, "done" chips */
+    --color-soft: #F3F3F4; /* page background, table header */
+    --color-hover: #F3F3F4; /* row / item hover */
+    --color-card: #FFFFFF;
+    --color-field: #FFFFFF; /* input background */
+    --color-base: #FFFFFF; /* top bar and sidebar */
+    --color-focus: #414042; /* focus outline — ink, never red */
+    --color-ring: rgb(65 64 66 / 0.12); /* 3px ring around a focused input */
+    --color-backdrop: rgb(20 19 21 / 0.45); /* behind dialogs */
 
-    --color-primary: #c2151c; /* HOPE brand primary red */
-    --color-primary-hover: #a51218; /* one step darker, for button hover */
-    --color-secondary-dark: #58595b;
-    --color-secondary-medium: #6d6e71;
-    --color-secondary-light: #939598;
-    --color-secondary-soft: #dcddde;
+    /* --- Legacy names, kept so the existing views keep working ------ */
+    --color-accent: var(--color-ink);
+    --color-accent-content: var(--color-ink);
+    --color-accent-foreground: var(--color-on-ink);
 
-    --color-neutral-50: #f5f5f6;
-    --color-neutral-100: #eeeff0;
-    --color-neutral-200: #dcddde;
-    /* soft */
-    --color-neutral-300: #bcbec0;
+    --color-secondary-dark: #414042; /* = ink */
+    --color-secondary-medium: #6D6E71; /* = ink-2 */
+    --color-secondary-light: #939598; /* = ink-3 */
+    --color-secondary-soft: #E6E7E8; /* = surface */
+    --color-secondary-line: #BCBEC0; /* = line */
+    --color-secondary-mist: #F3F3F4; /* = soft */
+
+    /* Every step lands exactly on an identity neutral, no mixes in between. */
+    --color-neutral-50: #F3F3F4;
+    --color-neutral-100: #E6E7E8;
+    --color-neutral-200: #E6E7E8;
+    --color-neutral-300: #BCBEC0;
     --color-neutral-400: #939598;
-    /* light */
-    --color-neutral-500: #808184;
-    --color-neutral-600: #6d6e71;
-    /* medium */
-    --color-neutral-700: #575759;
+    --color-neutral-500: #939598;
+    --color-neutral-600: #6D6E71;
+    --color-neutral-700: #414042;
     --color-neutral-800: #414042;
-    /* dark */
-    --color-neutral-900: #2b2a2c;
-    --color-neutral-950: #171718;
+    --color-neutral-900: #414042;
+    --color-neutral-950: #414042;
 
-
+    /* Browser black is not a brand colour; "black" text is ink. */
     --color-black: #414042;
-    --tag-remove-btn-bg--hover: #c2151c;
+    --tag-remove-btn-bg--hover: var(--color-primary);
 
-    /* Simple-Modern: lighter, cleaner elevation ramp */
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 1px 4px 0 rgba(0, 0, 0, 0.07);
-    --shadow-lg: 0 6px 16px -6px rgba(0, 0, 0, 0.12);
-
-    /* Subtle warm-neutral sidebar surface */
-    --color-sidebar-surface: #f9fafb;
-    --color-app-surface: #f4f5f7;
+    --color-sidebar-surface: var(--color-base);
+    --color-app-surface: var(--color-soft);
 
     /* Selected-state fill. Never tint the brand red down for this — a
-       low-opacity #c2151c reads as pink, which is not allowed in this UI. */
-    --color-selection: #e6e7e8;
+       low-opacity red reads as pink, which the identity forbids. */
+    --color-selection: var(--color-surface);
+
+    /* Elevation, ink-tinted (identity: shadow-sm 0 1px 3px .08, shadow 0 6px 24px .14).
+       In dark mode the tint turns black (--tw-shadow-color, base layer below). */
+    --shadow-xs: 0 1px 2px 0 rgb(65 64 66 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(65 64 66 / 0.08);
+    --shadow: 0 6px 24px 0 rgb(65 64 66 / 0.14);
+    --shadow-md: 0 2px 8px -2px rgb(65 64 66 / 0.1);
+    --shadow-lg: 0 6px 24px 0 rgb(65 64 66 / 0.14);
 
     /* Critically damped easing — reaches the target quickly, settles without
        overshoot. Used for chrome that resizes (sidebar collapse) so the panel
        and the content it pushes stay locked together. */
     --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
-
 }
 
-@layer theme {
-    .dark {
-        --color-accent: var(--color-white);
-        --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
+/* ------------------------------------------------------------------
+   Dark: the same neutrals, inverted; the red stays the flat brand red.
+   Follows the system unless <html data-theme> says otherwise. The two
+   blocks below must stay identical (one for the system setting, one
+   for the person's own choice).
+
+   The legacy neutral ramp and secondary-* names flip too, so screens
+   written only with light utilities (bg-white, text-neutral-800,
+   border-neutral-200 …) get a dark theme without per-page work. That
+   is why the ramp runs light-to-dark in light mode and dark-to-light
+   in dark mode: never write `dark:bg-neutral-800`, write `bg-card`.
+   ------------------------------------------------------------------ */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --color-ink: #E6E7E8;
+        --color-ink-2: #BCBEC0;
+        --color-ink-3: #939598;
+        --color-on-ink: #161617;
+        --color-line: #4A4A4E;
+        --color-line-soft: #333336;
+        --color-surface: #2A2A2D;
+        --color-soft: #1E1E20;
+        --color-hover: #2C2C2F;
+        --color-card: #232325;
+        --color-field: #1B1B1D;
+        --color-base: #161617;
+        --color-focus: #E6E7E8;
+        --color-ring: rgb(230 231 232 / 0.18);
+        --color-backdrop: rgb(0 0 0 / 0.6);
+
+        --color-secondary-dark: #E6E7E8;
+        --color-secondary-medium: #BCBEC0;
+        --color-secondary-light: #939598;
+        --color-secondary-soft: #2A2A2D;
+        --color-secondary-line: #4A4A4E;
+        --color-secondary-mist: #1E1E20;
+
+        --color-neutral-50: #1E1E20;
+        --color-neutral-100: #2A2A2D;
+        --color-neutral-200: #333336;
+        --color-neutral-300: #4A4A4E;
+        --color-neutral-400: #939598;
+        --color-neutral-500: #939598;
+        --color-neutral-600: #BCBEC0;
+        --color-neutral-700: #E6E7E8;
+        --color-neutral-800: #E6E7E8;
+        --color-neutral-900: #E6E7E8;
+        --color-neutral-950: #E6E7E8;
+
+        --color-black: #E6E7E8;
+
+        /* The logo is all brand red; on a dark page it is shown white. */
+        --logo-filter: brightness(0) invert(1);
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --color-ink: #E6E7E8;
+    --color-ink-2: #BCBEC0;
+    --color-ink-3: #939598;
+    --color-on-ink: #161617;
+    --color-line: #4A4A4E;
+    --color-line-soft: #333336;
+    --color-surface: #2A2A2D;
+    --color-soft: #1E1E20;
+    --color-hover: #2C2C2F;
+    --color-card: #232325;
+    --color-field: #1B1B1D;
+    --color-base: #161617;
+    --color-focus: #E6E7E8;
+    --color-ring: rgb(230 231 232 / 0.18);
+    --color-backdrop: rgb(0 0 0 / 0.6);
+
+    --color-secondary-dark: #E6E7E8;
+    --color-secondary-medium: #BCBEC0;
+    --color-secondary-light: #939598;
+    --color-secondary-soft: #2A2A2D;
+    --color-secondary-line: #4A4A4E;
+    --color-secondary-mist: #1E1E20;
+
+    --color-neutral-50: #1E1E20;
+    --color-neutral-100: #2A2A2D;
+    --color-neutral-200: #333336;
+    --color-neutral-300: #4A4A4E;
+    --color-neutral-400: #939598;
+    --color-neutral-500: #939598;
+    --color-neutral-600: #BCBEC0;
+    --color-neutral-700: #E6E7E8;
+    --color-neutral-800: #E6E7E8;
+    --color-neutral-900: #E6E7E8;
+    --color-neutral-950: #E6E7E8;
+
+    --color-black: #E6E7E8;
+
+    --logo-filter: brightness(0) invert(1);
+    color-scheme: dark;
+}
+
+:root {
+    --logo-filter: none;
+    color-scheme: light;
+
+    --livewire-progress-bar-color: var(--color-primary);
+
+    /* Custom overlay scrollbar (public/js/custom-scrollbar.js) */
+    --csb-color: var(--color-line);
+    --csb-hover: var(--color-ink-3);
+}
+
+/* Legacy light utilities that the token flip cannot reach on its own, because
+   one variable serves two jobs. Kept to the handful that matter; new work uses
+   the semantic utilities and never needs this. Declared after Tailwind's own
+   utilities in the same layer, so these win at equal specificity. */
+@layer utilities {
+    /* White is both "card" (bg-white) and "text on red" (text-white). The
+       variable stays white for the text; the card fill turns dark here. */
+    .bg-white,
+    .hover\:bg-white:hover {
+        @variant dark {
+            background-color: var(--color-card);
+        }
     }
 
-    .tagify {
-        --tags-focus-border-color: var(--color-primary) !important;
+    /* A solid dark fill (bg-neutral-800, bg-secondary-dark …) inverts with the
+       ramp, so the white text on it becomes on-ink. */
+    :is(.bg-neutral-700, .bg-neutral-800, .bg-neutral-900, .bg-neutral-950, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-zinc-800, .bg-zinc-900, .bg-secondary-dark, .bg-black, .bg-accent) .text-white,
+    :is(.bg-neutral-700, .bg-neutral-800, .bg-neutral-900, .bg-neutral-950, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-zinc-800, .bg-zinc-900, .bg-secondary-dark, .bg-black, .bg-accent).text-white {
+        @variant dark {
+            color: var(--color-on-ink);
+        }
+    }
+
+    /* A translucent dark fill is a backdrop; it must stay dark, not invert. */
+    :is([class*="bg-black/"], [class*="bg-neutral-900/"], [class*="bg-neutral-950/"], [class*="bg-gray-900/"], [class*="bg-secondary-dark/"]) {
+        @variant dark {
+            background-color: var(--color-backdrop);
+        }
     }
 }
 
 @layer base {
-
     *,
     ::after,
     ::before,
@@ -234,16 +405,104 @@ body {
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
     }
+
+    /* The ink tint is invisible on a dark page, so shadows turn black there.
+       In the base layer so a shadow-colour utility still wins. */
+    * {
+        @variant dark {
+            --tw-shadow-color: rgb(0 0 0 / 0.45);
+        }
+    }
+
+    html {
+        background-color: var(--color-soft);
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Rendering: real kerning, no faked bold/italic (Somar Sans ships every
+       weight in use) and the smoothest glyph drawing each system offers. */
+    body {
+        font-family: 'SomarSans', sans-serif;
+        color: var(--color-ink);
+        background-color: var(--color-soft);
+
+        /* The type scale's base: 16px / 1.55 (English), 17px / 1.7 (Arabic). */
+        font-size: var(--text-body);
+        line-height: var(--text-body--line-height);
+        text-rendering: optimizeLegibility;
+        font-kerning: normal;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1 {
+        font-size: var(--text-h1);
+        line-height: var(--text-h1--line-height);
+        font-weight: 800;
+        text-wrap: balance;
+    }
+
+    table {
+        font-size: var(--text-table);
+    }
+
+    th {
+        font-size: var(--text-th);
+    }
+
+    /* The logo (an all-red PNG) is shown white in dark mode. */
+    .app-logo {
+        filter: var(--logo-filter);
+    }
 }
+
+/* Arabic reads larger: 17px / 1.7. Redefining the token (not just body) carries
+   it to every text-body utility as well. */
+html[lang="ar"] {
+    --text-body: 1.0625rem;
+    --text-body--line-height: 1.7;
+}
+
+/* Colours the browser paints on its own — blue by default in every engine. */
 :root {
-
-    --livewire-progress-bar-color: var(--color-primary);
-
-    /* Custom overlay scrollbar (public/js/custom-scrollbar.js) */
-    --csb-color: #bcbec0;
-    --csb-hover: #a7a9ac;
-
+    accent-color: var(--color-primary); /* native checkbox / radio / range / progress */
 }
+
+::selection {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+}
+
+/* Focus: 2px solid ink outline, 2px offset — never red. Unlayered on purpose,
+   so it outranks the focus-visible:outline-primary / ring-primary utilities
+   still in the views (an unlayered rule beats any layered one). */
+:focus-visible {
+    outline-color: var(--color-focus);
+    outline-offset: 2px;
+    --tw-ring-color: var(--color-focus);
+}
+
+/* Inputs on focus: ink border + 3px ring. An invalid field keeps its red border. */
+:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="button"], [type="submit"], [type="color"]), select, textarea):focus:not([aria-invalid="true"]) {
+    border-color: var(--color-focus);
+    box-shadow: 0 0 0 3px var(--color-ring);
+    outline: none;
+}
+
+/* Tabular figures for numbers in tables, counters and dates. Tailwind's
+   `tabular-nums` works too; `num` also isolates the run inside RTL text. */
+@utility num {
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+}
+
+@layer theme {
+    .tagify {
+        --tags-focus-border-color: var(--color-focus) !important;
+    }
+}
+
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-2;
 }
@@ -252,11 +511,7 @@ body {
     @apply !mb-0 !leading-tight;
 }
 
-input:focus[data-flux-control],
-textarea:focus[data-flux-control],
-select:focus[data-flux-control] {
-    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
-}
+/* Flux controls on focus follow the input rule above (ink border + ring). */
 
 
 [type="text"],
@@ -305,15 +560,15 @@ input[type="date"]::-moz-focus-inner {
 /* Font family/size are left untouched — only colours change.          */
 /* ------------------------------------------------------------------ */
 select option {
-    background-color: #ffffff;
-    color: #58595b;
+    background-color: var(--color-field);
+    color: var(--color-ink);
 }
 
 select option:hover,
 select option:focus,
 select option:checked {
-    background-color: #58595b;
-    color: #ffffff;
+    background-color: var(--color-ink);
+    color: var(--color-on-ink);
 }
 
 @layer components {
@@ -322,10 +577,10 @@ select option:checked {
         width: 100%;
         --clock-timepicker-accent-color: var(--color-primary);
         --clock-timepicker-font-family: 'SomarSans', 'Lato', ui-sans-serif, system-ui, sans-serif;
-        --clock-timepicker-popup-background: #ffffff;
-        --clock-timepicker-popup-border: 1px solid var(--color-neutral-200);
-        --clock-timepicker-popup-border-radius: 0.375rem;
-        --clock-timepicker-popup-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --clock-timepicker-popup-background: var(--color-card);
+        --clock-timepicker-popup-border: 1px solid var(--color-line-soft);
+        --clock-timepicker-popup-border-radius: var(--radius-control);
+        --clock-timepicker-popup-shadow: var(--shadow);
         --clock-timepicker-popup-size: 240px;
         --clock-timepicker-face-color: var(--color-neutral-100);
         --clock-timepicker-face-hover-color: var(--color-neutral-200);
@@ -333,7 +588,7 @@ select option:checked {
         --clock-timepicker-outer-numbers-color: var(--color-neutral-800);
         --clock-timepicker-inner-numbers-color: var(--color-neutral-500);
         --clock-timepicker-header-background: var(--color-primary);
-        --clock-timepicker-header-font-color: #ffffff;
+        --clock-timepicker-header-font-color: var(--color-on-brand);
         --clock-timepicker-header-selection-background: rgba(255, 255, 255, 0.25);
         --clock-timepicker-button-color: var(--color-primary);
         --clock-timepicker-button-ok-color: var(--color-primary);
@@ -347,27 +602,27 @@ select option:checked {
         padding: 0.5rem 2.5rem 0.5rem 0.75rem;
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #111827;
-        background-color: #ffffff;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        color: var(--color-ink);
+        background-color: var(--color-field);
+        border: 1.5px solid var(--color-line);
+        border-radius: var(--radius-control);
+        box-shadow: none;
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         cursor: pointer;
     }
 
     clock-timepicker > input::placeholder {
-        color: #9ca3af;
+        color: var(--color-ink-3);
     }
 
     clock-timepicker > input:hover:not(:disabled) {
-        border-color: var(--color-neutral-400);
+        border-color: var(--color-ink-2);
     }
 
     clock-timepicker > input:focus {
         outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-secondary-light) 40%, transparent);
+        border-color: var(--color-focus);
+        box-shadow: 0 0 0 3px var(--color-ring);
     }
 
     clock-timepicker > input:disabled {
@@ -404,23 +659,23 @@ select option:checked {
     .time-input-native::-webkit-datetime-edit-hour-field:focus,
     .time-input-native::-webkit-datetime-edit-minute-field:focus,
     .time-input-native::-webkit-datetime-edit-second-field:focus {
-        background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
-        color: var(--color-primary);
+        background-color: var(--color-ink);
+        color: var(--color-on-ink);
         outline: none;
         border-radius: 0.125rem;
     }
 
     .select2-container--default .select2-selection--single {
-        height: 37.6px !important;
+        height: 46px !important;
         padding: 0.5rem 0.75rem !important;
         font-size: 0.875rem !important;
-        color: #111827 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 0.375rem !important;
+        color: var(--color-ink) !important;
+        background-color: var(--color-field) !important;
+        border: 1.5px solid var(--color-line) !important;
+        border-radius: var(--radius-control) !important;
 
 
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+        box-shadow: none !important;
 
         display: flex !important;
         align-items: center !important;
@@ -438,30 +693,30 @@ select option:checked {
 
     .select2-container--default.select2-container--focus .select2-selection--single,
     .select2-container--default.select2-container--open .select2-selection--single {
-        border-color: var(--color-primary) !important;
-        box-shadow: none !important;
+        border-color: var(--color-focus) !important;
+        box-shadow: 0 0 0 3px var(--color-ring) !important;
         outline: none !important;
     }
 
 
-    /* Result option — default (no hover): white bg, #58595b text */
+    /* Result option — default (no hover): field bg, ink text */
     .select2-container--default .select2-results__option {
-        background-color: #ffffff !important;
-        color: #58595b !important;
+        background-color: var(--color-field) !important;
+        color: var(--color-ink) !important;
         padding-inline-start: 12px !important; /* double the default 6px start padding */
     }
 
-    /* Hover / keyboard-highlighted option: #58595b bg, white text */
+    /* Hover / keyboard-highlighted option: solid ink fill, on-ink text */
     .select2-container--default .select2-results__option--highlighted,
     .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
-        background-color: #58595b !important;
-        color: #ffffff !important;
+        background-color: var(--color-ink) !important;
+        color: var(--color-on-ink) !important;
     }
 
     /* Currently-selected option (when not hovered) follows the default look */
     .select2-container--default .select2-results__option--selected {
-        background-color: #ffffff !important;
-        color: #58595b !important;
+        background-color: var(--color-field) !important;
+        color: var(--color-ink) !important;
     }
 
     /* Only when the results list actually scrolls (flagged with .results--scroll
@@ -482,7 +737,7 @@ select option:checked {
         border: 1px solid var(--color-neutral-300) !important;
         border-radius: var(--radius-surface) !important;
         box-shadow: var(--shadow-e1) !important;
-        background-color: #ffffff !important;
+        background-color: var(--color-field) !important;
         font-size: var(--text-small) !important;
         color: var(--color-neutral-700) !important;
     }
@@ -506,15 +761,15 @@ select option:checked {
         border: 1px solid var(--color-neutral-200) !important;
         border-radius: var(--radius-control) !important;
         box-shadow: var(--shadow-e1) !important;
-        background-color: #ffffff !important;
+        background-color: var(--color-field) !important;
         font-size: var(--text-small) !important;
-        color: #000000 !important;
+        color: var(--color-ink) !important;
     }
 
     .perpage-select-box .select2-container--default .select2-selection--single .select2-selection__rendered {
         padding: 0 !important;
         line-height: 1.5 !important;
-        color: #000000 !important;
+        color: var(--color-ink) !important;
     }
 
     /* Filter selects (city/program) — match the Reset Filters button's
@@ -537,7 +792,7 @@ select option:checked {
 
 
     .select2-container--default .select2-selection--single .select2-selection__arrow {
-        background-image: url("data:image/svg+xml,%3csvg aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 10 6'%3e %3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 4 4 4-4'/%3e %3c/svg%3e") !important;
+        background-image: url("data:image/svg+xml,%3csvg aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 10 6'%3e %3cpath stroke='%23939598' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 4 4 4-4'/%3e %3c/svg%3e") !important;
         background-repeat: no-repeat !important;
         background-size: 0.75em 0.75em !important;
         height: 100% !important;
@@ -566,9 +821,9 @@ select option:checked {
 
         flex-shrink: 0;
         overflow: hidden;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--color-line-soft);
         border-radius: 0.5cqw;
-        background: #ffffff;
+        background: var(--color-card);
         box-shadow: 0 0.1cqw 0.3cqw rgb(65 64 66 / 20%);
         text-align: center;
         transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
@@ -593,7 +848,7 @@ select option:checked {
     }
 
     button.org-id-card:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--color-focus);
         outline-offset: 2px;
     }
 
@@ -604,8 +859,8 @@ select option:checked {
 
     .org-id-card--vacant {
         border-style: dashed;
-        border-color: #d1d5db;
-        background: #f9fafb;
+        border-color: var(--color-line);
+        background: var(--color-soft);
         box-shadow: none;
     }
 
@@ -615,7 +870,7 @@ select option:checked {
         width: 100%;
         aspect-ratio: 4 / 3;
         overflow: hidden;
-        background: #ffffff;
+        background: var(--color-card);
     }
 
     .org-id-card__bar {
@@ -799,7 +1054,7 @@ select option:checked {
         width: 70%;
         height: max(1px, 0.4cqw);
         margin-top: auto;
-        background: #bcbec0;
+        background: var(--color-line);
     }
 }
 
@@ -912,7 +1167,7 @@ li:has(> ul:not(.hidden)) .nav-chevron {
 /* Increased contrast: solid background behind a defined edge. */
 @media (prefers-contrast: more) {
     .sidebar-material {
-        background-color: #ffffff;
+        background-color: var(--color-base);
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
         border-inline-end-color: var(--color-neutral-700);
@@ -1073,8 +1328,8 @@ li:has(> ul:not(.hidden)) .nav-chevron {
         gap: 0.5rem;
         margin-inline: -1rem;
         padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-        background: #fff;
-        border-top: 1px solid var(--color-neutral-200);
+        background: var(--color-base);
+        border-top: 1px solid var(--color-line-soft);
     }
 
     .m1-action-bar > * {
@@ -1169,7 +1424,7 @@ li:has(> ul:not(.hidden)) .nav-chevron {
    Dialogs and sheets (z-50) cover it. */
 @media (max-width: 47.99rem) {
     body:has(.app-bottom-nav) #main-content {
-        padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     }
 
     html:has(.m1-action-bar) .app-bottom-nav,

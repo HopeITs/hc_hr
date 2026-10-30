@@ -13,22 +13,22 @@
          positioned listbox that must be free to escape this card. --}}
     class="rounded-surface border transition-colors"
     x-bind:class="{
-        'border-primary bg-white shadow-e1': {{ $state }} === 'open',
-        'border-neutral-200 bg-neutral-50': {{ $state }} === 'locked',
-        'border-neutral-200 bg-white shadow-e1': {{ $state }} === 'done' || {{ $state }} === 'idle',
+        'border-primary bg-card shadow-e1': {{ $state }} === 'open',
+        'border-line-soft bg-soft': {{ $state }} === 'locked',
+        'border-line-soft bg-card shadow-e1': {{ $state }} === 'done' || {{ $state }} === 'idle',
     }"
 >
     <h2>
         <button
             type="button"
             class="group flex w-full items-center gap-3 px-4 py-3 text-start transition
-                   focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary
+                   focus-visible:outline-2 focus-visible:outline-offset-[-2px]
                    disabled:cursor-not-allowed"
             {{-- Corner radius follows the header: it is the whole card when the
                  section is collapsed, and only its top when it is open. --}}
             x-bind:class="[
                 section === '{{ $name }}' ? 'rounded-t-surface' : 'rounded-surface',
-                {{ $state }} === 'done' || {{ $state }} === 'idle' ? 'hover:bg-neutral-50' : '',
+                {{ $state }} === 'done' || {{ $state }} === 'idle' ? 'hover:bg-hover' : '',
             ]"
             x-bind:disabled="!isUnlocked('{{ $name }}')"
             x-bind:aria-expanded="section === '{{ $name }}'"
@@ -39,8 +39,9 @@
             <span
                 class="grid size-6 shrink-0 place-items-center rounded-round text-caption font-semibold transition-colors"
                 x-bind:class="{
-                    'bg-primary text-white': {{ $state }} === 'open' || {{ $state }} === 'done',
-                    'bg-neutral-200 text-secondary-medium': {{ $state }} === 'locked' || {{ $state }} === 'idle',
+                    'bg-primary text-on-brand': {{ $state }} === 'open',
+                    'bg-surface text-ink': {{ $state }} === 'done',
+                    'bg-surface text-ink-2': {{ $state }} === 'locked' || {{ $state }} === 'idle',
                 }"
                 aria-hidden="true"
             >
@@ -61,23 +62,23 @@
 
             <span
                 class="shrink-0 text-body font-semibold"
-                x-bind:class="{{ $state }} === 'locked' ? 'text-secondary-light' : 'text-neutral-900'"
+                x-bind:class="{{ $state }} === 'locked' ? 'text-ink-3' : 'text-ink'"
             >{{ $title }}</span>
 
             <span class="ms-auto flex min-w-0 items-center gap-3 text-small">
                 <template x-if="{{ $state }} === 'locked'">
-                    <span class="truncate text-secondary-light" x-text="lockedHintFor('{{ $name }}')"></span>
+                    <span class="truncate text-ink-3" x-text="lockedHintFor('{{ $name }}')"></span>
                 </template>
 
                 <template x-if="{{ $state }} === 'done'">
                     <span class="flex min-w-0 items-center gap-3">
-                        <span class="truncate font-medium text-neutral-800" x-text="{{ $summary }}"></span>
+                        <span class="truncate font-medium text-ink" x-text="{{ $summary }}"></span>
                         {{-- Looks like the button it behaves as; the whole header is
                              the hit target, so this is an affordance, not a control. --}}
                         <span class="hidden shrink-0 items-center gap-1.5 rounded-control border
-                                     border-neutral-300 bg-white px-2.5 py-1 text-caption font-semibold
-                                     text-secondary-dark shadow-e1 transition
-                                     group-hover:border-primary group-hover:text-primary sm:inline-flex"
+                                     border-line bg-card px-2.5 py-1 text-caption font-semibold
+                                     text-ink shadow-e1 transition
+                                     group-hover:border-ink-2 group-hover:text-ink sm:inline-flex"
                               aria-hidden="true">
                             <svg class="size-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -97,7 +98,7 @@
         x-show="section === '{{ $name }}'"
         x-cloak
     >
-        <div class="border-t border-neutral-100 px-4 pb-5 pt-1">
+        <div class="border-t border-line-soft px-4 pb-5 pt-1">
             {{ $slot }}
         </div>
     </div>

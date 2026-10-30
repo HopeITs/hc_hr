@@ -59,6 +59,11 @@ return [
     'range' => ':from – :to',
     'legend_label' => 'Legend',
     'add_holiday' => 'Add holiday',
+    'birthday' => 'Birthday',
+    'birthday_of' => ":name's birthday",
+    'your_birthday' => 'Your birthday',
+    'request_leave' => 'Request leave',
+    'request_leave_on' => 'Request leave on :date',
     'add_holiday_on' => 'Add a holiday on :date',
     'legend' => 'Accepted leave has a solid border and a tick; pending leave has a dashed border and a clock. Part-day leave is marked with a half circle.',
 

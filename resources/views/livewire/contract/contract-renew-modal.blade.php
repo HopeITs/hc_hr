@@ -1,7 +1,7 @@
 {{--
     Palette rule for this modal: neutral greys plus the single brand red
     (--color-primary). Never tint the red down for a surface — a low-opacity
-    #c2151c reads as pink, which resources/css/app.css explicitly disallows.
+    #BE1F24 reads as pink, which resources/css/app.css explicitly disallows.
     Emphasis surfaces use --color-selection (#e6e7e8) instead.
 --}}
 <div>
@@ -17,38 +17,35 @@
             <div class="-m-4">
 
                 {{-- Who is being renewed --}}
-                <div class="flex items-center gap-4 px-5 py-4 border-b border-neutral-200">
+                <div class="flex items-center gap-4 px-5 py-4 border-b border-line-soft">
                     <img
                         src="{{ $employee?->avatar_url ?: asset('images/default-avatar.png') }}"
                         alt=""
                         loading="lazy"
-                        class="size-14 shrink-0 rounded-full object-cover bg-neutral-100 ring-1 ring-neutral-300"
+                        class="size-14 shrink-0 rounded-full object-cover bg-surface ring-1 ring-line"
                     />
 
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-body font-semibold text-neutral-900">
+                        <p class="truncate text-body font-semibold text-ink">
                             {{ $employee?->name ?? __('general.na') }}
                         </p>
-                        <p class="mt-0.5 truncate text-caption text-neutral-600">
+                        <p class="mt-0.5 truncate text-caption text-ink-2">
                             {{ $contract->position?->title ?? __('general.na') }}
                         </p>
                         @if($contract->contractType)
-                            <span class="mt-1.5 inline-flex items-center rounded-full border border-neutral-300
-                                         bg-neutral-100 px-2 py-0.5 text-caption font-medium text-neutral-700">
-                                {{ $contract->contractType->name }}
-                            </span>
+                            <x-tag variant="soft" class="mt-1.5">{{ $contract->contractType->name }}</x-tag>
                         @endif
                     </div>
                 </div>
 
                 {{-- Current period, stated as plainly as possible --}}
-                <div class="flex items-center justify-between gap-4 px-5 py-3 bg-neutral-50 border-b border-neutral-200">
-                    <span class="text-caption font-medium uppercase tracking-wide text-neutral-500">
+                <div class="flex items-center justify-between gap-4 px-5 py-3 bg-soft border-b border-line-soft">
+                    <span class="text-caption font-bold uppercase text-ink-2">
                         @lang('general.current-period')
                     </span>
-                    <span class="flex items-center gap-2 text-body tabular-nums text-neutral-800">
+                    <span class="flex items-center gap-2 text-body tabular-nums text-ink">
                         <span>{{ $contract->start_date?->format('d-m-Y') ?? '—' }}</span>
-                        <svg class="size-4 shrink-0 text-neutral-400 rtl:rotate-180" viewBox="0 0 24 24" fill="none"
+                        <svg class="size-4 shrink-0 text-ink-3 rtl:rotate-180" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M5 12h14M13 6l6 6-6 6"/>
                         </svg>
@@ -58,7 +55,7 @@
 
                 {{-- The new period --}}
                 <div class="px-5 py-4">
-                    <h4 class="mb-3 text-caption font-medium uppercase tracking-wide text-neutral-500">
+                    <h4 class="mb-3 text-caption font-bold uppercase text-ink-2">
                         @lang('general.new-period')
                     </h4>
 
@@ -92,39 +89,29 @@
                         @enderror
                     @endforeach
 
-                    <p class="mt-4 text-caption leading-relaxed text-neutral-500">
+                    <p class="mt-4 text-small leading-relaxed text-ink-2">
                         @lang('general.renew-explanation')
                     </p>
                 </div>
 
                 {{-- Actions. Fixed heights and a shared grid keep the three
                      buttons on one baseline instead of drifting apart. --}}
-                <div class="flex flex-col-reverse gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-4
+                <div class="flex flex-col-reverse gap-2 border-t border-line-soft bg-soft px-5 py-4
                             sm:flex-row sm:items-center sm:justify-end">
                     {{-- The dialog's close(): asks requestClose() if the period was changed. --}}
-                    <button type="button" x-on:click="close()" wire:loading.attr="disabled"
-                            class="inline-flex h-10 items-center justify-center rounded-control px-4 text-body font-medium
-                                   text-neutral-700 hover:bg-neutral-200 transition disabled:opacity-60">
+                    <x-button variant="quiet" x-on:click="close()">
                         @lang('general.cancel')
-                    </button>
+                    </x-button>
 
-                    <button type="button" wire:click="renewWithEdit" wire:target="renewWithEdit"
-                            wire:loading.attr="disabled"
-                            class="inline-flex h-10 items-center justify-center rounded-control border border-primary
-                                   bg-white px-4 text-body font-semibold text-primary shadow-e1 transition
-                                   hover:bg-primary hover:text-white disabled:opacity-60">
+                    <x-button variant="outline" wire:click="renewWithEdit">
                         <span wire:loading.remove wire:target="renewWithEdit">@lang('general.renew-with-edit')</span>
                         <span wire:loading wire:target="renewWithEdit">@lang('general.loading')…</span>
-                    </button>
+                    </x-button>
 
-                    <button type="button" wire:click="renewAsIs" wire:target="renewAsIs"
-                            wire:loading.attr="disabled"
-                            class="inline-flex h-10 items-center justify-center rounded-control bg-primary px-4
-                                   text-body font-semibold text-white shadow-e1 transition
-                                   hover:bg-primary-hover disabled:opacity-60">
+                    <x-button wire:click="renewAsIs">
                         <span wire:loading.remove wire:target="renewAsIs">@lang('general.renew-as-is')</span>
                         <span wire:loading wire:target="renewAsIs">@lang('general.saving')…</span>
-                    </button>
+                    </x-button>
                 </div>
             </div>
         @endif

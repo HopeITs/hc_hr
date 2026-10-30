@@ -1,0 +1,65 @@
+<?php
+
+// The component sheet at /{locale}/_ui (local and testing only): every shared
+// component in every state, the visual regression reference.
+return [
+    'sheet' => [
+        'title' => 'Component sheet',
+        'lead' => 'Every shared component in every state. Check it in both themes and both directions.',
+        'status' => 'Status',
+        'status-lead' => 'Icon, words and fill shape. Never colour.',
+        'tags' => 'Tags',
+        'buttons' => 'Buttons',
+        'forms' => 'Form fields',
+        'table' => 'Table',
+        'card' => 'Card',
+        'empty' => 'Empty state',
+        'dialog' => 'Confirm dialog',
+        'open-dialog' => 'Open the dialog',
+        'tone' => [
+            'work' => 'In progress',
+            'done' => 'Done',
+            'attn' => 'Needs you',
+            'stop' => 'Stopped',
+            'wait' => 'Waiting',
+        ],
+        'tag' => [
+            'act' => 'Your turn',
+            'late' => 'Late',
+            'rush' => 'Urgent',
+            'soft' => 'Per month',
+        ],
+        'variant' => [
+            'primary' => 'Primary',
+            'outline' => 'Outline',
+            'quiet' => 'Quiet',
+            'link' => 'Link',
+            'disabled' => 'Disabled',
+            'busy' => 'Saving',
+        ],
+        'field' => [
+            'text' => 'Full name',
+            'text-hint' => 'As written on the national ID.',
+            'invalid' => 'Email',
+            'invalid-error' => 'Enter a valid email address.',
+            'select' => 'City',
+            'textarea' => 'Notes',
+            'checkbox' => 'Send me a copy',
+            'radio' => 'Day length',
+            'segmented' => 'Schedule',
+            'card' => 'Work on weekends',
+            'option-a' => 'Fixed',
+            'option-b' => 'Flexible',
+        ],
+        'sample' => [
+            'name' => 'Name',
+            'city' => 'City',
+            'state' => 'Status',
+            'card-title' => 'Leave balance',
+            'card-body' => '12 days left this year.',
+            'empty-title' => 'No requests yet',
+            'empty-help' => 'Requests you send appear here.',
+            'empty-action' => 'New request',
+        ],
+    ],
+];

@@ -7,10 +7,10 @@
     <x-heading-label>@lang('general.contracts-history')</x-heading-label>
 
     @if ($isCreateMode)
-        <p class="rounded-surface bg-neutral-50 p-4 text-center text-body text-secondary-light">
+        <p class="rounded-surface bg-soft p-4 text-center text-body text-ink-2">
             @lang('general.contracts-history-empty')</p>
     @elseif ($contractHistory->isEmpty())
-        <p class="rounded-surface bg-neutral-50 p-4 text-center text-body text-secondary-light">
+        <p class="rounded-surface bg-soft p-4 text-center text-body text-ink-2">
             @lang('general.no-available-data')</p>
     @else
         <div class="space-y-4">

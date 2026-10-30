@@ -1,7 +1,8 @@
 {{--
     The links of one sidebar area (App\Support\Navigation): a single link, or a
     dropdown when the item has children. data-nav carries the stable menu id
-    (C0 §7); data-tour keeps the guided tour's existing targets.
+    (C0 §7); data-tour keeps the guided tour's existing targets. $star($id)
+    is the favourite toggle for a page that may be starred (sidebar.blade.php).
 --}}
 @foreach ($items as $item)
     @if (isset($item['children']))
@@ -15,7 +16,7 @@
             </x-slot>
             <x-slot name="list">
                 @foreach ($item['children'] as $child)
-                    <x-layouts.app.sidebar.nav-item :href="route($child['route'])" :active="str((string) $currentRoute)->is($child['active'])" data-nav="{{ $child['id'] }}">
+                    <x-layouts.app.sidebar.nav-item :href="route($child['route'])" :active="str((string) $currentRoute)->is($child['active'])" :favourite="$star($child['id'])" data-nav="{{ $child['id'] }}">
                         {{ $child['label'] }}
                     </x-layouts.app.sidebar.nav-item>
                 @endforeach
@@ -23,7 +24,7 @@
         </x-layouts.app.sidebar.dropdown-nav-list>
     @else
         <x-layouts.app.sidebar.single-item :href="route($item['route'])" :active="str((string) $currentRoute)->is($item['active'])"
-            data-nav="{{ $item['id'] }}" data-tour="{{ $item['tour'] ?? '' }}">
+            :favourite="$star($item['id'])" data-nav="{{ $item['id'] }}" data-tour="{{ $item['tour'] ?? '' }}">
             <x-slot name="icon">
                 <x-dynamic-component :component="'icons.'.$item['icon']" class="size-4" />
             </x-slot>

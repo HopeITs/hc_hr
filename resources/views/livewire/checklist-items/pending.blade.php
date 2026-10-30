@@ -13,9 +13,9 @@
         <x-center-empty-state :title="__('states.pending-delivers-empty-title')" :description="__('states.pending-delivers-empty-help')" />
     @else
         <p class="sr-only" role="status" aria-live="polite">{{ trans_choice('states.items-count', $pendingItems->count()) }}</p>
-        <div class="overflow-hidden rounded-surface border border-neutral-200 shadow-e1">
-            <table class="min-w-full text-body text-left text-neutral-800">
-                <thead class="bg-neutral-100 text-secondary-medium uppercase text-small tracking-wider">
+        <div class="overflow-hidden rounded-surface border border-line-soft shadow-e1">
+            <table class="min-w-full text-body text-start text-ink">
+                <thead class="bg-surface text-ink-2 uppercase text-small tracking-wider">
                     <tr>
                         <th class="px-4 py-3">{{ __('general.employee') }}</th>
                         <th class="px-4 py-3">{{ __('general.item') }}</th>
@@ -24,25 +24,23 @@
                         <th class="px-4 py-3 text-center w-40"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-neutral-100 bg-white">
+                <tbody class="divide-y divide-line-soft bg-card">
                     @foreach ($pendingItems as $item)
-                        <tr class="hover:bg-neutral-50 transition" wire:key="pending-deliver-{{ $item->id }}">
+                        <tr class="hover:bg-hover transition" wire:key="pending-deliver-{{ $item->id }}">
                             <td class="px-4 py-3 font-medium">{{ $item->employee->name }}</td>
                             <td class="px-4 py-3">{{ $item->item->name }}</td>
-                            <td class="px-4 py-3 text-secondary-medium">{{ $item->created_at->format('Y-m-d') }}</td>
+                            <td class="px-4 py-3 text-ink-2">{{ $item->created_at->format('Y-m-d') }}</td>
                             <td class="px-4 py-3">
                                 <input type="text"
                                     wire:model.defer="notes.{{ $item->id }}"
                                     wire:key="note-input-{{ $item->id }}"
                                     placeholder="{{ __('general.add-note') }}"
-                                    class="w-full rounded-control border-red-500 text-body focus:border-red-600 focus:ring-red-600">
+                                    class="w-full rounded-control border-line bg-field text-body">
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <button wire:click="markDelivered({{ $item->id }})"
-                                    wire:loading.attr="disabled" wire:target="markDelivered({{ $item->id }})"
-                                    class="inline-flex items-center px-3 py-2 bg-red-600 text-white text-small font-semibold rounded-control hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition">
+                                <x-button variant="outline" size="sm" wire:click="markDelivered({{ $item->id }})" :target="'markDelivered('.$item->id.')'">
                                     {{ __('general.mark_as_delivered') }}
-                                </button>
+                                </x-button>
                             </td>
                         </tr>
                     @endforeach

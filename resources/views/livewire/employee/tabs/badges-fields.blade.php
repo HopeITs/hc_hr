@@ -149,9 +149,9 @@
                          role (BadgeForm::setEmployee), and save() leaves the
                          stored ones alone - so there is nothing to render here
                          but the reason why. --}}
-                    <div class="md:col-span-3 rounded-control border border-neutral-200 bg-neutral-50 px-4 py-3">
-                        <p class="font-semibold text-body text-neutral-900">@lang('general.salary-hidden-title')</p>
-                        <p class="mt-1 text-small text-secondary-medium">@lang('general.salary-hidden-body')</p>
+                    <div class="md:col-span-3 rounded-control border border-line-soft bg-soft px-4 py-3">
+                        <p class="font-semibold text-body text-ink">@lang('general.salary-hidden-title')</p>
+                        <p class="mt-1 text-small text-ink-2">@lang('general.salary-hidden-body')</p>
                     </div>
                     @else
                     <div>

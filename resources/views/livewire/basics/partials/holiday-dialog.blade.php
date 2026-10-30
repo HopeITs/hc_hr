@@ -18,14 +18,14 @@
             <div>
                 <x-forms.input-label for="holiday_kind" required>@lang('holidays.kind')</x-forms.input-label>
                 <select id="holiday_kind" wire:model.live="item.kind"
-                    class="w-full rounded-control border border-neutral-300 bg-white px-3 py-2 text-body shadow-e1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light">
+                    class="w-full rounded-control border border-line bg-card px-3 py-2 text-body shadow-e1">
                     <option value="official">@lang('holidays.kinds.official')</option>
                     <option value="grant">@lang('holidays.kinds.grant')</option>
                     @if ($isNationalHr)
                         <option value="birthday">@lang('holidays.kinds.birthday')</option>
                     @endif
                 </select>
-                <p class="mt-1 text-sm text-neutral-500">@lang('holidays.kind-hints.'.($item['kind'] ?? 'official'))</p>
+                <p class="mt-1 text-small text-ink-2">@lang('holidays.kind-hints.'.($item['kind'] ?? 'official'))</p>
                 <x-error-span>{{ $errors->first('item.kind') }}</x-error-span>
             </div>
 
@@ -34,11 +34,11 @@
                     <x-forms.input-label required>@lang('holidays.applies-to')</x-forms.input-label>
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center gap-2">
-                            <input type="radio" wire:model.live="item.scope" value="national" class="text-primary">
+                            <input type="radio" wire:model.live="item.scope" value="national" class="text-ink">
                             @lang('holidays.national')
                         </label>
                         <label class="flex items-center gap-2">
-                            <input type="radio" wire:model.live="item.scope" value="projects" class="text-primary">
+                            <input type="radio" wire:model.live="item.scope" value="projects" class="text-ink">
                             @lang('holidays.selected-projects')
                         </label>
                     </div>
@@ -53,7 +53,7 @@
                     @if (count($governorates) > 1)
                         <div class="mb-2 flex gap-2">
                             <select wire:model="governorate" aria-label="@lang('holidays.governorate')"
-                                class="flex-1 rounded-control border border-neutral-300 bg-white px-3 py-2 text-body shadow-e1">
+                                class="flex-1 rounded-control border border-line bg-card px-3 py-2 text-body shadow-e1">
                                 <option value="">@lang('holidays.governorate')</option>
                                 @foreach ($governorates as $id => $name)
                                     <option value="{{ $id }}">{{ $name }}</option>
@@ -63,14 +63,14 @@
                         </div>
                     @endif
 
-                    <div class="max-h-48 space-y-1 overflow-y-auto rounded-control border border-neutral-200 p-2">
+                    <div class="max-h-48 space-y-1 overflow-y-auto rounded-control border border-line-soft p-2">
                         @forelse ($projectOptions as $key => $label)
-                            <label class="flex items-center gap-2 text-sm" wire:key="project-{{ $key }}">
-                                <input type="checkbox" wire:model="item.projects" value="{{ $key }}" class="rounded-inset text-primary">
+                            <label class="flex items-center gap-2 text-small" wire:key="project-{{ $key }}">
+                                <input type="checkbox" wire:model="item.projects" value="{{ $key }}" class="rounded-inset text-ink">
                                 {{ $label }}
                             </label>
                         @empty
-                            <p class="text-sm text-neutral-500">@lang('holidays.no-projects-to-pick')</p>
+                            <p class="text-small text-ink-2">@lang('holidays.no-projects-to-pick')</p>
                         @endforelse
                     </div>
                     <x-error-span>{{ $errors->first('item.projects') ?: $errors->first('item.projects.*') }}</x-error-span>
@@ -96,7 +96,7 @@
                     <x-forms.toggle-input wire:model="item.is_recurring" :active="$item['is_recurring'] ?? false" />
                     <span>
                         @lang('holidays.recurring')
-                        <span class="block text-sm text-neutral-500">@lang('holidays.recurring-hint')</span>
+                        <span class="block text-small text-ink-2">@lang('holidays.recurring-hint')</span>
                     </span>
                 </label>
             @endif

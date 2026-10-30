@@ -58,6 +58,14 @@ class MyLeaveRequestModule extends Component
     #[Url(as: 'new', except: false)]
     public bool $startNew = false;
 
+    /**
+     * With ?new=1, ?date=Y-m-d (the dashboard calendar's "Request leave for
+     * this day") prefills the new request's dates. Client input: anything but
+     * a real date from today on is ignored, and the form validates as usual.
+     */
+    #[Url(as: 'date', except: '')]
+    public string $startDate = '';
+
     public string $statusFilter = 'all';
 
     public array $counts = [];
@@ -92,7 +100,10 @@ class MyLeaveRequestModule extends Component
         if ($this->startNew) {
             $this->startNew = false;
             $this->create();
+            $this->prefillStartDate();
         }
+
+        $this->startDate = '';
     }
 
     public function setActiveTab(string $status)
@@ -502,6 +513,21 @@ class MyLeaveRequestModule extends Component
 
             return null;
         }
+    }
+
+    private function prefillStartDate(): void
+    {
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->startDate) === 1
+            ? Carbon::createFromFormat('!Y-m-d', $this->startDate)
+            : null;
+
+        if (! $date || $date->format('Y-m-d') !== $this->startDate || $date->lt(today())) {
+            return;
+        }
+
+        $this->form->start_at = $this->form->end_at = $this->form->leave_date = $this->startDate;
+        // A prefilled date is not an edit: closing the form untouched asks nothing.
+        $this->markClean();
     }
 
     private function finishSave(LeaveRequest $leaveRequest, string $kind): void

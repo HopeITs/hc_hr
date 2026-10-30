@@ -51,6 +51,21 @@ class TeamCalendarHolidaysTest extends TestCase
         $project->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->alp->id]);
     }
 
+    public function test_the_month_picker_jumps_to_any_month_keeping_the_day(): void
+    {
+        $user = $this->holder($this->position($this->alp, 6), 'employee');
+
+        Livewire::actingAs($user)->test(Calendar::class)
+            ->assertSeeHtml('data-testid="month-picker"')
+            ->call('jumpTo', 2024, 2)
+            ->assertSet('date', '2024-02-10')
+            ->set('date', '2026-01-31')
+            ->call('jumpTo', 2025, 2)
+            ->assertSet('date', '2025-02-28')
+            ->call('jumpTo', 2025, 0)
+            ->assertSet('date', '2025-02-28');
+    }
+
     public function test_a_volunteer_sees_their_holiday_names_but_cannot_add(): void
     {
         $user = $this->holder($this->position($this->alp, 6), 'employee');

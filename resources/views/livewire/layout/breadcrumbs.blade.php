@@ -9,7 +9,7 @@
                     {{-- Home --}}
                     <li class="inline-flex items-center">
                         <a href="{{ route('dashboard') }}" wire:navigate
-                           class="inline-flex items-center text-small text-secondary-medium hover:text-primary">
+                           class="inline-flex items-center text-small text-ink-2 hover:text-ink">
                             <i class="ti ti-smart-home"></i>
                         </a>
                     </li>
@@ -17,7 +17,7 @@
                     @foreach($items as $i => $crumb)
                         <li><span class="text-default">/</span></li>
 
-                        <li class="text-body {{ $loop->last ? 'text-neutral-900' : 'text-default' }}">
+                        <li class="text-body {{ $loop->last ? 'text-ink' : 'text-default' }}">
                             @if(!empty($crumb['href']))
                                 <a href="{{ $crumb['href'] }}" wire:navigate class="hover:underline">
                                     {{ $crumb['label'] }}

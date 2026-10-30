@@ -10,4 +10,4 @@
 <span role="alert"
       aria-live="polite"
       data-inline-error
-      {{ $attributes->merge(['class' => 'mt-3 text-body text-primary font-medium block']) }}>{{$slot}}</span>
+      {{ $attributes->merge(['class' => 'hc-err mt-3']) }}>{{$slot}}</span>

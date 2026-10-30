@@ -1,4 +1,4 @@
-<div class="flex h-full w-full flex-col overflow-hidden rounded-surface bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)]">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
     <x-dashboard-cards.card-header :title="__('general.pending-delivers')" :count="$pendingRequests->count()">
         <x-slot:icon>
             <img class="block size-full object-contain" src="{{ asset('assets/icons/pending-delivers.svg') }}" alt="">
@@ -13,20 +13,20 @@
                 hover:scrollbar-thumb-[var(--color-secondary-medium)]">
 
         @forelse ($pendingRequests as $req)
-            <div class="flex justify-between items-center pb-2 border-b border-b-secondary-light"
+            <div class="flex justify-between items-center pb-2 border-b border-b-line-soft"
                  wire:key="pending-request-{{ $req['id'] }}">
 
-                <p class="text-[13px] font-bold text-[#58595B]">
+                <p class="text-small font-bold text-ink">
                     {{ ucfirst($req['item']) }}
                 </p>
 
-                <span class="text-[11px] text-[#888]">
+                <span class="text-caption text-ink-2">
                     <bdi>{{ $req['request_date'] }}</bdi>
                 </span>
             </div>
         @empty
-            <div class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
-                <span class="text-[10.5px]">@lang('general.no-available-data')</span>
+            <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-ink-3 h-full">
+                <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse
     </div>

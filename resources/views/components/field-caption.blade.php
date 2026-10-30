@@ -6,8 +6,8 @@
     // Deliberately mirrors <x-forms.input-label> so read-only detail views keep
     // their existing look.
     $baseClass = match($theme) {
-        'settings' => 'block text-sm mb-3 font-medium text-secondary-medium',
-        default    => 'block mb-1 text-sm font-medium text-secondary-medium',
+        'settings' => 'block text-sm mb-3 font-medium text-ink-2',
+        default    => 'block mb-1 text-sm font-medium text-ink-2',
     };
 @endphp
 

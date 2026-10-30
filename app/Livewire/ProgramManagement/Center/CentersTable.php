@@ -211,10 +211,10 @@ class CentersTable extends LivewireTable
 
                     $url = route('positions.index', ['center' => $m->id]);
 
-                    $classes = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium '.'border shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-secondary-light '.($m->is_active ? 'bg-secondary-soft text-secondary-dark shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] ' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300');
+                    $classes = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium '.'border shadow-sm transition '.($m->is_active ? 'bg-surface text-ink border-line-soft ' : 'bg-card text-ink border-line-soft hover:bg-hover hover:border-line');
 
                     $count = $m->positions_count ?? 0;
-                    $badge = '<span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] md:text-xs bg-current/10">'.$count.'</span>';
+                    $badge = '<span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-caption bg-current/10">'.$count.'</span>';
 
                     return Blade::render(
                         '<a href="'.$url.'" wire:navigate class="'.$classes.'" title="'.e(__('general.positions')).'">

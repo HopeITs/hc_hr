@@ -41,7 +41,7 @@
 
         .id-invalid section {
             padding: 1.25rem 1rem;
-            border-top: 4px solid #c2151c;
+            border-top: 4px solid #BE1F24;
             border-radius: 1rem;
             box-shadow: 0 0.5rem 1.5rem rgb(65 64 66 / 18%);
         }
@@ -52,7 +52,7 @@
 
         .id-invalid h1 {
             margin: 0;
-            color: #c2151c;
+            color: #BE1F24;
             font-size: 1.5rem;
             font-weight: 800;
             line-height: 1.3;

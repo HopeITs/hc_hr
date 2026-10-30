@@ -299,7 +299,10 @@ class User extends Authenticatable implements HasLocalePreference
                 return true;
             }
 
-            if ($this->permissions()->where('name', $permission)->exists()) {
+            // The direct grants are read once and checked in memory: one query
+            // per distinct permission was ~30 queries on a city HR's dashboard.
+            // Granting or revoking unsets this relation and forgets the memo.
+            if ($this->permissions->contains('name', $permission)) {
                 return true;
             }
 

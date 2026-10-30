@@ -1,0 +1,410 @@
+/* ==================================================================
+   Shared components — the media-request identity (chips and tags,
+   buttons, forms, tables), expressed as a handful of component classes
+   so Blade components and the HTML some tables build in PHP render
+   exactly the same thing. Utilities a caller adds still win: these sit
+   in the components layer.
+
+   Status = icon + words + fill shape, never colour. Red only for act /
+   late / rush tags, the primary button and an invalid field.
+   ================================================================== */
+
+@layer components {
+    /* ---------- status chip: <x-status> ---------- */
+    .hc-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        padding: 2px 10px;
+        border: 1.5px solid var(--color-line);
+        border-radius: var(--radius-round);
+        background: var(--color-card);
+        color: var(--color-ink);
+        font-size: var(--text-small);
+        font-weight: 600;
+        line-height: 1.4;
+        white-space: nowrap;
+    }
+
+    .hc-chip > svg,
+    .hc-tag > svg {
+        width: 1em;
+        height: 1em;
+        flex: none;
+    }
+
+    /* in progress: solid ink */
+    .hc-chip--work {
+        background: var(--color-ink);
+        border-color: var(--color-ink);
+        color: var(--color-on-ink);
+    }
+
+    /* done: quiet surface fill */
+    .hc-chip--done {
+        background: var(--color-surface);
+        border-color: var(--color-surface);
+    }
+
+    /* needs you: ink outline */
+    .hc-chip--attn {
+        border-color: var(--color-ink);
+    }
+
+    /* stopped: dashed, secondary text */
+    .hc-chip--stop {
+        border-style: dashed;
+        border-color: var(--color-ink-2);
+        color: var(--color-ink-2);
+    }
+
+    /* waiting: the base chip (card fill, line outline) */
+
+    /* ---------- tag: <x-tag> ---------- */
+    .hc-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 1px 8px;
+        border: 1.5px solid transparent;
+        border-radius: var(--radius-inset);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        line-height: 1.5;
+        white-space: nowrap;
+    }
+
+    .hc-tag--act,
+    .hc-tag--late {
+        background: var(--color-primary);
+        color: var(--color-on-brand);
+    }
+
+    .hc-tag--rush {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+
+        /* Brand red text on a dark card is below 4.5:1; the red stays on the edge. */
+        @variant dark {
+            color: var(--color-ink);
+        }
+    }
+
+    .hc-tag--soft {
+        background: var(--color-surface);
+        color: var(--color-ink);
+    }
+
+    /* ---------- buttons: <x-button> and the legacy button components ---------- */
+    .hc-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 1.5px solid transparent;
+        border-radius: var(--radius-control);
+        font-size: var(--text-body);
+        font-weight: 700;
+        line-height: 1.2;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: opacity 0.15s, background-color 0.15s, transform 0.1s;
+    }
+
+    .hc-btn:active {
+        transform: scale(0.98);
+    }
+
+    .hc-btn--primary {
+        background: var(--color-primary);
+        color: var(--color-on-brand);
+    }
+
+    .hc-btn--primary:hover {
+        opacity: 0.9;
+    }
+
+    .hc-btn--outline {
+        background: var(--color-card);
+        border-color: var(--color-ink);
+        color: var(--color-ink);
+    }
+
+    .hc-btn--outline:hover {
+        background: var(--color-hover);
+    }
+
+    .hc-btn--quiet {
+        background: var(--color-surface);
+        color: var(--color-ink);
+    }
+
+    .hc-btn--quiet:hover {
+        background: var(--color-line-soft);
+        opacity: 0.85;
+    }
+
+    .hc-btn--link {
+        padding: 0 8px;
+        background: transparent;
+        color: var(--color-ink);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .hc-btn--link:hover {
+        background: var(--color-hover);
+    }
+
+    .hc-btn--sm {
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: var(--text-small);
+    }
+
+    /* A finger needs the full 44px even where the small button is drawn smaller. */
+    @media (pointer: coarse) {
+        .hc-btn--sm {
+            min-height: 44px;
+        }
+    }
+
+    .hc-btn--lg {
+        min-height: 52px;
+        padding: 0 24px;
+        font-size: 1.0625rem;
+    }
+
+    .hc-btn:disabled,
+    .hc-btn[aria-disabled="true"] {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .hc-spin {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        flex: none;
+        border: 2px solid currentColor;
+        border-inline-end-color: transparent;
+        border-radius: 50%;
+        animation: hc-spin 0.7s linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hc-spin {
+            animation-duration: 2s;
+        }
+    }
+
+    /* ---------- form fields ---------- */
+    .hc-field {
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        padding: 9px 12px;
+        border: 1.5px solid var(--color-line);
+        border-radius: var(--radius-control);
+        background-color: var(--color-field);
+        color: var(--color-ink);
+        font-size: var(--text-body);
+        box-shadow: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    textarea.hc-field {
+        min-height: 96px;
+        line-height: 1.55;
+        resize: vertical;
+    }
+
+    select.hc-field {
+        padding-inline-end: 2.5rem;
+        cursor: pointer;
+    }
+
+    .hc-field::placeholder {
+        color: var(--color-ink-3);
+    }
+
+    .hc-field:hover:not(:disabled, :focus) {
+        border-color: var(--color-ink-2);
+    }
+
+    .hc-field:disabled {
+        background-color: var(--color-soft);
+        color: var(--color-ink-2);
+        cursor: not-allowed;
+    }
+
+    /* Invalid: 2px brand border (the focus rule in app.css leaves it alone). */
+    .hc-field[aria-invalid="true"],
+    [aria-invalid="true"] > .hc-field {
+        border-width: 2px;
+        border-color: var(--color-primary);
+    }
+
+    /* Checkbox / radio: 20px, line border, ink when checked (the forms plugin
+       paints a checked box in currentColor). */
+    .hc-check {
+        width: 1.25rem;
+        height: 1.25rem;
+        flex: none;
+        border: 1.5px solid var(--color-line);
+        background-color: var(--color-field);
+        color: var(--color-ink);
+        cursor: pointer;
+    }
+
+    .hc-check:hover:not(:disabled) {
+        border-color: var(--color-ink-2);
+    }
+
+    /* Choice card (checkbox card, segmented control): line border, ink + surface when chosen. */
+    .hc-choice {
+        border: 1.5px solid var(--color-line);
+        border-radius: var(--radius-control);
+        background: var(--color-field);
+        transition: border-color 0.15s, background-color 0.15s;
+    }
+
+    .hc-choice:hover {
+        border-color: var(--color-ink-2);
+    }
+
+    .hc-choice:has(input:checked),
+    input:checked + .hc-choice,
+    .hc-choice[aria-checked="true"],
+    .hc-choice[aria-pressed="true"] {
+        border-color: var(--color-ink);
+        background: var(--color-surface);
+        box-shadow: inset 0 0 0 1px var(--color-ink);
+    }
+
+    input:focus-visible + .hc-choice {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+    }
+
+    /* Error line under a field: brand red, bold, with an alert icon. */
+    .hc-err {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--color-primary);
+        font-size: var(--text-small);
+        font-weight: 700;
+    }
+
+    .hc-err::before {
+        content: "";
+        width: 1.05em;
+        height: 1.05em;
+        flex: none;
+        background-color: currentColor;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+
+    /* error-span stays in the DOM while empty (a live region); no icon then. */
+    .hc-err:empty::before {
+        content: none;
+    }
+}
+
+/* ---------- tables: livewire-tables theme ----------
+   Below 820px a table without its own phone cards turns into stacked cards,
+   one per row, each cell led by its column name (data-label), as media-request
+   does. Unlayered, so it outranks the frozen-column rules in app.css. */
+@media (max-width: 819.98px) {
+    .hc-tbl-wrap {
+        overflow: visible !important;
+        border: 0 !important;
+        background: none !important;
+        box-shadow: none !important;
+    }
+
+    .hc-tbl thead,
+    .hc-tbl tfoot {
+        display: none;
+    }
+
+    .hc-tbl,
+    .hc-tbl tbody,
+    .hc-tbl tr,
+    .hc-tbl td {
+        display: block;
+        width: 100%;
+    }
+
+    .hc-tbl tbody tr {
+        margin-bottom: 10px;
+        padding: 6px 0;
+        border: 1px solid var(--color-line-soft);
+        border-radius: var(--radius-surface);
+        background: var(--color-card);
+    }
+
+    .hc-tbl.hc-tbl.hc-tbl tbody td {
+        position: static;
+        display: grid;
+        grid-template-columns: 7.5rem minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        padding: 2px 6px;
+        background: none;
+        box-shadow: none;
+    }
+
+    .hc-tbl td[data-label]::before {
+        content: attr(data-label);
+        padding-top: 0.5rem;
+        color: var(--color-ink-2);
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .hc-tbl td:not([data-label]) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hc-tbl td > div {
+        min-width: 0;
+    }
+
+    .hc-tbl td .truncate {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Flux buttons: the primary variant paints itself with --color-accent, which
+   the theme keeps on ink for Flux's other controls. Pointing it at the brand
+   here re-skins every <flux:button variant="primary"> at once. */
+[data-flux-button] {
+    --color-accent: var(--color-primary);
+    --color-accent-content: var(--color-primary);
+    --color-accent-foreground: var(--color-on-brand);
+}
+
+/* The primary variant (the only one filled with the accent) gets the button shape. */
+[data-flux-button][class*="bg-[var(--color-accent)]"] {
+    min-height: 44px;
+    border-radius: var(--radius-control);
+    font-weight: 700;
+}
+
+@keyframes hc-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

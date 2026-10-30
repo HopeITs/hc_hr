@@ -1,8 +1,8 @@
 <div
-    class="w-full h-full rounded-surface bg-white border border-neutral-200 shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
+    class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm p-6">
 
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-h4 font-semibold text-secondary-medium flex items-center gap-2">
+        <h2 class="text-h4 font-extrabold text-ink flex items-center gap-2">
             @lang('general.employees-per-department')
         </h2>
     </div>
@@ -19,15 +19,14 @@
 
 </div>
 
-@push('scripts')
-    <script nonce="{{ Vite::cspNonce() }}">
-        // Runs on a normal load and again when wire:navigate swaps this page in,
-        // where DOMContentLoaded has already fired and would never call back.
-        (() => {
+{{-- @script, not @push: on the dashboard this card is a lazy tile, which arrives
+     in a Livewire update that never reaches the layout's script stack. --}}
+@script
+    <script>
         const init = () => {
 
             const ctx = document.getElementById("departmentEmployeesChart");
-            if (!ctx) return;
+            if (!ctx || !window.brandColors) return;
 
             const departments = @json($departmentLabels);
             const employees   = @json($employeeCounts);
@@ -36,8 +35,10 @@
             const countLabels = @json(collect($employeeCounts)->unique()->mapWithKeys(fn ($count) => [$count => trans_choice('dashboard.employees-count', $count)]));
             const isRtl = document.documentElement.dir === 'rtl';
 
-            const primaryColor = "#c2151c";
-            const gridColor    = "#dcddde";
+            // Colours: charts/brand-colors.js, through the Chart.js brand defaults
+            // (ticks, grid, tooltip) and scriptable options for the marks, so a
+            // light <-> dark switch repaints them. One series: ink, never red.
+            const ink = () => window.brandColors().ink;
 
             new Chart(ctx, {
                 type: "bar",
@@ -46,8 +47,8 @@
                     datasets: [
                         {
                             data: employees,
-                            backgroundColor: primaryColor,
-                            borderColor: primaryColor,
+                            backgroundColor: ink,
+                            borderColor: ink,
                             borderWidth: 0.1,
                             borderRadius: 10,
 
@@ -59,8 +60,8 @@
                             type: "line",
                             data: employees,
                             borderWidth: 0,
-                            pointBackgroundColor: primaryColor,
-                            pointBorderColor: primaryColor,
+                            pointBackgroundColor: ink,
+                            pointBorderColor: ink,
                             pointRadius: 2.52,
                             pointHoverRadius: 4.2,
                             tension: 0
@@ -77,9 +78,6 @@
 
                         tooltip: {
                             enabled: true,
-                            backgroundColor: "#1f2937",
-                            titleColor: "#fff",
-                            bodyColor: "#fff",
                             padding: 10,
                             cornerRadius: 8,
                             displayColors: false,
@@ -96,7 +94,6 @@
                             reverse: isRtl,
                             grid: { display: false },
                             ticks: {
-                                color: "#6b7280",
                                 font: { size: 12, family: "SomarSans" },
                                 padding: 10
                             }
@@ -105,14 +102,9 @@
                         y: {
                             position: isRtl ? 'right' : 'left',
                             beginAtZero: true,
-
-                            grid: {
-                                color: gridColor,
-                                drawBorder: false
-                            },
+                            grid: { drawBorder: false },
 
                             ticks: {
-                                color: "#6b7280",
                                 font: { size: 12, family: "SomarSans" },
                                 padding: 6,
 
@@ -127,11 +119,7 @@
 
         };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-        })();
+        // A lazy tile runs this just before its card replaces the placeholder: wait a frame for the canvas.
+        requestAnimationFrame(init);
     </script>
-@endpush
+@endscript

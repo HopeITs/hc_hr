@@ -8,7 +8,7 @@
             </svg>
         </x-slot>
         <span
-            class="flex px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+            class="flex px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500">
             @lang('Trashed')
         </span>
         <div class="flex flex-col">
@@ -17,7 +17,7 @@
                     @lang('Show')
                 </span>
                 <select
-                    class="w-full border border-neutral-200 rounded-md shadow-xs outline-hidden bg-white text-black focus:border-secondary-medium me-auto px-3 py-2 font-normal transition ease-in-out dark:bg-neutral-900 dark:border-neutral-700 dark:focus:border-primary dark:text-white"
+                    class="w-full border border-neutral-200 rounded-md shadow-xs outline-hidden bg-white text-black focus:border-secondary-medium me-auto px-3 py-2 font-normal transition ease-in-out"
                     wire:model.live="trashed">
                     <option value="withoutTrashed">@lang('Without Trashed')</option>
                     <option value="withTrashed">@lang('With Trashed')</option>

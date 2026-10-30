@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Models\Contract;
 use App\Support\StatisticsCache;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\Component;
 class JobLevelEmployeeStatistics extends Component
 {
     use HandlesLoadFailure;
+    use IsDashboardTile;
 
     public $jobLevelLabels = [];
 

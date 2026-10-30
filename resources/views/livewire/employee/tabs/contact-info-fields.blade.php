@@ -13,7 +13,7 @@
                     dir="ltr" placeholder="{{ __('employees.form.username-placeholder') }}" />
                 @if (data_get($infoForm, 'create_account'))
                     <span
-                        class="inline-flex items-center px-3 ltr:rounded-e-md rtl:rounded-s-md shadow-e2 border ltr:border-s-0 rtl:border-e-0 border-neutral-300 bg-neutral-50 text-secondary-medium sm:text-body">
+                        class="inline-flex items-center px-3 ltr:rounded-e-md rtl:rounded-s-md shadow-e2 border ltr:border-s-0 rtl:border-e-0 border-line bg-soft text-ink-2 sm:text-body">
                         <bdi dir="ltr">@hcsyria.org</bdi>
                     </span>
                 @endif
@@ -27,15 +27,16 @@
                 starts (B5, DEC-04).
             --}}
             @unless ($infoForm->mayHaveAccount())
-                <p class="mt-3 text-small text-secondary-medium" data-testid="account-at-contract">@lang('employees.onboarding.account-at-contract')</p>
+                <p class="mt-3 text-small text-ink-2" data-testid="account-at-contract">@lang('employees.onboarding.account-at-contract')</p>
             @else
             <label class="flex items-start gap-2 mt-3 cursor-pointer">
                 <x-forms.input type="checkbox" wire:model.live="infoForm.create_account" value="1"
-                    id="create_account" class="mt-1" />
+                    id="create_account" class="mt-1"
+                    :aria-describedby="data_get($infoForm, 'create_account') ? 'create_account-hint' : null" />
                 <span>
-                    <span class="text-body text-secondary-dark">@lang('general.create_login_account')</span>
+                    <span class="text-body text-ink">@lang('general.create_login_account')</span>
                     @if (data_get($infoForm, 'create_account'))
-                        <span class="block text-small text-secondary-light">@lang('general.create_login_account_hint')</span>
+                        <x-forms.hint id="create_account-hint" as="span" class="block">@lang('general.create_login_account_hint')</x-forms.hint>
                     @endif
                 </span>
             </label>
@@ -47,7 +48,7 @@
             <x-forms.input-label for="work_phone">@lang('general.work_phone')</x-forms.input-label>
             <x-forms.input type="tel" wire:model="infoForm.work_phone" id="work_phone" dir="ltr"
                 inputmode="numeric" maxlength="10" autocomplete="tel"
-                placeholder="{{ __('general.phone_placeholder') }}" />
+                examples="examples.phone" :hint="__('examples.hints.phone')" />
             <x-error-span>{{ $errors->first('infoForm.work_phone') }}</x-error-span>
         </div>
 
@@ -60,13 +61,14 @@
             <x-forms.input-label for="personal_phone">@lang('general.personal_phone')</x-forms.input-label>
             <x-forms.input type="tel" wire:model="infoForm.personal_phone" id="personal_phone" dir="ltr"
                 inputmode="numeric" maxlength="10" autocomplete="tel"
-                placeholder="{{ __('general.phone_placeholder') }}" />
+                examples="examples.phone" :hint="__('examples.hints.phone')" />
             <x-error-span>{{ $errors->first('infoForm.personal_phone') }}</x-error-span>
         </div>
 
         <div>
             <x-forms.input-label for="personal_email">@lang('general.personal_email')</x-forms.input-label>
-            <x-forms.input type="email" wire:model="infoForm.personal_email" id="personal_email" dir="ltr" />
+            <x-forms.input type="email" wire:model="infoForm.personal_email" id="personal_email" dir="ltr"
+                examples="examples.personal_email" />
             <x-error-span>{{ $errors->first('infoForm.personal_email') }}</x-error-span>
         </div>
 

@@ -6,18 +6,18 @@
 --}}
 <div
     data-tour="contract.save"
-    class="rounded-surface border border-neutral-200 bg-white shadow-e1 lg:mt-auto
+    class="rounded-surface border border-line-soft bg-card shadow-e1 lg:mt-auto
            max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-20 max-lg:rounded-b-none
            max-lg:border-x-0 max-lg:border-b-0 max-lg:shadow-e3 max-lg:pb-[env(safe-area-inset-bottom)]"
 >
     {{-- Small screens only: who and where, since the rail is hidden there. --}}
-    <div class="flex items-center gap-2 border-b border-neutral-200 px-4 py-2 lg:hidden max-lg:[@media(max-height:30rem)]:hidden"
+    <div class="flex items-center gap-2 border-b border-line-soft px-4 py-2 lg:hidden max-lg:[@media(max-height:30rem)]:hidden"
          x-cloak x-show="selectedEmployee">
-        <span class="min-w-0 flex-1 truncate text-small font-medium text-neutral-800"
+        <span class="min-w-0 flex-1 truncate text-small font-medium text-ink"
               x-text="selectedEmployee ? selectedEmployee.label : ''"></span>
-        <span class="shrink-0 text-caption text-secondary-medium" x-text="cardPosition"></span>
+        <span class="shrink-0 text-caption text-ink-2" x-text="cardPosition"></span>
         <span x-cloak x-show="capacity" class="shrink-0 text-caption font-medium tabular-nums"
-              x-bind:class="capacity && capacity.left === 0 ? 'text-primary' : 'text-secondary-medium'"
+              x-bind:class="capacity && capacity.left === 0 ? 'text-primary' : 'text-ink-2'"
               x-text="cardCapacity"></span>
     </div>
 
@@ -28,39 +28,29 @@
             <span class="flex gap-1" aria-hidden="true">
                 <template x-for="name in requiredSections" :key="name">
                     <span class="h-1.5 w-6 rounded-full transition-colors"
-                          x-bind:class="isValid(name) ? 'bg-primary' : 'bg-neutral-300'"></span>
+                          x-bind:class="isValid(name) ? 'bg-ink' : 'bg-line'"></span>
                 </template>
             </span>
-            <span class="truncate font-medium"
-                  x-bind:class="completedCount === requiredSections.length ? 'text-neutral-900' : 'text-secondary-dark'"
+            <span class="truncate font-medium text-ink"
                   x-text="progressLabel"></span>
         </p>
 
         <div class="flex shrink-0 items-center gap-2 max-sm:w-full max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
-            <a href="{{ $cancelUrl }}" wire:navigate
-               class="inline-flex min-h-11 items-center rounded-control border border-neutral-300 bg-white px-4 py-2 text-body font-semibold
-                      text-secondary-dark shadow-e1 transition hover:bg-neutral-100 active:scale-[0.98]
-                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <x-button variant="outline" :href="$cancelUrl">
                 @lang('general.cancel')
-            </a>
+            </x-button>
 
-            <button
-                type="button"
+            <x-button
+                :loading="false"
                 x-bind:disabled="!canSubmit"
                 x-on:click="submit()"
-                class="flex min-h-11 items-center justify-center rounded-control bg-primary px-5 py-2 text-body
-                       font-semibold text-white shadow-e1 transition
-                       hover:bg-primary-hover active:scale-[0.98] active:shadow-none
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
-                       disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-secondary-medium
-                       disabled:shadow-none disabled:active:scale-100"
             >
                 <span x-cloak x-show="submitting" class="me-2" role="status">
                     <x-icons.spinner class="size-4 animate-spin" />
                     <span class="sr-only">@lang('general.a11y.loading')</span>
                 </span>
                 <span x-text="submitting ? @js(__('general.saving')) : @js($submitLabel)"></span>
-            </button>
+            </x-button>
         </div>
     </div>
 </div>

@@ -22,11 +22,7 @@
      * inside the quotes and break the whole binding.
      */
     $control = preg_replace('/\s+/', ' ', trim(
-        'w-full min-h-[2.375rem] py-2 ps-3 pe-9 text-body rounded-control border bg-white shadow-e1
-         transition outline-none placeholder:text-neutral-400
-         focus:ring-2 focus:ring-neutral-300 focus:border-primary
-         disabled:bg-neutral-100 disabled:text-secondary-medium disabled:cursor-not-allowed
-         disabled:shadow-none'
+        'hc-field pe-9 outline-none'
     ));
 @endphp
 
@@ -55,7 +51,7 @@
         x-ref="input"
         x-bind:class="[
             '{{ $control }}',
-            hasError ? 'border-primary text-primary' : 'border-neutral-300 text-neutral-900',
+            hasError ? '!border-2 !border-primary' : '',
         ]"
         x-bind:value="open ? query : selectedLabel"
         x-bind:placeholder="isDisabled() ? '' : placeholder"
@@ -78,8 +74,8 @@
     <button
         type="button"
         tabindex="-1"
-        class="absolute inset-y-0 end-0 flex items-center pe-3 text-secondary-medium transition
-               hover:text-primary disabled:opacity-40 disabled:hover:text-secondary-medium"
+        class="absolute inset-y-0 end-0 flex items-center pe-3 text-ink-2 transition
+               hover:text-ink disabled:opacity-40 disabled:hover:text-ink-2"
         x-bind:disabled="isDisabled()"
         x-bind:aria-label="canClear ? @js(__('general.composer.clear')) : @js($placeholder)"
         x-on:click="canClear ? clear() : toggle()"
@@ -106,10 +102,10 @@
         id="{{ $id }}-listbox"
         role="listbox"
         class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto overscroll-contain rounded-surface
-               border border-neutral-200 bg-white py-1 shadow-e2"
+               border border-line-soft bg-card py-1 shadow-e2"
     >
         <template x-if="filtered.length === 0">
-            <li class="px-3 py-2 text-small text-secondary-light">{{ $emptyText }}</li>
+            <li class="px-3 py-2 text-small text-ink-3">{{ $emptyText }}</li>
         </template>
 
         <template x-for="(option, index) in filtered" :key="option.value">
@@ -122,41 +118,41 @@
                 x-on:mousedown.prevent="choose(index)"
                 x-bind:class="[
                     'flex items-center gap-2.5 px-3 py-2 text-body',
-                    isFull(option) ? 'cursor-not-allowed text-secondary-light' : 'cursor-pointer text-neutral-800',
-                    active === index && !isFull(option) ? 'bg-neutral-100' : '',
-                    isSelected(option) ? 'bg-neutral-50' : '',
-                    isSelected(option) ? 'font-semibold text-primary' : '',
+                    isFull(option) ? 'cursor-not-allowed text-ink-3' : 'cursor-pointer text-ink',
+                    active === index && !isFull(option) ? 'bg-surface' : '',
+                    isSelected(option) ? 'bg-soft' : '',
+                    isSelected(option) ? 'font-semibold text-ink' : '',
                 ]"
             >
                 @if($variant === 'employee')
                     <span
-                        class="grid size-7 shrink-0 place-items-center rounded-round bg-neutral-100
-                               text-caption font-semibold text-secondary-medium"
+                        class="grid size-7 shrink-0 place-items-center rounded-round bg-surface
+                               text-caption font-semibold text-ink-2"
                         x-text="initials(option.label)"
                         aria-hidden="true"
                     ></span>
                     <span class="min-w-0 flex-1 truncate" x-text="option.label"></span>
                     <template x-if="option.activeContractEndsAt">
-                        <span class="shrink-0 rounded-round border border-primary px-2 py-0.5 text-caption font-semibold text-primary">
+                        <x-tag variant="rush" icon="alert" class="shrink-0">
                             @lang('general.composer.duplicate-short')
-                        </span>
+                        </x-tag>
                     </template>
                 @elseif($variant === 'position')
                     <span class="flex min-w-0 flex-1 flex-col">
                         <span class="truncate" x-text="option.label"></span>
                         <template x-if="option.centerLabel">
-                            <span class="truncate text-caption text-secondary-light" x-text="option.centerLabel"></span>
+                            <span class="truncate text-caption text-ink-3" x-text="option.centerLabel"></span>
                         </template>
                     </span>
                     <span class="flex shrink-0 items-center gap-1.5">
                         <span class="flex gap-0.5" aria-hidden="true">
                             <template x-for="seat in seatBar(option)" :key="seat.i">
                                 <span class="h-1 w-2.5 rounded-full"
-                                      x-bind:class="seat.taken ? 'bg-primary' : 'bg-neutral-200'"></span>
+                                      x-bind:class="seat.taken ? 'bg-ink' : 'bg-surface'"></span>
                             </template>
                         </span>
                         <span class="text-caption tabular-nums"
-                              x-bind:class="isFull(option) ? 'text-secondary-light' : 'text-secondary-medium'"
+                              x-bind:class="isFull(option) ? 'text-ink-3' : 'text-ink-2'"
                               x-text="isFull(option)
                                   ? @js(__('general.composer.position-full'))
                                   : option.existEmp + ' / ' + option.maxEmp"></span>

@@ -9,7 +9,7 @@
                     <span>
                         @if ($paginator->onFirstPage())
                             <span
-                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none dark:bg-neutral-800 dark:border-neutral-700">
+                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
                                 {!! __('pagination.previous') !!}
                             </span>
                         @else
@@ -17,7 +17,7 @@
                                     wire:click="previousPage('{{ $paginator->getPageName() }}')"
                                     wire:loading.attr="disabled"
                                     dusk="previousPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.before"
-                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-primary dark:active:bg-neutral-900 dark:active:text-white">
+                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
                                 {!! __('pagination.previous') !!}
                             </button>
                         @endif
@@ -28,12 +28,12 @@
                                     wire:click="nextPage('{{ $paginator->getPageName() }}')"
                                     wire:loading.attr="disabled"
                                     dusk="nextPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.before"
-                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-primary dark:active:bg-neutral-900 dark:active:text-white">
+                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
                                 {!! __('pagination.next') !!}
                             </button>
                         @else
                             <span
-                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none dark:bg-neutral-800 dark:border-neutral-700">
+                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
                                 {!! __('pagination.next') !!}
                             </span>
                         @endif
@@ -43,7 +43,7 @@
 
             {{-- Desktop --}}
             <div class="hidden lg:flex-1 lg:flex lg:items-center lg:justify-between">
-                <p class="text-body text-neutral-800 dark:text-neutral-400">
+                <p class="text-body text-neutral-800">
                     {!! __('pagination.showing', [
                         'first' => '<span class="font-bold">'.e($paginator->firstItem()).'</span>',
                         'last' => '<span class="font-bold">'.e($paginator->lastItem()).'</span>',
@@ -58,7 +58,7 @@
                             @if ($paginator->onFirstPage())
                                 <span aria-disabled="true" aria-label="@lang('pagination.previous')">
                                     <span
-                                        class="relative inline-flex items-center px-2 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-s-control dark:bg-neutral-800 dark:border-neutral-700"
+                                        class="relative inline-flex items-center px-2 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-s-control"
                                         aria-hidden="true">
                                         <!-- Icon "chevron-left" (outline) from https://heroicons.com -->
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
@@ -71,7 +71,7 @@
                                         wire:click="previousPage('{{ $paginator->getPageName() }}')"
                                         dusk="previousPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.after"
                                         rel="prev"
-                                        class="relative inline-flex items-center px-2 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-s-control hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-primary dark:active:bg-neutral-900 dark:active:text-white"
+                                        class="relative inline-flex items-center px-2 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-s-control hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-500 transition ease-in-out"
                                         aria-label="@lang('pagination.previous')">
                                     <!-- Icon "chevron-left" (outline) from https://heroicons.com -->
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
@@ -87,7 +87,7 @@
                             @if (is_string($element))
                                 <span aria-disabled="true">
                                     <span
-                                        class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 select-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300">{{ $element }}</span>
+                                        class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 select-none">{{ $element }}</span>
                                 </span>
                             @endif
 
@@ -98,12 +98,12 @@
                                         @if ($page == $paginator->currentPage())
                                             <span aria-current="page">
                                                 <span
-                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-500 bg-neutral-100 border border-neutral-200 select-none dark:bg-neutral-700 dark:border-neutral-700 dark:text-neutral-400">{{ $page }}</span>
+                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-500 bg-neutral-100 border border-neutral-200 select-none">{{ $page }}</span>
                                             </span>
                                         @else
                                             <button type="button"
                                                     wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')"
-                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-primary dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                                    class="relative inline-flex items-center px-4 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 hover:text-neutral-500 focus:z-10 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out"
                                                     aria-label="{{ __('pagination.go_to_page', ['page' => $page]) }}">
                                                 {{ $page }}
                                             </button>
@@ -120,7 +120,7 @@
                                         wire:click="nextPage('{{ $paginator->getPageName() }}')"
                                         dusk="nextPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.after"
                                         rel="next"
-                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-blue-300 active:bg-neutral-100 active:text-neutral-500 transition ease-in-out dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-blue-600 dark:text-neutral-300 dark:hover:text-white dark:focus:border-blue-600 dark:active:bg-neutral-900 dark:active:text-white"
+                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-800 bg-white border border-neutral-200 rounded-e-control hover:text-neutral-500 focus:z-10 focus:border-ink active:bg-neutral-100 active:text-neutral-500 transition ease-in-out"
                                         aria-label="@lang('pagination.next')">
                                     <!-- Icon "chevron-right" (outline) from https://heroicons.com -->
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">
@@ -130,7 +130,7 @@
                             @else
                                 <span aria-disabled="true" aria-label="@lang('pagination.next')">
                                     <span
-                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-500 bg-white border border-neutral-200 rounded-e-control dark:bg-neutral-800 dark:border-neutral-700"
+                                        class="relative inline-flex items-center px-2 py-2 -ms-px text-body text-neutral-500 bg-white border border-neutral-200 rounded-e-control"
                                         aria-hidden="true">
                                         <!-- Icon "chevron-right" (outline) from https://heroicons.com -->
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 rtl:rotate-180">

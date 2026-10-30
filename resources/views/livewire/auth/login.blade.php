@@ -2,7 +2,7 @@
     {{ __('auth.sign-in') }}
 </x-slot:title>
 
-<section class="min-h-[86.7dvh]  rtl:text-right bg-neutral-100 flex items-center justify-center px-4">
+<section class="min-h-[86.7dvh]  rtl:text-right bg-surface flex items-center justify-center px-4">
     <x-auth-card-wrapper>
 
         <div class="mb-6 text-center">
@@ -12,11 +12,11 @@
         <x-auth-card class="space-y-6 w-full max-w-96">
 
             <div class="space-y-1 text-center">
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('auth.sign-in') }}</h1>
-                <p class="text-sm text-gray-500">{{ __('auth.sign-in-text') }}</p>
+                <h1 class="text-2xl font-bold text-ink">{{ __('auth.sign-in') }}</h1>
+                <p class="text-sm text-ink-2">{{ __('auth.sign-in-text') }}</p>
             </div>
 
-            <x-auth-session-status class="mb-2 text-center text-green-600 text-body" :status="session('status')" />
+            <x-auth-session-status class="mb-2 text-center text-body" :status="session('status')" />
 
             <form
                 x-data
@@ -56,13 +56,13 @@
 
                 </div>
 
-                <div class="flex items-center justify-between text-body text-secondary-medium">
+                <div class="flex items-center justify-between text-body text-ink-2">
                     <x-forms.checkbox-input type="checkbox" id="remember" wire:model="remember">
                     {{ __('auth.remember-me') }}
                     </x-forms.checkbox-input>
 
                     @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" wire:navigate class="text-primary hover:underline">
+                        <a href="{{ route('password.request') }}" wire:navigate class="font-semibold text-ink underline underline-offset-4 hover:no-underline">
                             {{ __('auth.forgot-password') }}
                         </a>
                     @endif

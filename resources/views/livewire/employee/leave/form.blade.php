@@ -10,7 +10,7 @@
                 <x-forms.input-label for="leave_balance_id" required>{{__('general.type')}}</x-forms.input-label>
                 <x-forms.select2-input wire:model.live="form.leave_balance_id" id="leave_balance_id">
                     <option
-                        class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                        class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
                         @lang('general.select')..
                     </option>
                     @foreach($allAvailableLeaves ?? [] as $availableLeave)
@@ -23,7 +23,7 @@
                 <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                 <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
                     <option
-                        class="text-secondary-light" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                        class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
                         @lang('general.select')..
                     </option>
                     @foreach($alternativeEmployees as $alternativeEmployee)
@@ -93,7 +93,8 @@
             @endif
             <div class="col-span-full">
                 <x-forms.input-label for="reason" required>{{__('general.reason')}}</x-forms.input-label>
-                <x-forms.input id="reason" wire:model="form.reason"/>
+                <x-forms.input id="reason" wire:model="form.reason" examples="examples.leave_reason"
+                    :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                 <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
             </div>
         </div>
@@ -101,8 +102,7 @@
         <div class="flex justify-end gap-2">
             <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
             {{-- Closes locally, like Escape and the header close. --}}
-            <x-primary-button type="button" x-on:click="close()"
-                              class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+            <x-button variant="quiet" x-on:click="close()">@lang('general.cancel')</x-button>
         </div>
     </form>
 </x-modal.dialog>

@@ -142,7 +142,7 @@ class Contract extends Model
 
     /**
      * A named contracts view (B4 presets): `active` (default), `ending-soon`,
-     * `ended`, `draft`. Shared by the contracts table and the home page's
+     * `ended`, `not-renewed`, `draft`. Shared by the contracts table and the home page's
      * "ending soon" figure (C4), so the count and the list it opens agree.
      * It only narrows; combine it with visibleTo() for the role's scope.
      */
@@ -172,6 +172,23 @@ class Contract extends Model
                     ->orWhereNotNull('contracts.termination_reason_id')
                     ->orWhere('contracts.is_active', false)
                     ->orWhereDate('contracts.end_date', '<', $today));
+            }),
+            // Ended (not ended early) within the last $endingSoonDays days, the
+            // person is still on staff, and nothing newer was made for them:
+            // the home page's late band (prompt 7) counts this very view.
+            'not-renewed' => $query->where(function (Builder $q) use ($notDraft, $today, $endingSoonDays) {
+                $notDraft($q);
+                $q->whereNull('contracts.terminated_at')
+                    ->whereNull('contracts.termination_reason_id')
+                    ->whereNotNull('contracts.end_date')
+                    ->whereDate('contracts.end_date', '<', $today)
+                    ->whereDate('contracts.end_date', '>=', $today->copy()->subDays($endingSoonDays))
+                    ->whereHas('employee', fn (Builder $e) => $e->where('is_active', true))
+                    ->whereNotExists(fn ($later) => $later->selectRaw('1')
+                        ->from('contracts as later')
+                        ->whereColumn('later.employee_id', 'contracts.employee_id')
+                        ->whereColumn('later.id', '!=', 'contracts.id')
+                        ->whereColumn('later.start_date', '>=', 'contracts.start_date'));
             }),
             'draft' => $query->where('contracts.type', ContractTypeEnum::Draft),
             default => $query->where($running),

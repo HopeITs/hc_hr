@@ -1,139 +1,117 @@
-<div class="flex min-h-[330px] w-full flex-col justify-between space-y-4 rounded-surface border border-gray-200 bg-white shadow-[0px_0px_25px_-14px_rgba(0,_0,_0,_0.30)] sm:min-h-[360px] md:min-h-0">
-    <x-dashboard-cards.card-header :title="__('general.my-leaves')">
-        <x-slot:actions>
-            <a href="{{route('leaves.index')}}" wire:navigate class="flex flex-row gap-2 rounded-[10px] bg-primary px-3 py-2 text-xs font-medium text-white transition">
-                {{ __('general.show-more') }}
-            </a>
-        </x-slot:actions>
-    </x-dashboard-cards.card-header>
-
-    <div class="grid grid-cols-1 items-center gap-10 px-8 pb-6 md:grid-cols-2 md:gap-6">
-
-        {{-- flex-wrap + gap (not space-x): below ~sm the number block and the
-             breakdown need ~377px but only ~278px is available, so the breakdown
-             wraps onto its own line instead of being crushed or overflowing. At
-             sm and up everything still sits on one row exactly as before. --}}
-        <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
-            <div class="flex items-end -mb-3">
-                <span class="text-[125px] font-extrabold text-secondary-medium leading-none">{{$remainingDays}}</span>
-                <span class="mb-4 text-h2 font-semibold text-secondary-medium">/{{$totalDays}}</span>
-            </div>
-
-            {{-- The divider only reads as a divider when the two blocks are
-                 side by side; once they stack it is a stray vertical line. --}}
-            <div class="hidden sm:block border-s border-secondary-medium h-26"></div>
-
-            {{-- min-w-0, not min-w-full: this is a flex child with two siblings,
-                 so `min-width:100%` forced the row past the container width and
-                 pushed ~195px of horizontal overflow onto the whole page. --}}
-            <div class="flex flex-col justify-between min-w-0">
-                <h4 class="font-bold text-secondary-medium text-md">
-                    {{ $title ?? __('general.annual-leave') }}
-                </h4>
-                <div class="w-6 border-b border-3 border-primary"></div>
-                <ul class="mt-3 space-y-1 text-secondary-light text-small leading-relaxed">
-                    <li class="text-secondary-light text-start">
-                        <span>@lang('general.used-leave', ['attr' => $used ]) </span>
-
-                    </li>
-                    <li>
-                        <span>@lang('general.remaining-leave', ['attr' => $remaining ]) </span>
-                    </li>
-                    <li>
-                        <span>@lang('general.pending-leave', ['attr' => $pending ]) </span>
-
-                    </li>
-                    <li>
-                        <span>@lang('general.total-leave', ['attr' => $total ]) </span>
-                    </li>
-                </ul>
-            </div>
+{{--
+    The viewer's leave balance, as a dashboard tile. It follows its own size
+    (the tile is the size container "tile", resources/css/dashboard.css): one
+    row is a single line (type, days left of the total, a bar, Show more); from
+    two rows the full card, whose number scales with the tile and whose gauge
+    appears once there is room for it.
+--}}
+<div class="hc-leaves flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
+    <div class="hc-leaves-compact items-center gap-4 px-5 py-3">
+        <div class="min-w-0 flex-1">
+            <p class="truncate text-small font-bold text-ink-2">{{ $title ?: __('general.annual-leave') }}</p>
+            <p class="num text-h4 font-extrabold leading-tight text-ink">
+                {{ $remainingDays }}<span class="text-body font-semibold text-ink-2">/{{ $totalDays }}</span>
+            </p>
         </div>
+        <span class="hc-leaves-bar" aria-hidden="true"><span style="inline-size: {{ max(0, min(100, 100 - (int) $percentage)) }}%"></span></span>
+        <x-button variant="outline" size="sm" :href="route('leaves.index')" class="shrink-0">{{ __('general.show-more') }}</x-button>
+    </div>
 
+    <div class="hc-leaves-full min-h-0 flex-1 flex-col">
+        <x-dashboard-cards.card-header :title="__('general.my-leaves')">
+            <x-slot:actions>
+                <x-button variant="outline" size="sm" :href="route('leaves.index')">{{ __('general.show-more') }}</x-button>
+            </x-slot:actions>
+        </x-dashboard-cards.card-header>
 
-        <div class="flex flex-col items-center justify-center md:items-end md:justify-end">
-            <div class="relative w-56 h-40 ms-12 md:mb-2">
-                <canvas id="leavesGaugeChart"></canvas>
-                <div class="absolute inset-0 flex flex-col items-center justify-end">
-                    <p class="mb-3 -ml-6 text-h1 font-bold text-primary rtl:-ml-12">
-                        {{$percentage}} <span class="text-body rtl:-mr-2 ltr:-ml-2">%</span>
-                    </p>
+        <div class="flex min-h-0 flex-1 items-center gap-6 px-6 pb-4">
+            {{-- flex-wrap + gap: on a narrow tile the breakdown wraps under the number instead of overflowing. --}}
+            <div class="flex min-w-0 flex-wrap items-end gap-x-6 gap-y-2">
+                <div class="flex items-end">
+                    <span class="hc-leaves-big num font-extrabold leading-none text-ink">{{ $remainingDays }}</span>
+                    <span class="mb-1 text-h3 font-semibold text-ink-2">/{{ $totalDays }}</span>
+                </div>
+
+                <div class="flex min-w-0 flex-col">
+                    <h3 class="text-body font-bold text-ink">{{ $title ?: __('general.annual-leave') }}</h3>
+                    <ul class="mt-1 space-y-0.5 text-small leading-relaxed text-ink-2">
+                        <li>@lang('general.used-leave', ['attr' => $used])</li>
+                        <li>@lang('general.remaining-leave', ['attr' => $remaining])</li>
+                        <li>@lang('general.pending-leave', ['attr' => $pending])</li>
+                        <li>@lang('general.total-leave', ['attr' => $total])</li>
+                    </ul>
                 </div>
             </div>
-        </div>
 
+            <div class="hc-leaves-gauge relative ms-auto shrink-0">
+                <canvas id="leavesGaugeChart" aria-hidden="true"></canvas>
+                <p class="absolute inset-x-0 bottom-2 text-center text-h2 font-bold text-ink">
+                    <span class="num">{{ $percentage }}</span><span class="text-body">%</span>
+                </p>
+            </div>
+        </div>
     </div>
 </div>
-@push('js')
-<script nonce="{{ Vite::cspNonce() }}">
-    // Runs on a normal load and again when wire:navigate swaps this page in.
-    // A livewire:navigated listener would outlive the dashboard and fire on
-    // every later page, where the canvas is gone.
-    (() => {
+
+{{-- @script, not @push: the card is a lazy dashboard tile, which arrives in a
+     Livewire update that never reaches the layout's script stack. --}}
+@script
+<script>
     const init = () => {
-        const canvas = document.getElementById("leavesGaugeChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const value = '{{$percentage}}';
+        const canvas = document.getElementById('leavesGaugeChart');
+        if (! canvas || ! window.Chart || ! window.brandColors) return;
+        const ctx = canvas.getContext('2d');
+        const value = Number(@js((int) $percentage));
+        // Brand colours (charts/brand-colors.js), read on every draw so a light <-> dark
+        // switch (which redraws every Chart.js chart) repaints the gauge too. The fill
+        // is ink: a leave balance is none of red's three jobs.
+        const colors = () => window.brandColors();
 
         new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                datasets: [{
-                    data: [0],
-                    backgroundColor: ["transparent"],
-                }],
-            },
+            type: 'doughnut',
+            data: { datasets: [{ data: [0], backgroundColor: ['transparent'] }] },
             options: {
-                cutout: "70%",
+                cutout: '70%',
                 circumference: 180,
                 rotation: 270,
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: {
-                    padding: {left: 15, right: 15, top: 5, bottom: 5}
-                },
-                plugins: {legend: {display: false}, tooltip: {enabled: false}},
+                layout: { padding: { left: 15, right: 15, top: 5, bottom: 5 } },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
                 animation: false,
             },
             plugins: [{
                 id: 'customGauge',
                 afterDraw(chart) {
-                    const {width, height} = chart.chartArea;
+                    const { width, height } = chart.chartArea;
                     const centerX = width / 2;
                     const centerY = height * 0.9;
                     const radius = Math.min(width, height * 2) / 2.25;
-                    const thickness = radius * 0.24;
                     const startAngle = Math.PI;
-                    const endAngle = 2 * Math.PI;
                     const percentAngle = startAngle + (value / 100) * Math.PI;
 
+                    const { surface: track, ink: fill } = colors();
+
                     ctx.save();
-                    ctx.lineWidth = thickness;
-                    ctx.lineCap = "round";
+                    ctx.lineWidth = radius * 0.24;
+                    ctx.lineCap = 'round';
 
-
-                    ctx.strokeStyle = "#dcddde";
-                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    ctx.strokeStyle = track;
+                    ctx.arc(centerX, centerY, radius, startAngle, 2 * Math.PI);
                     ctx.stroke();
 
-
                     ctx.beginPath();
-                    ctx.strokeStyle = "#C71C1C";
+                    ctx.strokeStyle = fill;
                     ctx.arc(centerX, centerY, radius, startAngle, percentAngle);
                     ctx.stroke();
 
                     ctx.restore();
-                }
-            }]
+                },
+            }],
         });
     };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-    })();
+    // Runs just before the card replaces its placeholder: wait a frame for the canvas.
+    requestAnimationFrame(init);
 </script>
-@endpush
+@endscript

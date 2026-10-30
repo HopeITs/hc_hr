@@ -22,6 +22,8 @@
  * that draws them arrives.
  */
 
+import { onThemeChange } from "./brand-colors.js";
+
 const CHARTS = [
     {
         selector: "#chartdiv",
@@ -46,9 +48,27 @@ const CHARTS = [
  */
 const loaded = new Map();
 
-function renderVisibleCharts() {
+/**
+ * Hosts already drawn, with the data they were drawn from. A Livewire update
+ * that did not touch a chart (a dashboard layout save, a note) leaves it
+ * alone instead of redrawing it, and replaying its animation, every time;
+ * amCharts follows its host's size by itself, so a resized dashboard tile
+ * needs no redraw either. A host that was replaced, emptied by a morph, or
+ * given new data is drawn again.
+ */
+const drawn = new WeakMap();
+
+function renderVisibleCharts(force = false) {
     for (const { selector, load } of CHARTS) {
-        if (!document.querySelector(selector)) {
+        const host = document.querySelector(selector);
+
+        if (!host) {
+            continue;
+        }
+
+        const data = JSON.stringify(host.dataset);
+
+        if (force !== true && drawn.get(host) === data && host.childElementCount > 0) {
             continue;
         }
 
@@ -58,7 +78,10 @@ function renderVisibleCharts() {
 
         loaded
             .get(selector)
-            .then((module) => module.default?.())
+            .then((module) => {
+                module.default?.();
+                drawn.set(host, data);
+            })
             .catch((error) => {
                 // A failed chunk must not take the rest of the dashboard down.
                 // Drop the cached promise so a later navigation can retry.
@@ -92,6 +115,14 @@ export default function registerLazyCharts() {
         import("@amcharts/amcharts5").then((am5) => {
             [...am5.registry.rootElements].forEach((root) => root.dispose());
         });
+    });
+
+    // Light <-> dark: redraw, so every chart picks up the other neutrals. Each
+    // chart module disposes its previous Root before drawing again.
+    onThemeChange(() => {
+        if (loaded.size > 0) {
+            renderVisibleCharts(true);
+        }
     });
 
     window.Livewire?.hook("commit", ({ succeed }) => {

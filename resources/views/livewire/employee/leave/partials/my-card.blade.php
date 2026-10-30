@@ -7,14 +7,14 @@
     <button type="button"
         x-on:click="{{ $table->rowOpenAction($item) }}"
         aria-haspopup="dialog"
-        class="block min-h-11 w-full min-w-0 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        class="block min-h-11 w-full min-w-0 text-start">
         @include('livewire.employee.leave.partials.card-summary', ['item' => $item])
     </button>
     <div class="flex flex-wrap items-center justify-between gap-2">
         <span class="flex flex-wrap items-center gap-2">
             @include('livewire.employee.leave.partials.card-status', ['item' => $item])
             @if($item->hr_approved)
-                <span class="text-small text-secondary-medium">{{ __('general.seen-by-hr') }}</span>
+                <span class="text-small text-ink-2">{{ __('general.seen-by-hr') }}</span>
             @endif
         </span>
         <span class="flex items-center">{!! $table->leaveActions($item) !!}</span>

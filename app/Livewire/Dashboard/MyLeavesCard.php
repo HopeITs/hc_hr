@@ -2,10 +2,13 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Livewire\Concerns\IsDashboardTile;
 use Livewire\Component;
 
 class MyLeavesCard extends Component
 {
+    use IsDashboardTile;
+
     public $title = '';
 
     public $total = 12;

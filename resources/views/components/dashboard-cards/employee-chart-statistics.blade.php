@@ -1,14 +1,14 @@
-<div class="w-full h-full rounded-surface bg-white border border-neutral-200 shadow-e1 hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
+<div class="w-full h-full rounded-surface bg-card border border-line-soft shadow-e1 hover:shadow-e2 transition-all duration-300 p-9 flex flex-col">
 
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-h4 font-semibold text-secondary-medium flex items-center gap-2">
+        <h2 class="text-h4 font-semibold text-ink-2 flex items-center gap-2">
             @lang('general.employees-statistics')
         </h2>
 
         <div class="range-select-box">
             <select
                 id="employeeChartRange"
-                class="text-small border border-neutral-300 rounded-surface ps-3 pe-8 py-1.5 bg-white shadow-e1 text-neutral-700">
+                class="text-small border border-line rounded-surface ps-3 pe-8 py-1.5 bg-card shadow-e1 text-ink">
                 <option value="monthly">@lang('general.monthly')</option>
                 <option value="quarterly">@lang('general.quarterly')</option>
                 <option value="yearly">@lang('general.yearly')</option>
@@ -20,7 +20,7 @@
         <canvas id="employeeChart"></canvas>
     </div>
 
-    <div id="chartLegend" class="flex items-center gap-6 mt-6 text-body font-medium ms-3 text-neutral-600"></div>
+    <div id="chartLegend" class="flex items-center gap-6 mt-6 text-body font-medium ms-3 text-ink-2"></div>
 
 </div>
 
@@ -46,8 +46,12 @@
 
         const styles = getComputedStyle(document.documentElement);
         const primary   = styles.getPropertyValue("--color-primary").trim();
-        const secondary = styles.getPropertyValue("--color-secondary-medium").trim();
-        const neutral   = styles.getPropertyValue("--color-neutral-300").trim();
+        const secondary = styles.getPropertyValue("--color-ink-2").trim();
+        const neutral   = styles.getPropertyValue("--color-line").trim();
+        const ink       = styles.getPropertyValue("--color-ink").trim();
+        const ink2      = styles.getPropertyValue("--color-ink-2").trim();
+        const lineSoft  = styles.getPropertyValue("--color-line-soft").trim();
+        const card      = styles.getPropertyValue("--color-card").trim();
 
         async function fetchData(mode = "monthly") {
             // Locale-prefixed, so the endpoint answers in the page's language.
@@ -107,10 +111,10 @@
                         enabled: true,
                         mode: "index",
                         intersect: false,
-                        backgroundColor: "#fff",
-                        titleColor: "#111",
-                        bodyColor: "#444",
-                        borderColor: "rgba(0,0,0,0.1)",
+                        backgroundColor: card,
+                        titleColor: ink,
+                        bodyColor: ink2,
+                        borderColor: lineSoft,
                         borderWidth: 1,
                         padding: 10,
                         cornerRadius: 6,
@@ -121,12 +125,12 @@
                 scales: {
                     x: {
                         grid: {
-                            color: "rgba(220,221,222,0.5)",
+                            color: lineSoft,
                             drawBorder: false,
                             drawOnChartArea: true
                         },
                         ticks: {
-                            color: "#6b7280",
+                            color: ink2,
                             font: {
                                 size: 12,
                                 family: "SomarSans",
@@ -136,13 +140,13 @@
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: "rgba(220,221,222,0.5)",
+                            color: lineSoft,
                             drawBorder: false,
                             drawOnChartArea: true
                         },
                         ticks: {
                             stepSize: 1,
-                            color: "#6b7280",
+                            color: ink2,
                             font: {
                                 size: 12,
                                 family: "SomarSans",
@@ -165,13 +169,13 @@
                 const isHidden = chartInstance.isDatasetVisible(index) === false;
 
                 const dot = document.createElement("span");
-                dot.className = "w-[7.7px] h-[7.7px] rounded-full inline-block";
+                dot.className = "size-2 rounded-full inline-block";
                 dot.style.backgroundColor = isHidden ? "transparent" : ds.borderColor;
-                dot.style.border = `1.54px solid ${ds.borderColor}`;
+                dot.style.border = `1.5px solid ${ds.borderColor}`;
 
                 const label = document.createElement("span");
                 label.textContent = ds.label;
-                label.className = "text-[9.24px]";
+                label.className = "text-caption";
                 label.style.opacity = isHidden ? 0.4 : 1;
 
                 item.appendChild(dot);

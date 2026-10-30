@@ -186,7 +186,7 @@ class GlobalSearchTest extends TestCase
         app()->setLocale('en');
 
         $this->search($viewer, 'S')->assertSee(__('general.global-search.too-short', ['count' => 2]));
-        $this->search($viewer, 'Qwerty')->assertSee('No people or pages found');
+        $this->search($viewer, 'Qwerty')->assertSee('No people, pages or commands found');
         // LIKE wildcards are not wildcards: "%%" lists nobody.
         $this->search($viewer, '%%')->assertDontSeeHtml('data-testid="search-person"');
 

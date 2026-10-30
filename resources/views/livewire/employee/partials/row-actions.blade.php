@@ -12,7 +12,7 @@
         <a href="{{ route('employees.show', ['employee' => $employee->username]) }}" wire:navigate
             title="{{ __('general.view-profile') }}"
             aria-label="{{ __('general.emp-view-profile-of', ['name' => $name]) }}"
-            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-secondary-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control p-2 text-ink-2 hover:bg-hover hover:text-ink">
             <x-icons.eye class="size-5" aria-hidden="true" />
         </a>
     @endif
@@ -47,7 +47,7 @@
             <button type="button" x-ref="trigger" x-on:click.stop="toggle()"
                 aria-haspopup="menu" x-bind:aria-expanded="open"
                 aria-label="{{ __('general.emp-more-actions', ['name' => $name]) }}"
-                class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-secondary-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control p-2 text-ink-2 hover:bg-hover hover:text-ink">
                 <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
             </button>
 
@@ -58,19 +58,19 @@
                 x-on:keydown.arrow-up.prevent="$focus.within($refs.menu).wrap().previous()"
                 x-on:keydown.tab="close(false)"
                 x-bind:style="`top:${top}px;left:${left}px`"
-                class="fixed z-40 w-52 rounded-lg border border-[var(--line-hairline)] bg-white py-1 text-start font-normal shadow-e2">
+                class="fixed z-40 w-52 rounded-surface border border-line-soft bg-card py-1 text-start font-normal shadow-e2">
                 @if($canUpdate)
                     <a role="menuitem" href="{{ route('employees.edit', $employee->getKey()) }}" wire:navigate
-                        class="flex min-h-11 items-center px-4 text-black hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">{{ __('general.edit') }}</a>
+                        class="flex min-h-11 items-center px-4 text-ink hover:bg-hover focus-visible:bg-soft focus-visible:-outline-offset-2">{{ __('general.edit') }}</a>
                     {{-- B5: a draft, or a volunteer awaiting their first contract, is activated by that contract, never by hand (HR, 2026-10-23). --}}
                     @unless($employee->isDraft() || $employee->isAwaitingContract())
                     <button type="button" role="menuitem" wire:click="confirmToggleItemStatus({{ (int) $employee->getKey() }})" x-on:click="close(false)"
-                        class="flex min-h-11 w-full items-center px-4 text-start text-black hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">{{ $employee->is_active ? __('general.emp-deactivate') : __('general.emp-activate') }}</button>
+                        class="flex min-h-11 w-full items-center px-4 text-start text-ink hover:bg-hover focus-visible:bg-soft focus-visible:-outline-offset-2">{{ $employee->is_active ? __('general.emp-deactivate') : __('general.emp-activate') }}</button>
                     @endunless
                 @endif
                 @if($canDelete)
                     <button type="button" role="menuitem" wire:click="confirmDelete({{ (int) $employee->getKey() }})" x-on:click="close(false)"
-                        class="flex min-h-11 w-full items-center px-4 text-start text-primary hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">{{ __('general.delete') }}</button>
+                        class="flex min-h-11 w-full items-center px-4 text-start text-ink hover:bg-hover focus-visible:bg-soft focus-visible:-outline-offset-2">{{ __('general.delete') }}</button>
                 @endif
             </div>
         </div>

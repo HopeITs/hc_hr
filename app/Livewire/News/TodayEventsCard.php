@@ -2,6 +2,7 @@
 
 namespace App\Livewire\News;
 
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Models\Employee;
 use App\Models\News;
 use Carbon\Carbon;
@@ -9,6 +10,8 @@ use Livewire\Component;
 
 class TodayEventsCard extends Component
 {
+    use IsDashboardTile;
+
     public array $events = [];
 
     public function mount(): void
