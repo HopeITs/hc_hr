@@ -251,6 +251,51 @@ its own Vite entry, with SortableJS 1.15.7 fetched on the first Customise; style
 - **Size thresholds** (px, from the grid's real metrics, so they hold on every screen):
   height — one row < 140, two rows 140–245, three ≥ 245, four ≥ 340;
   width — narrow (two cells or fewer) < 300, medium 300–560, wide ≥ 560.
+- **Sizes** are `CxR` cells. `WIDGETS` gives each widget `min` (its *card* size: the smallest it
+  can show itself at), `max` and `default`; `bounds()` lets every widget go down to 1×1, and
+  below its card size it is an icon. A shortcut is 1×1 to 4×4 and from 2×2 shows its data
+  (`AppCard`). At rest `layout-math.js` `pack()` places tiles in order and grows cards into the
+  empty cells beside and below them, never past `max`; a size set by hand (`fixed`) is shown
+  exactly as set. Only what is shown changes, never the saved size. Customise starts from the sizes seen (`bake()`),
+  except where the grid cut them down: on a phone, or a grid narrower than the saved width, the
+  saved size stays (`bakedSize()`), so a phone never overwrites a computer's sizes.
+- **Looks**: `DashboardLayout::LOOKS` (`clock => [digital, analog]`, the first is the default),
+  saved as the item's `style`, drawn as `data-look`, switched by the look button while
+  customising. **On a phone** the clock is always one row and digital, whatever its saved size and
+  look (`dashboard.css` "phone clock"); the packer is told (`phoneView`, `PHONE_ONE_ROW`), so the
+  tiles below close up under it. A phone does not draw `PHONE_HIDDEN` (the today's-events slideshow).
+- **States at rest** (none of them while customising: there every tile is shown whole):
+  - *Card*: the widget itself.
+  - *Icon* (`.mini`, smaller than its card size; every 1×1 shortcut): icon + name. One click
+    opens the card in the **side panel**: the tile body itself as a `popover="manual"` in the top
+    layer, so the Livewire card is never moved or mounted twice; along the inline-end edge, and
+    **a sheet from the bottom on phones** (≤ 760px, `min(78dvh, 640px)`, 20px top corners). ×,
+    Escape or the same icon closes it and focus returns to the icon.
+  - *Folded* (`.closed`): a card with nothing in it right now (and not pinned: a pinned tile stays
+    in place and shows its empty state) goes to the bottom as **one line**,
+    one row high, at most four cells wide (`closedSize`), never grown taller: icon, name, and the
+    card's own words. Its card says so with **`data-tile-empty`** on its empty-state element
+    (`data-state="empty"` and `.hc-nt-empty` also count); the line shows that element's h2/h3 (else its
+    text), or `dashboard.home.nothing` when there is none or it runs past 80 characters. Put the marker only
+    on a real "nothing here" state, never on loading or a load error. The grid re-reads it on every
+    change (lazy load, polling, retry), so a card that fills up unfolds by itself.
+- **Lazy loading**: every widget is mounted `lazy`, and a lazy card loads only once it is shown.
+  A hidden tile is not rendered at all; an icon's body is `display: none`, so its card loads only
+  when its panel opens; a folded tile's body is `display: none` after the one load that found it
+  empty. None of them query in the background.
+- **Double-click** on a widget with a page (`DashboardLayout::page()`, sent as `data-page`, only
+  pages the role may open) opens that page: not while customising, not on its own controls,
+  fields or links, not inside an open panel. On an icon, one click = panel, double-click = page.
+  A shortcut with a card: on a computer one click shows the card in the panel, a double-click opens
+  the page; on a phone a tap opens the page.
+- **Ending Customise**: Done, Escape, or a click on empty space. Both the press and the click must
+  land outside every tile, control, dialog, sheet backdrop and the phone-bar picker, so ending a drag
+  or a resize never counts; not while Add or a confirmation is open.
+- **Red on the home screen**, only for its three jobs: the primary action (Done), what is current
+  (today in the calendar; the clock's second hand, hub and working-day bar mark *now*), and what
+  waits on the viewer or is late (shortcut counters, the late strip, a decision waiting over a day).
+  Pins, grips, size labels, guide cells, icons and folded lines are ink and neutrals, never red,
+  and red is never tinted pale.
 - **Customising**: "Customise" or a long press; tiles wiggle once and faint cells (`soft` fill,
   dashed `line`) appear. Drag to move, or focus a tile and use the arrow keys (they follow the
   reading direction; Home / End). The dark grip sits in the inline-end corner: dragging towards
@@ -260,7 +305,7 @@ its own Vite entry, with SortableJS 1.15.7 fetched on the first Customise; style
   the finger and labelled. `prefers-reduced-motion` turns off the wiggle and the glides.
   `?customise=1` opens the page in this mode (the command palette's "Customise dashboard").
 - **Loading**: each widget is its own Livewire component, mounted lazily inside its tile with
-  the card placeholder; a hidden tile is not rendered at all, so its data is never read. A card
+  the card placeholder (see Lazy loading above). A card
   shows its own load failure (`<x-ui.load-error>`) inside the tile; a tile whose lazy load fails
   outright says so in place, and the rest of the page carries on. Saving is background and
   renderless, one request at a time; Add (for a tile the page never drew) and Reset render.
