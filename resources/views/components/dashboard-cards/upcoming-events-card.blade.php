@@ -22,7 +22,7 @@
             </div>
         @empty
             <div data-tile-empty class="flex flex-col items-center justify-center  text-body font-light text-secondary-light h-full">
-                <span class="text-[10.5px]">@lang('general.no-available-data')</span>
+                <span class="text-small">@lang('general.no-available-data')</span>
             </div>
         @endforelse
     </div>
