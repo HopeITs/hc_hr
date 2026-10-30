@@ -155,6 +155,17 @@ class LeaveBalanceService
     }
 
     /**
+     * Whether create() gives this contract no balance at all, so "no balances"
+     * is the expected state rather than a gap (read by the renewal journey).
+     */
+    public function exemptFromLeave(Contract $contract): bool
+    {
+        $contract->loadMissing('contractType');
+
+        return $this->isExemptFromLeave($contract);
+    }
+
+    /**
      * A draft has no schedule/pay to price a leave entitlement from yet, and
      * a service contract carries no leave clause in any real contract on
      * file — both are fully exempt, not even annual leave.

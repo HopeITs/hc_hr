@@ -18,6 +18,7 @@ use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
+use App\Services\ContractAutoRenewalService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -109,7 +110,9 @@ class ContractsTable extends LivewireTable
         // ContractObserver::saving() would force the flag straight back off.
         abort_unless($contract->canAutoRenew(), 403);
 
-        $contract->update(['auto_renew' => ! $contract->auto_renew]);
+        // The shared write path (also the renewal journey's "stop"): it
+        // re-checks manageAutoRenew and writes under a row lock.
+        app(ContractAutoRenewalService::class)->setAutoRenew($contract, ! $contract->auto_renew, auth()->user());
 
         $this->toast(__('general.item-updated'));
 
