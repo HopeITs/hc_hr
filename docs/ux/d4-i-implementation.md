@@ -1,6 +1,6 @@
 # D4-I · Onboarding journey (first slice): implementation notes
 
-Status: **implemented, awaiting tests/review** (QA engineer + technical lead). The live migration is **not run**; it needs separate authorization (§6). Not marked done.
+Status: **implemented, targeted tests passing (79/79), awaiting full suite, browser check and review** (QA engineer + technical lead). The live migration is **not run**; it needs separate authorization (§6). Not marked done.
 Date: 2026-10-30. Task: D4-I in [ux-prompts-v3.md](ux-prompts-v3.md) (R-21). Design and slice contract: [journeys.md](journeys.md) §6. Consumers: final handoff (G-R).
 
 ## 1. Starting state and prerequisites
@@ -95,8 +95,8 @@ B5 activation rules, contract composer, capacity checks, checklist workflow, dig
 | Item | Result |
 |---|---|
 | Test file(s) | `tests/Feature/OnboardingJourneyTest.php`, 19 tests |
-| D4-I tests | **Not run.** The cloud environment has PHP 8.3; the framework needs 8.4+ (Symfony property hooks). Run on PHP 8.5 before review. |
-| Full suite | **Not run** (same reason) |
+| D4-I tests | **Passed, 2026-10-30, on Laragon (PHP 8.5):** `OnboardingJourneyTest` 19/19, `EmployeeOnboardingTest` 28/28, `RecruitmentHiringConversionTest` 32/32. Total 79 passed, 579 assertions, 101.9 s. |
+| Full suite | **Not run yet.** Run `php artisan test` on PHP 8.5 before review. |
 | Pint | `pint --test` passes on every new PHP file and the test |
 | Migration forward / back / forward on a synthetic copy | _not run_ |
 | Browser (EN/AR, desktop/phone) | **not done** |
@@ -112,7 +112,7 @@ Known gap: if the account was missing (work email taken) and HR creates it later
 | 1 | No work-inbox item or dashboard tile for journeys yet; HR finds them on the employee page and through the reminder. | Next increment |
 | 2 | No "Onboarding" view in the employee list (who is mid-journey, who is late). | Next increment |
 | 3 | Browser check not done (EN/AR, desktop/phone, keyboard, screen reader). | QA |
-| 4 | **Fixed 2026-10-30:** a recruitment hire now starts the journey (`RecruitmentHiringConversionService::run`, after the contract), and `RecruitmentHiringConversionTest` asserts one journey even across retries. Not run yet: PHP 8.5 needed. | Done (untested) |
+| 4 | **Fixed 2026-10-30:** a recruitment hire now starts the journey (`RecruitmentHiringConversionService::run`, after the contract), and `RecruitmentHiringConversionTest` asserts one journey even across retries. Passed on PHP 8.5 (§7). | Done |
 | 5 | A journey stays visible after the volunteer is deactivated; the card step then shows Blocked and no reminder is sent. Acceptable for now; revisit with the exit journey. | Product owner |
 | 6 | A backdated first contract can start a journey that is already Late; the one reminder then goes out at the next run. | Product owner (accept or set a floor) |
 | 7 | Renewal and exit journeys deferred ([journeys.md](journeys.md) §5). | Product owner |
