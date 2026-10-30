@@ -284,6 +284,7 @@ return [
         'employee.employee-create' => [
             'saveInformation' => 'employees.create',
             'saveDraftRecord' => 'employees.create',
+            'autosaveDraft' => 'employees.create',
             'createDraftAndContinue' => 'employees.create',
             'positionOptionsForDraft' => 'employees.create',
             'programOptionsForDraft' => 'employees.create',
@@ -294,6 +295,7 @@ return [
             'saveChecklist' => 'employees.update',
             'saveInformation' => 'employees.update',
             'saveDraftRecord' => 'employees.update',
+            'autosaveDraft' => 'employees.update',
             'confirmDiscardDraftRecord' => 'employees.update',
             'discardDraftRecord' => 'employees.update',
             'saveEducation' => 'employees.update',

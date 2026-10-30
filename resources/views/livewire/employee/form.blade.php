@@ -58,7 +58,10 @@
     @php
         // One definition feeds the desktop list and the phone selector, so the
         // two can never disagree about which sections exist or are unlocked.
-        $hasEmployee = isset($infoForm->id);
+        // Never on the create page, even once an autosave has created the
+        // draft: those sections' forms live on EmployeeEdit, so they open on
+        // the draft's own page (the status line links to it).
+        $hasEmployee = ! $isCreateMode && isset($infoForm->id);
         $sections = array_values(array_filter([
             ['key' => 'information', 'title' => __('general.information'), 'icon' => 'user', 'locked' => false],
             ['key' => 'contact', 'title' => __('general.contact'), 'icon' => 'contact', 'locked' => false],
