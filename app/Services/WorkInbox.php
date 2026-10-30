@@ -7,6 +7,7 @@ use App\Models\Checklist;
 use App\Models\LeaveRequest;
 use App\Models\ProfileChangeRequest;
 use App\Models\User;
+use App\Services\Inbox\JourneyInbox;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -21,6 +22,9 @@ use Illuminate\Support\Facades\Gate;
  *   checklist:{id}:receive  S4  item the user is to take back
  *   checklist:{id}:finalize S5  returned item HR is to close
  *   profile:{id}:approve    D1  a change an employee proposed to their own profile (profile-contract.md §5.1)
+ *   {journey}:{id}:journey  J*  an employee-journey step waiting on HR (JourneyInbox; DEC-09 increment 2):
+ *                               onboarding today, renewal and exit as they land. Listed only: the
+ *                               row opens the employee edit page, where the journey acts.
  *
  * The inbox lists and launches; each domain decides. Every row comes from
  * the source's own scoped query and, where a policy owns the decision, is
@@ -56,7 +60,7 @@ final class WorkInbox
      * reads afresh. The inbox page itself decides and re-reads within one
      * request, so it keeps calling snapshot().
      *
-     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int}}
+     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int, journey: int}}
      */
     public function shared(User $user): array
     {
@@ -73,7 +77,7 @@ final class WorkInbox
     /**
      * The listed rows and the exact counts, from one pass over the sources.
      *
-     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int}}
+     * @return array{rows: Collection<int, array<string, mixed>>, counts: array{all: int, decide: int, review: int, checklist: int, profile: int, journey: int}}
      */
     public function snapshot(User $user): array
     {
@@ -86,6 +90,7 @@ final class WorkInbox
         [$checklist, $checklistTotal] = $this->checklistConfirmations($user);
         [$finalize, $finalizeTotal] = $this->checklistFinalizations($user);
         [$profile, $profileTotal] = $this->profileChanges($user);
+        [$journey, $journeyTotal] = app(JourneyInbox::class)->collect($user, self::PER_SOURCE);
 
         return [
             'rows' => collect()
@@ -94,14 +99,16 @@ final class WorkInbox
                 ->merge($checklist)
                 ->merge($finalize)
                 ->merge($profile)
+                ->merge($journey)
                 ->sortBy('waiting_since')
                 ->values(),
             'counts' => [
-                'all' => $decideTotal + $reviewTotal + $checklistTotal + $finalizeTotal + $profileTotal,
+                'all' => $decideTotal + $reviewTotal + $checklistTotal + $finalizeTotal + $profileTotal + $journeyTotal,
                 'decide' => $decideTotal,
                 'review' => $reviewTotal,
                 'checklist' => $checklistTotal + $finalizeTotal,
                 'profile' => $profileTotal,
+                'journey' => $journeyTotal,
             ],
         ];
     }
@@ -112,6 +119,7 @@ final class WorkInbox
         return collect(['leaves.decide', 'leaves.review', 'checklists.deliver', 'checklists.receive'])
             ->contains(fn (string $permission) => $user->hasActivePermission($permission))
             || ($this->isHr($user) && $user->hasActivePermission('employees.update'))
+            || app(JourneyInbox::class)->hasSources($user)
             // A direct manager decides whatever their role (DEC-05 revision 2).
             || app(LeaveDecisionAuthority::class)->holdsManagerPosition($user);
     }
