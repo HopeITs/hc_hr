@@ -68,9 +68,10 @@ abstract class JourneyInboxSource
         }
 
         // EmployeePolicy::update's scope in SQL, so the count is exact; the
-        // policy re-checks what is listed. Former staff never show.
+        // policy re-checks what is listed. Former staff show only where the
+        // source asks for them (includesFormerStaff).
         $query = $this->pending()->whereHas('employee', fn (Builder $employee) => $employee
-            ->where('is_active', true)
+            ->when(! $this->includesFormerStaff(), fn (Builder $active) => $active->where('is_active', true))
             ->inActiveCities($user));
 
         $rows = (clone $query)
@@ -105,6 +106,15 @@ abstract class JourneyInboxSource
 
     /** Whether the waiting work is overdue (shown with the Late tag). */
     abstract protected function late(Model $journey): bool;
+
+    /**
+     * Whether rows stay listed once the employee is inactive. Only the exit
+     * journey needs it: equipment still has to come back after deactivation.
+     */
+    protected function includesFormerStaff(): bool
+    {
+        return false;
+    }
 
     /** Since when the row has waited (the inbox sorts on it, oldest first). */
     protected function waitingSince(Model $journey): ?CarbonInterface

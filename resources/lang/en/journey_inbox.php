@@ -20,4 +20,16 @@ return [
             'orientation-record' => 'Record the orientation session',
         ],
     ],
+    'renewal' => [
+        'title' => 'Renewal decision waiting on you',
+        'step' => [
+            'decide' => 'Decide: renew or stop',
+        ],
+    ],
+    'exit' => [
+        'title' => 'Exit step waiting on you',
+        'step' => [
+            'equipment' => 'Request the equipment back',
+        ],
+    ],
 ];

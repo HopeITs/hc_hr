@@ -50,3 +50,12 @@ Nothing else changes: the filter, the row partial (`livewire/inbox/partials/jour
 - Late journeys are not added to the dashboard's "Past the deadline" tile (it counts started leave and unrenewed contracts); they show Late in the inbox.
 - A journey whose digital card cannot work yet still lists "Hand over the printed ID card" (as Needs HR); the edit page says why it is blocked.
 - Verification: `php artisan test --filter=JourneyInboxTest` on PHP 8.5, then the inbox, dashboard and onboarding suites. **Not run here.**
+
+## Renewal and exit sources (added 2026-10-30)
+
+| Source | Lists | Due / Late | Gate |
+|---|---|---|---|
+| `RenewalInboxSource` | A renewal journey with no decision yet | Contract `end_date`; Late from `RenewalJourney::decisionIsLate()` (7 days before the end) | HR + `employees.update` **and** `contracts.update`; the renewal panel re-runs `manageAutoRenew` before any decision |
+| `ExitInboxSource` | An open exit journey whose volunteer still holds delivered equipment with no return requested (the city had no default receiver) | Termination date, else `end_date`; Late after it | Same as onboarding. **Listed after deactivation too** (`includesFormerStaff()`), because the equipment still has to come back |
+
+Tests: `RenewalJourneyTest::test_an_undecided_renewal_waits_in_the_city_hr_work_inbox`. The exit source has no dedicated test yet (open point).

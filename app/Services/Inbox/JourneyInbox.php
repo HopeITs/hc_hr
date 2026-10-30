@@ -18,6 +18,8 @@ final class JourneyInbox
     /** @var list<class-string<JourneyInboxSource>> */
     public const SOURCES = [
         OnboardingInboxSource::class,
+        RenewalInboxSource::class,
+        ExitInboxSource::class,
     ];
 
     /** @return list<JourneyInboxSource> */

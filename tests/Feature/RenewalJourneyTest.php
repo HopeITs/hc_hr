@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Services\ContractAutoRenewalService;
 use App\Services\NotificationDeliveryLedger;
 use App\Services\RenewalJourneys;
+use App\Services\WorkInbox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Features\SupportTesting\Testable;
@@ -459,6 +460,28 @@ class RenewalJourneyTest extends TestCase
     }
 
     // ── fixtures ─────────────────────────────────────────────────────
+
+    public function test_an_undecided_renewal_waits_in_the_city_hr_work_inbox(): void
+    {
+        $contract = $this->contract('inbox', ['end_date' => '2026-10-05']);
+        $this->artisan('renewals:track-journeys')->assertSuccessful();
+        $journey = RenewalJourney::query()->sole();
+
+        $row = app(WorkInbox::class)->rows($this->f['hr'])->firstWhere('key', "renewal:{$journey->id}:journey");
+        $this->assertNotNull($row);
+        $this->assertSame(['decide'], array_column($row['steps'], 'key'));
+        $this->assertSame('2026-10-05', $row['due']->toDateString());
+        $this->assertTrue($row['late'], 'Within seven days of the end.');
+
+        // HR of another city does not see it.
+        $outsider = $this->makeUser($this->makeCity('HMS', '002'), 'HR-HMS', ['contracts.update', 'employees.update']);
+        $this->assertNull(app(WorkInbox::class)->rows($outsider)->firstWhere('key', "renewal:{$journey->id}:journey"));
+
+        // Decided: it leaves the inbox.
+        app(RenewalJourneys::class)->decide($journey, RenewalJourney::DECISION_RENEW, $this->f['hr']);
+        $this->assertNull(app(WorkInbox::class)->rows($this->f['hr'])->firstWhere('key', "renewal:{$journey->id}:journey"));
+        $this->assertSame($contract->id, $journey->contract_id);
+    }
 
     private function panel(User $user, Employee $employee): Testable
     {
