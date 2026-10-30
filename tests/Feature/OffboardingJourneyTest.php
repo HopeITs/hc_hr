@@ -480,6 +480,15 @@ class OffboardingJourneyTest extends TestCase
 
     // ── fixtures ─────────────────────────────────────────────────────
 
+    public function test_the_weekly_sweep_is_no_longer_scheduled(): void
+    {
+        // Product owner, 2026-10-30: the new rule is the only automatic deactivation.
+        $this->artisan('schedule:list')
+            ->expectsOutputToContain('employees:deactivate-departed')
+            ->doesntExpectOutputToContain('deactivate:employee ')
+            ->assertSuccessful();
+    }
+
     private function panel(User $user, Employee $employee): Testable
     {
         return Livewire::actingAs($user)->test(OffboardingJourneyPanel::class, ['employee' => $employee]);

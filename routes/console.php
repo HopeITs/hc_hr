@@ -3,7 +3,6 @@
 use App\Console\Commands\ApplyDueRecruitmentRequests;
 use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateDepartedEmployees;
-use App\Console\Commands\DeactivateEmployee;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\PruneTaskAttempts;
@@ -40,7 +39,11 @@ Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');
 // volunteer whose last contract ended config('journeys.exit_grace_days') ago,
 // and warns city HR once when it ends.
 Schedule::command(DeactivateDepartedEmployees::class)->dailyAt('21:50')->withoutOverlapping();
-Schedule::command(DeactivateEmployee::class)->weekly();
+// The weekly deactivate:employee sweep is no longer scheduled (product owner,
+// 2026-10-30): it deactivated anyone without a *currently* active contract,
+// cutting the exit grace period short and stopping people whose contract
+// starts later. employees:deactivate-departed (21:50) is the one automatic
+// deactivation now. The command stays available to run by hand.
 // Early, so a reduction effective today is carried out before the contract
 // sweeps that read `exist_emp` run in the evening.
 Schedule::command(ApplyDueRecruitmentRequests::class)->dailyAt('00:30');

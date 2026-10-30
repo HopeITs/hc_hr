@@ -116,7 +116,7 @@ Coverage: deactivation only after the grace period (and from config); never with
 
 | # | Item | Owner |
 |---|---|---|
-| 1 | **Check:** the weekly `deactivate:employee` filters with `whereDoesntHave('contracts')`, and `Employee::contracts()` is scoped `activeNow()`. So it deactivates every active employee with no *currently active* contract (including one whose last contract ended days ago, inside the grace period, or whose only contract starts in the future), not only those with no contracts at all as journeys.md §3.3 E6′ says. Kept unchanged as instructed; it can cut the grace period short by up to a week. | Product owner / backend |
+| 1 | **Check:** the weekly `deactivate:employee` filters with `whereDoesntHave('contracts')`, and `Employee::contracts()` is scoped `activeNow()`. So it deactivates every active employee with no *currently active* contract (including one whose last contract ended days ago, inside the grace period, or whose only contract starts in the future), not only those with no contracts at all as journeys.md §3.3 E6′ says. **Resolved 2026-10-30 (product owner): the weekly sweep is unscheduled**; `employees:deactivate-departed` is the only automatic deactivation. Active employees with no contracts at all are no longer swept automatically. | Done |
 | 2 | Journeys are not a work-inbox source yet (DEC-09 increment 2 wants exit steps there). | Next increment (WorkInbox owner) |
 | 3 | A volunteer with two concurrent contracts: stopping auto-renew on one starts nothing while the other carries on; the journey starts from the daily run when the last one ends. | Accepted |
 | 4 | An unfinished journey (e.g. equipment never returned) shows as "called off" if the person is later re-hired. | Accepted |

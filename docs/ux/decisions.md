@@ -159,6 +159,7 @@ Asked and answered in the D4 review. Full design: [journeys.md](journeys.md) §5
 | Renewal and exit journeys | **Build both now**, before release, as linked journeys like onboarding. |
 | Last contract ended | **Automatic deactivation.** The system deactivates a volunteer whose last contract has ended (this revokes their access and disables their card, as manual deactivation does). Implementation default, reversible: a **7-day grace period** after the end date, with one heads-up to city HR at the end date, so a renewal entered a few days late does not cut someone off. |
 | Where unfinished journeys show | In HR's **work inbox** (onboarding, renewal and exit steps that wait on HR, with the Late tag). |
+| Weekly `deactivate:employee` | **Unscheduled (2026-10-30).** It deactivated people inside the 7-day grace period and people whose contract starts later. The new automatic deactivation is the only one. |
 
 ## DEC-10 — Usage telemetry (settled 2026-10-16)
 Yes, anonymous: no names or personal data, stored on our own server only, deleted after 90 days.
