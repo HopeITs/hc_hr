@@ -226,7 +226,7 @@ class DrivePolicySync
         try {
             return $this->gemini->transcribe($bytes, $mime);
         } catch (GeminiException $e) {
-            if (! $e->isRateLimited()) {
+            if (! $e->isTemporary()) {
                 throw $e;
             }
 

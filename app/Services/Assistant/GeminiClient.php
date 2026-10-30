@@ -27,7 +27,7 @@ class GeminiClient
      * @param  list<array<string, mixed>>  $functionDeclarations
      * @return array{role: string, parts: list<array<string, mixed>>}
      */
-    public function generate(array $contents, ?string $system = null, array $functionDeclarations = [], float $temperature = 0.2): array
+    public function generate(array $contents, ?string $system = null, array $functionDeclarations = [], float $temperature = 0.2, ?int $timeout = null): array
     {
         if (! $this->isConfigured()) {
             throw new GeminiException('GEMINI_API_KEY is not set.');
@@ -44,7 +44,7 @@ class GeminiClient
 
         try {
             $response = Http::withHeaders(['x-goog-api-key' => config('assistant.gemini.key')])
-                ->timeout(config('assistant.gemini.timeout', 60))
+                ->timeout($timeout ?? config('assistant.gemini.timeout', 60))
                 ->acceptJson()
                 ->post($url, $body);
         } catch (ConnectionException $e) {
@@ -94,7 +94,7 @@ class GeminiClient
                 ['inlineData' => ['mimeType' => $mimeType, 'data' => base64_encode($bytes)]],
                 ['text' => 'Transcribe the complete text of this document in its original language, in reading order. Keep headings, numbered clauses and tables (as plain text rows). Output only the text, with no commentary.'],
             ],
-        ]], temperature: 0.0);
+        ]], temperature: 0.0, timeout: config('assistant.gemini.transcribe_timeout', 600));
 
         return self::text($content);
     }

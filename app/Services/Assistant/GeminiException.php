@@ -11,4 +11,10 @@ class GeminiException extends RuntimeException
     {
         return $this->getCode() === 429;
     }
+
+    /** Over quota or overloaded (503 "high demand"): worth one more try after a pause. */
+    public function isTemporary(): bool
+    {
+        return in_array($this->getCode(), [429, 500, 503], true);
+    }
 }
