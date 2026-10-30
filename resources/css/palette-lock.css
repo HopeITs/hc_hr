@@ -1,8 +1,9 @@
 /* ==================================================================
    Palette lock
    ------------------------------------------------------------------
-   The visual identity allows the brand red and the four brand greys
-   (see the @theme block in app.css) — nothing else. Tailwind, Flowbite
+   The Hope Center identity (reference: media-request/public/css/app.css)
+   allows the brand red and the identity neutrals - nothing else, not
+   for statuses, charts, alerts or success messages. Tailwind, Flowbite
    and Flux still ship their own colour families, and views, vendor
    components and runtime-built classes (`bg-{$color}-100`) use them.
 
@@ -10,11 +11,14 @@
    redefined here in terms of the brand tokens, so a class like
    `bg-green-600` or `text-blue-500` can only ever paint a brand colour:
 
-     red, rose        50–200  -> neutral 50–200 (a pale red reads as pink,
+     red, rose        50-200  -> neutral 50-200 (a pale red reads as pink,
                                  which the identity forbids)
-                      300–600 -> primary
-                      700–950 -> primary-hover
+                      300-600 -> primary
+                      700-950 -> primary-hover
      every other hue  -> the neutral step of the same number
+
+   The neutral ramp itself flips in dark mode (app.css), so every family
+   mapped here follows the theme with no per-page work.
 
    Colour that must carry meaning (a status, a chart series) should be
    chosen deliberately from the brand tokens, not left to this mapping.

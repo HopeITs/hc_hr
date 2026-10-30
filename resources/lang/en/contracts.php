@@ -110,6 +110,7 @@ return [
     'view-active' => 'Active',
     'view-ending-soon' => 'Ending soon (:days days)',
     'view-ended' => 'Terminated / ended',
+    'view-not-renewed' => 'Ended, not renewed (last :days days)',
     'view-draft' => 'Draft reservations',
     'ends-in-days' => '{0} Ends today|{1} Ends tomorrow|[2,*] Ends in :count days',
     'view-named' => 'View contract of :name',

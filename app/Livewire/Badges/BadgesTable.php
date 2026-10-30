@@ -118,21 +118,8 @@ class BadgesTable extends LivewireTable
                 $id = $m->getKey();
 
                 $viewBtn = Blade::render(
-                    '<button
-                        type="button"
-                        wire:click="$dispatch(\'open-badge-modal\', { id: {{ $id }} })"
-                        class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                        title="{{ __(\'general.view\') }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                            class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12
-                                   s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>', ['id' => $id],
+                    '<x-table.show-btn wire:click="$dispatch(\'open-badge-modal\', { id: {{ $id }} })" :aria-label="__(\'general.view\')" />',
+                    ['id' => $id],
                 );
 
                 $deleteBtn = $canDelete

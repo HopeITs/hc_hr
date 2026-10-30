@@ -1,14 +1,14 @@
 <div
-    class="w-full h-[28rem] rounded-surface bg-white border border-[var(--color-neutral-200)] shadow-e2 hover:shadow-e3 transition-all duration-500 overflow-hidden">
+    class="w-full h-[28rem] rounded-surface bg-card border border-line-soft shadow-e2 hover:shadow-e3 transition-all duration-500 overflow-hidden">
 
     <div
-        class="flex justify-between items-center px-6 py-4 border-b border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)]">
-        <h2 class="text-h4 font-semibold text-[var(--color-neutral-800)] tracking-tight flex items-center gap-2">
+        class="flex justify-between items-center px-6 py-4 border-b border-line-soft bg-soft">
+        <h2 class="text-h4 font-semibold text-ink tracking-tight flex items-center gap-2">
       <span
-          class="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-primary)] shadow-[0_0_8px_var(--color-secondary-medium)]"></span>
+          class="inline-block w-2.5 h-2.5 rounded-full bg-primary"></span>
             Employees per Department
         </h2>
-        <span class="text-body text-[var(--color-neutral-500)] font-medium">2025 Overview</span>
+        <span class="text-body text-ink-3 font-medium">2025 Overview</span>
     </div>
 
     <div class="relative p-3 h-[calc(100%-4.5rem)]">
@@ -31,9 +31,10 @@
         ];
         const employees = [8, 4, 15, 6, 5, 9, 7, 3, 2, 4];
 
-        const barColor = getComputedStyle(document.documentElement)
-            .getPropertyValue("--color-primary").trim() || "#be1f24";
-        const neutralGrid = "rgba(88,89,91,0.06)";
+        const css = getComputedStyle(document.documentElement);
+        const tok = (name) => css.getPropertyValue(name).trim();
+        const barColor = tok("--color-primary");
+        const neutralGrid = tok("--color-line-soft");
 
         new Chart(ctx, {
             type: "bar",
@@ -61,7 +62,7 @@
                     title: {
                         display: true,
                         text: "Employee Distribution by Department",
-                        color: "#58595b",
+                        color: tok("--color-ink"),
                         font: {
                             family: "SomarSans",
                             size: 16,
@@ -73,11 +74,11 @@
                         enabled: true,
                         mode: "index",
                         intersect: false,
-                        backgroundColor: "#58595b",
-                        borderColor: "#58595b",
+                        backgroundColor: tok("--color-ink"),
+                        borderColor: tok("--color-ink"),
                         borderWidth: 1,
-                        titleColor: "#ffffff",
-                        bodyColor: "#ffffff",
+                        titleColor: tok("--color-on-ink"),
+                        bodyColor: tok("--color-on-ink"),
                         cornerRadius: 8,
                         padding: 12,
                         displayColors: false,
@@ -96,7 +97,7 @@
                     x: {
                         grid: { display: false },
                         ticks: {
-                            color: "#6d6e71",
+                            color: tok("--color-ink-2"),
                             font: { size: 12, family: "SomarSans" },
                             padding: 8,
                             maxRotation: 80,
@@ -108,7 +109,7 @@
                         beginAtZero: true,
                         grid: { color: neutralGrid, drawBorder: false },
                         ticks: {
-                            color: "#6d6e71",
+                            color: tok("--color-ink-2"),
                             font: { size: 12, family: "SomarSans" },
                             padding: 6
                         }

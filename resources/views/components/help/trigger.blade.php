@@ -20,7 +20,7 @@
         aria-haspopup="dialog"
         aria-label="{{ __('help.trigger', ['field' => $label]) }}"
         title="{{ __('help.trigger', ['field' => $label]) }}"
-        {{ $attributes->merge(['class' => "relative inline-grid size-6 shrink-0 place-items-center rounded-round text-secondary-medium transition before:absolute before:-inset-2.5 before:content-[''] hover:bg-neutral-100 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary motion-reduce:transition-none"]) }}>
+        {{ $attributes->merge(['class' => "relative inline-grid size-6 shrink-0 place-items-center rounded-round text-ink-2 transition before:absolute before:-inset-2.5 before:content-[''] hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 motion-reduce:transition-none"]) }}>
     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.4M12 17h.01"/>
     </svg>

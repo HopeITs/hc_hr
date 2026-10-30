@@ -1,0 +1,2191 @@
+/* ==================================================================
+   Dashboard home screen (resources/js/dashboard/home-screen.js), ported
+   from media-request's "home screen (phone style)".
+
+   A grid of cells: 12 columns on a wide screen, 8 on a computer, 4 on a
+   phone, rows of equal height. Each tile spans C×R cells. The column count
+   follows the grid's own width (a container query), so a collapsed sidebar
+   counts too; the script reads --cols back from here.
+
+   Every tile is a size container named "tile": a card inside adapts to the
+   tile's size, not the screen's (DESIGN.md, Dashboard tiles).
+   ================================================================== */
+
+.hc-home {
+    position: relative;
+    container: hc-home / inline-size;
+}
+
+.hc-grid {
+    --cols: 8;
+    --gap: 14px;
+    --cell: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
+    /* A row is a bit shorter than a column is wide, so cards are not mostly empty. */
+    --row: clamp(88px, calc(var(--cell) * 0.75), 116px);
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    grid-auto-rows: var(--row);
+    grid-auto-flow: row dense;
+    gap: var(--gap);
+    touch-action: manipulation;
+}
+
+/* ~1600px screens and wider (with the sidebar open). */
+@container hc-home (min-width: 1200px) {
+    .hc-grid {
+        --cols: 12;
+    }
+}
+
+/* Phones and narrow windows: square cells, like a phone's home screen. */
+@container hc-home (max-width: 759.98px) {
+    .hc-grid {
+        --cols: 4;
+        --gap: 12px;
+        --row: var(--cell);
+    }
+}
+
+@container hc-home (max-width: 380px) {
+    .hc-grid {
+        --gap: 10px;
+    }
+}
+
+.hc-tile {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    /* First paint, before the script places each tile: its saved size, never wider than the grid. */
+    grid-column: span min(var(--c, 1), var(--cols));
+    grid-row: span var(--r, 1);
+    container: tile / size;
+}
+
+/* On a touch screen a long press on a tile starts customising, so it must not
+   also select text or open the phone's link preview. With a mouse, text in a
+   card stays selectable (moving the pointer cancels the long press). */
+@media (pointer: coarse) {
+    .hc-tile {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .hc-tile :is(input, textarea, select, [contenteditable]) {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+}
+
+/* The card itself: clipped to the tile, which is sized by the grid alone. */
+.hc-tile-body {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-surface);
+    overflow: hidden;
+}
+
+/* Whatever card a component draws (or its loading placeholder) fills the tile:
+   unlayered, so it outranks a card's own min-height or max-width utilities.
+   (Not the side panel's close button, which is only shown in the panel.) */
+.hc-tile-body > :not(.hc-panel-close) {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+}
+
+/* The loading placeholder fits a one-row tile too. */
+.hc-tile-body > [data-state="loading"] {
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+/* The faint cells shown while customising: the same grid, behind the tiles. */
+.hc-guides {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.hc-guides i {
+    display: block;
+    border: 1.5px dashed var(--color-line);
+    border-radius: var(--radius-surface);
+    background: var(--color-soft);
+}
+
+.hc-home .hc-grid:not(.hc-guides) {
+    position: relative;
+    z-index: 1;
+}
+
+/* ---------- shortcuts: an icon and its name, like on a phone ---------- */
+.hc-tile.is-app .hc-tile-body {
+    overflow: visible;
+}
+
+/* With a card (AppCard): the shortcut opens its card in the side panel on a computer. */
+.hc-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: var(--radius-surface);
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+.hc-appicon {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: clamp(40px, min(52cqw, calc(100cqh - 34px)), 132px);
+    aspect-ratio: 1;
+    border: 1px solid var(--color-line-soft);
+    border-radius: 28%;
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-ink);
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s;
+}
+
+.hc-appicon > svg {
+    width: clamp(22px, 40%, 52px);
+    height: auto;
+    aspect-ratio: 1;
+}
+
+.hc-app:hover .hc-appicon {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.hc-app:active .hc-appicon {
+    transform: scale(0.94);
+}
+
+/* Something waits on the viewer: one of red's three jobs. */
+.hc-cnt {
+    position: absolute;
+    top: -6px;
+    inset-inline-end: -6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--radius-round);
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-soft);
+    color: var(--color-on-brand);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    line-height: 22px;
+    text-align: center;
+}
+
+/* A Livewire counter (the hand-out and take-back badges) sits in the same corner. */
+.hc-cnt-slot {
+    position: absolute;
+    top: -8px;
+    inset-inline-end: -8px;
+}
+
+.hc-cnt-slot span {
+    margin: 0;
+}
+
+.hc-appname {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The gallery's icons: the same shape, smaller. */
+.hc-galitem .hc-appicon {
+    width: 46px;
+    border-radius: 13px;
+    box-shadow: none;
+}
+
+.hc-galitem .hc-appicon > svg {
+    width: 22px;
+}
+
+/* ---------- customising: a short wiggle, edit controls, links do not open ---------- */
+.hc-grid.editing .hc-tile {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+.hc-grid.editing .hc-tile:not(.pinned) {
+    cursor: grab;
+}
+
+.hc-grid.editing .hc-tile-body {
+    pointer-events: none;
+}
+
+.hc-grid.editing .hc-tile.pinned .hc-tile-body {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+}
+
+.hc-grid.wiggle .hc-tile:not(.pinned) {
+    animation: hc-wiggle 0.34s ease-in-out 3;
+}
+
+.hc-grid.wiggle .hc-tile:nth-child(2n):not(.pinned) {
+    animation-delay: 0.05s;
+}
+
+.hc-grid.wiggle .hc-tile:nth-child(3n):not(.pinned) {
+    animation-duration: 0.38s;
+}
+
+/* Starts and ends at rest, so stopping never snaps. Big cards turn less. */
+@keyframes hc-wiggle {
+    0%,
+    100% {
+        transform: rotate(0);
+    }
+
+    25% {
+        transform: rotate(-0.6deg);
+    }
+
+    75% {
+        transform: rotate(0.6deg);
+    }
+}
+
+.hc-grid.dragging .hc-tile {
+    animation: none !important;
+}
+
+.hc-grid.dragging .hc-app:hover .hc-appicon {
+    transform: none;
+}
+
+.hc-tile-ghost {
+    opacity: 0.3;
+}
+
+.hc-tile-chosen .hc-tile-body {
+    box-shadow: 0 14px 34px rgb(65 64 66 / 0.28);
+}
+
+/* The tile under the pointer (SortableJS's own drag image). */
+.hc-tile-drag {
+    animation: none !important;
+    opacity: 0.95 !important;
+    pointer-events: none;
+    transition: none !important;
+}
+
+.hc-tile-drag .hc-tile-body {
+    box-shadow: 0 18px 40px rgb(65 64 66 / 0.32);
+}
+
+/* Edit controls: 32px to the eye, 44px to the finger (and 44px to the eye on a
+   touch screen). Hide sits outside the top start corner (like a phone); pin,
+   look and resize inside the tile, so they never touch a neighbour's. */
+/* On the tile, so SortableJS's drag image (a copy of the tile in <body>) has them too. */
+.hc-tile {
+    --hc-ctl: 32px;
+    --hc-ctl-out: -10px; /* how far hide sits outside the corner */
+    --hc-ctl-in: 8px; /* pin and look: from the top inline-end corner */
+}
+
+@media (pointer: coarse) {
+    .hc-tile {
+        --hc-ctl: 44px;
+        --hc-ctl-out: -12px;
+        --hc-ctl-in: 6px;
+    }
+}
+
+.hc-tbtn,
+.hc-grip {
+    position: absolute;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: var(--hc-ctl);
+    height: var(--hc-ctl);
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+}
+
+.hc-tbtn::before,
+.hc-grip::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+}
+
+.hc-tbtn {
+    border-radius: var(--radius-round);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
+
+.hc-tbtn > svg {
+    width: 16px;
+    height: 16px;
+}
+
+.hc-t-remove {
+    top: var(--hc-ctl-out);
+    inset-inline-start: var(--hc-ctl-out);
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+}
+
+.is-app .hc-t-remove {
+    top: -6px;
+    inset-inline-start: max(-6px, calc(50% - 44px));
+}
+
+.hc-t-pin,
+.hc-t-look {
+    top: var(--hc-ctl-in);
+    background: var(--color-card);
+    box-shadow: 0 0 0 1px var(--color-line), var(--shadow-sm);
+    color: var(--color-ink);
+}
+
+.hc-t-pin {
+    inset-inline-end: var(--hc-ctl-in);
+}
+
+/* Pressed: a solid ink fill, not red (a pin is none of red's three jobs). */
+.hc-t-pin[aria-pressed="true"] {
+    background: var(--color-ink);
+    box-shadow: none;
+    color: var(--color-on-ink);
+}
+
+.hc-t-look {
+    display: flex;
+    gap: 6px;
+    width: auto;
+    padding-block: 0;
+    padding-inline: 10px 12px;
+    inset-inline-end: calc(var(--hc-ctl-in) + var(--hc-ctl) + 8px);
+    font-size: var(--text-small);
+    font-weight: 700;
+}
+
+/* Resize: a dark square in the bottom inline-end corner. Dragging it towards the
+   inline end (right in English, left in Arabic) or down grows the tile. */
+.hc-grip {
+    bottom: 6px;
+    inset-inline-end: 6px;
+    border-radius: var(--radius-control);
+    background: var(--color-ink);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+    color: var(--color-on-ink);
+    cursor: nwse-resize;
+    touch-action: none;
+}
+
+.hc-grip svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+}
+
+[dir="rtl"] .hc-grip {
+    cursor: nesw-resize;
+}
+
+[dir="rtl"] .hc-grip svg {
+    transform: scaleX(-1);
+}
+
+/* While customising, a card's head makes room for the controls over its
+   corners (hide at the start, pin at the end), so its title, its link or its
+   search box is never under them. Only the head: the card keeps its size. */
+.hc-grid.editing .hc-tile.is-widget > .hc-tile-body :is(header, .hc-decide-head) {
+    padding-inline-start: calc(var(--hc-ctl) + var(--hc-ctl-out) + 8px);
+    padding-inline-end: calc(var(--hc-ctl) + var(--hc-ctl-in) + 8px);
+}
+
+/* "2×3" while resizing, centred on the tile. */
+.hc-sizebadge {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
+    padding: 6px 14px;
+    border-radius: var(--radius-round);
+    background: var(--color-ink);
+    box-shadow: var(--shadow);
+    color: var(--color-on-ink);
+    font-size: 1.125rem;
+    font-weight: 800;
+    pointer-events: none;
+}
+
+.hc-tile.resizing {
+    z-index: 5;
+}
+
+.hc-tile.resizing .hc-tile-body {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    box-shadow: var(--shadow);
+}
+
+/* ---------- Add: a bottom sheet on phones, a panel on larger screens ---------- */
+.hc-sheet-back {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: var(--color-backdrop);
+}
+
+.hc-sheet {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: 80vh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: 20px 20px 0 0;
+    background: var(--color-card);
+    box-shadow: var(--shadow);
+    color: var(--color-ink);
+}
+
+@media (min-width: 700px) {
+    .hc-sheet-back {
+        align-items: center;
+    }
+
+    .hc-sheet {
+        border-radius: 20px;
+    }
+}
+
+.hc-galitem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    color: var(--color-ink);
+    text-align: start;
+    cursor: pointer;
+}
+
+.hc-galitem:hover {
+    background: var(--color-hover);
+}
+
+/* ---------- "My leaves": one row is a single line ---------- */
+.hc-leaves-compact {
+    display: none;
+}
+
+.hc-leaves-full {
+    display: flex;
+}
+
+.hc-leaves-big {
+    font-size: clamp(44px, 30cqh, 125px);
+}
+
+.hc-leaves-gauge {
+    display: none;
+}
+
+.hc-leaves-bar {
+    display: block;
+    flex: 0 1 160px;
+    min-width: 60px;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-round);
+    background: var(--color-surface);
+}
+
+.hc-leaves-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-ink);
+}
+
+@container tile (max-height: 170px) {
+    .hc-leaves-compact {
+        display: flex;
+        height: 100%;
+    }
+
+    .hc-leaves-full {
+        display: none;
+    }
+}
+
+@container tile (max-width: 300px) {
+    .hc-leaves-bar {
+        display: none;
+    }
+}
+
+@container tile (min-width: 560px) and (min-height: 230px) {
+    .hc-leaves-gauge {
+        display: block;
+        width: 14rem;
+        height: 10rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-grid.wiggle .hc-tile,
+    .hc-grid .hc-tile {
+        animation: none !important;
+    }
+
+    .hc-appicon {
+        transition: none;
+    }
+}
+
+/* ==================================================================
+   clock tile (livewire/dashboard/clock-card.blade.php, ClockCard)
+
+   Both looks are in the markup; the tile's data-look picks one (digital
+   when there is none, e.g. outside the dashboard). The tile's size picks
+   how much shows: one row (< 140px) the time only; two rows the date too;
+   three rows (>= 245px) the weekday and the HR line, and with the analogue
+   look, once it is medium wide, the digital readout beside the face.
+   Identity only: ink hands and ticks on the card fill, the second hand red.
+   ================================================================== */
+.hc-clock {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    padding: 6% 8%;
+    overflow: hidden;
+}
+
+.hc-clock-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+}
+
+.hc-clock-digital {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.hc-clock-time {
+    font-size: clamp(26px, min(62cqh, 30cqw), 160px);
+    font-weight: 800;
+    line-height: .95;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+}
+
+.hc-clock-wd,
+.hc-clock-date {
+    display: none;
+    overflow: hidden;
+    color: var(--color-ink-2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-clock-wd {
+    font-size: clamp(13px, 7cqh, 18px);
+    font-weight: 700;
+}
+
+.hc-clock-date {
+    font-size: clamp(13px, 6.5cqh, 17px);
+}
+
+.hc-clock-line {
+    display: none;
+    flex: none;
+    padding-block-start: 8px;
+    border-block-start: 1px solid var(--color-line-soft);
+    font-size: clamp(14px, 6cqh, 18px);
+    font-weight: 700;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+/* One row: the time alone, centred. */
+@container tile (max-height: 139.98px) {
+    .hc-clock {
+        padding-block: 4px;
+    }
+
+    .hc-clock-digital {
+        align-items: center;
+    }
+}
+
+@container tile (min-height: 140px) {
+    .hc-clock-time {
+        font-size: clamp(30px, min(38cqh, 28cqw), 160px);
+    }
+
+    .hc-clock-digital .hc-clock-date {
+        display: block;
+    }
+}
+
+@container tile (min-height: 245px) {
+    .hc-clock-time {
+        font-size: clamp(34px, min(30cqh, 26cqw), 160px);
+    }
+
+    .hc-clock-digital .hc-clock-wd,
+    .hc-clock-line {
+        display: block;
+    }
+}
+
+/* ---------- the analogue look ---------- */
+.hc-clock-analog {
+    display: none;
+}
+
+.hc-tile[data-look="analog"] .hc-clock-digital {
+    display: none;
+}
+
+.hc-tile[data-look="analog"] .hc-clock-analog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8cqw;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.hc-clock-face {
+    flex: none;
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+}
+
+.hc-clock-face .rim {
+    fill: var(--color-card);
+    stroke: var(--color-line-soft);
+    stroke-width: 1.2;
+}
+
+.hc-clock-face .tick {
+    stroke: var(--color-ink);
+    stroke-width: 1;
+    stroke-linecap: round;
+}
+
+.hc-clock-face .tick.major {
+    stroke-width: 2.4;
+}
+
+.hc-clock-face .hand {
+    stroke: var(--color-ink);
+    stroke-linecap: round;
+}
+
+.hc-clock-face .hand.h {
+    stroke-width: 4.2;
+}
+
+.hc-clock-face .hand.m {
+    stroke-width: 2.8;
+}
+
+.hc-clock-face .hand.s {
+    stroke: var(--color-primary);
+    stroke-width: 1.3;
+}
+
+.hc-clock-face .hub {
+    fill: var(--color-primary);
+}
+
+.hc-clock-aside {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.hc-clock-aside .hc-clock-wd,
+.hc-clock-aside .hc-clock-date {
+    display: block;
+}
+
+.hc-clock-aside .hc-clock-time {
+    font-size: clamp(20px, 14cqh, 40px);
+}
+
+@container tile (min-height: 245px) and (min-width: 300px) {
+    .hc-tile[data-look="analog"] .hc-clock-aside {
+        display: flex;
+    }
+}
+
+/* The hands jump once a second, never sweep; with less motion, no second hand at all. */
+@media (prefers-reduced-motion: reduce) {
+    .hc-clock-face .hand.s {
+        display: none;
+    }
+}
+/* The phone clock: one row, digital even when analogue is chosen. Only how it
+   is shown changes; the saved size and look stay as set. The packer knows the
+   row (layout-math.js phoneView) and places the tile inline; this rule is the
+   first paint before it does (not !important, so the placed row wins). */
+@container hc-home (max-width: 759.98px) {
+    .hc-grid:not(.editing) > .hc-tile[data-key="clock"] {
+        grid-row: span 1;
+    }
+
+    .hc-grid .hc-tile[data-look="analog"] .hc-clock-digital {
+        display: flex;
+    }
+
+    .hc-grid .hc-tile[data-look="analog"] .hc-clock-analog {
+        display: none;
+    }
+}
+/* ---------- end clock tile ---------- */
+
+/* dashboard header ===================================================
+   Prompt 7 (livewire/dashboard/header.blade.php): the greeting line and
+   the headline. The late band and the decision card below are drawn in
+   their tiles now (late-card, decisions-card).
+   Red only where something waits on the viewer or is late; never tinted. */
+.hc-dash-header {
+    margin-bottom: 18px;
+}
+
+.hc-hello {
+    margin-bottom: 18px;
+}
+
+.hc-hello-greeting {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-ink-2);
+}
+
+/* Late: a red-edged strip with a ringing clock. */
+.hc-lateband {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 14px;
+    margin-bottom: 14px;
+    padding: 12px 16px;
+    border: 1.5px solid var(--color-primary);
+    border-inline-start-width: 4px;
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.hc-lateband-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: var(--color-on-brand);
+    font-size: 20px;
+    transform-origin: 50% 15%;
+    animation: hc-ring 2.6s ease-in-out infinite;
+}
+
+.hc-lateband-text {
+    flex: 1;
+    min-width: min(100%, 14rem);
+    display: grid;
+    gap: 2px;
+}
+
+.hc-lateband-text b {
+    font-size: 16px;
+    color: var(--color-ink);
+}
+
+.hc-lateband-text span {
+    overflow: hidden;
+    font-size: 14px;
+    color: var(--color-ink-2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-lateband .hc-btn {
+    flex: none;
+}
+
+@keyframes hc-ring {
+    0%, 62%, 100% { transform: rotate(0); }
+    66% { transform: rotate(14deg); }
+    70% { transform: rotate(-12deg); }
+    74% { transform: rotate(9deg); }
+    78% { transform: rotate(-6deg); }
+    82% { transform: rotate(3deg); }
+    86% { transform: rotate(0); }
+}
+
+/* Decisions: one card at a time (default), or all side by side. */
+.hc-decide {
+    margin-bottom: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-line-soft);
+    border-inline-start: 3px solid var(--color-primary);
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.hc-decide-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.hc-decide-head h2 {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.hc-decide-head h2 svg {
+    color: var(--color-primary);
+}
+
+.hc-decide-arrow {
+    min-width: 44px;
+    padding-inline: 0;
+}
+
+.hc-decide-count {
+    min-width: 44px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.hc-dcard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-soft);
+}
+
+/* Waiting more than a day: the edge turns red (it is late on the viewer). */
+.hc-dcard.old {
+    border-color: var(--color-primary);
+}
+
+.hc-dcard-what {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.hc-dcard-what svg {
+    color: var(--color-primary);
+}
+
+.hc-dcard-name {
+    font-weight: 700;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+}
+
+.hc-dcard-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    font-size: 14px;
+    color: var(--color-ink-2);
+}
+
+.hc-dcard.old .hc-dcard-since {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.hc-dcard-go {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+.hc-decide-track:not(.all) .hc-dcard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "what go" "name go" "meta go";
+    column-gap: 20px;
+    align-items: center;
+    padding: 16px 18px;
+    animation: hc-dslide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hc-decide-track:not(.all) .hc-dcard-what { grid-area: what; }
+.hc-decide-track:not(.all) .hc-dcard-name { grid-area: name; font-size: 18px; }
+.hc-decide-track:not(.all) .hc-dcard-meta { grid-area: meta; }
+.hc-decide-track:not(.all) .hc-dcard-go { grid-area: go; align-self: center; margin: 0; }
+
+.hc-decide-track.all {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.hc-decide-track .hc-dcard.off {
+    display: none !important;
+}
+
+[dir="rtl"] .hc-decide-track:not(.all) .hc-dcard {
+    animation-name: hc-dslide-rtl;
+}
+
+@keyframes hc-dslide { from { opacity: 0.4; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes hc-dslide-rtl { from { opacity: 0.4; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+
+.hc-ddots {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 6px;
+}
+
+/* 8px to the eye, 24px to the finger (the arrows are the 44px controls). */
+.hc-ddots button {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.hc-ddots button::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline-start: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-line);
+    transition: width 0.2s;
+}
+
+.hc-ddots button.on::before {
+    inset-inline-start: 1px;
+    width: 22px;
+    background: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+    .hc-decide-track:not(.all) .hc-dcard {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "what" "name" "meta" "go";
+    }
+
+    .hc-decide-track:not(.all) .hc-dcard-go {
+        justify-self: start;
+        margin-top: 8px;
+    }
+
+    .hc-lateband .hc-btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-lateband-ico,
+    .hc-decide-track .hc-dcard {
+        animation: none !important;
+    }
+
+    .hc-ddots button::before {
+        transition: none;
+    }
+}
+/* end dashboard header ============================================== */
+
+/* The late strip and the decisions as tiles (late-card, decisions-card):
+   they fill their tile and fold to fit a small one. */
+.hc-late-tile .hc-lateband {
+    flex: 1;
+    margin: 0;
+    border: 0;
+    border-inline-start: 4px solid var(--color-primary);
+    border-radius: inherit;
+    box-shadow: none;
+}
+
+/* The tile, not the screen, decides the button's width: it never runs past the
+   strip (a phone's one-row tile cut "Open the oldest" off on both sides). */
+.hc-late-tile .hc-lateband {
+    min-width: 0;
+}
+
+.hc-late-tile .hc-lateband .hc-btn {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Wrapped below the words (two rows and more, narrow): the whole width. */
+@container tile (min-height: 140px) and (max-width: 559.98px) {
+    .hc-late-tile .hc-lateband .hc-btn {
+        flex-basis: 100%;
+    }
+}
+
+.hc-decide-tile {
+    border-inline-start: 3px solid var(--color-primary);
+}
+
+.hc-decide-tile:has([data-tile-empty]) {
+    border-inline-start-width: 1px;
+    border-inline-start-color: var(--color-line-soft);
+}
+
+/* Work inbox: the decisions, then the rest of the inbox as a short list. */
+.hc-decide-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.hc-decide-sub h3,
+.hc-inbox-items h3 {
+    flex: 1;
+    margin: 0;
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: var(--color-ink-2);
+}
+
+.hc-inbox-items {
+    margin-top: 14px;
+}
+
+[data-testid="decision-card"] + .hc-inbox-items {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line-soft);
+}
+
+.hc-inbox-items ul {
+    margin: 6px 0 4px;
+}
+
+.hc-inbox-items li + li {
+    border-top: 1px solid var(--color-line-soft);
+}
+
+.hc-inbox-items a:not(.hc-btn) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 44px;
+    padding-block: 6px;
+    font-size: var(--text-small);
+}
+
+.hc-inbox-items a:not(.hc-btn):hover {
+    background: var(--color-hover);
+}
+
+.hc-inbox-go {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-ink-3);
+}
+
+.hc-decide-tile .hc-decide {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    overflow: auto;
+    border: 0;
+    border-radius: inherit;
+    box-shadow: none;
+}
+
+@container tile (max-width: 640px) {
+    .hc-decide-tile .hc-decide-track:not(.all) .hc-dcard {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "what" "name" "meta" "go";
+    }
+
+    .hc-decide-tile .hc-decide-track:not(.all) .hc-dcard-go {
+        justify-self: start;
+        margin-top: 8px;
+    }
+}
+
+@container tile (max-height: 139.98px) {
+    .hc-late-tile .hc-lateband {
+        flex-wrap: nowrap;
+        padding: 8px 12px;
+    }
+
+    .hc-late-tile .hc-lateband-ico {
+        width: 32px;
+        height: 32px;
+    }
+
+    .hc-late-tile .hc-lateband-text {
+        min-width: 0;
+    }
+
+    .hc-late-tile .hc-lateband-text span {
+        display: none;
+    }
+}
+
+/* One row and narrow: the button needs the room more than the clock does. */
+@container tile (max-height: 139.98px) and (max-width: 359.98px) {
+    .hc-late-tile .hc-lateband {
+        gap: 10px;
+        padding-inline: 10px;
+    }
+
+    .hc-late-tile .hc-lateband-ico {
+        display: none;
+    }
+
+    .hc-late-tile .hc-lateband .hc-btn {
+        padding-inline: 12px;
+    }
+}
+
+/* ==================================================================
+   Ported from media-request (2026-10-29), driven by home-screen.js.
+   ================================================================== */
+
+/* ---------- a tile with nothing in it: one closed line at the bottom ---------- */
+.hc-tile-line {
+    display: none;
+}
+
+.hc-tile.closed > .hc-tile-body:not(:popover-open) {
+    display: none;
+}
+
+.hc-tile.closed > .hc-tile-line {
+    display: flex;
+    align-items: center;
+    gap: 4px 12px;
+    height: 100%;
+    min-width: 0;
+    padding-inline: 14px;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    color: var(--color-ink-2);
+    opacity: 0.78;
+    transition: opacity 0.2s;
+}
+
+.hc-tile.closed:hover > .hc-tile-line {
+    opacity: 1;
+}
+
+.hc-tile-line-ico {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 28%;
+    background: var(--color-soft);
+    color: var(--color-ink-3);
+}
+
+.hc-tile-line-ico > svg {
+    width: 16px;
+    height: 16px;
+}
+
+.hc-tile-line-name {
+    flex: none;
+    max-width: 50%;
+    overflow: hidden;
+    font-size: var(--text-small);
+    color: var(--color-ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-tile-line-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--text-caption);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- a tile made small: an icon that opens its card ---------- */
+.hc-wmini {
+    display: none;
+}
+
+.hc-tile.mini > .hc-wmini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    min-height: 44px;
+    padding: 4px;
+    border: 0;
+    border-radius: var(--radius-surface);
+    background: none;
+    color: var(--color-ink);
+    cursor: pointer;
+}
+
+.hc-tile.mini > .hc-wmini:hover .hc-appicon {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.hc-tile.mini > .hc-tile-body:not(:popover-open),
+.hc-tile.mini > .hc-tile-line {
+    display: none;
+}
+
+/* Its card is open in the panel: the icon says so (an ink edge, not red). */
+.hc-tile.peek > .hc-wmini .hc-appicon,
+.hc-tile.peek .hc-app .hc-appicon {
+    border-color: var(--color-ink);
+    box-shadow: var(--shadow);
+}
+
+.hc-tile.mini .hc-t-pin,
+.hc-tile.mini .hc-t-look {
+    display: none;
+}
+
+/* ---------- a shortcut made big: a small card with its data ---------- */
+.hc-appcard {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px 14px;
+    overflow: hidden;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-ink);
+}
+
+@container tile (min-width: 200px) and (min-height: 160px) {
+    .hc-tile.is-app .hc-app {
+        display: none;
+    }
+
+    .hc-tile.is-app .hc-appcard {
+        display: flex;
+    }
+}
+
+.hc-ach {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 44px;
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+.hc-ach .hc-appicon {
+    width: 32px;
+}
+
+.hc-ach .hc-appicon > svg {
+    width: 16px;
+}
+
+.hc-ach-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-ach-go {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-inline-start: auto;
+    color: var(--color-ink-3);
+}
+
+.hc-ach:hover .hc-ach-go {
+    color: var(--color-ink);
+}
+
+.hc-appcard-data {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+}
+
+.hc-acnum {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+.hc-acnum b {
+    font-size: clamp(26px, 14cqh, 44px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-ink);
+}
+
+.hc-aclist {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+}
+
+.hc-aclist li > a,
+.hc-aclist li > span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    min-height: 36px;
+    margin-inline: -6px;
+    padding: 4px 6px;
+    border-radius: var(--radius-control);
+    font-size: var(--text-small);
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+.hc-aclist li > a:hover {
+    background: var(--color-hover);
+}
+
+.hc-aclist li span[dir] {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-aclist small {
+    flex: none;
+    max-width: 50%;
+    overflow: hidden;
+    font-size: var(--text-caption);
+    color: var(--color-ink-2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-acempty {
+    margin: auto 0;
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+/* ---------- the side panel ---------- */
+/* Every card is a popover (for its panel) but lays out as a normal card in
+   its tile: undo the browser's popover look (author rules beat the browser's). */
+.hc-tile-body[popover] {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    overflow: hidden;
+}
+
+.hc-appcard[popover] {
+    position: static;
+    inset: auto;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    color: inherit;
+}
+
+/* Open: a steady panel along the screen's end edge, the card at a comfortable size. */
+.hc-tile-body:popover-open,
+.hc-appcard:popover-open {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset-block: 16px;
+    inset-inline: auto 16px;
+    width: min(460px, calc(100vw - 32px));
+    height: auto;
+    max-height: calc(100dvh - 32px);
+    padding: 56px 0 0;
+    overflow: auto;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    box-shadow: 0 22px 60px rgb(0 0 0 / 0.28);
+    animation: hc-panel-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hc-appcard:popover-open {
+    padding: 56px 18px 16px;
+    gap: 12px;
+}
+
+.hc-appcard:popover-open .hc-aclist {
+    overflow-y: auto;
+}
+
+/* The card inside fills the panel below the close button; it scrolls there if it must. */
+.hc-tile-body:popover-open > :not(.hc-panel-close) {
+    flex: 1;
+    height: auto;
+    min-height: min(320px, 60dvh);
+    border-width: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.hc-tile-body:popover-open:focus-visible,
+.hc-appcard:popover-open:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+}
+
+.hc-panel-close {
+    display: none;
+}
+
+:popover-open > .hc-panel-close {
+    display: grid;
+    position: absolute;
+    top: 6px;
+    inset-inline-end: 6px;
+    z-index: 2;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--color-ink-2);
+    cursor: pointer;
+}
+
+:popover-open > .hc-panel-close:hover {
+    background: var(--color-hover);
+    color: var(--color-ink);
+}
+
+:popover-open > .hc-panel-close > svg {
+    width: 20px;
+    height: 20px;
+}
+
+@keyframes hc-panel-in {
+    from {
+        opacity: 0;
+        translate: 24px 0;
+    }
+}
+
+[dir="rtl"] .hc-tile-body:popover-open,
+[dir="rtl"] .hc-appcard:popover-open {
+    animation-name: hc-panel-in-rtl;
+}
+
+@keyframes hc-panel-in-rtl {
+    from {
+        opacity: 0;
+        translate: -24px 0;
+    }
+}
+
+/* A phone: a sheet from the bottom. */
+@media (max-width: 760px) {
+    .hc-tile-body:popover-open,
+    .hc-appcard:popover-open,
+    [dir="rtl"] .hc-tile-body:popover-open,
+    [dir="rtl"] .hc-appcard:popover-open {
+        inset: auto 0 0;
+        width: 100%;
+        height: min(78dvh, 640px);
+        max-height: none;
+        border-radius: 20px 20px 0 0;
+        animation-name: hc-sheet-in;
+    }
+}
+
+@keyframes hc-sheet-in {
+    from {
+        translate: 0 40px;
+        opacity: 0;
+    }
+}
+
+/* ---------- the wheel: only a part that really has more to scroll keeps it ---------- */
+.hc-tile .hc-scrolls {
+    overscroll-behavior: contain;
+}
+
+/* ---------- a widget with a page: a double-click opens it ---------- */
+.hc-tile[data-page] {
+    cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-tile.closed > .hc-tile-line {
+        transition: none;
+    }
+
+    .hc-tile.mini > .hc-wmini:hover .hc-appicon {
+        transform: none;
+    }
+
+    .hc-tile-body:popover-open,
+    .hc-appcard:popover-open {
+        animation: none;
+    }
+}
+
+/* calendar tile ------------------------------------------------------
+   Dashboard\CalendarCard. Always the month grid; from 6×4 up (wide and four
+   rows tall) also "Next 7 days" and the legend beside it. Markers differ by
+   shape only, all in ink: dot = my leave, ring = team leave, diamond =
+   holiday, square = contract end (an HR deadline), triangle = birthday,
+   bar = event. Today is the one red: a solid brand-red day number. */
+.hc-cal-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 36px;
+    block-size: 36px;
+    border-radius: var(--radius-control);
+    color: var(--color-ink);
+}
+
+.hc-cal-nav:hover {
+    background: var(--color-hover);
+}
+
+@media (pointer: coarse) {
+    .hc-cal-nav {
+        min-inline-size: 44px;
+        block-size: 44px;
+    }
+}
+
+.hc-cal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+
+.hc-cal-month {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+}
+
+.hc-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    padding-block-end: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    color: var(--color-ink-2);
+}
+
+.hc-cal-weekdays abbr {
+    text-decoration: none;
+}
+
+.hc-cal-days {
+    flex: 1;
+    min-block-size: 0;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.hc-cal-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-inline-size: 0;
+    min-block-size: 0;
+    border-radius: var(--radius-control);
+    font-size: 13px;
+    line-height: 1;
+    color: var(--color-ink);
+    cursor: pointer;
+}
+
+.hc-cal-day:hover {
+    background: var(--color-hover);
+}
+
+.hc-cal-day[data-out] {
+    color: var(--color-ink-3);
+}
+
+.hc-cal-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.75em;
+    block-size: 1.75em;
+    border-radius: var(--radius-round);
+}
+
+.hc-cal-day[aria-current="date"] .hc-cal-num {
+    background: var(--color-primary);
+    color: var(--color-on-brand);
+    font-weight: 800;
+}
+
+.hc-cal-marks {
+    display: flex;
+    gap: 2px;
+    block-size: 6px;
+    align-items: center;
+}
+
+.hc-mark {
+    display: inline-block;
+    flex: none;
+    inline-size: 6px;
+    block-size: 6px;
+    background: currentColor;
+    color: var(--color-ink);
+}
+
+.hc-cal-day[data-out] .hc-mark {
+    color: var(--color-ink-3);
+}
+
+.hc-mark--lg {
+    inline-size: 10px;
+    block-size: 10px;
+}
+
+.hc-mark--my-leave {
+    border-radius: var(--radius-round);
+}
+
+.hc-mark--team-leave {
+    border-radius: var(--radius-round);
+    background: transparent;
+    border: 1.5px solid currentColor;
+}
+
+.hc-mark--holiday {
+    transform: rotate(45deg) scale(0.85);
+}
+
+.hc-mark--birthday {
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.hc-mark--news {
+    block-size: 2px;
+    inline-size: 8px;
+}
+
+.hc-mark--lg.hc-mark--news {
+    block-size: 3px;
+    inline-size: 12px;
+}
+
+.hc-cal-side {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    min-block-size: 0;
+    padding-inline-start: 16px;
+    border-inline-start: 1px solid var(--color-line-soft);
+}
+
+.hc-cal-legend {
+    padding-block-start: 8px;
+    border-block-start: 1px solid var(--color-line-soft);
+}
+
+@container tile (min-width: 560px) and (min-height: 340px) {
+    .hc-cal-body {
+        grid-template-columns: minmax(0, 1.5fr) minmax(11rem, 1fr);
+    }
+
+    .hc-cal-side {
+        display: flex;
+    }
+
+    .hc-cal-day {
+        font-size: 14px;
+    }
+}
+/* end calendar tile */
+
+/* new tiles ==========================================================
+   Prompt 8: who is out, next holiday, leave balance, birthdays. Each
+   follows its own tile (container "tile"): one row < 140px, two rows
+   140–245px, three ≥ 245px, four ≥ 340px; narrow < 300px, wide ≥ 560px.
+   ================================================================== */
+
+/* Shared: a compact header, faces, one quiet line when there is nothing. */
+.hc-nt-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding-block: 0.625rem 0.375rem;
+    padding-inline: 1rem;
+}
+
+.hc-nt-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-body);
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.hc-nt-icon {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-ink-3);
+}
+
+.hc-nt-av {
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-round);
+    object-fit: cover;
+    background: var(--color-surface);
+}
+
+.hc-nt-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-inline: 1rem;
+    padding-block-end: 0.875rem;
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+.hc-nt-big {
+    font-size: clamp(28px, 24cqh, 64px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-ink);
+}
+
+/* ---------- Out today: as many faces as the height holds, then "+N" ---------- */
+.hc-out-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    padding-inline: 1rem;
+    padding-block-end: 0.75rem;
+}
+
+.hc-out-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.hc-out-list > li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+}
+
+.hc-out-more {
+    display: none;
+    align-self: flex-start;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+    border-radius: var(--radius-round);
+    background: var(--color-surface);
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: var(--color-ink);
+}
+
+/* Four rows or more: six people. */
+.hc-out-more[data-cap="6"] {
+    display: inline-flex;
+}
+
+/* Three rows: four people. */
+@container tile (max-height: 339.98px) {
+    .hc-out-list > li:nth-child(n+5) {
+        display: none;
+    }
+
+    .hc-out-more[data-cap="6"] {
+        display: none;
+    }
+
+    .hc-out-more[data-cap="4"] {
+        display: inline-flex;
+    }
+}
+
+/* Two rows: two people. */
+@container tile (max-height: 244.98px) {
+    .hc-out-list > li:nth-child(n+3) {
+        display: none;
+    }
+
+    .hc-out-more[data-cap="4"] {
+        display: none;
+    }
+
+    .hc-out-more[data-cap="2"] {
+        display: inline-flex;
+    }
+}
+
+/* One row: a stack of four faces; the names stay for screen readers. */
+@container tile (max-height: 139.98px) {
+    .hc-out-body {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .hc-out-list {
+        flex-direction: row;
+        gap: 0;
+    }
+
+    .hc-out-list > li:nth-child(-n+4) {
+        display: flex;
+    }
+
+    .hc-out-list > li + li {
+        margin-inline-start: -0.5rem;
+    }
+
+    .hc-out-list .hc-nt-av {
+        box-shadow: 0 0 0 2px var(--color-card);
+    }
+
+    .hc-out-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .hc-out-more[data-cap="2"] {
+        display: none;
+    }
+
+    .hc-out-more[data-cap="4"] {
+        display: inline-flex;
+        align-self: center;
+    }
+}
+
+@container tile (max-width: 299.98px) {
+    .hc-out .hc-nt-link {
+        display: none;
+    }
+}
+
+/* ---------- Next holiday: label, one big number, the words ---------- */
+.hc-holiday-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.375rem;
+    min-height: 0;
+    padding-inline: 1rem;
+    padding-block-end: 0.875rem;
+}
+
+.hc-holiday-count {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+}
+
+@container tile (max-height: 139.98px) {
+    .hc-holiday-body {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.75rem;
+    }
+
+    .hc-holiday-count {
+        flex: none;
+    }
+
+    .hc-holiday-count .hc-nt-big {
+        font-size: 1.75rem;
+    }
+
+    .hc-holiday-count .hc-nt-big + span,
+    .hc-holiday-date {
+        display: none;
+    }
+}
+
+/* ---------- Leave balance: the ring follows the tile ---------- */
+.hc-balance-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 0;
+    padding-inline: 1rem;
+    padding-block-end: 0.75rem;
+}
+
+.hc-ring {
+    position: relative;
+    flex: none;
+    inline-size: min(42cqh, 70cqw, 11rem);
+    aspect-ratio: 1;
+}
+
+.hc-ring svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* The arc starts at the top and runs with the reading direction. */
+    transform: rotate(-90deg);
+}
+
+[dir="rtl"] .hc-ring svg {
+    transform: rotate(-90deg) scaleY(-1);
+}
+
+.hc-ring circle {
+    fill: none;
+    stroke-width: 12;
+}
+
+.hc-ring-track {
+    stroke: var(--color-surface);
+}
+
+.hc-ring-arc {
+    stroke: var(--color-primary);
+    stroke-linecap: round;
+}
+
+.hc-ring-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(18px, 13cqh, 44px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-ink);
+}
+
+.hc-ring-unit {
+    font-size: 0.5em;
+    font-weight: 600;
+    color: var(--color-ink-2);
+}
+
+.hc-balance-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    text-align: center;
+}
+
+/* Under three rows, the button is what matters next to the ring. */
+@container tile (max-height: 244.98px) {
+    .hc-balance-words {
+        display: none;
+    }
+}
+
+/* Medium and wider: the words and the button beside the ring. */
+@container tile (min-width: 300px) {
+    .hc-balance-body {
+        flex-direction: row;
+        gap: 1.25rem;
+    }
+
+    .hc-ring {
+        inline-size: min(62cqh, 40cqw, 12rem);
+    }
+
+    .hc-balance-side {
+        align-items: flex-start;
+        text-align: start;
+    }
+
+    .hc-balance-words {
+        display: block;
+    }
+}
+
+/* ---------- Birthdays this week: a list that scrolls in the tile ---------- */
+.hc-bdays-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 1rem;
+    padding-block-end: 0.75rem;
+}
+
+.hc-bdays-list > li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+}
+
+@container tile (min-width: 560px) {
+    .hc-bdays-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-content: start;
+        column-gap: 1.25rem;
+    }
+}
+/* end new tiles ===================================================== */

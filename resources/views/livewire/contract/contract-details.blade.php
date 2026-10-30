@@ -30,13 +30,11 @@
 
         <div class="flex flex-wrap items-center gap-2 max-md:w-full max-md:[&>*]:flex-1 max-md:[&>*]:justify-center max-md:[&>*]:min-h-11">
             @if($canExport)
-            <button type="button" data-tour="contract-details.export"
+            <x-button variant="outline" :loading="false" data-tour="contract-details.export"
                     x-on:click="exportPdf()"
                     x-bind:aria-disabled="exporting ? 'true' : 'false'"
                     x-bind:aria-busy="exporting ? 'true' : 'false'"
-                    class="inline-flex min-h-11 items-center gap-2 rounded-control bg-primary px-4 py-2 text-white text-body font-medium shadow
-                           hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
-                           aria-disabled:cursor-wait aria-disabled:opacity-80">
+                    class="aria-disabled:cursor-wait aria-disabled:opacity-80">
                 <svg x-show="!exporting" class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <path d="M7 10l5 5 5-5"/>
@@ -44,7 +42,7 @@
                 </svg>
                 <x-icons.spinner x-cloak x-show="exporting" class="size-4 shrink-0 motion-reduce:animate-none" aria-hidden="true" />
                 <span x-text="exporting ? @js(__('contracts.export-loading')) : @js(__('general.export-pdf'))">@lang('general.export-pdf')</span>
-            </button>
+            </x-button>
             @endif
             @can('renew', $contract)
                 {{-- Tailwind 4 puts the important modifier at the end (mb-0!),
@@ -69,27 +67,24 @@
         {{-- Not a live region: the error toast raised at the same moment is
              what screen readers announce; this stays on screen with Retry. --}}
         <div x-cloak x-show="exportError"
-             class="flex flex-wrap items-center gap-3 rounded-control border border-neutral-200 border-s-4 border-s-primary
-                    bg-neutral-50 px-3 py-2 text-small text-neutral-800">
+             class="flex flex-wrap items-center gap-3 rounded-control border border-line-soft border-s-4 border-s-primary
+                    bg-soft px-3 py-2 text-small text-ink">
             <svg class="size-4 shrink-0 text-primary" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M10 1.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM9 5.5h2v6H9v-6zm0 7.5h2v2H9v-2z"/>
             </svg>
             <p class="min-w-0 flex-1 leading-relaxed" x-text="exportError"></p>
-            <button type="button" x-on:click="exportPdf()" x-bind:aria-disabled="exporting ? 'true' : 'false'"
-                    x-bind:aria-busy="exporting ? 'true' : 'false'"
-                    class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-control border border-neutral-300 bg-white px-3 py-1.5
-                           text-small font-semibold text-secondary-dark shadow-e1 transition hover:border-primary hover:text-primary
-                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
-                           aria-disabled:cursor-wait aria-disabled:opacity-80">
+            <x-button variant="outline" size="sm" :loading="false" class="shrink-0 aria-disabled:cursor-wait aria-disabled:opacity-80"
+                      x-on:click="exportPdf()" x-bind:aria-disabled="exporting ? 'true' : 'false'"
+                      x-bind:aria-busy="exporting ? 'true' : 'false'">
                 <x-icons.spinner x-cloak x-show="exporting" class="size-3.5 shrink-0 motion-reduce:animate-none" aria-hidden="true" />
                 @lang('contracts.export-retry')
-            </button>
+            </x-button>
         </div>
     @endif
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
-        <x-badge color="primary">
+        <x-badge>
             {{ $contract->contractType?->name
                 ?? $contract->contractType?->name
                 ?? __('general.na') }}

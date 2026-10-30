@@ -4,8 +4,8 @@
     // Solid connectors for the direct line, dashed for the technical line.
     // The dash pattern (not colour) distinguishes the two — colour-blind safe, on-brand.
     $isTech = $managerType === 'tech';
-    $vLine = $isTech ? 'w-0 border-s border-dashed border-neutral-400' : 'w-px bg-neutral-300';
-    $hBorder = $isTech ? 'border-t border-dashed border-neutral-400' : 'border-t border-neutral-300';
+    $vLine = $isTech ? 'w-0 border-s border-dashed border-ink-3' : 'w-px bg-line';
+    $hBorder = $isTech ? 'border-t border-dashed border-ink-3' : 'border-t border-line';
     $gap = $compact ? 'gap-2' : 'gap-4';
     $teamRel = $managerType.'Team';
 
@@ -30,7 +30,7 @@
                 >
                     <span class="absolute start-1/2 top-0 {{ $compact ? 'h-4' : 'h-5' }} {{ $vLine }}"></span>
 
-                    <div class="rounded-surface border border-neutral-200 bg-white {{ $compact ? 'p-2' : 'p-3' }} shadow-e1">
+                    <div class="rounded-surface border border-line-soft bg-card {{ $compact ? 'p-2' : 'p-3' }} shadow-e1">
                         <div class="flex flex-wrap justify-center gap-2">
                             @foreach($position->activeContracts as $contract)
                                 <x-org-node
@@ -59,7 +59,7 @@
                             <button type="button"
                                     wire:click="toggleCollapse({{ $position->id }})"
                                     x-on:click="open = !open"
-                                    class="mt-2 flex w-full items-center justify-between gap-2 rounded-[0.5cqw] bg-neutral-100 px-2 py-2 text-caption font-bold text-secondary-medium transition hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                                    class="mt-2 flex w-full items-center justify-between gap-2 rounded-[0.5cqw] bg-surface px-2 py-2 text-caption font-bold text-ink-2 transition hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
                                     :aria-expanded="open"
                                     :title="open ? @js(__('general.collapse')) : @js(__('general.expand'))">
                                 <span>{{ \App\Models\Position::headcount($subTeam) }} @lang('general.direct-reports')</span>

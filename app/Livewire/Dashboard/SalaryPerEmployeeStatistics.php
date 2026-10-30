@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Models\Contract;
 use App\Support\StatisticsCache;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\Component;
 class SalaryPerEmployeeStatistics extends Component
 {
     use HandlesLoadFailure;
+    use IsDashboardTile;
 
     /**
      * salary_per is stored as a tinyint (see the contracts migration:
@@ -19,12 +21,12 @@ class SalaryPerEmployeeStatistics extends Component
      * separate arrays that had to be kept in sync by hand.
      *
      * Colours are unchanged from the original implementation; the middle entry
-     * is the brand primary (#be1f24).
+     * is the brand primary (#BE1F24).
      */
     private const SALARY_PER_META = [
-        1 => ['key' => 'per_month', 'label' => 'dashboard.salary-per.month', 'color' => '#be1f24'],
-        3 => ['key' => 'per_session', 'label' => 'dashboard.salary-per.session', 'color' => '#58595b'],
-        2 => ['key' => 'per_hour', 'label' => 'dashboard.salary-per.hour', 'color' => '#dcddde'],
+        1 => ['key' => 'per_month', 'label' => 'dashboard.salary-per.month', 'color' => '#BE1F24'],
+        3 => ['key' => 'per_session', 'label' => 'dashboard.salary-per.session', 'color' => '#4b4b4b'],
+        2 => ['key' => 'per_hour', 'label' => 'dashboard.salary-per.hour', 'color' => '#cdcdcd'],
     ];
 
     public array $series = [];

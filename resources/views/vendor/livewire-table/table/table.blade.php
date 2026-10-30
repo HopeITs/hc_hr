@@ -1,27 +1,27 @@
 @php($columns = $this->resolveColumns())
 
-<table class="w-full relative" x-data="{ selected: @entangle('selected') }">
-    <thead class="border-b border-neutral-200 dark:border-neutral-700">
+<table @class(['w-full relative text-table', 'hc-tbl' => ! ($cardView ?? null)]) x-data="{ selected: @entangle('selected') }">
+    <thead class="border-b border-line-soft">
     <tr class="group">
         @if($this->canSelect())
-            <th class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800">
+            <th class="p-0 text-start text-ink-2 bg-soft">
                 <input type="checkbox" wire:model.live="selectedPage" class="size-4 mx-3">
             </th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800">
+            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 {{ $column->renderHeader() }}
             </th>
         @endforeach
     </tr>
     <tr class="group" data-tour="table.column-search">
         @if($this->canSelect())
-            <th class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800"></th>
+            <th class="p-0 text-start text-ink-2 bg-soft"></th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800">
+            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 @if($column->isSearchable())
                     {{ $column->renderSearch() }}
                 @endif
@@ -33,7 +33,7 @@
     @if($this->deferLoading && ! $this->initialized)
         <tr class="group">
             <td class="p-0" colspan="{{ $columns->count() + 1 }}">
-                <span class="block text-h4 text-center py-24 bg-white text-black dark:bg-neutral-900 dark:text-white">
+                <span class="block text-h4 text-center py-24 bg-card text-ink-2">
                     @lang('Fetching records...')
                 </span>
             </td>
@@ -61,8 +61,8 @@
                 @if($this->canSelect())
                     <td class="p-0"
                         x-bind:class="~selected.indexOf('{{ $item->getKey() }}')
-                                ? 'bg-secondary-soft group-odd:bg-secondary-soft group-hover:bg-secondary-light dark:bg-secondary-dark dark:group-odd:bg-secondary-dark dark:group-hover:bg-secondary-dark'
-                                : 'bg-neutral-100 group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'">
+                                ? 'bg-surface'
+                                : 'bg-card group-hover:bg-hover'">
                         <div class="mx-3">
                             <input type="checkbox" wire:model.live="selected" value="{{ $item->getKey() }}" class="size-4">
                         </div>
@@ -72,9 +72,10 @@
                     @continue(! in_array($column->code(), $this->columns))
                     <td
                         wire:key="{{ $column->code() }}"
+                        data-label="{{ $column->label() }}"
                         x-data=""
                         @class([
-                            'p-0 group/column relative' => true,
+                            'p-0 group/column relative border-t border-line-soft' => true,
                             'select-none cursor-pointer' => $column->isClickable() || $this->isReordering(),
                         ])
                         @if($column->isClickable() && ! $this->isReordering())
@@ -87,8 +88,8 @@
                             @endif
                         @endif
                         x-bind:class="~selected.indexOf('{{ $item->getKey() }}')
-                                ? 'bg-secondary-soft group-odd:bg-secondary-soft group-hover:bg-secondary-light dark:bg-secondary-dark dark:group-odd:bg-secondary-dark dark:group-hover:bg-secondary-dark'
-                                : 'bg-neutral-100 group-odd:bg-white group-hover:bg-neutral-200 dark:bg-neutral-800 dark:group-odd:bg-neutral-900 dark:group-hover:bg-neutral-700'"
+                                ? 'bg-surface'
+                                : 'bg-card group-hover:bg-hover'"
                     >
                         @includeWhen($column->isCopyable(), 'livewire-table::columns.buttons.copy')
                         <div x-ref="content">
@@ -102,9 +103,9 @@
                 <td class="p-0" colspan="{{ $columns->count() + 1 }}">
                     @if(method_exists($this, 'renderEmptyState'))
                         {{-- Tables using App\Livewire\Concerns\HasListStates: empty / filtered / error. --}}
-                        <div class="sticky start-0 w-[min(100%,100vw)] bg-white p-4 dark:bg-neutral-900">{!! $this->renderEmptyState() !!}</div>
+                        <div class="sticky start-0 w-[min(100%,100vw)] bg-card p-4">{!! $this->renderEmptyState() !!}</div>
                     @else
-                        <span class="block text-h4 text-center py-24 bg-white text-black dark:bg-neutral-900 dark:text-white">
+                        <span class="block text-h4 text-center py-24 bg-card text-ink-2">
                             @lang('No results')
                         </span>
                     @endif
@@ -113,14 +114,14 @@
         @endforelse
     @endif
     </tbody>
-    <tfoot class="border-t border-neutral-200 dark:border-neutral-700">
+    <tfoot class="border-t border-line-soft">
     <tr class="group">
         @if($this->canSelect())
-            <th class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800"></th>
+            <th class="p-0 text-start text-ink-2 bg-soft"></th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-left text-black bg-neutral-50 dark:text-white dark:bg-neutral-800">
+            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 {{ $column->renderFooter() }}
             </th>
         @endforeach

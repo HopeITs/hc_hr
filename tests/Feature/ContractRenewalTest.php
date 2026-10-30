@@ -730,8 +730,8 @@ class ContractRenewalTest extends TestCase
             ->get(route('contracts.renew', $source))
             ->getContent();
 
-        // resources/css/app.css: "a low-opacity #c2151c reads as pink, which is
-        // not allowed in this UI". Opacity-modified brand utilities are the way
+        // resources/css/app.css: "a low-opacity red reads as pink, which the
+        // identity forbids". Opacity-modified brand utilities are the way
         // that creeps back in, so pin it on both renewal surfaces.
         foreach (['bg-primary/', 'border-primary/', 'text-primary/'] as $tinted) {
             $this->assertStringNotContainsString($tinted, $modal, "The modal uses {$tinted}.");
@@ -739,7 +739,7 @@ class ContractRenewalTest extends TestCase
         }
 
         // Greys plus one red. A second red (Tailwind's red-500/600) next to
-        // #c2151c reads as a mistake, so the shared label and error components
+        // #BE1F24 reads as a mistake, so the shared label and error components
         // use the brand token instead.
         foreach (['text-red-', 'bg-red-', 'border-red-'] as $offBrand) {
             $this->assertStringNotContainsString($offBrand, $modal, "The modal uses {$offBrand}.");

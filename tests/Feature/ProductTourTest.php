@@ -7,6 +7,8 @@ use App\Livewire\Position\OrgChart;
 use App\Livewire\Statistics\ContractStatistics;
 use App\Livewire\Statistics\GeneralStatistics;
 use App\Models\User;
+use App\Support\Navigation;
+use App\Support\NavigationMemory;
 use App\Support\ProductTour;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -14,11 +16,12 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
+use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
 class ProductTourTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesHrFixtures, RefreshDatabase;
 
     public function test_every_configured_step_has_copy_in_both_languages(): void
     {
@@ -138,5 +141,26 @@ class ProductTourTest extends TestCase
             ->assertSee('data-tour="dashboard.notes"', false)
             ->assertSee('data-tour="nav"', false)
             ->assertSee('data-tour="nav.dashboard"', false);
+    }
+
+    /** Prompt 11: the dashboard tour covers customising, Ctrl+K and favourites. */
+    public function test_the_dashboard_tour_points_at_customise_search_and_favourites(): void
+    {
+        $steps = array_column(config('tours.dashboard.steps'), 'target');
+        $this->assertContains('dashboard.customise', $steps);
+        $this->assertContains('header.search', $steps);
+        $this->assertContains('nav.favourites', $steps);
+
+        $user = $this->makeUser($this->makeCity('ALP', '001'), 'employee', ['leaves.view-own']);
+        $this->actingAs($user);
+
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+        $this->assertStringContainsString('data-tour="dashboard.customise"', $html);
+        $this->assertStringContainsString('data-tour="header.search"', $html);
+        // Nothing starred yet: no favourites section, so its step is skipped.
+        $this->assertStringNotContainsString('data-tour="nav.favourites"', $html);
+
+        NavigationMemory::toggleFavourite($user, 'nav.my-space.leaves', Navigation::shortcuts($user));
+        $this->assertStringContainsString('data-tour="nav.favourites"', $this->get(route('dashboard'))->getContent());
     }
 }

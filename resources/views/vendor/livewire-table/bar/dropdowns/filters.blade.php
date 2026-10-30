@@ -9,7 +9,7 @@
             </svg>
         </x-slot>
         <span
-            class="flex gap-2 px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+            class="flex gap-2 px-3 py-2 font-bold text-small uppercase border-b border-neutral-200 bg-neutral-50 text-neutral-500">
             <span class="me-auto">@lang('Filters')</span>
             @if ($this->canClearFilters())
                 <a href="#" class="text-primary" x-on:click="show = false" wire:click.prevent="clearFilters">
@@ -19,7 +19,7 @@
         </span>
         <div class="flex flex-col">
             @foreach($filters as $filter)
-                <div wire:key="{{ $filter->code() }}" class="border-b border-neutral-200 last:border-b-0 dark:border-neutral-700">
+                <div wire:key="{{ $filter->code() }}" class="border-b border-neutral-200 last:border-b-0">
                     {{ $filter->render() }}
                 </div>
             @endforeach

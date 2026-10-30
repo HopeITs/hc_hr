@@ -20,13 +20,8 @@
         <label class="cursor-pointer">
             <input type="radio" class="sr-only peer" name="{{ $name }}"
                    value="{{ $value }}" x-model="{{ $model }}" />
-            <span class="flex min-h-[2.625rem] items-center justify-center rounded-control
-                         border-2 border-neutral-200 bg-white px-2 py-2 text-body text-neutral-800
-                         shadow-e1 transition
-                         hover:border-neutral-400
-                         peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white
-                         peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
-                         peer-focus-visible:outline-primary">
+            {{-- Identity choice: line border; chosen = ink border + surface fill (not red: red is not a selection colour). --}}
+            <span class="hc-choice flex min-h-11 items-center justify-center px-2 py-2 text-body text-ink">
                 <span class="font-semibold truncate">{{ $label }}</span>
             </span>
         </label>

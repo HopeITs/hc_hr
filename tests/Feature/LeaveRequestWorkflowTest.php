@@ -1429,8 +1429,10 @@ class LeaveRequestWorkflowTest extends TestCase
         $manager = $this->makeDirectManagerOf($leave, asEmployeeOnly: true);
 
         Livewire::actingAs($manager)
-            ->test(\App\Livewire\Dashboard\ForYouNow::class)
-            ->assertSeeHtml('data-testid="for-you-decisions-count"');
+            ->test(\App\Livewire\Dashboard\DecisionsCard::class)
+            ->assertViewHas('decisions', fn (array $decisions) => $decisions['total'] === 1)
+            ->assertSeeHtml('data-testid="decision-card"')
+            ->assertSeeHtml('data-decision="leave:'.$leave->id.':decide"');
     }
 
     public function test_n03_hr_reads_you_not_the_hr_team_in_the_next_step(): void

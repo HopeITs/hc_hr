@@ -3,6 +3,7 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Enums\LeaveRequestStatus;
+use App\Livewire\Dashboard\ChecklistCard;
 use App\Livewire\Dashboard\DepartmentEmployeeStatistics;
 use App\Livewire\Dashboard\EmployeeNotesCard;
 use App\Livewire\Dashboard\Index;
@@ -212,16 +213,21 @@ class DashboardCardStatesTest extends TestCase
         $hr = $this->hr();
 
         $this->breakQueriesOn(Checklist::class);
+        // Prompt 4: each card is its own tile (rendered in place here, not lazily),
+        // so the failure stays inside the two tiles that read checklists.
         $component = $this->live($hr)->test(Index::class);
 
         $component->assertOk()
-            ->assertSet('loadFailed', true)
             ->assertSee(__('general.state-error-title'));
         $this->assertSame(2, substr_count($component->html(), 'role="alert"'), 'checklist feeds exactly two cards: delivered items and pending requests');
 
+        $tile = $this->live($hr)->test(ChecklistCard::class)
+            ->assertSet('loadFailed', true)
+            ->assertSee(__('general.state-error-title'));
+
         $this->repair();
 
-        $component->call('retryLoad')
+        $tile->call('retryLoad')
             ->assertSet('loadFailed', false)
             ->assertDontSee(__('general.state-error-title'));
     }

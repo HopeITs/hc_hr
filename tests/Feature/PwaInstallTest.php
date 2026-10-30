@@ -27,7 +27,7 @@ class PwaInstallTest extends TestCase
         $this->assertNotEmpty($manifest['name']);
         $this->assertSame('/', $manifest['start_url']);
         $this->assertSame('standalone', $manifest['display']);
-        $this->assertSame('#c2151c', $manifest['theme_color']);
+        $this->assertSame('#BE1F24', $manifest['theme_color']);
 
         $sizes = [];
         foreach ($manifest['icons'] as $icon) {
@@ -80,7 +80,9 @@ class PwaInstallTest extends TestCase
     {
         $login = $this->get(route('login'))->getContent();
         $this->assertStringContainsString('site.webmanifest', $login);
-        $this->assertStringContainsString('<meta name="theme-color" content="#c2151c">', $login);
+        // The browser chrome follows the identity's page colour in each scheme.
+        $this->assertStringContainsString('<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">', $login);
+        $this->assertStringContainsString('<meta name="theme-color" content="#161617" media="(prefers-color-scheme: dark)">', $login);
         $this->assertStringContainsString("navigator.serviceWorker.register('/sw.js')", $login);
         // With the CSP nonce, or the browser refuses to run it (found in the browser check).
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">\s*if \(\'serviceWorker\' in navigator/', $login);

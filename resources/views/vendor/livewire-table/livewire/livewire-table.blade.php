@@ -12,9 +12,9 @@
         {{-- RemembersTableState: removable chips, Clear all and the reset notice. --}}
         @php($chips = $this->activeFilterChips())
         @if($this->stateReset)
-            <div role="status" class="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                <span>{{ __('general.state-notice-filter-cleared') }}</span>
-                <button type="button" wire:click="dismissStateNotice" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ __('general.state-dismiss') }}</button>
+            <div role="status" class="flex items-center justify-between gap-3 rounded-control border-[1.5px] border-ink bg-card px-3 py-2 text-small text-ink">
+                <span class="flex items-center gap-2"><x-ic name="info" class="size-4" />{{ __('general.state-notice-filter-cleared') }}</span>
+                <button type="button" wire:click="dismissStateNotice" class="hc-btn hc-btn--link hc-btn--sm">{{ __('general.state-dismiss') }}</button>
             </div>
         @endif
         @if($chips !== [] || $this->canClearAll())
@@ -45,28 +45,29 @@
         </p>
     @endif
 
-    @if($cardView)
-        {{-- Phones: a list of cards instead of a table (nothing scrolls sideways). --}}
-        {{-- The per-column search lives in the table header, which phones do not show: offer the select filters here. --}}
-        @php($phoneFilters = $this->resolveColumns()->filter(fn ($c) => $c instanceof \RamonRietdijk\LivewireTables\Columns\SelectColumn && $c->isSearchable() && in_array($c->code(), $this->columns)))
-        @if($phoneFilters->isNotEmpty())
+    {{-- The per-column search lives in the table header, which phones do not show (own cards, or the
+         stacked rows below 820px): offer the select filters here. --}}
+    @php($phoneFilters = $this->resolveColumns()->filter(fn ($c) => $c instanceof \RamonRietdijk\LivewireTables\Columns\SelectColumn && $c->isSearchable() && in_array($c->code(), $this->columns)))
+    @if($phoneFilters->isNotEmpty())
             {{-- M1: collapsed by default, so the first result is on the first screen; the state lives in Alpine and survives Livewire morphs. --}}
-            <div class="md:hidden" x-data="{ filtersOpen: false }">
+            <div @class(['md:hidden' => $cardView, 'min-[820px]:hidden' => ! $cardView]) x-data="{ filtersOpen: false }">
                 <button type="button" x-on:click="filtersOpen = ! filtersOpen" x-bind:aria-expanded="filtersOpen.toString()" aria-controls="phone-filters-{{ $this->getId() }}"
-                    class="inline-flex min-h-11 w-full items-center justify-between rounded-control border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    class="inline-flex min-h-11 w-full items-center justify-between rounded-control border-[1.5px] border-line bg-field px-4 text-small font-semibold text-ink hover:border-ink-2">
                     <span>{{ __('Filters') }}</span>
                     <svg class="size-5 transition-transform motion-reduce:transition-none" x-bind:class="filtersOpen && 'rotate-180'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
                 <div id="phone-filters-{{ $this->getId() }}" x-show="filtersOpen" x-cloak class="mt-2 flex flex-col gap-2">
                     @foreach($phoneFilters as $column)
-                        <div wire:key="phone-filter-{{ $column->code() }}" class="rounded-surface border border-[var(--line-hairline)] bg-white">
-                            <span class="block px-3 pt-2 text-small font-semibold text-secondary-medium">{{ $column->label() }}</span>
+                        <div wire:key="phone-filter-{{ $column->code() }}" class="rounded-surface border border-line-soft bg-card">
+                            <span class="block px-3 pt-2 text-th font-bold text-ink-2">{{ $column->label() }}</span>
                             {{ $column->renderSearch() }}
                         </div>
                     @endforeach
                 </div>
             </div>
-        @endif
+    @endif
+    @if($cardView)
+        {{-- Phones: a list of cards instead of a table (nothing scrolls sideways). --}}
         <div class="md:hidden"
             @if(method_exists($this, 'stateAnnouncement')) wire:loading.class="opacity-60" wire:target="globalSearch,search,filters,perPage,clearAll,removeChip,clearAllFilters,retryLoad,gotoPage,previousPage,nextPage,setPage" @endif>
             @if($paginator->count() > 0)
@@ -87,8 +88,9 @@
     <div
             @if(method_exists($this, 'stateAnnouncement')) wire:loading.class="opacity-60" wire:target="globalSearch,search,filters,perPage,clearAll,removeChip,clearAllFilters,retryLoad,gotoPage,previousPage,nextPage,setPage" @endif
             @class([
-                'overflow-x-auto bg-white border border-[var(--line-hairline)] shadow-e1 rounded-surface overscroll-x-none',
+                'overflow-x-auto bg-card border border-line-soft shadow-e1 rounded-surface overscroll-x-none',
                 'hidden md:block' => $cardView,
+                'hc-tbl-wrap' => ! $cardView,
             ])>
         @include('livewire-table::table.table')
     </div>

@@ -51,22 +51,22 @@
                     {{-- A city-scoped role only ever has one option, and a dropdown
                          of one asks a question that has no answer. --}}
                     <div
-                        class="flex min-h-[2.375rem] items-center gap-2 rounded-control border border-neutral-200
-                                bg-neutral-100 px-3 py-2 text-body font-medium text-neutral-800">
-                        <svg class="size-3.5 shrink-0 text-secondary-medium" viewBox="0 0 20 20" fill="currentColor"
+                        class="flex min-h-[2.375rem] items-center gap-2 rounded-control border border-line-soft
+                                bg-surface px-3 py-2 text-body font-medium text-ink">
+                        <svg class="size-3.5 shrink-0 text-ink-2" viewBox="0 0 20 20" fill="currentColor"
                             aria-hidden="true">
                             <path
                                 d="M10 2a3.5 3.5 0 00-3.5 3.5V8H6a1.5 1.5 0 00-1.5 1.5v6A1.5 1.5 0 006 17h8a1.5 1.5 0 001.5-1.5v-6A1.5 1.5 0 0014 8h-.5V5.5A3.5 3.5 0 0010 2zm2 6H8V5.5a2 2 0 114 0V8z" />
                         </svg>
                         <span>{{ $lockedCity->name }}</span>
-                        <span class="ms-auto text-caption text-secondary-medium">@lang('general.composer.locked-city')</span>
+                        <span class="ms-auto text-caption text-ink-2">@lang('general.composer.locked-city')</span>
                     </div>
                 @else
                     <x-forms.combobox id="composer_city" required options="cities" model="selected.city" />
                     {{-- Names the auto-fill out loud, so a manual override (see
                          onEmployeeChange() in contract-composer.js) reads as a
                          deliberate choice rather than a surprise reset. --}}
-                    <p class="mt-1.5 text-caption text-secondary-medium">@lang('general.composer.city-auto-hint')</p>
+                    <p class="mt-1.5 text-caption text-ink-2">@lang('general.composer.city-auto-hint')</p>
                 @endif
 
                 <x-error-span>{{ $errors->first('city_id') }}</x-error-span>
@@ -76,8 +76,8 @@
         {{-- Warn, never block: renewals and replacements legitimately overlap. --}}
         <template x-if="selectedEmployee && selectedEmployee.activeContractEndsAt">
             <p
-                class="flex gap-2 px-3 py-2 leading-relaxed border rounded-control border-neutral-200 border-s-4 border-s-primary bg-neutral-50 text-small text-neutral-800">
-                <svg class="mt-0.5 size-4 shrink-0 text-primary" viewBox="0 0 20 20" fill="currentColor"
+                class="flex gap-2 px-3 py-2 leading-relaxed border rounded-control border-line-soft border-s-4 border-s-ink bg-soft text-small text-ink">
+                <svg class="mt-0.5 size-4 shrink-0 text-ink" viewBox="0 0 20 20" fill="currentColor"
                     aria-hidden="true">
                     <path d="M10 1.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM9 5.5h2v6H9v-6zm0 7.5h2v2H9v-2z" />
                 </svg>
@@ -89,14 +89,14 @@
              see checkForDraftContract() / ContractCreate::resolveDraftUpgrade(). --}}
         <template x-if="draftContractNotice">
             <p
-                class="flex gap-2 px-3 py-2 leading-relaxed border rounded-control border-neutral-200 border-s-4 border-s-primary bg-neutral-50 text-small text-neutral-800">
-                <svg class="mt-0.5 size-4 shrink-0 text-primary" viewBox="0 0 20 20" fill="currentColor"
+                class="flex gap-2 px-3 py-2 leading-relaxed border rounded-control border-line-soft border-s-4 border-s-ink bg-soft text-small text-ink">
+                <svg class="mt-0.5 size-4 shrink-0 text-ink" viewBox="0 0 20 20" fill="currentColor"
                     aria-hidden="true">
                     <path d="M10 1.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM9 5.5h2v6H9v-6zm0 7.5h2v2H9v-2z" />
                 </svg>
                 <span class="flex min-w-0 flex-col gap-1">
                     <span x-text="draftContractNotice"></span>
-                    <span class="text-secondary-dark">@lang('contracts.composer-help.draft')</span>
+                    <span class="text-ink">@lang('contracts.composer-help.draft')</span>
                 </span>
             </p>
         </template>
@@ -126,20 +126,20 @@
                 {{-- Explains the greyed-out "Full" entries in the list above;
                      the seat counts come from the same locationOptions()
                      data, scoped by Position::inCity(). --}}
-                <p class="mt-1.5 text-caption text-secondary-medium">@lang('contracts.composer-help.capacity')</p>
+                <p class="mt-1.5 text-caption text-ink-2">@lang('contracts.composer-help.capacity')</p>
             </div>
 
             {{-- Why Program and Position stay locked until the field before
                  them is chosen. --}}
-            <p class="text-caption text-secondary-medium md:col-span-2 md:-mt-2">@lang('contracts.composer-help.location')</p>
+            <p class="text-caption text-ink-2 md:col-span-2 md:-mt-2">@lang('contracts.composer-help.location')</p>
         </div>
     </div>
 
     <div x-cloak x-show="loading" class="mt-4" role="status" aria-live="polite">
         <span
-            class="inline-flex items-center gap-2 rounded-control border border-neutral-200 bg-neutral-50
-                     px-3 py-1.5 text-small font-medium text-secondary-dark">
-            <x-icons.spinner class="size-3.5 animate-spin text-primary" />
+            class="inline-flex items-center gap-2 rounded-control border border-line-soft bg-soft
+                     px-3 py-1.5 text-small font-medium text-ink">
+            <x-icons.spinner class="size-3.5 animate-spin text-ink-2" />
             @lang('general.loading')
         </span>
     </div>
@@ -147,8 +147,8 @@
     {{-- This merged step still reads as two decisions — who/where, then on
          what terms — so the second half gets its own small eyebrow rather
          than just a rule, the only seam separating them otherwise. --}}
-    <div class="pt-5 mt-6 border-t border-neutral-100">
-        <p class="font-semibold tracking-wide uppercase text-caption text-secondary-medium">
+    <div class="pt-5 mt-6 border-t border-line-soft">
+        <p class="font-semibold tracking-wide uppercase text-caption text-ink-2">
             @lang('general.composer.contract-terms')
         </p>
 
@@ -171,24 +171,24 @@
                         value="{{ $type->id }}" x-model="selected.contractType"
                         x-on:change="chooseType('{{ $type->id }}')" />
                     <span
-                        class="flex flex-col h-full gap-2 p-3 transition bg-white border-2 rounded-control border-neutral-200 shadow-e1 group-hover:border-neutral-400 peer-checked:border-primary peer-checked:shadow-e2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary">
+                        class="flex flex-col h-full gap-2 p-3 transition bg-card border-2 rounded-control border-line-soft shadow-e1 group-hover:border-ink-3 peer-checked:border-ink peer-checked:bg-surface peer-checked:shadow-e2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">
                         <span class="flex items-start gap-2">
                             {{-- Selection is stated, not just implied by a border. --}}
                             <span
                                 class="mt-0.5 grid size-4 shrink-0 place-items-center rounded-round border-2 transition"
                                 x-bind:class="selected.contractType === '{{ $type->id }}' ?
-                                    'border-primary bg-primary' : 'border-neutral-300 bg-white'"
+                                    'border-ink bg-ink' : 'border-line bg-card'"
                                 aria-hidden="true">
-                                <span class="size-1.5 rounded-round bg-white"
+                                <span class="size-1.5 rounded-round bg-card"
                                     x-show="selected.contractType === '{{ $type->id }}'"></span>
                             </span>
-                            <span class="font-semibold text-body text-neutral-900">{{ $type->name }}</span>
+                            <span class="font-semibold text-body text-ink">{{ $type->name }}</span>
                         </span>
 
                         {{-- Nested, so peer-checked: cannot reach it — bind directly. --}}
                         <span class="mt-auto font-medium text-caption"
                             x-bind:class="selected.contractType === '{{ $type->id }}' ?
-                                'text-primary' : 'text-secondary-medium'">
+                                'text-ink' : 'text-ink-2'">
                             @if ($type->category === 'trial')
                                 → {{ __('general.composer.lasts-months', ['count' => 3]) }}
                             @else
@@ -229,12 +229,12 @@
                             x-model="type" />
                         <span
                             class="flex min-h-[2.625rem] items-center justify-center rounded-control
-                                     border-2 border-neutral-200 bg-white px-2 py-2 text-body text-neutral-800
+                                     border-2 border-line-soft bg-card px-2 py-2 text-body text-ink
                                      shadow-e1 transition
-                                     hover:border-neutral-400
-                                     peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white
+                                     hover:border-ink-3
+                                     peer-checked:border-ink peer-checked:bg-surface peer-checked:text-ink
                                      peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
-                                     peer-focus-visible:outline-primary">
+                                     peer-focus-visible:outline-focus">
                             <span class="font-semibold truncate">{{ $label }}</span>
                         </span>
                     </label>
@@ -242,8 +242,8 @@
             </div>
 
             <div x-cloak x-show="selectedType?.category === 'service'"
-                class="mt-1 flex min-h-[2.625rem] items-center rounded-control border-2 border-neutral-200
-                        bg-neutral-50 px-3 text-body font-semibold text-neutral-700">
+                class="mt-1 flex min-h-[2.625rem] items-center rounded-control border-2 border-line-soft
+                        bg-soft px-3 text-body font-semibold text-ink">
                 {{ $typeOptions[ContractTypeEnum::Freelance] }}
             </div>
 
@@ -259,12 +259,12 @@
                             x-model="place" />
                         <span
                             class="flex min-h-[2.625rem] items-center justify-center rounded-control
-                                     border-2 border-neutral-200 bg-white px-2 py-2 text-body text-neutral-800
+                                     border-2 border-line-soft bg-card px-2 py-2 text-body text-ink
                                      shadow-e1 transition
-                                     hover:border-neutral-400
-                                     peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white
+                                     hover:border-ink-3
+                                     peer-checked:border-ink peer-checked:bg-surface peer-checked:text-ink
                                      peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2
-                                     peer-focus-visible:outline-primary">
+                                     peer-focus-visible:outline-focus">
                             <span class="font-semibold truncate">{{ $label }}</span>
                         </span>
                     </label>
@@ -279,7 +279,7 @@
         <div class="sm:flex-1">
             <x-forms.input-label for="composer_start_date" required>@lang('general.start-date')</x-forms.input-label>
             <x-forms.date-input id="composer_start_date" x-model="startDate" x-on:input="datesTyped.start = true"
-                x-bind:class="datesJustSet && 'border-primary ring-2 ring-neutral-300'" />
+                x-bind:class="datesJustSet && 'border-ink ring-2 ring-line'" />
             <x-error-span>{{ $errors->first('form.start_date') }}</x-error-span>
         </div>
 
@@ -287,23 +287,23 @@
              stray dashes float between the empty date fields. --}}
         <div x-cloak x-show="durationLabel" class="flex items-center self-center gap-2 pt-0 shrink-0 sm:pt-6"
             aria-hidden="true">
-            <span class="hidden w-5 h-px bg-neutral-300 sm:block"></span>
+            <span class="hidden w-5 h-px bg-line sm:block"></span>
             <span
-                class="px-3 py-1 font-semibold bg-white border whitespace-nowrap rounded-round border-primary text-caption text-primary"
+                class="px-3 py-1 font-semibold bg-card border whitespace-nowrap rounded-round border-line text-caption text-ink"
                 x-text="durationLabel"></span>
-            <span class="hidden w-5 h-px bg-neutral-300 sm:block"></span>
+            <span class="hidden w-5 h-px bg-line sm:block"></span>
         </div>
 
         <div class="sm:flex-1">
             <x-forms.input-label for="composer_end_date" required>@lang('general.end-date')</x-forms.input-label>
             <x-forms.date-input id="composer_end_date" x-model="endDate" x-bind:max="maxEndDate" x-on:input="datesTyped.end = true"
                 x-bind:class="[
-                    datesJustSet && 'border-primary ring-2 ring-neutral-300',
+                    datesJustSet && 'border-ink ring-2 ring-line',
                     endDateTooFar && 'border-primary',
                 ]" />
             {{-- The one-year ceiling is a hint, not a surprise. --}}
             <p class="mt-1.5 text-caption"
-                x-bind:class="endDateTooFar ? 'font-semibold text-primary' : 'text-secondary-medium'"
+                x-bind:class="endDateTooFar ? 'font-semibold text-primary' : 'text-ink-2'"
                 x-text="endDateTooFar
                    ? @js(__('general.composer.end-date-too-far'))
                    : @js(__('general.composer.max-end-date'))">
@@ -314,7 +314,7 @@
 
     {{-- What "active" means for the contract this saves, and that it
          renews on its own unless it is a trial (ContractObserver). --}}
-    <p class="mt-3 text-caption text-secondary-medium">@lang('contracts.composer-help.status')</p>
+    <p class="mt-3 text-caption text-ink-2">@lang('contracts.composer-help.status')</p>
 
     {{-- G-B-10 (answer 2): on create the switch is shown here, already on.
          Editing keeps it in the termination section. --}}

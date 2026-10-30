@@ -1,117 +1,153 @@
 @php
-    $employee = auth()->user()->profile;
+    use App\Support\Dashboard\DashboardLayout;
 
-    $firstName = $employee?->first_name;
+    $user = auth()->user();
 
-    $contract = $employee?->latestActiveContract();
-
-    $locale = app()->getLocale();
-    $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
-
-    $positionTitle = $contract?->position?->$titleCol
-        ?? $contract?->position?->title_en
-        ?? '—';
+    // The home screen (resources/js/dashboard/home-screen.js) gets the whole
+    // layout, hidden tiles included (Add offers them), and keeps it in data-home:
+    // after Reset re-renders the page, the script takes the new layout from there.
+    $absentKeys = array_flip($absent);
+    $home = [
+        'layout' => $layout,
+        'absent' => $absent,
+        'bounds' => collect($layout)->mapWithKeys(fn (array $item) => [$item['key'] => $tiles->bounds($item['key'])])->all(),
+        'looks' => DashboardLayout::LOOKS,
+        'phoneHidden' => DashboardLayout::PHONE_HIDDEN,
+        'labels' => collect($layout)->mapWithKeys(fn (array $item) => [$item['key'] => $tiles->label($item['key'], $user)])->all(),
+        'editing' => $customise,
+        'text' => [
+            'tile' => __('dashboard.home.tile'),
+            'size' => __('dashboard.home.size'),
+            'resize' => __('dashboard.home.resize'),
+            'moved' => __('dashboard.home.moved'),
+            'resized' => __('dashboard.home.resized'),
+            'hidden' => __('dashboard.home.hidden'),
+            'added' => __('dashboard.home.added'),
+            'pinned' => __('dashboard.home.pinned'),
+            'unpinned' => __('dashboard.home.unpinned'),
+            'resetTitle' => __('dashboard.home.reset-title'),
+            'resetMessage' => __('dashboard.home.reset-message'),
+            'resetConfirm' => __('dashboard.home.reset'),
+            'cancel' => __('general.cancel'),
+            'nothing' => __('dashboard.home.nothing'),
+        ],
+    ];
 @endphp
 
 <x-slot:title>
     {{ __('general.dashboard') }}
 </x-slot:title>
 
-@section('greeting')
-    <div class="py-4 pt-24">
-        <h1 class="text-secondary-dark font-semibold text-h3">
-            {{ __('dashboard.greeting', ['name' => $firstName]) }}
-        </h1>
-
-        <p class="text-secondary-light text-body">
-            {{ $positionTitle }}
-        </p>
-    </div>
+{{-- The home screen's script, on this page only (a separate Vite entry, with SortableJS behind its own import). --}}
+@section('css')
+    @vite('resources/js/dashboard/home-screen.js')
 @endsection
 
-<div class="space-y-6">
+<div>
+    {{-- Prompt 7: the greeting and a headline that says what waits on the viewer.
+         What is late and the decisions are tiles in the grid ("late", "decide").
+         Its own component, so the grid's renders (Add, Reset) never recompute it.
+         The name and job title are the ones mount() already loaded. --}}
+    <livewire:dashboard.header :name="(string) ($employee?->first_name ?? '')"
+                               :job-title="$positionTitle === '—' ? '' : (string) $positionTitle" />
 
-    {{-- C4 (C0-Q5): the active role's next actions first; the existing cards below, unchanged. --}}
-    <livewire:dashboard.for-you-now />
+    <div class="hc-home-screen"
+         x-data="hcHomeScreen"
+         data-home="{{ json_encode($home, JSON_UNESCAPED_UNICODE) }}"
+         x-on:keydown.escape.window="escape($event)">
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
-            @if(isset($failedSections['leaves']))
-                <div data-tour="dashboard.my-leaves" class="w-full"><x-ui.load-error class="h-full " /></div>
-            @elseif($hasLeaves)
-                <div data-tour="dashboard.my-leaves" class="flex items-center justify-start font-semibold text-white rounded-surface">
-                    <livewire:dashboard.my-leaves-card/>
-                </div>
-            @endif
-            <div data-tour="dashboard.notes" class="flex min-h-68 flex-1 items-stretch justify-start rounded-surface font-semibold text-white">
-                {{-- No identifier is passed: the card derives its owner from
-                     the session. Passing auth()->id() here supplied a User id
-                     where an Employee id was expected. --}}
-                <livewire:dashboard.employee-notes-card/>
+        {{-- Customise, and while customising: Reset, Add, Done. The words need about
+             16rem: where the buttons leave less (a phone), they sit above them, full width. --}}
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p class="min-w-0 flex-[1_1_16rem] text-hint text-ink-2" aria-live="polite">
+                <span x-show="! editing">{{ __('dashboard.home.lead') }}</span>
+                <span x-show="editing" x-cloak>{{ __('dashboard.home.edit-lead') }}</span>
+            </p>
+
+            <div class="flex flex-wrap items-center gap-2">
+                {{-- :loading="false": these drive the browser-side grid; a background layout
+                     save must not disable them. --}}
+                <x-button variant="outline" size="sm" icon="layout" :loading="false" x-ref="customise"
+                          x-show="! editing" x-on:click="startEdit()" data-tour="dashboard.customise">{{ __('dashboard.home.customise') }}</x-button>
+
+                <span class="flex flex-wrap items-center gap-2" x-show="editing" x-cloak>
+                    <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()">{{ __('dashboard.home.reset') }}</x-button>
+                    <x-button variant="outline" size="sm" icon="plus" :loading="false" x-ref="add"
+                              x-on:click="openGallery()" x-bind:disabled="addable().length === 0">{{ __('dashboard.home.add') }}</x-button>
+                    <x-button size="sm" icon="check" :loading="false" x-ref="done" x-on:click="done()">{{ __('dashboard.home.done') }}</x-button>
+                </span>
             </div>
         </div>
 
-        <div data-tour="dashboard.team" class="w-full rounded-surface text-white font-semibold  {{$hasLeaves ? 'h-full' : 'h-68'}}">
-            @if(isset($failedSections['team']))
-                <x-ui.load-error class="h-full " />
-            @else
-                <x-dashboard-cards.team-members-card/>
-            @endif
+        {{-- The phone bar's shortcuts (prompt 10), chosen here while customising on a
+             phone. Lazy: it loads only once it is on screen, so never on a computer
+             and never at rest. It saves each change itself (bottom-bar-changed). --}}
+        <div class="mb-4 md:hidden" x-show="editing" x-cloak data-slot="bottom-bar-picker">
+            <livewire:layout.bottom-bar-picker lazy />
         </div>
 
+        {{-- The grid. Tiles are drawn once by the server (a hidden one not at all);
+             moving, resizing and hiding only change them in place. --}}
+        <div class="hc-home">
+            {{-- Faint cells behind the tiles while customising, so you can see where a tile will sit. --}}
+            <div class="hc-grid hc-guides" x-ref="guides" x-show="editing" x-cloak aria-hidden="true"></div>
 
-        <div data-tour="dashboard.news" class="flex items-center justify-center h-full row-span-2 font-semibold text-white rounded-surface">
-            <x-dashboard-cards.news-card/>
+            <div class="hc-grid" x-ref="grid" role="list" aria-label="{{ __('general.dashboard') }}"
+                 :class="{ editing, wiggle: wiggling }"
+                 x-on:pointerdown="press($event)" x-on:pointermove="pressMove($event)"
+                 x-on:pointerup="release()" x-on:pointerleave="release()" x-on:pointercancel="release()"
+                 x-on:click.capture="swallowClick($event)"
+                 x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
+                @foreach ($layout as $item)
+                    @continue($item['hidden'] || isset($absentKeys[$item['key']]))
+                    @include('livewire.dashboard.partials.tile', ['item' => $item])
+                @endforeach
+            </div>
         </div>
 
+        <p id="hc-tile-hint" class="sr-only">{{ __('dashboard.home.tile-hint') }}</p>
+        <p id="hc-page-hint" class="sr-only">{{ __('dashboard.home.page-hint') }}</p>
+        <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
 
-        <div class="flex items-center justify-center font-semibold text-white h-70">
-            <livewire:dashboard.calendar-card/>
-        </div>
+        {{-- A tile whose card could not load at all (the script puts this inside it). --}}
+        <template x-ref="tileError">
+            <div class="flex h-full flex-col items-center justify-center gap-3 rounded-surface border-[1.5px] border-dashed border-line bg-card p-4 text-center">
+                <p class="text-body font-bold text-ink">{{ __('general.state-error-title') }}</p>
+                <x-button size="sm" :loading="false" x-on:click="window.location.reload()">{{ __('general.retry') }}</x-button>
+            </div>
+        </template>
 
-        <div data-tour="dashboard.upcoming-leaves" class="flex items-center justify-center font-semibold text-white h-70">
-            <livewire:dashboard.upcoming-leaves-card/>
+        {{-- Add: what can come back. A bottom sheet on phones, a panel on larger screens. --}}
+        <div class="hc-sheet-back" x-show="gallery" x-cloak x-transition.opacity x-on:click.self="closeGallery()">
+            <div class="hc-sheet" role="dialog" aria-modal="true" aria-labelledby="hc-gallery-title"
+                 x-show="gallery" x-trap.noscroll="gallery" x-on:keydown.escape.stop.prevent="closeGallery()">
+                <div class="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-3">
+                    <h2 id="hc-gallery-title" class="text-h4 font-extrabold text-ink">{{ __('dashboard.home.add-title') }}</h2>
+                    <x-button variant="quiet" size="sm" icon="x" :loading="false" x-on:click="closeGallery()" aria-label="{{ __('dashboard.home.close') }}" />
+                </div>
 
-        </div>
-
-        <div class="flex items-center justify-center font-semibold text-white h-70">
-            <livewire:news.today-events-card/>
-        </div>
-
-        <div class="flex items-center justify-center font-semibold text-white h-70">
-            @if(isset($failedSections['upcoming-events']))
-                <x-ui.load-error class="h-full " />
-            @else
-                <x-dashboard-cards.upcoming-events-card :upcoming-events="$upcomingEvents"/>
-            @endif
-        </div>
-
-        <div data-tour="dashboard.pending-requests" class="flex items-center justify-center font-semibold text-white h-70">
-            @if(isset($failedSections['pending']))
-                <x-ui.load-error class="h-full " />
-            @else
-                <x-dashboard-cards.pending-requests-card :pending-requests="$pendingRequests"/>
-            @endif
-        </div>
-
-        <div class="flex items-center justify-center font-semibold text-white h-70">
-            @if(isset($failedSections['delivered']))
-                <x-ui.load-error class="h-full " />
-            @else
-                <x-dashboard-cards.checklist-items-card :delivered-items="$deliveredItems"/>
-            @endif
-        </div>
-
-        <div class="flex items-center justify-center font-semibold text-white h-70">
-            @if(isset($failedSections['badges']))
-                <x-ui.load-error class="h-full " />
-            @else
-                <x-dashboard-cards.my-badges-card :my-badges="$myBadges"/>
-            @endif
+                <div class="overflow-y-auto p-3">
+                    <template x-if="gallery">
+                        <div class="grid gap-4">
+                            @foreach (['widget' => 'cards', 'app' => 'shortcuts'] as $kind => $heading)
+                                <section x-show="addable(@js($kind)).length > 0" aria-labelledby="hc-gallery-{{ $kind }}">
+                                    <h3 id="hc-gallery-{{ $kind }}" class="px-2 pb-1 text-th font-bold text-ink-2">{{ __('dashboard.home.'.$heading) }}</h3>
+                                    <div class="grid gap-1">
+                                        @foreach ($layout as $item)
+                                            @continue(isset($absentKeys[$item['key']]) || $tiles->isApp($item['key']) !== ($kind === 'app'))
+                                            <button type="button" class="hc-galitem" x-show="hidden(@js($item['key']))" x-on:click="add(@js($item['key']))">
+                                                <span class="hc-appicon"><x-dashboard.tile-icon :name="$tiles->icon($item['key'], $user)" /></span>
+                                                <span class="min-w-0 flex-1 font-bold">{{ $tiles->label($item['key'], $user) }}</span>
+                                                <x-ic name="plus" class="text-ink-2" />
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </section>
+                            @endforeach
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </div>
-
-
-
-
 </div>

@@ -111,7 +111,7 @@ class JobLevelExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FFC2151C'],
+                    'startColor' => ['argb' => 'FFBE1F24'],
                 ],
             ],
         ];

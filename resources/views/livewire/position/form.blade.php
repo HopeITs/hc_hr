@@ -36,7 +36,7 @@
             <div class="md:col-span-1">
                 <x-forms.input-label for="city" required>{{trans_choice('general.city',1)}}</x-forms.input-label>
                 <x-forms.select2-input wire:model.live="form.city_id" id="city">
-                    <option value="" class="text-secondary-light" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
+                    <option value="" class="text-ink-3" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
                     @foreach($cities as $city)
                         <option value="{{$city->id}}">{{$city->name}}</option>
                     @endforeach
@@ -46,7 +46,7 @@
             <div class="md:col-span-1">
                 <x-forms.input-label for="program" required>{{trans_choice('general.program',1)}}</x-forms.input-label>
                 <x-forms.select2-input wire:model="form.program_id" id="program">
-                    <option class="text-secondary-light" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
+                    <option class="text-ink-3" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
                     @foreach($programs as $program)
                         <option value="{{$program->id}}">{{$program->name}}</option>
                     @endforeach
@@ -56,7 +56,7 @@
             <div class="md:col-span-1">
                 <x-forms.input-label for="department" required>{{trans_choice('general.department',1)}}</x-forms.input-label>
                 <x-forms.select2-input wire:model="form.department_id" id="department">
-                    <option class="text-secondary-light" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
+                    <option class="text-ink-3" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
                     @foreach($departments as $department)
                         <option value="{{$department->id}}">{{$department->name}}</option>
                     @endforeach
@@ -66,7 +66,7 @@
             <div class="md:col-span-1">
                 <x-forms.input-label for="job-level" required>{{trans_choice('general.job-level',1)}}</x-forms.input-label>
                 <x-forms.select2-input wire:model="form.job_level_id" id="job-level">
-                    <option class="text-secondary-light" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
+                    <option class="text-ink-3" @disabled($form->position !== null) @selected($form->position === null)>Select Any..</option>
                     @foreach($jobLevels as $level)
                         <option value="{{$level->id}}">{{$level->name}}</option>
                     @endforeach
@@ -119,8 +119,8 @@
         </div>
 
         <div class="flex justify-end gap-2">
-            <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
-            <x-primary-button :href="route('positions.index')" class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+            <x-button type="submit">@lang('general.save')</x-button>
+            <x-button variant="outline" :href="route('positions.index')">@lang('general.cancel')</x-button>
         </div>
     </x-forms.form-body>
 

@@ -70,14 +70,13 @@
         </div>
 
         <div class="md:col-span-full flex justify-end gap-2">
-            <x-primary-button type="submit" class="!w-auto">
+            <x-button type="submit">
                 @lang('general.save')
-            </x-primary-button>
+            </x-button>
 
-            <x-primary-button type="button" class="!w-auto !bg-neutral-200 !text-black hover:!bg-neutral-300"
-                              x-on:click="Livewire.navigate(@js(route('centers.index')))">
+            <x-button variant="outline" :href="route('centers.index')">
                 @lang('general.cancel')
-            </x-primary-button>
+            </x-button>
         </div>
     </form>
 </div>

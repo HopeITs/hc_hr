@@ -14,7 +14,7 @@
         default => $start->format('d-m-Y').' – '.$end->format('d-m-Y'),
     };
 @endphp
-<span class="block break-words text-small text-neutral-600">
+<span class="block break-words text-small text-ink-2">
     <bdi>{{ $item->leaveBalance?->leaveType?->{transColumn('name')} ?? __('general.na') }}</bdi>
     &middot; <bdi dir="ltr">{{ $dates }}</bdi>
     &middot; <bdi>{{ $item->duration }}</bdi>

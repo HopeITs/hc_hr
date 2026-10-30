@@ -95,8 +95,7 @@ use App\Enums\LeaveRequestStatus;
                 <x-primary-button type="button" wire:click="confirmSave"
                                   class="!w-auto">@lang('general.save')</x-primary-button>
                 {{-- Closes through the guard, like Escape and the header close: no link, no submit. --}}
-                <x-primary-button type="button" :show-spinner="false" x-on:click="close()"
-                                  class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+                <x-button variant="quiet" :loading="false" x-on:click="close()">@lang('general.cancel')</x-button>
             </x-modal.actions>
         </form>
     </x-modal.dialog>

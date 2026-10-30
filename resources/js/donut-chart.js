@@ -1,7 +1,7 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5percent from "@amcharts/amcharts5/percent";
-import { brandColors, brandPalette } from "./charts/brand-colors.js";
 import { applyBrandInterfaceColors } from "./charts/amcharts-brand.js";
+import { brandColors, brandPalette } from "./charts/brand-colors.js";
 
 function initEmployeesByPayType() {
     const host = document.getElementById("salaryTypePieChart");
@@ -13,9 +13,6 @@ function initEmployeesByPayType() {
 
     const seriesData = JSON.parse(host.dataset.series || "[]");
     const percentValue = parseInt(host.dataset.percentage || "0", 10);
-
-    const brand = brandColors();
-    const palette = brandPalette();
 
     const root = am5.Root.new("salaryTypePieChart");
     applyBrandInterfaceColors(root);
@@ -34,9 +31,13 @@ function initEmployeesByPayType() {
         })
     );
 
+    // Slice colours: the brand palette in series order (the legend in
+    // salary-per-employee-statistics.blade.php uses the same order), re-read on
+    // every draw, so a light <-> dark redraw (charts/lazy-charts.js) follows.
+    const palette = brandPalette();
     series.set("colors", am5.ColorSet.new(root, {
-        colors: seriesData.map((s, index) => am5.color(s.color || palette[index % palette.length])),
-        reuse: true
+        colors: seriesData.map((s, i) => am5.color(palette[i % palette.length])),
+        reuse: false
     }));
 
     series.slices.template.setAll({
@@ -61,7 +62,7 @@ function initEmployeesByPayType() {
             text: percentValue + "%",
             fontSize: 20,
             fontWeight: "600",
-            fill: am5.color(brand.secondaryDark),
+            fill: am5.color(brandColors().ink),
             centerX: am5.p50,
             centerY: am5.p50,
             textAlign: "center"

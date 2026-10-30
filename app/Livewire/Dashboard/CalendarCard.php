@@ -2,77 +2,128 @@
 
 namespace App\Livewire\Dashboard;
 
-use App\Services\LeaveRequestPricing;
+use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
+use App\Services\Dashboard\CalendarFeed;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Livewire\Component;
+use Throwable;
 
+/**
+ * The calendar tile: a month of the viewer's HR events (CalendarFeed, which
+ * gates each type), a dialog per day, and from 6×4 up a "Next 7 days" list
+ * and a legend (container queries in dashboard.css, "calendar tile").
+ *
+ * Only the month is state, and it is client input: render() reads it back
+ * through shown(), so a forged value can only show this month.
+ */
 class CalendarCard extends Component
 {
-    public Carbon $current;
+    use HandlesLoadFailure;
+    use IsDashboardTile;
 
-    /** @var array<string, true> Holiday dates on the viewer's own calendar, keyed Y-m-d. */
-    private array $holidayDates = [];
+    /** The month shown, Y-m. */
+    public string $month = '';
 
-    public function mount()
+    public function mount(): void
     {
-        $this->current = Carbon::now();
+        $this->month = CarbonImmutable::today()->format('Y-m');
     }
 
-    public function next()
+    public function next(): void
     {
-        $this->current = $this->current->clone()->addMonth();
+        $this->month = $this->shown()->addMonthNoOverflow()->format('Y-m');
     }
 
-    public function prev()
+    public function prev(): void
     {
-        $this->current = $this->current->clone()->subMonth();
+        $this->month = $this->shown()->subMonthNoOverflow()->format('Y-m');
+    }
+
+    /** Straight to a month picked from the month picker. */
+    public function jumpTo(int $year, int $month): void
+    {
+        if ($year >= 1900 && $year <= 2100 && $month >= 1 && $month <= 12) {
+            $this->month = sprintf('%04d-%02d', $year, $month);
+        }
+    }
+
+    public function goToday(): void
+    {
+        $this->month = CarbonImmutable::today()->format('Y-m');
     }
 
     public function render()
     {
-        $this->holidayDates = $this->loadHolidayDates();
+        $user = auth()->user();
+        $feed = app(CalendarFeed::class);
+        $month = $this->shown();
+        $today = CarbonImmutable::today();
+        $weekEnd = $today->addDays(6);
+        [$from, $to] = CalendarFeed::gridOf($month);
 
-        $startOfMonth = $this->current->clone()->startOfMonth();
-        $startWeekday = $startOfMonth->dayOfWeekIso;
-        $daysInMonth = $this->current->daysInMonth;
+        [$days, $upcoming, $types] = $this->guardedLoad(function () use ($feed, $user, $month, $today, $weekEnd, $from, $to) {
+            $days = $feed->forMonth($user, $month);
+            // The grid usually holds the next seven days already; read them apart only when it does not.
+            $source = $today->gte($from) && $weekEnd->lte($to) ? $days : $feed->forRange($user, $today, $weekEnd);
+            $upcoming = array_filter($source, fn (string $date) => $date >= $today->toDateString() && $date <= $weekEnd->toDateString(), ARRAY_FILTER_USE_KEY);
 
-        $totalCells = 42;
-        $prevDays = $startWeekday - 1;
+            return [$days, $upcoming, $feed->typesFor($user)];
+        }, [[], [], []]);
 
-        $calendar = collect();
+        $locale = app()->getLocale();
+        $cells = [];
+        $labels = [];
 
-        $prevMonth = $this->current->clone()->subMonth();
-        $prevMonthDays = $prevMonth->daysInMonth;
+        for ($day = $from; $day->lte($to); $day = $day->addDay()) {
+            $date = $day->toDateString();
+            $events = $days[$date] ?? [];
+            $long = $day->locale($locale)->translatedFormat('l j F Y');
+            $labels[$date] = $long;
 
-        for ($i = $prevDays; $i > 0; $i--) {
-            $date = $prevMonth->clone()->day($prevMonthDays - $i + 1);
-            $calendar->push($this->formatDay($date, false));
-        }
-
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            $date = $this->current->clone()->day($d);
-            $calendar->push($this->formatDay($date, true));
-        }
-
-        $remaining = $totalCells - $calendar->count();
-        $nextMonth = $this->current->clone()->addMonth();
-
-        for ($i = 1; $i <= $remaining; $i++) {
-            $date = $nextMonth->clone()->day($i);
-            $calendar->push($this->formatDay($date, false));
+            $cells[] = [
+                'date' => $date,
+                'day' => $day->day,
+                'inMonth' => $day->month === $month->month,
+                'isToday' => $day->isSameDay($today),
+                'markers' => array_values(array_unique(array_column($events, 'type'))),
+                'label' => trans_choice('dashboard_calendar.day-label', count($events), ['date' => $long])
+                    .($day->isSameDay($today) ? ' ('.__('dashboard_calendar.today-marker').')' : ''),
+            ];
         }
 
         return view('livewire.dashboard.calendar-card', [
-            'calendar' => $calendar,
+            'shown' => $month,
+            'isCurrentMonth' => $month->format('Y-m') === $today->format('Y-m'),
+            'today' => $today->toDateString(),
             'weekdays' => $this->weekdays(),
+            'cells' => $cells,
+            'days' => $days,
+            'labels' => $labels,
+            'upcoming' => $upcoming,
+            'types' => $types,
+            'canRequestLeave' => $feed->canRequestLeave($user),
+            'requestUrl' => route('leaves.index', ['new' => 1, 'date' => '__DATE__']),
         ]);
     }
 
+    /** The month in $month, or this month for anything else. */
+    private function shown(): CarbonImmutable
+    {
+        try {
+            return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->month) === 1
+                ? CarbonImmutable::createFromFormat('!Y-m', $this->month)
+                : CarbonImmutable::today()->startOfMonth();
+        } catch (Throwable) {
+            return CarbonImmutable::today()->startOfMonth();
+        }
+    }
+
     /**
-     * Column headers, Monday first to match the ISO offset used above.
-     * The abbreviation comes from the lang file (Carbon's Arabic minimal
-     * names mix one- and two-letter forms); the full name from Carbon.
+     * Column headers, Monday first to match CalendarFeed::gridOf(). The
+     * abbreviation comes from the lang file (Carbon's Arabic minimal names
+     * mix one- and two-letter forms); the full name from Carbon.
      *
      * @return list<array{short: string, name: string}>
      */
@@ -90,126 +141,5 @@ class CalendarCard extends Component
                 ];
             })
             ->all();
-    }
-
-    /**
-     * National, city and program holidays for the viewer's active contract
-     * across the six weeks the grid shows — the same rule leave pricing uses,
-     * so a day marked here is a day a leave request will skip.
-     *
-     * @return array<string, true>
-     */
-    private function loadHolidayDates(): array
-    {
-        $contract = auth()->user()?->profile?->latestActiveContract();
-
-        if (! $contract) {
-            return [];
-        }
-
-        $from = CarbonImmutable::parse($this->current->toDateString())->startOfMonth()->subDays(7);
-        $to = $from->addDays(55);
-
-        return app(LeaveRequestPricing::class)->holidayDates($contract, $from, $to);
-    }
-
-    private function formatDay(Carbon $date, bool $isCurrentMonth)
-    {
-        $holidays = $this->holidayDates;
-        $fakeEvents = config('samples.calendar.events', []);
-        $fakeSaints = config('samples.calendar.saints', []);
-
-        $iso = $date->toDateString();
-
-        $isHoliday = isset($holidays[$iso]);
-        $isSaint = array_key_exists($iso, $fakeSaints);
-        $hasEvent = array_key_exists($iso, $fakeEvents);
-        $isToday = $date->isToday();
-
-        $numberColor = $isCurrentMonth ? 'text-secondary-light' : 'text-secondary-soft';
-        $fontWeight = 'font-normal';
-        $underline = false;
-        $underlineColor = 'border-secondary-light';
-
-        $circleFill = null;
-        $circle = false;
-        $textColorOverride = null;
-
-        if ($isToday) {
-
-            $circleFill = 'calendar-today-fill';
-            $textColorOverride = 'text-white';
-
-            if ($isSaint && ! $isHoliday) {
-                $circleFill = 'bg-secondary-light';
-                $fontWeight = 'font-extrabold';
-            }
-
-            if ($isHoliday) {
-                $circleFill = 'bg-primary';
-                $fontWeight = 'font-extrabold';
-            }
-
-            if ($hasEvent) {
-                $underline = true;
-                $underlineColor = 'border-white';
-            }
-
-        } else {
-
-            if ($isHoliday) {
-                $numberColor = 'text-primary';
-                $fontWeight = 'font-extrabold';
-
-                if ($hasEvent) {
-                    $underline = true;
-                }
-            } elseif ($isSaint) {
-                $numberColor = 'text-secondary-dark';
-                $fontWeight = 'font-extrabold';
-
-                if ($hasEvent) {
-                    $underline = true;
-                }
-            } elseif ($hasEvent) {
-                $underline = true;
-            }
-        }
-
-        $tooltip = [];
-
-        if ($isHoliday) {
-            $tooltip[] = __('holidays.title');
-        }
-
-        if ($isSaint) {
-            foreach ($fakeSaints[$iso] as $s) {
-                $tooltip[] = $s;
-            }
-        }
-
-        if ($hasEvent) {
-            $events = is_array($fakeEvents[$iso]) ? $fakeEvents[$iso] : [$fakeEvents[$iso]];
-            foreach ($events as $e) {
-                $tooltip[] = $e;
-            }
-        }
-
-        return [
-            'date' => $date,
-            'day' => $date->day,
-            'isToday' => $isToday,
-
-            'numberColor' => $textColorOverride ?? $numberColor,
-            'fontWeight' => $fontWeight,
-
-            'circle' => false,
-            'circleFill' => $circleFill,
-
-            'underline' => $underline,
-            'underlineColor' => $underlineColor,
-
-            'tooltip' => $tooltip,
-        ];
     }
 }

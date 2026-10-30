@@ -8,9 +8,8 @@
 <select
     {{ $disabled ? 'disabled' : '' }}
     {!! $attributes->merge([
-        'class' => 'border-neutral-300 focus:border-primary focus:ring-secondary-light rounded-control shadow-e1 w-full ' .
-                    ($invalid ? 'border-primary focus:border-primary focus:ring-primary' : '')
-    ]) !!}
+        'class' => 'hc-field',
+    ] + ($invalid ? ['aria-invalid' => 'true'] : [])) !!}
 >
     @if ($placeholder)
         <option value="" disabled selected>{{ $placeholder }}</option>

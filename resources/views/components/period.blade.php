@@ -17,11 +17,11 @@
 
 <div class="grid grid-rows-2 gap-1 leading-5 text-center" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}">
     <div class="inline-flex items-center justify-center gap-2">
-        <span class="text-caption text-secondary-medium">@lang('general.from')</span>
+        <span class="text-caption text-ink-2">@lang('general.from')</span>
         <span class="font-medium tabular-nums whitespace-nowrap">{{ $s ?? '—' }}</span>
     </div>
     <div class="inline-flex items-center justify-center gap-2">
-        <span class="text-caption text-secondary-medium">@lang('general.to')</span>
+        <span class="text-caption text-ink-2">@lang('general.to')</span>
         <span class="font-medium tabular-nums whitespace-nowrap">
             {{ $e ?? ($s ? $now : '—') }}
         </span>

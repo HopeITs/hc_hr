@@ -1,28 +1,28 @@
 <div
-    class="relative w-full  h-[340px] bg-[var(--color-neutral-50)] rounded-surface shadow-e2 ring-1 ring-primary overflow-hidden">
+    class="relative w-full  h-[340px] bg-soft rounded-surface shadow-e2 ring-1 ring-line-soft overflow-hidden">
 
     <div class="flex items-center justify-between px-4 pt-4 pb-3">
         <div class="flex items-center gap-2">
             <div
-                class="flex items-center justify-center h-8 w-8 rounded-surface bg-[var(--color-primary)] text-white shadow-e1">
+                class="flex items-center justify-center h-8 w-8 rounded-surface bg-surface text-ink shadow-e1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                      stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                           d="M8 7V3m8 4V3m-9 8h10m-11 4h12m-13 4h14M3 9h18v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                 </svg>
             </div>
-            <h2 class="text-h4 font-extrabold text-[var(--color-primary)] tracking-tight">
+            <h2 class="text-h4 font-extrabold text-ink tracking-tight">
                 Leave Requests
             </h2>
         </div>
 
         <span
-            class="text-small font-semibold bg-[var(--color-secondary-soft)] text-[var(--color-secondary-dark)] px-2 py-1 rounded-full shadow-e1">
+            class="text-small font-semibold bg-surface text-ink px-2 py-1 rounded-full shadow-e1">
       6 Pending
     </span>
     </div>
 
-    <hr class="border-primary mx-4">
+    <hr class="border-line-soft mx-4">
 
     <div
         class="relative p-4 space-y-2 overflow-y-auto scroll-smooth max-h-[270px]
@@ -30,28 +30,28 @@
            hover:scrollbar-thumb-[var(--color-secondary-medium)]">
 
         <div
-            class="group flex items-center justify-between p-3 bg-white rounded-surface border border-[var(--color-neutral-200)]
-             hover:border-[var(--color-secondary-medium)] hover:shadow-e2 transition-all duration-200">
+            class="group flex items-center justify-between p-3 bg-card rounded-surface border border-line-soft
+             hover:border-ink-2 hover:shadow-e2 transition-all duration-200">
 
             <div class="flex items-center gap-3">
                 <img
                     src="https://randomuser.me/api/portraits/men/32.jpg"
                     alt="Employee"
-                    class="h-10 w-10 rounded-full object-cover ring-2 ring-[var(--color-secondary-light)] group-hover:ring-[var(--color-secondary-medium)] transition">
+                    class="h-10 w-10 rounded-full object-cover ring-2 ring-line group-hover:ring-ink-2 transition">
                 <div class="min-w-0">
-                    <p class="text-body font-semibold text-[var(--color-neutral-800)] leading-tight truncate">
+                    <p class="text-body font-semibold text-ink leading-tight truncate">
                         Youssef kharbout
                     </p>
-                    <p class="text-small text-[var(--color-neutral-500)] truncate">
-                        Annual Leave · <span class="text-[var(--color-primary)] font-medium">Pending</span>
+                    <p class="text-small text-ink-3 truncate">
+                        Annual Leave · <span class="text-primary font-medium">Pending</span>
                     </p>
-                    <p class="text-caption text-[var(--color-neutral-400)] mt-1">Dec 1 – Dec 5</p>
+                    <p class="text-caption text-ink-3 mt-1">Dec 1 – Dec 5</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
                 <button title="View Details"
-                        class="p-2 rounded-surface hover:bg-[var(--color-secondary-soft)] hover:text-[var(--color-primary)] transition">
+                        class="p-2 rounded-surface hover:bg-surface hover:text-primary transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -60,14 +60,14 @@
                     </svg>
                 </button>
                 <button title="Approve"
-                        class="p-2 rounded-surface hover:bg-neutral-50 hover:text-neutral-600 transition">
+                        class="p-2 rounded-surface hover:bg-hover hover:text-ink transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
                 </button>
                 <button title="Reject"
-                        class="p-2 rounded-surface hover:bg-neutral-50 hover:text-primary transition">
+                        class="p-2 rounded-surface hover:bg-hover hover:text-ink transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -77,26 +77,26 @@
         </div>
 
         <div
-            class="group flex items-center justify-between p-3 bg-white rounded-surface border border-[var(--color-neutral-200)]
-             hover:border-[var(--color-secondary-medium)] hover:shadow-e2 transition-all duration-200">
+            class="group flex items-center justify-between p-3 bg-card rounded-surface border border-line-soft
+             hover:border-ink-2 hover:shadow-e2 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <img
                     src="https://randomuser.me/api/portraits/women/46.jpg"
                     alt="Employee"
-                    class="h-10 w-10 rounded-full object-cover ring-2 ring-[var(--color-secondary-light)] group-hover:ring-[var(--color-secondary-medium)] transition">
+                    class="h-10 w-10 rounded-full object-cover ring-2 ring-line group-hover:ring-ink-2 transition">
                 <div class="min-w-0">
-                    <p class="text-body font-semibold text-[var(--color-neutral-800)] leading-tight truncate">
+                    <p class="text-body font-semibold text-ink leading-tight truncate">
                         Rita Isbejerian
                     </p>
-                    <p class="text-small text-[var(--color-neutral-500)] truncate">
-                        Sick Leave · <span class="text-[var(--color-primary)] font-medium">Pending</span>
+                    <p class="text-small text-ink-3 truncate">
+                        Sick Leave · <span class="text-primary font-medium">Pending</span>
                     </p>
-                    <p class="text-caption text-[var(--color-neutral-400)] mt-1">Feb 10 – Feb 12</p>
+                    <p class="text-caption text-ink-3 mt-1">Feb 10 – Feb 12</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <button title="View Details"
-                        class="p-2 rounded-surface hover:bg-[var(--color-secondary-soft)] hover:text-[var(--color-primary)] transition">
+                        class="p-2 rounded-surface hover:bg-surface hover:text-primary transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -105,14 +105,14 @@
                     </svg>
                 </button>
                 <button title="Approve"
-                        class="p-2 rounded-surface hover:bg-neutral-50 hover:text-neutral-600 transition">
+                        class="p-2 rounded-surface hover:bg-hover hover:text-ink transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
                 </button>
                 <button title="Reject"
-                        class="p-2 rounded-surface hover:bg-neutral-50 hover:text-primary transition">
+                        class="p-2 rounded-surface hover:bg-hover hover:text-ink transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24"
                          stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BadgeType;
-use App\Livewire\Dashboard\Index;
+use App\Livewire\Dashboard\BadgesCard;
 use App\Models\Badge;
 use App\Models\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,7 +39,7 @@ class DashboardBadgesCardTest extends TestCase
             $ownBadge = $this->badgeFor($self);
 
             Livewire::actingAs($this->makeUser($aleppo, $role, [], $self))
-                ->test(Index::class)
+                ->test(BadgesCard::class)
                 ->assertSee(__('general.badges-warnings'))
                 ->assertViewHas('myBadges', fn ($badges) => $badges->pluck('id')->all() === [$ownBadge->id])
                 ->assertViewHas('myBadges', fn ($badges) => ! $badges->contains('id', $colleagueBadge->id));
@@ -51,7 +51,7 @@ class DashboardBadgesCardTest extends TestCase
         $aleppo = $this->makeCity('ALP', '001');
 
         Livewire::actingAs($this->makeUser($aleppo, 'employee'))
-            ->test(Index::class)
+            ->test(BadgesCard::class)
             ->assertSee(__('general.badges-warnings'))
             ->assertViewHas('myBadges', fn ($badges) => $badges->isEmpty());
     }

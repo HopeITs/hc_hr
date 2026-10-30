@@ -59,6 +59,11 @@ return [
     'range' => ':from – :to',
     'legend_label' => 'دليل الرموز',
     'add_holiday' => 'إضافة عطلة',
+    'birthday' => 'عيد ميلاد',
+    'birthday_of' => 'عيد ميلاد :name',
+    'your_birthday' => 'عيد ميلادك',
+    'request_leave' => 'طلب إجازة',
+    'request_leave_on' => 'طلب إجازة يوم :date',
     'add_holiday_on' => 'إضافة عطلة يوم :date',
     'legend' => 'الإجازة المقبولة بإطار متصل وعلامة صح، والتي قيد المراجعة بإطار متقطع وساعة. إجازة جزء من اليوم معلَّمة بنصف دائرة.',
 

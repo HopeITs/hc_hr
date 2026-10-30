@@ -1,38 +1,21 @@
 /* ==================================================================
-   HC-HR — Design tokens
+   HC-HR — Design tokens (imported by app.css, right after Tailwind)
    ------------------------------------------------------------------
-   Status: NOT YET ACTIVE. This file is not imported anywhere, so it
-   changes nothing on screen. To activate it later, add this line to
-   app.css directly after the `@import 'tailwindcss';` line:
+   Spacing, type scale, shape and elevation. Colour lives in app.css,
+   next to its dark-mode values; the role tokens at the end of this
+   file only point at it.
 
-       @import './tokens.css';
-
-   Built from the audit of the current codebase (2026-07-23):
-   23 spacing steps, 22 font sizes, 9 radii, 9 shadow levels and three
-   parallel grey families are collapsed here into one system.
-
-   No new colours are introduced. Every colour below is a value that
-   already exists in app.css.
+   The identity these follow is the Hope Center one as implemented in
+   media-request (public/css/app.css there): Somar Sans, 16px body,
+   8px controls / 12px containers, ink-tinted shadows.
    ================================================================== */
 
 @theme {
     /* ==============================================================
        1. SPACING — 8px rhythm, 4px half-step
        --------------------------------------------------------------
-       Replaces 23 ad-hoc steps. Tailwind's numeric spacing utilities
-       (p-2, gap-4 …) keep working; these are the named steps the
-       design system commits to.
-
-       Migration from what is in the code today:
-         2px, 4px      -> --space-1   (4px)
-         6px, 8px,10px -> --space-2   (8px)
-         12px, 14px    -> --space-3   (12px)
-         16px, 20px    -> --space-4   (16px)
-         24px, 28px    -> --space-5   (24px)
-         32px, 36px    -> --space-6   (32px)
-         40px, 48px    -> --space-7   (48px)
-         56px, 64px    -> --space-8   (64px)
-         76px and up   -> --space-9   (96px)
+       Tailwind's numeric spacing utilities (p-2, gap-4 …) keep
+       working; these are the named steps the design system commits to.
        ============================================================== */
 
     --space-1: 0.25rem; /*  4px — icon/label gaps, tight inline pairs   */
@@ -46,24 +29,17 @@
     --space-9: 6rem; /* 96px — rare, large empty-state breathing     */
 
     /* ==============================================================
-       2. TYPE SCALE — ratio 1.25 (major third), base = 14px
+       2. TYPE SCALE — the identity's sizes
        --------------------------------------------------------------
-       14px is the real base of this product: text-sm is used 302
-       times, more than every other size combined. Sizes above the
-       base follow 1.25 exactly (14 / 17.5 / 21.9 / 27.3 / 34.2,
-       rounded to the whole pixel).
-
-       Below the base a strict 1.25 would give 11.2px and 8.96px —
-       9px is unreadable in a data table, so the two small steps use
-       a 1.17 ratio instead (12px, 11px). Both already exist in the
-       code (text-xs = 150 uses, text-[11px] = 31 uses).
-
+       body 16px / 1.55 (Arabic 17px / 1.7, set on html[lang="ar"] in
+       app.css), table text 15px, table headers 13px, hints 14px,
+       counters 12px. h1 is fluid, 26–34px, weight 800.
        font-family is untouched — SomarSans / Lato stay as they are.
        ============================================================== */
 
-    --text-h1: 2.125rem; /* 34px */
-    --text-h1--line-height: 1.1;
-    --text-h1--letter-spacing: -0.02em;
+    --text-h1: clamp(1.625rem, 4vw, 2.125rem); /* 26–34px */
+    --text-h1--line-height: 1.2;
+    --text-h1--letter-spacing: -0.01em;
 
     --text-h2: 1.6875rem; /* 27px */
     --text-h2--line-height: 1.15;
@@ -73,111 +49,102 @@
     --text-h3--line-height: 1.2;
     --text-h3--letter-spacing: -0.01em;
 
-    --text-h4: 1.125rem; /* 18px */
+    --text-h4: 1.125rem; /* 18px — card titles (weight 800) */
     --text-h4--line-height: 1.3;
     --text-h4--letter-spacing: -0.005em;
 
-    --text-body: 0.875rem; /* 14px — default UI and table text */
+    --text-body: 1rem; /* 16px — default UI text */
     --text-body--line-height: 1.55;
     --text-body--letter-spacing: 0em;
 
-    --text-small: 0.75rem; /* 12px — helper text, secondary metadata */
+    --text-table: 0.9375rem; /* 15px — table cells */
+    --text-table--line-height: 1.5;
+
+    --text-th: 0.8125rem; /* 13px — table headers (bold, ink-2) */
+    --text-th--line-height: 1.4;
+
+    --text-small: 0.875rem; /* 14px — hints, helper text, secondary metadata */
     --text-small--line-height: 1.5;
     --text-small--letter-spacing: 0em;
 
-    --text-caption: 0.6875rem; /* 11px — group labels, badges, counters */
+    --text-hint: 0.875rem; /* 14px — alias of small, for new work */
+    --text-hint--line-height: 1.5;
+
+    --text-caption: 0.75rem; /* 12px — counters, badges; never smaller */
     --text-caption--line-height: 1.45;
     --text-caption--letter-spacing: 0.01em; /* small text opens up slightly */
 
-    /* Weights already in use — kept, minus the two extremes
-       (extrabold / black) which appear 11 times in total. */
     --font-weight-light: 300;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
+    --font-weight-extrabold: 800; /* h1, card titles */
 
     /* ==============================================================
-       3. SHAPE — 3 radii, 3 elevations, 1 border width
+       3. SHAPE — 3 radii, 3 elevations
        --------------------------------------------------------------
-       Replaces 9 radius sizes and 9 shadow levels.
        Radius is chosen by element type, not by taste:
-         sm -> things inside other things
-         md -> interactive controls
-         lg -> containers that hold controls
+         inset   -> things inside other things
+         control -> interactive controls (8px)
+         surface -> containers that hold controls (12px)
+         round   -> chips and avatars (999px)
+       Named by role so Tailwind's own --radius-sm/md/lg stay untouched.
        ============================================================== */
 
-    /* Named by role, not by size. Deliberately NOT called sm/md/lg:
-       Tailwind already owns --radius-sm/md/lg, so redefining those
-       would silently restyle 198 existing elements the moment this
-       file is imported. These names generate new utilities instead —
-       rounded-inset / rounded-control / rounded-surface — so nothing
-       changes until a component opts in. */
-    --radius-inset: 0.25rem; /*  4px — things inside things: badges, chips, checkboxes */
-    --radius-control: 0.5rem; /*  8px — interactive: buttons, inputs, selects, menu items */
-    --radius-surface: 0.75rem; /* 12px — containers: cards, tables, modals, panels */
-
-    /* Not a step in the scale — a shape. Avatars and circular icon
-       buttons only (96 uses today, all legitimately circular). */
+    --radius-inset: 0.25rem; /*  4px */
+    --radius-control: 0.5rem; /*  8px */
+    --radius-surface: 0.75rem; /* 12px */
     --radius-round: 9999px;
 
-    /* Elevation. Tinted with the brand's secondary-dark (#58595b)
-       instead of pure black, so shadows sit in the same colour family
-       as the rest of the UI. Light source is directly above. */
-    --shadow-e1: 0 1px 2px 0 rgb(88 89 91 / 0.06); /* resting: cards, table container */
-    --shadow-e2: 0 2px 8px -2px rgb(88 89 91 / 0.1); /* raised: dropdowns, popovers, sticky bars */
-    --shadow-e3: 0 8px 24px -8px rgb(88 89 91 / 0.16); /* overlay: modals, drawers, dialogs */
+    /* Elevation, tinted with the ink neutral (#414042) instead of black.
+       e1 = the identity's shadow-sm, e3 = its shadow. In dark mode the
+       tint turns black (--tw-shadow-color in app.css). */
+    --shadow-e1: 0 1px 3px 0 rgb(65 64 66 / 0.08); /* resting: cards, table container */
+    --shadow-e2: 0 2px 8px -2px rgb(65 64 66 / 0.1); /* raised: dropdowns, popovers, sticky bars */
+    --shadow-e3: 0 6px 24px 0 rgb(65 64 66 / 0.14); /* overlay: modals, drawers, dialogs */
 
-    /* One border width everywhere. The 2px focus ring is the single
-       deliberate exception, because it must survive over any surface. */
+    /* Borders: 1.5px on controls and chips, 1px on cards. The focus
+       outline is 2px ink with a 2px offset (never red). */
     --border-width: 1px;
+    --border-width-control: 1.5px;
     --focus-ring-width: 2px;
     --focus-ring-offset: 2px;
 
     /* ==============================================================
-       4. COLOUR — 60 / 30 / 10 by surface area
+       4. COLOUR ROLES — aliases of the identity tokens in app.css
        --------------------------------------------------------------
-       Every value below references a brand token from app.css. Nothing new.
-
-       The ratio governs SURFACES. Text colour is a separate ink
-       scale — ink is not part of the 60/30/10 budget, or every
-       readable interface would fail it.
+       Kept for views that already read them through var(); new work
+       uses the Tailwind utilities (bg-card, text-ink-2, border-line-soft …).
+       All of them follow dark mode, because what they point at does.
        ============================================================== */
 
-    /* --- 60% — the canvas ---------------------------------------- */
-    --surface-base: var(--color-app-surface); /* page background */
+    --surface-base: var(--color-soft); /* page background */
+    --surface-raised: var(--color-card); /* cards, tables, forms, modals */
+    --surface-chrome: var(--color-base); /* nav, toolbars */
+    --surface-sunken: var(--color-soft); /* wells, table head */
+    --surface-selected: var(--color-surface); /* selected / hover fill */
 
-    /* --- 30% — surfaces sitting on the canvas -------------------- */
-    --surface-raised: var(--color-white); /* cards, tables, forms, modals              */
-    --surface-chrome: var(--color-sidebar-surface); /* nav, toolbars */
-    --surface-sunken: var(--color-neutral-100); /* wells, table head */
-    --surface-selected: var(--color-selection); /* selected / hover fill */
-
-    /* --- 10% — accent, rationed ---------------------------------- */
-    /* Allowed uses ONLY: primary CTA, active navigation item, focus
-       ring, destructive confirmation, required-field marker.
-       Never as a page background, never as a decorative fill. */
+    /* Red is reserved for three jobs: the primary action, the current
+       stage / current page, and what waits on the viewer or is late. */
     --accent: var(--color-primary);
     --accent-hover: var(--color-primary-hover);
-    --accent-on: var(--color-white); /* text/icon on top of accent */
+    --accent-on: var(--color-on-brand);
 
-    /* --- Ink (outside the ratio) --------------------------------- */
-    --ink-strong: var(--color-secondary-dark); /* headings */
-    --ink-body: var(--color-secondary-dark); /* body, table text */
-    --ink-muted: var(--color-secondary-medium); /* labels */
-    --ink-subtle: var(--color-secondary-light); /* placeholders */
+    --ink-strong: var(--color-ink);
+    --ink-body: var(--color-ink);
+    --ink-muted: var(--color-ink-2);
+    --ink-subtle: var(--color-ink-3);
 
-    /* --- Lines --------------------------------------------------- */
-    --line-hairline: var(--color-selection); /* dividers, table rows, card edges          */
-    --line-control: var(--color-neutral-300); /* input borders */
+    --line-hairline: var(--color-line-soft); /* dividers, table rows, card edges */
+    --line-control: var(--color-line); /* input borders */
 }
 
 /* ==================================================================
    NOT DEFINED HERE — ON PURPOSE
    ------------------------------------------------------------------
-   Status colours (success / warning / info). The current palette has
-   no brand-owned status colours: the code borrows Tailwind defaults
-   (green-600 x15, emerald x8, blue-300 x17, yellow x10) with no
-   system behind them. Naming them would mean inventing colours,
-   which this task explicitly rules out. They need a decision first.
+   Status colours (success / warning / info). The identity has none:
+   a status is told apart by icon + words + fill shape, never by hue
+   (see DESIGN.md "Status"). palette-lock.css turns any stray green,
+   amber or blue utility into a neutral.
    ================================================================== */

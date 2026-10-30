@@ -49,6 +49,6 @@
     ></clock-timepicker>
 
     <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
-        <x-icons.clock class="size-4 text-secondary-light" />
+        <x-icons.clock class="size-4 text-ink-3" />
     </div>
 </div>

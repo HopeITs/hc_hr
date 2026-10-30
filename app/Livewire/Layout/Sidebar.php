@@ -4,6 +4,7 @@ namespace App\Livewire\Layout;
 
 use App\Models\Checklist;
 use App\Support\Navigation;
+use App\Support\NavigationMemory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -23,9 +24,30 @@ class Sidebar extends Component
 
     protected $listeners = ['sidebar.toggle' => 'toggle'];
 
+    /** Set on the page request only: a visit is recorded once, not on every update. */
+    protected bool $recordVisit = false;
+
     public function mount(): void
     {
         $this->currentRoute = request()->route()?->getName();
+        $this->recordVisit = true;
+    }
+
+    /**
+     * Star or unstar a menu page (favourites). Self-scoped: only the caller's
+     * own row, and only a page of the active role's menu may be starred.
+     */
+    public function toggleFavourite(string $id): void
+    {
+        $user = Auth::user();
+        NavigationMemory::toggleFavourite($user, $id, Navigation::shortcuts($user, Navigation::isDeliverResponsible($user)));
+    }
+
+    /** Reorder favourites, by drag or by keyboard: $position is the new 0-based place. */
+    public function moveFavourite(string $id, int $position): void
+    {
+        $user = Auth::user();
+        NavigationMemory::moveFavourite($user, $id, $position, Navigation::shortcuts($user, Navigation::isDeliverResponsible($user)));
     }
 
     public function toggle()
@@ -74,6 +96,23 @@ class Sidebar extends Component
         }
 
         $user = Auth::user();
+        $nav = Navigation::for($user, $isDeliverResponsible);
+        $shortcuts = Navigation::shortcutsFrom($nav);
+        $currentPage = Navigation::pageFor($nav, $this->currentRoute);
+
+        // Favourites and recents must not take the menu down with them.
+        try {
+            if ($this->recordVisit && $currentPage !== null && isset($shortcuts[$currentPage])) {
+                NavigationMemory::recordPage($user, $currentPage);
+            }
+
+            $favourites = array_map(fn (string $id) => ['id' => $id] + $shortcuts[$id], NavigationMemory::favourites($user, $shortcuts));
+        } catch (Throwable $e) {
+            report($e);
+            $favourites = [];
+        }
+
+        $this->recordVisit = false;
 
         return view('livewire.layout.sidebar', [
             'user' => $user,
@@ -84,7 +123,30 @@ class Sidebar extends Component
             'pendingDeliversCount' => $pendingDeliversCount,
             'pendingReturnsCount' => $pendingReturnsCount,
             // C1: the areas of C0, built from the active role's permissions.
-            'nav' => Navigation::for($user, $isDeliverResponsible),
+            'nav' => $nav,
+            // Pages that may carry a star: every leaf of the menu but the dashboard.
+            'favouritable' => $shortcuts,
+            'favourites' => $favourites,
+            'favouriteIds' => array_column($favourites, 'id'),
+            'maxFavourites' => NavigationMemory::MAX_FAVOURITES,
+            'currentPage' => $currentPage,
+            // The area holding the current page is always open.
+            'currentArea' => $this->areaOf($nav, $currentPage),
         ]);
+    }
+
+    private function areaOf(array $nav, ?string $pageId): ?string
+    {
+        foreach ($nav['areas'] as $area) {
+            foreach ($area['items'] as $item) {
+                foreach ($item['children'] ?? [$item] as $page) {
+                    if ($page['id'] === $pageId) {
+                        return $area['id'];
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

@@ -17,7 +17,7 @@
         @activerole('HR', 'super-admin')
         <div class="flex items-center gap-2">
             {{-- The file follows the columns the table shows (B4D-Q6); the hint says so. --}}
-            <span id="contracts-export-hint" class="hidden text-small text-neutral-600 sm:inline">{{ __('contracts.export-columns-shown') }}</span>
+            <span id="contracts-export-hint" class="hidden text-small text-ink-2 sm:inline">{{ __('contracts.export-columns-shown') }}</span>
             <x-excel-export-button data-tour="list.export" aria-describedby="contracts-export-hint" wire:click="$dispatchTo('contract.contracts-table', 'exportExcel')" />
             <x-primary-button data-tour="list.add" :href="route('contracts.create')">
                 @lang('general.add-new')

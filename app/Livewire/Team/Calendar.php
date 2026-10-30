@@ -4,6 +4,7 @@ namespace App\Livewire\Team;
 
 use App\Models\City;
 use App\Models\Holiday;
+use App\Services\Dashboard\CalendarFeed;
 use App\Services\HolidayProjects;
 use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
@@ -62,6 +63,20 @@ class Calendar extends Component
         $this->date = $next->toDateString();
     }
 
+    /**
+     * Straight to a month picked from the month picker, keeping the day of
+     * the month (clamped) so the week and day views stay on a similar date.
+     */
+    public function jumpTo(int $year, int $month): void
+    {
+        if ($year < 1900 || $year > 2100 || $month < 1 || $month > 12) {
+            return;
+        }
+
+        $first = CarbonImmutable::create($year, $month, 1);
+        $this->date = $first->setDay(min($this->anchor()->day, $first->daysInMonth))->toDateString();
+    }
+
     /** From a full month cell to that day's list. */
     public function openDay(string $date): void
     {
@@ -89,9 +104,11 @@ class Calendar extends Component
         [$from, $to] = $this->range($view);
 
         $failed = false;
+        $birthdays = [];
 
         try {
             $days = $coverage->coverage($user, $scope, $from, $to, ['status' => $status, 'city_id' => $cityId]);
+            $birthdays = $coverage->birthdays($user, $scope, $from, $to, $cityId);
         } catch (Throwable $e) {
             report($e);
             $days = [];
@@ -103,6 +120,10 @@ class Calendar extends Component
 
         return view('livewire.team.calendar', [
             'holidays' => $this->holidayLabels($user, $from, $to, $holidayProjects, $canManageHolidays),
+            'birthdays' => $birthdays,
+            // A day from today on opens the leave form on that date (the dashboard calendar's link).
+            'requestUrl' => app(CalendarFeed::class)->canRequestLeave($user) ? route('leaves.index', ['new' => 1, 'date' => '__DATE__']) : null,
+            'today' => CarbonImmutable::today()->toDateString(),
             'canManageHolidays' => $canManageHolidays,
             'days' => $days,
             'failed' => $failed,
@@ -133,6 +154,75 @@ class Calendar extends Component
         $start = $day->startOfDay()->subDays($day->dayOfWeek);
 
         return [$start, $start->addDays(6)];
+    }
+
+    /**
+     * The month grid as week rows, each absence laid out once per week as a
+     * bar across its days (Google Calendar style) instead of a chip per day.
+     * Bars take the first free lane, longer ones first; what does not fit in
+     * $lanes is counted per day as "+N more".
+     *
+     * @param  array<string, array<string, mixed>>  $days  TeamCoverage::coverage() output
+     * @return list<array{days: list<array<string, mixed>>, bars: list<array<string, mixed>>, lanes: int, hidden: array<int, int>}>
+     */
+    public static function monthWeeks(array $days, int $lanes = 3): array
+    {
+        $weeks = [];
+
+        foreach (array_chunk(array_values($days), 7) as $week) {
+            $dates = array_column($week, 'date');
+            $entries = [];
+
+            foreach ($week as $col => $day) {
+                foreach ($day['members'] as $entry) {
+                    $entries[$entry['key']] ??= ['entry' => $entry, 'start' => $col, 'end' => $col];
+                    $entries[$entry['key']]['end'] = $col;
+                }
+            }
+
+            uasort($entries, fn (array $a, array $b) => [$a['start'], $b['end'] - $b['start'], $a['entry']['name']]
+                <=> [$b['start'], $a['end'] - $a['start'], $b['entry']['name']]);
+
+            $laneEnds = [];
+            $bars = [];
+            $hidden = array_fill(0, count($week), 0);
+
+            foreach ($entries as $segment) {
+                $lane = 0;
+
+                while (isset($laneEnds[$lane]) && $laneEnds[$lane] >= $segment['start']) {
+                    $lane++;
+                }
+
+                $laneEnds[$lane] = $segment['end'];
+
+                if ($lane >= $lanes) {
+                    for ($col = $segment['start']; $col <= $segment['end']; $col++) {
+                        $hidden[$col]++;
+                    }
+
+                    continue;
+                }
+
+                $bars[] = [
+                    'entry' => $segment['entry'],
+                    'col' => $segment['start'] + 1,
+                    'span' => $segment['end'] - $segment['start'] + 1,
+                    'lane' => $lane,
+                    'continues_before' => $segment['entry']['from'] < $dates[$segment['start']],
+                    'continues_after' => $segment['entry']['to'] > $dates[$segment['end']],
+                ];
+            }
+
+            $weeks[] = [
+                'days' => $week,
+                'bars' => $bars,
+                'lanes' => min($lanes, count($laneEnds)),
+                'hidden' => $hidden,
+            ];
+        }
+
+        return $weeks;
     }
 
     /**

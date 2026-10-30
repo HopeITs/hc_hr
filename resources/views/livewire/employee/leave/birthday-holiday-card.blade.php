@@ -5,7 +5,7 @@
 
 <div>
     @if ($own->isNotEmpty() || $team->isNotEmpty())
-        <div class="mb-6 space-y-4 rounded-surface border border-neutral-200 bg-white p-4 shadow-e1">
+        <div class="mb-6 space-y-4 rounded-surface border border-line-soft bg-card p-4 shadow-e1">
             @if ($own->isNotEmpty())
                 <section>
                     <h2 class="mb-2 font-semibold">@lang('holidays.birthday.card-title')</h2>

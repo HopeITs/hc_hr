@@ -7,8 +7,8 @@
 
 @php
     $baseClass = match($theme) {
-        'settings' => 'block text-body mb-3 font-medium text-secondary-medium',
-        default    => 'block mb-1 text-body font-medium text-secondary-medium',
+        'settings' => 'block text-body mb-3 font-bold text-ink',
+        default    => 'block mb-1.5 text-body font-bold text-ink',
     };
 @endphp
 

@@ -73,8 +73,8 @@
         </div>
 
         <div class="flex justify-end space-x-2 pt-4">
-            <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
-            <x-primary-button :href="route('programs.index')" class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+            <x-button type="submit">@lang('general.save')</x-button>
+            <x-button variant="outline" :href="route('programs.index')">@lang('general.cancel')</x-button>
 
         </div>
     </x-forms.form-body>

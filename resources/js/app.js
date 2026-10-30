@@ -54,6 +54,9 @@ import './product-tour.js';
 // D3: page-context help panel; topics come from App\Support\HelpTopics.
 import './help-panel.js';
 
+// Prompt 10: Ctrl+K commands, "g then a letter" and the "?" list of shortcuts.
+import './commands.js';
+
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
 import 'flowbite';
@@ -100,6 +103,7 @@ Chart.register(
     Title,
 );
 
+// Identity colours for everything a chart leaves unset; follows light / dark.
 applyChartJsBrandDefaults(Chart);
 
 window.Chart = Chart;
@@ -109,6 +113,9 @@ import './feedback.js';
 
 // Asks before leaving a page with unsaved changes (B2).
 import './unsaved.js';
+
+// Typed examples in empty fields' placeholders (data-typewriter).
+import './typewriter.js';
 
 import './password-toggle.js';
 import './password-strength.js';

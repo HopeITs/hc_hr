@@ -5,12 +5,12 @@
 --}}
 @php
     $proposalTitle = $proposing !== '' ? __('employees.profile.change.title', ['section' => __('employees.profile.change.sections.'.$proposing)]) : '';
-    $select = 'w-full min-h-11 rounded-control border border-neutral-300 bg-white px-3 text-body focus:border-primary focus:outline-none focus:ring-2 focus:ring-secondary-light';
+    $select = 'w-full min-h-11 rounded-control border border-line bg-card px-3 text-body    ';
 @endphp
 <x-modal.dialog id="proposalModal" :title="$proposalTitle" wire:model.defer="proposalModal" close-action="requestClose" wire:ignore.self>
     @if ($proposalModal)
         <form wire:submit.prevent="submitProposal" class="space-y-4" data-testid="proposal-form">
-            <p class="text-small text-secondary-medium">@lang('employees.profile.change.help')</p>
+            <p class="text-small text-ink-2">@lang('employees.profile.change.help')</p>
 
             <div class="grid gap-4 sm:grid-cols-2">
                 @switch($proposing)
@@ -164,7 +164,7 @@
                         </x-forms.input-label>
                         <input id="p_file" type="file" wire:model="proposalFile"
                                accept="{{ $proposing === 'photo' ? 'image/jpeg,image/png,image/webp' : 'image/jpeg,image/png,application/pdf' }}"
-                               class="block w-full text-small file:me-3 file:min-h-11 file:rounded-control file:border-0 file:bg-neutral-100 file:px-4 file:font-semibold">
+                               class="block w-full text-small file:me-3 file:min-h-11 file:rounded-control file:border-0 file:bg-surface file:px-4 file:font-semibold">
                         <x-forms.input-error field="proposalFile" input-id="p_file" />
                     </div>
                 @endif
@@ -172,7 +172,7 @@
 
             <x-modal.actions>
                 <x-primary-button type="submit" wire:target="submitProposal,proposalFile" class="!w-auto">@lang('employees.profile.change.submit')</x-primary-button>
-                <x-primary-button type="button" :show-spinner="false" x-on:click="close()" class="!bg-secondary-light !w-auto">@lang('general.cancel')</x-primary-button>
+                <x-button variant="quiet" :loading="false" x-on:click="close()">@lang('general.cancel')</x-button>
             </x-modal.actions>
         </form>
     @endif

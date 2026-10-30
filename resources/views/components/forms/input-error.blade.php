@@ -8,8 +8,9 @@
     use Illuminate\Support\Str;
 
     $baseClass = match($theme) {
-        'settings' => 'text-body text-primary dark:text-primary mt-1',
-        default    => 'text-primary text-body mt-1',
+        // Identity error line: brand red, 14px bold, alert icon (.hc-err, components.css).
+        'settings' => 'hc-err mt-1',
+        default    => 'hc-err mt-1',
     };
 
     /**

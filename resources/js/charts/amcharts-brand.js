@@ -1,46 +1,51 @@
 import * as am5 from "@amcharts/amcharts5";
 import { brandColors, brandPalette } from "./brand-colors.js";
 
-/**
- * amCharts falls back to its interface colours (blue and green buttons, black
- * grid, text and tooltip text) for anything a chart does not colour itself.
- * Call right after Root.new(), before any chart is created on that root.
- */
-export function applyBrandInterfaceColors(root) {
-    const colors = brandColors();
+function apply(root, colors) {
     const primary = am5.color(colors.primary);
-    const dark = am5.color(colors.secondaryDark);
-    const medium = am5.color(colors.secondaryMedium);
-    const light = am5.color(colors.secondaryLight);
-    const soft = am5.color(colors.secondarySoft);
-    const white = am5.color("#ffffff");
+    const ink = am5.color(colors.ink);
+    const ink2 = am5.color(colors.ink2);
+    const ink3 = am5.color(colors.ink3);
+    const line = am5.color(colors.lineSoft);
+    const card = am5.color(colors.card);
+    const onBrand = am5.color(colors.onBrand);
 
     root.interfaceColors.setAll({
-        stroke: soft,
-        fill: soft,
+        stroke: line,
+        fill: line,
         primaryButton: primary,
         primaryButtonHover: primary,
         primaryButtonDown: primary,
         primaryButtonActive: primary,
-        primaryButtonDisabled: soft,
-        primaryButtonTextDisabled: white,
-        primaryButtonText: white,
-        primaryButtonStroke: white,
-        secondaryButton: soft,
-        secondaryButtonHover: light,
-        secondaryButtonDown: medium,
-        secondaryButtonActive: soft,
-        secondaryButtonText: dark,
-        secondaryButtonStroke: white,
-        grid: dark,
-        background: white,
-        alternativeBackground: dark,
-        text: dark,
-        alternativeText: white,
-        disabled: light,
-        positive: dark,
+        primaryButtonDisabled: line,
+        primaryButtonTextDisabled: ink3,
+        primaryButtonText: onBrand,
+        primaryButtonStroke: card,
+        secondaryButton: line,
+        secondaryButtonHover: ink3,
+        secondaryButtonDown: ink2,
+        secondaryButtonActive: line,
+        secondaryButtonText: ink,
+        secondaryButtonStroke: card,
+        grid: ink,
+        background: card,
+        alternativeBackground: ink,
+        text: ink,
+        alternativeText: card,
+        disabled: ink3,
+        positive: ink,
         negative: primary,
     });
+}
+
+/**
+ * amCharts falls back to its interface colours (blue and green buttons, black
+ * grid, text and tooltip text) for anything a chart does not colour itself.
+ * Call right after Root.new(), before any chart is created on that root. On a
+ * theme change charts/lazy-charts.js redraws every chart, which calls this again.
+ */
+export function applyBrandInterfaceColors(root) {
+    apply(root, brandColors());
 }
 
 // The default ColorSet starts from a blue and shifts its hue for every new

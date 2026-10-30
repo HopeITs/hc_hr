@@ -1,4 +1,4 @@
-@props(['manager', 'managerType' => 'direct', 'compact' => false, 'collapsed' => [], 'trunk' => 'bg-neutral-300', 'branchBorder' => 'border-neutral-300', 'topLevel' => false])
+@props(['manager', 'managerType' => 'direct', 'compact' => false, 'collapsed' => [], 'trunk' => 'bg-line', 'branchBorder' => 'border-line', 'topLevel' => false])
 
 @php
     $teamRel = $managerType.'Team';
@@ -15,7 +15,7 @@
 >
     <span class="absolute start-1/2 top-0 {{ $stemH }} w-px {{ $trunk }}"></span>
 
-    <div class="rounded-surface border border-neutral-200 bg-white {{ $compact ? 'p-2' : 'p-3' }} shadow-e1">
+    <div class="rounded-surface border border-line-soft bg-card {{ $compact ? 'p-2' : 'p-3' }} shadow-e1">
         <div class="flex flex-wrap justify-center gap-2">
             @forelse($manager->activeContracts as $contract)
                 <x-org-node
@@ -34,7 +34,7 @@
             <button type="button"
                     wire:click="toggleCollapse({{ $manager->id }})"
                     x-on:click="open = !open"
-                    class="mt-2 flex w-full items-center justify-between gap-2 rounded-[0.5cqw] bg-neutral-100 px-2 py-2 text-caption font-bold text-secondary-medium transition hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                    class="mt-2 flex w-full items-center justify-between gap-2 rounded-[0.5cqw] bg-surface px-2 py-2 text-caption font-bold text-ink-2 transition hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
                     :aria-expanded="open"
                     :title="open ? @js(__('general.collapse')) : @js(__('general.expand'))">
                 <span>{{ \App\Models\Position::headcount($team) }} @lang('general.direct-reports')</span>
@@ -44,7 +44,7 @@
                 </svg>
             </button>
         @else
-            <div class="mt-2 rounded-[0.5cqw] bg-neutral-100 px-2 py-2 text-center text-caption font-bold text-secondary-medium">
+            <div class="mt-2 rounded-[0.5cqw] bg-surface px-2 py-2 text-center text-caption font-bold text-ink-2">
                 0 @lang('general.direct-reports')
             </div>
         @endif

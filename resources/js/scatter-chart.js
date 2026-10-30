@@ -4,6 +4,13 @@
 // registration in app.js. This chart is a line type, whose controller, elements
 // and scales are all already registered there.
 import { Chart } from "chart.js";
+import { brandPalette } from "./charts/brand-colors.js";
+
+function pointColor(index) {
+    const palette = brandPalette();
+
+    return palette[index % palette.length];
+}
 
 function initSalaryTypeScatter() {
     const canvas = document.getElementById("salaryTypeMiniChart");
@@ -17,7 +24,6 @@ function initSalaryTypeScatter() {
 
     const labels = seriesData.map(i => i.label);
     const values = seriesData.map(i => i.value);
-    const colors = seriesData.map(i => i.color);
 
     const maxValue = Math.max(...values);
     const suggestedMax = maxValue === 0 ? 1 : maxValue + 10;
@@ -34,8 +40,11 @@ function initSalaryTypeScatter() {
                         x,
                         y: values[i]
                     })),
-                    pointBackgroundColor: colors,
-                    pointBorderColor: colors,
+                    // The brand palette in series order (same as the donut and its
+                    // legend). Scriptable, so the redraw on a light <-> dark switch
+                    // (charts/chartjs-brand.js) re-reads it.
+                    pointBackgroundColor: (ctx) => pointColor(ctx.dataIndex),
+                    pointBorderColor: (ctx) => pointColor(ctx.dataIndex),
                     pointRadius: 2.8,
                     borderWidth: 0,
                     showLine: false
@@ -58,9 +67,9 @@ function initSalaryTypeScatter() {
                 y: {
                     beginAtZero: true,
                     suggestedMax,
-                    grid: { color: "#dcddde" },
+                    // Grid and tick colours come from the brand defaults
+                    // (charts/chartjs-brand.js), which follow light / dark.
                     ticks: {
-                        color: "#6d6e71",
                         font: {
                             size: 12,
                             family: "SomarSans"

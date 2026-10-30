@@ -1,6 +1,6 @@
 <svg {{
     $attributes->merge([
-        'class' => 'size-4 text-secondary-light text-inherit'
+        'class' => 'size-4 text-ink-3 text-inherit'
     ])
 }}
      aria-hidden="true"

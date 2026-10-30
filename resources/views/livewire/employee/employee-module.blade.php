@@ -37,9 +37,7 @@
                     <x-table.cell>{{ $item->actual_dob }}</x-table.cell>
                     <x-table.cell>{{ $item->account?->email }}</x-table.cell>
                     <x-table.cell>
-                        <x-badge :color="$item->is_active ? 'secondary-dark' : 'primary'">
-                            {{ $item->is_active ? __('general.active') : __('general.inactive') }}
-                        </x-badge>
+                        <x-status :status="$item->is_active ? \App\Enums\EmployeeStatus::Active : \App\Enums\EmployeeStatus::Inactive" />
                     </x-table.cell>
                     <x-table.cell>
                         <x-table.edit-btn :href="route('employees.edit', $item->id)" />

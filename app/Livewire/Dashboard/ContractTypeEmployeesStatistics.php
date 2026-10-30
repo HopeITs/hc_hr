@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Support\StatisticsCache;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class ContractTypeEmployeesStatistics extends Component
 {
     use HandlesLoadFailure;
+    use IsDashboardTile;
 
     /**
      * Donut sections → the contract_type_id values that roll up into them.

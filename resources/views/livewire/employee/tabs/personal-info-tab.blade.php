@@ -6,7 +6,7 @@
 @if ($isCreateMode && $showDraftPrompt)
     <div class="flex flex-col space-y-6" data-tour="employee.draft">
         <x-heading-label>@lang('general.assign-position-draft')</x-heading-label>
-        <p class="text-sm text-neutral-500">@lang('general.assign-position-draft-description')</p>
+        <p class="text-small text-ink-2">@lang('general.assign-position-draft-description')</p>
 
         <div wire:key="draft-city-{{ $this->canPickAnyDraftCity() ? 'open' : 'locked' }}">
             <x-forms.input-label for="draft_city_id">{{ trans_choice('general.city', 1) }}</x-forms.input-label>
@@ -82,7 +82,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.first_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="first_name_{{ $locale }}" />
+                            id="first_name_{{ $locale }}" :examples="__('examples.first_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.first_name_' . $locale) }}</x-error-span>
                     </div>
 
@@ -91,7 +92,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.last_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="last_name_{{ $locale }}" />
+                            id="last_name_{{ $locale }}" :examples="__('examples.last_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.last_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach
@@ -181,7 +183,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.father_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="father_name_{{ $locale }}" />
+                            id="father_name_{{ $locale }}" :examples="__('examples.father_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.father_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach
@@ -193,7 +196,8 @@
                             ({{ strtoupper($locale) }})
                         </x-forms.input-label>
                         <x-forms.input type="text" wire:model="infoForm.mother_name_{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}"
-                            id="mother_name_{{ $locale }}" />
+                            id="mother_name_{{ $locale }}" :examples="__('examples.mother_name', [], $locale)"
+                            :hint="__('examples.hints.name')" :hint-always="false" />
                         <x-error-span>{{ $errors->first('infoForm.mother_name_' . $locale) }}</x-error-span>
                     </div>
                 @endforeach
@@ -259,9 +263,9 @@
 
         </div>
         <div class="grid pb-8 mb-8 border-b md:grid-cols-1 gap-x-6 gap-y-3">
-            <x-heading-label class="col-span-1 ">@lang('general.membership')</x-heading-label>
+            <x-heading-label class="col-span-1">@lang('general.membership')</x-heading-label>
 
-            <div class="flex items-center col-span-1 space-x-2 ">
+            <div class="flex items-center col-span-1 space-x-2">
                 <x-forms.input type="checkbox" wire:model.live="infoForm.is_board_member"
                     wire:change="toggleBoardMember($event.target.checked)" value="1" id="is_board_member" />
                 <x-forms.input-label for="is_board_member">@lang('general.is_board_member')</x-forms.input-label>
@@ -306,7 +310,7 @@
             </div>
         </div>
 
-        <x-forms.dirty-gate watch="infoForm" :active="!$isCreateMode" class="flex justify-end space-x-2 ">
+        <x-forms.dirty-gate watch="infoForm" :active="!$isCreateMode" class="flex justify-end space-x-2">
             {{--
             The tab is deliberately NOT advanced here. In create mode
             saveInformation() redirects into the edit form on success, so

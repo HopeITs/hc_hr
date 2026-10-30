@@ -23,9 +23,9 @@
         <div class="flex items-center gap-2">
             <x-excel-export-button wire:click="$dispatchTo('position.position-table', 'exportExcel')" />
 
-            <x-primary-button :href="route('positions.create')">
+            <x-button :href="route('positions.create')">
                 @lang('general.add-new')
-            </x-primary-button>
+            </x-button>
         </div>
         @endactiverole
     </div>

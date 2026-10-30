@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
+use App\Livewire\Concerns\IsDashboardTile;
 use App\Services\TeamCoverage;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ use Livewire\Component;
 class UpcomingLeavesCard extends Component
 {
     use HandlesLoadFailure;
+    use IsDashboardTile;
 
     public const HORIZON_DAYS = 61;
 

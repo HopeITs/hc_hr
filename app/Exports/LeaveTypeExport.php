@@ -119,7 +119,7 @@ class LeaveTypeExport implements FromCollection, ShouldAutoSize, WithHeadings, W
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FFC2151C'],
+                    'startColor' => ['argb' => 'FFBE1F24'],
                 ],
             ],
         ];

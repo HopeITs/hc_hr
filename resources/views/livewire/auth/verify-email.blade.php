@@ -8,7 +8,7 @@
     </flux:text>
 
     @if (session('status') == 'verification-link-sent')
-        <flux:text class="text-center font-medium !dark:text-neutral-400 !text-neutral-600">
+        <flux:text class="text-center font-semibold !text-ink">
             {{ __('A new verification link has been sent to the email address you provided during registration.') }}
         </flux:text>
     @endif

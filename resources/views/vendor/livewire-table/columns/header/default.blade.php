@@ -1,6 +1,6 @@
 @if($column->isSortable())
     <a href="#"
-       class="flex items-center gap-1 font-bold text-md px-3 py-2 whitespace-nowrap"
+       class="flex items-center gap-1 px-3 py-2.5 text-th font-bold text-ink-2 whitespace-nowrap hover:text-ink"
        wire:click.prevent="sort('{{ $column->code() }}')">
         <span>{{ $column->label() }}</span>
         @if(! $this->isReordering())
@@ -25,5 +25,5 @@
         @endif
     </a>
 @else
-    <span class="flex font-bold text-md px-3 py-2 whitespace-nowrap">{{ $column->label() }}</span>
+    <span class="flex px-3 py-2.5 text-th font-bold text-ink-2 whitespace-nowrap">{{ $column->label() }}</span>
 @endif

@@ -36,7 +36,7 @@
 
 @if ($isCreateMode || $isDraft || $isAwaiting)
     <section data-testid="onboarding-status" aria-labelledby="onboarding-status-title"
-        class="mb-4 rounded-control border border-neutral-200 border-s-4 border-s-primary bg-white p-4 text-body"
+        class="mb-4 rounded-control border border-line-soft border-s-4 border-s-primary bg-card p-4 text-body"
         x-data="{
             fields: @js(collect($draftNeeds)->merge($completeNeeds)->map(fn ($need) => ['key' => $need[0], 'tab' => $need[2], 'props' => $need[3]])->values()),
             filled(key) {
@@ -56,18 +56,18 @@
             },
         }">
         @if ($isAwaiting)
-            <h2 id="onboarding-status-title" class="font-semibold text-secondary-dark">@lang('employees.onboarding.state-awaiting')</h2>
-            <p class="mt-1 text-secondary-medium">@lang('employees.onboarding.awaiting-help')</p>
+            <h2 id="onboarding-status-title" class="font-semibold text-ink">@lang('employees.onboarding.state-awaiting')</h2>
+            <p class="mt-1 text-ink-2">@lang('employees.onboarding.awaiting-help')</p>
             @if (auth()->user()?->hasActivePermission('contracts.create'))
                 <x-secondary-button :href="route('contracts.create')" class="mt-3 !w-auto">@lang('employees.onboarding.create-contract')</x-secondary-button>
             @endif
         @else
-            <h2 id="onboarding-status-title" class="font-semibold text-secondary-dark">
+            <h2 id="onboarding-status-title" class="font-semibold text-ink">
                 {{ $isDraft ? __('employees.onboarding.state-draft') : __('employees.onboarding.new-record') }}
             </h2>
 
             @if ($isDraft)
-                <p class="mt-1 text-secondary-medium" data-testid="draft-saved-at">
+                <p class="mt-1 text-ink-2" data-testid="draft-saved-at">
                     {{ __('employees.onboarding.saved-at', [
                         'time' => $record->updated_at?->timezone(config('app.timezone'))->translatedFormat('d M Y, H:i'),
                         'name' => $record->lastSavedBy?->profile?->nameForLocale($locale) ?? $record->lastSavedBy?->email ?? __('general.unknown'),
@@ -77,16 +77,16 @@
 
             <div class="mt-3 grid gap-4 md:grid-cols-2">
                 <div>
-                    <p class="font-medium text-secondary-dark">
+                    <p class="font-medium text-ink">
                         {{ $isDraft ? __('employees.onboarding.draft-has') : __('employees.onboarding.to-save-draft') }}
                     </p>
                     <ul class="mt-1 space-y-1">
                         @foreach ($draftNeeds as [$key, $label])
                             <li>
                                 <button type="button" x-on:click="go(@js($key))"
-                                    class="inline-flex items-center gap-2 text-start hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                                    <span x-show="filled(@js($key))" class="text-emerald-700" aria-hidden="true">✓</span>
-                                    <span x-show="! filled(@js($key))" class="text-secondary-light" aria-hidden="true">○</span>
+                                    class="inline-flex min-h-11 items-center gap-2 text-start hover:underline">
+                                    <span x-show="filled(@js($key))" class="font-bold text-ink" aria-hidden="true">✓</span>
+                                    <span x-show="! filled(@js($key))" class="text-ink-3" aria-hidden="true">○</span>
                                     <span>{{ $label }}</span>
                                     <span class="sr-only" x-text="filled(@js($key)) ? @js(__('employees.onboarding.filled')) : @js(__('employees.onboarding.missing'))"></span>
                                 </button>
@@ -95,26 +95,26 @@
                     </ul>
                 </div>
                 <div>
-                    <p class="font-medium text-secondary-dark">@lang('employees.onboarding.to-complete')</p>
+                    <p class="font-medium text-ink">@lang('employees.onboarding.to-complete')</p>
                     <ul class="mt-1 space-y-1">
                         @foreach ($completeNeeds as [$key, $label])
                             <li>
                                 <button type="button" x-on:click="go(@js($key))"
-                                    class="inline-flex items-center gap-2 text-start hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                                    <span x-show="filled(@js($key))" class="text-emerald-700" aria-hidden="true">✓</span>
-                                    <span x-show="! filled(@js($key))" class="text-secondary-light" aria-hidden="true">○</span>
+                                    class="inline-flex min-h-11 items-center gap-2 text-start hover:underline">
+                                    <span x-show="filled(@js($key))" class="font-bold text-ink" aria-hidden="true">✓</span>
+                                    <span x-show="! filled(@js($key))" class="text-ink-3" aria-hidden="true">○</span>
                                     <span>{{ $label }}</span>
                                     <span class="sr-only" x-text="filled(@js($key)) ? @js(__('employees.onboarding.filled')) : @js(__('employees.onboarding.missing'))"></span>
                                 </button>
                             </li>
                         @endforeach
                     </ul>
-                    <p class="mt-2 text-small text-secondary-medium">{{ $isDraft ? __('employees.onboarding.complete-help-draft') : __('employees.onboarding.complete-help') }}</p>
+                    <p class="mt-2 text-small text-ink-2">{{ $isDraft ? __('employees.onboarding.complete-help-draft') : __('employees.onboarding.complete-help') }}</p>
                 </div>
             </div>
 
             @if ($isCreateMode)
-                <p class="mt-3 text-small text-secondary-medium" data-testid="sections-locked-reason">@lang('employees.onboarding.sections-after-draft')</p>
+                <p class="mt-3 text-small text-ink-2" data-testid="sections-locked-reason">@lang('employees.onboarding.sections-after-draft')</p>
             @endif
 
             @if ($isDraft)

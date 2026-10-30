@@ -13,11 +13,11 @@
             @if($open)
                 <button type="button" x-on:click="{{ $open }}" aria-haspopup="dialog"
                     aria-label="{{ __('general.edit') }}: {{ $item->name }}"
-                    class="block min-h-11 max-w-full text-start font-semibold text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><bdi>{{ $item->name }}</bdi></button>
+                    class="block min-h-11 max-w-full text-start font-semibold text-ink"><bdi>{{ $item->name }}</bdi></button>
             @else
-                <p class="font-semibold text-black"><bdi>{{ $item->name }}</bdi></p>
+                <p class="font-semibold text-ink"><bdi>{{ $item->name }}</bdi></p>
             @endif
-            <p class="text-small text-secondary-medium">{{ __('general.years-of-service') }}: <bdi>{{ $item->years_of_service_formatted }}</bdi></p>
+            <p class="text-small text-ink-2">{{ __('general.years-of-service') }}: <bdi>{{ $item->years_of_service_formatted }}</bdi></p>
         </div>
         @if($balance)
             <x-table.edit-btn wire:click="$dispatch('openEdit', { id: {{ (int) $balance->id }} })" />
@@ -33,8 +33,8 @@
                 __('general.remaining') => $balance->remaining,
             ] as $label => $figure)
                 <div class="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <dt class="text-secondary-medium">{{ $label }}</dt>
-                    <dd class="text-black">{!! $figure !!}</dd>
+                    <dt class="text-ink-2">{{ $label }}</dt>
+                    <dd class="text-ink">{!! $figure !!}</dd>
                 </div>
             @endforeach
         </dl>

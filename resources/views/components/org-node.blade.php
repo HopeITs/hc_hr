@@ -43,8 +43,8 @@
         <div class="flex flex-col items-start justify-start mt-3 ">
 
 
-            <span class="text-[7px] uppercase">{{ $position->program?->name }}</span>
-            <span class="text-primary text-[7px] uppercase"
+            <span class="text-caption uppercase">{{ $position->program?->name }}</span>
+            <span class="text-ink-2 font-semibold text-caption uppercase"
                 @if ($cityName) title="{{ $cityName }}" @endif>{{ $cityName }}</span>
 
         </div>

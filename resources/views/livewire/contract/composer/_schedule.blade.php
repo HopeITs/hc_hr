@@ -10,13 +10,6 @@
         ScheduleMode::Fixed => ScheduleMode::getLocalizedName(ScheduleMode::Fixed)['value'],
         ScheduleMode::Flexible => ScheduleMode::getLocalizedName(ScheduleMode::Flexible)['value'],
     ];
-
-    // Quiet-but-visible control, used by the notes disclosure at the foot and
-    // the second-shift toggle.
-    $miniButton = 'inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white
-                   px-2.5 py-1 text-caption font-semibold text-secondary-dark shadow-e1 transition
-                   hover:border-primary hover:text-primary active:scale-[0.98]
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 @endphp
 
 {{-- Section 2 — the working week, in the contract's own words. --}}
@@ -64,20 +57,19 @@
 
         {{-- A second shift in the same day, e.g. 9:00-13:00 and 17:00-21:00. --}}
         <div>
-            <button type="button" x-cloak x-show="!hasSecondShift()" class="{{ $miniButton }}"
-                    x-on:click="toggleSecondShift(true)">
+            <x-button variant="outline" size="sm" :loading="false" x-cloak x-show="!hasSecondShift()" x-on:click="toggleSecondShift(true)">
                 <svg class="size-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M10 5v10M5 10h10" stroke-linecap="round"/>
                 </svg>
                 @lang('general.composer.add-second-shift')
-            </button>
+            </x-button>
 
             <div x-cloak x-show="hasSecondShift()" x-collapse>
                 <div class="flex items-center justify-between">
                     <x-forms.input-label>@lang('general.composer.second-shift')</x-forms.input-label>
-                    <button type="button" class="{{ $miniButton }}" x-on:click="toggleSecondShift(false)">
+                    <x-button variant="outline" size="sm" :loading="false" x-on:click="toggleSecondShift(false)">
                         @lang('general.composer.remove-second-shift')
-                    </button>
+                    </x-button>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -146,7 +138,7 @@
 
     {{-- ───────────────────────── Flexible ───────────────────────── --}}
     <div x-cloak x-show="scheduleMode === '2'" class="mt-5 space-y-5">
-        <p class="text-small text-secondary-medium">@lang('general.composer.schedule-flexible-hint')</p>
+        <p class="text-small text-ink-2">@lang('general.composer.schedule-flexible-hint')</p>
 
         {{--
             "Hours per week" is the only box here that feeds weekly_hours —
@@ -155,7 +147,7 @@
             one long list.
         --}}
         <div>
-            <p class="font-semibold tracking-wider uppercase text-caption text-secondary-medium">
+            <p class="font-semibold tracking-wider uppercase text-caption text-ink-2">
                 @lang('general.composer.flex-hours-group')
             </p>
 
@@ -178,7 +170,7 @@
 
                     <x-slot:hint>
                         <p x-cloak x-show="selectedType?.category !== 'service'"
-                           class="mt-1 text-caption text-secondary-light">
+                           class="mt-1 text-caption text-ink-3">
                             @lang('general.composer.flex-hours-per-week-required')
                         </p>
                     </x-slot:hint>
@@ -218,7 +210,7 @@
         </div>
 
         <div>
-            <p class="font-semibold tracking-wider uppercase text-caption text-secondary-medium">
+            <p class="font-semibold tracking-wider uppercase text-caption text-ink-2">
                 @lang('general.composer.flex-descriptive-group')
             </p>
 
@@ -262,14 +254,14 @@
         real entitlement figure) is not repeated here — it already has its
         own line in the contract summary card alongside the composer.
     --}}
-    <div class="p-3 mt-5 border rounded-control border-neutral-200 bg-neutral-50">
-        <p class="font-semibold tracking-wider uppercase text-caption text-secondary-medium">
+    <div class="p-3 mt-5 border rounded-control border-line-soft bg-soft">
+        <p class="font-semibold tracking-wider uppercase text-caption text-ink-2">
             @lang('general.composer.schedule-preview-title')
         </p>
 
-        <div class="grid gap-3 mt-2 sm:grid-cols-2 sm:divide-x sm:divide-neutral-200">
-            <p dir="ltr" class="text-start text-body text-neutral-800 sm:pe-3" x-text="schedulePreviewEn"></p>
-            <p dir="rtl" class="text-start text-body text-neutral-800 sm:ps-3" x-text="schedulePreviewAr"></p>
+        <div class="grid gap-3 mt-2 sm:grid-cols-2 sm:divide-x sm:divide-line-soft">
+            <p dir="ltr" class="text-start text-body text-ink sm:pe-3" x-text="schedulePreviewEn"></p>
+            <p dir="rtl" class="text-start text-body text-ink sm:ps-3" x-text="schedulePreviewAr"></p>
         </div>
     </div>
     <x-error-span>{{ $errors->first('form.weekly_hours') }}</x-error-span>

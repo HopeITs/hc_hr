@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Dashboard\TeamCard;
 use App\Livewire\Employee\EmployeeProfile;
 use App\Livewire\Position\Directory;
 use App\Livewire\Position\OrgChart;
@@ -432,13 +432,13 @@ class DirectoryAccessPolicyTest extends TestCase
         $this->makeContractFor($formerDeputy, ['position_id' => $deputyPosition->id, 'is_active' => false]);
 
         $staffTeam = Livewire::actingAs($this->makeUser($this->aleppo, 'employee', [], $viewerEmployee))
-            ->test(DashboardIndex::class)
-            ->viewData('teamMembers');
+            ->test(TeamCard::class)
+            ->viewData('members');
         $this->assertFalse($staffTeam->contains('id', $formerDeputy->id));
 
         $managementTeam = Livewire::actingAs($this->makeUser($this->aleppo, 'general-manager', [], $viewerEmployee))
-            ->test(DashboardIndex::class)
-            ->viewData('teamMembers');
+            ->test(TeamCard::class)
+            ->viewData('members');
         $this->assertTrue($managementTeam->contains('id', $formerDeputy->id));
     }
 
