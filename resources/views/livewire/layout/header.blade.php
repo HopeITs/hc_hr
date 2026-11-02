@@ -25,8 +25,9 @@
         item, so it was the thing that silently went off-screen (x:-51 at 375px).
         At 420px the row needed 397px inside a 380px box. sm and up is untouched.
     --}}
-    <div class="px-2 py-[11px] sm:px-3 lg:px-4 lg:ps-3">
-        <div class="flex items-center justify-end gap-1.5 sm:gap-3 md:pe-0 sm:pe-4">
+    {{-- md+: a fixed 72px row, matched by the sidebar's logo row (sidebar.blade.php). --}}
+    <div class="px-2 py-[11px] sm:px-3 lg:px-4 lg:ps-3 md:py-0 md:h-18 md:flex md:items-center">
+        <div class="w-full flex items-center justify-end gap-1.5 sm:gap-3 md:pe-0 sm:pe-4">
             <button wire:click="$dispatch('sidebar.toggle')" type="button"
                 class="grid size-11 place-items-center md:size-auto sm:p-2 shrink-0 transition bg-transparent border border-transparent cursor-pointer md:hidden me-auto text-heading text-ink-2 hover:text-ink rounded-base">
                 <span class="sr-only">{{ __('general.a11y.open-sidebar') }}</span>

@@ -17,7 +17,7 @@
     },
 }" x-cloak>
     <aside x-cloak data-tour="nav" @click.outside="open = false"
-        class="sidebar-material fixed top-0 z-40 h-full pt-4 border-e border-line-soft shadow-e3 transition-[width,transform] duration-[400ms] ease-fluid md:translate-x-0"
+        class="sidebar-material fixed top-0 z-40 h-full border-e border-line-soft shadow-e3 transition-[width,transform] duration-[400ms] ease-fluid md:translate-x-0"
         :class="[
             sidebarCollapsed ? 'md:w-20' : 'md:w-64',
             open ? 'w-64 translate-x-0' : 'w-64',
@@ -27,7 +27,7 @@
     >
         <button type="button"
                 x-on:click="$dispatch('sidebar-collapse-toggle')"
-                class="nav-press absolute z-50 items-center justify-center hidden bg-card border border-line-soft rounded-full shadow-e2 top-7 size-8 text-ink-2 hover:border-line hover:bg-hover hover:text-ink md:flex"
+                class="nav-press absolute z-50 items-center justify-center hidden bg-card border border-line-soft rounded-full shadow-e2 top-5 size-8 text-ink-2 hover:border-line hover:bg-hover hover:text-ink md:flex"
                 :class="rtl ? '-left-4' : '-right-4'"
                 :title="sidebarCollapsed ? @js(__('general.expand-sidebar')) : @js(__('general.collapse-sidebar'))"
                 :aria-label="sidebarCollapsed ? @js(__('general.expand-sidebar')) : @js(__('general.collapse-sidebar'))">
@@ -39,8 +39,11 @@
         </button>
 
         <div class="flex flex-col h-full">
-            {{-- Fixed header: logo stays put; scrolling begins below the divider --}}
-            <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center justify-start ps-6 h-16 shrink-0 border-b border-line-soft">
+            {{-- Fixed header: logo stays put; scrolling begins below the divider.
+                 From md up it is exactly as tall as the top bar (72px + its 1px
+                 border, header.blade.php), so the two dividers form one line. --}}
+            <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center justify-start ps-6 h-16 md:h-[73px] shrink-0 border-b border-line-soft"
+               :class="sidebarCollapsed && !open ? 'md:justify-center md:ps-0' : ''">
                 <x-app-logo class="w-[8.25rem] h-auto object-fit" x-show="!sidebarCollapsed || open" />
                 <img src="{{ asset('assets/img/hope-center-icon.svg') }}"
                      alt="{{ config('app.name') }}"
@@ -55,7 +58,10 @@
             </div>
 
             {{-- Scrollable navigation area. Structure and visibility: App\Support\Navigation (C0 §4). --}}
-            <div class="flex-1 min-h-0 px-3 pt-3 pb-4 overflow-x-hidden overflow-y-auto">
+            {{-- Native scrollbar (thin, and none in the icon rail) instead of the
+                 overlay one, which drew a full-height track through the rail. --}}
+            <div data-csb-exclude class="sidebar-scroll flex-1 min-h-0 px-3 pt-3 pb-4 overflow-x-hidden overflow-y-auto"
+                 :class="sidebarCollapsed && !open ? 'sidebar-scroll--rail' : ''">
                 <ul class="space-y-1 font-medium" :class="sidebarCollapsed && !open ? 'md:flex md:flex-col md:items-center' : ''">
 
                     @if ($favourites !== [])
@@ -95,6 +101,8 @@
                                     </svg>
                                 </button>
                             @endif
+                            {{-- The rail has no headings, so a short rule marks where one area ends. --}}
+                            <div x-show="sidebarCollapsed && !open" aria-hidden="true" class="hidden md:block mx-auto mb-2 h-px w-8 bg-line-soft"></div>
                             {{-- In the collapsed icon rail there are no headings to reopen an area from, so every icon shows. --}}
                             <ul id="nav-area-{{ $areaKey }}" class="space-y-1" :class="sidebarCollapsed && !open ? 'md:flex md:flex-col md:items-center' : ''"
                                 @unless ($holdsCurrent) x-show="!isClosed(@js($areaKey)) || (sidebarCollapsed && !open)" @endunless>
