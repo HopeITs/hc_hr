@@ -1307,12 +1307,14 @@ select.public-career-select option:checked {
 
 /* Chevron points where the disclosure is going. Keyed off the submenu's own
    visibility class, not aria-expanded — Flowbite toggles the class but leaves
-   the attribute stale. */
+   the attribute stale. Only the dropdown's own button: the sidebar area <li>
+   around it also has a direct <ul> (shown by x-show, never .hidden), which
+   would otherwise pin every chevron inside it to "open". */
 .nav-chevron {
     transition: transform 200ms var(--ease-fluid);
 }
 
-li:has(> ul:not(.hidden)) .nav-chevron {
+li:has(> ul:not(.hidden)) > button > .nav-chevron {
     transform: rotate(180deg);
 }
 
