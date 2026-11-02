@@ -68,7 +68,7 @@ class EmpLeaveBalanceModule extends Component
         $this->form->reset();
 
         $this->toast();
-
+        $this->dispatch('refreshEmpLeaveBalanceTable');
     }
 
     protected function guardedEntries(string $dialog): array

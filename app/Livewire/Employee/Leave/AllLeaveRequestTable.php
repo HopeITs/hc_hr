@@ -39,6 +39,7 @@ class AllLeaveRequestTable extends LivewireTable
     protected $listeners = [
         'filterStatus' => 'setStatusFilter',
         'leaveRequestDecisionSaved' => 'refreshTable',
+        'leaveRequestSaved' => 'refreshTable',
     ];
 
     public function setStatusFilter(string $status): void

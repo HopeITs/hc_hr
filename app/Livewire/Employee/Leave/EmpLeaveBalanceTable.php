@@ -28,7 +28,10 @@ class EmpLeaveBalanceTable extends LivewireTable
 
     protected string $model = Employee::class;
 
-    protected $listeners = ['exportExcel' => 'exportExcel'];
+    protected $listeners = [
+        'exportExcel' => 'exportExcel',
+        'refreshEmpLeaveBalanceTable' => '$refresh',
+    ];
 
     public function edit($id)
     {
