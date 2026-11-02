@@ -54,8 +54,10 @@
      x-on:keydown="if (editing && $event.target === $el) moveKey($event, {{ $k }})"
      wire:key="tile-{{ $key }}">
 
-    {{-- Edit controls: hide outside the top start corner (like a phone); pin, look and resize inside the tile. --}}
-    <button type="button" class="hc-tbtn hc-t-remove" x-show="editing" x-cloak
+    {{-- Hide (×) sits outside the top start corner (like a phone): shown on hover at
+         rest on a computer, always while customising (dashboard.css). Pin, look and
+         the keyboard resize grip are customise-only, inside the tile. --}}
+    <button type="button" class="hc-tbtn hc-t-remove"
             x-on:click="remove({{ $k }})" aria-label="{{ __('dashboard.home.hide', ['tile' => $label]) }}">
         <x-ic name="x" />
     </button>
@@ -95,6 +97,10 @@
     @endunless
 
     @if ($tiles->canResize($key))
+        {{-- Pull an edge or the corner to resize (a computer, at rest or customising). --}}
+        @foreach (['end', 'start', 'top', 'bottom', 'corner'] as $edge)
+            <span class="hc-rz hc-rz-{{ $edge }}" data-resize="{{ $edge }}" title="{{ __('dashboard.home.resize-hint') }}" aria-hidden="true"></span>
+        @endforeach
         <button type="button" class="hc-grip" x-show="editing" x-cloak
                 x-on:pointerdown="resizeStart($event, {{ $k }})"
                 x-on:keydown="resizeKey($event, {{ $k }})"

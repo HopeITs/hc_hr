@@ -1,6 +1,7 @@
 /*
  * The home screen's arithmetic (resources/js/dashboard/home-screen.js): where
- * tiles go, how a drag or a key changes a size, which way the arrows point.
+ * tiles go, how a drag or a key changes a size, which way the arrows point,
+ * where a carried tile lands.
  * No DOM here, so it is unit-tested with Node (tests/js/dashboard-layout.test.mjs).
  */
 
@@ -42,6 +43,50 @@ export function bakedSize(stored, placed, cols) {
  * x movement is mirrored in RTL; y is the same in both.
  */
 export const inlineDelta = (dx, rtl) => dx * (rtl ? -1 : 1);
+
+/**
+ * Which way each resize handle grows the tile, as [columns, rows] signs for a
+ * pointer moving towards the inline end (inlineDelta) and downwards. The end
+ * edge and the corner grow towards the inline end, the start edge towards the
+ * inline start, the bottom edge and the corner downwards, the top edge upwards.
+ * An unknown edge changes nothing.
+ */
+export function edgeGrowth(edge) {
+    return { end: [1, 0], start: [-1, 0], bottom: [0, 1], top: [0, -1], corner: [1, 1] }[edge] || [0, 0];
+}
+
+/** A length in pixels as cells (not rounded): each cell after the first brings one gap with it. */
+export const rawCells = (px, cell, gap) => (px + gap) / (cell + gap);
+
+/**
+ * A tile carried over another one lands after it once the pointer is past
+ * that tile's middle along the reading direction (from the right in Arabic),
+ * before it otherwise.
+ *
+ * @param {{left: number, right: number, width: number}} box  the tile under the pointer
+ */
+export function dropsAfter(box, x, rtl) {
+    if (! (box.width > 0)) return false;
+    const along = rtl ? box.right - x : x - box.left;
+
+    return along > box.width / 2;
+}
+
+/**
+ * The order once `key` is moved just before or just after `target`, or null
+ * when that is where it already is (nothing to do, nothing to animate).
+ *
+ * @param {string[]} keys
+ * @returns {string[]|null}
+ */
+export function reorder(keys, key, target, after) {
+    if (key === target || ! keys.includes(key) || ! keys.includes(target)) return null;
+    const rest = keys.filter((k) => k !== key);
+    const at = rest.indexOf(target) + (after ? 1 : 0);
+    const next = [...rest.slice(0, at), key, ...rest.slice(at)];
+
+    return next.every((k, i) => k === keys[i]) ? null : next;
+}
 
 /** Arrow keys on the grip: [columns, rows] to add. Towards the inline end grows. */
 export function resizeStep(key, rtl) {

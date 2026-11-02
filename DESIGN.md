@@ -235,8 +235,10 @@ sheet at `/en/_ui` and `/ar/_ui` (local and testing only).
 
 The dashboard is a home screen of tiles the person arranges, per active role
 (`App\Support\Dashboard\DashboardLayout`; browser side `resources/js/dashboard/home-screen.js`,
-its own Vite entry, with SortableJS 1.15.7 fetched on the first Customise; styles
-`resources/css/dashboard.css`).
+its own Vite entry, no drag library; styles `resources/css/dashboard.css`). Like hc-tracking's
+Desk, a tile is handled **directly, at rest**: carry it to move it, pull an edge to resize it,
+× to hide it (with Undo). Customise is only for what has no direct handle: the guide cells,
+Add, pin, look, Reset and the keyboard.
 
 - **Grid**: 12 columns once the grid is 1200px wide (a ~1600px screen with the sidebar open),
   8 on a computer, 4 below 760px (phones, square cells). Row height
@@ -296,14 +298,28 @@ its own Vite entry, with SortableJS 1.15.7 fetched on the first Customise; style
   waits on the viewer or is late (shortcut counters, the late strip, a decision waiting over a day).
   Pins, grips, size labels, guide cells, icons and folded lines are ink and neutrals, never red,
   and red is never tinted pale.
-- **Customising**: "Customise" or a long press; tiles wiggle once and faint cells (`soft` fill,
-  dashed `line`) appear. Drag to move, or focus a tile and use the arrow keys (they follow the
-  reading direction; Home / End). The dark grip sits in the inline-end corner: dragging towards
-  the inline end or down grows the tile, cell by cell, with a "2×3" label; arrow keys on the grip
-  do the same. × hides, the pin keeps a tile first (pressed = ink fill, not red), Add brings a
-  tile back, Reset (with a confirmation) returns to the role's default. Every control is 44px to
-  the finger and labelled. `prefers-reduced-motion` turns off the wiggle and the glides.
-  `?customise=1` opens the page in this mode (the command palette's "Customise dashboard").
+- **Moving** (at rest or customising): with a mouse a tile is picked up once the pointer travels
+  6px with the button down (`cursor: grab`, except over its links, buttons and fields); on touch
+  after a 400ms hold. The carried tile gets `.carried` (lifted, above the rest, no transition),
+  the grid `.moving` (handles and tile buttons hidden), `<html>` `.hc-moving-doc` (grabbing
+  cursor, no text selection). The other tiles glide aside; a pinned tile stays put.
+- **Resizing** (computer, ≥ 761px): `.hc-rz` handles on the four edges and the inline-end bottom
+  corner (`data-resize="end|start|top|bottom|corner"`), cell by cell, with a centred "2×3" ink
+  pill (`.hc-sizebadge`). Invisible at rest until the tile is hovered with a fine pointer, always
+  out while customising; ink-3, ink on hover, never red. Not on a phone, nor on an icon or a
+  folded tile at rest. `<html>` `.hc-resizing-doc[data-resize-edge]` holds the cursor.
+- **Hiding**: × outside the top start corner, shown on hover / focus at rest on a computer and
+  always while customising (never on a phone at rest, never mid-move). A hidden tile can come
+  back for 6 seconds from the **Undo** toast (`.hc-undo`: an ink pill at the bottom centre, above
+  the phone's bottom bar), later from Add.
+- **Customising**: "Customise" shows the faint guide cells (`soft` fill, dashed `line`) and a
+  dashed ink edge (30%) on each tile; Add brings a tile back, the pin keeps a tile first
+  (pressed = ink fill, not red), the look button switches a look, Reset (with a confirmation)
+  returns to the role's default. Keyboard: focus a tile and use the arrow keys (they follow the
+  reading direction; Home / End); the grip in the inline-end corner resizes with the arrow keys.
+  Every control is 44px to the finger and labelled. `prefers-reduced-motion` turns off the
+  glides. `?customise=1` opens the page in this mode (the command palette's "Customise
+  dashboard").
 - **Loading**: each widget is its own Livewire component, mounted lazily inside its tile with
   the card placeholder (see Lazy loading above). A card
   shows its own load failure (`<x-ui.load-error>`) inside the tile; a tile whose lazy load fails

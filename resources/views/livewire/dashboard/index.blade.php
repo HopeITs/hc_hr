@@ -30,6 +30,8 @@
             'resetConfirm' => __('dashboard.home.reset'),
             'cancel' => __('general.cancel'),
             'nothing' => __('dashboard.home.nothing'),
+            'undoHidden' => __('dashboard.home.undo-hidden'),
+            'undo' => __('dashboard.home.undo'),
         ],
     ];
 @endphp
@@ -38,7 +40,7 @@
     {{ __('general.dashboard') }}
 </x-slot:title>
 
-{{-- The home screen's script, on this page only (a separate Vite entry, with SortableJS behind its own import). --}}
+{{-- The home screen's script, on this page only (a separate Vite entry): moving, resizing and hiding tiles in place. --}}
 @section('css')
     @vite('resources/js/dashboard/home-screen.js')
 @endsection
@@ -87,17 +89,17 @@
         </div>
 
         {{-- The grid. Tiles are drawn once by the server (a hidden one not at all);
-             moving, resizing and hiding only change them in place. --}}
+             moving, resizing and hiding only change them in place. At rest a tile is
+             carried straight away (mouse: press and move; touch: hold), pulled by its
+             edges (.hc-rz) and hidden by its ×; the script binds those on the tiles. --}}
         <div class="hc-home">
             {{-- Faint cells behind the tiles while customising, so you can see where a tile will sit. --}}
             <div class="hc-grid hc-guides" x-ref="guides" x-show="editing" x-cloak aria-hidden="true"></div>
 
             <div class="hc-grid" x-ref="grid" role="list" aria-label="{{ __('general.dashboard') }}"
-                 :class="{ editing, wiggle: wiggling }"
-                 x-on:pointerdown="press($event)" x-on:pointermove="pressMove($event)"
-                 x-on:pointerup="release()" x-on:pointerleave="release()" x-on:pointercancel="release()"
+                 :class="{ editing }"
                  x-on:click.capture="swallowClick($event)"
-                 x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
+                 x-on:contextmenu="if (editing || carrying) $event.preventDefault()">
                 @foreach ($layout as $item)
                     @continue($item['hidden'] || isset($absentKeys[$item['key']]))
                     @include('livewire.dashboard.partials.tile', ['item' => $item])
@@ -108,6 +110,15 @@
         <p id="hc-tile-hint" class="sr-only">{{ __('dashboard.home.tile-hint') }}</p>
         <p id="hc-page-hint" class="sr-only">{{ __('dashboard.home.page-hint') }}</p>
         <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
+
+        {{-- A tile just hidden by its ×: Undo puts it back where it was, for a few seconds. --}}
+        <div class="hc-undo" role="status" aria-live="polite" x-show="removed" x-cloak x-transition.opacity>
+            <span class="hc-undo-text" x-text="removed ? text.undoHidden.replace(':tile', removed.label) : ''"></span>
+            <x-button variant="outline" size="sm" icon="return" :loading="false" x-on:click="undoRemove()">{{ __('dashboard.home.undo') }}</x-button>
+            <button type="button" class="hc-undo-close" x-on:click="dismissUndo()" aria-label="{{ __('dashboard.home.close') }}">
+                <x-ic name="x" />
+            </button>
+        </div>
 
         {{-- A tile whose card could not load at all (the script puts this inside it). --}}
         <template x-ref="tileError">

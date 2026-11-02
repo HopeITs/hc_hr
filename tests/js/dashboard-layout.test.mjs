@@ -2,7 +2,7 @@
 // Node's built-in runner, no dependency: `npm run test:js`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampSize, inlineDelta, moveStep, pack, resizeStep, stepCells } from '../../resources/js/dashboard/layout-math.js';
+import { clampSize, dropsAfter, edgeGrowth, inlineDelta, moveStep, pack, rawCells, reorder, resizeStep, stepCells } from '../../resources/js/dashboard/layout-math.js';
 
 const bounds = {
     notes: { min: [2, 2], max: [12, 8] },
@@ -21,6 +21,48 @@ test('the resize grip grows towards the inline end: right in English, left in Ar
     assert.equal(inlineDelta(40, true), -40);
     // ...and 40px to the left: that grows the tile in Arabic.
     assert.equal(inlineDelta(-40, true), 40);
+});
+
+test('each resize edge grows the tile its own way', () => {
+    assert.deepEqual(edgeGrowth('end'), [1, 0]);
+    assert.deepEqual(edgeGrowth('start'), [-1, 0]);
+    assert.deepEqual(edgeGrowth('bottom'), [0, 1]);
+    assert.deepEqual(edgeGrowth('top'), [0, -1]);
+    assert.deepEqual(edgeGrowth('corner'), [1, 1]);
+    assert.deepEqual(edgeGrowth('nowhere'), [0, 0]);
+    // The start edge pulled 40px towards the inline start (left in English, right in Arabic) grows the tile.
+    assert.equal(edgeGrowth('start')[0] * inlineDelta(-40, false), 40);
+    assert.equal(edgeGrowth('start')[0] * inlineDelta(40, true), 40);
+});
+
+test('a width in pixels counts one gap per extra cell', () => {
+    // Cells 100px wide with 10px gaps: 3 cells are 320px.
+    assert.equal(rawCells(320, 100, 10), 3);
+    assert.equal(rawCells(100, 100, 10), 1);
+    assert.equal(stepCells(rawCells(320 + 30, 100, 10), 3), 3); // not clearly into the next cell yet
+    assert.equal(stepCells(rawCells(320 + 90, 100, 10), 3), 4);
+});
+
+test('a carried tile lands after the tile under it once past its middle, in the reading direction', () => {
+    const box = { left: 100, right: 300, width: 200 };
+    assert.equal(dropsAfter(box, 150, false), false);
+    assert.equal(dropsAfter(box, 250, false), true);
+    // In Arabic the middle is crossed from the right.
+    assert.equal(dropsAfter(box, 250, true), false);
+    assert.equal(dropsAfter(box, 150, true), true);
+    assert.equal(dropsAfter({ left: 0, right: 0, width: 0 }, 0, false), false);
+});
+
+test('moving a tile before or after another gives the new order, or null when nothing changes', () => {
+    const keys = ['a', 'b', 'c', 'd'];
+    assert.deepEqual(reorder(keys, 'a', 'c', false), ['b', 'a', 'c', 'd']);
+    assert.deepEqual(reorder(keys, 'a', 'c', true), ['b', 'c', 'a', 'd']);
+    assert.deepEqual(reorder(keys, 'd', 'a', false), ['d', 'a', 'b', 'c']);
+    // Already there.
+    assert.equal(reorder(keys, 'a', 'b', false), null);
+    assert.equal(reorder(keys, 'b', 'a', true), null);
+    assert.equal(reorder(keys, 'a', 'a', true), null);
+    assert.equal(reorder(keys, 'a', 'zz', true), null);
 });
 
 test('arrow keys on the grip add a column towards the inline end, in both directions', () => {

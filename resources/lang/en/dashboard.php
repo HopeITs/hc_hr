@@ -125,8 +125,8 @@ return [
 
     // Customising the dashboard (resources/js/dashboard/home-screen.js). :tile is a tile's name.
     'home' => [
-        'lead' => 'Your own home screen. Press and hold a tile, or choose Customise, to move, resize, pin or hide tiles.',
-        'edit-lead' => 'Drag a tile to move it, or select it and use the arrow keys. Drag the dark corner to resize it cell by cell. × hides a tile, the pin keeps it first.',
+        'lead' => 'Your own home screen. Drag a card to move it, pull its edges to resize it, hover and press × to hide it. Customise adds, pins and resets tiles.',
+        'edit-lead' => 'Drag a tile to move it, or select it and use the arrow keys. Pull an edge or the corner to resize it cell by cell. × hides a tile, the pin keeps it first, Add brings tiles back.',
         'customise' => 'Customise',
         'done' => 'Done',
         'reset' => 'Reset',
@@ -145,13 +145,15 @@ return [
             'analog' => 'Analogue',
         ],
         'resize' => 'Resize :tile, now :size',
-        'resize-hint' => 'Drag to resize, cell by cell. Arrow keys work too.',
+        'resize-hint' => 'Pull to resize, cell by cell. While customising, arrow keys work too.',
         'size' => ':cols by :rows cells',
         'tile' => ':tile, :size, position :n of :total',
-        'tile-hint' => 'Arrow keys move this tile earlier or later. Home and End move it to the start or the end.',
+        'tile-hint' => 'Drag this tile to move it, or use the arrow keys to move it earlier or later. Home and End move it to the start or the end.',
         'moved' => ':tile moved to position :n of :total.',
         'resized' => ':tile is now :size.',
         'hidden' => ':tile hidden. Add brings it back.',
+        'undo-hidden' => ':tile is hidden.',
+        'undo' => 'Undo',
         'added' => ':tile added.',
         'pinned' => ':tile pinned first.',
         'unpinned' => ':tile no longer pinned.',

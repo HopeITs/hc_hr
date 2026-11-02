@@ -62,9 +62,9 @@
     container: tile / size;
 }
 
-/* On a touch screen a long press on a tile starts customising, so it must not
-   also select text or open the phone's link preview. With a mouse, text in a
-   card stays selectable (moving the pointer cancels the long press). */
+/* On a touch screen holding a tile picks it up, so the hold must not also
+   select text or open the phone's link preview. With a mouse, text in a card
+   stays selectable until the pointer travels far enough to carry the tile. */
 @media (pointer: coarse) {
     .hc-tile {
         -webkit-user-select: none;
@@ -223,13 +223,51 @@
     width: 22px;
 }
 
-/* ---------- customising: a short wiggle, edit controls, links do not open ---------- */
+/* ---------- moving: a tile is carried straight from rest ---------- */
+/* With a mouse a tile can be picked up anywhere but its links, buttons and fields. */
+@media (hover: hover) and (pointer: fine) {
+    .hc-grid:not(.editing) > .hc-tile:not(.pinned) {
+        cursor: grab;
+    }
+
+    .hc-grid > .hc-tile :is(a, button, select, label) {
+        cursor: pointer;
+    }
+
+    .hc-grid > .hc-tile :is(input, textarea, [contenteditable]) {
+        cursor: text;
+    }
+}
+
+/* The carried tile floats above the rest; the script moves and scales it. */
+.hc-grid > .hc-tile.carried {
+    z-index: 30;
+    transition: none !important;
+    pointer-events: none;
+}
+
+.hc-tile.carried > :is(.hc-tile-body, .hc-tile-line) {
+    box-shadow:
+        0 0 0 1.5px color-mix(in srgb, var(--color-ink) 45%, transparent),
+        0 30px 60px -24px color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+
+.hc-grid.moving .hc-app:hover .hc-appicon {
+    transform: none;
+}
+
+html.hc-moving-doc,
+html.hc-moving-doc * {
+    cursor: grabbing !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+/* ---------- customising: guide cells, dashed edges, links do not open ---------- */
 .hc-grid.editing .hc-tile {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-    will-change: transform;
-    backface-visibility: hidden;
 }
 
 .hc-grid.editing .hc-tile:not(.pinned) {
@@ -240,71 +278,20 @@
     pointer-events: none;
 }
 
+/* Every tile's edge, dashed, like the guide cells behind it (a pinned one is solid ink). */
+.hc-grid.editing > .hc-tile:not(.pinned, .carried) > :is(.hc-tile-body, .hc-tile-line, .hc-wmini) {
+    outline: 1px dashed color-mix(in srgb, var(--color-ink) 30%, transparent);
+    outline-offset: 3px;
+}
+
 .hc-grid.editing .hc-tile.pinned .hc-tile-body {
     outline: 2px solid var(--color-ink);
     outline-offset: 2px;
 }
 
-.hc-grid.wiggle .hc-tile:not(.pinned) {
-    animation: hc-wiggle 0.34s ease-in-out 3;
-}
-
-.hc-grid.wiggle .hc-tile:nth-child(2n):not(.pinned) {
-    animation-delay: 0.05s;
-}
-
-.hc-grid.wiggle .hc-tile:nth-child(3n):not(.pinned) {
-    animation-duration: 0.38s;
-}
-
-/* Starts and ends at rest, so stopping never snaps. Big cards turn less. */
-@keyframes hc-wiggle {
-    0%,
-    100% {
-        transform: rotate(0);
-    }
-
-    25% {
-        transform: rotate(-0.6deg);
-    }
-
-    75% {
-        transform: rotate(0.6deg);
-    }
-}
-
-.hc-grid.dragging .hc-tile {
-    animation: none !important;
-}
-
-.hc-grid.dragging .hc-app:hover .hc-appicon {
-    transform: none;
-}
-
-.hc-tile-ghost {
-    opacity: 0.3;
-}
-
-.hc-tile-chosen .hc-tile-body {
-    box-shadow: 0 14px 34px rgb(65 64 66 / 0.28);
-}
-
-/* The tile under the pointer (SortableJS's own drag image). */
-.hc-tile-drag {
-    animation: none !important;
-    opacity: 0.95 !important;
-    pointer-events: none;
-    transition: none !important;
-}
-
-.hc-tile-drag .hc-tile-body {
-    box-shadow: 0 18px 40px rgb(65 64 66 / 0.32);
-}
-
-/* Edit controls: 32px to the eye, 44px to the finger (and 44px to the eye on a
+/* Tile controls: 32px to the eye, 44px to the finger (and 44px to the eye on a
    touch screen). Hide sits outside the top start corner (like a phone); pin,
-   look and resize inside the tile, so they never touch a neighbour's. */
-/* On the tile, so SortableJS's drag image (a copy of the tile in <body>) has them too. */
+   look and the keyboard grip inside the tile, so they never touch a neighbour's. */
 .hc-tile {
     --hc-ctl: 32px;
     --hc-ctl-out: -10px; /* how far hide sits outside the corner */
@@ -359,6 +346,34 @@
 .is-app .hc-t-remove {
     top: -6px;
     inset-inline-start: max(-6px, calc(50% - 44px));
+}
+
+/* Hide: at rest it shows on hover (or keyboard focus) with a mouse, never on a
+   phone or on a closed tile (Customise has it there); always while
+   customising; never mid-move. */
+.hc-grid:not(.editing) .hc-t-remove {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hc-grid:not(.editing) > .hc-tile:not(.closed):is(:hover, :focus-within) > .hc-t-remove {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.hc-grid:not(.editing) > .hc-tile.closed > .hc-t-remove,
+.hc-grid.moving .hc-tbtn,
+.hc-grid.moving .hc-grip {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .hc-grid:not(.editing) .hc-t-remove {
+        display: none;
+    }
 }
 
 .hc-t-pin,
@@ -429,11 +444,10 @@
 /* "2×3" while resizing, centred on the tile. */
 .hc-sizebadge {
     position: absolute;
-    inset: 0;
-    z-index: 4;
-    width: fit-content;
-    height: fit-content;
-    margin: auto;
+    z-index: 10;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    translate: -50% -50%;
     padding: 6px 14px;
     border-radius: var(--radius-round);
     background: var(--color-ink);
@@ -441,7 +455,162 @@
     color: var(--color-on-ink);
     font-size: 1.125rem;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
     pointer-events: none;
+}
+
+/* inset-inline-start is the right edge in Arabic: move back the other way. */
+[dir="rtl"] .hc-sizebadge {
+    translate: 50% -50%;
+}
+
+/* ---------- resize: pull any edge, or the corner ---------- */
+/* Invisible at rest until the tile is hovered with a mouse; always out while
+   customising and while resizing. Ink on hover, never red (red is reserved). */
+.hc-rz {
+    position: absolute;
+    z-index: 9;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.hc-rz::after {
+    content: "";
+    position: absolute;
+    border-radius: var(--radius-round);
+    background: var(--color-ink-3);
+    transition: background 0.15s;
+}
+
+.hc-rz:hover::after {
+    background: var(--color-ink);
+}
+
+.hc-rz-end,
+.hc-rz-start {
+    inset-block: 24px;
+    width: 14px;
+    cursor: ew-resize;
+}
+
+.hc-rz-end {
+    inset-inline-end: -7px;
+}
+
+.hc-rz-start {
+    inset-inline-start: -7px;
+}
+
+.hc-rz-end::after,
+.hc-rz-start::after {
+    inset-block: calc(50% - 16px);
+    inset-inline-start: 5px;
+    width: 4px;
+}
+
+.hc-rz-top,
+.hc-rz-bottom {
+    inset-inline: 32px;
+    height: 14px;
+    cursor: ns-resize;
+}
+
+.hc-rz-top {
+    inset-block-start: -7px;
+}
+
+.hc-rz-bottom {
+    inset-block-end: -7px;
+}
+
+.hc-rz-top::after,
+.hc-rz-bottom::after {
+    inset-inline: calc(50% - 16px);
+    inset-block-start: 5px;
+    height: 4px;
+}
+
+.hc-rz-corner {
+    inset-block-end: -4px;
+    inset-inline-end: -4px;
+    width: 24px;
+    height: 24px;
+    cursor: nwse-resize;
+}
+
+[dir="rtl"] .hc-rz-corner {
+    cursor: nesw-resize;
+}
+
+.hc-rz-corner::after {
+    inset-block-end: 8px;
+    inset-inline-end: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 0;
+    border-block-end: 2.5px solid var(--color-ink-3);
+    border-inline-end: 2.5px solid var(--color-ink-3);
+    border-end-end-radius: 6px;
+    background: none;
+}
+
+.hc-rz-corner:hover::after {
+    border-color: var(--color-ink);
+    background: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hc-grid > .hc-tile:hover > .hc-rz {
+        opacity: 1;
+    }
+}
+
+.hc-grid.editing > .hc-tile > .hc-rz,
+.hc-tile.resizing > .hc-rz {
+    opacity: 1;
+}
+
+/* Not on a tile made small or closed at rest, never mid-move, never on a phone. */
+.hc-grid:not(.editing) > .hc-tile:is(.mini, .closed):not(.resizing) > .hc-rz,
+.hc-grid.moving .hc-rz {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .hc-rz {
+        display: none;
+    }
+}
+
+html.hc-resizing-doc,
+html.hc-resizing-doc * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+html.hc-resizing-doc:is([data-resize-edge="end"], [data-resize-edge="start"]),
+html.hc-resizing-doc:is([data-resize-edge="end"], [data-resize-edge="start"]) * {
+    cursor: ew-resize !important;
+}
+
+html.hc-resizing-doc:is([data-resize-edge="top"], [data-resize-edge="bottom"]),
+html.hc-resizing-doc:is([data-resize-edge="top"], [data-resize-edge="bottom"]) * {
+    cursor: ns-resize !important;
+}
+
+html.hc-resizing-doc[data-resize-edge="corner"],
+html.hc-resizing-doc[data-resize-edge="corner"] * {
+    cursor: nwse-resize !important;
+}
+
+html[dir="rtl"].hc-resizing-doc[data-resize-edge="corner"],
+html[dir="rtl"].hc-resizing-doc[data-resize-edge="corner"] * {
+    cursor: nesw-resize !important;
 }
 
 .hc-tile.resizing {
@@ -452,6 +621,81 @@
     outline: 2px solid var(--color-ink);
     outline-offset: 3px;
     box-shadow: var(--shadow);
+}
+
+/* ---------- Undo: a just-hidden tile can come back for a few seconds ---------- */
+.hc-undo {
+    position: fixed;
+    z-index: 60;
+    inset-block-end: calc(20px + env(safe-area-inset-bottom, 0px));
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 32px);
+    padding-block: 8px;
+    padding-inline: 18px 8px;
+    border-radius: var(--radius-round);
+    background: var(--color-ink);
+    box-shadow: var(--shadow);
+    color: var(--color-on-ink);
+    font-size: var(--text-small);
+    font-weight: 700;
+}
+
+[dir="rtl"] .hc-undo {
+    translate: 50% 0;
+}
+
+.hc-undo-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* On the ink pill the outline button is a card-coloured chip. */
+.hc-undo .hc-btn {
+    flex: none;
+    border-color: transparent;
+    background: var(--color-card);
+    color: var(--color-ink);
+}
+
+.hc-undo .hc-btn:focus-visible,
+.hc-undo-close:focus-visible {
+    outline-color: var(--color-on-ink);
+}
+
+.hc-undo-close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-round);
+    background: transparent;
+    color: var(--color-on-ink);
+    cursor: pointer;
+}
+
+.hc-undo-close:hover {
+    background: color-mix(in srgb, var(--color-on-ink) 14%, transparent);
+}
+
+.hc-undo-close > svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Phones: above the bottom bar, where the toasts sit (app.css). */
+@media (max-width: 47.99rem) {
+    body:has(.app-bottom-nav) .hc-undo {
+        inset-block-end: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 /* ---------- Add: a bottom sheet on phones, a panel on larger screens ---------- */
@@ -566,12 +810,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hc-grid.wiggle .hc-tile,
-    .hc-grid .hc-tile {
-        animation: none !important;
-    }
-
-    .hc-appicon {
+    .hc-appicon,
+    .hc-rz,
+    .hc-rz::after,
+    .hc-grid .hc-t-remove {
         transition: none;
     }
 }
