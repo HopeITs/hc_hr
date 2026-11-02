@@ -16,6 +16,9 @@
         data-collapse-toggle="{{ $id }}"
         aria-expanded="{{ $ariaExpanded }}"
         title="{{ $title }}"
+        {{-- In the icon rail the list cannot show, so a click opens the sidebar
+             with this group expanded (after Flowbite's own toggle has run). --}}
+        x-on:click="if (sidebarCollapsed && !open) { $dispatch('sidebar-collapse-toggle'); setTimeout(() => window.FlowbiteInstances?.getInstance('Collapse', @js($id))?.expand()); }"
 
         class="nav-press cursor-pointer
             group flex items-center w-full min-h-11 px-3 py-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
