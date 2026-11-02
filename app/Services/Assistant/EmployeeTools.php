@@ -7,19 +7,26 @@ use App\Enums\Currency;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\PayMode;
 use App\Enums\SalaryPer;
+use App\Models\Checklist;
 use App\Models\Contract;
 use App\Models\ContractPayTier;
 use App\Models\Employee;
 use App\Models\Folder;
+use App\Models\Holiday;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Models\News;
 use App\Models\User;
 use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
+use App\Services\WorkInbox;
 use App\Support\Leave\LeaveQuote;
+use App\Support\Navigation;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
@@ -29,11 +36,13 @@ use Throwable;
  *
  * Whose record is read always comes from the signed-in user, never from the
  * model, so no wording of a question can point a tool at a colleague. The
- * only tool with parameters, draft_leave_request, takes ids the model read
- * from get_leave_options, and the page's own form checks each one against
- * the user's record again (a balance of their latest active contract, an
+ * parameters a tool takes are filters and sizes, clamped here; the one that
+ * takes ids, draft_leave_request, takes those the model read from
+ * get_leave_options, and the page's own form checks each one against the
+ * user's record again (a balance of their latest active contract, an
  * alternative from their allowed list). A tool the user may not use is not
  * declared at all, and call() refuses it again in case the model names it.
+ * snapshot() is the same record, in prose, for the system prompt.
  */
 class EmployeeTools
 {
@@ -43,8 +52,13 @@ class EmployeeTools
     private const DESCRIPTIONS = [
         'get_my_profile' => "The employee's own name, positions (title, department, center, city), contract start and end dates and work schedule.",
         'get_my_leave_balances' => "The employee's own leave balances per leave type: entitled, used, pending and remaining.",
-        'get_my_leave_requests' => "The employee's own 15 most recent leave requests: type, start, end, duration and status.",
+        'get_my_leave_requests' => "The employee's own most recent leave requests (15 by default, up to 30): type, start, end, duration and status. Can be filtered by status.",
         'get_my_salary' => "The employee's own pay on their current contract: amount (or pay tiers), currency and period.",
+        'get_my_items' => 'The items handed to the employee (laptop, phone, badge, keys…) as the My items page lists them: item, brand, model, serial, status (on hold, delivered, returned) and dates.',
+        'get_holidays' => "The public holidays and one-off grants that apply to the employee's own project and governorate in the coming days (default 60, up to 366): name, first and last day, length. The birthday holiday is personal and not included.",
+        'get_news' => 'The latest published news of the organisation, newest first: title, date, who it is for and a short excerpt.',
+        'get_app_pages' => 'The pages of this app the employee may open, with their menu area and link, plus the "New …" actions they may start. Use it to answer "where do I…", "how do I open…" and to give a link.',
+        'get_my_inbox' => 'What waits on the employee in their work inbox right now (leave requests to decide or review, items to hand out or take back, profile changes to approve): counts and the first rows, as the inbox page shows them.',
         'get_team_absences' => 'Who is away on APPROVED leave on a day or between two dates, among the people this user may see on the team calendar (the same people and the same details): name, position, dates and leave type. Pending or refused requests are never included, and nothing else about anyone (no reason, balance or pay).',
         'get_my_files' => 'Names, categories and dates of the files in the employee\'s own record and in the archive folders shared with them. No file contents.',
         'get_leave_options' => 'What the employee can request a new leave from: their own leave balances (id, leave type, remaining, whether it can be taken by the hour) and the colleagues they may name as their alternative while away (optional). Call it before drafting a leave request.',
@@ -57,6 +71,25 @@ class EmployeeTools
      * employee's own record before anything is read or drafted.
      */
     private const PARAMETERS = [
+        'get_my_leave_requests' => [
+            'type' => 'object',
+            'properties' => [
+                'status' => ['type' => 'string', 'enum' => ['pending', 'accepted', 'refused', 'all'], 'description' => 'Only requests with this status. Default: all.'],
+                'limit' => ['type' => 'integer', 'description' => 'How many of the most recent requests to return, 1 to 30. Default: 15.'],
+            ],
+        ],
+        'get_holidays' => [
+            'type' => 'object',
+            'properties' => [
+                'days' => ['type' => 'integer', 'description' => 'How many days ahead to look, from today, 1 to 366. Default: 60.'],
+            ],
+        ],
+        'get_news' => [
+            'type' => 'object',
+            'properties' => [
+                'limit' => ['type' => 'integer', 'description' => 'How many of the latest news items to return, 1 to 10. Default: 5.'],
+            ],
+        ],
         'get_team_absences' => [
             'type' => 'object',
             'properties' => [
@@ -84,17 +117,28 @@ class EmployeeTools
     // The longest list of alternatives sent to the model.
     private const MAX_ALTERNATIVES = 60;
 
+    // Rows of the My items page and of the inbox sent to the model.
+    private const MAX_ITEMS = 50;
+
+    private const MAX_INBOX_ROWS = 10;
+
+    // The snapshot sits in every system prompt, so it stays short.
+    private const SNAPSHOT_CHARS = 1200;
+
     public function __construct(
         private ?LeaveRequestDrafter $drafter = null,
         private ?DraftRegistry $drafts = null,
+        private ?HrTools $hr = null,
     ) {
         $this->drafter ??= app(LeaveRequestDrafter::class);
         $this->drafts ??= app(DraftRegistry::class);
+        $this->hr ??= app(HrTools::class);
     }
 
     /**
-     * The employee's own tools, then those of the records this user may
-     * create from the chat (DraftRegistry), each behind its own permission.
+     * The employee's own tools, then the HR/manager ones (HrTools) and those
+     * of the records this user may create from the chat (DraftRegistry),
+     * each behind its own permission.
      *
      * @return list<array{name: string, description: string, parameters?: array<string, mixed>}>
      */
@@ -112,7 +156,7 @@ class EmployeeTools
             }
         }
 
-        return [...$declarations, ...$this->drafts->declarations($user)];
+        return [...$declarations, ...$this->hr->declarations($user), ...$this->drafts->declarations($user)];
     }
 
     /**
@@ -123,6 +167,11 @@ class EmployeeTools
     {
         if ($name === DraftRegistry::CHOICE_TOOL) {
             return $this->drafts->offerChoice($user, $args);
+        }
+
+        // Scoped by the pages that show the same data; HrTools refuses it again itself.
+        if (in_array($name, HrTools::TOOLS, true)) {
+            return $this->hr->call($user, $name, $args);
         }
 
         if (! in_array($name, $this->available($user), true) && $draft = $this->drafts->owner($user, $name)) {
@@ -140,13 +189,85 @@ class EmployeeTools
         return match ($name) {
             'get_my_profile' => $this->profile($employee),
             'get_my_leave_balances' => $this->leaveBalances($employee),
-            'get_my_leave_requests' => $this->leaveRequests($employee),
+            'get_my_leave_requests' => $this->leaveRequests($employee, $args),
             'get_my_salary' => $this->salary($employee),
             'get_my_files' => $this->files($user, $employee),
+            'get_my_items' => $this->items($employee),
+            'get_holidays' => $this->holidays($employee, $args),
+            'get_news' => $this->news($args),
+            'get_app_pages' => $this->appPages($user),
+            'get_my_inbox' => $this->inbox($user),
             'get_team_absences' => $this->teamAbsences($user, $args),
             'get_leave_options' => $this->leaveOptions($employee),
             'draft_leave_request' => $this->draftLeaveRequest($user, $args),
+            default => ['error' => "The tool {$name} is not available to this employee."],
         };
+    }
+
+    /**
+     * The signed-in employee's own record as a short plain-text block for the
+     * system prompt, read now: what the model would otherwise fetch with a
+     * tool round for the most common questions (who am I, my contract, my
+     * leave left). The same readers as the tools, so it says the same thing.
+     * Never pay: that stays behind get_my_salary and config('assistant.share_salary').
+     */
+    public function snapshot(User $user): string
+    {
+        $employee = $user->profile;
+
+        if (! $employee) {
+            return '';
+        }
+
+        $profile = $this->profile($employee);
+        $lines = ['Name: '.$profile['name']];
+
+        if (filled($profile['city'])) {
+            $lines[] = 'City: '.$profile['city'];
+        }
+
+        $contract = $profile['active_contracts'][0] ?? null;
+
+        if ($contract === null) {
+            $lines[] = 'Current contract: none active.';
+        } else {
+            $lines[] = 'Position: '.implode(', ', array_filter([
+                $contract['position'] ?? null,
+                isset($contract['department']) ? 'department '.$contract['department'] : null,
+                isset($contract['center']) ? 'center '.$contract['center'] : null,
+                isset($contract['city']) ? 'city '.$contract['city'] : null,
+            ]));
+            $lines[] = 'Contract: '.implode(', ', array_filter([
+                $contract['contract_type'] ?? null,
+                isset($contract['start_date']) ? 'from '.$contract['start_date'] : null,
+                isset($contract['end_date']) ? 'to '.$contract['end_date'] : null,
+            ]));
+            $schedule = array_filter([
+                $contract['work_days'] ?? null,
+                $contract['work_hours'] ?? null,
+                isset($contract['second_shift']) ? 'second shift '.$contract['second_shift'] : null,
+                isset($contract['weekly_hours']) ? $contract['weekly_hours'].' h/week' : null,
+            ]);
+
+            if ($schedule !== []) {
+                $lines[] = 'Work schedule: '.implode(', ', $schedule);
+            }
+
+            if (count($profile['active_contracts']) > 1) {
+                $lines[] = 'Other active contracts: '.(count($profile['active_contracts']) - 1).' (get_my_profile lists them).';
+            }
+        }
+
+        if ($user->hasActivePermission('leaves.view-own')) {
+            $balances = $this->leaveBalances($employee)['balances'];
+            $lines[] = $balances === [] ? 'Leave balances: none on the current contract.' : 'Leave balances:';
+
+            foreach ($balances as $balance) {
+                $lines[] = sprintf('- %s: remaining %s of %s (pending %s)', $balance['leave_type'], $balance['remaining'], $balance['entitled'], $balance['pending_approval']);
+            }
+        }
+
+        return Str::limit(implode("\n", $lines), self::SNAPSHOT_CHARS, "\n…");
     }
 
     /**
@@ -213,6 +334,15 @@ class EmployeeTools
             $canSeeLeaves ? 'get_my_leave_requests' : null,
             config('assistant.share_salary') ? 'get_my_salary' : null,
             'get_my_files',
+            // The My items page's own gate (route checklist-items.index).
+            $user->hasActivePermission('checklists.view-own') ? 'get_my_items' : null,
+            // Every signed-in employee sees their holidays (dashboard tile, team calendar).
+            'get_holidays',
+            // The news page's own gate (route news.index).
+            $user->hasActivePermission('news.view') ? 'get_news' : null,
+            'get_app_pages',
+            // The inbox menu item shows for the same roles (Navigation::inbox).
+            app(WorkInbox::class)->hasSources($user) ? 'get_my_inbox' : null,
             // The team calendar's own gate (route team.calendar).
             $canSeeLeaves ? 'get_team_absences' : null,
             $canRequestLeave ? 'get_leave_options' : null,
@@ -264,14 +394,23 @@ class EmployeeTools
         ])->values()->all()];
     }
 
-    private function leaveRequests(Employee $employee): array
+    private function leaveRequests(Employee $employee, array $args = []): array
     {
+        $status = match (strtolower(trim((string) ($args['status'] ?? 'all')))) {
+            'pending' => LeaveRequestStatus::Pending,
+            'accepted', 'approved' => LeaveRequestStatus::Accepted,
+            'refused', 'rejected' => LeaveRequestStatus::Rejected,
+            default => null,
+        };
+        $limit = min(max((int) ($args['limit'] ?? 15) ?: 15, 1), 30);
+
         // Same ownership rule as MyLeaveRequestModule: through the balance's contract.
         $requests = LeaveRequest::query()
             ->whereHas('leaveBalance.contract', fn (Builder $query) => $query->where('employee_id', $employee->id))
+            ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
             ->with(['leaveBalance.leaveType', 'leaveBalance.contract.position.center'])
             ->latest()
-            ->limit(15)
+            ->limit($limit)
             ->get();
 
         return ['requests' => $requests->map(fn (LeaveRequest $request) => [
@@ -408,6 +547,188 @@ class EmployeeTools
         }
 
         return $result;
+    }
+
+    /** The same rows and the same status words as the My items page (AllItems). */
+    private function items(Employee $employee): array
+    {
+        $items = Checklist::query()
+            ->with('item')
+            ->where('employee_id', $employee->id)
+            ->latest('updated_at')
+            ->limit(self::MAX_ITEMS + 1)
+            ->get();
+
+        return [
+            'items' => $items->take(self::MAX_ITEMS)->map(fn (Checklist $row) => array_filter([
+                'item' => $row->item?->name,
+                'brand' => $row->brand,
+                'model' => $row->model,
+                'serial' => $row->serial,
+                'status' => match (true) {
+                    $row->returned_status === 'received' => 'returned',
+                    $row->delivered_status === 'delivered' => 'delivered',
+                    default => 'on hold',
+                },
+                'delivered_at' => $row->delivered_at?->format('Y-m-d'),
+                'returned_at' => $row->returned_at?->format('Y-m-d'),
+            ], fn ($value) => filled($value)))->values()->all(),
+            'truncated' => $items->count() > self::MAX_ITEMS ?: null,
+            'note' => $items->isEmpty() ? 'No item is recorded for the employee.' : null,
+        ];
+    }
+
+    /**
+     * The holidays of the employee's own project and governorate, on the
+     * reader the dashboard tile and the leave quote use (LeaveRequestPricing):
+     * national ones for everyone, project ones for their program × city.
+     */
+    private function holidays(Employee $employee, array $args): array
+    {
+        $days = min(max((int) ($args['days'] ?? 60) ?: 60, 1), 366);
+        $position = $employee->latestActiveContract()?->position;
+        $cityId = $position?->center?->city_id ?? $position?->city_id;
+        $from = CarbonImmutable::today();
+        $to = $from->addDays($days);
+
+        $byDate = app(LeaveRequestPricing::class)->holidaysOn(
+            $position?->program_id ? (int) $position->program_id : null,
+            $cityId !== null ? (int) $cityId : null,
+            $from,
+            $to,
+        );
+
+        // One line per holiday, with the run of dates it covers in the window.
+        $holidays = [];
+
+        foreach ($byDate as $date => $rows) {
+            /** @var Holiday $holiday */
+            foreach ($rows as $holiday) {
+                $holidays[$holiday->id] ??= [
+                    'name' => (string) $holiday->name,
+                    'kind' => $holiday->kind,
+                    'from' => $date,
+                    'to' => $date,
+                    'days' => 0,
+                ];
+                $holidays[$holiday->id]['to'] = $date;
+                $holidays[$holiday->id]['days']++;
+            }
+        }
+
+        $holidays = collect($holidays)->sortBy('from')->values()->all();
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'holidays' => $holidays,
+            'note' => $holidays === [] ? 'No holiday in this window for the employee.' : null,
+        ];
+    }
+
+    /**
+     * What the news page (news.view) lists for anyone: published, not past
+     * its display date, newest event first.
+     */
+    private function news(array $args): array
+    {
+        $limit = min(max((int) ($args['limit'] ?? 5) ?: 5, 1), 10);
+
+        $news = News::query()
+            ->with('newsable')
+            ->whereNotNull('published_at')
+            ->where(fn (Builder $query) => $query->whereNull('display_until')->orWhere('display_until', '>=', now()))
+            ->orderByDesc('event_date')
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'news' => $news->map(fn (News $item) => array_filter([
+                'title' => $item->localizedTitle(),
+                'date' => $item->event_date?->format('Y-m-d'),
+                'for' => $item->newsable_name,
+                // At most 300 characters, ellipsis included.
+                'excerpt' => Str::limit($this->plain($item->localizedDescription()), 299, '…'),
+            ], fn ($value) => filled($value)))->values()->all(),
+            'note' => $news->isEmpty() ? 'No published news.' : null,
+        ];
+    }
+
+    /**
+     * The active role's menu (Navigation::pages) and New actions, each with
+     * its link. The menu shows nothing the role may not open, and every page
+     * still checks its own middleware on the visit.
+     */
+    private function appPages(User $user): array
+    {
+        $deliverResponsible = Navigation::isDeliverResponsible($user);
+
+        $pages = collect(Navigation::pages($user, $deliverResponsible))
+            ->map(fn (array $page) => array_filter([
+                'label' => $page['label'],
+                'area' => $page['area'] ?: null,
+                'url' => $this->url($page['route']),
+            ]))
+            ->filter(fn (array $page) => isset($page['url']))
+            ->values()
+            ->all();
+
+        $actions = collect(Navigation::newActions($user))
+            ->map(fn (array $action) => array_filter([
+                'label' => $action['label'],
+                'url' => $this->url($action['route'], $action['params']),
+            ]))
+            ->filter(fn (array $action) => isset($action['url']))
+            ->values()
+            ->all();
+
+        return ['pages' => $pages, 'new_actions' => $actions];
+    }
+
+    /**
+     * The inbox page's own rows and counts (WorkInbox), at the level the page
+     * shows them: who, what and since when; never a reason, pay or id number.
+     */
+    private function inbox(User $user): array
+    {
+        $snapshot = app(WorkInbox::class)->snapshot($user);
+        $locale = app()->getLocale();
+
+        $rows = $snapshot['rows']->take(self::MAX_INBOX_ROWS)->map(function (array $row) use ($locale) {
+            $subject = $row['subject'];
+            $who = $subject instanceof Employee ? $subject->nameForLocale($locale) : (string) ($subject?->name ?? '');
+
+            return array_filter([
+                'action' => __("inbox.action.{$row['action']}"),
+                'who' => $who,
+                'former_employee' => ($row['former'] ?? false) ?: null,
+                'what' => $row['source'] === 'leave' ? $row['leave_type'] : $row['item'],
+                'from' => $row['source'] === 'leave' ? $row['start_at']?->format($row['type'] === 'hour' ? 'Y-m-d H:i' : 'Y-m-d') : null,
+                'to' => $row['source'] === 'leave' ? $row['end_at']?->format($row['type'] === 'hour' ? 'Y-m-d H:i' : 'Y-m-d') : null,
+                'duration' => $row['source'] === 'leave' ? $this->plain($row['duration']) : null,
+                'city' => $row['city'] ?? null,
+                'waiting_since' => $row['waiting_since']?->format('Y-m-d'),
+                'urgent' => ($row['urgent'] ?? false) ?: null,
+            ], fn ($value) => filled($value));
+        })->values()->all();
+
+        return [
+            'counts' => $snapshot['counts'],
+            'rows' => $rows,
+            'truncated' => $snapshot['counts']['all'] > count($rows) ?: null,
+            'url' => $this->url('inbox'),
+            'note' => $rows === [] ? 'Nothing is waiting on the employee.' : null,
+        ];
+    }
+
+    private function url(string $route, array $params = []): ?string
+    {
+        try {
+            return route($route, $params);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function hours(?string $from, ?string $to): ?string

@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\Assistant\EmployeeTools;
 use App\Services\Assistant\HrTools;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesContractFixtures;
@@ -118,6 +119,22 @@ class HrToolsTest extends TestCase
                 $tools->call($staff, $name, ['query' => 'Worker', 'employee_id' => $this->alpWorker->id]),
             );
         }
+    }
+
+    public function test_the_chat_offers_the_hr_tools_through_the_employee_tools(): void
+    {
+        $this->makeContractFor($this->alpWorker);
+        $hr = $this->makeUser($this->alp, 'HR-ALP', self::HR_PERMISSIONS);
+        $staff = $this->makeUser($this->alp, 'assistant-test-staff', ['leaves.view-own']);
+        $tools = app(EmployeeTools::class);
+
+        $declared = array_column($tools->declarations($hr), 'name');
+        $this->assertSame([], array_diff(HrTools::TOOLS, $declared));
+        $this->assertSame([], array_intersect(HrTools::TOOLS, array_column($tools->declarations($staff), 'name')));
+
+        $found = $tools->call($hr, 'find_employees', ['query' => 'Aleppo']);
+        $this->assertSame([$this->alpWorker->id], array_column($found['employees'], 'id'));
+        $this->assertArrayHasKey('error', $tools->call($staff, 'find_employees', ['query' => 'Aleppo']));
     }
 
     public function test_tools_are_declared_per_permission(): void
