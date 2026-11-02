@@ -287,7 +287,7 @@ class Chat extends Component
                 ->latest('updated_at')->latest('id')
                 ->limit(AssistantConversation::KEEP)
                 ->get(['id', 'title', 'updated_at']),
-            'currentId' => session(self::sessionKey()),
+            'currentId' => self::current()?->id,
             'suggestions' => array_values((array) __('assistant.suggestions')),
             'usesPuter' => app(Assistant::class)->usesBrowser(),
         ])->title(__('assistant.title'));
@@ -385,7 +385,12 @@ class Chat extends Component
     {
         $id = session(self::sessionKey());
 
-        return $id ? AssistantConversation::ownedBy(auth()->id())->find($id) : null;
+        // Before chats were saved this key held the messages themselves.
+        if (! is_int($id) && ! ctype_digit((string) (is_scalar($id) ? $id : ''))) {
+            return null;
+        }
+
+        return AssistantConversation::ownedBy(auth()->id())->find((int) $id);
     }
 
     /**

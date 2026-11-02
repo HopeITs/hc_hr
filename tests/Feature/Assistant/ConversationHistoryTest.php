@@ -50,6 +50,19 @@ class ConversationHistoryTest extends TestCase
         $this->assertSame('Answer to How much leave do I have?', $conversation->messages[1]['text']);
     }
 
+    public function test_a_conversation_kept_in_the_session_the_old_way_starts_a_new_chat(): void
+    {
+        $user = $this->employee();
+        $this->actingAs($user);
+        session()->put(Chat::sessionKey(), [['role' => 'user', 'text' => 'Old style']]);
+
+        Livewire::actingAs($user)->test(Chat::class)
+            ->assertOk()
+            ->set('question', 'After the upgrade')->call('send');
+
+        $this->assertSame('After the upgrade', AssistantConversation::sole()->title);
+    }
+
     public function test_messages_are_encrypted_at_rest(): void
     {
         Livewire::actingAs($this->employee())->test(Chat::class)->set('question', 'What is my salary?')->call('send');
