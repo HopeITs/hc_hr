@@ -12,6 +12,7 @@ use App\Models\LeaveType;
 use App\Models\PolicyDocument;
 use App\Models\User;
 use App\Services\Assistant\Assistant;
+use App\Services\Assistant\ChatModel;
 use App\Services\Assistant\EmployeeTools;
 use App\Services\Assistant\PolicyLibrary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,6 +69,46 @@ class AssistantTest extends TestCase
                 && $request['contents'] === [['role' => 'user', 'parts' => [['text' => 'How many leave days do I get?']]]]
                 && collect($request['tools'][0]['functionDeclarations'])->pluck('name')->contains('get_my_profile');
         });
+    }
+
+    public function test_the_employees_snapshot_goes_into_the_instruction_when_the_tools_provide_one(): void
+    {
+        $user = $this->employeeUser(['leaves.view-own']);
+
+        Http::fake([self::GEMINI => Http::sequence()->push($this->textTurn('Twelve days.'))]);
+
+        $assistant = new Assistant(app(ChatModel::class), $this->toolsWithSnapshot("Leave balances:\n- Annual: 12 of 21 left"));
+        $this->assertSame('Twelve days.', $assistant->reply($user, [], 'How much leave do I have?')->text);
+
+        Http::assertSent(function (Request $request) {
+            $system = $request['systemInstruction']['parts'][0]['text'];
+
+            return str_contains($system, 'Snapshot of the employee\'s own record (fetched just now, reliable)')
+                && str_contains($system, 'Annual: 12 of 21 left')
+                && str_contains($system, 'Answer from it directly when it holds the answer')
+                && str_contains($system, 'Test Person')
+                // The rules the snapshot must not loosen.
+                && str_contains($system, 'Never discuss, compare with or reveal anything about other employees')
+                && str_contains($system, 'must never say it was submitted, sent or approved');
+        });
+    }
+
+    public function test_the_instruction_has_no_snapshot_section_without_one_or_while_it_is_off(): void
+    {
+        $user = $this->employeeUser(['leaves.view-own']);
+
+        Http::fake([self::GEMINI => Http::sequence()->push($this->textTurn('A.'))->push($this->textTurn('B.'))]);
+
+        // The tools have nothing to say (no record behind the user).
+        (new Assistant(app(ChatModel::class), $this->toolsWithSnapshot('')))->reply($user, [], 'Hi');
+
+        // Switched off: the snapshot is not sent even when the tools have one.
+        config(['assistant.snapshot' => false]);
+        (new Assistant(app(ChatModel::class), $this->toolsWithSnapshot('Annual: 12 of 21 left')))->reply($user, [], 'Hi');
+
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn (Request $request) => str_contains($request['systemInstruction']['parts'][0]['text'], 'Snapshot of the employee')
+            || str_contains($request['systemInstruction']['parts'][0]['text'], '12 of 21'));
     }
 
     public function test_a_function_call_is_answered_and_fed_back_unchanged(): void
@@ -272,6 +313,23 @@ class AssistantTest extends TestCase
         Http::fake([self::GEMINI => Http::sequence()->push(['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => '']]]]]])]);
 
         $this->assertStringContainsString('الموارد البشرية', app(Assistant::class)->reply($user, [], 'ما هي سياسة الإجازات؟')->text);
+    }
+
+    /** The tools with a snapshot of the employee's record, whatever EmployeeTools itself writes. */
+    private function toolsWithSnapshot(string $snapshot): EmployeeTools
+    {
+        return new class($snapshot) extends EmployeeTools
+        {
+            public function __construct(private string $snapshot)
+            {
+                parent::__construct();
+            }
+
+            public function snapshot(User $user): string
+            {
+                return $this->snapshot;
+            }
+        };
     }
 
     private function employeeUser(array $permissions = []): User

@@ -75,10 +75,14 @@
             this.settle();
             if (relay) $wire.relayFailed(relay.id, 'signin');
         },
+        {{-- After an answer: show it, scroll to it and put the cursor back in the box. --}}
         settle() {
             if (this.signIn) return;
             this.pending = '';
-            this.$nextTick(() => requestAnimationFrame(() => this.scrollToEnd()));
+            this.$nextTick(() => requestAnimationFrame(() => {
+                this.scrollToEnd();
+                this.$el.querySelector('textarea')?.focus({ preventScroll: true });
+            }));
         },
         scrollToEnd(smooth = true) {
             this.$refs.end?.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });

@@ -12,11 +12,17 @@ return [
         'help' => 'Pick a question below or write your own.',
     ],
 
+    // Example prompts on the empty chat; the last one is meant for HR users
+    // but any employee may ask it (the assistant explains what it can see).
     'suggestions' => [
         'How much leave do I have left?',
+        'Who is on leave this week?',
+        'When is the next holiday?',
+        'What waits on me?',
         'What is the complaints policy?',
-        'Which files are shared with me?',
-        'How do I request sick leave?',
+        'Open the page to add a leave',
+        'When does my contract end?',
+        'Which contracts end in the next 60 days?',
     ],
 
     'question' => 'Your question',

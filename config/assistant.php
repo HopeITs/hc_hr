@@ -26,12 +26,24 @@ return [
     'enabled' => (bool) env('ASSISTANT_ENABLED', true),
 
     // Providers asked in this order; the first that answers is used for the
-    // whole reply. Gemini refuses requests from Syria ("User location is not
-    // supported"), so a host there needs at least one of the others.
-    'providers_order' => array_values(array_filter(array_map('trim', explode(',', (string) env('ASSISTANT_PROVIDERS', 'gemini,groq,openrouter,cerebras,mistral'))))),
+    // whole reply. Fastest first: Groq and Cerebras answer a round in about a
+    // second, while the Gemini free tier takes several and OpenRouter's free
+    // models queue, so a question with two tool rounds feels instant on the
+    // first two and slow on the rest. Gemini also refuses requests from
+    // Syria ("User location is not supported"), so a host there needs at
+    // least one of the others.
+    'providers_order' => array_values(array_filter(array_map('trim', explode(',', (string) env('ASSISTANT_PROVIDERS', 'groq,cerebras,gemini,openrouter,mistral'))))),
 
-    // Seconds one provider gets to answer one chat round before the next is tried.
-    'chat_timeout' => (int) env('ASSISTANT_CHAT_TIMEOUT', 25),
+    // Seconds one provider gets to answer one chat round before the next is
+    // tried. Short on purpose: a provider that has not answered in 20s is
+    // overloaded, and the next one usually answers in a few.
+    'chat_timeout' => (int) env('ASSISTANT_CHAT_TIMEOUT', 20),
+
+    // A compact block of the employee's own record (profile, contract dates,
+    // leave balances, pending requests) goes into the system instruction of
+    // every question, so the common ones are answered without a tool round.
+    // Off sends nothing but what the tools return when called.
+    'snapshot' => (bool) env('ASSISTANT_SNAPSHOT', true),
 
     // Seconds a failing provider is skipped by the following questions:
     // busy or unreachable (429, 5xx, timeout), and refused for this host or
