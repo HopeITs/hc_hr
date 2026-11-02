@@ -99,10 +99,18 @@
                 <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-soft text-ink-2" aria-hidden="true">
                     <x-icons.assistant class="size-4" />
                 </span>
-                <span class="inline-flex items-center gap-2 rounded-surface border border-line-soft bg-card px-4 py-2.5 text-small text-ink-2">
+                <span x-show="! signIn" class="inline-flex items-center gap-2 rounded-surface border border-line-soft bg-card px-4 py-2.5 text-small text-ink-2">
                     <span class="hc-spin" aria-hidden="true"></span>
                     {{ __('assistant.thinking') }}
                 </span>
+                {{-- Puter answers under the employee's own account: its sign-in popup needs a click. --}}
+                <div x-show="signIn" x-cloak class="min-w-0 flex-1 rounded-surface border border-ink bg-card px-4 py-3 text-small text-ink" data-testid="assistant-puter-signin">
+                    <p>{{ __('assistant.puter.signin-help') }}</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <x-button variant="primary" size="sm" x-on:click="signInAndContinue()">{{ __('assistant.puter.signin') }}</x-button>
+                        <x-button variant="quiet" size="sm" x-on:click="abandon()">{{ __('assistant.leave.cancel') }}</x-button>
+                    </div>
+                </div>
             </div>
         </div>
     </template>

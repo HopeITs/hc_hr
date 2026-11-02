@@ -23,7 +23,15 @@ return [
     'placeholder' => 'Type your question…',
     'hint' => 'Enter sends, Shift+Enter starts a new line.',
     'send' => 'Send',
-    'clear' => 'New conversation',
+    'clear' => 'New chat',
+    'history' => [
+        'title' => 'Earlier chats',
+        'empty' => 'No earlier chats yet.',
+        'current' => 'open now',
+        'untitled' => 'Chat',
+        'delete' => 'Delete chat',
+        'delete-confirm' => 'Delete this chat for good?',
+    ],
     'thinking' => 'Writing an answer…',
 
     'errors' => [
@@ -31,6 +39,15 @@ return [
         'busy' => 'The assistant is busy right now. Please try again in a minute.',
         'failed' => 'The assistant could not answer just now. Please try again in a moment.',
         'submit' => 'The request could not be sent just now. Please try again in a moment.',
+        'puter-signin' => 'You did not sign in to Puter, so the question was not sent. Try again and sign in.',
+        'puter-funds' => 'Your free Puter credit for this month is used up. Try again later or contact HR.',
+    ],
+
+    // Puter: a model asked from the employee's browser under their own Puter account.
+    'puter' => [
+        'signin-help' => 'To answer now the assistant needs you to sign in with a Puter account (free). What the assistant reads for you is sent to Puter.',
+        'signin' => 'Sign in to Puter',
+        'credit' => 'Powered by Puter',
     ],
 
     // The floating button and small chat panel on every page.

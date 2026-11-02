@@ -3,7 +3,9 @@
 namespace App\Livewire\Assistant;
 
 use App\Livewire\Concerns\WithFeedback;
+use App\Models\AssistantConversation;
 use App\Services\Assistant\Assistant;
+use App\Services\Assistant\AssistantReply;
 use App\Services\Assistant\GeminiException;
 use App\Services\Assistant\LeaveRequestSubmitter;
 use Illuminate\Support\Facades\Cache;
@@ -20,14 +22,16 @@ use Throwable;
  * small panel every authenticated page opens from the floating button
  * (<x-assistant.widget>). Both are this component, so both behave the same.
  *
- * The conversation lives in the session, not in component state: the panel
- * and the page read the same list, so "expand" (and back) continues it, and
- * nothing the browser sends can change an earlier turn. Every signed-in user
- * may ask; what the assistant may read is decided by the Assistant service.
+ * Conversations are saved (AssistantConversation, encrypted), and the session
+ * only says which one is current: the panel and the page show the same one,
+ * so "expand" (and back) continues it, and nothing the browser sends can
+ * change an earlier turn. "New chat" starts another and the earlier ones stay
+ * in the history. Every signed-in user may ask; what the assistant may read
+ * is decided by the Assistant service.
  *
- * Leave drafts: an answer may carry a leave proposal. It is kept in the
- * session next to that answer under a random id; the browser only ever sends
- * that id back, and LeaveRequestSubmitter re-checks and re-validates it.
+ * Leave drafts: an answer may carry a leave proposal. It is kept next to that
+ * answer under a random id; the browser only ever sends that id back, and
+ * LeaveRequestSubmitter re-checks and re-validates it.
  */
 class Chat extends Component
 {
@@ -52,7 +56,13 @@ class Chat extends Component
         $this->mode = $mode === 'panel' ? 'panel' : 'page';
     }
 
-    public function send(Assistant $assistant): void
+    /**
+     * Answers the question here, or, when no provider here can, starts a
+     * relay: the browser then asks Puter and reports back (relayStep).
+     *
+     * @return array{relay: array<string, mixed>}|null
+     */
+    public function send(Assistant $assistant): ?array
     {
         abort_unless($assistant->isAvailable(), 404);
 
@@ -72,46 +82,96 @@ class Chat extends Component
                 'minutes' => max(1, (int) ceil(RateLimiter::availableIn($key) / 60)),
             ]);
 
-            return;
+            return null;
         }
 
         RateLimiter::hit($key, 3600);
 
         $question = $this->question;
-        $messages = $this->messages();
+        $history = $this->history($this->messages());
+
+        if ($assistant->hasServerModel()) {
+            try {
+                $this->record($question, $assistant->reply(auth()->user(), $history, $question));
+
+                return null;
+            } catch (Throwable $e) {
+                report($e);
+
+                if (! $assistant->usesBrowser()) {
+                    $this->notice = $e instanceof GeminiException && $e->isRateLimited()
+                        ? __('assistant.errors.busy')
+                        : __('assistant.errors.failed');
+
+                    // The question stays in the box so it can be sent again.
+                    return null;
+                }
+            }
+        }
+
+        // No provider here could answer: the browser asks Puter instead.
+        [$state, $request] = $assistant->begin(auth()->user(), $history, $question);
+
+        return $this->relay($state, $request, Str::random(20));
+    }
+
+    /**
+     * The browser's model answered one round of a relayed question (see
+     * Assistant::begin). Only the relay id held in the session is accepted.
+     *
+     * @param  array<string, mixed>  $message  a chat-completions message
+     * @return array{relay: array<string, mixed>}|null the next request, or null when answered
+     */
+    public function relayStep(string $id, array $message, Assistant $assistant): ?array
+    {
+        abort_unless($assistant->isAvailable() && $assistant->usesBrowser(), 404);
+
+        $relay = session(self::relayKey());
+
+        if (! is_array($relay) || ($relay['id'] ?? null) !== $id) {
+            return null;
+        }
 
         try {
-            $reply = $assistant->reply(auth()->user(), $this->history($messages), $question);
-        } catch (GeminiException $e) {
-            report($e);
-            $this->notice = $e->isRateLimited() ? __('assistant.errors.busy') : __('assistant.errors.failed');
-
-            // The question stays in the box so it can be sent again.
-            return;
+            [$state, $request, $reply] = $assistant->advance(auth()->user(), $relay['state'], self::cleanMessage($message));
         } catch (Throwable $e) {
             report($e);
+            session()->forget(self::relayKey());
             $this->notice = __('assistant.errors.failed');
 
+            return null;
+        }
+
+        if ($reply !== null) {
+            session()->forget(self::relayKey());
+            $this->record($state['question'], $reply);
+
+            return null;
+        }
+
+        return $this->relay($state, $request, $id);
+    }
+
+    /** The browser could not ask Puter: `signin` (refused or closed), `funds` (out of credit) or anything else. */
+    public function relayFailed(string $id, string $reason = ''): void
+    {
+        if ((session(self::relayKey())['id'] ?? null) !== $id) {
             return;
         }
 
-        $answer = ['role' => 'assistant', 'text' => $reply->text];
+        session()->forget(self::relayKey());
 
-        if (is_array($reply->leaveProposal) && $reply->leaveProposal !== []) {
-            $answer['proposal'] = [
-                'id' => Str::random(20),
-                'state' => 'pending',
-                'data' => $reply->leaveProposal,
-            ];
-        }
+        $this->notice = match ($reason) {
+            'signin' => __('assistant.errors.puter-signin'),
+            'funds' => __('assistant.errors.puter-funds'),
+            default => __('assistant.errors.failed'),
+        };
+    }
 
-        // Read again: the other copy (panel or page) may have written meanwhile.
-        $messages = $this->messages();
-        $messages[] = ['role' => 'user', 'text' => $question];
-        $messages[] = $answer;
-        $this->store($messages);
-
-        $this->question = '';
+    /** The session key of the signed-in user's relayed question. */
+    public static function relayKey(): string
+    {
+        return 'assistant.relay.'.auth()->id();
     }
 
     /**
@@ -180,11 +240,35 @@ class Chat extends Component
         ]);
     }
 
+    /** Starts a new conversation; the current one stays in the history. */
     public function clear(): void
     {
-        session()->forget(self::sessionKey());
+        session()->forget([self::sessionKey(), self::relayKey()]);
         $this->reset('question', 'notice');
         $this->resetValidation();
+    }
+
+    /** Goes back to one of the signed-in user's earlier conversations. */
+    public function openConversation(int $id): void
+    {
+        if (! AssistantConversation::ownedBy(auth()->id())->whereKey($id)->exists()) {
+            return;
+        }
+
+        session()->put(self::sessionKey(), $id);
+        session()->forget(self::relayKey());
+        $this->reset('question', 'notice');
+        $this->resetValidation();
+    }
+
+    /** Deletes one of the signed-in user's conversations. */
+    public function deleteConversation(int $id): void
+    {
+        $deleted = AssistantConversation::ownedBy(auth()->id())->whereKey($id)->delete();
+
+        if ($deleted && session(self::sessionKey()) === $id) {
+            $this->clear();
+        }
     }
 
     /** Shown in the panel while the lazy component loads. */
@@ -198,14 +282,94 @@ class Chat extends Component
     {
         return view('livewire.assistant.chat', [
             'messages' => $this->messages(),
+            // Titles and dates only: the messages are not decrypted for the list.
+            'conversations' => AssistantConversation::ownedBy(auth()->id())
+                ->latest('updated_at')->latest('id')
+                ->limit(AssistantConversation::KEEP)
+                ->get(['id', 'title', 'updated_at']),
+            'currentId' => session(self::sessionKey()),
             'suggestions' => array_values((array) __('assistant.suggestions')),
+            'usesPuter' => app(Assistant::class)->usesBrowser(),
         ])->title(__('assistant.title'));
     }
 
-    /** The session key of the signed-in user's conversation. */
+    /** The session key holding the id of the signed-in user's current conversation. */
     public static function sessionKey(): string
     {
         return 'assistant.conversation.'.auth()->id();
+    }
+
+    /** The messages of the signed-in user's current conversation. */
+    public static function currentMessages(): array
+    {
+        $messages = self::current()?->messages;
+
+        return is_array($messages) ? array_values($messages) : [];
+    }
+
+    /** Adds the question and its answer (with any leave draft) to the conversation. */
+    protected function record(string $question, AssistantReply $reply): void
+    {
+        $answer = ['role' => 'assistant', 'text' => $reply->text];
+
+        if (is_array($reply->leaveProposal) && $reply->leaveProposal !== []) {
+            $answer['proposal'] = [
+                'id' => Str::random(20),
+                'state' => 'pending',
+                'data' => $reply->leaveProposal,
+            ];
+        }
+
+        // Read again: the other copy (panel or page) may have written meanwhile.
+        $messages = $this->messages();
+        $messages[] = ['role' => 'user', 'text' => $question];
+        $messages[] = $answer;
+        $this->store($messages);
+
+        $this->question = '';
+    }
+
+    /**
+     * Keeps a relay's state in the session and gives the browser what it
+     * needs for the next round: the id, the model and the request.
+     *
+     * @return array{relay: array<string, mixed>}
+     */
+    protected function relay(array $state, array $request, string $id): array
+    {
+        session()->put(self::relayKey(), ['id' => $id, 'state' => $state]);
+
+        return ['relay' => ['id' => $id, 'model' => config('assistant.puter.model')] + $request];
+    }
+
+    /**
+     * Only what a chat-completions answer carries, bounded: text and at most
+     * five tool calls (name and JSON arguments).
+     *
+     * @return array{content: string, tool_calls: list<array<string, mixed>>}
+     */
+    protected static function cleanMessage(array $message): array
+    {
+        $calls = [];
+
+        foreach (array_slice(array_values((array) ($message['tool_calls'] ?? [])), 0, 5) as $call) {
+            $name = $call['function']['name'] ?? null;
+            $arguments = $call['function']['arguments'] ?? '{}';
+
+            if (! is_string($name) || $name === '') {
+                continue;
+            }
+
+            $calls[] = ['function' => [
+                'name' => Str::limit($name, 64, ''),
+                'arguments' => is_string($arguments) ? Str::limit($arguments, 4000, '') : json_encode($arguments),
+            ]];
+        }
+
+        return [
+            'content' => is_string($message['content'] ?? null) ? Str::limit($message['content'], 20000, '') : '',
+            'tool_calls' => $calls,
+        ];
     }
 
     /**
@@ -213,15 +377,59 @@ class Chat extends Component
      */
     protected function messages(): array
     {
-        $messages = session(self::sessionKey(), []);
-
-        return is_array($messages) ? array_values($messages) : [];
+        return self::currentMessages();
     }
 
-    /** @param  list<array<string, mixed>>  $messages */
+    /** The signed-in user's current conversation, if they have started one. */
+    protected static function current(): ?AssistantConversation
+    {
+        $id = session(self::sessionKey());
+
+        return $id ? AssistantConversation::ownedBy(auth()->id())->find($id) : null;
+    }
+
+    /**
+     * Saves the current conversation, starting one (titled with its first
+     * question) when there is none yet.
+     *
+     * @param  list<array<string, mixed>>  $messages
+     */
     protected function store(array $messages): void
     {
-        session()->put(self::sessionKey(), array_slice(array_values($messages), -self::MAX_MESSAGES));
+        $messages = array_slice(array_values($messages), -self::MAX_MESSAGES);
+        $conversation = self::current();
+
+        if ($conversation === null) {
+            $first = collect($messages)->firstWhere('role', 'user')['text'] ?? __('assistant.history.untitled');
+
+            $conversation = AssistantConversation::create([
+                'user_id' => auth()->id(),
+                'title' => Str::limit(Str::squish($first), 80),
+                'messages' => $messages,
+            ]);
+
+            session()->put(self::sessionKey(), $conversation->id);
+            $this->prune();
+
+            return;
+        }
+
+        $conversation->messages = $messages;
+        $conversation->touch();
+        $conversation->save();
+    }
+
+    /** Only the most recent AssistantConversation::KEEP chats are kept. */
+    protected function prune(): void
+    {
+        $old = AssistantConversation::ownedBy(auth()->id())
+            ->latest('updated_at')->latest('id')
+            ->skip(AssistantConversation::KEEP)->take(PHP_INT_MAX)
+            ->pluck('id');
+
+        if ($old->isNotEmpty()) {
+            AssistantConversation::whereKey($old)->delete();
+        }
     }
 
     /**

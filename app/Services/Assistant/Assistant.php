@@ -21,10 +21,22 @@ class Assistant
         $this->policies ??= new PolicyLibrary;
     }
 
-    /** Switched on, with at least one provider configured. */
+    /** Switched on, with at least one provider configured or Puter in the browser. */
     public function isAvailable(): bool
     {
-        return config('assistant.enabled') && $this->model->isConfigured();
+        return config('assistant.enabled') && ($this->model->isConfigured() || $this->usesBrowser());
+    }
+
+    /** At least one provider this server calls itself. */
+    public function hasServerModel(): bool
+    {
+        return $this->model->isConfigured();
+    }
+
+    /** Puter.js answers from the employee's browser when no server provider can. */
+    public function usesBrowser(): bool
+    {
+        return (bool) config('assistant.puter.enabled');
     }
 
     /**
@@ -55,25 +67,94 @@ class Assistant
                 return new AssistantReply(GeminiClient::text($content) ?: $this->fallback($question), $proposal);
             }
 
-            $parts = [];
-
-            foreach ($calls as $call) {
-                $response = $this->tools->call($user, $call['name'], is_array($call['args']) ? $call['args'] : []);
-
-                // Only a draft the tools checked, never anything the model wrote itself.
-                if ($call['name'] === 'draft_leave_request' && ($response['status'] ?? null) === 'drafted') {
-                    $proposal = $response['proposal'];
-                }
-
-                $parts[] = ['functionResponse' => ['name' => $call['name'], 'response' => $response]];
-            }
-
             // Sent back unchanged: newer models sign their function-call turns.
             $contents[] = $content;
-            $contents[] = ['role' => 'user', 'parts' => $parts];
+            $contents[] = ['role' => 'user', 'parts' => $this->runTools($user, $calls, $proposal)];
         }
 
         return new AssistantReply($this->fallback($question), $proposal);
+    }
+
+    /**
+     * The same conversation with the model asked from the browser (Puter.js)
+     * instead of from here, one round at a time. The state stays on the
+     * server; the browser is given each request and sends back the model's
+     * message, and every tool still runs here, as the signed-in user. A
+     * forged message can only make the model "say" something to the
+     * employee who forged it, or call a tool they may call anyway.
+     *
+     * @param  list<array{role: 'user'|'assistant', text: string}>  $history
+     * @return array{0: array<string, mixed>, 1: array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>}} the state, and the request
+     */
+    public function begin(User $user, array $history, string $question): array
+    {
+        $state = [
+            'question' => $question,
+            'contents' => $this->contents($history, $question),
+            'proposal' => null,
+            'round' => 0,
+        ];
+
+        return [$state, $this->browserRequest($user, $state)];
+    }
+
+    /**
+     * One answer of the browser's model (a chat-completions message): either
+     * the next request, after running the tools it called, or the reply.
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $message
+     * @return array{0: array<string, mixed>, 1: ?array<string, mixed>, 2: ?AssistantReply}
+     */
+    public function advance(User $user, array $state, array $message): array
+    {
+        $content = OpenAiCompatibleClient::turn($message);
+        $calls = GeminiClient::functionCalls($content);
+        $proposal = $state['proposal'] ?? null;
+
+        if ($calls === [] || ($state['round'] ?? 0) >= self::MAX_TOOL_ROUNDS) {
+            return [$state, null, new AssistantReply(GeminiClient::text($content) ?: $this->fallback($state['question']), $proposal)];
+        }
+
+        $state['contents'][] = $content;
+        $state['contents'][] = ['role' => 'user', 'parts' => $this->runTools($user, $calls, $proposal)];
+        $state['proposal'] = $proposal;
+        $state['round'] = ($state['round'] ?? 0) + 1;
+
+        return [$state, $this->browserRequest($user, $state), null];
+    }
+
+    /**
+     * @param  list<array{name: string, args: mixed}>  $calls
+     * @return list<array<string, mixed>> the function responses
+     */
+    private function runTools(User $user, array $calls, ?array &$proposal): array
+    {
+        $parts = [];
+
+        foreach ($calls as $call) {
+            $response = $this->tools->call($user, $call['name'], is_array($call['args']) ? $call['args'] : []);
+
+            // Only a draft the tools checked, never anything the model wrote itself.
+            if ($call['name'] === 'draft_leave_request' && ($response['status'] ?? null) === 'drafted') {
+                $proposal = $response['proposal'];
+            }
+
+            $parts[] = ['functionResponse' => ['name' => $call['name'], 'response' => $response]];
+        }
+
+        return $parts;
+    }
+
+    /** @return array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>} */
+    private function browserRequest(User $user, array $state): array
+    {
+        $declarations = $this->tools->declarations($user);
+
+        return [
+            'messages' => OpenAiCompatibleClient::messages($state['contents'], $this->systemInstruction($user, $state['question'])),
+            'tools' => $declarations ? OpenAiCompatibleClient::tools($declarations) : [],
+        ];
     }
 
     /** @return list<array{role: string, parts: list<array<string, string>>}> */

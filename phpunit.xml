@@ -45,6 +45,7 @@
         <env name="OPENROUTER_API_KEY" value="" force="true"/>
         <env name="CEREBRAS_API_KEY" value="" force="true"/>
         <env name="MISTRAL_API_KEY" value="" force="true"/>
+        <env name="ASSISTANT_PUTER" value="false" force="true"/>
         <env name="ASSISTANT_PROVIDERS" value="gemini,groq,openrouter,cerebras,mistral" force="true"/>
     </php>
 </phpunit>

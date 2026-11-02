@@ -374,6 +374,8 @@ class AssistantChatTest extends TestCase
     {
         return $this->mock(Assistant::class, function (MockInterface $mock) use ($available) {
             $mock->shouldReceive('isAvailable')->andReturn($available);
+            $mock->shouldReceive('hasServerModel')->andReturn(true)->byDefault();
+            $mock->shouldReceive('usesBrowser')->andReturn(false)->byDefault();
         });
     }
 
@@ -392,7 +394,7 @@ class AssistantChatTest extends TestCase
     /** @return list<array<string, mixed>> */
     private function conversation(): array
     {
-        return session(Chat::sessionKey(), []);
+        return Chat::currentMessages();
     }
 
     private function proposalId(): string
