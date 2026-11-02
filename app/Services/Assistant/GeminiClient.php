@@ -4,6 +4,7 @@ namespace App\Services\Assistant;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use stdClass;
 
 /**
  * The one place that talks to the Gemini API (generateContent).
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Http;
  * A model turn that called a tool must be sent back exactly as it came,
  * because newer models attach a thought signature to it.
  */
-class GeminiClient
+class GeminiClient implements ChatModel
 {
     public function isConfigured(): bool
     {
@@ -35,7 +36,7 @@ class GeminiClient
 
         $body = array_filter([
             'systemInstruction' => $system !== null ? ['parts' => [['text' => $system]]] : null,
-            'contents' => $contents,
+            'contents' => self::withObjects($contents),
             'tools' => $functionDeclarations ? [['functionDeclarations' => $functionDeclarations]] : null,
             'generationConfig' => ['temperature' => $temperature],
         ]);
@@ -91,6 +92,28 @@ class GeminiClient
         ]], temperature: 0.0, timeout: config('assistant.gemini.transcribe_timeout', 600));
 
         return self::text($content);
+    }
+
+    /**
+     * A call without arguments comes back as `"args": {}`, which PHP decodes
+     * to [] and would send back as a JSON list; Gemini refuses that ("Proto
+     * field is not repeating"). The same holds for an empty tool response.
+     */
+    private static function withObjects(array $contents): array
+    {
+        foreach ($contents as &$content) {
+            foreach ($content['parts'] ?? [] as $i => $part) {
+                if (isset($part['functionCall']) && empty($part['functionCall']['args'])) {
+                    $content['parts'][$i]['functionCall']['args'] = new stdClass;
+                }
+
+                if (isset($part['functionResponse']) && empty($part['functionResponse']['response'])) {
+                    $content['parts'][$i]['functionResponse']['response'] = new stdClass;
+                }
+            }
+        }
+
+        return $contents;
     }
 
     /** @return array{role: string, parts: list<array<string, mixed>>} */

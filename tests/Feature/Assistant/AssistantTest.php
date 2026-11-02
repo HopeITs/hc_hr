@@ -90,7 +90,8 @@ class AssistantTest extends TestCase
         Http::assertSentCount(2);
 
         $second = Http::recorded()[1][0];
-        $this->assertSame($call, $second['contents'][1]);
+        // As sent on the wire: the empty args go out as `{}` (withObjects) and decode back to [].
+        $this->assertSame($call, json_decode($second->body(), true)['contents'][1]);
         $this->assertSame('user', $second['contents'][2]['role']);
 
         $response = $second['contents'][2]['parts'][0]['functionResponse'];
@@ -209,24 +210,38 @@ class AssistantTest extends TestCase
         $this->assertSame('', app(PolicyLibrary::class)->contextFor('anything'));
     }
 
-    public function test_over_budget_the_best_matching_policy_goes_first_and_the_last_is_cut(): void
+    public function test_over_budget_only_the_passages_matching_the_question_are_sent(): void
     {
-        $travel = PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة السفر', 'content' => str_repeat('بدل السفر اليومي. ', 40)]);
-        $leave = PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة الإجازات', 'content' => 'إجازة الأمومة مدتها تسعون يوماً. '.str_repeat('نص. ', 40)]);
+        $filler = fn (string $word) => implode("\n", array_fill(0, 30, str_repeat($word.' ', 60)));
 
-        $leaveBlock = "### سياسة الإجازات\n".trim($leave->content);
-        config(['assistant.policy_char_budget' => mb_strlen($leaveBlock) + 100]);
+        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة السفر', 'content' => "بدل السفر اليومي عشرون دولاراً.\n".$filler('تنقل')]);
+        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة الإجازات', 'content' => $filler('نص')."\nإجازة الأمومة مدتها تسعون يوماً.\n".$filler('بند')]);
 
-        // Diacritics, tatweel and alef/teh-marbuta variants still match.
+        config(['assistant.policy_char_budget' => 3000]);
+
+        // Diacritics, tatweel, alef/teh-marbuta variants and the article still match.
         $context = app(PolicyLibrary::class)->contextFor('كم مدة اِجـازه الامومه؟');
 
-        $this->assertStringStartsWith($leaveBlock, $context);
-        $this->assertStringContainsString('### سياسة السفر', $context);
-        $this->assertStringEndsWith('…', $context);
-        $this->assertLessThanOrEqual(mb_strlen($leaveBlock) + 100, mb_strlen($context));
+        $this->assertStringContainsString("### سياسة الإجازات\n", $context);
+        $this->assertStringContainsString('إجازة الأمومة مدتها تسعون يوماً.', $context);
+        $this->assertStringNotContainsString('### سياسة السفر', $context);
+        $this->assertLessThanOrEqual(3000 + 200, mb_strlen($context));
 
-        $this->assertStringStartsWith('### سياسة السفر', app(PolicyLibrary::class)->contextFor('بدل السفر'));
-        $this->assertNotNull($travel);
+        $travel = app(PolicyLibrary::class)->contextFor('بدل السفر');
+        $this->assertStringContainsString('بدل السفر اليومي عشرون دولاراً.', $travel);
+        $this->assertStringNotContainsString('تسعون', $travel);
+    }
+
+    public function test_a_question_matching_no_passage_gets_only_the_policy_titles(): void
+    {
+        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة السفر', 'content' => str_repeat("بدل السفر اليومي.\n", 400)]);
+
+        config(['assistant.policy_char_budget' => 1000]);
+
+        $context = app(PolicyLibrary::class)->contextFor('مرحبا');
+
+        $this->assertStringContainsString('Policies on file: سياسة السفر.', $context);
+        $this->assertStringNotContainsString('بدل', $context);
     }
 
     public function test_history_is_trimmed_and_assistant_turns_become_model_turns(): void

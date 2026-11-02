@@ -8,13 +8,17 @@ use Illuminate\Support\Collection;
 /**
  * The policy text sent along with one question.
  *
- * Every readable policy goes in while they fit `assistant.policy_char_budget`.
- * When they do not, the documents sharing the most words with the question go
- * first and the last one that only partly fits is cut, so the model still sees
- * the policy most likely to hold the answer.
+ * Every readable policy goes in while they all fit `assistant.policy_char_budget`.
+ * When they do not (the real set is ~160k characters), only the passages that
+ * share the most telling words with the question are sent, grouped under their
+ * policy's title in reading order. Sending everything made each question slow
+ * and spent the free tiers' tokens-per-minute in one or two questions.
  */
 class PolicyLibrary
 {
+    /** Passages are built from whole lines up to about this length. */
+    private const PASSAGE_CHARS = 900;
+
     public function contextFor(string $question): string
     {
         $documents = PolicyDocument::query()
@@ -26,80 +30,154 @@ class PolicyLibrary
             return '';
         }
 
-        $blocks = $documents->map(fn (PolicyDocument $document) => [
-            'text' => $this->block($document),
-            'document' => $document,
-        ]);
+        $budget = max(0, (int) config('assistant.policy_char_budget', 12000));
+        $whole = $documents->map(fn (PolicyDocument $document) => $this->heading($document)."\n".trim((string) $document->content));
 
-        $budget = max(0, (int) config('assistant.policy_char_budget', 150000));
-        $total = $blocks->sum(fn (array $block) => mb_strlen($block['text']) + 2);
-
-        if ($total <= $budget) {
-            return $blocks->pluck('text')->implode("\n\n");
+        if ($whole->sum(fn (string $block) => mb_strlen($block) + 2) <= $budget) {
+            return $whole->implode("\n\n");
         }
 
-        return $this->fitRanked($this->rank($blocks, $question), $budget);
+        $chosen = $this->bestPassages($this->passages($documents), $question, $budget);
+        $titles = 'Policies on file: '.$documents->map(fn (PolicyDocument $document) => trim((string) $document->title))->implode('، ').'.';
+
+        if ($chosen->isEmpty()) {
+            return $titles."\nNo passage matches this question.";
+        }
+
+        // Back in reading order, one heading per policy.
+        $body = $chosen
+            ->sortBy([['document', 'asc'], ['position', 'asc']])
+            ->groupBy('document')
+            ->map(fn (Collection $passages) => $passages->first()['heading']."\n".$passages->pluck('text')->implode("\n…\n"))
+            ->implode("\n\n");
+
+        return $titles."\n\n".$body;
     }
 
-    /** @param  Collection<int, array{text: string, document: PolicyDocument}>  $blocks */
-    private function rank(Collection $blocks, string $question): Collection
+    /**
+     * @param  Collection<int, PolicyDocument>  $documents
+     * @return Collection<int, array{document: int, position: int, heading: string, text: string, words: array<string, true>}>
+     */
+    private function passages(Collection $documents): Collection
     {
-        $words = $this->words($question);
+        $passages = collect();
 
-        return $blocks
-            ->map(function (array $block) use ($words) {
-                $haystack = $this->words($block['document']->title.' '.$block['document']->content);
-                $title = $this->words($block['document']->title);
+        foreach ($documents->values() as $d => $document) {
+            $heading = $this->heading($document);
+            $titleWords = $this->words((string) $document->title);
+            $position = 0;
 
-                // A word in the title says more about the document than one in its body.
-                $block['score'] = count(array_intersect_key($words, $haystack))
-                    + 2 * count(array_intersect_key($words, $title));
+            foreach ($this->split((string) $document->content) as $text) {
+                $passages->push([
+                    'document' => $d,
+                    'position' => $position++,
+                    'heading' => $heading,
+                    'text' => $text,
+                    // The title's words count for every passage of the policy.
+                    'words' => $this->words($text) + $titleWords,
+                ]);
+            }
+        }
 
-                return $block;
-            })
-            // Stable: equal scores keep the alphabetical order.
-            ->sortBy([['score', 'desc']])
-            ->values();
+        return $passages;
     }
 
-    private function fitRanked(Collection $blocks, int $budget): string
+    /** Whole lines gathered into passages of about PASSAGE_CHARS; an overlong line is cut at a space. */
+    private function split(string $content): array
     {
-        $parts = [];
-        $left = $budget;
+        $passages = [];
+        $current = '';
 
-        foreach ($blocks as $block) {
-            $separator = $parts === [] ? 0 : 2;
-            $length = mb_strlen($block['text']);
+        foreach (preg_split('/\R+/u', trim($content)) ?: [] as $line) {
+            $line = trim($line);
 
-            if ($length + $separator <= $left) {
-                $parts[] = $block['text'];
-                $left -= $length + $separator;
+            while (mb_strlen($line) > self::PASSAGE_CHARS) {
+                $cut = mb_strrpos(mb_substr($line, 0, self::PASSAGE_CHARS), ' ') ?: self::PASSAGE_CHARS;
+                $passages[] = trim(($current !== '' ? $current."\n" : '').mb_substr($line, 0, $cut));
+                $current = '';
+                $line = trim(mb_substr($line, $cut));
+            }
 
+            if ($line === '') {
                 continue;
             }
 
-            // Cut the first document that no longer fits and stop: a sliver of
-            // every remaining one would help less than most of this one.
-            $room = $left - $separator;
-
-            if ($room > mb_strlen($block['document']->title) + 10) {
-                $parts[] = mb_substr($block['text'], 0, $room - 1).'…';
+            if ($current !== '' && mb_strlen($current) + mb_strlen($line) + 1 > self::PASSAGE_CHARS) {
+                $passages[] = $current;
+                $current = '';
             }
 
-            break;
+            $current = $current === '' ? $line : $current."\n".$line;
         }
 
-        return implode("\n\n", $parts);
+        if ($current !== '') {
+            $passages[] = $current;
+        }
+
+        return $passages;
     }
 
-    private function block(PolicyDocument $document): string
+    /**
+     * The passages sharing the most telling words with the question, best
+     * first, while they fit. A word found in few passages says more than one
+     * found everywhere ("policy", "employee"), so each match is weighted by
+     * how rare the word is (inverse document frequency).
+     */
+    private function bestPassages(Collection $passages, string $question, int $budget): Collection
     {
-        return '### '.trim((string) $document->title)."\n".trim((string) $document->content);
+        $asked = $this->words($question);
+
+        if ($asked === [] || $passages->isEmpty()) {
+            return collect();
+        }
+
+        $count = $passages->count();
+        $weights = [];
+
+        foreach (array_keys($asked) as $word) {
+            $found = $passages->filter(fn (array $passage) => isset($passage['words'][$word]))->count();
+
+            if ($found > 0) {
+                $weights[$word] = log(1 + $count / $found);
+            }
+        }
+
+        $ranked = $passages
+            ->map(function (array $passage) use ($weights) {
+                $passage['score'] = array_sum(array_intersect_key($weights, $passage['words']));
+
+                return $passage;
+            })
+            ->filter(fn (array $passage) => $passage['score'] > 0)
+            ->sortByDesc('score');
+
+        $chosen = collect();
+        $left = $budget;
+
+        foreach ($ranked as $passage) {
+            $length = mb_strlen($passage['text']) + 4;
+
+            if ($length > $left) {
+                continue;
+            }
+
+            $chosen->push($passage);
+            $left -= $length;
+        }
+
+        return $chosen;
+    }
+
+    private function heading(PolicyDocument $document): string
+    {
+        return '### '.trim((string) $document->title);
     }
 
     /**
      * The distinct words of a text, normalised so Arabic spelling variants
-     * match: no diacritics or tatweel, one alef, ى→ي, ة→ه, lowercased.
+     * match: no diacritics or tatweel, one alef, ى→ي, ة→ه, lowercased, and
+     * the article (with a joined و/ب/ك/ف) and common endings removed, so
+     * "بالإجازات" and "إجازة" meet on "اجاز".
      *
      * @return array<string, true>
      */
@@ -109,8 +187,36 @@ class PolicyLibrary
         $text = strtr($text, ['أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ى' => 'ي', 'ة' => 'ه']);
         $text = mb_strtolower($text);
 
-        $words = preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = [];
 
-        return array_fill_keys(array_filter($words, fn (string $word) => mb_strlen($word) >= 3), true);
+        foreach (preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+            $word = $this->stem($word);
+
+            if (mb_strlen($word) >= 3) {
+                $words[$word] = true;
+            }
+        }
+
+        return $words;
+    }
+
+    /** A light Arabic stem: enough for matching, never shorter than three letters. */
+    private function stem(string $word): string
+    {
+        foreach (['وال', 'بال', 'كال', 'فال', 'لل', 'ال'] as $prefix) {
+            if (str_starts_with($word, $prefix) && mb_strlen($word) - mb_strlen($prefix) >= 3) {
+                $word = mb_substr($word, mb_strlen($prefix));
+
+                break;
+            }
+        }
+
+        foreach (['ات', 'ون', 'ين', 'ها', 'ه'] as $suffix) {
+            if (str_ends_with($word, $suffix) && mb_strlen($word) - mb_strlen($suffix) >= 3) {
+                return mb_substr($word, 0, -mb_strlen($suffix));
+            }
+        }
+
+        return $word;
     }
 }

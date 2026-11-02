@@ -39,7 +39,12 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <!-- A developer's Gemini key must not put the assistant into every menu the suite checks. -->
+        <!-- A developer's AI provider keys must not put the assistant into every menu the suite checks. -->
         <env name="GEMINI_API_KEY" value="" force="true"/>
+        <env name="GROQ_API_KEY" value="" force="true"/>
+        <env name="OPENROUTER_API_KEY" value="" force="true"/>
+        <env name="CEREBRAS_API_KEY" value="" force="true"/>
+        <env name="MISTRAL_API_KEY" value="" force="true"/>
+        <env name="ASSISTANT_PROVIDERS" value="gemini,groq,openrouter,cerebras,mistral" force="true"/>
     </php>
 </phpunit>

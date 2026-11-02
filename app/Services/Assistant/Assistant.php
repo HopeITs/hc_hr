@@ -13,7 +13,7 @@ class Assistant
     private const MAX_TOOL_ROUNDS = 5;
 
     public function __construct(
-        private GeminiClient $gemini,
+        private ChatModel $model,
         private ?EmployeeTools $tools = null,
         private ?PolicyLibrary $policies = null,
     ) {
@@ -21,10 +21,10 @@ class Assistant
         $this->policies ??= new PolicyLibrary;
     }
 
-    /** Switched on and configured. */
+    /** Switched on, with at least one provider configured. */
     public function isAvailable(): bool
     {
-        return config('assistant.enabled') && $this->gemini->isConfigured();
+        return config('assistant.enabled') && $this->model->isConfigured();
     }
 
     /**
@@ -41,11 +41,13 @@ class Assistant
         $declarations = $this->tools->declarations($user);
         $contents = $this->contents($history, $question);
         $proposal = null;
+        // One provider answers every round of this reply unless it fails.
+        $model = $this->model instanceof ModelRouter ? $this->model->conversation() : $this->model;
 
         for ($round = 0; $round <= self::MAX_TOOL_ROUNDS; $round++) {
             // Tools stay declared on every round: Gemini rejects function-call
             // turns in the contents of a request that declares none.
-            $content = $this->gemini->generate($contents, $system, $declarations);
+            $content = $model->generate($contents, $system, $declarations);
 
             $calls = GeminiClient::functionCalls($content);
 
