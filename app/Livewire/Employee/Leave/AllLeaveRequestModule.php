@@ -343,6 +343,8 @@ class AllLeaveRequestModule extends Component
         $this->toast();
 
         $this->refreshCounts();
+        // The table is its own component: re-rendering this one leaves its rows stale.
+        $this->dispatch('leaveRequestSaved')->to(AllLeaveRequestTable::class);
     }
 
     public function confirmDelete($id)
@@ -361,6 +363,7 @@ class AllLeaveRequestModule extends Component
         $this->clearLinkedLeave();
         $this->refreshCounts();
         $this->toast();
+        $this->dispatch('leaveRequestSaved')->to(AllLeaveRequestTable::class);
 
     }
 

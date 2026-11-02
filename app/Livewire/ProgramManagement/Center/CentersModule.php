@@ -144,6 +144,7 @@ class CentersModule extends Component
         $this->resetErrorBag();
         $this->resetValidation();
         $this->dispatch('closeModal');
+        $this->dispatch('refreshCentersTable');
 
         $this->toast();
     }
