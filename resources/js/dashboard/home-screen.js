@@ -95,7 +95,7 @@ const OPEN = (() => {
 // What a card marks as "nothing here right now"; a loading placeholder is never empty.
 const EMPTY_MARK = '[data-tile-empty], [data-state="empty"], .hc-nt-empty';
 // A press or a click on these is not "outside" while customising.
-const NOT_OUTSIDE = '.hc-tile, button, a, input, select, textarea, label, dialog, [role="dialog"], .hc-sheet-back, [data-slot="bottom-bar-picker"], ' + OPEN;
+const NOT_OUTSIDE = '.hc-tile, button, a, input, select, textarea, label, dialog, [role="dialog"], .hc-sheet-back, .hc-desk-back, [data-slot="bottom-bar-picker"], ' + OPEN;
 // Elements in a card that may scroll on their own.
 const SCROLLERS = '.hc-tile-body, .hc-tile-body [class*="overflow-"], .hc-bdays-list, .hc-decide';
 
@@ -152,6 +152,11 @@ function homeScreen() {
         cols: 8,
         editing: false,
         gallery: false,
+        desk: false, // "Customize your desk": ready layouts and My panels
+        deskTab: 'layouts',
+        deskPick: null, // the ready layout being looked at
+        deskShown: {}, // My panels: key => shown, until confirmed
+        deskBusy: false,
         carrying: false, // a tile is picked up and follows the pointer
         resizing: null, // key of the tile being resized
         resizeLabel: '',
@@ -484,7 +489,7 @@ function homeScreen() {
         },
         // Escape leaves editing (Add's own Escape closes Add first; the confirm dialog keeps its own).
         escape(e) {
-            if (e.defaultPrevented || this.gallery || this.$store.confirm?.open) return;
+            if (e.defaultPrevented || this.gallery || this.desk || this.$store.confirm?.open) return;
             if (this.peek) {
                 this.closePeek();
 
@@ -639,6 +644,68 @@ function homeScreen() {
             // Add may be disabled now (nothing left to add): then Done.
             this.$nextTick(() => (this.addable().length ? this.$refs.add : this.$refs.done)?.focus({ preventScroll: true }));
         },
+        // ---- "Customize your desk": a ready layout, or the panels one by one ----
+        /*
+         * A dialog, like hc-tracking's desk: Ready layouts shows each layout as a
+         * mosaic of its cards, the suggested one first; My panels switches cards
+         * and shortcuts on and off. Nothing changes until it is confirmed; then
+         * the server stores the new layout and draws it (like Reset).
+         */
+        openDesk(tab = 'layouts') {
+            this.gallery = false;
+            this.closePeek(false);
+            this.deskTab = tab;
+            this.deskPick ??= this.$root.dataset.deskDefault || null;
+            this.deskShown = Object.fromEntries(this.items.map((it) => [it.key, ! it.hidden]));
+            this.desk = true;
+        },
+        closeDesk() {
+            if (this.deskBusy) return;
+            this.desk = false;
+            this.$nextTick(() => (this.editing ? this.$refs.done : this.$refs.desk)?.focus({ preventScroll: true }));
+        },
+        deskChanged() {
+            return this.items.some((it) => !! this.deskShown[it.key] === it.hidden);
+        },
+        async confirmDesk() {
+            if (this.deskBusy) return;
+            if (this.deskTab === 'panels' && ! this.deskChanged()) {
+                this.closeDesk();
+
+                return;
+            }
+            this.deskBusy = true;
+            this.dismissUndo();
+            try {
+                await this.settle();
+                adopting = true;
+                if (this.deskTab === 'layouts') {
+                    if (! this.deskPick) return;
+                    await this.$wire.applyPreset(this.deskPick);
+                } else {
+                    // Kept in place; a card switched on goes to the end, like Add.
+                    const on = [];
+                    const rest = this.items.filter((it) => {
+                        const want = !! this.deskShown[it.key];
+                        if (want && it.hidden) {
+                            on.push({ ...it, hidden: false });
+
+                            return false;
+                        }
+                        if (! want) it.hidden = true;
+
+                        return true;
+                    });
+                    this.items = [...rest, ...on];
+                    await this.$wire.addTile(this.payload());
+                }
+                this.announce(this.text.deskApplied, {});
+            } finally {
+                this.deskBusy = false;
+                this.desk = false;
+            }
+        },
+
         async reset() {
             const yes = await this.$confirm({
                 title: this.text.resetTitle,
@@ -932,7 +999,7 @@ function homeScreen() {
         // A press on a tile may become a move: not on its controls, its handles,
         // its open panel, nor on a pinned tile (pinned tiles stay first).
         pressTile(e) {
-            if (carry || pull || e.button !== 0 || ! e.isPrimary || this.gallery || this.$store.confirm?.open) return;
+            if (carry || pull || e.button !== 0 || ! e.isPrimary || this.gallery || this.desk || this.$store.confirm?.open) return;
             const target = e.target instanceof Element ? e.target : null;
             const tile = target?.closest('.hc-tile');
             if (! tile || tile.parentElement !== this.$refs.grid || target.closest(OPEN)) return;

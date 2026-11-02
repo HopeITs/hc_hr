@@ -140,6 +140,34 @@ class DashboardLayout
     /** Prefix of every shortcut key: "app.<navigation item id>", e.g. app.nav.hr.employees, app.new.leave. */
     public const APP_PREFIX = 'app.';
 
+    /**
+     * Ready layouts ("Customize your desk", like hc-tracking's desk): a named
+     * arrangement of cards, each [key, cols, rows] on the 12-column grid.
+     * Applying one shows exactly these cards (the ones this person may have),
+     * hides every other card and leaves the shortcuts as they are. A layout
+     * left with fewer than PRESET_MIN cards for someone is not offered to them.
+     *
+     * @var array<string, array<int, array{0: string, 1: int, 2: int}>>
+     */
+    public const PRESETS = [
+        'my-day' => [['late', 12, 1], ['decide', 7, 3], ['calendar', 5, 3], ['notes', 7, 3], ['checklist', 5, 3], ['my-leaves', 8, 2], ['next-holiday', 4, 2]],
+        'time-off' => [['my-leaves', 8, 2], ['leave-balance', 4, 2], ['upcoming-leaves', 7, 3], ['calendar', 5, 3], ['who-is-out', 8, 2], ['next-holiday', 4, 2]],
+        'team-lead' => [['late', 12, 1], ['decide', 8, 3], ['who-is-out', 4, 3], ['team', 4, 4], ['pending-requests', 8, 2], ['upcoming-leaves', 8, 2]],
+        'hr-desk' => [['late', 12, 1], ['decide', 6, 3], ['soon-ending-contracts', 6, 3], ['pending-requests', 4, 3], ['who-is-out', 4, 3], ['badges', 4, 3]],
+        'people-numbers' => [['stats-department', 6, 3], ['stats-job-level', 6, 3], ['stats-contract-type', 4, 3], ['stats-no-leaves', 4, 3], ['stats-salary', 4, 3]],
+        'community' => [['news', 4, 6], ['today-events', 8, 3], ['birthdays', 4, 3], ['upcoming-events', 4, 3]],
+        'leadership' => [['late', 12, 1], ['decide', 6, 3], ['stats-department', 6, 3], ['who-is-out', 4, 2], ['soon-ending-contracts', 4, 2], ['clock', 4, 2]],
+    ];
+
+    /** The ready layout suggested first, per role family. */
+    public const SUGGESTED_PRESET = [
+        'employee' => 'my-day',
+        'manager' => 'team-lead',
+        'hr-city' => 'hr-desk',
+        'hr-national' => 'hr-desk',
+        'leadership' => 'leadership',
+    ];
+
     /** Were fixed above the grid: a layout saved before they were tiles gets them first. */
     private const ALERTS = ['late', 'decide'];
 
@@ -194,6 +222,8 @@ class DashboardLayout
         'next-holiday' => ['employee', 'manager'],
         'birthdays' => ['employee', 'manager'],
     ];
+
+    private const PRESET_MIN = 3;
 
     /** @var array<string, array<string, array<string, mixed>>> shortcuts per user and role, for this request */
     private array $apps = [];
@@ -477,6 +507,83 @@ class DashboardLayout
         usort($out, fn (array $a, array $b): int => (int) $b['pinned'] <=> (int) $a['pinned']);
 
         return array_slice($out, 0, self::MAX_ITEMS);
+    }
+
+    /**
+     * The ready layouts this person may use, the suggested one first: each
+     * with the cards it would show (only cards they may have and that have a
+     * component), at the size it would show them.
+     *
+     * @return array<string, array{key: string, suggested: bool, tiles: array<int, array{key: string, cols: int, rows: int}>}>
+     */
+    public function presets(User $user): array
+    {
+        $suggested = self::SUGGESTED_PRESET[$this->family($user)] ?? null;
+        $out = [];
+
+        foreach (self::PRESETS as $preset => $tiles) {
+            $kept = [];
+
+            foreach ($tiles as [$key, $cols, $rows]) {
+                if ($this->component($key) === null || ! $this->allowed($user, $key)) {
+                    continue;
+                }
+
+                [$cols, $rows] = array_map('intval', explode('x', $this->size($key, $cols.'x'.$rows)));
+                $kept[] = ['key' => $key, 'cols' => $cols, 'rows' => $rows];
+            }
+
+            if (count($kept) >= self::PRESET_MIN) {
+                $out[$preset] = ['key' => $preset, 'suggested' => $preset === $suggested, 'tiles' => $kept];
+            }
+        }
+
+        // The suggested one leads the list.
+        uksort($out, fn (string $a, string $b): int => (int) ($b === $suggested) <=> (int) ($a === $suggested));
+
+        return $out;
+    }
+
+    /**
+     * A ready layout applied to the person's current one: its cards first, in
+     * its order and at its sizes (sized by hand, so shown exactly so); every
+     * other card hidden; the shortcuts kept as they are, with their looks.
+     * Null when the layout is not one this person may use.
+     *
+     * @param  array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>  $current
+     * @return ?array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>
+     */
+    public function applyPreset(User $user, string $preset, array $current): ?array
+    {
+        $tiles = $this->presets($user)[$preset]['tiles'] ?? null;
+
+        if ($tiles === null) {
+            return null;
+        }
+
+        $byKey = array_column($current, null, 'key');
+        $chosen = [];
+
+        foreach ($tiles as $tile) {
+            $chosen[$tile['key']] = [
+                'key' => $tile['key'],
+                'size' => $tile['cols'].'x'.$tile['rows'],
+                'pinned' => false,
+                'hidden' => false,
+                'fixed' => true,
+            ] + array_intersect_key($byKey[$tile['key']] ?? [], ['style' => true]);
+        }
+
+        $rest = [];
+        foreach ($current as $item) {
+            if (isset($chosen[$item['key']])) {
+                continue;
+            }
+
+            $rest[] = $this->isApp($item['key']) ? $item : ['pinned' => false, 'hidden' => true] + $item;
+        }
+
+        return $this->clean($user, [...array_values($chosen), ...$rest]);
     }
 
     /** @return array{decides: bool, late: bool} */

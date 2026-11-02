@@ -244,6 +244,8 @@ class Index extends Component
             'pages' => array_filter(array_combine($shown, array_map(fn (string $key): ?string => $tiles->page($user, $key), $shown))),
             'inboxCount' => in_array(DashboardLayout::APP_PREFIX.'nav.inbox', $shown, true) ? $this->inboxCount($user) : 0,
             'customise' => $this->customise,
+            // "Customize your desk": the ready layouts this person may use, the suggested one first.
+            'presets' => $tiles->presets($user),
             'failedSections' => $this->failedSections,
         ]);
     }

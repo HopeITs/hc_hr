@@ -59,6 +59,28 @@ trait HasDashboardLayout
         $this->saveLayout($items);
     }
 
+    /**
+     * "Customize your desk" → a ready layout (DashboardLayout::PRESETS): its
+     * cards shown at its sizes, the other cards hidden, shortcuts untouched.
+     * Re-renders, so the page shows it. A layout this person may not use is
+     * refused without touching what they have.
+     */
+    public function applyPreset(string $preset): void
+    {
+        $user = auth()->user();
+        $tiles = app(DashboardLayout::class);
+        $layout = $tiles->applyPreset($user, $preset, $this->dashboardLayout($tiles));
+
+        if ($layout === null) {
+            return;
+        }
+
+        SavedDashboardLayout::query()->updateOrCreate(
+            ['user_id' => $user->getKey(), 'role' => DashboardLayout::roleKey($user)],
+            ['layout' => $layout],
+        );
+    }
+
     /** Back to the role's default layout. Re-renders, so the page shows it. */
     public function resetLayout(): void
     {

@@ -32,6 +32,7 @@
             'nothing' => __('dashboard.home.nothing'),
             'undoHidden' => __('dashboard.home.undo-hidden'),
             'undo' => __('dashboard.home.undo'),
+            'deskApplied' => __('dashboard.desk.applied'),
         ],
     ];
 @endphp
@@ -56,6 +57,7 @@
     <div class="hc-home-screen"
          x-data="hcHomeScreen"
          data-home="{{ json_encode($home, JSON_UNESCAPED_UNICODE) }}"
+         data-desk-default="{{ array_key_first($presets) }}"
          x-on:keydown.escape.window="escape($event)">
 
         {{-- Customise, and while customising: Reset, Add, Done. The words need about
@@ -69,11 +71,14 @@
             <div class="flex flex-wrap items-center gap-2">
                 {{-- :loading="false": these drive the browser-side grid; a background layout
                      save must not disable them. --}}
-                <x-button variant="outline" size="sm" icon="layout" :loading="false" x-ref="customise"
+                <x-button variant="quiet" size="sm" icon="layout" :loading="false" x-ref="desk"
+                          x-show="! editing" x-on:click="openDesk()">{{ __('dashboard.desk.open') }}</x-button>
+                <x-button variant="outline" size="sm" icon="pen" :loading="false" x-ref="customise"
                           x-show="! editing" x-on:click="startEdit()" data-tour="dashboard.customise">{{ __('dashboard.home.customise') }}</x-button>
 
                 <span class="flex flex-wrap items-center gap-2" x-show="editing" x-cloak>
                     <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()">{{ __('dashboard.home.reset') }}</x-button>
+                    <x-button variant="quiet" size="sm" icon="layout" :loading="false" x-on:click="openDesk()">{{ __('dashboard.desk.open') }}</x-button>
                     <x-button variant="outline" size="sm" icon="plus" :loading="false" x-ref="add"
                               x-on:click="openGallery()" x-bind:disabled="addable().length === 0">{{ __('dashboard.home.add') }}</x-button>
                     <x-button size="sm" icon="check" :loading="false" x-ref="done" x-on:click="done()">{{ __('dashboard.home.done') }}</x-button>
@@ -127,6 +132,8 @@
                 <x-button size="sm" :loading="false" x-on:click="window.location.reload()">{{ __('general.retry') }}</x-button>
             </div>
         </template>
+
+        @include('livewire.dashboard.partials.desk')
 
         {{-- Add: what can come back. A bottom sheet on phones, a panel on larger screens. --}}
         <div class="hc-sheet-back" x-show="gallery" x-cloak x-transition.opacity x-on:click.self="closeGallery()">

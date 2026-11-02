@@ -165,6 +165,32 @@ return [
         'panel-close' => 'Close :tile',
     ],
 
+    // "Customize your desk" (the dashboard's ready layouts and panels, like hc-tracking's desk).
+    'desk' => [
+        'open' => 'Layouts',
+        'title' => 'Customize your desk',
+        'layouts' => 'Ready layouts',
+        'panels' => 'My panels',
+        'suggested' => 'Suggested for you',
+        'adjust' => 'Adjust panels',
+        'count' => '{1} 1 panel. Your shortcuts stay as they are.|[2,*] :count panels. Your shortcuts stay as they are.',
+        'panels-lead' => 'Switch on what you want on your desk. A panel you switch on joins at the end; move and resize it afterwards.',
+        'unchanged' => 'Nothing changes until you confirm.',
+        'use' => 'Use :layout',
+        'save-panels' => 'Save my panels',
+        'applied' => 'Your desk is updated.',
+        'preview' => 'Preview of :layout',
+    ],
+    'presets' => [
+        'my-day' => ['name' => 'My day', 'lead' => 'What waits for you, what is coming and what slipped'],
+        'time-off' => ['name' => 'Time off', 'lead' => 'Your leave, its balance and who is away'],
+        'team-lead' => ['name' => 'Team lead', 'lead' => "Your team's requests, absences and people"],
+        'hr-desk' => ['name' => 'HR desk', 'lead' => "Decisions, contracts ending soon and today's absences"],
+        'people-numbers' => ['name' => 'People in numbers', 'lead' => "The organisation's staff at a glance"],
+        'community' => ['name' => 'Community and news', 'lead' => 'News, events and birthdays across the centre'],
+        'leadership' => ['name' => 'Leadership overview', 'lead' => 'What needs a decision and how the organisation stands'],
+    ],
+
     // The tiles that were fixed above the grid (Dashboard\LateCard, Dashboard\DecisionsCard).
     'late-tile' => [
         'none' => 'Nothing is past its deadline.',
