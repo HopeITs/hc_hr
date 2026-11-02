@@ -22,14 +22,7 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        // Puter's sign-in is a popup on puter.com that reports back through
-        // window.opener; `same-origin` cuts that link, so the sign-in never
-        // completes. Browsers ignore COOP over plain HTTP, which is why this
-        // only showed on the HTTPS server, never on a local .test site.
-        $response->headers->set(
-            'Cross-Origin-Opener-Policy',
-            config('assistant.puter.enabled') ? 'same-origin-allow-popups' : 'same-origin',
-        );
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
 
         // The digital ID card is deliberately reachable without a session, so

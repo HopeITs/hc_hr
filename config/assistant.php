@@ -100,18 +100,6 @@ return [
         ],
     ],
 
-    // Puter.js (https://docs.puter.com): the model is asked from the
-    // employee's own browser under their own Puter account ("user pays"), so
-    // it needs no key here and this server's location does not matter. Used
-    // when no provider above is configured or none of them answers. The
-    // employee signs in to Puter once (a popup), and what the assistant reads
-    // for them (policies, their record, pay) goes from their browser to Puter.
-    'puter' => [
-        'enabled' => (bool) env('ASSISTANT_PUTER', false),
-        'model' => env('ASSISTANT_PUTER_MODEL', 'gpt-5.4-nano'),
-        'script' => 'https://js.puter.com/v2/',
-    ],
-
     // Gemini also writes out the policy PDFs (policies:sync), which only it does.
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),

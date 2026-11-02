@@ -374,8 +374,6 @@ class AssistantChatTest extends TestCase
     {
         return $this->mock(Assistant::class, function (MockInterface $mock) use ($available) {
             $mock->shouldReceive('isAvailable')->andReturn($available);
-            $mock->shouldReceive('hasServerModel')->andReturn(true)->byDefault();
-            $mock->shouldReceive('usesBrowser')->andReturn(false)->byDefault();
         });
     }
 

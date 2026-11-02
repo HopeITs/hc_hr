@@ -629,12 +629,9 @@ return [
         // type (leave, news, employee, contract...), which re-checks the caller's
         // permission and re-validates it exactly as that record's create screen
         // does. cancelDraft() only marks that draft discarded. placeholder() is the lazy panel's loading markup.
-        // relayStep()/relayFailed() continue a question send() handed to the
-        // browser (Puter.js): only the relay id held in the session is
-        // accepted, and the tools the model calls still run as this user.
         // openConversation()/deleteConversation() act only on the signed-in user's own
         // saved conversations (AssistantConversation::ownedBy).
-        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'relayStep', 'relayFailed', 'openConversation', 'deleteConversation'],
+        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'openConversation', 'deleteConversation'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.
