@@ -23,6 +23,8 @@ use App\Policies\EmployeePolicy;
 use App\Policies\LeaveRequestPolicy;
 use App\Policies\PositionPolicy;
 use App\Services\ActivityLogger;
+use App\Services\Assistant\ChatModel;
+use App\Services\Assistant\ModelRouter;
 use App\Services\SalaryCipher;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
@@ -46,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         // figures" warning that goes with it - is built once per request
         // rather than once per contract row rendered.
         $this->app->singleton(SalaryCipher::class);
+
+        // The assistant asks whichever configured AI provider answers first.
+        $this->app->bind(ChatModel::class, ModelRouter::class);
 
         // Sends or flashes the toasts raised through WithFeedback::toast().
         // Registered while booting, not in boot(): Livewire attaches the hooks
