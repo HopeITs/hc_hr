@@ -11,6 +11,7 @@ class SecurityHeadersTest extends TestCase
         config([
             'security-headers.hsts.enabled' => true,
             'security-headers.csp.report_only' => true,
+            'assistant.puter.enabled' => false,
         ]);
 
         $response = $this->get('/up');
@@ -35,6 +36,13 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("object-src 'none'", $policy);
         $this->assertStringContainsString("frame-ancestors 'none'", $policy);
         $this->assertMatchesRegularExpression("/script-src [^;]*'nonce-[^']+'/", $policy);
+    }
+
+    public function test_puter_sign_in_popup_keeps_its_opener(): void
+    {
+        config(['assistant.puter.enabled' => true]);
+
+        $this->get('/up')->assertHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     }
 
     public function test_csp_can_be_enforced_after_report_only_rollout(): void
