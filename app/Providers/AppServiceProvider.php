@@ -70,6 +70,8 @@ use App\Services\Recruitment\Scanning\ClamdScanner;
 use App\Services\Recruitment\Scanning\DisabledScanner;
 use App\Services\Recruitment\Scanning\RecruitmentFileScanner;
 use App\Services\RecruitmentIndicatorRules;
+use App\Services\Assistant\ChatModel;
+use App\Services\Assistant\ModelRouter;
 use App\Services\SalaryCipher;
 use App\Support\Permissions\PermissionCacheGeneration;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -108,14 +110,6 @@ class AppServiceProvider extends ServiceProvider
         // figures" warning that goes with it - is built once per request
         // rather than once per contract row rendered.
         $this->app->singleton(SalaryCipher::class);
-        // One instance, so a save is seen at once by everything that evaluates indicators.
-        $this->app->singleton(RecruitmentIndicatorRules::class);
-
-        // Anything but "clamd" leaves every upload in quarantine; there is no
-        // driver that clears a file without scanning it.
-        $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
-            ? new ClamdScanner
-            : new DisabledScanner);
 
         // Sends or flashes the toasts raised through WithFeedback::toast().
         // Registered while booting, not in boot(): Livewire attaches the hooks

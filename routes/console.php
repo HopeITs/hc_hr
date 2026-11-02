@@ -13,6 +13,7 @@ use App\Console\Commands\SendLeaveDecisionReminders;
 use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
 use App\Console\Commands\SweepRecruitmentRetention;
+use App\Console\Commands\SyncPolicies;
 use App\Console\Commands\SyncRecruitmentCampaignStates;
 use App\Console\Commands\TrackRenewalJourneys;
 use App\Models\InAppFeedback;
@@ -66,6 +67,8 @@ Schedule::command(RedispatchRecruitmentRejectionNotices::class)->everyFiveMinute
 Schedule::command(SweepRecruitmentRetention::class)->dailyAt('02:15')->withoutOverlapping();
 // X2-I / DEC-10: task-attempt telemetry is deleted after 90 days.
 Schedule::command(PruneTaskAttempts::class)->dailyAt('03:10');
+// The assistant's copy of the policies in Drive (unchanged files are not re-read).
+Schedule::command(SyncPolicies::class)->dailyAt('02:30')->withoutOverlapping();
 // D3 / DEC-08: in-app feedback is deleted after one year (InAppFeedback::prunable()).
 Schedule::command('model:prune', ['--model' => [InAppFeedback::class]])->dailyAt('03:20');
 Schedule::call(function () {

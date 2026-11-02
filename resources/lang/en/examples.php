@@ -40,14 +40,6 @@ return [
         ],
     ],
 
-    'global_search' => [
-        'Leave requests',
-        'Contracts ending this month',
-        'Aleppo',
-        'New employee',
-        'Org chart',
-    ],
-
     'hints' => [
         'leave_reason' => 'A few words are enough. Your manager and HR see this.',
         'name' => 'As written on the ID card.',

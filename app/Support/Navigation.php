@@ -48,6 +48,8 @@ final class Navigation
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             $can('archives.view') ? self::item('nav.my-space.files', __('general.my-folders'), 'my-folders.index', ['my-folders.*'], 'archived', 'nav.archives') : null,
             $can('archives.view') ? self::item('nav.my-space.shared-files', __('general.shared-folders'), 'shared-folders.index', ['shared-folders.*'], 'folder') : null,
+            // The AI assistant is not a menu item: it opens from the floating
+            // button on every page (<x-assistant.widget>).
         ]));
 
         $basics = self::group('nav.basics', __('general.project-basics'), 'home', array_values(array_filter([

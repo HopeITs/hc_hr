@@ -1033,6 +1033,23 @@ return [
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
         'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
+        // AI assistant: every signed-in user may ask, so there is no permission to
+        // check. send() answers only about the caller: EmployeeTools reads the
+        // signed-in user's own record and takes no parameters, and each call is
+        // counted against the per-user hourly limit. clear() starts a new
+        // conversation for the caller.
+        // confirmDraft() takes only the id of a draft saved in the caller's own
+        // conversation (never the draft itself from the browser), can succeed once
+        // per draft (an atomic cache claim), and hands it to the RecordDraft of its
+        // type (leave, news, employee, contract...), which re-checks the caller's
+        // permission and re-validates it exactly as that record's create screen
+        // does. cancelDraft() only marks that draft discarded. placeholder() is the lazy panel's loading markup.
+        // relayStep()/relayFailed() continue a question send() handed to the
+        // browser (Puter.js): only the relay id held in the session is
+        // accepted, and the tools the model calls still run as this user.
+        // openConversation()/deleteConversation() act only on the signed-in user's own
+        // saved conversations (AssistantConversation::ownedBy).
+        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'relayStep', 'relayFailed', 'openConversation', 'deleteConversation'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.

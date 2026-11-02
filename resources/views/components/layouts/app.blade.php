@@ -92,6 +92,14 @@
     <livewire:feedback.feedback-form :page-route="request()->route()?->getName()" />
 @endauth
 
+{{-- The AI assistant's floating button and panel (only while it is available). Persisted,
+     so wire:navigate keeps the panel and its conversation as they are. --}}
+@auth
+    @persist('assistant-widget')
+        <x-assistant.widget/>
+    @endpersist
+@endauth
+
 {{-- Outcome toasts (session('status') included) and delete confirmations, for every page. --}}
 <x-toasts/>
 <x-confirm-dialog/>

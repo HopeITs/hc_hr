@@ -59,15 +59,15 @@
             <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-ink-3" aria-hidden="true">
                 <x-icons.search class="size-4" />
             </span>
-            {{-- wire:ignore.self: a re-render (recents, results) must not put the server's
-                 placeholder back over the typewriter's; every attribute here is static. --}}
+            {{-- wire:ignore.self: every attribute here is static, so a re-render
+                 (recents, results) has nothing to change on the input. --}}
             <input id="global-search-input" x-ref="input" type="search" autocomplete="off" spellcheck="false"
                    wire:ignore.self
                    wire:model.live.debounce.300ms="q"
                    role="combobox" aria-autocomplete="list" aria-controls="global-search-list"
                    :aria-expanded="open.toString()"
                    :aria-activedescendant="active >= 0 ? 'global-search-option-' + active : null"
-                   placeholder="{{ __('general.global-search.placeholder') }}" data-typewriter="{{ json_encode(__('examples.global_search'), JSON_UNESCAPED_UNICODE) }}"
+                   placeholder="{{ __('general.global-search.placeholder') }}"
                    class="h-11 w-full rounded-[14px] border border-line bg-soft ps-9 pe-3 xl:pe-14 text-body text-ink placeholder:text-ink-3 focus:bg-card sm:h-10"
                    x-on:focus="open = true; recent()"
                    x-on:input="open = true; active = -1"
