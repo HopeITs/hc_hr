@@ -184,8 +184,8 @@ class LeaveRequestByAssistantTest extends TestCase
         $reply = app(Assistant::class)->reply($this->user, [], 'I need a sick day on 23 November, I have a fever.');
 
         $this->assertSame('Please review the draft and press Confirm.', $reply->text);
-        $this->assertSame($this->sick->id, $reply->leaveProposal['leave_balance_id']);
-        $this->assertSame('2026-11-23', $reply->leaveProposal['start']);
+        $this->assertSame($this->sick->id, $reply->draft['leave_balance_id']);
+        $this->assertSame('2026-11-23', $reply->draft['start']);
         $this->assertSame(1, LeaveRequest::query()->count());
 
         Http::assertSent(fn (Request $request) => str_contains($request['systemInstruction']['parts'][0]['text'], 'never say it was submitted'));
@@ -203,7 +203,7 @@ class LeaveRequestByAssistantTest extends TestCase
 
         $reply = app(Assistant::class)->reply($this->user, [], 'Sick day on 3 November.');
 
-        $this->assertNull($reply->leaveProposal);
+        $this->assertNull($reply->draft);
     }
 
     public function test_submitting_a_draft_creates_what_the_page_creates(): void

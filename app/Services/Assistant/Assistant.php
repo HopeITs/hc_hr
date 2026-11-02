@@ -64,7 +64,7 @@ class Assistant
             $calls = GeminiClient::functionCalls($content);
 
             if ($calls === [] || $round === self::MAX_TOOL_ROUNDS) {
-                return new AssistantReply(GeminiClient::text($content) ?: $this->fallback($question), $proposal);
+                return $this->answer(GeminiClient::text($content) ?: $this->fallback($question), $proposal);
             }
 
             // Sent back unchanged: newer models sign their function-call turns.
@@ -72,7 +72,7 @@ class Assistant
             $contents[] = ['role' => 'user', 'parts' => $this->runTools($user, $calls, $proposal)];
         }
 
-        return new AssistantReply($this->fallback($question), $proposal);
+        return $this->answer($this->fallback($question), $proposal);
     }
 
     /**
@@ -113,7 +113,7 @@ class Assistant
         $proposal = $state['proposal'] ?? null;
 
         if ($calls === [] || ($state['round'] ?? 0) >= self::MAX_TOOL_ROUNDS) {
-            return [$state, null, new AssistantReply(GeminiClient::text($content) ?: $this->fallback($state['question']), $proposal)];
+            return [$state, null, $this->answer(GeminiClient::text($content) ?: $this->fallback($state['question']), $proposal)];
         }
 
         $state['contents'][] = $content;
@@ -135,15 +135,28 @@ class Assistant
         foreach ($calls as $call) {
             $response = $this->tools->call($user, $call['name'], is_array($call['args']) ? $call['args'] : []);
 
-            // Only a draft the tools checked, never anything the model wrote itself.
-            if ($call['name'] === 'draft_leave_request' && ($response['status'] ?? null) === 'drafted') {
-                $proposal = $response['proposal'];
+            // Only a draft a tool checked, never anything the model wrote itself.
+            if (($response['status'] ?? null) === 'drafted' && is_array($response['proposal'] ?? null)) {
+                $proposal = ['type' => $response['draft_type'] ?? 'leave', 'data' => $response['proposal']];
+            }
+
+            // The chat-or-page buttons; a draft made in the same reply wins.
+            if (($response['status'] ?? null) === 'choice' && ($proposal === null || $proposal['type'] === 'choice')) {
+                $proposal = ['type' => 'choice', 'data' => $response['proposal']];
             }
 
             $parts[] = ['functionResponse' => ['name' => $call['name'], 'response' => $response]];
         }
 
         return $parts;
+    }
+
+    /** @param  array{type: string, data: array<string, mixed>}|null  $proposal */
+    private function answer(string $text, ?array $proposal): AssistantReply
+    {
+        return $proposal === null
+            ? new AssistantReply($text)
+            : new AssistantReply($text, $proposal['data'], $proposal['type']);
     }
 
     /** @return array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>} */
@@ -194,11 +207,13 @@ class Assistant
             'Answer questions about policies only from the policy texts below, and name the policy (its title) you used.',
             "For the employee's own data (profile, contract, leave balances, leave requests, pay, files) call the tools; never answer it from memory or from earlier messages alone.",
             "Never guess. If neither the policies nor the tools hold the answer, say you don't know and suggest contacting HR.",
-            'Never discuss, compare with or reveal anything about other employees, even if asked.',
+            'Never discuss, compare with or reveal anything about other employees, even if asked. The one exception: who is on approved leave and when, only as get_team_absences returns it (name, position, dates, leave type), never more.',
             'Keep answers short and clear.',
-            'When the employee wants to take a leave, help them draft the request: call get_leave_options, then ask for whatever is still missing (the leave type, the dates or for an hourly leave the day and times, the reason), one short question at a time. Read relative dates ("tomorrow", "next Sunday", "for 5 days from the 3rd") against today\'s date below and state the exact dates you understood. Then call draft_leave_request.',
+            'Whenever the user asks to add or create anything new (including their own leave request), first call offer_create_choice with what they want to add and wait for their choice; skip it only if they already chose to continue here.',
+            'When the employee wants to take a leave and chose to continue here, help them draft the request: call get_leave_options, then ask for whatever is still missing (the leave type, the dates or for an hourly leave the day and times, the reason), one short question at a time. Read relative dates ("tomorrow", "next Sunday", "for 5 days from the 3rd") against today\'s date below and state the exact dates you understood. Then call draft_leave_request.',
             'If draft_leave_request returns errors, explain them simply and ask what to change. If it returns a draft, summarise it (type, dates, duration, reason) and tell the employee to review it and press the Confirm button below your answer.',
             'You cannot submit a leave request and must never say it was submitted, sent or approved: only the employee\'s Confirm click submits it. Without the draft_leave_request tool, tell the employee to use the My leaves page.',
+            'Other records (a leave request for another employee, a news item, a new employee, a contract) are created the same way, only with the tools you are given for them: first call that record\'s options tool when there is one, ask for each missing required value one short question at a time (never invent one), then call its draft_ tool. If it returns errors, explain them and ask what to change; if it returns a draft, summarise it and ask the user to press Confirm below your answer. You can never create, save or send a record yourself and must never say one was created: only the Confirm click does that. Without a tool for a record, tell the user to use its page in the app.',
             'Today is '.now()->format('l, Y-m-d').'.',
             "The employee you are talking to is {$name}.",
         ];

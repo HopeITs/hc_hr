@@ -57,10 +57,11 @@
                     'text-ink-2' => $kind === 'cancelled',
                 ]) @if ($kind === 'error') role="alert" @endif>
                     {!! $this->toHtml($message['text']) !!}
-                    @if ($kind === 'submitted')
+                    {{-- Where to see what was created (lines saved before other kinds existed are leave requests). --}}
+                    @if ($kind === 'submitted' && ($message['url'] ?? ! isset($message['link'])))
                         <p>
-                            <a href="{{ route('leaves.index') }}" wire:navigate class="font-semibold text-ink underline" data-testid="assistant-my-leaves">
-                                {{ __('assistant.leave.open-my-leaves') }}
+                            <a href="{{ $message['url'] ?? route('leaves.index') }}" wire:navigate class="font-semibold text-ink underline" data-testid="assistant-record-link">
+                                {{ $message['link'] ?? __('assistant.leave.open-my-leaves') }}
                             </a>
                         </p>
                     @endif
@@ -81,8 +82,10 @@
                         data-role="assistant"
                     >{!! $this->toHtml($message['text']) !!}</div>
 
-                    @if (is_array($proposal))
-                        @include('livewire.assistant.partials.leave-proposal', ['proposal' => $proposal])
+                    @if (is_array($proposal) && ($proposal['type'] ?? null) === 'choice')
+                        @include('livewire.assistant.partials.create-choice', ['proposal' => $proposal, 'isLatest' => $loop->last])
+                    @elseif (is_array($proposal))
+                        @include('livewire.assistant.partials.draft-proposal', ['proposal' => $proposal])
                     @endif
                 </div>
             </div>

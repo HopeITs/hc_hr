@@ -56,7 +56,7 @@ class AssistantTest extends TestCase
         $answer = app(Assistant::class)->reply($user, [], 'How many leave days do I get?');
 
         $this->assertSame('Twenty-one days.', $answer->text);
-        $this->assertNull($answer->leaveProposal);
+        $this->assertNull($answer->draft);
         Http::assertSentCount(1);
         Http::assertSent(function (Request $request) {
             $system = $request['systemInstruction']['parts'][0]['text'];

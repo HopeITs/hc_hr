@@ -14,11 +14,15 @@ use App\Models\Folder;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
 
 /**
  * The functions the assistant may call to read the asking employee's record.
@@ -41,6 +45,7 @@ class EmployeeTools
         'get_my_leave_balances' => "The employee's own leave balances per leave type: entitled, used, pending and remaining.",
         'get_my_leave_requests' => "The employee's own 15 most recent leave requests: type, start, end, duration and status.",
         'get_my_salary' => "The employee's own pay on their current contract: amount (or pay tiers), currency and period.",
+        'get_team_absences' => 'Who is away on APPROVED leave on a day or between two dates, among the people this user may see on the team calendar (the same people and the same details): name, position, dates and leave type. Pending or refused requests are never included, and nothing else about anyone (no reason, balance or pay).',
         'get_my_files' => 'Names, categories and dates of the files in the employee\'s own record and in the archive folders shared with them. No file contents.',
         'get_leave_options' => 'What the employee can request a new leave from: their own leave balances (id, leave type, remaining, whether it can be taken by the hour) and the colleagues they may name as their alternative while away (optional). Call it before drafting a leave request.',
         'draft_leave_request' => 'Checks a new leave request of the employee with every rule of the leave page (balance, dates, overlap, December, working hours) and prepares it for the employee to confirm. It never submits anything. Returns either the errors to tell the employee, or the checked draft. Only the employee can submit it, with the Confirm button shown under your answer.',
@@ -52,6 +57,15 @@ class EmployeeTools
      * employee's own record before anything is read or drafted.
      */
     private const PARAMETERS = [
+        'get_team_absences' => [
+            'type' => 'object',
+            'properties' => [
+                'from' => ['type' => 'string', 'description' => 'First day as YYYY-MM-DD. Default: today.'],
+                'to' => ['type' => 'string', 'description' => 'Last day as YYYY-MM-DD (at most 31 days after from). Default: the same as from.'],
+                // The enum is the user's own scopes, set in declarations().
+                'scope' => ['type' => 'string', 'description' => 'Whose leave: one of the listed teams. Default: the team the calendar opens on.'],
+            ],
+        ],
         'draft_leave_request' => [
             'type' => 'object',
             'properties' => [
@@ -70,19 +84,35 @@ class EmployeeTools
     // The longest list of alternatives sent to the model.
     private const MAX_ALTERNATIVES = 60;
 
-    public function __construct(private ?LeaveRequestDrafter $drafter = null)
-    {
+    public function __construct(
+        private ?LeaveRequestDrafter $drafter = null,
+        private ?DraftRegistry $drafts = null,
+    ) {
         $this->drafter ??= app(LeaveRequestDrafter::class);
+        $this->drafts ??= app(DraftRegistry::class);
     }
 
-    /** @return list<array{name: string, description: string, parameters?: array<string, mixed>}> */
+    /**
+     * The employee's own tools, then those of the records this user may
+     * create from the chat (DraftRegistry), each behind its own permission.
+     *
+     * @return list<array{name: string, description: string, parameters?: array<string, mixed>}>
+     */
     public function declarations(User $user): array
     {
-        return array_map(
+        $declarations = array_map(
             fn (string $name) => ['name' => $name, 'description' => self::DESCRIPTIONS[$name]]
                 + (isset(self::PARAMETERS[$name]) ? ['parameters' => self::PARAMETERS[$name]] : []),
             $this->available($user),
         );
+
+        foreach ($declarations as $i => $declaration) {
+            if ($declaration['name'] === 'get_team_absences') {
+                $declarations[$i]['parameters']['properties']['scope']['enum'] = app(TeamCoverage::class)->scopesFor($user);
+            }
+        }
+
+        return [...$declarations, ...$this->drafts->declarations($user)];
     }
 
     /**
@@ -91,6 +121,16 @@ class EmployeeTools
      */
     public function call(User $user, string $name, array $args = []): array
     {
+        if ($name === DraftRegistry::CHOICE_TOOL) {
+            return $this->drafts->offerChoice($user, $args);
+        }
+
+        if (! in_array($name, $this->available($user), true) && $draft = $this->drafts->owner($user, $name)) {
+            $result = $draft->call($user, $name, $args);
+
+            return ($result['status'] ?? null) === 'drafted' ? $result + ['draft_type' => $draft->type()] : $result;
+        }
+
         $employee = $user->profile;
 
         if (! $employee || ! in_array($name, $this->available($user), true)) {
@@ -103,9 +143,57 @@ class EmployeeTools
             'get_my_leave_requests' => $this->leaveRequests($employee),
             'get_my_salary' => $this->salary($employee),
             'get_my_files' => $this->files($user, $employee),
+            'get_team_absences' => $this->teamAbsences($user, $args),
             'get_leave_options' => $this->leaveOptions($employee),
             'draft_leave_request' => $this->draftLeaveRequest($user, $args),
         };
+    }
+
+    /**
+     * Approved leave of the people the user may see on the team calendar, on
+     * the calendar's own reader (TeamCoverage): the same people, scopes and
+     * details, at the same level (a colleague sees a neutral type for
+     * sensitive leave). Pending requests are left out even for a manager.
+     */
+    private function teamAbsences(User $user, array $args): array
+    {
+        $coverage = app(TeamCoverage::class);
+        $scopes = $coverage->scopesFor($user);
+        $scope = in_array($args['scope'] ?? null, $scopes, true) ? $args['scope'] : $coverage->defaultScope($user);
+
+        try {
+            $from = filled($args['from'] ?? null) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $args['from']) : CarbonImmutable::today();
+            $to = filled($args['to'] ?? null) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $args['to']) : $from;
+        } catch (Throwable) {
+            return ['error' => 'Dates must be YYYY-MM-DD.'];
+        }
+
+        if (! $from || ! $to || $to->lt($from) || $from->diffInDays($to) > 31) {
+            return ['error' => 'Give a from date and a to date at most 31 days later, as YYYY-MM-DD.'];
+        }
+
+        $away = $coverage->absences($user, $scope, $from, $to, ['status' => 'accepted'])
+            ->reject(fn (array $entry) => $entry['is_self'] || $entry['status'] === 'pending')
+            ->sortBy([['from', 'asc'], ['name', 'asc']])
+            ->map(fn (array $entry) => array_filter([
+                'name' => $entry['name'],
+                'position' => $entry['position'] ?: null,
+                'from' => $entry['from'],
+                'to' => $entry['to'],
+                'type' => $entry['type'],
+                'hours' => $entry['hours'],
+            ], fn ($value) => $value !== null))
+            ->values();
+
+        return [
+            'scope' => __('team_calendar.scopes.'.$scope),
+            'other_scopes' => array_values(array_diff($scopes, [$scope])),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'away' => $away->take(60)->all(),
+            'truncated' => $away->count() > 60 ?: null,
+            'note' => $away->isEmpty() ? 'Nobody the user may see is on approved leave then.' : null,
+        ];
     }
 
     /** @return list<string> */
@@ -125,6 +213,8 @@ class EmployeeTools
             $canSeeLeaves ? 'get_my_leave_requests' : null,
             config('assistant.share_salary') ? 'get_my_salary' : null,
             'get_my_files',
+            // The team calendar's own gate (route team.calendar).
+            $canSeeLeaves ? 'get_team_absences' : null,
             $canRequestLeave ? 'get_leave_options' : null,
             $canRequestLeave ? 'draft_leave_request' : null,
         ]));

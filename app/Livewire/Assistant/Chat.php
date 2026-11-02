@@ -6,8 +6,8 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Models\AssistantConversation;
 use App\Services\Assistant\Assistant;
 use App\Services\Assistant\AssistantReply;
+use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\Assistant\GeminiException;
-use App\Services\Assistant\LeaveRequestSubmitter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -31,7 +31,7 @@ use Throwable;
  *
  * Leave drafts: an answer may carry a leave proposal. It is kept next to that
  * answer under a random id; the browser only ever sends that id back, and
- * LeaveRequestSubmitter re-checks and re-validates it.
+ * the RecordDraft of its type re-checks and re-validates it.
  */
 class Chat extends Component
 {
@@ -175,11 +175,13 @@ class Chat extends Component
     }
 
     /**
-     * Submits the leave request drafted under one answer. Only the id comes
-     * from the browser: the proposal itself is the one kept in the session,
-     * and it can be confirmed once.
+     * Creates the record drafted under one answer (a leave request, a news
+     * item, an employee, ...). Only the id comes from the browser: the
+     * proposal itself is the one saved with the conversation, its RecordDraft
+     * checks the permission and validates it again, and it can be confirmed
+     * once.
      */
-    public function confirmLeave(string $id, LeaveRequestSubmitter $submitter): void
+    public function confirmDraft(string $id, DraftRegistry $drafts): void
     {
         $this->notice = null;
 
@@ -189,22 +191,27 @@ class Chat extends Component
             return;
         }
 
+        $saved = $this->messages()[$index]['proposal'];
+        // Drafts saved before there were other kinds are leave requests.
+        $draft = $drafts->for($saved['type'] ?? 'leave');
+
+        if ($draft === null) {
+            return;
+        }
+
         // Atomic, so a double click or the panel and the page together cannot submit twice.
         if (! Cache::add($this->claimKey($id), true, now()->addDay())) {
             return;
         }
 
-        $messages = $this->messages();
-        $proposal = $messages[$index]['proposal']['data'];
-
         try {
-            // The draft's id doubles as the form's save token: a repeat returns the same request.
-            $submitter->submit(auth()->user(), $proposal, $id);
+            // The draft's id doubles as the save token: a repeat returns the first result.
+            $result = $draft->submit(auth()->user(), $saved['data'], $id);
         } catch (ValidationException $e) {
             $this->updateProposal($id, 'failed', [
                 'role' => 'assistant',
                 'text' => collect($e->errors())->flatten()->map(fn ($m) => '- '.$m)
-                    ->prepend(__('assistant.leave.failed'))->implode("\n"),
+                    ->prepend(__('assistant.draft.failed'))->implode("\n"),
                 'kind' => 'error',
             ]);
 
@@ -217,25 +224,30 @@ class Chat extends Component
             return;
         }
 
-        $this->updateProposal($id, 'submitted', [
+        $this->updateProposal($id, 'submitted', array_filter([
             'role' => 'assistant',
-            'text' => __('assistant.leave.submitted'),
+            'text' => $result['message'],
             'kind' => 'submitted',
-        ]);
+            'url' => $result['url'] ?? null,
+            'link' => $result['link'] ?? null,
+        ]));
 
-        $this->toast(__('assistant.leave.submitted'));
+        $this->toast($result['message']);
     }
 
-    /** Discards the draft under one answer; nothing is sent anywhere. */
-    public function cancelLeave(string $id): void
+    /** Discards the draft under one answer; nothing is created. */
+    public function cancelDraft(string $id): void
     {
-        if ($this->findProposal($id) === null || Cache::has($this->claimKey($id))) {
+        $index = $this->findProposal($id);
+
+        // The chat-or-page buttons have nothing to cancel.
+        if ($index === null || ($this->messages()[$index]['proposal']['type'] ?? null) === 'choice' || Cache::has($this->claimKey($id))) {
             return;
         }
 
         $this->updateProposal($id, 'cancelled', [
             'role' => 'assistant',
-            'text' => __('assistant.leave.cancelled'),
+            'text' => __('assistant.draft.cancelled'),
             'kind' => 'cancelled',
         ]);
     }
@@ -312,11 +324,12 @@ class Chat extends Component
     {
         $answer = ['role' => 'assistant', 'text' => $reply->text];
 
-        if (is_array($reply->leaveProposal) && $reply->leaveProposal !== []) {
+        if (is_array($reply->draft) && $reply->draft !== []) {
             $answer['proposal'] = [
                 'id' => Str::random(20),
                 'state' => 'pending',
-                'data' => $reply->leaveProposal,
+                'type' => $reply->draftType,
+                'data' => $reply->draft,
             ];
         }
 
@@ -481,6 +494,19 @@ class Chat extends Component
     protected function claimKey(string $id): string
     {
         return 'assistant:leave-proposal:'.auth()->id().':'.$id;
+    }
+
+    /**
+     * What a draft's card shows, from the RecordDraft of its type.
+     *
+     * @return array{title: string, icon: string, rows: array<string, string>}
+     */
+    protected function draftCard(array $proposal): array
+    {
+        $draft = app(DraftRegistry::class)->for($proposal['type'] ?? 'leave');
+
+        return $draft?->card((array) ($proposal['data'] ?? []))
+            ?? ['title' => __('assistant.draft.title'), 'icon' => 'file', 'rows' => []];
     }
 
     /** The answer as HTML: raw HTML in it is stripped and unsafe links dropped. */

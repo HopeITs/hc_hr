@@ -88,4 +88,28 @@ return [
         'cancelled' => 'Draft discarded. No request was sent.',
         'failed' => 'The request was not sent:',
     ],
+
+    // Any record the assistant drafted (RecordDraft): the card and its buttons.
+    'draft' => [
+        'title' => 'Draft',
+        'check' => 'Check the details first. Nothing is created until you press "Confirm".',
+        'confirm' => 'Confirm',
+        'cancel' => 'Cancel',
+        'states' => [
+            'pending' => 'Waiting for you',
+            'submitted' => 'Done',
+            'cancelled' => 'Discarded',
+            'failed' => 'Not created',
+        ],
+        'cancelled' => 'Draft discarded. Nothing was created.',
+        'failed' => 'It was not created:',
+        'forbidden' => 'You are not allowed to create this.',
+    ],
+
+    // Before a new record: continue in the chat, or open its page.
+    'choice' => [
+        'continue' => 'Continue here in the chat',
+        'continue-message' => 'Continue here in the chat',
+        'open' => 'Open the page: :what',
+    ],
 ];

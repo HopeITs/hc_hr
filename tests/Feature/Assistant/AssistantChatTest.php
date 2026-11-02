@@ -264,8 +264,8 @@ class AssistantChatTest extends TestCase
             ->assertSee('3 days')
             ->assertSee('Family visit')
             ->assertSee('Sami Haddad')
-            ->assertSee(__('assistant.leave.confirm'))
-            ->assertSee(__('assistant.leave.cancel'));
+            ->assertSee(__('assistant.draft.confirm'))
+            ->assertSee(__('assistant.draft.cancel'));
 
         // Only the turns go back to the model, not the draft.
         $this->assertArrayHasKey('proposal', $this->conversation()[1]);
@@ -286,7 +286,7 @@ class AssistantChatTest extends TestCase
         $component = $this->askForLeave($user);
         $id = $this->proposalId();
 
-        $component->call('confirmLeave', $id)
+        $component->call('confirmDraft', $id)
             ->assertSee(__('assistant.leave.submitted'))
             ->assertSee(__('assistant.leave.open-my-leaves'))
             ->assertSeeHtml('href="'.route('leaves.index').'"')
@@ -294,8 +294,8 @@ class AssistantChatTest extends TestCase
             ->assertDontSee(__('assistant.leave.confirm'));
 
         // A second click, or the other copy of the chat, cannot send it again.
-        $component->call('confirmLeave', $id);
-        Livewire::actingAs($user)->test(Chat::class, ['mode' => 'panel'])->call('confirmLeave', $id);
+        $component->call('confirmDraft', $id);
+        Livewire::actingAs($user)->test(Chat::class, ['mode' => 'panel'])->call('confirmDraft', $id);
 
         $this->assertSame('submitted', $this->conversation()[1]['proposal']['state']);
     }
@@ -312,12 +312,12 @@ class AssistantChatTest extends TestCase
         $this->assertSame(['mode', 'notice', 'question'], collect($component->snapshot['data'])->keys()->sort()->values()->all());
 
         // Made-up ids, or values instead of an id, are ignored.
-        $component->call('confirmLeave', 'not-a-real-id');
-        $component->call('confirmLeave', json_encode(['leave_balance_id' => 1] + self::PROPOSAL));
+        $component->call('confirmDraft', 'not-a-real-id');
+        $component->call('confirmDraft', json_encode(['leave_balance_id' => 1] + self::PROPOSAL));
 
         // Another user's session draft is not reachable either.
         $id = $this->proposalId();
-        Livewire::actingAs($this->employee())->test(Chat::class)->call('confirmLeave', $id);
+        Livewire::actingAs($this->employee())->test(Chat::class)->call('confirmDraft', $id);
     }
 
     public function test_cancel_discards_the_draft(): void
@@ -329,11 +329,11 @@ class AssistantChatTest extends TestCase
         $component = $this->askForLeave($user);
         $id = $this->proposalId();
 
-        $component->call('cancelLeave', $id)
-            ->assertSee(__('assistant.leave.cancelled'))
+        $component->call('cancelDraft', $id)
+            ->assertSee(__('assistant.draft.cancelled'))
             ->assertDontSee(__('assistant.leave.confirm'));
 
-        $component->call('confirmLeave', $id);
+        $component->call('confirmDraft', $id);
 
         $this->assertSame('cancelled', $this->conversation()[1]['proposal']['state']);
     }
@@ -352,13 +352,13 @@ class AssistantChatTest extends TestCase
         $component = $this->askForLeave($user);
         $id = $this->proposalId();
 
-        $component->call('confirmLeave', $id)
-            ->assertSee(__('assistant.leave.failed'))
+        $component->call('confirmDraft', $id)
+            ->assertSee(__('assistant.draft.failed'))
             ->assertSee('These dates overlap another request.')
             ->assertNotDispatched('toast')
             ->assertDontSee(__('assistant.leave.confirm'));
 
-        $component->call('confirmLeave', $id);
+        $component->call('confirmDraft', $id);
 
         $this->assertSame('failed', $this->conversation()[1]['proposal']['state']);
     }
