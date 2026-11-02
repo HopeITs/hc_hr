@@ -11,7 +11,7 @@
     </style>
 </head>
 
-<body class="antialiased min-h-screen bg-base"
+<body class="antialiased min-h-screen bg-app-surface"
       x-data="{ sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
@@ -39,7 +39,7 @@
 
 
 <div class="flex flex-col min-h-screen transition-[margin] duration-[400ms] ease-fluid md:ms-60"
-     :class="sidebarCollapsed ? 'md:!ms-24' : 'md:!ms-60'">
+     :class="sidebarCollapsed ? 'md:!ms-16' : 'md:!ms-60'">
 
 
 
