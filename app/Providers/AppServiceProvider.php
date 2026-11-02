@@ -111,6 +111,9 @@ class AppServiceProvider extends ServiceProvider
         // rather than once per contract row rendered.
         $this->app->singleton(SalaryCipher::class);
 
+        // The assistant asks whichever configured AI provider answers first.
+        $this->app->bind(ChatModel::class, ModelRouter::class);
+
         // Sends or flashes the toasts raised through WithFeedback::toast().
         // Registered while booting, not in boot(): Livewire attaches the hooks
         // it knows about during its own boot, so one added afterwards is never
