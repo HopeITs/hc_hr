@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Layout\BottomBarPicker;
 use App\Livewire\Layout\BottomNav;
+use App\Livewire\Layout\Header;
 use App\Models\City;
 use App\Models\Employee;
 use App\Models\NavigationPreference;
@@ -125,6 +126,21 @@ class BottomNavTest extends TestCase
         // Contract needs pay visibility as well as contracts.create: the salary-blind super-admin is not offered it.
         $admin = $this->makeUser($city, 'super-admin', ['contracts.create']);
         $this->assertStringNotContainsString('data-new="new.contract"', Livewire::actingAs($admin)->test(BottomNav::class)->html());
+    }
+
+    public function test_there_is_one_create_action_at_every_width(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($city, 'HR-ALP', ['leaves.view-own', 'leaves.create', 'employees.view', 'employees.create']);
+
+        // The bar (and so its +) exists below md only…
+        $bar = Livewire::actingAs($hr)->test(BottomNav::class)->html();
+        $this->assertMatchesRegularExpression('/<nav[^>]*data-testid="bottom-nav"[^>]*class="[^"]*\bmd:hidden\b/', $bar);
+
+        // …and the header's New menu from md up only, so phones never see two red Create buttons.
+        $header = Livewire::actingAs($hr)->test(Header::class)->html();
+        $this->assertSame(1, substr_count($header, 'data-testid="new-menu-button"'));
+        $this->assertMatchesRegularExpression('/<div class="relative shrink-0 max-md:hidden"\s+x-data="\{\s+open: false,/', $header);
     }
 
     public function test_a_role_that_may_start_nothing_has_no_plus(): void
