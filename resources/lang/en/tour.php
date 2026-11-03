@@ -16,7 +16,7 @@ return [
         ],
         'customise' => [
             'title' => 'Make it yours',
-            'body' => 'Press Customise to move, resize, hide or pin the cards, add shortcuts to the pages you use, then press Done. Your layout is kept for each of your roles.',
+            'body' => 'Press Customize to pick a ready layout or switch panels on and off. Drag a panel to move it, pull its edges to resize it, and use its ⋯ menu to move or remove it. Your desk is kept for each of your roles.',
         ],
         'search' => [
             'title' => 'Search and act: Ctrl+K',

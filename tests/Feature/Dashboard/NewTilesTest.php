@@ -20,6 +20,7 @@ use App\Models\LeaveType;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\User;
+use App\Services\Assistant\EmployeeTools;
 use App\Services\TeamCoverage;
 use App\Support\Dashboard\DashboardLayout;
 use Carbon\CarbonImmutable;
@@ -85,6 +86,39 @@ class NewTilesTest extends TestCase
 
         // HR-HMS: the city, so Lina, never Aleppo's Rana.
         $this->as('huda', WhoIsOutCard::class)->assertSee('Lina Haddad')->assertDontSee('Rana Saad');
+    }
+
+    public function test_the_assistant_tells_who_is_out_exactly_as_the_tile_does(): void
+    {
+        $this->leave('lina', '2026-10-27', '2026-10-28');
+        $this->leave('rana', '2026-10-26', '2026-10-30');
+        $this->leave('omar', '2026-10-27', '2026-10-27', LeaveRequestStatus::Pending);
+        $this->leave('sami', '2026-10-27', '2026-10-27');
+
+        $tools = app(EmployeeTools::class);
+        $ask = function (string $who, array $args = []) use ($tools) {
+            app()->forgetInstance(TeamCoverage::class);
+            $this->actingAs($this->user($who));
+
+            return $tools->call($this->user($who), 'get_team_absences', $args);
+        };
+
+        // Sami's reports: Lina (accepted), never pending Omar, nor Sami himself, nor Aleppo's Rana.
+        $forSami = $ask('sami');
+        $this->assertSame(['Lina Haddad'], array_map('trim', array_column($forSami['away'], 'name')));
+        $this->assertSame('2026-10-27', $forSami['away'][0]['from']);
+        $this->assertArrayNotHasKey('reason', $forSami['away'][0]);
+
+        // HR-HMS sees the city, still not Aleppo.
+        $this->assertNotContains('Rana Saad', array_map('trim', array_column($ask('huda')['away'], 'name')));
+
+        // A scope the user does not have falls back to their default; dates are bounded.
+        $this->assertSame(['Lina Haddad'], array_map('trim', array_column($ask('sami', ['scope' => 'org'])['away'], 'name')));
+        $this->assertArrayHasKey('error', $ask('sami', ['from' => '2026-10-01', 'to' => '2026-12-31']));
+
+        // Offered with the team calendar's own permission, scopes listed per user.
+        $declaration = collect($tools->declarations($this->user('sami')))->firstWhere('name', 'get_team_absences');
+        $this->assertSame(app(TeamCoverage::class)->scopesFor($this->user('sami')), $declaration['parameters']['properties']['scope']['enum']);
     }
 
     public function test_who_is_out_leaves_out_the_viewer_and_says_when_everyone_is_in(): void
@@ -276,9 +310,10 @@ class NewTilesTest extends TestCase
 
         foreach (['who-is-out', 'next-holiday', 'leave-balance', 'birthdays'] as $key) {
             $this->assertNotNull($layout->component($key), $key);
-            // Any widget goes down to one cell (an icon); below `card` it shows as one.
-            $this->assertSame('1x1', $layout->size($key, '1x1'), $key);
-            $this->assertNotSame([1, 1], $layout->bounds($key)['card'], $key);
+            // A panel never goes below its own minimum (no icon-sized tiles any more).
+            $bounds = $layout->bounds($key);
+            $this->assertSame(['min', 'max'], array_keys($bounds), $key);
+            $this->assertSame(implode('x', $bounds['min']), $layout->size($key, '1x1'), $key);
 
             foreach (['en', 'ar'] as $locale) {
                 app()->setLocale($locale);

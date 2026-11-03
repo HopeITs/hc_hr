@@ -73,6 +73,7 @@ return [
             ],
             'media-src' => ["'self'", 'blob:'],
             'connect-src' => ["'self'", 'ws:', 'wss:'],
+            'frame-src' => ["'self'"],
             'worker-src' => ["'self'", 'blob:'],
             'manifest-src' => ["'self'"],
             'upgrade-insecure-requests' => [],

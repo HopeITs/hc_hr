@@ -7,24 +7,23 @@ use App\Enums\LeaveRequestStatus;
 </x-slot:title>
 
 <div>
-    <div class="flex justify-between items-center mb-6">
+    {{-- Title and New request share a row while they fit; on a narrow phone the button wraps below the title. --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <livewire:layout.breadcrumbs
             :title="__('general.my-leaves')"
-            :crumbs="[
-
-            ]"
+            :crumbs="[]"
             :showButton="true"
         />
 
-        {{-- Offered only to roles that may create; create() authorizes again on the server. --}}
+        {{-- The page's own primary action (also the guided tour's anchor); the bottom nav's "+" reaches the same
+             dialog through ?new=1. Offered only to roles that may create; create() authorizes again on the server. --}}
         @if(auth()->user()->hasActivePermission('leaves.create'))
-            <div>
+            <div class="shrink-0">
                 <x-primary-button wire:click="create" data-tour="leaves.request">
                     @lang('leaves.modal.new-title')
                 </x-primary-button>
             </div>
         @endif
-
     </div>
 
     <livewire:employee.leave.birthday-holiday-card />
@@ -72,17 +71,17 @@ use App\Enums\LeaveRequestStatus;
                  data-testid="leave-submitted-result"
                  class="mb-6 rounded-surface border border-s-4 border-line-soft border-s-ink bg-card p-4 shadow-e2">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0 flex-1 space-y-2">
+                <div class="min-w-0 flex-1 basis-56 space-y-2">
                     <h2 id="submitted-leave-title" class="flex flex-wrap items-center gap-2 font-semibold text-ink">
                         <span>{{ __('leaves.submit.'.($submittedKind === 'updated' ? 'updated' : 'sent').'-title') }}</span>
                         <span><span class="sr-only">@lang('general.status'): </span><x-status :status="LeaveRequestStatus::of($submittedLeave->status)" /></span>
                     </h2>
-                    <p class="text-body text-ink">
+                    <p class="break-words text-body text-ink">
                         <span class="font-medium">@lang('leaves.next-step.title'):</span>
                         {{ app(\App\Services\LeaveRequestNextStep::class)->describe($submittedLeave) }}
                     </p>
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
+                <div class="ms-auto flex shrink-0 items-center gap-2">
                     <x-button variant="outline" size="sm"
                             wire:click="openDetails({{ $submittedLeave->id }})">
                         @lang('leaves.submit.view-details')
@@ -104,26 +103,25 @@ use App\Enums\LeaveRequestStatus;
     <x-tabs-list data-tour="leaves.filters">
         <x-tabs-list-item
             :active="$statusFilter === 'all'" active-tab="all">
-            {{ __('general.all') . ' ('. $counts['all'] ?? 0 }})
+            {{ __('general.all') }} ({{ $counts['all'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Pending"
             :active-tab="LeaveRequestStatus::Pending">
-            {{ LeaveRequestStatus::getLocalizedName(0)['value'] . ' ('.$counts['pending'] ?? 0  }})
+            {{ LeaveRequestStatus::getLocalizedName(0)['value'] }} ({{ $counts['pending'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Accepted"
             :active-tab="LeaveRequestStatus::Accepted">
-            {{ LeaveRequestStatus::getLocalizedName(1)['value'] . ' ('.$counts['accepted'] ?? 0  }})
-
+            {{ LeaveRequestStatus::getLocalizedName(1)['value'] }} ({{ $counts['accepted'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Rejected"
             :active-tab="LeaveRequestStatus::Rejected">
-            {{ LeaveRequestStatus::getLocalizedName(2)['value'] . ' ('.$counts['rejected'] ?? 0  }})
+            {{ LeaveRequestStatus::getLocalizedName(2)['value'] }} ({{ $counts['rejected'] ?? 0 }})
         </x-tabs-list-item>
     </x-tabs-list>
 
@@ -149,7 +147,7 @@ use App\Enums\LeaveRequestStatus;
                 {{-- Who acts next, for every status (A3). --}}
                 <div class="rounded-xl border border-line-soft bg-soft p-4" data-testid="leave-next-step">
                     <h3 class="text-small text-ink-2">@lang('leaves.next-step.title')</h3>
-                    <p class="mt-1 font-semibold text-ink">{{ app(\App\Services\LeaveRequestNextStep::class)->describe($selectedLeave) }}</p>
+                    <p class="mt-1 break-words font-semibold text-ink">{{ app(\App\Services\LeaveRequestNextStep::class)->describe($selectedLeave) }}</p>
                 </div>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -185,7 +183,7 @@ use App\Enums\LeaveRequestStatus;
 
                     <div class="rounded-xl border border-line-soft p-4 sm:col-span-2">
                         <dt class="text-small text-ink-2">@lang('general.alternative-employee')</dt>
-                        <dd class="mt-1 font-semibold text-ink"><bdi>{{ $selectedLeave->alternativeEmployee?->name ?? '—' }}</bdi></dd>
+                        <dd class="mt-1 break-words font-semibold text-ink"><bdi>{{ $selectedLeave->alternativeEmployee?->name ?? '—' }}</bdi></dd>
                     </div>
 
                     <div class="rounded-xl border border-line-soft p-4 sm:col-span-2">

@@ -141,7 +141,6 @@ class FormHintsTest extends TestCase
             'livewire/employee/tabs/personal-info-tab.blade.php' => ['examples.first_name', 'examples.hints.name'],
             'livewire/employee/tabs/contact-info-fields.blade.php' => ['examples.phone', 'examples.hints.phone'],
             'livewire/news/_form-fields.blade.php' => ['examples.news.title', 'examples.news.description'],
-            'livewire/layout/global-search.blade.php' => ['data-typewriter', 'examples.global_search'],
         ];
 
         foreach ($views as $view => $needles) {
@@ -151,6 +150,13 @@ class FormHintsTest extends TestCase
                 $this->assertStringContainsString($needle, $source, "$view should use $needle");
             }
         }
+    }
+
+    public function test_the_global_search_placeholder_stays_still(): void
+    {
+        $source = file_get_contents(resource_path('views/livewire/layout/global-search.blade.php'));
+
+        $this->assertStringNotContainsString('data-typewriter', $source);
     }
 
     public function test_the_typewriter_script_is_loaded_and_respects_reduced_motion(): void

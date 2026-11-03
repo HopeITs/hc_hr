@@ -566,8 +566,9 @@ return [
         'dashboard.department-employee-statistics' => ['retryLoad', 'placeholder'],
         // saveLayout/resetLayout (HasDashboardLayout) are self-scoped: only the caller's
         // own row for the active role, cleaned so a tile the role may not have is dropped.
-        // addTile is saveLayout followed by a render (the tile being added was never drawn).
-        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile'],
+        // addTile is saveLayout followed by a render (the tile being added was never drawn);
+        // applyPreset writes one of DashboardLayout::presets() into that same row.
+        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile', 'applyPreset'],
         'dashboard.job-level-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.salary-per-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.upcoming-leaves-card' => ['retryLoad', 'placeholder'],
@@ -590,11 +591,9 @@ return [
         // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.
         'dashboard.clock-card' => ['retryLoad', 'placeholder'],
         // The late band and decision cards read the caller's own WorkInbox::shared
-        // snapshot and Contract::visibleTo(); a big shortcut's card re-checks its key
-        // against DashboardLayout::allowed() on every render and keeps its page's scope.
+        // snapshot and Contract::visibleTo().
         'dashboard.late-card' => ['retryLoad', 'placeholder'],
         'dashboard.decisions-card' => ['retryLoad', 'placeholder'],
-        'dashboard.app-card' => ['retryLoad', 'placeholder'],
         // skipDraft is pure navigation (a redirect, no data read or write) and
         // updatedDraftCityId/updatedDraftProgramId only reset the draft
         // cascade's own in-memory selections — the same class as
@@ -618,6 +617,20 @@ return [
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
         'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
+        // AI assistant: every signed-in user may ask, so there is no permission to
+        // check. send() answers only about the caller: EmployeeTools reads the
+        // signed-in user's own record and takes no parameters, and each call is
+        // counted against the per-user hourly limit. clear() starts a new
+        // conversation for the caller.
+        // confirmDraft() takes only the id of a draft saved in the caller's own
+        // conversation (never the draft itself from the browser), can succeed once
+        // per draft (an atomic cache claim), and hands it to the RecordDraft of its
+        // type (leave, news, employee, contract...), which re-checks the caller's
+        // permission and re-validates it exactly as that record's create screen
+        // does. cancelDraft() only marks that draft discarded. placeholder() is the lazy panel's loading markup.
+        // openConversation()/deleteConversation() act only on the signed-in user's own
+        // saved conversations (AssistantConversation::ownedBy).
+        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'openConversation', 'deleteConversation'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.

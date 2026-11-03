@@ -17,7 +17,7 @@
         @include('livewire.employee.leave.partials.card-summary', ['item' => $item])
     </button>
     <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="flex flex-wrap items-center gap-2">
+        <span class="flex min-w-0 flex-wrap items-center gap-2">
             @include('livewire.employee.leave.partials.card-status', ['item' => $item])
             @if($decided && $table->showsHrReview())
                 <span class="inline-flex items-center gap-1.5 text-small text-ink-2">
@@ -26,6 +26,7 @@
                 </span>
             @endif
         </span>
-        <span class="flex items-center">{!! $table->leaveActions($item) !!}</span>
+        {{-- Each icon button is 44px on phones; the gap keeps neighbouring taps apart. --}}
+        <span class="ms-auto flex shrink-0 items-center gap-1">{!! $table->leaveActions($item) !!}</span>
     </div>
 </div>

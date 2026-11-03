@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Layout\BottomBarPicker;
 use App\Livewire\Layout\BottomNav;
+use App\Livewire\Layout\Header;
 use App\Models\City;
 use App\Models\Employee;
 use App\Models\NavigationPreference;
@@ -57,26 +58,14 @@ class BottomNavTest extends TestCase
         $this->assertSame(['home'], $this->keys($bare->fresh()));
     }
 
-    public function test_more_is_always_the_last_place_and_opens_the_more_sheet(): void
+    /** The bar has no More of its own: the header's menu button (the sidebar) holds every page. */
+    public function test_the_bar_has_no_more_place_or_sheet(): void
     {
-        $bare = User::query()->create(['email' => 'bare-more@example.test', 'password' => 'password']);
-        $role = Role::findOrCreate('staff', 'web');
-        $bare->assignRole($role);
-        $bare->setActiveRole($role->id);
-
-        foreach ([$this->userWithRole('employee'), $this->userWithRole('HR-ALP'), $bare->fresh()] as $user) {
+        foreach ([$this->userWithRole('employee'), $this->userWithRole('HR-ALP')] as $user) {
             $html = Livewire::actingAs($user)->test(BottomNav::class)->html();
 
-            $this->assertSame(1, substr_count($html, 'data-testid="bottom-nav-more"'));
-            // After every other place.
-            $this->assertGreaterThan(strrpos($html, 'data-testid="bottom-nav-'.last($this->keys($user)).'"'), strpos($html, 'data-testid="bottom-nav-more"'));
-            // It opens its own sheet, a real dialog: modal, focus trapped and given back, Escape.
-            $this->assertStringContainsString('x-on:click="open(\'more\')"', $html);
-            $this->assertStringContainsString('aria-controls="bottom-sheet-more"', $html);
-            $this->assertStringContainsString(e(__('mobile.bar.more-label')), $html);
-            $this->assertMatchesRegularExpression('/id="bottom-sheet-more" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-more-title"/', $html);
-            $this->assertStringContainsString('x-trap.inert.noscroll="sheet === \'more\'"', $html);
-            $this->assertStringContainsString('x-on:keydown.escape.prevent.stop="close()"', $html);
+            $this->assertStringNotContainsString('bottom-nav-more', $html);
+            $this->assertStringNotContainsString('bottom-sheet-more', $html);
             $this->assertStringContainsString('env(safe-area-inset-bottom', $html);
         }
     }
@@ -127,6 +116,22 @@ class BottomNavTest extends TestCase
         $this->assertStringNotContainsString('data-new="new.contract"', Livewire::actingAs($admin)->test(BottomNav::class)->html());
     }
 
+    public function test_there_is_one_create_action_at_every_width(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($city, 'HR-ALP', ['leaves.view-own', 'leaves.create', 'employees.view', 'employees.create']);
+
+        // The bar (and so its +) exists below md only…
+        $bar = Livewire::actingAs($hr)->test(BottomNav::class)->html();
+        // [\s\S]*?, not [^>]*: the bar's x-data holds arrow functions (=>).
+        $this->assertMatchesRegularExpression('/<nav[^>]*data-testid="bottom-nav"[\s\S]*?class="app-bottom-nav[^"]*\bmd:hidden\b/', $bar);
+
+        // …and the header's New menu from md up only, so phones never see two red Create buttons.
+        $header = Livewire::actingAs($hr)->test(Header::class)->html();
+        $this->assertSame(1, substr_count($header, 'data-testid="new-menu-button"'));
+        $this->assertMatchesRegularExpression('/<div class="relative shrink-0 max-md:hidden"\s+x-data="\{\s+open: false,/', $header);
+    }
+
     public function test_a_role_that_may_start_nothing_has_no_plus(): void
     {
         $city = $this->makeCity('ALP', '001');
@@ -136,45 +141,6 @@ class BottomNavTest extends TestCase
 
         $this->assertStringNotContainsString('data-testid="bottom-nav-new"', $html);
         $this->assertStringNotContainsString('id="bottom-sheet-new"', $html);
-        $this->assertStringContainsString('data-testid="bottom-nav-more"', $html);
-    }
-
-    /** The More sheet is the role's whole menu: every page of it, and nothing else. */
-    public function test_the_more_sheet_holds_the_roles_whole_menu(): void
-    {
-        $city = $this->makeCity('ALP', '001');
-        $employee = $this->makeUser($city, 'employee', ['leaves.view-own', 'leaves.create', 'checklists.view-own']);
-        $hr = $this->makeUser($city, 'HR-ALP', ['leaves.view-own', 'leaves.view-all', 'employees.view', 'contracts.view', 'badges.view', 'statistics.view']);
-
-        foreach ([$employee, $hr] as $user) {
-            $component = Livewire::actingAs($user)->test(BottomNav::class);
-            $html = $component->html();
-
-            $expected = array_values(array_unique(array_map(fn (array $page) => route($page['route']), Navigation::pages($user, Navigation::isDeliverResponsible($user)))));
-            $shown = collect($component->viewData('sections'))->pluck('rows')->flatten(1)
-                ->whereNotNull('href')->reject(fn (array $row) => $row['id'] === 'my-profile')->pluck('href')->unique()->values()->all();
-            $this->assertEqualsCanonicalizing($expected, $shown);
-
-            // My profile on top for a person with an employee record.
-            $this->assertStringContainsString('data-testid="bottom-more-my-profile"', $html);
-            // Each area of the menu is a labelled section.
-            foreach (Navigation::for($user, Navigation::isDeliverResponsible($user), countInbox: false)['areas'] as $area) {
-                $this->assertStringContainsString('aria-labelledby="bottom-more-'.$area['id'].'"', $html);
-            }
-        }
-
-        $employeeHtml = Livewire::actingAs($employee)->test(BottomNav::class)->html();
-        $hrHtml = Livewire::actingAs($hr)->test(BottomNav::class)->html();
-
-        foreach (['nav.hr.employees', 'nav.hr.contracts', 'nav.hr.leaves', 'nav.hr.badges', 'nav.hr.statistics.general'] as $hrOnly) {
-            $this->assertStringContainsString('data-testid="bottom-more-'.$hrOnly.'"', $hrHtml);
-            $this->assertStringNotContainsString('data-testid="bottom-more-'.$hrOnly.'"', $employeeHtml);
-        }
-        $this->assertStringContainsString('data-testid="bottom-more-nav.my-space.items"', $employeeHtml);
-
-        // The current page is marked in the sheet too.
-        $this->assertMatchesRegularExpression('/data-testid="bottom-more-nav\.hr\.employees"\s+aria-current="page"/',
-            Livewire::actingAs($hr)->test(BottomNav::class)->set('currentRoute', 'employees.index')->html());
     }
 
     /** The default bar repeats the menu's own checks for its pages: it must agree with the menu. */
