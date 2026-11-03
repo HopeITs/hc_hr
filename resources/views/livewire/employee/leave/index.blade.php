@@ -1,6 +1,5 @@
 @php
-    use App\Enums\LeaveTypeCases;
-use App\Enums\LeaveRequestStatus;
+    use App\Enums\LeaveRequestStatus;
 @endphp
 <x-slot:title>
     {{ __('general.my-leaves') }}
@@ -207,90 +206,190 @@ use App\Enums\LeaveRequestStatus;
 
 
     <x-modal.dialog
-        max-width="6xl"
+        max-width="4xl"
         id="showModal"
         :title="$modalTitle"
         wire:model.defer="showModal"
         close-action="requestClose"
         wire:ignore.self
         class="flex items-center justify-center px-2">
-        {{-- Phones (M1): the sheet itself scrolls, so there is no nested scroll area; sm and up keeps the capped panel. --}}
-        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-12 dialog:md:py-6">
-            {{-- Enter in a field takes the same path as Save (there is no save()). --}}
-            <form wire:submit.prevent="confirmSave" class="space-y-4 sheet:flex-1 sheet:flex sheet:flex-col">
-                <x-forms.errors-validation-list/>
-                <div class="grid md:grid-cols-2 gap-4">
+        @php
+            // The guided form (category → subtype → dates → summary → details). What is offered comes
+            // from LeaveEligibility (leaveChoices); every value still goes through the form's validation.
+            $choices = $showModal ? $this->leaveChoices : ['categories' => [], 'notice' => null];
+            $active = $showModal ? $this->activeCategory : null;
+            $activeKey = $active['key'] ?? null;
+            $chosen = filled($form->leave_balance_id);
+            $isAnnual = $activeKey === 'annual' && $chosen;
+            $hasSubtypeStep = $active !== null && ($activeKey === 'annual' || count($active['options']) > 1);
+            $impact = $showModal ? $this->leaveImpact : null;
+            $ready = ($impact['ready'] ?? false) === true;
+            $chosenOption = $active ? collect($active['options'])->first(fn ($o) => (string) $o['balance_id'] === (string) $form->leave_balance_id) : null;
+            $subtypeLabel = $isAnnual
+                ? __('leaves.request.subtype.'.($form->type === 'hour' ? 'hourly' : 'daily'))
+                : ($hasSubtypeStep ? ($chosenOption['label'] ?? null) : null);
 
-                    <div class="md:col-span-1" wire:key="container-leave-type-{{ $form->leaveRequest ? 'edit' : 'new' }}">
-                        {{-- D3: the "?" sits beside the label, not inside it. --}}
-                        <div class="flex items-start gap-1">
-                            <x-forms.input-label for="leave_balance_id" required>{{ trans_choice('general.leave-type', 1) }}</x-forms.input-label>
-                            <x-help.trigger topic="leave-units" :label="trans_choice('general.leave-type', 1)"/>
+            // Step states: the first unfinished visible step is the current one.
+            $done = [
+                'category' => $active !== null,
+                'subtype' => $chosen,
+                'dates' => $ready,
+                'details' => mb_strlen(trim((string) $form->reason)) >= 3,
+                'summary' => $ready && ($impact['errors'] ?? []) === [],
+            ];
+            $current = collect($done)->filter(fn ($isDone, $step) => $step !== 'subtype' || $hasSubtypeStep)
+                ->search(false, true);
+            $stateOf = fn (string $step) => $done[$step] ? 'done' : ($current === $step ? 'current' : 'todo');
+            // Numbered here, not with ++ in the tag: Blade evaluates a component's
+            // attribute expressions more than once, which skipped numbers.
+            $visibleSteps = array_values(array_filter([
+                'category',
+                $hasSubtypeStep ? 'subtype' : null,
+                $chosen ? 'dates' : null,
+                $chosen ? 'details' : null,
+                $chosen && $impact !== null ? 'summary' : null,
+            ]));
+            $numberOf = fn (string $step) => array_search($step, $visibleSteps, true) + 1;
+        @endphp
+        {{-- Phones (M1): the sheet itself scrolls, so there is no nested scroll area; sm and up keeps the capped panel. --}}
+        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-10 dialog:md:py-6">
+            {{-- Enter in a field takes the same path as Save (there is no save()). --}}
+            <form wire:submit.prevent="confirmSave" class="space-y-8 sheet:flex-1 sheet:flex sheet:flex-col" data-testid="leave-request-form">
+                <x-forms.errors-validation-list/>
+
+                {{-- 1. Category: only what the employee may request now. --}}
+                <x-leave.request-step :number="$numberOf('category')" id="leave-step-category" :title="__('leaves.request.steps.category')"
+                                      help="leave-units" :state="$stateOf('category')" wire:key="leave-step-category-{{ $form->id ?? 'new' }}">
+                    @if($choices['categories'] === [])
+                        <p class="rounded-control border border-dashed border-line bg-soft px-3 py-3 text-small text-ink-2" role="status">
+                            @lang('leaves.request.none-available')
+                        </p>
+                    @else
+                        <div class="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4" role="radiogroup"
+                             aria-labelledby="leave-step-category-title" data-testid="leave-categories">
+                            @foreach($choices['categories'] as $category)
+                                <label class="block cursor-pointer" wire:key="leave-category-{{ $category['key'] }}">
+                                    <input type="radio" class="peer sr-only" name="leave_category" id="leave-category-{{ $category['key'] }}"
+                                           value="{{ $category['key'] }}" wire:model.live="leaveCategory"
+                                           @checked($activeKey === $category['key'])
+                                           @if($category['note']) aria-describedby="leave-category-{{ $category['key'] }}-note" @endif>
+                                    <span class="hc-choice flex h-full min-h-24 flex-col gap-1 p-3">
+                                        <span class="flex items-start justify-between gap-2">
+                                            <span class="grid size-9 place-items-center rounded-round bg-soft text-ink">
+                                                <x-ic :name="$category['icon']" class="size-5" />
+                                            </span>
+                                            @if($activeKey === $category['key'])
+                                                <x-ic name="check-circle" class="size-5 text-ink" />
+                                            @endif
+                                        </span>
+                                        <span class="font-bold leading-snug text-ink">{{ $category['label'] }}</span>
+                                        <span class="text-caption text-ink-2 num">{{ $category['left'] }}</span>
+                                        @if($category['note'])
+                                            <span id="leave-category-{{ $category['key'] }}-note" class="text-caption text-ink-2">{{ $category['note'] }}</span>
+                                        @endif
+                                    </span>
+                                </label>
+                            @endforeach
                         </div>
-                        <x-forms.select2-input wire:model.live="form.leave_balance_id" required id="leave_balance_id">
-                            @if($allAvailableLeaves?->count() > 0)
-                                <option
-                                    class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
-                                    @lang('general.select')
-                                </option>
-                                @foreach($allAvailableLeaves  as $availableLeave)
-                                    <option
-                                        value="{{$availableLeave->id}}">{{$availableLeave->leaveType->name}}</option>
+                    @endif
+
+                    @if($choices['notice'])
+                        <p class="mt-3 flex items-start gap-2 text-small text-ink-2" data-testid="leave-unpaid-notice">
+                            <x-ic name="info" class="mt-0.5 size-4" />
+                            <span>{{ $choices['notice'] }}</span>
+                        </p>
+                    @endif
+                    <x-error-span>{{ $errors->first('form.leave_balance_id') }}</x-error-span>
+                </x-leave.request-step>
+
+                {{-- 2. Subtype: annual asks day or hour (form.type); sick, bereavement and maternity name
+                     their balance. A category with a single subtype skips this step. --}}
+                @if($hasSubtypeStep)
+                    <x-leave.request-step :number="$numberOf('subtype')" id="leave-step-subtype" :help="$activeKey === 'annual' ? 'leave-units' : null"
+                                          :title="__('leaves.request.steps.'.($activeKey === 'annual' ? 'unit' : 'subtype'))"
+                                          :state="$stateOf('subtype')" wire:key="leave-step-subtype-{{ $activeKey }}">
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" role="radiogroup" aria-labelledby="leave-step-subtype-title">
+                            @if($activeKey === 'annual')
+                                @foreach(['day' => ['daily', 'calendar'], 'hour' => ['hourly', 'clock']] as $unit => [$labelKey, $icon])
+                                    <label class="block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
+                                        <input type="radio" class="peer sr-only" name="form.type" id="radio-formtype-{{ $unit }}"
+                                               value="{{ $unit }}" wire:model.live="form.type" @checked($form->type === $unit)>
+                                        <span class="hc-choice flex h-full min-h-16 items-center gap-3 p-3">
+                                            <span class="grid size-9 shrink-0 place-items-center rounded-round bg-soft text-ink">
+                                                <x-ic :name="$icon" class="size-5" />
+                                            </span>
+                                            <span class="min-w-0 flex-1">
+                                                <span class="block font-bold text-ink">@lang('leaves.request.subtype.'.$labelKey)</span>
+                                                <span class="block text-caption text-ink-2">@lang('leaves.request.subtype.'.$labelKey.'-hint')</span>
+                                            </span>
+                                            @if($form->type === $unit)
+                                                <x-ic name="check-circle" class="size-5 text-ink" />
+                                            @endif
+                                        </span>
+                                    </label>
                                 @endforeach
                             @else
-                                <option
-                                    class="text-ink-3" disabled>
-                                    @lang('general.no-available-data')
-                                </option>
+                                @foreach($active['options'] as $option)
+                                    @php $selected = (string) $form->leave_balance_id === (string) $option['balance_id']; @endphp
+                                    <label @class(['block', 'cursor-pointer' => ! $option['disabled'], 'cursor-not-allowed' => $option['disabled']])
+                                           wire:key="leave-subtype-{{ $option['balance_id'] }}">
+                                        <input type="radio" class="peer sr-only" name="form.leave_balance_id" id="leave-subtype-{{ $option['balance_id'] }}"
+                                               value="{{ $option['balance_id'] }}" wire:model.live="form.leave_balance_id"
+                                               @checked($selected) @disabled($option['disabled'])
+                                               @if($option['reason']) aria-describedby="leave-subtype-{{ $option['balance_id'] }}-reason" @endif>
+                                        <span @class([
+                                                'hc-choice flex h-full min-h-16 items-start gap-3 p-3',
+                                                'border-dashed bg-card' => $option['disabled'],
+                                            ])>
+                                            <span class="min-w-0 flex-1">
+                                                <span @class(['block font-bold', 'text-ink' => ! $option['disabled'], 'text-ink-2' => $option['disabled']])>{{ $option['label'] }}</span>
+                                                @if($option['disabled'])
+                                                    <span class="mt-0.5 flex items-center gap-1 text-caption font-medium text-ink-2">
+                                                        <x-ic name="ban" class="size-3.5" />@lang('leaves.request.unavailable')
+                                                    </span>
+                                                    <span id="leave-subtype-{{ $option['balance_id'] }}-reason" class="mt-1 block text-caption text-ink-2">{{ $option['reason'] }}</span>
+                                                @else
+                                                    <span class="block text-caption text-ink-2 num">{{ $option['left'] }}</span>
+                                                @endif
+                                            </span>
+                                            @if($selected)
+                                                <x-ic name="check-circle" class="size-5 text-ink" />
+                                            @endif
+                                        </span>
+                                    </label>
+                                @endforeach
                             @endif
-                        </x-forms.select2-input>
-                        <x-error-span>{{ $errors->first('form.leave_balance_id') }}</x-error-span>
-                    </div>
-                    <div class="md:col-span-1" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
-                        <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
-                        <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
-                            <option
-                                class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
-
-                                @lang('general.select')
-                            </option>
-                            @foreach($alternativeEmployees as $alternativeEmployee)
-                                <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}</option>
-                            @endforeach
-                        </x-forms.select2-input>
-                        <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
-                    </div>
-
-                    @if($form->leave_balance_id !== null)
-                        @if($availableLeaves->find($form->leave_balance_id)?->leaveType?->id === LeaveTypeCases::Annual)
-                            <x-forms.radio-group class="mt-4" :legend="__('leaves.unit.legend')" error="form.type" help="leave-units">
-                                <x-forms.radio-input wire:model.live="form.type"
-                                                     value="day">{{ __('leaves.unit.day') }}</x-forms.radio-input>
-                                <x-forms.radio-input wire:model.live="form.type"
-                                                     value="hour">{{ __('leaves.unit.hour') }}</x-forms.radio-input>
-                            </x-forms.radio-group>
-                        @endif
-                    @endif
-                    @if($form->leave_balance_id === null || $availableLeaves->find($form->leave_balance_id)?->leaveType?->id !== LeaveTypeCases::Annual)
-
-                        <div>
-                            <x-forms.input-label for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
-                            <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')"/>
-                            <x-error-span>{{ $errors->first('form.start_at') }}</x-error-span>
                         </div>
-                        <div>
-                            <x-forms.input-label for="end_at" required>{{__('general.end-date')}}</x-forms.input-label>
-                            <x-forms.date-input id="end_at" wire:model.live="form.end_at" :label="__('general.end-date')"/>
-                            <x-error-span>{{ $errors->first('form.end_at') }}</x-error-span>
-                        </div>
+                        <x-error-span>{{ $errors->first('form.type') }}</x-error-span>
+                    </x-leave.request-step>
+                @endif
 
-                    @else
-
-                        @if($form->type === 'day')
-                            <div class="col-span-full grid md:grid-cols-2 gap-4">
+                @if($chosen)
+                    {{-- 3. Dates: whole days, or one date and its hours (annual only). --}}
+                    <x-leave.request-step :number="$numberOf('dates')" id="leave-step-dates" :title="__('leaves.request.steps.dates')"
+                                          :state="$stateOf('dates')" wire:key="leave-step-dates-{{ $isAnnual && $form->type === 'hour' ? 'hour' : 'day' }}">
+                        @if($isAnnual && $form->type === 'hour')
+                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                                <div class="col-span-2 sm:col-span-1">
+                                    <x-forms.input-label for="leave_date" required>{{__('general.leave-date')}}</x-forms.input-label>
+                                    <x-forms.date-input id="leave_date" wire:model.live="form.leave_date" :label="__('general.leave-date')"/>
+                                    <x-error-span>{{ $errors->first('form.leave_date') }}</x-error-span>
+                                </div>
                                 <div>
-                                    <x-forms.input-label
-                                        for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
+                                    <x-forms.input-label for="start_time" required>{{__('general.start-time')}} (24)</x-forms.input-label>
+                                    <x-forms.time-picker id="start_time" wire-model="form.start_hour" format="HH:mm" min="09:00" max="21:00" :live="true" />
+                                    <x-error-span>{{ $errors->first('form.start_hour') }}</x-error-span>
+                                </div>
+                                <div>
+                                    <x-forms.input-label for="end_time" required>{{__('general.end-time')}} (24)</x-forms.input-label>
+                                    <x-forms.time-picker id="end_time" wire-model="form.end_hour" format="HH:mm" min="09:00" max="21:00" :live="true" />
+                                    <x-error-span>{{ $errors->first('form.end_hour') }}</x-error-span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                                <div>
+                                    <x-forms.input-label for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
                                     <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')"/>
                                     <x-error-span>{{ $errors->first('form.start_at') }}</x-error-span>
                                 </div>
@@ -300,62 +399,79 @@ use App\Enums\LeaveRequestStatus;
                                     <x-error-span>{{ $errors->first('form.end_at') }}</x-error-span>
                                 </div>
                             </div>
-                        @elseif($form->type === 'hour')
-
-                            <div>
-                                <x-forms.input-label for="leave_date" required>{{__('general.leave-date')}}</x-forms.input-label>
-                                <x-forms.date-input id="leave_date" wire:model.live="form.leave_date" :label="__('general.leave-date')"/>
-                                <x-error-span>{{ $errors->first('form.leave_date') }}</x-error-span>
-                            </div>
-
-                            <div>
-                                <x-forms.input-label for="start_time" required>{{__('general.start-time')}}(24)
-                                </x-forms.input-label>
-                                <x-forms.time-picker id="start_time" wire-model="form.start_hour" format="HH:mm" min="09:00" max="21:00" :live="true" />
-                                <x-error-span>{{ $errors->first('form.start_hour') }}</x-error-span>
-                            </div>
-                            <div>
-                                <x-forms.input-label for="end_time" required>{{__('general.end-time')}}(24)</x-forms.input-label>
-                                <x-forms.time-picker id="end_time" wire-model="form.end_hour" format="HH:mm" min="09:00" max="21:00" :live="true" />
-                                <x-error-span>{{ $errors->first('form.end_hour') }}</x-error-span>
-                            </div>
-
                         @endif
 
-                    @endif
+                        {{-- The computed duration, priced on the server (the same quote as the summary). --}}
+                        <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-ink-2" data-testid="leave-duration">
+                            <x-ic name="clock" class="size-4" />
+                            @if($ready)
+                                <span>@lang('leaves.request.duration'):</span>
+                                <strong class="font-bold text-ink"><bdi>{{ $impact['requested'] }}</bdi></strong>
+                            @else
+                                <span>@lang('leaves.request.duration-pending')</span>
+                            @endif
+                        </p>
 
-                    {{-- D-7: December leave only as an exception. Offered only
-                         when the typed period touches December. --}}
-                    @if($form->periodTouchesDecember())
-                        <div class="col-span-full rounded-control border-[1.5px] border-ink bg-card px-3 py-2" wire:key="leave-exceptional">
-                            <label for="is_exceptional" class="flex min-h-11 cursor-pointer items-start gap-3">
-                                <input type="checkbox" id="is_exceptional" wire:model.live="form.is_exceptional"
-                                       aria-describedby="is_exceptional-hint"
-                                       class="hc-check mt-1 rounded-inset">
-                                <span>
-                                    <span class="block font-medium text-ink">@lang('leave_quote.exceptional.label')</span>
-                                    <span id="is_exceptional-hint" class="block text-small text-ink">@lang('leave_quote.exceptional.hint')</span>
-                                </span>
-                            </label>
-                            <x-error-span>{{ $errors->first('form.is_exceptional') }}</x-error-span>
+                        {{-- D-7: December leave only as an exception. Offered only
+                             when the typed period touches December. --}}
+                        @if($form->periodTouchesDecember())
+                            <div class="mt-4 rounded-control border-[1.5px] border-ink bg-card px-3 py-2" wire:key="leave-exceptional">
+                                <label for="is_exceptional" class="flex min-h-11 cursor-pointer items-start gap-3">
+                                    <input type="checkbox" id="is_exceptional" wire:model.live="form.is_exceptional"
+                                           aria-describedby="is_exceptional-hint"
+                                           class="hc-check mt-1 rounded-inset">
+                                    <span>
+                                        <span class="block font-medium text-ink">@lang('leave_quote.exceptional.label')</span>
+                                        <span id="is_exceptional-hint" class="block text-small text-ink">@lang('leave_quote.exceptional.hint')</span>
+                                    </span>
+                                </label>
+                                <x-error-span>{{ $errors->first('form.is_exceptional') }}</x-error-span>
+                            </div>
+                        @endif
+                    </x-leave.request-step>
+
+                    {{-- 4. Reason and cover. --}}
+                    <x-leave.request-step :number="$numberOf('details')" id="leave-step-details" :title="__('leaves.request.steps.details')"
+                                          :state="$stateOf('details')" wire:key="leave-step-details">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <x-forms.input-label for="reason" required>{{__('general.reason')}}</x-forms.input-label>
+                                <x-forms.input id="reason" wire:model="form.reason" required examples="examples.leave_reason"
+                                    :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
+                                <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
+                            </div>
+                            <div class="md:col-span-1" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
+                                <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
+                                <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
+                                    <option
+                                        class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
+                                        @lang('general.select')
+                                    </option>
+                                    @foreach($alternativeEmployees as $alternativeEmployee)
+                                        <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}</option>
+                                    @endforeach
+                                </x-forms.select2-input>
+                                <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
+                            </div>
                         </div>
-                    @endif
+                    </x-leave.request-step>
 
-                    {{-- Live impact summary (A3): priced on the server on each change. --}}
-                    @php($impact = $this->leaveImpact)
+                    {{-- 5. Summary, last: the live impact (A3), priced on the server on each change, for the chosen balance only. --}}
                     @if($impact !== null)
-                        <div class="col-span-full" wire:key="leave-impact">
-                            @include('livewire.employee.leave.partials.impact-summary', ['impact' => $impact])
-                        </div>
+                        <x-leave.request-step :number="$numberOf('summary')" id="leave-step-summary" :title="__('leaves.request.steps.summary')"
+                                              :state="$stateOf('summary')" wire:key="leave-impact">
+                            @include('livewire.employee.leave.partials.impact-summary', [
+                                'impact' => $impact,
+                                'context' => [
+                                    'category' => $active['label'] ?? null,
+                                    'icon' => $active['icon'] ?? null,
+                                    'subtype' => $subtypeLabel,
+                                    'period' => $this->requestPeriod,
+                                ],
+                            ])
+                        </x-leave.request-step>
                     @endif
-
-                    <div class="col-span-full">
-                        <x-forms.input-label for="reason" required>{{__('general.reason')}}</x-forms.input-label>
-                        <x-forms.input id="reason" wire:model="form.reason" required examples="examples.leave_reason"
-                            :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
-                        <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
-                    </div>
-                </div>
+                @endif
 
                 {{-- Phones (M1): Submit/Cancel stay pinned to the bottom of the sheet, above the safe area, while
                      the form scrolls; the modal root's scroll padding keeps a focused field clear of this bar. --}}

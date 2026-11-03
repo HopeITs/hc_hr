@@ -10,6 +10,7 @@ use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveDecisionAuthority;
+use App\Services\LeaveEligibility;
 use App\Services\LeaveRequestPricing;
 use App\Support\Leave\LeaveQuote;
 use App\Support\Leave\LeaveWindow;
@@ -109,9 +110,18 @@ class LeaveRequestForm extends Form
             'reason' => ['required', 'string', 'min:3'],
             'is_exceptional' => ['boolean'],
             'leave_balance_id' => [
+                'bail',
                 'required',
                 Rule::exists('leave_balances', 'id')
                     ->where('contract_id', $activeContract?->id ?? 0),
+                // Leave-type eligibility (LeaveEligibility), for the employee
+                // the request is for: HR filing for someone is checked against
+                // that employee, never against HR's own profile.
+                function ($attribute, $value, $fail) use ($employee) {
+                    if ($employee && ($reason = $this->eligibilityReason($employee, $value))) {
+                        $fail(app(LeaveEligibility::class)->message($reason));
+                    }
+                },
             ],
             'alternative_employee' => [
                 'nullable',
@@ -681,6 +691,10 @@ class LeaveRequestForm extends Form
 
             $this->assertNoOwnOverlap($employeeId);
 
+            // Eligibility again under the employee lock: a request decided or
+            // sent in the meantime may have changed what is requestable.
+            $this->assertEligible($employeeId, $leaveBalance);
+
             // Authoritative price, under the balance lock: what the preview
             // showed may be stale (another request decided or sent in the
             // meantime), and a stale shortfall is reported on the same field.
@@ -782,6 +796,12 @@ class LeaveRequestForm extends Form
             // Recheck at write time, ignoring the request being edited.
             $this->assertNoOwnOverlap($employeeId, $original->id);
 
+            // A request keeps the type it was filed with: eligibility is only
+            // asked again when the edit moves it to another balance.
+            if ($originalBalanceId !== (int) $balance->id) {
+                $this->assertEligible($employeeId, $balance);
+            }
+
             $accepted = (int) $original->status === LeaveRequestStatus::Accepted;
 
             if ($accepted && ! $this->windowDiffersFrom($original, $balance, $window)) {
@@ -879,6 +899,42 @@ class LeaveRequestForm extends Form
 
         foreach ($balanceIds as $balanceId) {
             LeaveBalance::query()->whereKey($balanceId)->lockForUpdate()->first();
+        }
+    }
+
+    /**
+     * Why $employee may not request the balance $balanceId now (a
+     * LeaveEligibility::REASON_* code), or null. An edit that keeps the
+     * request's stored balance is not asked again: it was eligible when filed
+     * (an accepted maternity or a fully used balance would otherwise refuse a
+     * fix to its own reason). A balance that does not exist is the exists
+     * rule's error.
+     */
+    private function eligibilityReason(Employee $employee, mixed $balanceId): ?string
+    {
+        if ($this->leaveRequest?->exists && (int) $this->leaveRequest->leave_balance_id === (int) $balanceId) {
+            return null;
+        }
+
+        $balance = LeaveBalance::query()->find($balanceId);
+
+        return $balance ? app(LeaveEligibility::class)->reasonAgainst($employee, $balance) : null;
+    }
+
+    /**
+     * Write-time eligibility check, under lockRequesterRows(): the same one
+     * call rules() makes, against the employee row as now stored.
+     */
+    private function assertEligible(int $employeeId, LeaveBalance $balance): void
+    {
+        $employee = Employee::query()->findOrFail($employeeId);
+        $eligibility = app(LeaveEligibility::class);
+        $reason = $eligibility->reasonAgainst($employee, $balance);
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages([
+                'leave_balance_id' => $eligibility->message($reason),
+            ]);
         }
     }
 

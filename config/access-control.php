@@ -456,6 +456,11 @@ return [
             // Read-only, self-scoped: prices the typed window against a balance
             // of the signed-in employee's own active contract; writes nothing.
             'leaveImpact',
+            // Guided form: read-only and self-scoped. leaveChoices/activeCategory list
+            // LeaveEligibility::requestableBalances() for the signed-in employee;
+            // requestPeriod formats the typed dates; updatedLeaveCategory only sets
+            // form.leave_balance_id to one of those balances (the save validates it again).
+            'leaveChoices', 'activeCategory', 'requestPeriod', 'updatedLeaveCategory',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
