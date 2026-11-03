@@ -566,8 +566,9 @@ return [
         'dashboard.department-employee-statistics' => ['retryLoad', 'placeholder'],
         // saveLayout/resetLayout (HasDashboardLayout) are self-scoped: only the caller's
         // own row for the active role, cleaned so a tile the role may not have is dropped.
-        // addTile is saveLayout followed by a render (the tile being added was never drawn).
-        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile'],
+        // addTile is saveLayout followed by a render (the tile being added was never drawn);
+        // applyPreset writes one of DashboardLayout::presets() into that same row.
+        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile', 'applyPreset'],
         'dashboard.job-level-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.salary-per-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.upcoming-leaves-card' => ['retryLoad', 'placeholder'],

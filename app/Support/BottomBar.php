@@ -116,7 +116,7 @@ final class BottomBar
 
     private static function home(): array
     {
-        return self::entry(self::HOME, __('general.dashboard'), 'dashboard', 'home', ['dashboard', 'employee.dashboard']);
+        return self::entry(self::HOME, __('general.dashboard'), 'dashboard', 'home', ['dashboard']);
     }
 
     private static function profile(): array

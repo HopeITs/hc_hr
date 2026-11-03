@@ -64,7 +64,7 @@ import 'flowbite';
 /**
  * Chart.js stays eagerly loaded and exposed on `window`.
  *
- * Five Blade views (the dashboard statistic cards) call `new Chart(...)` from
+ * Four Blade views (the dashboard statistic cards) call `new Chart(...)` from
  * inline <script> blocks that execute during parse, so the constructor must
  * already be present — a dynamic import would resolve too late. Only the
  * controllers, elements and scales those views actually use are registered,
