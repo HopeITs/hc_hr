@@ -13,6 +13,7 @@ use App\Models\Position;
 use App\Models\Program;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;
 
 class ContractStatistics extends Component
@@ -30,6 +31,9 @@ class ContractStatistics extends Component
     public $cards = [];
 
     public string $cardType = 'program';
+
+    /** @var Collection<int, ContractType>|null this request's contract types (not kept between requests) */
+    protected ?Collection $contractTypes = null;
 
     public function mount(): void
     {
@@ -191,7 +195,10 @@ class ContractStatistics extends Component
      */
     private function contractTypeIdsForCategory(string $category): array
     {
-        return ContractType::all()
+        // Six counts per card each asked for the whole table; read it once per request.
+        $this->contractTypes ??= ContractType::all();
+
+        return $this->contractTypes
             ->filter(fn (ContractType $type): bool => $type->category === $category)
             ->pluck('id')
             ->all();

@@ -14,6 +14,7 @@ use App\Models\LeaveRequest;
 use App\Support\Leave\LeaveQuote;
 use App\Support\Leave\LeaveWindow;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 /**
@@ -61,6 +62,19 @@ class LeaveRequestPricing
     private const DEFAULT_CLOSE_AT = '16:30';
 
     private const EPSILON = 0.005;
+
+    /**
+     * Lookups that depend only on their arguments, kept for this instance's
+     * life (one app() resolution: a card, a coverage pass): a team spread over
+     * several centers of one governorate and program asked the same thing once
+     * per center.
+     *
+     * @var array<string, Collection<int, string>>
+     */
+    private array $programWeekends = [];
+
+    /** @var array<string, array<string, list<Holiday>>> */
+    private array $holidaysOn = [];
 
     /**
      * Price $window against $balance of $contract.
@@ -334,7 +348,7 @@ class LeaveRequestPricing
             ])));
 
             foreach ($cityIds as $cityId) {
-                $candidates = Center::query()
+                $candidates = $this->programWeekends[$cityId.':'.$position->program_id] ??= Center::query()
                     ->where('city_id', $cityId)
                     ->whereNotNull('weekends')
                     ->where('weekends', '<>', '')
@@ -410,6 +424,11 @@ class LeaveRequestPricing
     {
         $from = $from->startOfDay();
         $to = $to->startOfDay();
+        $key = implode(':', [$programId, $cityId, $from->toDateString(), $to->toDateString()]);
+
+        if (array_key_exists($key, $this->holidaysOn)) {
+            return $this->holidaysOn[$key];
+        }
 
         $holidays = Holiday::query()
             ->where('kind', '!=', Holiday::KIND_BIRTHDAY)
@@ -417,7 +436,7 @@ class LeaveRequestPricing
             ->occurringBetween($from, $to)
             ->get(['id', 'name_en', 'name_ar', 'scope', 'kind', 'start_date', 'end_date', 'is_recurring']);
 
-        return $this->spread($holidays, $from, $to);
+        return $this->holidaysOn[$key] = $this->spread($holidays, $from, $to);
     }
 
     /**
