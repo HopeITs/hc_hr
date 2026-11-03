@@ -5,7 +5,7 @@
             <span class="inline-block border border-4 border-primary border-r-transparent motion-safe:animate-spin rounded-full my-2 p-2"></span>
         </div>
         @include('livewire-table::bar.selection')
-        <div class="flex gap-3 ml-auto">
+        <div class="flex flex-wrap gap-3 ml-auto">
     @if(method_exists($this, 'savedViews'))
         {{-- HasSavedViews: personal views (table state only), owner + active role only. --}}
         @php($savedViews = $this->savedViews())

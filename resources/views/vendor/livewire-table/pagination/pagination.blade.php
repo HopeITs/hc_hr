@@ -5,11 +5,11 @@
 
             {{-- Mobile --}}
             <div class="flex flex-col gap-3 w-full lg:hidden">
-                <div class="flex justify-between">
+                <div class="flex justify-between gap-3">
                     <span>
                         @if ($paginator->onFirstPage())
                             <span
-                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
+                                class="relative inline-flex min-h-11 items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
                                 {!! __('pagination.previous') !!}
                             </span>
                         @else
@@ -17,7 +17,7 @@
                                     wire:click="previousPage('{{ $paginator->getPageName() }}')"
                                     wire:loading.attr="disabled"
                                     dusk="previousPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.before"
-                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
+                                    class="relative inline-flex min-h-11 items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
                                 {!! __('pagination.previous') !!}
                             </button>
                         @endif
@@ -28,12 +28,12 @@
                                     wire:click="nextPage('{{ $paginator->getPageName() }}')"
                                     wire:loading.attr="disabled"
                                     dusk="nextPage{{ $paginator->getPageName() == 'page' ? '' : '.' . $paginator->getPageName() }}.before"
-                                    class="relative inline-flex items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
+                                    class="relative inline-flex min-h-11 items-center px-4 py-2 text-body text-neutral-800 bg-white border border-neutral-200 rounded-control hover:text-neutral-500 focus:border-secondary-medium active:bg-neutral-100 active:text-neutral-800 transition ease-in-out">
                                 {!! __('pagination.next') !!}
                             </button>
                         @else
                             <span
-                                class="relative inline-flex items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
+                                class="relative inline-flex min-h-11 items-center px-4 py-2 text-body text-neutral-500 bg-white border border-neutral-200 rounded-control select-none">
                                 {!! __('pagination.next') !!}
                             </span>
                         @endif
