@@ -57,6 +57,9 @@ import './help-panel.js';
 // Prompt 10: Ctrl+K commands, "g then a letter" and the "?" list of shortcuts.
 import './commands.js';
 
+// "Install the app": header link, layout banner and settings.app (x-data="pwaInstall").
+import './pwa-install.js';
+
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
 import 'flowbite';

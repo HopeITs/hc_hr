@@ -25,6 +25,7 @@ use App\Livewire\Feedback\FeedbackIndex;
 use App\Livewire\News\NewsCreate;
 use App\Livewire\News\NewsModule;
 use App\Livewire\Notifications\Index;
+use App\Livewire\Settings\InstallApp;
 use App\Livewire\Settings\Password;
 use App\Livewire\Statistics\ContractStatistics;
 use App\Livewire\Statistics\GeneralStatistics;
@@ -73,6 +74,8 @@ Route::group(
 
             Route::redirect('settings', 'settings/password');
             Route::get('settings/password', Password::class)->name('settings.password');
+            // "Install the app": steps for this device, and Chromium's prompt when it is offered.
+            Route::get('settings/app', InstallApp::class)->name('settings.app');
             Route::get('my-profile', EmployeeProfile::class)->name('my-profile');
             // C3: the work inbox. No permission of its own: every row comes from a
             // source's scoped query and every action re-checks its domain policy.

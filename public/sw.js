@@ -16,8 +16,14 @@
  * Writes are never touched: only GET requests are handled at all, so a save
  * made without a connection fails at once and is never queued or replayed
  * when the connection comes back (no Background Sync).
+ *
+ * Updates: the page registers this file with updateViaCache 'none' and asks
+ * for an update check on every full load, and public/.htaccess serves it with
+ * Cache-Control: no-cache, so a new release reaches devices on their next visit.
  */
-const VERSION = 'hopehr-static-v1';
+// Bump on any change to this file or to STATIC: the browser installs the new
+// worker, and its activate step drops the old version's cache.
+const VERSION = 'hopehr-static-v2';
 const OFFLINE_URL = '/offline.html';
 const STATIC = [
     OFFLINE_URL,

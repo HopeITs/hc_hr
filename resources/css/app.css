@@ -1479,3 +1479,27 @@ li:has(> ul:not(.hidden)) > button > .nav-chevron {
         bottom: 1.5rem;
     }
 }
+
+/* "Install the app" banner (pwa-install.js): sits where the offline notice
+   does, above the phone bar and its safe area, and steps aside with the bar —
+   a focused field or a page's own sticky save row takes the bottom instead.
+   The offline notice (z 9400) covers it when both are up. */
+.app-install-banner {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+html:has(.m1-action-bar) .app-install-banner,
+html:has([data-tour="contract.save"]) .app-install-banner {
+    display: none;
+}
+
+@media (max-width: 47.99rem) {
+    .app-install-banner {
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    body:has(:is(input:not([type=checkbox], [type=radio], [type=file], [type=button], [type=submit]), textarea, select, [contenteditable="true"]):focus) .app-install-banner,
+    body:has(.app-bottom-nav[data-typing="true"]) .app-install-banner {
+        display: none;
+    }
+}

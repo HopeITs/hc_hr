@@ -75,3 +75,20 @@
     Header unset X-Powered-By
     Header unset Server
 </IfModule>
+
+# D2-PWA: the service worker and the manifest keep a fixed name, so the
+# year-long immutable rule above would pin devices to an old release. They
+# must be revalidated on every request. Placed after the rules above so
+# these win (Files sections apply in order of appearance).
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+<FilesMatch "^(sw\.js|site\.webmanifest)$">
+    <IfModule mod_expires.c>
+        ExpiresActive Off
+    </IfModule>
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache"
+        Header unset Expires
+    </IfModule>
+</FilesMatch>

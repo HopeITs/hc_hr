@@ -150,6 +150,18 @@
                                 <span>@lang('general.my-account')</span>
                             </a>
 
+                            {{-- "Install the app" (pwa-install.js): hidden when this already is the installed app. --}}
+                            <a href="{{ route('settings.app') }}" wire:navigate data-install-app-link
+                                x-data="pwaInstall" x-show="!installed"
+                                class="flex items-center gap-3 px-3 py-2 text-body font-medium text-ink transition rounded-surface hover:bg-hover hover:shadow-e1">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+                                    <path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3" />
+                                </svg>
+                                <span>@lang('pwa.menu')</span>
+                            </a>
+
                             {{-- D3, phones only: the header's help button does not fit there. Same panel, no request. --}}
                             <button type="button" role="menuitem" data-help-menu-item
                                 x-on:click="open = false; $dispatch('help-open')"
