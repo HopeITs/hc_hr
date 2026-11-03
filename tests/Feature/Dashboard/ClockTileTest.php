@@ -67,7 +67,7 @@ class ClockTileTest extends TestCase
         $this->actingAs($this->makeUser($this->city, 'employee'));
 
         Livewire::test(Index::class)
-            ->call('saveLayout', [['key' => 'clock', 'size' => '3x3', 'pinned' => false, 'hidden' => false, 'style' => 'analog']]);
+            ->call('saveLayout', [['key' => 'clock', 'size' => '3x3', 'hidden' => false, 'style' => 'analog']]);
 
         // saveLayout is renderless: the next visit draws it.
         $html = Livewire::test(Index::class)->html();

@@ -4,7 +4,7 @@
  * WHY
  * ---
  * amCharts 5 is by far the largest dependency in the bundle, and it is used by
- * exactly three components — all of them on the dashboard. Importing them from
+ * exactly two components — all of them on the dashboard. Importing them from
  * app.js meant every single page paid for it: the login screen, every table,
  * every form. Because Vite emitted one chunk, there was no way for the browser
  * to skip it.
@@ -13,7 +13,7 @@
  * The chunk is only requested once its host element is actually in the DOM, so
  * non-dashboard pages never download amCharts at all.
  *
- * Chart.js is deliberately NOT handled here. Five Blade views instantiate it
+ * Chart.js is deliberately NOT handled here. Four Blade views instantiate it
  * from inline <script> blocks that run immediately and depend on window.Chart
  * already existing, so it has to stay eagerly loaded in app.js. Moving those
  * views to this loader would be a prerequisite for splitting it out too.
@@ -32,10 +32,6 @@ const CHARTS = [
     {
         selector: "#salaryTypePieChart",
         load: () => import("../donut-chart.js"),
-    },
-    {
-        selector: "#jobLevelsChart",
-        load: () => import("../job-levels-employees.js"),
     },
 ];
 

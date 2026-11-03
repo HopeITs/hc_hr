@@ -64,7 +64,7 @@ import 'flowbite';
 /**
  * Chart.js stays eagerly loaded and exposed on `window`.
  *
- * Five Blade views (the dashboard statistic cards) call `new Chart(...)` from
+ * Four Blade views (the dashboard statistic cards) call `new Chart(...)` from
  * inline <script> blocks that execute during parse, so the constructor must
  * already be present — a dynamic import would resolve too late. Only the
  * controllers, elements and scales those views actually use are registered,
@@ -119,9 +119,6 @@ import './employee-autosave.js';
 
 // Typed examples in empty fields' placeholders (data-typewriter).
 import './typewriter.js';
-
-// The assistant's browser-side model (Puter.js), loaded only when used.
-import './assistant-puter.js';
 
 import './password-toggle.js';
 import './password-strength.js';

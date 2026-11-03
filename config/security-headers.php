@@ -2,10 +2,6 @@
 
 $environment = env('APP_ENV', 'production');
 
-// The assistant's browser-side model (config/assistant.php 'puter'): its
-// script, API and sign-in window come from puter.com, only while it is on.
-$puter = (bool) env('ASSISTANT_PUTER', false) ? ['https://puter.com', 'https://*.puter.com'] : [];
-
 return [
     /*
     |--------------------------------------------------------------------------
@@ -56,7 +52,6 @@ return [
                 'https://cdn.jsdelivr.net',
                 'https://esm.sh',
                 'https://unpkg.com',
-                ...$puter,
             ],
             'style-src' => [
                 "'self'",
@@ -77,8 +72,8 @@ return [
                 'https://randomuser.me',
             ],
             'media-src' => ["'self'", 'blob:'],
-            'connect-src' => ["'self'", 'ws:', 'wss:', ...$puter],
-            'frame-src' => ["'self'", ...$puter],
+            'connect-src' => ["'self'", 'ws:', 'wss:'],
+            'frame-src' => ["'self'"],
             'worker-src' => ["'self'", 'blob:'],
             'manifest-src' => ["'self'"],
             'upgrade-insecure-requests' => [],

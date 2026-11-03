@@ -1293,6 +1293,23 @@ select.public-career-select option:checked {
     backdrop-filter: blur(24px) saturate(180%);
 }
 
+/* Sidebar scrolling: a thin native bar in the open sidebar, none at all in the
+   80px icon rail (a track there sat on top of the icons). */
+.sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+}
+
+@media (min-width: 48rem) {
+    .sidebar-scroll--rail {
+        scrollbar-width: none;
+    }
+
+    .sidebar-scroll--rail::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 /* Press feedback: instant, on pointer-down — not on release. */
 .nav-press {
     transition:

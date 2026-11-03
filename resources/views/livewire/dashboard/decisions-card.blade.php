@@ -1,12 +1,13 @@
 {{--
     "Work inbox" tile (DecisionsCard): what waits on the viewer. First the
-    decisions, oldest first: one card at a time with arrows and dots, so the
-    oldest is in front; "Show all" lays them side by side instead (kept on
-    this device). Then the rest of the inbox (items to hand over or take
-    back) as a short list. It took over "For you now", so the home has one
-    place for the inbox. It scrolls inside a small tile. Nothing: one quiet
-    line, marked data-tile-empty so the grid closes it at the bottom. No pay,
-    no leave reason (WaitingOnYou::card).
+    decisions, oldest first: one card at a time (arrows, arrow keys or a
+    swipe; the counter says where you are), so the oldest is in front;
+    "Show all" lays them side by side instead (kept on this device). Then the
+    rest of the inbox (items to hand over or take back) as a short list. It
+    took over "For you now", so the home has one place for the inbox. It
+    scrolls inside a small tile. Nothing: one quiet line, marked
+    data-tile-empty so the grid closes it at the bottom. No pay, no leave
+    reason (WaitingOnYou::card).
 --}}
 @php
     $locale = app()->getLocale();
@@ -28,76 +29,82 @@
     @else
         <section class="hc-decide" aria-labelledby="hc-decide-title" data-testid="work-inbox-tile"
                  x-data="{
-                    i: 0, n: {{ $n }}, all: false,
+                    i: 0, n: {{ $n }}, all: false, x0: null,
                     init() { try { this.all = localStorage.getItem('hc-decide') === 'all' } catch (e) {} },
                     show(k) { this.i = (k + this.n) % this.n },
+                    step(d) { this.show(this.i + (getComputedStyle(this.$el).direction === 'rtl' ? -d : d)) },
                     toggle() { this.all = ! this.all; try { localStorage.setItem('hc-decide', this.all ? 'all' : 'one') } catch (e) {} },
+                    swipe(x) { if (this.x0 !== null && Math.abs(x - this.x0) > 40) this.step(x < this.x0 ? 1 : -1); this.x0 = null },
                  }"
-                 x-on:keydown.arrow-right="if (! all && n > 1) show(i + (getComputedStyle($el).direction === 'rtl' ? -1 : 1))"
-                 x-on:keydown.arrow-left="if (! all && n > 1) show(i - (getComputedStyle($el).direction === 'rtl' ? -1 : 1))">
-            <div class="hc-decide-head">
+                 x-on:keydown.arrow-right="if (! all && n > 1) step(1)"
+                 x-on:keydown.arrow-left="if (! all && n > 1) step(-1)">
+            <header class="hc-decide-head">
                 <h2 id="hc-decide-title">
-                    <x-ic name="inbox" />{{ __('dashboard.tiles.decide') }}
-                    <span class="num hc-decide-count" data-testid="work-inbox-count">{{ $decisions['all'] }}</span>
+                    <x-ic name="inbox" aria-hidden="true" />
+                    <span>{{ __('dashboard.tiles.decide') }}</span>
+                    <span class="num hc-decide-badge" data-testid="work-inbox-count">{{ $decisions['all'] }}</span>
                 </h2>
-                <x-button variant="link" size="sm" :href="$inboxUrl">{{ __('dashboard.decide-tile.open') }}</x-button>
-            </div>
+                <x-button variant="link" size="sm" :href="$inboxUrl" class="hc-decide-open">{{ __('dashboard.decide-tile.open') }}</x-button>
+            </header>
 
             @if ($n > 0)
                 <div data-testid="decision-card" aria-roledescription="carousel" aria-label="{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}">
                     <div class="hc-decide-sub">
                         <h3>{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}</h3>
                         @if ($n > 1)
-                            <span class="flex flex-wrap items-center gap-1">
-                                <span class="flex items-center gap-1" x-show="! all">
-                                    <x-button variant="quiet" size="sm" :loading="false" class="hc-decide-arrow" x-on:click="show(i - 1)" aria-label="{{ __('dashboard.header.decide.prev') }}">
-                                        <x-ic name="chevron" class="rotate-180 rtl:rotate-0" />
-                                    </x-button>
-                                    <span class="num hc-decide-count" aria-live="polite"><span x-text="i + 1">1</span> / {{ $n }}</span>
-                                    <x-button variant="quiet" size="sm" :loading="false" class="hc-decide-arrow" x-on:click="show(i + 1)" aria-label="{{ __('dashboard.header.decide.next') }}">
-                                        <x-ic name="chevron" class="rtl:rotate-180" />
-                                    </x-button>
+                            <div class="hc-decide-nav">
+                                <span class="hc-decide-pager" x-show="! all">
+                                    <button type="button" class="hc-decide-arrow" x-on:click="show(i - 1)" aria-label="{{ __('dashboard.header.decide.prev') }}">
+                                        <x-ic name="chevron" class="rotate-180 rtl:rotate-0" aria-hidden="true" />
+                                    </button>
+                                    <span class="num hc-decide-pos" aria-live="polite"><span x-text="i + 1">1</span> / {{ $n }}</span>
+                                    <button type="button" class="hc-decide-arrow" x-on:click="show(i + 1)" aria-label="{{ __('dashboard.header.decide.next') }}">
+                                        <x-ic name="chevron" class="rtl:rotate-180" aria-hidden="true" />
+                                    </button>
                                 </span>
-                                <x-button variant="link" size="sm" icon="layout" :loading="false" x-on:click="toggle()" x-bind:aria-pressed="all.toString()">
+                                <button type="button" class="hc-decide-toggle" x-on:click="toggle()" x-bind:aria-pressed="all.toString()">
+                                    <x-ic name="layout" aria-hidden="true" />
                                     <span x-text="all ? @js(__('dashboard.header.decide.one')) : @js(__('dashboard.header.decide.all'))">{{ __('dashboard.header.decide.all') }}</span>
-                                </x-button>
-                            </span>
+                                </button>
+                            </div>
                         @endif
                     </div>
 
-                    <div class="hc-decide-track" :class="{ all }">
+                    <div class="hc-decide-track" :class="{ all }"
+                         x-on:touchstart.passive="x0 = $event.touches[0].clientX"
+                         x-on:touchend="if (! all && n > 1) swipe($event.changedTouches[0].clientX)">
                         @foreach ($cards as $card)
                             <article @class(['hc-dcard', 'old' => $card['old']]) wire:key="decide-{{ $card['key'] }}" data-decision="{{ $card['key'] }}"
                                      :class="{ off: ! (all || i === {{ $loop->index }}) }" @unless ($loop->first) style="display:none" x-init="$el.style.removeProperty('display')" @endunless
                                      aria-roledescription="slide" aria-label="{{ $loop->iteration }} / {{ $n }}">
-                                <span class="hc-dcard-what"><x-ic :name="$card['action'] === 'approve' ? 'user' : 'calendar'" />{{ __('inbox.action.'.$card['action']) }}</span>
-                                <span class="hc-dcard-name" dir="auto">{{ $card['name'] }}</span>
-                                <span class="hc-dcard-meta">
-                                    @if ($card['what'])<span dir="auto">{{ $card['what'] }}</span>@endif
-                                    @if ($card['from'])<span class="num">{{ $range($card['from'], $card['to']) }}</span>@endif
-                                    @if ($card['city'])<span dir="auto">{{ $card['city'] }}</span>@endif
-                                    @if ($card['since'])<span class="hc-dcard-since">{{ __('dashboard.header.decide.since', ['time' => $card['since']]) }}</span>@endif
+                                <div class="hc-dcard-top">
+                                    <span class="hc-dcard-what"><x-ic :name="$card['action'] === 'approve' ? 'user' : 'calendar'" aria-hidden="true" />{{ __('inbox.action.'.$card['action']) }}</span>
                                     @if ($card['start_flag'])
                                         <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                     @endif
-                                </span>
-                                <x-button size="sm" :href="$card['url']" class="hc-dcard-go">
-                                    <x-ic name="arrow" class="rtl:-scale-x-100" />{{ __('dashboard.header.decide.verb.'.$card['action']) }}
-                                </x-button>
+                                </div>
+                                <h4 class="hc-dcard-name" dir="auto">{{ $card['name'] }}</h4>
+                                @if ($card['what'] || $card['from'] || $card['city'])
+                                    <ul class="hc-dcard-meta">
+                                        @if ($card['what'])<li dir="auto">{{ $card['what'] }}</li>@endif
+                                        @if ($card['from'])<li class="num">{{ $range($card['from'], $card['to']) }}</li>@endif
+                                        @if ($card['city'])<li dir="auto">{{ $card['city'] }}</li>@endif
+                                    </ul>
+                                @endif
+                                <div class="hc-dcard-foot">
+                                    @if ($card['since'])
+                                        <span class="hc-dcard-since"><x-ic name="clock" aria-hidden="true" />{{ __('dashboard.header.decide.since', ['time' => $card['since']]) }}</span>
+                                    @endif
+                                    <x-button size="sm" :href="$card['url']" class="hc-dcard-go">
+                                        {{ __('dashboard.header.decide.verb.'.$card['action']) }}<x-ic name="arrow" class="rtl:-scale-x-100" aria-hidden="true" />
+                                    </x-button>
+                                </div>
                             </article>
                         @endforeach
                     </div>
 
-                    @if ($n > 1)
-                        <div class="hc-ddots" x-show="! all" role="tablist" aria-label="{{ __('dashboard.header.decide.pick') }}">
-                            @foreach ($cards as $card)
-                                <button type="button" role="tab" x-on:click="show({{ $loop->index }})" :aria-selected="(i === {{ $loop->index }}).toString()" :class="{ on: i === {{ $loop->index }} }" aria-label="{{ $loop->iteration }} / {{ $n }}"></button>
-                            @endforeach
-                        </div>
-                    @endif
-
                     @if ($decisions['total'] > $n)
-                        <p class="mt-2 text-hint text-ink-2">
+                        <p class="hc-decide-more">
                             <x-button variant="link" size="sm" :href="route('inbox', ['show' => 'decide'])">{{ trans_choice('dashboard.header.decide.more', $decisions['total'] - $n, ['count' => $decisions['total'] - $n]) }}</x-button>
                         </p>
                     @endif

@@ -25,22 +25,10 @@ class Assistant
         $this->policies ??= new PolicyLibrary;
     }
 
-    /** Switched on, with at least one provider configured or Puter in the browser. */
+    /** Switched on, with at least one provider configured. */
     public function isAvailable(): bool
     {
-        return config('assistant.enabled') && ($this->model->isConfigured() || $this->usesBrowser());
-    }
-
-    /** At least one provider this server calls itself. */
-    public function hasServerModel(): bool
-    {
-        return $this->model->isConfigured();
-    }
-
-    /** Puter.js answers from the employee's browser when no server provider can. */
-    public function usesBrowser(): bool
-    {
-        return (bool) config('assistant.puter.enabled');
+        return config('assistant.enabled') && $this->model->isConfigured();
     }
 
     /**
@@ -86,55 +74,6 @@ class Assistant
         return $this->answer($this->fallback($question), $proposal);
     }
 
-    /**
-     * The same conversation with the model asked from the browser (Puter.js)
-     * instead of from here, one round at a time. The state stays on the
-     * server; the browser is given each request and sends back the model's
-     * message, and every tool still runs here, as the signed-in user. A
-     * forged message can only make the model "say" something to the
-     * employee who forged it, or call a tool they may call anyway.
-     *
-     * @param  list<array{role: 'user'|'assistant', text: string}>  $history
-     * @return array{0: array<string, mixed>, 1: array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>}} the state, and the request
-     */
-    public function begin(User $user, array $history, string $question): array
-    {
-        $state = [
-            'question' => $question,
-            'contents' => $this->contents($history, $question),
-            'proposal' => null,
-            'round' => 0,
-        ];
-
-        return [$state, $this->browserRequest($user, $state)];
-    }
-
-    /**
-     * One answer of the browser's model (a chat-completions message): either
-     * the next request, after running the tools it called, or the reply.
-     *
-     * @param  array<string, mixed>  $state
-     * @param  array<string, mixed>  $message
-     * @return array{0: array<string, mixed>, 1: ?array<string, mixed>, 2: ?AssistantReply}
-     */
-    public function advance(User $user, array $state, array $message): array
-    {
-        $content = OpenAiCompatibleClient::turn($message);
-        $calls = GeminiClient::functionCalls($content);
-        $proposal = $state['proposal'] ?? null;
-
-        if ($calls === [] || ($state['round'] ?? 0) >= self::MAX_TOOL_ROUNDS) {
-            return [$state, null, $this->answer(GeminiClient::text($content) ?: $this->fallback($state['question']), $proposal)];
-        }
-
-        $state['contents'][] = $content;
-        $state['contents'][] = ['role' => 'user', 'parts' => $this->runTools($user, $calls, $proposal)];
-        $state['proposal'] = $proposal;
-        $state['round'] = ($state['round'] ?? 0) + 1;
-
-        return [$state, $this->browserRequest($user, $state), null];
-    }
-
     /** Timing only: never the question or the answer. */
     private function logReply(float $started, int $rounds): void
     {
@@ -177,17 +116,6 @@ class Assistant
         return $proposal === null
             ? new AssistantReply($text)
             : new AssistantReply($text, $proposal['data'], $proposal['type']);
-    }
-
-    /** @return array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>} */
-    private function browserRequest(User $user, array $state): array
-    {
-        $declarations = $this->tools->declarations($user);
-
-        return [
-            'messages' => OpenAiCompatibleClient::messages($state['contents'], $this->systemInstruction($user, $state['question'])),
-            'tools' => $declarations ? OpenAiCompatibleClient::tools($declarations) : [],
-        ];
     }
 
     /** @return list<array{role: string, parts: list<array<string, string>>}> */
