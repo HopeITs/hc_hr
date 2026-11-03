@@ -29,7 +29,7 @@ use Illuminate\Database\Eloquent\Builder;
  *
  *   holiday       the viewer's contract: national + project (LeaveRequestPricing), and their birthday holiday
  *   my-leave      own accepted and pending requests            leaves.view-own (the My leaves page)
- *   team-leave    the viewer's direct reports                  leaves.view-own + the `reports` scope (Team\Calendar)
+ *   team-leave    the viewer's team: TeamCoverage's default scope (city / org / reports), as UpcomingLeavesCard reads it; never plain colleagues
  *   birthday      self; HR also the active employees of its cities (access-policy §4.4: birthday is Private)
  *   contract-end  contracts ending, Contract::visibleTo         city HR with contracts.view (the contracts page)
  *   news          events addressed to everyone or to the viewer's record, city, center or program (UpcomingEventsCard)
@@ -106,7 +106,7 @@ final class CalendarFeed
         return array_values(array_filter(self::TYPES, fn (string $type): bool => match ($type) {
             'holiday', 'news', 'birthday' => true,
             'my-leave' => $user->employee_id !== null && $user->hasActivePermission('leaves.view-own'),
-            'team-leave' => $user->hasActivePermission('leaves.view-own') && in_array('reports', $this->coverage->scopesFor($user), true),
+            'team-leave' => $this->teamScope($user) !== null,
             'contract-end' => $user->activeRoleIs('HR') && $user->hasActivePermission('contracts.view'),
         }));
     }
@@ -191,9 +191,24 @@ final class CalendarFeed
     }
 
     /**
-     * The viewer's direct reports, read through TeamCoverage exactly as the
-     * team calendar's "reports" scope reads them (manager level: pending
-     * included, real type). The viewer's own leave is "my-leave".
+     * The scope "team leave" reads: the one the team calendar and the
+     * Upcoming leaves tile start on (org, city HR, or direct reports), so the
+     * three never disagree. Plain colleagues are not a team here; direct
+     * reports still need the My leaves permission.
+     */
+    private function teamScope(User $user): ?string
+    {
+        return match ($scope = $this->coverage->defaultScope($user)) {
+            'org', 'city' => $scope,
+            'reports' => $user->hasActivePermission('leaves.view-own') ? $scope : null,
+            default => null,
+        };
+    }
+
+    /**
+     * The viewer's team, read through TeamCoverage exactly as the team
+     * calendar reads that scope (manager and HR level: pending included,
+     * real type). The viewer's own leave is "my-leave".
      *
      * @return iterable<array{0: string, 1: array<string, mixed>}>
      */
@@ -201,7 +216,7 @@ final class CalendarFeed
     {
         $events = [];
 
-        foreach ($this->coverage->absences($user, 'reports', $from, $to) as $entry) {
+        foreach ($this->coverage->absences($user, (string) $this->teamScope($user), $from, $to) as $entry) {
             if ($entry['is_self']) {
                 continue;
             }

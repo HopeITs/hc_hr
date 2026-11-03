@@ -90,6 +90,20 @@ class CalendarFeedTest extends TestCase
         $this->assertStringContainsString(__('dashboard_calendar.status.pending'), $days['2026-11-10'][0]['detail']);
     }
 
+    public function test_city_hr_sees_its_citys_leave_like_the_upcoming_leaves_tile(): void
+    {
+        $hr = $this->makeUser($this->dms, 'HR-DMS', ['leaves.view-own']);
+        $this->leave($this->makeContractFor($this->makeEmployee($this->dms, 'away-dms', ['first_name_en' => 'Damascene'])), '2026-11-04', '2026-11-05');
+        $this->leave($this->makeContractFor($this->makeEmployee($this->alp, 'away-alp', ['first_name_en' => 'Aleppine'])), '2026-11-04', '2026-11-05');
+
+        $feed = $this->feed();
+        $leave = $this->ofType($feed->forMonth($hr->fresh(), CarbonImmutable::parse('2026-11-01')), 'team-leave');
+
+        $this->assertContains('team-leave', $feed->typesFor($hr->fresh()));
+        $this->assertSame(['2026-11-04', '2026-11-05'], array_keys($leave));
+        $this->assertSame(['Damascene Person'], array_column($leave['2026-11-04'], 'title'));
+    }
+
     public function test_my_leaves_are_accepted_and_pending_only(): void
     {
         $user = $this->makeUser($this->dms, 'employee', ['leaves.view-own']);
