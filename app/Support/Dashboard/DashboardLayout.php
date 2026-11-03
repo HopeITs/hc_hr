@@ -32,27 +32,23 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Component;
 
 /**
- * The dashboard as a home screen (ported from media-request): a grid of cells
- * holding widgets (notes, calendar, team...) and shortcuts (an icon that opens
- * a page).
+ * The dashboard as a desk of panels (like hc-tracking's Desk): a grid of
+ * cells holding the widgets (notes, calendar, team...) the person arranges.
  *
  * A size is "CxR": columns x rows of grid cells (12 columns on a wide screen,
  * 8 on a computer, 4 on a phone; a tile wider than the grid takes its full
- * width). Each widget may be any size from one cell up to its own maximum:
- * below the smallest size it can show itself at ("card" in bounds()) it is
- * drawn as an icon that opens it in a side panel. A shortcut is 1x1 up to
- * 4x4: made big (2x2 and up) it becomes a small card with its data (AppCard).
+ * width). Each widget may be any size from its own minimum up to its maximum.
  *
- * A layout is an ordered list of {key, size, pinned, hidden, style?, fixed?}
- * (fixed: sized by hand, shown at exactly that size, never grown into gaps). Whatever
+ * A layout is an ordered list of {key, size, hidden, style?, fixed?} (fixed:
+ * sized by hand, shown at exactly that size, never grown into gaps). Whatever
  * is stored is cleaned against this catalogue every time it is read, so a tile
  * that was removed, a size out of bounds, or a tile the person may not use can
- * never come back from a stale or edited layout.
+ * never come back from a stale or edited layout. A layout saved before the
+ * desk (shortcut tiles, pins) loses those on its next read.
  *
- * Shortcuts are not a list kept here: they are the pages of the active role's
- * menu (Navigation::shortcuts) and its New actions (Navigation::newActions),
- * so a page the role cannot open is never a tile, and a page added to the menu
- * is a tile without touching this class.
+ * apps() is the active role's menu pages and New actions (Navigation): the
+ * page a panel opens in full comes from it (page()), and so does the phone's
+ * bottom bar (BottomBar). They are not tiles.
  */
 class DashboardLayout
 {
@@ -60,7 +56,7 @@ class DashboardLayout
 
     /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows], shown by default] */
     public const WIDGETS = [
-        // Were fixed above the grid (prompt 7); tiles now, to move, resize, pin or hide (media-request b183c0c).
+        // Were fixed above the grid (prompt 7); panels now, to move, resize or remove.
         'late' => ['clock', [3, 1], [12, 3], [12, 1], true],
         // The work inbox: the decisions, then the rest of the inbox (it took over "For you now").
         'decide' => ['inbox', [3, 2], [12, 6], [6, 3], true],
@@ -137,14 +133,14 @@ class DashboardLayout
     /** Tiles that come in more than one look: key => allowed looks, the first is the default. */
     public const LOOKS = ['clock' => ['digital', 'analog']];
 
-    /** Prefix of every shortcut key: "app.<navigation item id>", e.g. app.nav.hr.employees, app.new.leave. */
+    /** Prefix of every apps() key: "app.<navigation item id>", e.g. app.nav.hr.employees, app.new.leave. */
     public const APP_PREFIX = 'app.';
 
     /**
      * Ready layouts ("Customize your desk", like hc-tracking's desk): a named
      * arrangement of cards, each [key, cols, rows] on the 12-column grid.
-     * Applying one shows exactly these cards (the ones this person may have),
-     * hides every other card and leaves the shortcuts as they are. A layout
+     * Applying one shows exactly these cards (the ones this person may have)
+     * and hides every other card. A layout
      * left with fewer than PRESET_MIN cards for someone is not offered to them.
      *
      * @var array<string, array<int, array{0: string, 1: int, 2: int}>>
@@ -172,7 +168,7 @@ class DashboardLayout
     private const ALERTS = ['late', 'decide'];
 
     /**
-     * The page a widget opens on double-click: menu entries (Navigation ids),
+     * The page a panel opens in full (its expand button): menu entries (Navigation ids),
      * the first one the role's menu has wins. Going through apps() keeps it to
      * the pages this person may open; a widget not here has no page.
      */
@@ -198,19 +194,6 @@ class DashboardLayout
     ];
 
     /**
-     * Shortcuts shown by default, per role family, after today's cards (so the
-     * top of the page is what everyone already knows). Any other shortcut the
-     * role may open is in the gallery, hidden.
-     */
-    private const DEFAULT_APPS = [
-        'employee' => ['nav.my-space.leaves', 'nav.my-space.team-calendar', 'nav.my-space.items'],
-        'manager' => ['nav.inbox', 'nav.my-team.leaves', 'nav.my-team.contracts', 'nav.my-space.leaves'],
-        'hr-city' => ['nav.inbox', 'nav.hr.employees', 'nav.hr.contracts', 'nav.hr.leaves'],
-        'hr-national' => ['nav.inbox', 'nav.hr.employees', 'nav.hr.contracts', 'nav.hr.leaves', 'nav.hr.statistics.general'],
-        'leadership' => ['nav.inbox', 'nav.hr.employees', 'nav.hr.statistics.general', 'nav.org.chart'],
-    ];
-
-    /**
      * Widgets shown by default for these role families only (their WIDGETS
      * flag is false, so every other family finds them in the gallery). Who is
      * out is a team lead's question; the next holiday and the week's
@@ -225,7 +208,7 @@ class DashboardLayout
 
     private const PRESET_MIN = 3;
 
-    /** @var array<string, array<string, array<string, mixed>>> shortcuts per user and role, for this request */
+    /** @var array<string, array<string, array<string, mixed>>> menu pages per user and role, for this request */
     private array $apps = [];
 
     /** @var array<string, array{decides: bool, late: bool}> what may wait on each user, for this request */
@@ -250,7 +233,7 @@ class DashboardLayout
     }
 
     /**
-     * The shortcuts this person may use, keyed by tile key.
+     * The menu pages and New actions this person may open, keyed "app.<id>".
      *
      * @return array<string, array{id: string, label: string, route: string, params: array<string, mixed>, icon: string, counter: ?string}>
      */
@@ -275,12 +258,10 @@ class DashboardLayout
         return $this->apps[$memo] = array_filter($apps, fn (array $app): bool => Route::has($app['route']));
     }
 
-    /** @return array<int, string> keys this person may use, in default order */
+    /** @return array<int, string> panels this person may use, in default order */
     public function available(User $user): array
     {
-        $widgets = array_values(array_filter(array_keys(self::WIDGETS), fn (string $key): bool => $this->allowed($user, $key)));
-
-        return [...$widgets, ...array_keys($this->apps($user))];
+        return array_values(array_filter(array_keys(self::WIDGETS), fn (string $key): bool => $this->allowed($user, $key)));
     }
 
     /**
@@ -288,15 +269,10 @@ class DashboardLayout
      * today: the dashboard's cards are open to every signed-in user (each card
      * scopes its own rows to the viewer); the statistics cards come from a
      * page behind statistics.view; the salary card also needs pay visibility,
-     * which super-admin never has. A shortcut is allowed while its page is in
-     * the role's menu.
+     * which super-admin never has.
      */
     public function allowed(User $user, string $key): bool
     {
-        if ($this->isApp($key)) {
-            return isset($this->apps($user)[$key]);
-        }
-
         return match ($key) {
             // The card reads the viewer's own leave balance (Index shows it only when there is one).
             'my-leaves' => $user->employee_id !== null,
@@ -314,17 +290,12 @@ class DashboardLayout
         };
     }
 
-    public function isApp(string $key): bool
-    {
-        return str_starts_with($key, self::APP_PREFIX);
-    }
-
     public function isWidget(string $key): bool
     {
         return isset(self::WIDGETS[$key]);
     }
 
-    /** The widget's Livewire component, or null for a shortcut or a widget not built yet. */
+    /** The widget's Livewire component, or null for a widget not built yet. */
     public function component(string $key): ?string
     {
         return self::COMPONENTS[$key] ?? null;
@@ -338,54 +309,37 @@ class DashboardLayout
         return is_string($key) ? $key : null;
     }
 
-    public function icon(string $key, ?User $user = null): string
+    public function icon(string $key): string
     {
-        if ($this->isApp($key)) {
-            return ($user ? $this->apps($user)[$key]['icon'] ?? null : null) ?? 'file';
-        }
-
         return self::WIDGETS[$key][0] ?? 'file';
     }
 
-    /** The tile's name, in the current language. */
-    public function label(string $key, ?User $user = null): string
+    /** The panel's name, in the current language. */
+    public function label(string $key): string
     {
-        if ($this->isApp($key)) {
-            return ($user ? $this->apps($user)[$key]['label'] ?? null : null) ?? $key;
-        }
-
         return __('dashboard.tiles.'.$key);
     }
 
     /**
-     * Any widget goes down to one cell: below `card` (the smallest size it can
-     * show itself at) it is an icon that opens it in a side panel. `full` is
-     * its usual size. A shortcut grows up to 4x4: from `card` up it becomes a
-     * card with its data (AppCard).
+     * From the smallest size the card can show itself at up to its maximum.
      *
-     * @return array{min: array{0: int, 1: int}, max: array{0: int, 1: int}, card: array{0: int, 1: int}, full?: array{0: int, 1: int}}
+     * @return array{min: array{0: int, 1: int}, max: array{0: int, 1: int}}
      */
     public function bounds(string $key): array
     {
-        if ($this->isApp($key)) {
-            return ['min' => [1, 1], 'max' => [4, 4], 'card' => [2, 2]];
-        }
-
         return [
-            'min' => [1, 1],
+            'min' => self::WIDGETS[$key][1] ?? [1, 1],
             'max' => self::WIDGETS[$key][2] ?? [1, 1],
-            'card' => self::WIDGETS[$key][1] ?? [1, 1],
-            'full' => self::WIDGETS[$key][3] ?? [2, 2],
         ];
     }
 
     /**
-     * The page a widget opens on double-click, when the role's menu has one
-     * for it; null otherwise. Shortcuts are links already, so not here.
+     * The page a panel opens in full, when the role's menu has one for it;
+     * null otherwise.
      */
     public function page(User $user, string $key): ?string
     {
-        if ($this->isApp($key) || ! $this->allowed($user, $key)) {
+        if (! $this->allowed($user, $key)) {
             return null;
         }
 
@@ -400,12 +354,6 @@ class DashboardLayout
         }
 
         return null;
-    }
-
-    /** Does this shortcut show a card (AppCard) when big or in the side panel? A New action is one button: no. */
-    public function hasCard(string $key): bool
-    {
-        return $this->isApp($key) && ! str_starts_with($key, self::APP_PREFIX.'new.');
     }
 
     public function canResize(string $key): bool
@@ -431,28 +379,22 @@ class DashboardLayout
     /**
      * Today's dashboard, in today's order (late, work inbox, my leaves, notes, team,
      * news, calendar, upcoming leaves, today's and upcoming events, pending
-     * requests, checklist, badges); then the role family's shortcuts; then,
-     * hidden, everything else the person may add.
+     * requests, checklist, badges); then, hidden, everything else the person may add.
      *
-     * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>
+     * @return array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>
      */
     public function defaults(User $user): array
     {
         $family = $this->family($user);
-        $shown = array_map(fn (string $id): string => self::APP_PREFIX.$id, self::DEFAULT_APPS[$family]);
         $available = $this->available($user);
 
-        $order = [
-            ...array_filter($available, fn (string $key): bool => $this->isWidget($key) && $this->shownByDefault($family, $key)),
-            ...array_values(array_intersect($shown, $available)),
-        ];
+        $order = array_filter($available, fn (string $key): bool => $this->shownByDefault($family, $key));
         $order = [...$order, ...array_diff($available, $order)];
 
         $items = array_map(fn (string $key): array => [
             'key' => $key,
             'size' => $this->defaultSize($key),
-            'pinned' => false,
-            'hidden' => $this->isApp($key) ? ! in_array($key, $shown, true) : ! $this->shownByDefault($family, $key),
+            'hidden' => ! $this->shownByDefault($family, $key),
         ] + $this->look($key, null), array_values($order));
 
         return array_slice($items, 0, self::MAX_ITEMS);
@@ -460,10 +402,10 @@ class DashboardLayout
 
     /**
      * Keep only known, allowed items with sizes inside their bounds, once each;
-     * add any new item at the end (hidden if it is not shown by default);
-     * pinned items first, keeping their relative order; at most MAX_ITEMS.
+     * add any new item at the end (hidden if it is not shown by default); at
+     * most MAX_ITEMS.
      *
-     * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>
+     * @return array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>
      */
     public function clean(User $user, ?array $stored): array
     {
@@ -484,7 +426,6 @@ class DashboardLayout
             $out[$key] = [
                 'key' => $key,
                 'size' => $this->size($key, $item['size'] ?? null),
-                'pinned' => (bool) ($item['pinned'] ?? false),
                 'hidden' => (bool) ($item['hidden'] ?? false),
             ]
                 // Sized by hand: shown at exactly that size, never grown (what Customise shows is what is saved).
@@ -503,10 +444,7 @@ class DashboardLayout
             $out[$item['key']] ??= $item;
         }
 
-        $out = array_values($first + $out);
-        usort($out, fn (array $a, array $b): int => (int) $b['pinned'] <=> (int) $a['pinned']);
-
-        return array_slice($out, 0, self::MAX_ITEMS);
+        return array_slice(array_values($first + $out), 0, self::MAX_ITEMS);
     }
 
     /**
@@ -546,12 +484,12 @@ class DashboardLayout
 
     /**
      * A ready layout applied to the person's current one: its cards first, in
-     * its order and at its sizes (sized by hand, so shown exactly so); every
-     * other card hidden; the shortcuts kept as they are, with their looks.
-     * Null when the layout is not one this person may use.
+     * its order and at its sizes (sized by hand, so shown exactly so), with
+     * their looks; every other card hidden. Null when the layout is not one
+     * this person may use.
      *
-     * @param  array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>  $current
-     * @return ?array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool}>
+     * @param  array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>  $current
+     * @return ?array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>
      */
     public function applyPreset(User $user, string $preset, array $current): ?array
     {
@@ -568,7 +506,6 @@ class DashboardLayout
             $chosen[$tile['key']] = [
                 'key' => $tile['key'],
                 'size' => $tile['cols'].'x'.$tile['rows'],
-                'pinned' => false,
                 'hidden' => false,
                 'fixed' => true,
             ] + array_intersect_key($byKey[$tile['key']] ?? [], ['style' => true]);
@@ -580,7 +517,7 @@ class DashboardLayout
                 continue;
             }
 
-            $rest[] = $this->isApp($item['key']) ? $item : ['pinned' => false, 'hidden' => true] + $item;
+            $rest[] = ['hidden' => true] + $item;
         }
 
         return $this->clean($user, [...array_values($chosen), ...$rest]);
@@ -617,7 +554,7 @@ class DashboardLayout
 
     private function defaultSize(string $key): string
     {
-        $d = $this->isApp($key) ? [1, 1] : (self::WIDGETS[$key][3] ?? [2, 2]);
+        $d = self::WIDGETS[$key][3] ?? [2, 2];
 
         return $d[0].'x'.$d[1];
     }

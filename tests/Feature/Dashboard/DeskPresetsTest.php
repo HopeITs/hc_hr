@@ -42,31 +42,30 @@ class DeskPresetsTest extends TestCase
         }
     }
 
-    public function test_applying_a_layout_shows_its_cards_hides_the_rest_and_keeps_shortcuts(): void
+    public function test_applying_a_layout_shows_its_cards_and_hides_the_rest(): void
     {
         $city = $this->makeCity('ALP', '001');
         $user = $this->makeUser($city, 'employee');
         $this->actingAs($user);
 
         $tiles = new DashboardLayout;
-        $shortcutsBefore = array_values(array_filter($tiles->defaults($user), fn (array $i): bool => $tiles->isApp($i['key'])));
         $expected = array_column($tiles->presets($user)['community']['tiles'], 'key');
 
         $page = Livewire::test(Index::class)->call('applyPreset', 'community')->assertHasNoErrors();
         $this->assertArrayHasKey('html', $page->effects, 'applyPreset re-renders');
 
         $layout = SavedDashboardLayout::query()->sole()->layout;
-        $shown = array_values(array_filter($layout, fn (array $i): bool => ! $i['hidden'] && ! $tiles->isApp($i['key'])));
+        $shown = array_values(array_filter($layout, fn (array $i): bool => ! $i['hidden']));
 
         $this->assertSame($expected, array_column($shown, 'key'));
         $this->assertSame('4x6', $shown[0]['size']);
         $this->assertTrue($shown[0]['fixed']);
 
-        $shortcutsAfter = array_values(array_filter($layout, fn (array $i): bool => $tiles->isApp($i['key'])));
-        $this->assertSame(
-            array_column($shortcutsBefore, 'hidden', 'key'),
-            array_column($shortcutsAfter, 'hidden', 'key'),
-        );
+        // Every other panel stays in the layout, hidden, so My panels can switch it back on.
+        $hidden = array_column(array_filter($layout, fn (array $i): bool => $i['hidden']), 'key');
+        $this->assertSame([], array_intersect($expected, $hidden));
+        $this->assertContains('notes', $hidden);
+        $this->assertSame([], array_filter(array_column($layout, 'key'), fn (string $key): bool => str_starts_with($key, DashboardLayout::APP_PREFIX)));
     }
 
     public function test_a_layout_the_person_may_not_use_changes_nothing(): void
@@ -92,6 +91,7 @@ class DeskPresetsTest extends TestCase
             ->assertSee(__('dashboard.desk.title'))
             ->assertSee(__('dashboard.presets.my-day.name'))
             ->assertSee('data-desk-default="my-day"', false)
+            ->assertDontSee('shortcuts stay')
             ->assertDontSee(__('dashboard.presets.people-numbers.name'));
     }
 }

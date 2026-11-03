@@ -215,7 +215,7 @@ class ReleaseLinksTest extends TestCase
 ', $failures));
     }
 
-    public function test_every_role_family_has_a_default_dashboard_with_shortcuts(): void
+    public function test_every_role_family_has_a_default_dashboard_of_panels(): void
     {
         $layout = new DashboardLayout;
 
@@ -224,7 +224,8 @@ class ReleaseLinksTest extends TestCase
             $shown = array_filter($layout->defaults($user), fn (array $item) => ! $item['hidden']);
 
             $this->assertSame($family, $layout->family($user), $who);
-            $this->assertNotEmpty(array_filter($shown, fn (array $item) => $layout->isApp($item['key'])), "{$who} has no default shortcut");
+            $this->assertNotEmpty($shown, "{$who} has no default panel");
+            $this->assertSame([], array_filter($shown, fn (array $item) => ! $layout->isWidget($item['key'])), "{$who} has a non-panel tile");
             $this->assertFalse($layout->allowed($user, 'stats-salary') && $who === 'adam', 'super-admin is salary-blind');
         }
     }

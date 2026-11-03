@@ -1,172 +1,94 @@
 {{--
-    One tile of the dashboard grid (index.blade.php). The tile is the grid
-    cell: its size comes from the layout (C×R cells), and it is the size
-    container "tile" for whatever is drawn inside (resources/css/dashboard.css).
-    A widget is its Livewire component (DashboardLayout::COMPONENTS), mounted
-    lazily: the card placeholder until it comes into view and its data
-    arrives. A shortcut is a link to a page of the role's menu.
+    One panel of the desk (index.blade.php), like hc-tracking's Desk panel.
+    The tile is the grid cell: its size comes from the layout (C×R cells), and
+    it is the size container "tile" for the card inside
+    (resources/css/dashboard.css). The card is its Livewire component
+    (DashboardLayout::COMPONENTS), mounted lazily: the card placeholder until
+    it comes into view and its data arrives.
 
-    Ported from media-request (2026-10-29), see home-screen.js:
-     - nothing in it right now: the tile is one closed line at the bottom
-       (.hc-tile-line); Customise shows it whole;
-     - made small: an icon (.hc-wmini) that opens the card in a side panel. The
-       panel is the tile body itself (popover="manual"), so the card is never
-       moved or mounted twice. While the tile is an icon its body is not
-       displayed, so its lazy card does not load until the panel opens;
-     - a widget with a page (data-page, only pages the role may open) opens it
-       on double-click;
-     - a shortcut made big shows its data (.hc-appcard, AppCard, lazy and
-       hidden while the tile is an icon); on a computer one click shows that
-       card in the panel, a double-click opens the page.
+    On hover (or keyboard focus) the panel's tools show in its top inline-end
+    corner: open in full (when the role's menu has its page) and the options
+    menu (move, the clock's look, remove). The whole panel is carried by a
+    press and move (mouse) or a press and hold (touch), and resized by its
+    edges (home-screen.js).
 
     data-tour stays on the tile, so the product tour finds a card before it has
     loaded and wherever it has been moved.
 --}}
 @php
     $key = $item['key'];
-    $isApp = $tiles->isApp($key);
-    $label = $tiles->label($key, $user);
+    $label = $tiles->label($key);
     [$cols, $rows] = array_map('intval', explode('x', $item['size']));
     $k = \Illuminate\Support\Js::from($key);
     $looks = \App\Support\Dashboard\DashboardLayout::LOOKS[$key] ?? null;
-    $inboxKey = \App\Support\Dashboard\DashboardLayout::APP_PREFIX.'nav.inbox';
-    $page = $isApp ? null : ($pages[$key] ?? null);
-    $hasCard = $tiles->hasCard($key);
-    $panelId = 'hc-panel-'.preg_replace('/[^A-Za-z0-9-]+/', '-', $key);
-    $titleId = $panelId.'-title';
+    $page = $pages[$key] ?? null;
 @endphp
 
-<div @class(['hc-tile', 'is-app' => $isApp, 'is-widget' => ! $isApp, 'pinned' => $item['pinned']])
+<div class="hc-tile"
+     id="hc-tile-{{ $key }}"
      role="listitem"
+     aria-label="{{ $label }}"
      data-key="{{ $key }}"
-     @unless ($isApp) data-tour="dashboard.{{ $key }}" @endunless
-     @if ($page) data-page="{{ $page }}" x-on:dblclick="openPage($event, {{ $k }})" title="{{ __('dashboard.home.page-open') }}" @endif
+     data-tour="dashboard.{{ $key }}"
      style="--c: {{ $cols }}; --r: {{ $rows }};"
      :style="span({{ $k }})"
-     :class="{ pinned: pinned({{ $k }}), resizing: resizing === {{ $k }}, mini: mini({{ $k }}), closed: closed({{ $k }}), peek: peek === {{ $k }} }"
+     :class="{ resizing: resizing === {{ $k }} }"
      :data-cols="shown({{ $k }})[0]"
      :data-rows="shown({{ $k }})[1]"
      :data-look="styleOf({{ $k }}) || null"
      x-show="shownHere({{ $k }})"
-     :tabindex="editing ? 0 : null"
-     :aria-label="editing ? tileLabel({{ $k }}) : null"
-     :aria-describedby="editing ? 'hc-tile-hint' : null"
-     x-on:keydown="if (editing && $event.target === $el) moveKey($event, {{ $k }})"
+     x-data="{ menu: false }"
+     x-effect="if (carrying || resizing) menu = false"
+     x-on:keydown.escape="menu = false"
      wire:key="tile-{{ $key }}">
 
-    {{-- Hide (×) sits outside the top start corner (like a phone): shown on hover at
-         rest on a computer, always while customising (dashboard.css). Pin, look and
-         the keyboard resize grip are customise-only, inside the tile. --}}
-    <button type="button" class="hc-tbtn hc-t-remove"
-            x-on:click="remove({{ $k }})" aria-label="{{ __('dashboard.home.hide', ['tile' => $label]) }}">
-        <x-ic name="x" />
-    </button>
-
-    @unless ($isApp)
-        <button type="button" class="hc-tbtn hc-t-pin" x-show="editing" x-cloak
-                x-on:click="togglePin({{ $k }})" :aria-pressed="pinned({{ $k }})"
-                aria-label="{{ __('dashboard.home.pin', ['tile' => $label]) }}">
-            <x-ic name="pin" />
-        </button>
-
-        @if ($looks)
-            <button type="button" class="hc-tbtn hc-t-look" x-show="editing" x-cloak
-                    x-on:click="cycleStyle({{ $k }})" aria-label="{{ __('dashboard.home.look', ['tile' => $label]) }}">
-                <x-ic name="clock" />
-                @foreach ($looks as $look)
-                    <span x-show="nextLook({{ $k }}) === @js($look)">{{ __('dashboard.home.looks.'.$look) }}</span>
-                @endforeach
-            </button>
+    <div class="hc-ttools" :class="{ open: menu }">
+        @if ($page)
+            <a href="{{ $page }}" wire:navigate class="hc-tbtn" title="{{ __('dashboard.home.open-full') }}"
+               aria-label="{{ __('dashboard.home.open-full-tile', ['tile' => $label]) }}">
+                <x-ic name="expand" />
+            </a>
         @endif
-
-        {{-- Made small: an icon. One click opens the card in the side panel, two its page. --}}
-        <button type="button" class="hc-wmini" :inert="editing"
-                x-on:click="peekSoon($event, {{ $k }})" x-on:dblclick.stop="miniPage({{ $k }})"
-                aria-haspopup="dialog" aria-controls="{{ $panelId }}" :aria-expanded="(peek === {{ $k }}).toString()"
-                @if ($page) aria-describedby="hc-page-hint" @endif>
-            <span class="hc-appicon"><x-dashboard.tile-icon :name="$tiles->icon($key, $user)" /></span>
-            <span class="hc-appname">{{ $label }}</span>
-        </button>
-
-        {{-- Nothing in it right now: one closed line (the card's own words when it has them). --}}
-        <div class="hc-tile-line" aria-hidden="true">
-            <span class="hc-tile-line-ico"><x-dashboard.tile-icon :name="$tiles->icon($key, $user)" /></span>
-            <b class="hc-tile-line-name">{{ $label }}</b>
-            <span class="hc-tile-line-text" x-text="closedText({{ $k }})"></span>
-        </div>
-    @endunless
+        <span class="hc-tmenu" x-on:click.outside="menu = false">
+            <button type="button" class="hc-tbtn" x-on:click="menu = ! menu" :aria-expanded="menu.toString()"
+                    aria-haspopup="menu" aria-label="{{ __('dashboard.home.options', ['tile' => $label]) }}">
+                <x-ic name="more" />
+            </button>
+            <div class="hc-pop" role="menu" x-show="menu" x-cloak x-transition.opacity.duration.120ms>
+                <button type="button" role="menuitem" x-show="canMove({{ $k }}, 'top')" x-on:click="menu = false; moveTo({{ $k }}, 'top')">
+                    <x-ic name="arrow" class="-rotate-90" />{{ __('dashboard.home.move-top') }}
+                </button>
+                <button type="button" role="menuitem" x-show="canMove({{ $k }}, 'earlier')" x-on:click="menu = false; moveTo({{ $k }}, 'earlier')">
+                    <x-ic name="chevron" class="rotate-180 rtl:rotate-0" />{{ __('dashboard.home.move-earlier') }}
+                </button>
+                <button type="button" role="menuitem" x-show="canMove({{ $k }}, 'later')" x-on:click="menu = false; moveTo({{ $k }}, 'later')">
+                    <x-ic name="chevron" class="rtl:rotate-180" />{{ __('dashboard.home.move-later') }}
+                </button>
+                @if ($looks)
+                    <button type="button" role="menuitem" x-on:click="menu = false; cycleStyle({{ $k }})">
+                        <x-ic name="clock" />
+                        @foreach ($looks as $look)
+                            <span x-show="nextLook({{ $k }}) === @js($look)">{{ __('dashboard.home.looks.'.$look) }}</span>
+                        @endforeach
+                    </button>
+                @endif
+                <button type="button" role="menuitem" class="hc-pop-danger" x-on:click="menu = false; remove({{ $k }})">
+                    <x-ic name="x" />{{ __('dashboard.home.remove') }}
+                </button>
+            </div>
+        </span>
+    </div>
 
     @if ($tiles->canResize($key))
-        {{-- Pull an edge or the corner to resize (a computer, at rest or customising). --}}
+        {{-- Pull an edge or the corner to resize (a computer). --}}
         @foreach (['end', 'start', 'top', 'bottom', 'corner'] as $edge)
             <span class="hc-rz hc-rz-{{ $edge }}" data-resize="{{ $edge }}" title="{{ __('dashboard.home.resize-hint') }}" aria-hidden="true"></span>
         @endforeach
-        <button type="button" class="hc-grip" x-show="editing" x-cloak
-                x-on:pointerdown="resizeStart($event, {{ $k }})"
-                x-on:keydown="resizeKey($event, {{ $k }})"
-                :aria-label="resizeLabelFor({{ $k }})"
-                title="{{ __('dashboard.home.resize-hint') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 8.5v9h-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        </button>
         <span class="hc-sizebadge num" x-show="resizing === {{ $k }}" x-cloak x-text="resizeLabel" aria-hidden="true"></span>
     @endif
 
-    {{-- The card. For a widget it is also its side panel (a popover, a dialog only while open). --}}
-    <div class="hc-tile-body" :inert="editing"
-         @unless ($isApp)
-             id="{{ $panelId }}" popover="manual" tabindex="-1"
-             :role="peek === {{ $k }} ? 'dialog' : null"
-             :aria-modal="peek === {{ $k }} ? 'false' : null"
-             :aria-label="peek === {{ $k }} ? @js($label) : null"
-         @endunless>
-        @unless ($isApp)
-            <button type="button" class="hc-panel-close" x-on:click="closePeek()" aria-label="{{ __('dashboard.home.panel-close', ['tile' => $label]) }}">
-                <x-ic name="x" />
-            </button>
-        @endunless
-
-        @if ($isApp)
-            @php($app = $apps[$key])
-            @php($href = route($app['route'], $app['params']))
-            {{-- With a card, the page is opened by the script (appClick): wire:navigate would follow the link as the button comes up. --}}
-            <a class="hc-app" href="{{ $href }}"
-               @if ($hasCard)
-                   aria-haspopup="dialog" aria-controls="{{ $panelId }}" :aria-expanded="(peek === {{ $k }}).toString()"
-                   aria-describedby="hc-page-hint" x-on:dblclick.prevent="miniPage({{ $k }})"
-               @else
-                   wire:navigate
-               @endif>
-                <div class="hc-appicon">
-                    <x-dashboard.tile-icon :name="$app['icon']" />
-                    @if ($key === $inboxKey && $inboxCount > 0)
-                        <span class="hc-cnt num" aria-hidden="true">{{ $inboxCount }}</span>
-                        <span class="sr-only">{{ __('general.nav.work-inbox-count', ['count' => $inboxCount]) }}</span>
-                    @elseif ($app['counter'])
-                        <div class="hc-cnt-slot">@livewire($app['counter'], key('cnt-'.$key))</div>
-                    @endif
-                </div>
-                <span class="hc-appname">{{ $label }}</span>
-            </a>
-
-            @if ($hasCard)
-                {{-- Made big, the shortcut is a small card with its data; the same card is its side panel. --}}
-                <div class="hc-appcard" id="{{ $panelId }}" popover="manual" tabindex="-1"
-                     :role="peek === {{ $k }} ? 'dialog' : null"
-                     :aria-modal="peek === {{ $k }} ? 'false' : null"
-                     aria-labelledby="{{ $titleId }}">
-                    <button type="button" class="hc-panel-close" x-on:click="closePeek()" aria-label="{{ __('dashboard.home.panel-close', ['tile' => $label]) }}">
-                        <x-ic name="x" />
-                    </button>
-                    <a class="hc-ach" href="{{ $href }}" wire:navigate id="{{ $titleId }}">
-                        <span class="hc-appicon"><x-dashboard.tile-icon :name="$app['icon']" /></span>
-                        <span class="hc-ach-name">{{ $label }}</span>
-                        <x-ic name="arrow" class="hc-ach-go rtl:-scale-x-100" aria-hidden="true" />
-                        <span class="sr-only">{{ __('dashboard.home.page-open-link') }}</span>
-                    </a>
-                    @livewire('dashboard.app-card', ['tile' => $key, 'lazy' => true], key('ac-'.$key))
-                </div>
-            @endif
-        @elseif ($key === 'my-leaves' && isset($failedSections['leaves']))
+    <div class="hc-tile-body">
+        @if ($key === 'my-leaves' && isset($failedSections['leaves']))
             <x-ui.load-error class="h-full min-h-0" />
         @else
             @livewire($tiles->component($key), ['lazy' => true], key('w-'.$key))

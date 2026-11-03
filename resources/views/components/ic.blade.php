@@ -44,6 +44,8 @@
         // Dashboard header (prompt 7): the decision carousel's arrows and "open". They point to the inline end: flip them in RTL (rtl:-scale-x-100).
         'chevron' => '<path d="m9 6 6 6-6 6"/>',
         'arrow' => '<path d="M5 12h14M13 6l6 6-6 6"/>',
+        'more' => '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+        'expand' => '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
         'dot' => '<circle cx="12" cy="12" r="4"/>',
     ];
     $fill = in_array($name, ['play', 'bolt', 'dot'], true) ? 'currentColor' : 'none';

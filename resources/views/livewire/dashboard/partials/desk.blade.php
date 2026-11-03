@@ -1,8 +1,10 @@
 {{--
     "Customize your desk" (like hc-tracking's desk): Ready layouts shows each
     layout this person may use (DashboardLayout::presets) as a mosaic of its
-    panels, the suggested one first; My panels switches cards and shortcuts on
-    and off. Nothing changes until it is confirmed (home-screen.js confirmDesk).
+    panels, the suggested one first; My panels switches panels on
+    and off, and Reset goes back to the role's own desk. Nothing changes until
+    it is confirmed (home-screen.js confirmDesk). On a phone, My panels also
+    holds the bottom bar's shortcuts (they save themselves).
 
     Red keeps its jobs: the primary action, the layout being looked at, and
     the panels that hold what waits on the viewer (the inbox, what is late).
@@ -82,29 +84,31 @@
             </div>
         </div>
 
-        {{-- My panels: every card and shortcut, on or off. --}}
+        {{-- My panels: every panel, on or off. --}}
         <div class="hc-desk-body hc-desk-body--panels" id="hc-desk-panels" role="tabpanel" aria-labelledby="hc-desk-tab-panels" x-show="deskTab === 'panels'" x-cloak>
             <p class="text-ink-2">{{ __('dashboard.desk.panels-lead') }}</p>
 
-            @foreach (['widget' => 'cards', 'app' => 'shortcuts'] as $kind => $heading)
-                <section aria-labelledby="hc-desk-{{ $kind }}">
-                    <h3 id="hc-desk-{{ $kind }}" class="mb-2 text-th font-bold uppercase tracking-wide text-ink-2">{{ __('dashboard.home.'.$heading) }}</h3>
-                    <div class="hc-desk-toggles">
-                        @foreach ($layout as $item)
-                            @continue(isset($absentKeys[$item['key']]) || $tiles->isApp($item['key']) !== ($kind === 'app'))
-                            <label class="hc-desk-toggle" :class="{ 'is-on': deskShown[@js($item['key'])] }">
-                                <span class="hc-desk-toggle-icon"><x-dashboard.tile-icon :name="$tiles->icon($item['key'], $user)" /></span>
-                                <span class="min-w-0 flex-1 truncate font-bold">{{ $tiles->label($item['key'], $user) }}</span>
-                                <input type="checkbox" role="switch" class="hc-switch" x-model="deskShown[@js($item['key'])]">
-                            </label>
-                        @endforeach
-                    </div>
-                </section>
-            @endforeach
+            <div class="hc-desk-toggles">
+                @foreach ($layout as $item)
+                    @continue(isset($absentKeys[$item['key']]))
+                    <label class="hc-desk-toggle" :class="{ 'is-on': deskShown[@js($item['key'])] }" title="{{ $tiles->label($item['key']) }}">
+                        <span class="hc-desk-toggle-icon"><x-dashboard.tile-icon :name="$tiles->icon($item['key'])" /></span>
+                        {{-- Two lines, never cut: "Employees by department" and its siblings only differ at the end. --}}
+                        <span class="min-w-0 flex-1 line-clamp-2 font-bold leading-snug">{{ $tiles->label($item['key']) }}</span>
+                        <input type="checkbox" role="switch" class="hc-switch" x-model="deskShown[@js($item['key'])]">
+                    </label>
+                @endforeach
+            </div>
+
+            {{-- The phone's bottom bar (prompt 10), which used to live in the old Customise mode.
+                 Lazy: it loads only once it is on screen, so never on a computer. --}}
+            <div class="md:hidden" data-slot="bottom-bar-picker">
+                <livewire:layout.bottom-bar-picker lazy />
+            </div>
         </div>
 
         <footer class="hc-desk-foot">
-            <p class="text-small text-ink-2">{{ __('dashboard.desk.unchanged') }}</p>
+            <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()" data-testid="dashboard-reset">{{ __('dashboard.home.reset') }}</x-button>
             <div class="flex items-center gap-2">
                 <x-button variant="quiet" :loading="false" x-on:click="closeDesk()">{{ __('general.cancel') }}</x-button>
                 @foreach ($presets as $preset)

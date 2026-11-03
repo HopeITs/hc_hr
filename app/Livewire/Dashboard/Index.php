@@ -4,19 +4,15 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\HasDashboardLayout;
-use App\Models\Contract;
-use App\Models\User;
-use App\Services\WorkInbox;
-use App\Support\Dashboard\DashboardLayout;
 use Livewire\Component;
-use Throwable;
 
 /**
- * The dashboard: a home screen of tiles the person arranges (DashboardLayout,
- * resources/js/dashboard/home-screen.js). This component draws the grid and
- * nothing else: each widget tile is its own lazy Livewire component
+ * The dashboard, a desk of panels like hc-tracking's (DashboardLayout,
+ * resources/js/dashboard/home-screen.js): the hello on top (Header), then the
+ * panels the person arranged on a twelve-column grid. This component draws the
+ * grid and nothing else: each panel is its own lazy Livewire component
  * (DashboardLayout::COMPONENTS) that loads its data when it comes into view
- * and shows a failure inside itself. A hidden tile is not drawn at all, so
+ * and shows a failure inside itself. A hidden panel is not drawn at all, so
  * its data is never read.
  */
 class Index extends Component
@@ -25,8 +21,6 @@ class Index extends Component
     use HasDashboardLayout;
 
     public $employee;
-
-    public $positionTitle;
 
     /**
      * Sections whose load failed during THIS request (card key => true). Not a
@@ -39,7 +33,7 @@ class Index extends Component
     /** @var array<string, mixed> Per-request memo so a card that reads $this->x after render() does not query twice. */
     protected array $memo = [];
 
-    /** ?customise=1 (the command palette's "Customise dashboard"): the page opens in edit mode. */
+    /** ?customise=1 (the command palette's "Customise dashboard"): the page opens with the Customize sheet. */
     protected bool $customise = false;
 
     public function mount(): void
@@ -51,30 +45,16 @@ class Index extends Component
             abort(403, 'Unauthorized');
         }
 
-        $this->employee = $user
-            ->profile()
-            ->with(['media', 'city'])
-            ->first();
-
-        // Only the greeting's job title is needed; the contract stays server-side.
-        $contract = $this->employee
-            ? Contract::with('position')
-                ->where('employee_id', $this->employee->id)
-                ->orderByDesc('start_date')
-                ->first()
-            : null;
-
-        $this->positionTitle = $contract?->position?->{transColumn('title')} ?? '—';
+        $this->employee = $user->profile()->first();
     }
 
     public function render()
     {
-        $user = auth()->user();
-        $tiles = app(DashboardLayout::class);
+        $tiles = $this->dashboardTiles();
         $layout = $this->dashboardLayout($tiles);
         $shown = array_column(array_filter($layout, fn (array $item): bool => ! $item['hidden']), 'key');
 
-        // Kept in the layout but not drawn, nor offered in Add: a widget that has
+        // Kept in the layout but not drawn, nor offered in Customize: a widget that has
         // no component yet, and "my leaves" for someone without a leave balance
         // (its card reads one; today's dashboard left it out the same way).
         $absent = array_values(array_filter(
@@ -83,22 +63,21 @@ class Index extends Component
         ));
 
         if (in_array('my-leaves', $shown, true)
-            && ! $this->section('leaves', fn () => $this->employee?->availableLeaves()?->count() > 0, false)
+            // Only whether a balance exists: availableLeaves() also prices each
+            // balance's pending hours, which MyLeavesCard reads in its own request.
+            && ! $this->section('leaves', fn () => $this->employee?->latestActiveContract()?->leaveBalances->isNotEmpty() ?? false, false)
             && ! isset($this->failedSections['leaves'])) {
             $absent[] = 'my-leaves';
         }
 
-        // The unused todayEvents list (36 queries for 100 employees: N+1 per
-        // birthday) used to be computed here and never rendered; the
-        // news.today-events-card component loads its own data.
+        $user = auth()->user();
+
         return view('livewire.dashboard.index', [
             'layout' => $layout,
             'tiles' => $tiles,
-            'apps' => $tiles->apps($user),
             'absent' => $absent,
-            // The page each shown widget opens on double-click (only pages the role's menu has).
+            // The page each shown panel opens in full (only pages the role's menu has).
             'pages' => array_filter(array_combine($shown, array_map(fn (string $key): ?string => $tiles->page($user, $key), $shown))),
-            'inboxCount' => in_array(DashboardLayout::APP_PREFIX.'nav.inbox', $shown, true) ? $this->inboxCount($user) : 0,
             'customise' => $this->customise,
             // "Customize your desk": the ready layouts this person may use, the suggested one first.
             'presets' => $tiles->presets($user),
@@ -127,18 +106,5 @@ class Index extends Component
         $this->loadFailed = $this->failedSections !== [];
 
         return $this->memo[$key] = $result;
-    }
-
-    /** The inbox shortcut's badge: the same scoped count as the sidebar's (WorkInbox). */
-    private function inboxCount(User $user): int
-    {
-        try {
-            return app(WorkInbox::class)->shared($user)['counts']['all'];
-        } catch (Throwable $e) {
-            // A badge must not take the dashboard down with it.
-            report($e);
-
-            return 0;
-        }
     }
 }

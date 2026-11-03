@@ -591,11 +591,9 @@ return [
         // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.
         'dashboard.clock-card' => ['retryLoad', 'placeholder'],
         // The late band and decision cards read the caller's own WorkInbox::shared
-        // snapshot and Contract::visibleTo(); a big shortcut's card re-checks its key
-        // against DashboardLayout::allowed() on every render and keeps its page's scope.
+        // snapshot and Contract::visibleTo().
         'dashboard.late-card' => ['retryLoad', 'placeholder'],
         'dashboard.decisions-card' => ['retryLoad', 'placeholder'],
-        'dashboard.app-card' => ['retryLoad', 'placeholder'],
         // skipDraft is pure navigation (a redirect, no data read or write) and
         // updatedDraftCityId/updatedDraftProgramId only reset the draft
         // cascade's own in-memory selections — the same class as

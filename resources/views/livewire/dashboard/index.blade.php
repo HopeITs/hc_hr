@@ -1,11 +1,10 @@
 @php
     use App\Support\Dashboard\DashboardLayout;
 
-    $user = auth()->user();
-
-    // The home screen (resources/js/dashboard/home-screen.js) gets the whole
-    // layout, hidden tiles included (Add offers them), and keeps it in data-home:
-    // after Reset re-renders the page, the script takes the new layout from there.
+    // The desk's script (resources/js/dashboard/home-screen.js) gets the whole
+    // layout, hidden panels included (Customize offers them), and keeps it in
+    // data-home: after a ready layout or Reset re-renders the page, the script
+    // takes the new layout from there.
     $absentKeys = array_flip($absent);
     $home = [
         'layout' => $layout,
@@ -13,119 +12,84 @@
         'bounds' => collect($layout)->mapWithKeys(fn (array $item) => [$item['key'] => $tiles->bounds($item['key'])])->all(),
         'looks' => DashboardLayout::LOOKS,
         'phoneHidden' => DashboardLayout::PHONE_HIDDEN,
-        'labels' => collect($layout)->mapWithKeys(fn (array $item) => [$item['key'] => $tiles->label($item['key'], $user)])->all(),
-        'editing' => $customise,
+        'labels' => collect($layout)->mapWithKeys(fn (array $item) => [$item['key'] => $tiles->label($item['key'])])->all(),
+        'customise' => $customise,
         'text' => [
-            'tile' => __('dashboard.home.tile'),
             'size' => __('dashboard.home.size'),
-            'resize' => __('dashboard.home.resize'),
             'moved' => __('dashboard.home.moved'),
             'resized' => __('dashboard.home.resized'),
-            'hidden' => __('dashboard.home.hidden'),
+            'removed' => __('dashboard.home.removed'),
             'added' => __('dashboard.home.added'),
-            'pinned' => __('dashboard.home.pinned'),
-            'unpinned' => __('dashboard.home.unpinned'),
             'resetTitle' => __('dashboard.home.reset-title'),
             'resetMessage' => __('dashboard.home.reset-message'),
             'resetConfirm' => __('dashboard.home.reset'),
             'cancel' => __('general.cancel'),
-            'nothing' => __('dashboard.home.nothing'),
-            'undoHidden' => __('dashboard.home.undo-hidden'),
-            'undo' => __('dashboard.home.undo'),
             'deskApplied' => __('dashboard.desk.applied'),
         ],
     ];
+    $shownKeys = array_column(array_filter($layout, fn (array $item) => ! $item['hidden'] && ! isset($absentKeys[$item['key']])), 'key');
+    $addable = count(array_filter($layout, fn (array $item) => $item['hidden'] && ! isset($absentKeys[$item['key']])));
 @endphp
 
 <x-slot:title>
     {{ __('general.dashboard') }}
 </x-slot:title>
 
-{{-- The home screen's script, on this page only (a separate Vite entry): moving, resizing and hiding tiles in place. --}}
+{{-- The desk's script, on this page only (a separate Vite entry): moving, resizing and removing panels in place. --}}
 @section('css')
     @vite('resources/js/dashboard/home-screen.js')
 @endsection
 
 <div>
-    {{-- Prompt 7: the greeting and a headline that says what waits on the viewer.
-         What is late and the decisions are tiles in the grid ("late", "decide").
-         Its own component, so the grid's renders (Add, Reset) never recompute it.
-         The name and job title are the ones mount() already loaded. --}}
+    {{-- The hello: date, greeting, the day in two figures, the command strip (Customize included).
+         Its own component, so the grid's renders (Customize, Reset) never recompute it. --}}
     <livewire:dashboard.header :name="(string) ($employee?->first_name ?? '')"
-                               :job-title="$positionTitle === '—' ? '' : (string) $positionTitle" />
+                               :inbox-placed="in_array('decide', $shownKeys, true)" />
 
     <div class="hc-home-screen"
          x-data="hcHomeScreen"
          data-home="{{ json_encode($home, JSON_UNESCAPED_UNICODE) }}"
          data-desk-default="{{ array_key_first($presets) }}"
+         x-on:hc-desk-open.window="openDesk($event.detail?.tab || 'layouts')"
          x-on:keydown.escape.window="escape($event)">
 
-        {{-- Customise, and while customising: Reset, Add, Done. The words need about
-             16rem: where the buttons leave less (a phone), they sit above them, full width. --}}
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="min-w-0 flex-[1_1_16rem] text-hint text-ink-2" aria-live="polite">
-                <span x-show="! editing">{{ __('dashboard.home.lead') }}</span>
-                <span x-show="editing" x-cloak>{{ __('dashboard.home.edit-lead') }}</span>
-            </p>
-
-            <div class="flex flex-wrap items-center gap-2">
-                {{-- :loading="false": these drive the browser-side grid; a background layout
-                     save must not disable them. --}}
-                <x-button variant="quiet" size="sm" icon="layout" :loading="false" x-ref="desk"
-                          x-show="! editing" x-on:click="openDesk()">{{ __('dashboard.desk.open') }}</x-button>
-                <x-button variant="outline" size="sm" icon="pen" :loading="false" x-ref="customise"
-                          x-show="! editing" x-on:click="startEdit()" data-tour="dashboard.customise">{{ __('dashboard.home.customise') }}</x-button>
-
-                <span class="flex flex-wrap items-center gap-2" x-show="editing" x-cloak>
-                    <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()">{{ __('dashboard.home.reset') }}</x-button>
-                    <x-button variant="quiet" size="sm" icon="layout" :loading="false" x-on:click="openDesk()">{{ __('dashboard.desk.open') }}</x-button>
-                    <x-button variant="outline" size="sm" icon="plus" :loading="false" x-ref="add"
-                              x-on:click="openGallery()" x-bind:disabled="addable().length === 0">{{ __('dashboard.home.add') }}</x-button>
-                    <x-button size="sm" icon="check" :loading="false" x-ref="done" x-on:click="done()">{{ __('dashboard.home.done') }}</x-button>
-                </span>
-            </div>
-        </div>
-
-        {{-- The phone bar's shortcuts (prompt 10), chosen here while customising on a
-             phone. Lazy: it loads only once it is on screen, so never on a computer
-             and never at rest. It saves each change itself (bottom-bar-changed). --}}
-        <div class="mb-4 md:hidden" x-show="editing" x-cloak data-slot="bottom-bar-picker">
-            <livewire:layout.bottom-bar-picker lazy />
-        </div>
-
-        {{-- The grid. Tiles are drawn once by the server (a hidden one not at all);
-             moving, resizing and hiding only change them in place. At rest a tile is
-             carried straight away (mouse: press and move; touch: hold), pulled by its
-             edges (.hc-rz) and hidden by its ×; the script binds those on the tiles. --}}
+        {{-- The grid. Panels are drawn once by the server (a hidden one not at all);
+             moving, resizing and removing only change them in place. --}}
         <div class="hc-home">
-            {{-- Faint cells behind the tiles while customising, so you can see where a tile will sit. --}}
-            <div class="hc-grid hc-guides" x-ref="guides" x-show="editing" x-cloak aria-hidden="true"></div>
-
             <div class="hc-grid" x-ref="grid" role="list" aria-label="{{ __('general.dashboard') }}"
-                 :class="{ editing }"
                  x-on:click.capture="swallowClick($event)"
-                 x-on:contextmenu="if (editing || carrying) $event.preventDefault()">
+                 x-on:contextmenu="if (carrying) $event.preventDefault()">
                 @foreach ($layout as $item)
                     @continue($item['hidden'] || isset($absentKeys[$item['key']]))
                     @include('livewire.dashboard.partials.tile', ['item' => $item])
                 @endforeach
             </div>
+
+            {{-- Outside the dense grid so it is never packed into a gap: always last, and only while a panel
+                 is left to add. Counted in the browser, so removing a panel shows it at once. --}}
+            @php($moreForms = collect(range(1, max(1, count($layout))))->mapWithKeys(fn (int $n) => [$n => trans_choice('dashboard.home.more-available', $n, ['count' => $n])]))
+            <button type="button" class="hc-addtile" x-on:click="openDesk('panels')" data-testid="dashboard-add-panel"
+                    x-data="{ forms: @js($moreForms) }"
+                    x-show="items.filter((i) => i.hidden && ! absent.includes(i.key)).length > 0"
+                    @if ($addable === 0) x-cloak @endif>
+                <x-ic name="plus" />
+                <span>{{ __('dashboard.home.add-panel') }}</span>
+                <small x-text="forms[items.filter((i) => i.hidden && ! absent.includes(i.key)).length] || ''">{{ $addable > 0 ? $moreForms[$addable] : '' }}</small>
+            </button>
         </div>
 
-        <p id="hc-tile-hint" class="sr-only">{{ __('dashboard.home.tile-hint') }}</p>
-        <p id="hc-page-hint" class="sr-only">{{ __('dashboard.home.page-hint') }}</p>
         <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
 
-        {{-- A tile just hidden by its ×: Undo puts it back where it was, for a few seconds. --}}
+        {{-- A panel just removed from its menu: Undo puts it back where it was, for a few seconds. --}}
         <div class="hc-undo" role="status" aria-live="polite" x-show="removed" x-cloak x-transition.opacity>
-            <span class="hc-undo-text" x-text="removed ? text.undoHidden.replace(':tile', removed.label) : ''"></span>
+            <span class="hc-undo-text" x-text="removed ? text.removed.replace(':tile', removed.label) : ''"></span>
             <x-button variant="outline" size="sm" icon="return" :loading="false" x-on:click="undoRemove()">{{ __('dashboard.home.undo') }}</x-button>
             <button type="button" class="hc-undo-close" x-on:click="dismissUndo()" aria-label="{{ __('dashboard.home.close') }}">
                 <x-ic name="x" />
             </button>
         </div>
 
-        {{-- A tile whose card could not load at all (the script puts this inside it). --}}
+        {{-- A panel whose card could not load at all (the script puts this inside it). --}}
         <template x-ref="tileError">
             <div class="flex h-full flex-col items-center justify-center gap-3 rounded-surface border-[1.5px] border-dashed border-line bg-card p-4 text-center">
                 <p class="text-body font-bold text-ink">{{ __('general.state-error-title') }}</p>
@@ -134,38 +98,5 @@
         </template>
 
         @include('livewire.dashboard.partials.desk')
-
-        {{-- Add: what can come back. A bottom sheet on phones, a panel on larger screens. --}}
-        <div class="hc-sheet-back" x-show="gallery" x-cloak x-transition.opacity x-on:click.self="closeGallery()">
-            <div class="hc-sheet" role="dialog" aria-modal="true" aria-labelledby="hc-gallery-title"
-                 x-show="gallery" x-trap.noscroll="gallery" x-on:keydown.escape.stop.prevent="closeGallery()">
-                <div class="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-3">
-                    <h2 id="hc-gallery-title" class="text-h4 font-extrabold text-ink">{{ __('dashboard.home.add-title') }}</h2>
-                    <x-button variant="quiet" size="sm" icon="x" :loading="false" x-on:click="closeGallery()" aria-label="{{ __('dashboard.home.close') }}" />
-                </div>
-
-                <div class="overflow-y-auto p-3">
-                    <template x-if="gallery">
-                        <div class="grid gap-4">
-                            @foreach (['widget' => 'cards', 'app' => 'shortcuts'] as $kind => $heading)
-                                <section x-show="addable(@js($kind)).length > 0" aria-labelledby="hc-gallery-{{ $kind }}">
-                                    <h3 id="hc-gallery-{{ $kind }}" class="px-2 pb-1 text-th font-bold text-ink-2">{{ __('dashboard.home.'.$heading) }}</h3>
-                                    <div class="grid gap-1">
-                                        @foreach ($layout as $item)
-                                            @continue(isset($absentKeys[$item['key']]) || $tiles->isApp($item['key']) !== ($kind === 'app'))
-                                            <button type="button" class="hc-galitem" x-show="hidden(@js($item['key']))" x-on:click="add(@js($item['key']))">
-                                                <span class="hc-appicon"><x-dashboard.tile-icon :name="$tiles->icon($item['key'], $user)" /></span>
-                                                <span class="min-w-0 flex-1 font-bold">{{ $tiles->label($item['key'], $user) }}</span>
-                                                <x-ic name="plus" class="text-ink-2" />
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                </section>
-                            @endforeach
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
