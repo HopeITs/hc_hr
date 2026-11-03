@@ -1037,30 +1037,32 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
     86% { transform: rotate(0); }
 }
 
-/* Decisions: one card at a time (default), or all side by side. */
+/* Work inbox (decisions-card): a header, a summary row with the pager, then
+   one decision card at a time (default) or all side by side. The card is
+   neutral; red is kept for the count that waits on the viewer, a late wait,
+   the "started" tag and the one action. Narrow first, the tile (not the
+   screen) decides when the card goes horizontal. */
 .hc-decide {
-    margin-bottom: 4px;
-    padding: 14px 16px;
-    border: 1px solid var(--color-line-soft);
-    border-inline-start: 3px solid var(--color-primary);
-    border-radius: var(--radius-surface);
-    background: var(--color-card);
-    box-shadow: var(--shadow-sm);
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 14px 16px 16px;
 }
 
 .hc-decide-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin-bottom: 4px;
 }
 
 .hc-decide-head h2 {
-    flex: 1;
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     margin: 0;
     font-size: 17px;
     font-weight: 800;
@@ -1068,92 +1070,268 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
 }
 
 .hc-decide-head h2 svg {
-    color: var(--color-primary);
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--color-ink-2);
 }
 
-.hc-decide-arrow {
-    min-width: 44px;
-    padding-inline: 0;
-}
-
-.hc-decide-count {
-    min-width: 44px;
+/* The count belongs to the title: a small red pill right after it. */
+.hc-decide-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 22px;
+    padding-inline: 7px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: var(--color-on-brand);
+    font-size: 12px;
     font-weight: 800;
-    text-align: center;
+    line-height: 1;
 }
 
-.hc-dcard {
+/* A mouse brings the tile's tools (.hc-ttools) into the top inline-end
+   corner on hover: keep "Open inbox" clear of them. */
+@media (hover: hover) and (pointer: fine) {
+    .hc-decide-head {
+        padding-inline-end: 64px;
+    }
+}
+
+.hc-decide-sub {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    padding: 12px 14px;
-    border: 1px solid var(--color-line-soft);
-    border-radius: var(--radius-surface);
-    background: var(--color-soft);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    margin-bottom: 10px;
 }
 
-/* Waiting more than a day: the edge turns red (it is late on the viewer). */
-.hc-dcard.old {
-    border-color: var(--color-primary);
+.hc-decide-sub h3 {
+    margin: 0;
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--color-ink-2);
 }
 
-.hc-dcard-what {
+.hc-decide-nav {
     display: flex;
     align-items: center;
+    gap: 4px;
+    margin-inline-start: auto;
+}
+
+/* Pager: one quiet segmented control, 44px to the finger. */
+.hc-decide-pager {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-line-soft);
+    border-radius: 999px;
+    background: var(--color-card);
+}
+
+.hc-decide-arrow,
+.hc-decide-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     gap: 6px;
-    font-size: 13px;
-    font-weight: 800;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-ink-2);
+    cursor: pointer;
+}
+
+.hc-decide-arrow svg,
+.hc-decide-toggle svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.hc-decide-arrow:hover,
+.hc-decide-toggle:hover {
+    background: var(--color-hover);
     color: var(--color-ink);
 }
 
+.hc-decide-pos {
+    min-width: 36px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-ink);
+}
+
+.hc-decide-toggle {
+    padding-inline: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@media (pointer: coarse) {
+    .hc-decide-arrow,
+    .hc-decide-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* The card. */
+.hc-dcard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-soft);
+    transition: border-color 0.15s;
+}
+
+.hc-dcard:hover,
+.hc-dcard:focus-within {
+    border-color: var(--color-line);
+}
+
+.hc-dcard-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+}
+
+.hc-dcard-what {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-ink-2);
+}
+
 .hc-dcard-what svg {
-    color: var(--color-primary);
+    flex: none;
+    width: 0.95rem;
+    height: 0.95rem;
 }
 
 .hc-dcard-name {
-    font-weight: 700;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.3;
     color: var(--color-ink);
     overflow-wrap: anywhere;
 }
 
+/* Metadata: one quiet line, dots between, wraps whole items. */
 .hc-dcard-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 12px;
+    gap: 2px 0;
+    margin: -4px 0 0;
+    padding: 0;
+    list-style: none;
     font-size: 14px;
     color: var(--color-ink-2);
 }
 
+.hc-dcard-meta li {
+    white-space: nowrap;
+}
+
+.hc-dcard-meta li + li::before {
+    content: "·";
+    margin-inline: 8px;
+    color: var(--color-ink-3);
+}
+
+.hc-dcard-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line-soft);
+}
+
+.hc-dcard-since {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink-2);
+}
+
+.hc-dcard-since svg {
+    flex: none;
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+/* Waiting more than a day: late on the viewer, so the wait (not the card) turns red. */
 .hc-dcard.old .hc-dcard-since {
     color: var(--color-primary);
     font-weight: 700;
 }
 
 .hc-dcard-go {
-    align-self: flex-start;
-    margin-top: auto;
+    flex: 1 1 auto;
+    margin-inline-start: auto;
+}
+
+/* Room enough: the button keeps its own width at the end of the footer. */
+@container tile (min-width: 400px) {
+    .hc-dcard-go {
+        flex: 0 0 auto;
+    }
+}
+
+/* Wide tile: info on the start side, the action centred on the end side. */
+@container tile (min-width: 640px) {
+    .hc-decide {
+        padding: 16px 20px 18px;
+    }
+
+    .hc-decide-track:not(.all) .hc-dcard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "top go" "name go" "meta go" "since go";
+        gap: 6px 24px;
+        align-items: center;
+        padding: 16px 20px;
+    }
+
+    .hc-decide-track:not(.all) .hc-dcard-top { grid-area: top; justify-content: flex-start; }
+    .hc-decide-track:not(.all) .hc-dcard-name { grid-area: name; font-size: 19px; }
+    .hc-decide-track:not(.all) .hc-dcard-meta { grid-area: meta; margin: 0; }
+    .hc-decide-track:not(.all) .hc-dcard-foot { display: contents; }
+    .hc-decide-track:not(.all) .hc-dcard-since { grid-area: since; }
+    .hc-decide-track:not(.all) .hc-dcard-go { grid-area: go; margin: 0; }
 }
 
 .hc-decide-track:not(.all) .hc-dcard {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "what go" "name go" "meta go";
-    column-gap: 20px;
-    align-items: center;
-    padding: 16px 18px;
-    animation: hc-dslide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: hc-dslide 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.hc-decide-track:not(.all) .hc-dcard-what { grid-area: what; }
-.hc-decide-track:not(.all) .hc-dcard-name { grid-area: name; font-size: 18px; }
-.hc-decide-track:not(.all) .hc-dcard-meta { grid-area: meta; }
-.hc-decide-track:not(.all) .hc-dcard-go { grid-area: go; align-self: center; margin: 0; }
+[dir="rtl"] .hc-decide-track:not(.all) .hc-dcard {
+    animation-name: hc-dslide-rtl;
+}
 
 .hc-decide-track.all {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
     gap: 12px;
 }
 
@@ -1161,60 +1339,14 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
     display: none !important;
 }
 
-[dir="rtl"] .hc-decide-track:not(.all) .hc-dcard {
-    animation-name: hc-dslide-rtl;
+.hc-decide-more {
+    margin: 8px 0 0;
 }
 
-@keyframes hc-dslide { from { opacity: 0.4; transform: translateX(12px); } to { opacity: 1; transform: none; } }
-@keyframes hc-dslide-rtl { from { opacity: 0.4; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
-
-.hc-ddots {
-    display: flex;
-    justify-content: center;
-    gap: 2px;
-    margin-top: 6px;
-}
-
-/* 8px to the eye, 24px to the finger (the arrows are the 44px controls). */
-.hc-ddots button {
-    position: relative;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-}
-
-.hc-ddots button::before {
-    content: "";
-    position: absolute;
-    inset-block-start: 8px;
-    inset-inline-start: 8px;
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-line);
-    transition: width 0.2s;
-}
-
-.hc-ddots button.on::before {
-    inset-inline-start: 1px;
-    width: 22px;
-    background: var(--color-primary);
-}
+@keyframes hc-dslide { from { opacity: 0.4; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes hc-dslide-rtl { from { opacity: 0.4; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 640px) {
-    .hc-decide-track:not(.all) .hc-dcard {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "what" "name" "meta" "go";
-    }
-
-    .hc-decide-track:not(.all) .hc-dcard-go {
-        justify-self: start;
-        margin-top: 8px;
-    }
-
     .hc-lateband .hc-btn {
         width: 100%;
     }
@@ -1226,7 +1358,7 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
         animation: none !important;
     }
 
-    .hc-ddots button::before {
+    .hc-dcard {
         transition: none;
     }
 }
@@ -1263,27 +1395,8 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
     }
 }
 
-.hc-decide-tile {
-    border-inline-start: 3px solid var(--color-primary);
-}
-
-.hc-decide-tile:has([data-tile-empty]) {
-    border-inline-start-width: 1px;
-    border-inline-start-color: var(--color-line-soft);
-}
-
-/* Work inbox: the decisions, then the rest of the inbox as a short list. */
-.hc-decide-sub {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.hc-decide-sub h3,
+/* Work inbox: the rest of the inbox (to hand over or take back) as a short list. */
 .hc-inbox-items h3 {
-    flex: 1;
     margin: 0;
     font-size: var(--text-small);
     font-weight: 700;
@@ -1326,28 +1439,6 @@ a.hc-hello-figs:hover .hc-hello-fig.hc-late > span {
     width: 1rem;
     height: 1rem;
     color: var(--color-ink-3);
-}
-
-.hc-decide-tile .hc-decide {
-    flex: 1;
-    min-height: 0;
-    margin: 0;
-    overflow: auto;
-    border: 0;
-    border-radius: inherit;
-    box-shadow: none;
-}
-
-@container tile (max-width: 640px) {
-    .hc-decide-tile .hc-decide-track:not(.all) .hc-dcard {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "what" "name" "meta" "go";
-    }
-
-    .hc-decide-tile .hc-decide-track:not(.all) .hc-dcard-go {
-        justify-self: start;
-        margin-top: 8px;
-    }
 }
 
 @container tile (max-height: 139.98px) {

@@ -207,7 +207,6 @@ return [
             'next' => 'Next decision',
             'all' => 'Show all',
             'one' => 'One at a time',
-            'pick' => 'Choose a decision',
             'since' => 'Waiting :time',
             'more' => '{1} 1 more in the inbox|[2,*] :count more in the inbox',
             'verb' => [
