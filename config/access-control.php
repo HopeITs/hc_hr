@@ -338,6 +338,12 @@ return [
         // is already assigned to this user; it grants nothing new.
         'auth.role-switcher' => ['switchTo', 'refreshRoles'],
         'settings.password' => ['updatePassword'],
+        // The caller's own notification preferences and devices: every device
+        // action goes through auth()->user()->pushSubscriptions(), so another
+        // user's id is a 404; sendTest is throttled per user.
+        'settings.notification-settings' => ['devices', 'removeDevice', 'renameDevice', 'sendTest', 'setDeviceEnabled', 'setDeviceUrgentOnly', 'testDevice',
+            // Livewire's own updated* hooks for the nested prefs / matrix / working days; each validates and saves only this user's row.
+            'updatedMatrix', 'updatedPrefs', 'updatedWorkingDays'],
 
         // --- Confirmation dialogs -------------------------------------------
         // These only render a "are you sure?" prompt. The action it confirms

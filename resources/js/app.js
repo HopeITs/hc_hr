@@ -60,6 +60,9 @@ import './commands.js';
 // "Install the app": header link, layout banner and settings.app (x-data="pwaInstall").
 import './pwa-install.js';
 
+// Web Push on this device (x-data="pushDevice"), page-load sync and the bell's chime.
+import './push-notifications.js';
+
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
 import 'flowbite';

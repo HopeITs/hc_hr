@@ -162,6 +162,13 @@
                                 <span>@lang('pwa.menu')</span>
                             </a>
 
+                            {{-- Notification preferences, devices and push (docs/notifications/architecture.md). --}}
+                            <a href="{{ route('settings.notifications') }}" wire:navigate data-notification-settings-link
+                                class="flex items-center gap-3 px-3 py-2 text-body font-medium text-ink transition rounded-surface hover:bg-hover hover:shadow-e1">
+                                <x-ic name="bell" class="size-4" />
+                                <span>@lang('notification-settings.menu')</span>
+                            </a>
+
                             {{-- D3, phones only: the header's help button does not fit there. Same panel, no request. --}}
                             <button type="button" role="menuitem" data-help-menu-item
                                 x-on:click="open = false; $dispatch('help-open')"

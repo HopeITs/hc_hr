@@ -57,6 +57,24 @@
 {{-- select2's built-in messages in the page language; read by resources/js/app.js. --}}
 <meta name="hc-select2-i18n" content="{{ json_encode(__('general.select2'), JSON_UNESCAPED_UNICODE) }}" />
 
+{{-- For fetch() calls outside Livewire (resources/js/push-notifications.js). --}}
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+
+{{-- Web Push (docs/notifications/architecture.md, Browser side), signed-in pages only:
+     the VAPID public key (empty = push not configured on this server), this
+     browser's subscription endpoints, and whether the bell may chime. One query. --}}
+@auth
+    @php($notifPrefs = \App\Models\NotificationPreference::for(auth()->user()))
+    <meta name="hc-vapid-key" content="{{ config('webpush.vapid.public_key') }}" />
+    <meta name="hc-push-routes" content="{{ json_encode([
+        'store' => route('push.subscriptions.store'),
+        'sync' => route('push.subscriptions.sync'),
+        'destroy' => route('push.subscriptions.destroy-current'),
+        'renew' => route('push.renew'),
+    ], JSON_UNESCAPED_SLASHES) }}" />
+    <meta name="hc-notif-sound" content="{{ $notifPrefs->enabled && $notifPrefs->sound ? '1' : '0' }}" />
+@endauth
+
 <link rel="canonical" href="{{ url()->current() }}" />
 
 {{-- Link previews for staff sharing a URL in chat. Inert for search while noindex is set. --}}
