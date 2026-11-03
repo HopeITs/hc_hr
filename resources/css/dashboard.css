@@ -140,8 +140,10 @@ html.hc-moving-doc * {
 
 /* ---------- panel tools: open in full, and the options menu ---------- */
 /* A small card-coloured capsule in the top inline-end corner. With a mouse it
-   shows on hover or keyboard focus; on a touch screen it is always there, a
-   little quieter; never mid-move. */
+   shows on hover or keyboard focus; never mid-move. A touch screen has no
+   hover and the capsule would sit on the card's own header, so it is not
+   shown there: a held panel still moves, Customize still adds and removes,
+   and each card links to its own page. */
 .hc-ttools {
     position: absolute;
     top: 8px;
@@ -166,13 +168,6 @@ html.hc-moving-doc * {
     }
 }
 
-@media (hover: none), (pointer: coarse) {
-    .hc-ttools {
-        opacity: 0.9;
-        pointer-events: auto;
-    }
-}
-
 .hc-ttools.open {
     opacity: 1;
     pointer-events: auto;
@@ -180,6 +175,12 @@ html.hc-moving-doc * {
 
 .hc-grid.moving .hc-ttools {
     display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+    .hc-ttools {
+        display: none;
+    }
 }
 
 /* Each tile is its own stacking context (a size container), so the one with

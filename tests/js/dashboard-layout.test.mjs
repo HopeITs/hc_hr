@@ -148,6 +148,17 @@ test('a phone packs the clock one row high, so the tiles below close up under it
     assert.equal(shown[0].size, '4x3');
 });
 
+test('a phone shows every other panel at least two rows high, without changing the saved size', () => {
+    const late = { late: { min: [3, 1], max: [12, 3] }, notes: bounds.notes };
+    const shown = [{ key: 'late', size: '12x1' }, { key: 'notes', size: '4x3' }];
+    const view = phoneView(shown, late, 4);
+    const placed = pack(view.shown, 4, view.bounds);
+    assert.deepEqual([placed.late.h, placed.notes.y], [2, 2]);
+    assert.equal(shown[0].size, '12x1');
+    // A computer keeps the one-row strip.
+    assert.equal(phoneView(shown, late, 8).shown, shown);
+});
+
 test('a move or resize on a phone or a narrow grid never takes a size the grid cut down', () => {
     // A phone shows the calendar 8x3 as 4x3 and news 8x7 as 4x7: the saved sizes stay.
     assert.equal(bakedSize('8x3', { w: 4, h: 3 }, 4), '8x3');

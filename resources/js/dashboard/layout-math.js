@@ -99,26 +99,38 @@ export const stepCells = (raw, cur) => (raw > cur + 0.6 ? Math.floor(raw + 0.4) 
 export const PHONE_ONE_ROW = ['clock'];
 
 /**
+ * Every other panel is at least this many rows on a phone: a phone's row is
+ * a square cell (~85px), too short for a card's header and a line under it
+ * (the late strip was cut off at one row).
+ */
+export const PHONE_MIN_ROWS = 2;
+
+/**
  * What the packer is given on a phone: the one-row panels as one row, kept
  * from growing taller, so the panels below close up under them instead of
- * leaving the rows the CSS no longer fills. The saved sizes are never changed.
+ * leaving the rows the CSS no longer fills; every other panel at least
+ * PHONE_MIN_ROWS high. The saved sizes are never changed.
  *
  * @returns {{shown: {key: string, size: string}[], bounds: Object}}
  */
 export function phoneView(shown, bounds, cols) {
     if (cols > 4) return { shown, bounds };
-    const keys = shown.filter((i) => PHONE_ONE_ROW.includes(i.key)).map((i) => i.key);
-    if (! keys.length) return { shown, bounds };
     const out = { ...bounds };
-    for (const key of keys) {
-        const b = bounds[key] || { min: [1, 1], max: [1, 1] };
-        out[key] = { ...b, min: [b.min[0], 1], max: [b.max[0], 1] };
-    }
+    const view = shown.map((i) => {
+        const b = bounds[i.key] || { min: [1, 1], max: [1, 1] };
+        const [w, h] = parse(i.size);
+        if (PHONE_ONE_ROW.includes(i.key)) {
+            out[i.key] = { ...b, min: [b.min[0], 1], max: [b.max[0], 1] };
 
-    return {
-        shown: shown.map((i) => (keys.includes(i.key) ? { ...i, size: parse(i.size)[0] + 'x1' } : i)),
-        bounds: out,
-    };
+            return h === 1 ? i : { ...i, size: w + 'x1' };
+        }
+        if (h >= PHONE_MIN_ROWS) return i;
+        out[i.key] = { ...b, min: [b.min[0], PHONE_MIN_ROWS], max: [b.max[0], Math.max(b.max[1], PHONE_MIN_ROWS)] };
+
+        return { ...i, size: w + 'x' + PHONE_MIN_ROWS };
+    });
+
+    return { shown: view, bounds: out };
 }
 
 /**
