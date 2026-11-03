@@ -7,47 +7,45 @@ use App\Enums\LeaveRequestStatus;
 </x-slot:title>
 
 <div>
-    <div class="flex justify-between items-center">
+    {{-- Title and Add share a row while they fit; on a narrow phone the button wraps below the title. --}}
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <livewire:layout.breadcrumbs
             :title="__('general.all-leaves')"
-            :crumbs="[
-
-            ]"
+            :crumbs="[]"
             :showButton="true"
         />
+        {{-- HR's "request on someone's behalf": not the bottom nav's own-request "+", so it stays on phones too. --}}
         @activerole('HR','super-admin')
-        <div>
+        <div class="shrink-0">
             <x-primary-button wire:click="create">
                 @lang('general.add-new')
             </x-primary-button>
         </div>
         @endactiverole
-
     </div>
 
     <x-tabs-list>
         <x-tabs-list-item
             :active="$statusFilter === 'all'" active-tab="all">
-            {{ __('general.all') . ' ('. $counts['all'] ?? 0 }})
+            {{ __('general.all') }} ({{ $counts['all'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Pending"
             :active-tab="LeaveRequestStatus::Pending">
-            {{ LeaveRequestStatus::getLocalizedName(0)['value'] . ' ('.$counts['pending'] ?? 0  }})
+            {{ LeaveRequestStatus::getLocalizedName(0)['value'] }} ({{ $counts['pending'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Accepted"
             :active-tab="LeaveRequestStatus::Accepted">
-            {{ LeaveRequestStatus::getLocalizedName(1)['value'] . ' ('.$counts['accepted'] ?? 0  }})
-
+            {{ LeaveRequestStatus::getLocalizedName(1)['value'] }} ({{ $counts['accepted'] ?? 0 }})
         </x-tabs-list-item>
 
         <x-tabs-list-item
             :active="$statusFilter === (string) LeaveRequestStatus::Rejected"
             :active-tab="LeaveRequestStatus::Rejected">
-            {{ LeaveRequestStatus::getLocalizedName(2)['value'] . ' ('.$counts['rejected'] ?? 0  }})
+            {{ LeaveRequestStatus::getLocalizedName(2)['value'] }} ({{ $counts['rejected'] ?? 0 }})
         </x-tabs-list-item>
     </x-tabs-list>
 
@@ -81,7 +79,7 @@ use App\Enums\LeaveRequestStatus;
                     @endif
                     <x-error-span>{{ $errors->first('form.employee_id') }}</x-error-span>
                 </div>
-            
+
                 <div class="md:col-span-1" wire:key="container-leave-type-{{ $form->employee_id ?? 'none' }}-{{ $form->leaveRequest ? 'edit' : 'create' }}" >
                     {{-- D3: the "?" sits beside the label, not inside it. --}}
                     <div class="flex items-start gap-1">
@@ -196,7 +194,7 @@ use App\Enums\LeaveRequestStatus;
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <x-forms.input-label>{{ __('general.name') }}</x-forms.input-label>
-                        <p class="text-ink"><bdi>{{ $selectedLeave->leaveBalance->contract->employee->name }}</bdi></p>
+                        <p class="break-words text-ink"><bdi>{{ $selectedLeave->leaveBalance->contract->employee->name }}</bdi></p>
                     </div>
                     <div>
                         <x-forms.input-label>{{ __('general.request_date') }}</x-forms.input-label>
@@ -210,7 +208,7 @@ use App\Enums\LeaveRequestStatus;
 
                     <div>
                         <x-forms.input-label>{{ __('general.alternative-employee') }}</x-forms.input-label>
-                        <p class="text-ink">
+                        <p class="break-words text-ink">
                             <bdi>{{ optional($selectedLeave->alternativeEmployee)->name ?? '—' }}</bdi>
                         </p>
                     </div>
@@ -254,14 +252,14 @@ use App\Enums\LeaveRequestStatus;
 
                     <div class="col-span-full">
                         <x-forms.input-label>{{ __('general.reason') }}</x-forms.input-label>
-                        <p class="text-ink">{{ $selectedLeave->reason }}</p>
+                        <p class="whitespace-pre-line break-words text-ink">{{ $selectedLeave->reason }}</p>
                     </div>
 
                     @include('livewire.employee.leave.partials.hr-notes', ['leaveRequest' => $selectedLeave])
 
                 </div>
 
-                <div class="flex justify-end gap-2 mt-4">
+                <div class="mt-4 flex flex-wrap justify-end gap-2">
                     <x-primary-button wire:click="confirmDelete({{$selectedLeave->id}})"
                                       class="!w-auto">
                         {{ __('general.delete') }}
@@ -283,7 +281,7 @@ use App\Enums\LeaveRequestStatus;
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <x-forms.input-label>{{ __('general.name') }}</x-forms.input-label>
-                        <p class="text-ink"><bdi>{{ $decisionLeave->leaveBalance->contract->employee->name }}</bdi></p>
+                        <p class="break-words text-ink"><bdi>{{ $decisionLeave->leaveBalance->contract->employee->name }}</bdi></p>
                     </div>
 
                     <div>
@@ -298,7 +296,7 @@ use App\Enums\LeaveRequestStatus;
 
                     <div>
                         <x-forms.input-label>{{ __('general.alternative-employee') }}</x-forms.input-label>
-                        <p class="text-ink">
+                        <p class="break-words text-ink">
                             <bdi>{{ optional($decisionLeave->alternativeEmployee)->name ?? '—' }}</bdi>
                         </p>
                     </div>
@@ -306,7 +304,7 @@ use App\Enums\LeaveRequestStatus;
                     @if($decisionLeave->type === 'day')
                         <div>
                             <x-forms.input-label>{{ __('general.during-period') }}</x-forms.input-label>
-                            <p class="text-ink"><bdi dir="ltr">{{ $decisionLeave->start_at->format('d-m-Y') }}</bdi> {{ __('leaves.range-separator') }} <bdi dir="ltr">{{ $decisionLeave->end_at->format('d-m-Y') }}</bdi></p>
+                            <p class="break-words text-ink"><bdi dir="ltr">{{ $decisionLeave->start_at->format('d-m-Y') }}</bdi> {{ __('leaves.range-separator') }} <bdi dir="ltr">{{ $decisionLeave->end_at->format('d-m-Y') }}</bdi></p>
                         </div>
 
                         <div>
@@ -335,7 +333,7 @@ use App\Enums\LeaveRequestStatus;
 
                     <div class="col-span-full">
                         <x-forms.input-label>{{ __('general.reason') }}</x-forms.input-label>
-                        <p class="text-ink">{{ $decisionLeave->reason }}</p>
+                        <p class="whitespace-pre-line break-words text-ink">{{ $decisionLeave->reason }}</p>
                     </div>
                 </div>
 
@@ -345,7 +343,7 @@ use App\Enums\LeaveRequestStatus;
 
                 {{-- Decision Section --}}
                 @if($decisionLeave->status === LeaveRequestStatus::Pending)
-                    <div class="border-t pt-4 space-y-4">
+                    <div class="space-y-4 border-t border-line-soft pt-4">
 
                         {{-- One <label> per radio (inside radio-input); wrapping it in a second one was invalid nesting. --}}
                         <x-forms.radio-group :legend="__('general.action')" error="form.status" required>
@@ -372,7 +370,6 @@ use App\Enums\LeaveRequestStatus;
                 @endif
 
                 <x-modal.actions class="mt-4">
-
                     <x-primary-button
                         type="submit"
                         wire:loading.attr="disabled"

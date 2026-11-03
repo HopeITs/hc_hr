@@ -36,13 +36,13 @@
                     <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10" />
                 </svg>
             </button>
-            {{-- C2: search pages and people, and start a task. --}}
+            {{-- C2: search pages and people, and (md+) start a task. Phones start
+                 one from the bottom bar's + instead (partials/new-menu). --}}
             <livewire:layout.global-search />
             @include('livewire.layout.partials.new-menu', ['actions' => \App\Support\Navigation::newActions($user)])
 
             {{-- Island 1: language segmented (EN | AR). On phones only the other
-                 language is shown (C2): with search and New in the row, two
-                 buttons here pushed the menu button off the screen. --}}
+                 language is shown (C2): the row has to fit 320px. --}}
             <div class="flex items-center shrink-0 rounded-[18px] bg-soft p-0.5 sm:p-1">
                 <a href="{{ $enUrl }}"
                     class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-card text-ink shadow-e1 max-sm:hidden' : 'text-ink-2 font-semibold hover:text-ink' }}"
