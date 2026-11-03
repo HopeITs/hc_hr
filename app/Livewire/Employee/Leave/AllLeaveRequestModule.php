@@ -14,6 +14,7 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
 use App\Services\LeaveRequestNextStep;
 use App\Services\TeamCoverage;
@@ -127,7 +128,7 @@ class AllLeaveRequestModule extends Component
         $employee = $id->leaveBalance->contract->employee;
 
         // hydrate dependent lists
-        $this->allAvailableLeaves = $this->leavesFor($employee);
+        $this->allAvailableLeaves = $this->leavesFor($employee, (int) $id->leave_balance_id);
         $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
 
         // hydrate form values
@@ -451,16 +452,33 @@ class AllLeaveRequestModule extends Component
     }
 
     /**
-     * Leave balances selectable for an employee's latest active contract.
-     * Single source of truth for the leave-type dropdown (with leaveType
-     * eager-loaded for the option labels).
+     * Leave balances selectable for an employee's latest active contract:
+     * the ones LeaveEligibility says they may request now (the form refuses
+     * the rest). Single source of truth for the leave-type dropdown (with
+     * leaveType eager-loaded for the option labels). An edit keeps its own
+     * balance in the list ($keepBalanceId), since a request keeps the type
+     * it was filed with.
      */
-    protected function leavesFor(?Employee $employee): Collection
+    protected function leavesFor(?Employee $employee, ?int $keepBalanceId = null): Collection
     {
-        return $employee?->latestActiveContract()
-            ?->leaveBalances()
-            ->with('leaveType')
-            ->get() ?? collect();
+        if (! $employee) {
+            return collect();
+        }
+
+        $balances = app(LeaveEligibility::class)->requestableBalances($employee);
+
+        if ($keepBalanceId && ! $balances->contains(fn (LeaveBalance $balance) => (int) $balance->id === $keepBalanceId)) {
+            $current = $employee->latestActiveContract()
+                ?->leaveBalances()
+                ->with('leaveType')
+                ->find($keepBalanceId);
+
+            if ($current) {
+                $balances = $balances->push($current)->sortBy('type_id')->values();
+            }
+        }
+
+        return $balances;
     }
 
     protected function alternativeEmployeesFor(?Employee $employee): Collection

@@ -752,6 +752,12 @@ return [
         // is already assigned to this user; it grants nothing new.
         'auth.role-switcher' => ['switchTo', 'refreshRoles'],
         'settings.password' => ['updatePassword'],
+        // The caller's own notification preferences and devices: every device
+        // action goes through auth()->user()->pushSubscriptions(), so another
+        // user's id is a 404; sendTest is throttled per user.
+        'settings.notification-settings' => ['devices', 'removeDevice', 'renameDevice', 'sendTest', 'setDeviceEnabled', 'setDeviceUrgentOnly', 'testDevice',
+            // Livewire's own updated* hooks for the nested prefs / matrix / working days; each validates and saves only this user's row.
+            'updatedMatrix', 'updatedPrefs', 'updatedWorkingDays'],
 
         // --- Confirmation dialogs -------------------------------------------
         // These only render a "are you sure?" prompt. The action it confirms
@@ -871,6 +877,11 @@ return [
             // Read-only, self-scoped: prices the typed window against a balance
             // of the signed-in employee's own active contract; writes nothing.
             'leaveImpact',
+            // Guided form: read-only and self-scoped. leaveChoices/activeCategory list
+            // LeaveEligibility::requestableBalances() for the signed-in employee;
+            // requestPeriod formats the typed dates; updatedLeaveCategory only sets
+            // form.leave_balance_id to one of those balances (the save validates it again).
+            'leaveChoices', 'activeCategory', 'requestPeriod', 'updatedLeaveCategory',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing

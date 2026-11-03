@@ -26,6 +26,8 @@ use App\Livewire\Feedback\FeedbackIndex;
 use App\Livewire\News\NewsCreate;
 use App\Livewire\News\NewsModule;
 use App\Livewire\Notifications\Index;
+use App\Livewire\Settings\InstallApp;
+use App\Livewire\Settings\NotificationSettings;
 use App\Livewire\Settings\Password;
 use App\Livewire\Statistics\ContractStatistics;
 use App\Livewire\Statistics\GeneralStatistics;
@@ -68,6 +70,11 @@ Route::get('/ID/{employee}/photo', [EmployeeAvatarController::class, 'digitalId'
     ->middleware(['signed', 'throttle:60,1'])
     ->name('digital-id.avatar');
 
+// The service worker renews a push subscription the browser rotated, with no
+// page and no session (pushsubscriptionchange); outside the locale group so
+// the worker can use one fixed URL.
+require __DIR__.'/push-public.php';
+
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
@@ -90,6 +97,11 @@ Route::group(
 
             Route::redirect('settings', 'settings/password');
             Route::get('settings/password', Password::class)->name('settings.password');
+            // "Install the app": steps for this device, and Chromium's prompt when it is offered.
+            Route::get('settings/app', InstallApp::class)->name('settings.app');
+            // Notification preferences, devices and push (docs/notifications/architecture.md).
+            Route::get('settings/notifications', NotificationSettings::class)->name('settings.notifications');
+            require __DIR__.'/notifications.php';
             Route::get('my-profile', EmployeeProfile::class)->name('my-profile');
             // C3: the work inbox. No permission of its own: every row comes from a
             // source's scoped query and every action re-checks its domain policy.

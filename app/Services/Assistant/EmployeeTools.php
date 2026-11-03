@@ -19,6 +19,7 @@ use App\Models\News;
 use App\Models\User;
 use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\LeaveEligibility;
 use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
@@ -424,13 +425,13 @@ class EmployeeTools
     }
 
     /**
-     * The balances the page's request form offers (allAvailableLeaves: the
-     * latest active contract's, with something left) and the alternatives
+     * The balances the page's request form offers (LeaveEligibility:
+     * what the employee may request now) and the alternatives
      * LeaveAlternativeEmployees allows. The form validates against the same.
      */
     private function leaveOptions(Employee $employee): array
     {
-        $balances = $employee->allAvailableLeaves() ?? collect();
+        $balances = app(LeaveEligibility::class)->requestableBalances($employee);
         $alternatives = app(LeaveAlternativeEmployees::class)->for($employee);
         $locale = app()->getLocale();
 

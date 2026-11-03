@@ -16,6 +16,29 @@
         document.addEventListener('livewire:navigated', apply);
     })();
 </script>
+{{-- D2-PWA install prompt. Chrome and Edge fire beforeinstallprompt once, often before
+     any module script has loaded, so it is caught here, as early as possible, and kept
+     for the install button (resources/js/pwa-install.js) to use later:
+       window.__hopehrInstallPrompt  the deferred event, or null once installed;
+       hopehr:installable / hopehr:installed  window events announcing each change.
+     The window flag keeps a second copy of this script (wire:navigate) from adding the
+     listeners twice. --}}
+<script nonce="{{ Vite::cspNonce() }}">
+    (function () {
+        if (window.__hopehrInstallCapture) return;
+        window.__hopehrInstallCapture = true;
+        window.__hopehrInstallPrompt = window.__hopehrInstallPrompt || null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.__hopehrInstallPrompt = e;
+            window.dispatchEvent(new Event('hopehr:installable'));
+        });
+        window.addEventListener('appinstalled', function () {
+            window.__hopehrInstallPrompt = null;
+            window.dispatchEvent(new Event('hopehr:installed'));
+        });
+    })();
+</script>
 <meta name="description" content="{{ $description ?? __('Secure human resources management for Christian Hope Center teams across Syria.') }}" />
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
 
@@ -33,6 +56,24 @@
 
 {{-- select2's built-in messages in the page language; read by resources/js/app.js. --}}
 <meta name="hc-select2-i18n" content="{{ json_encode(__('general.select2'), JSON_UNESCAPED_UNICODE) }}" />
+
+{{-- For fetch() calls outside Livewire (resources/js/push-notifications.js). --}}
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+
+{{-- Web Push (docs/notifications/architecture.md, Browser side), signed-in pages only:
+     the VAPID public key (empty = push not configured on this server), this
+     browser's subscription endpoints, and whether the bell may chime. One query. --}}
+@auth
+    @php($notifPrefs = \App\Models\NotificationPreference::for(auth()->user()))
+    <meta name="hc-vapid-key" content="{{ config('webpush.vapid.public_key') }}" />
+    <meta name="hc-push-routes" content="{{ json_encode([
+        'store' => route('push.subscriptions.store'),
+        'sync' => route('push.subscriptions.sync'),
+        'destroy' => route('push.subscriptions.destroy-current'),
+        'renew' => route('push.renew'),
+    ], JSON_UNESCAPED_SLASHES) }}" />
+    <meta name="hc-notif-sound" content="{{ $notifPrefs->enabled && $notifPrefs->sound ? '1' : '0' }}" />
+@endauth
 
 <link rel="canonical" href="{{ url()->current() }}" />
 
@@ -63,11 +104,26 @@
 <meta name="theme-color" content="#161617" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="HopeHR">
 <meta name="mobile-web-app-capable" content="yes">
+{{-- iOS Safari reads these rather than the manifest when a page is added to the Home
+     Screen. `default` keeps the status bar opaque with dark text over the light header;
+     `black-translucent` would draw the page under the clock and need safe-area padding on
+     every header, and `black` clashes with the light theme. --}}
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 @php($pwaSession = auth()->check() ? hash('sha256', auth()->id().'|'.auth()->user()->myRole().'|'.config('app.key')) : 'signed-out')
-{{-- The CSP allows inline scripts only with its nonce (SecurityHeaders). --}}
+{{-- The CSP allows inline scripts only with its nonce (SecurityHeaders).
+     updateViaCache 'none' makes the browser fetch sw.js past its HTTP cache, and
+     update() checks for a new worker on every full load instead of once a day. --}}
 <script nonce="{{ Vite::cspNonce() }}">
     if ('serviceWorker' in navigator && window.isSecureContext) {
-        navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then((registration) => {
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
+            if (!window.__hopehrSwChecked) {
+                window.__hopehrSwChecked = true;
+                registration.update().catch(() => {});
+            }
+
+            return navigator.serviceWorker.ready;
+        }).then((registration) => {
             const session = @js($pwaSession);
             let last = null;
             try { last = localStorage.getItem('hopehr-sw-session'); } catch (e) {}

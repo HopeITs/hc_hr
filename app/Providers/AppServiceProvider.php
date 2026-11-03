@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Http\Middleware\ActiveLivewirePermissionMiddleware;
+use App\Listeners\ApplyNotificationPreferences;
+use App\Listeners\ForgetPushDeviceOnLogout;
 use App\Livewire\Features\SupportToasts;
 use App\Models\ApplicationForm;
 use App\Models\Badge;
@@ -13,6 +15,7 @@ use App\Models\Employee;
 use App\Models\HiringCampaign;
 use App\Models\JobPost;
 use App\Models\LeaveRequest;
+use App\Models\NotificationPreference;
 use App\Models\Position;
 use App\Models\PublicRecruitmentLink;
 use App\Models\RecruitmentApplicant;
@@ -72,14 +75,19 @@ use App\Services\Recruitment\Scanning\RecruitmentFileScanner;
 use App\Services\RecruitmentIndicatorRules;
 use App\Services\Assistant\ChatModel;
 use App\Services\Assistant\ModelRouter;
+use App\Services\Notifications\MinishlinkPushClient;
+use App\Services\Notifications\NotificationPreferenceGate;
+use App\Services\Notifications\PushClient;
 use App\Services\SalaryCipher;
 use App\Support\Permissions\PermissionCacheGeneration;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\Events\KeyForgotten;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
@@ -113,6 +121,12 @@ class AppServiceProvider extends ServiceProvider
 
         // The assistant asks whichever configured AI provider answers first.
         $this->app->bind(ChatModel::class, ModelRouter::class);
+
+        // Notification preferences (docs/notifications/architecture.md): the
+        // gate caches each person's row for one request / queued job; the
+        // push client is the network edge the tests replace with a fake.
+        $this->app->scoped(NotificationPreferenceGate::class);
+        $this->app->bind(PushClient::class, MinishlinkPushClient::class);
 
         // Sends or flashes the toasts raised through WithFeedback::toast().
         // Registered while booting, not in boot(): Livewire attaches the hooks
@@ -273,6 +287,18 @@ class AppServiceProvider extends ServiceProvider
         RecruitmentApplicant::observe(RecruitmentApplicantObserver::class);
         RecruitmentApplication::observe(RecruitmentApplicationObserver::class);
         RecruitmentCampaignInvite::observe(RecruitmentCampaignInviteObserver::class);
+
+        // Preferences are applied around the notification classes, which stay
+        // untouched. Registered here by method name (not handle()), so event
+        // discovery does not register them a second time.
+        Event::listen(NotificationSending::class, [ApplyNotificationPreferences::class, 'apply']);
+        Event::listen(Logout::class, [ForgetPushDeviceOnLogout::class, 'forget']);
+
+        // A preference saved mid-request must count for the rest of it.
+        $forgetPreference = fn (NotificationPreference $preference) => $this->app->make(NotificationPreferenceGate::class)
+            ->forget((int) $preference->user_id);
+        NotificationPreference::saved($forgetPreference);
+        NotificationPreference::deleted($forgetPreference);
 
         $this->brandAuthEmails();
     }
