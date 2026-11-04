@@ -182,11 +182,11 @@ class NewsShow extends Component
                 ->whereExists(fn ($sub) => $sub->selectRaw('1')
                     ->from('news_tags')
                     ->whereColumn('news_tags.news_id', 'news.id')
-                    ->whereRaw('LOWER(news_tags.tag) IN ('.$placeholders.')', $tags))
+                    ->whereRaw('LOWER(tag) IN ('.$placeholders.')', $tags))
                 ->orderByDesc(fn ($sub) => $sub->selectRaw('COUNT(*)')
                     ->from('news_tags')
                     ->whereColumn('news_tags.news_id', 'news.id')
-                    ->whereRaw('LOWER(news_tags.tag) IN ('.$placeholders.')', $tags))
+                    ->whereRaw('LOWER(tag) IN ('.$placeholders.')', $tags))
                 ->orderByDesc('news.published_at')
                 ->limit(3)
                 ->get();

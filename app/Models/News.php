@@ -436,7 +436,7 @@ class News extends Model implements HasMedia
         return $query->whereExists(fn ($sub) => $sub->selectRaw('1')
             ->from('news_tags')
             ->whereColumn('news_tags.news_id', 'news.id')
-            ->whereRaw('LOWER(news_tags.tag) = ?', [$tag]));
+            ->whereRaw('LOWER(tag) = ?', [$tag]));
     }
 
     /**
