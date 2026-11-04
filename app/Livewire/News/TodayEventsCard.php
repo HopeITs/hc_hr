@@ -47,10 +47,12 @@ class TodayEventsCard extends Component
             ->map(fn (News $news) => [
                 'type' => 'event',
                 'name' => $news->localizedTitle(),
-                'position' => $news->newsable_name ?? '',
+                // The first tag says what the event is about; no tag, no line.
+                'position' => $news->tagNames()[0] ?? '',
                 'department' => '',
                 'message' => strip_tags($news->localizedDescription() ?? ''),
-                'photo' => $news->coverUrl() ?: '/assets/icons/event.svg',
+                // An event without a cover shows no image at all.
+                'photo' => $news->coverUrl(),
                 'url' => route('news.show', $news),
             ]);
 

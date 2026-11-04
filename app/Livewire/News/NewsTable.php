@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Url;
 use RamonRietdijk\LivewireTables\Columns\Column;
-use RamonRietdijk\LivewireTables\Enums\Direction;
 use RamonRietdijk\LivewireTables\Filters\SelectFilter;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
@@ -40,6 +39,9 @@ class NewsTable extends LivewireTable
 
     /** Tabs that need a manager's view of the list (drafts and the like are never released). */
     private const MANAGER_TABS = ['draft', 'scheduled', 'published', 'expired', 'archived'];
+
+    /** How many of the most used tags the tag filter offers. */
+    private const TAG_FILTER_OPTIONS = 50;
 
     private const TABS = ['all', 'draft', 'scheduled', 'published', 'expired', 'archived', 'upcoming', 'today', 'past'];
 
@@ -239,8 +241,8 @@ class NewsTable extends LivewireTable
     }
 
     /**
-     * Rows per tab under the current role scope and type filter (search
-     * excluded). A handful of COUNTs on one table, once per render.
+     * Rows per tab under the current role scope, type and tag filters
+     * (search excluded). A handful of COUNTs on one table, once per render.
      *
      * @return array<string, int>
      */
@@ -252,6 +254,7 @@ class NewsTable extends LivewireTable
             foreach (array_keys($this->stateTabs()) as $tab) {
                 $query = $this->baseQuery()->reorder();
                 $this->applyTypeFilter($query);
+                $this->applyTagFilter($query);
                 $this->applyStateFilter($query, $tab);
                 $counts[$tab] = $query->reorder()->count();
             }
@@ -287,7 +290,7 @@ class NewsTable extends LivewireTable
     protected function query(): Builder
     {
         $query = $this->baseQuery()
-            ->with(['newsable', 'audienceTargets', 'creator.profile', 'media']);
+            ->with(['tags', 'audienceTargets', 'creator.profile', 'media']);
 
         $this->applyStateFilter($query, $this->stateFilter);
 
@@ -323,9 +326,18 @@ class NewsTable extends LivewireTable
         }
     }
 
+    protected function applyTagFilter(Builder $query): void
+    {
+        $tag = $this->filters['tag'] ?? null;
+
+        if (is_string($tag) && trim($tag) !== '' && mb_strlen($tag) <= News::MAX_TAG_LENGTH) {
+            $query->tagged($tag);
+        }
+    }
+
     protected function filters(): array
     {
-        return [
+        $filters = [
             SelectFilter::make(__('news.list.columns.type'), 'type')
                 ->options(collect(NewsType::cases())->mapWithKeys(fn (NewsType $t) => [$t->value => $t->label()])->all())
                 ->filterUsing(function (Builder $query, mixed $value): void {
@@ -334,6 +346,23 @@ class NewsTable extends LivewireTable
                     }
                 }),
         ];
+
+        // Tags are free text: the filter offers the tags in use (most used
+        // first) and matches case-insensitively. It only narrows query();
+        // the tab counts follow it too (applyTagFilter).
+        $tags = once(fn () => News::popularTags(self::TAG_FILTER_OPTIONS));
+
+        if ($tags !== []) {
+            $filters[] = SelectFilter::make(__('news.list.columns.tags'), 'tag')
+                ->options(collect($tags)->mapWithKeys(fn (string $tag) => [$tag => $tag])->all())
+                ->filterUsing(function (Builder $query, mixed $value): void {
+                    if (is_string($value) && trim($value) !== '' && mb_strlen($value) <= News::MAX_TAG_LENGTH) {
+                        $query->tagged($value);
+                    }
+                });
+        }
+
+        return $filters;
     }
 
     /** Drafts and scheduled items open in preview; the rest on the details page. */
@@ -379,8 +408,10 @@ class NewsTable extends LivewireTable
                 ->searchable(fn (Builder $query, $value) => $query->where(fn (Builder $q) => $q
                     ->where('news.title_ar', 'like', '%'.$value.'%')
                     ->orWhere('news.title_en', 'like', '%'.$value.'%'))),
-            Column::make(__('news.list.columns.related'), 'newsable_name')
-                ->sortable(fn (Builder $query, Direction $direction) => $query->orderBy('news.newsable_type', $direction->value)),
+            Column::make(__('news.list.columns.tags'), function (Model $m): string {
+                /** @var News $m */
+                return view('livewire.news.list._tags', ['tags' => $m->tagNames()])->render();
+            })->asHtml(),
             Column::make(__('news.list.columns.audience'), function (Model $m): string {
                 /** @var News $m */
                 return $m->audienceSummary();

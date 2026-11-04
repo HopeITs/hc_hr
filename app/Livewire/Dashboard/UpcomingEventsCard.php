@@ -42,7 +42,8 @@ class UpcomingEventsCard extends Component
                 $news->event_description = $news->localizedDescription();
                 $news->event_timestamp = $starts;
                 $news->event_has_time = $starts->format('H:i') !== '00:00';
-                $news->image_url = $news->coverUrl() ?: '/images/news-default.png';
+                // No cover, no image: there is no default picture.
+                $news->image_url = $news->coverUrl();
                 $news->daysLeft = $daysLeft;
                 $news->daysLeftText = trans_choice('dashboard.in-days', $daysLeft);
                 $news->url = route('news.show', $news);

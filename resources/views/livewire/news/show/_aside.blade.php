@@ -27,20 +27,18 @@
     </x-card>
 @endif
 
-<x-card :title="__('news.show.context')">
-    <dl class="space-y-1">
-        <dt class="text-caption font-bold text-ink-3">{{ __('news.show.related_to') }}</dt>
-        <dd class="flex flex-wrap items-center gap-2 font-semibold text-ink">
-            <x-ic :name="$article['relatedIcon']" class="text-ink-3" />
-            <span class="min-w-0">{{ $news->relatedTo()->label() }}</span>
-            @if ($news->relatedTo()->needsEntity() && $news->newsable)
-                <span class="text-ink-3" aria-hidden="true">·</span>
-                <bdi class="min-w-0">{{ $news->newsable->name ?? __('general.na') }}</bdi>
-            @endif
-        </dd>
-    </dl>
-    <p class="mt-3 text-small text-ink-3">{{ __('news.show.related_hint') }}</p>
-</x-card>
+@if ($article['tags'] !== [])
+    <x-card :title="__('news.show.tags')">
+        <ul class="flex flex-wrap gap-1.5" role="list">
+            @foreach ($article['tags'] as $tag)
+                <li class="max-w-full">
+                    <x-tag variant="soft" icon="tag" class="max-w-full whitespace-normal break-words"><bdi>{{ $tag }}</bdi></x-tag>
+                </li>
+            @endforeach
+        </ul>
+        <p class="mt-3 text-small text-ink-3">{{ __('news.show.tags_hint') }}</p>
+    </x-card>
+@endif
 
 @if ($canManage)
     <x-card :title="__('news.show.audience')">

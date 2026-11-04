@@ -26,7 +26,7 @@ class NewsFeed
         return News::query()
             ->live($now)
             ->visibleTo($viewer)
-            ->with(['newsable', 'creator.profile', 'media']);
+            ->with(['tags', 'creator.profile', 'media']);
     }
 
     /** Released items (expired included), for the News & Events page and archive. */
@@ -35,7 +35,7 @@ class NewsFeed
         return News::query()
             ->released($now)
             ->visibleTo($viewer)
-            ->with(['newsable', 'creator.profile', 'media']);
+            ->with(['tags', 'creator.profile', 'media']);
     }
 
     /** News articles and announcements, newest publication first. */

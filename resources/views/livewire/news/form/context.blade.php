@@ -85,6 +85,7 @@
                          this.$nextTick(() => this.$refs.input.focus());
                      },
                      onInput() {
+                         this.draft = this.$refs.input.value;
                          if (/[,،]/.test(this.draft)) {
                              const parts = this.draft.split(/[,،]/);
                              const rest = parts.pop();

@@ -16,6 +16,9 @@
         <div class="mt-2 flex flex-col gap-1 text-small text-ink-2">
             <span>@include('livewire.news.list._status', ['news' => $item])</span>
             <span dir="auto">{{ $item->audienceSummary() }}</span>
+            @if($item->tagNames() !== [])
+                <div>@include('livewire.news.list._tags', ['tags' => $item->tagNames()])</div>
+            @endif
             @if($item->isEvent())
                 <span class="flex items-center gap-1.5"><x-ic name="calendar" class="size-4" /><bdi class="num">{{ $eventRange }}</bdi></span>
             @elseif($item->published_at)

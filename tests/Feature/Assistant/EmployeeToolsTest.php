@@ -178,6 +178,7 @@ class EmployeeToolsTest extends TestCase
         foreach (range(1, 7) as $i) {
             News::query()->create(['title_en' => "News {$i}", 'title_ar' => "خبر {$i}", 'description_en' => str_repeat('word ', 100), 'description_ar' => '', 'event_date' => sprintf('2026-10-%02d', $i), 'published_at' => now()]);
         }
+        News::query()->where('title_en', 'News 7')->sole()->syncTags(['Aleppo', 'Training']);
         News::query()->create(['title_en' => 'Draft', 'title_ar' => 'مسودة', 'description_ar' => '', 'event_date' => '2026-10-20', 'published_at' => null]);
         News::query()->create(['title_en' => 'Expired', 'title_ar' => 'منتهٍ', 'description_ar' => '', 'event_date' => '2026-10-21', 'published_at' => now(), 'display_until' => now()->subDay()]);
 
@@ -188,6 +189,9 @@ class EmployeeToolsTest extends TestCase
         $this->assertSame(now()->format('Y-m-d'), $result['news'][0]['published']);
         $this->assertSame('news', $result['news'][0]['type']);
         $this->assertArrayNotHasKey('event_date', $result['news'][0]);
+        // Tags say what an item is about; an item without tags has no key.
+        $this->assertSame(['Aleppo', 'Training'], $result['news'][0]['tags']);
+        $this->assertArrayNotHasKey('tags', $result['news'][1]);
         $this->assertLessThanOrEqual(300, mb_strlen($result['news'][0]['excerpt']));
 
         $this->assertCount(2, $tools->call($user, 'get_news', ['limit' => 2])['news']);
