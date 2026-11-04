@@ -38,8 +38,7 @@
                         :state-label="$props['stateLabel']"
                         :published-label="$props['publishedLabel']"
                         :event-label="$props['eventLabel']"
-                        :related-label="$props['relatedLabel']"
-                        :related-icon="$props['relatedIcon']"
+                        :tags="$props['tags']"
                         :audience-label="$props['audienceLabel']"
                         :audience-icon="$props['audienceIcon']"
                         :author-name="$props['authorName']" />

@@ -6,7 +6,6 @@ use App\Enums\News\AudienceType;
 use App\Enums\News\NewsState;
 use App\Enums\News\NewsStatus;
 use App\Enums\News\NewsType;
-use App\Enums\News\RelatedTo;
 use App\Support\News\NewsViewer;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +23,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * A piece of News & Events content. Six concepts, kept apart:
  *
  *   type            NewsType       what it is (news, announcement, event)
- *   newsable_*      RelatedTo      what it is ABOUT; never restricts who sees it
+ *   tags            NewsTag        what it is ABOUT (free labels); never restricts who sees it
  *   audience_type + audienceTargets  AudienceType  who may see it (scopeVisibleTo)
  *   status + published_at           NewsStatus     draft / published / archived, and Publish At
  *   event_starts_at / event_ends_at              when an event happens (event_date = its local day)
@@ -95,10 +94,19 @@ class News extends Model implements HasMedia
     // Relations
     // ------------------------------------------------------------------
 
-    /** Related To: the subject of the item. */
+    /**
+     * The legacy "Related To" subject (newsable_*). Kept for old rows only:
+     * the app now describes what an item is about with tags().
+     */
     public function newsable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /** Free labels describing what the item is about (never its audience). */
+    public function tags(): HasMany
+    {
+        return $this->hasMany(NewsTag::class)->orderBy('id');
     }
 
     /** The ids of the cities/centers/... in the audience (kind = audience_type). */
@@ -235,7 +243,7 @@ class News extends Model implements HasMedia
     // ------------------------------------------------------------------
 
     /**
-     * Items whose audience includes $viewer. Related To plays no part.
+     * Items whose audience includes $viewer. Tags play no part.
      * A viewer with no employee record only sees organization-wide items.
      */
     public function scopeVisibleTo(Builder $query, NewsViewer|Employee|User|null $viewer): Builder
@@ -277,11 +285,6 @@ class News extends Model implements HasMedia
     public function isEvent(): bool
     {
         return $this->type === NewsType::Event;
-    }
-
-    public function relatedTo(): RelatedTo
-    {
-        return RelatedTo::fromModelClass($this->newsable_type);
     }
 
     /** 'upcoming' | 'today' | 'past' for an event, null otherwise. */
@@ -350,16 +353,109 @@ class News extends Model implements HasMedia
         return $usesArabic ? 'rtl' : 'ltr';
     }
 
-    /** "City: Aleppo", or "Organization" — the Related To context, for display. */
-    public function getNewsableNameAttribute(): string
-    {
-        $related = $this->relatedTo();
+    // ------------------------------------------------------------------
+    // Tags (what the item is about; never who sees it)
+    // ------------------------------------------------------------------
 
-        if (! $related->needsEntity() || ! $this->newsable) {
-            return RelatedTo::Organization->label();
+    public const MAX_TAGS = 10;
+
+    public const MAX_TAG_LENGTH = 60;
+
+    /** @return list<string> the item's tags, in the order they were added */
+    public function tagNames(): array
+    {
+        $tags = $this->relationLoaded('tags') ? $this->tags : $this->tags()->get();
+
+        return $tags->pluck('tag')->map(fn ($tag) => (string) $tag)->values()->all();
+    }
+
+    /**
+     * Trimmed, inner whitespace collapsed, at most 60 characters, without
+     * case-insensitive duplicates (the first spelling wins), at most 10.
+     *
+     * @param  iterable<mixed>  $tags
+     * @return list<string>
+     */
+    public static function normalizeTags(iterable $tags): array
+    {
+        $clean = [];
+
+        foreach ($tags as $tag) {
+            if (! is_scalar($tag)) {
+                continue;
+            }
+
+            $tag = trim((string) preg_replace('/\s+/u', ' ', (string) $tag));
+            $tag = trim(mb_substr($tag, 0, self::MAX_TAG_LENGTH));
+
+            if ($tag === '') {
+                continue;
+            }
+
+            $key = mb_strtolower($tag);
+            $clean[$key] ??= $tag;
+
+            if (count($clean) >= self::MAX_TAGS) {
+                break;
+            }
         }
 
-        return $related->label().': '.($this->newsable->name ?? __('general.na'));
+        return array_values($clean);
+    }
+
+    /**
+     * Replace the item's tags with $tags (normalized, see normalizeTags()).
+     *
+     * @param  iterable<mixed>  $tags
+     * @return list<string> what was stored
+     */
+    public function syncTags(iterable $tags): array
+    {
+        $tags = self::normalizeTags($tags);
+
+        $this->tags()->delete();
+
+        if ($tags !== []) {
+            // insertOrIgnore: a collation may still fold two spellings into one key.
+            NewsTag::query()->insertOrIgnore(array_map(
+                fn (string $tag) => ['news_id' => $this->getKey(), 'tag' => $tag],
+                $tags,
+            ));
+        }
+
+        $this->unsetRelation('tags');
+
+        return $tags;
+    }
+
+    /** Items carrying $tag (case-insensitive, surrounding spaces ignored). */
+    public function scopeTagged(Builder $query, string $tag): Builder
+    {
+        $tag = mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $tag)));
+
+        return $query->whereExists(fn ($sub) => $sub->selectRaw('1')
+            ->from('news_tags')
+            ->whereColumn('news_tags.news_id', 'news.id')
+            ->whereRaw('LOWER(news_tags.tag) = ?', [$tag]));
+    }
+
+    /**
+     * The tags used most across all items, most used first.
+     *
+     * @return list<string>
+     */
+    public static function popularTags(int $limit = 30): array
+    {
+        return NewsTag::query()
+            ->select('tag')
+            ->selectRaw('COUNT(*) as uses')
+            ->groupBy('tag')
+            ->orderByDesc('uses')
+            ->orderBy('tag')
+            ->limit($limit)
+            ->pluck('tag')
+            ->map(fn ($tag) => (string) $tag)
+            ->all();
     }
 
     /** "All employees", or "Centers: A, B" — the audience, for display. */

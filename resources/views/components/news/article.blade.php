@@ -9,7 +9,7 @@
           :dir="$news->textDirection()" :cover-url="$news->coverUrl()"
           :type-label="$news->type->label()" :type-icon="$news->type->icon()"
           :state="$news->state()" :published-label="…" :event-label="…"
-          :related-label="$news->newsable_name" :audience-label="$news->audienceSummary()"
+          :tags="$news->tagNames()" :audience-label="$news->audienceSummary()"
           :author-name="…" />
 
     dir:       direction of the title/description text (they may fall back to
@@ -18,7 +18,9 @@
                or stateLabel (+ stateTone / stateIcon) for a plain status.
     locale:    language of the labels inside the article (defaults to the app's);
                the editor's preview renders both languages side by side.
-    Optional:  relatedIcon, audienceIcon, timingLabel (Upcoming/Today/Past tag),
+    tags:      list of free labels (what it is about), shown as chips; none = no row.
+    coverUrl:  null = no image area at all (the header simply starts the article).
+    Optional:  audienceIcon, timingLabel (Upcoming/Today/Past tag),
                and the slots `actions` (under the header) and `aside` (extra facts).
     Empty values are left out, never shown as blanks.
 --}}
@@ -36,8 +38,7 @@
     'publishedLabel' => null,
     'eventLabel' => null,
     'timingLabel' => null,
-    'relatedLabel' => null,
-    'relatedIcon' => 'building',
+    'tags' => [],
     'audienceLabel' => null,
     'audienceIcon' => 'users',
     'authorName' => null,
@@ -48,7 +49,8 @@
     $locale ??= app()->getLocale();
     $t = fn (string $key) => __('news.form.article.'.$key, [], $locale);
     $hasStatus = $state !== null || filled($stateLabel);
-    $hasFacts = filled($eventLabel) || filled($relatedLabel) || filled($audienceLabel) || isset($aside);
+    $tags = array_values(array_filter((array) $tags, 'filled'));
+    $hasFacts = filled($eventLabel) || $tags !== [] || filled($audienceLabel) || isset($aside);
     $titleId = 'news-article-title-'.substr(md5($title.$locale), 0, 8);
 @endphp
 
@@ -121,12 +123,18 @@
                             </div>
                         </div>
                     @endif
-                    @if (filled($relatedLabel))
+                    @if ($tags !== [])
                         <div class="flex items-start gap-3">
-                            <x-ic :name="$relatedIcon" class="mt-1 shrink-0 text-ink-2" />
+                            <x-ic name="tag" class="mt-1 shrink-0 text-ink-2" />
                             <div class="min-w-0">
-                                <dt class="text-caption font-bold uppercase tracking-wide text-ink-3">{{ $t('related') }}</dt>
-                                <dd class="mt-0.5 text-body text-ink break-words"><bdi>{{ $relatedLabel }}</bdi></dd>
+                                <dt class="text-caption font-bold uppercase tracking-wide text-ink-3">{{ $t('tags') }}</dt>
+                                <dd class="mt-1">
+                                    <ul class="flex flex-wrap gap-1.5" role="list">
+                                        @foreach ($tags as $tag)
+                                            <li class="max-w-full"><x-tag variant="soft" class="max-w-full whitespace-normal break-words"><bdi>{{ $tag }}</bdi></x-tag></li>
+                                        @endforeach
+                                    </ul>
+                                </dd>
                             </div>
                         </div>
                     @endif
