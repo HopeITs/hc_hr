@@ -27,7 +27,7 @@
         @endphp
         <div class="fixed inset-0 z-50" wire:key="employee-drawer-{{ $employee->id }}">
             <div class="absolute inset-0 bg-backdrop backdrop-blur-[1px]" x-on:click="close()" aria-hidden="true"></div>
-            {{-- Right drawer on desktop, bottom sheet on mobile (the org chart profile is now a centred dialog). --}}
+            {{-- Same panel as the org chart profile: right drawer on desktop, bottom sheet on mobile. --}}
             <div role="dialog" aria-modal="true" aria-labelledby="{{ $titleId }}"
                 x-trap.noscroll="true"
                 x-on:keydown.escape.stop="close()"

@@ -58,7 +58,7 @@
      x-on:profile-unavailable.window="unavailable()"
      x-on:livewire:navigating.window="show = false; document.body.classList.remove('overflow-hidden')"
      x-on:keydown.escape.window="show = false"
-     class="fixed inset-0 z-50 flex items-end justify-center dialog:items-center dialog:p-6">
+     class="fixed inset-0 z-50">
 
     {{-- Backdrop --}}
     <div class="absolute inset-0 bg-backdrop backdrop-blur-[1px]"
@@ -66,30 +66,29 @@
          x-show="show" x-transition.opacity
          x-on:click="show = false"></div>
 
-    {{-- Panel: centred dialog on tablet/desktop, bottom sheet on phones (sheet: also covers a
-         landscape phone). Its height follows the content, capped to the viewport; only the
-         body scrolls, so the header and the footer action stay in reach. --}}
+    {{-- Panel: drawer from the inline end on tablet/desktop, bottom sheet on phones.
+         Only the body scrolls, so the header and the footer action stay in reach. --}}
     <div role="dialog" aria-modal="true" aria-labelledby="profile-drawer-title" tabindex="-1"
-         class="relative flex max-h-[92dvh] w-full min-h-0 flex-col overflow-hidden rounded-t-3xl border border-line-soft bg-card shadow-e3 focus:outline-none
-                dialog:max-h-[min(44rem,calc(100dvh-3rem))] dialog:max-w-[32rem] dialog:rounded-2xl"
+         class="absolute inset-x-0 bottom-0 flex max-h-[92dvh] min-h-0 flex-col overflow-hidden rounded-t-3xl border-t border-line-soft bg-card shadow-e3 focus:outline-none
+                sm:inset-y-0 sm:end-0 sm:start-auto sm:h-dvh sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-s"
          x-show="show"
          x-on:wheel.stop
          x-on:touchmove.stop
          x-transition:enter="transition ease-out duration-200 motion-reduce:transition-none"
-         x-transition:enter-start="translate-y-full dialog:translate-y-2 dialog:scale-[.98] dialog:opacity-0"
-         x-transition:enter-end="translate-y-0 dialog:scale-100 dialog:opacity-100"
+         x-transition:enter-start="translate-y-full sm:translate-y-0 sm:translate-x-full sm:rtl:-translate-x-full"
+         x-transition:enter-end="translate-y-0 sm:translate-x-0"
          x-transition:leave="transition ease-in duration-150 motion-reduce:transition-none"
-         x-transition:leave-start="translate-y-0 dialog:scale-100 dialog:opacity-100"
-         x-transition:leave-end="translate-y-full dialog:translate-y-2 dialog:scale-[.98] dialog:opacity-0">
+         x-transition:leave-start="translate-y-0 sm:translate-x-0"
+         x-transition:leave-end="translate-y-full sm:translate-y-0 sm:translate-x-full sm:rtl:-translate-x-full">
 
         {{-- Sheet grab handle (decorative). --}}
-        <div class="flex shrink-0 justify-center pt-2 dialog:hidden" aria-hidden="true">
+        <div class="flex shrink-0 justify-center pt-2 sm:hidden" aria-hidden="true">
             <span class="h-1 w-10 rounded-full bg-line"></span>
         </div>
 
         {{-- Always rendered, so the dialog can be closed while it is still loading. --}}
         <button type="button" x-on:click="show = false" aria-label="{{ __('access.close') }}"
-                class="absolute end-3 top-3 z-20 flex size-11 items-center justify-center rounded-control text-ink-2 transition hover:bg-hover hover:text-ink sheet:top-4">
+                class="absolute end-3 top-3 z-20 flex size-11 items-center justify-center rounded-control text-ink-2 transition hover:bg-hover hover:text-ink max-sm:top-4">
             <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
             </svg>
@@ -98,9 +97,9 @@
         @if($employee)
         <div class="flex min-h-0 flex-1 flex-col" x-show="ready">
             {{-- Identity --}}
-            <div class="flex shrink-0 items-center gap-4 border-b border-line-soft px-5 pb-5 pe-16 pt-4 dialog:px-6 dialog:pe-16 dialog:pt-6">
+            <div class="flex shrink-0 items-center gap-4 border-b border-line-soft px-5 pb-5 pe-16 pt-4 sm:px-6 sm:pe-16 sm:pt-6">
                 <img src="{{ $employee->avatar_url }}" alt=""
-                     class="size-16 max-w-none shrink-0 rounded-full bg-soft object-cover ring-1 ring-line-soft dialog:size-[4.5rem]">
+                     class="size-16 max-w-none shrink-0 rounded-full bg-soft object-cover ring-1 ring-line-soft sm:size-[4.5rem]">
                 <div class="min-w-0">
                     <h2 id="profile-drawer-title" class="break-words text-h4 font-extrabold leading-snug tracking-tight text-ink text-balance">
                         <bdi>{{ $employee->name }}</bdi>
@@ -115,7 +114,7 @@
             </div>
 
             {{-- Body --}}
-            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 dialog:px-6">
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
                 <div class="space-y-6">
                 {{-- Org placement --}}
                 @if($position)
@@ -220,8 +219,8 @@
 
             {{-- Footer action stays visible while the details scroll. --}}
             @if(filled($employee->username))
-                <div class="flex shrink-0 justify-end border-t border-line-soft px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dialog:px-6">
-                    <x-button class="w-full dialog:w-auto" :href="route('employees.show', ['employee' => $employee->username])">
+                <div class="shrink-0 border-t border-line-soft px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+                    <x-button full :href="route('employees.show', ['employee' => $employee->username])">
                         @lang('general.view-full-profile')
                         <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
                     </x-button>
