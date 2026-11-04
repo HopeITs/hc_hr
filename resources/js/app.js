@@ -160,6 +160,27 @@ if (window.Livewire) {
     document.addEventListener('livewire:init', registerLivewireHooks, { once: true });
 }
 
+// WebGuard (the host's bot filter) periodically redirects requests from our
+// office IP to a CAPTCHA page (302 → /.captcha/… → 412). Fetch follows the
+// redirect, so Livewire receives a 412 with the challenge HTML and shows it in
+// its error modal, where the challenge can never run. A full page load (GET)
+// solves the challenge silently, so reload instead of showing the modal.
+// The timestamp guard stops a reload loop if the GET itself is challenged.
+Livewire.hook('request', ({ fail }) => {
+    fail(({ status, preventDefault }) => {
+        if (status !== 412) return;
+
+        preventDefault();
+
+        const last = Number(sessionStorage.getItem('hc-412-reload') || 0);
+        if (Date.now() - last < 15_000) return;
+        sessionStorage.setItem('hc-412-reload', String(Date.now()));
+
+        window.dispatchEvent(new Event('hc:skip-unsaved-prompt'));
+        window.location.reload();
+    });
+});
+
 // Chart.js instances created by the inline dashboard scripts are bound to
 // canvases that wire:navigate is about to remove; destroy them so their
 // resize observers and animation frames do not outlive the page.

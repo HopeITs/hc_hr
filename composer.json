@@ -70,8 +70,7 @@
         ],
         "test": [
             "Composer\\Config::disableProcessTimeout",
-            "@php artisan config:clear --ansi",
-            "@php artisan test"
+            "@php -r \"passthru(escapeshellarg(PHP_BINARY).' artisan config:clear --ansi'); passthru(implode(' ', array_map('escapeshellarg', array_merge([PHP_BINARY, 'artisan', 'test'], array_slice($argv, 1)))), $code); passthru(escapeshellarg(PHP_BINARY).' artisan config:cache --ansi'); exit($code);\" -- @additional_args"
         ]
     },
     "extra": {

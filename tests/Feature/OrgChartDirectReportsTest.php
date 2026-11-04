@@ -102,6 +102,23 @@ class OrgChartDirectReportsTest extends TestCase
             ->assertDontSeeHtml('<span>2 '.__('general.direct-reports').'</span>');
     }
 
+    public function test_service_agreement_holders_are_marked_on_their_own_card(): void
+    {
+        $chart = fn () => Livewire::actingAs($this->hr)->test(OrgChart::class)->call('expandAll');
+
+        $chart()->assertDontSeeHtml('org-id-card__contract');
+
+        // One of three holders of a shared seat: only that card is marked.
+        $service = ContractType::query()->create(['name_en' => 'Service Agreement', 'name_ar' => 'اتفاقية خدمة']);
+        config(['contracts.map_by_id' => [$service->id => 'service']]);
+
+        Contract::query()->where('employee_id', $this->officers[0]->id)->update(['contract_type_id' => $service->id]);
+
+        $html = $chart()->html();
+
+        $this->assertSame(1, substr_count($html, 'org-id-card__contract'));
+    }
+
     public function test_the_profile_drawer_lists_every_holder_of_a_shared_position(): void
     {
         $drawer = Livewire::actingAs($this->hr)

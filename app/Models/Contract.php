@@ -379,6 +379,12 @@ class Contract extends Model
         return static::isTrialType($this->contract_type_id);
     }
 
+    /** A service agreement, not employment: keyed off the same config map. */
+    public function isServiceAgreement(): bool
+    {
+        return (config('contracts.map_by_id')[$this->contract_type_id] ?? null) === 'service';
+    }
+
     /**
      * May this contract be set to renew automatically at all? Neither a
      * terminated contract nor a trial ever may — ContractObserver::saving()
