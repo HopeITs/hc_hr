@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Employee;
 
+use App\Enums\Gender;
+use App\Enums\Nationality;
+use App\Livewire\Concerns\ReadsScannedDocuments;
 use App\Livewire\Concerns\RemembersReturnTo;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\DraftContractForm;
@@ -19,8 +22,21 @@ use Livewire\WithFileUploads;
 
 class EmployeeCreate extends Component
 {
+    use ReadsScannedDocuments;
     use RemembersReturnTo;
     use WithFeedback, WithFileUploads;
+
+    /** Fields an ID card fills, named as Post Gen returns them and as PersonalInfoForm holds them. */
+    private const ID_CARD_FIELDS = [
+        'national_number',
+        'first_name_ar', 'first_name_en',
+        'last_name_ar', 'last_name_en',
+        'father_name_ar', 'father_name_en',
+        'mother_name_ar', 'mother_name_en',
+        'pob_ar', 'pob_en',
+        'dob',
+        'civil_registry_office', 'civil_registry_number',
+    ];
 
     public PersonalInfoForm $infoForm;
 
@@ -57,6 +73,13 @@ class EmployeeCreate extends Component
      */
     #[Locked]
     public string $submissionToken = '';
+
+    /**
+     * What the last readIdCard() did, for the notice under the reader:
+     * {docType, filled, lite}. Locked: only the server writes it.
+     */
+    #[Locked]
+    public ?array $idCardReading = null;
 
     public function mount()
     {
@@ -180,6 +203,47 @@ class EmployeeCreate extends Component
         // A stale position choice from a previous program must not survive
         // the switch — the dropdown that offered it is about to disappear.
         $this->draftForm->position_id = null;
+    }
+
+    /**
+     * Fills the profile from a scanned ID card. Only fields still empty are
+     * filled, so nothing typed is lost; HR checks the result and saves as usual
+     * (the national-number check and every other rule run then).
+     */
+    public function readIdCard(): void
+    {
+        abort_unless(auth()->user()?->hasActivePermission('employees.create'), 403);
+
+        $this->idCardReading = null;
+
+        if (! $document = $this->readScannedIdCard()) {
+            return;
+        }
+
+        $values = [];
+
+        foreach (self::ID_CARD_FIELDS as $field) {
+            $values[$field] = $document->get($field);
+        }
+
+        $values['national_number'] = $values['national_number'] !== null ? en_digits($values['national_number']) : null;
+        $values['gender'] = ['male' => Gender::Male, 'female' => Gender::Female][$document->get('gender')] ?? null;
+        $values['nationality'] = str_contains($document->docType, 'سوري') ? Nationality::Syrian : null;
+
+        $filled = [];
+
+        foreach (array_filter($values, fn ($value) => $value !== null) as $field => $value) {
+            if (blank($this->infoForm->{$field})) {
+                $this->infoForm->{$field} = $value;
+                $filled[] = $field;
+            }
+        }
+
+        $this->idCardReading = [
+            'docType' => $document->docType,
+            'filled' => count($filled),
+            'lite' => $document->lite,
+        ];
     }
 
     public function createDraftAndContinue()

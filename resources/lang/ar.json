@@ -70,5 +70,8 @@
     "With Trashed": "مع المحذوفات",
     "Without Trashed": "بدون المحذوفات",
     "Yes": "نعم",
-    "You may only manage positions in your active city.": "يمكنك إدارة المسميات الوظيفية في المدينة المرتبطة بدورك الحالي فقط."
+    "You may only manage positions in your active city.": "يمكنك إدارة المسميات الوظيفية في المدينة المرتبطة بدورك الحالي فقط.",
+    "Attach between 1 and :max files.": "أرفق من ملف واحد إلى :max ملفات.",
+    "The document reader could not be reached. Try again in a minute.": "تعذّر الوصول إلى قارئ الوثائق. جرّب بعد دقيقة.",
+    "The document could not be read. Try again, or enter it by hand.": "تعذّرت قراءة الوثيقة. جرّب مجدداً أو أدخلها يدوياً."
 }

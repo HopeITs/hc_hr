@@ -32,6 +32,14 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // Post Gen's Worker reads national ID cards for data entry
+    // (DocumentExtractor). The key is the Worker's HCHR_API_KEY secret.
+    'post_gen' => [
+        'url' => env('POST_GEN_URL', 'https://studyzone-auth.ct-aleppo3.workers.dev'),
+        'key' => env('POST_GEN_API_KEY'),
+        'timeout' => (int) env('POST_GEN_TIMEOUT', 150),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

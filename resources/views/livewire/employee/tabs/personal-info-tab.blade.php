@@ -66,6 +66,26 @@
         </div>
     </div>
 @else
+    @if ($isCreateMode && $this->documentReaderEnabled())
+        <x-document-reader class="mb-6" :title="__('documents.reader.id-title')" :hint="__('documents.reader.id-hint')">
+            <x-slot:action>
+                <x-button variant="outline" size="sm" wire:click="readIdCard">@lang('documents.reader.read')</x-button>
+            </x-slot:action>
+
+            @if ($idCardReading)
+                <div role="status" class="mt-3 border-t border-line-soft pt-3 text-small text-ink">
+                    <p class="font-semibold">
+                        {{ trans_choice('documents.reader.filled', $idCardReading['filled'], ['count' => $idCardReading['filled'], 'doc' => $idCardReading['docType'] ?: __('documents.reader.document')]) }}
+                    </p>
+                    <p class="mt-1 text-ink-2">@lang('documents.reader.check-before-saving')</p>
+                    @if ($idCardReading['lite'])
+                        <x-tag variant="act" class="mt-2">@lang('documents.reader.lite')</x-tag>
+                    @endif
+                </div>
+            @endif
+        </x-document-reader>
+    @endif
+
     <form wire:submit.prevent="saveInformation" class="flex flex-col space-y-6">
         <div class="" data-tour="employee.photo">
             <x-forms.input-label for="photo">@lang('general.photo')</x-forms.input-label>
