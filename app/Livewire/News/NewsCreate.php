@@ -41,6 +41,12 @@ class NewsCreate extends Component
             $this->news = $news;
             $this->form->fillFromNews($news);
 
+            // The list's "Schedule" action opens the editor with ?mode=schedule.
+            if (request()->query('mode') === NewsForm::MODE_SCHEDULE && ! $this->form->isScheduled()) {
+                $this->form->publish_mode = NewsForm::MODE_SCHEDULE;
+                $this->form->publish_at = null;
+            }
+
             return;
         }
 
@@ -203,6 +209,7 @@ class NewsCreate extends Component
                     'typeLabel' => $type->label(),
                     'typeIcon' => $type->icon(),
                     'state' => $scheduled ? NewsState::Scheduled : NewsState::Published,
+                    'stateLabel' => ($scheduled ? NewsState::Scheduled : NewsState::Published)->label(),
                     'publishedLabel' => $scheduled
                         ? __('news.form.article.scheduled_for', ['date' => $this->formatMoment($publishedAt)])
                         : __('news.form.article.published_on', ['date' => $this->formatMoment($publishedAt)]),

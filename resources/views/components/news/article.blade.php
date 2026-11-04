@@ -81,14 +81,14 @@
                 @if (filled($publishedLabel))
                     <div class="inline-flex items-center gap-1.5">
                         <dt class="sr-only">{{ $t('publication') }}</dt>
-                        <x-ic name="clock" class="shrink-0 text-ink-3" aria-hidden="true" />
+                        <x-ic name="clock" class="shrink-0 text-ink-3" />
                         <dd class="num">{{ $publishedLabel }}</dd>
                     </div>
                 @endif
                 @if (filled($authorName))
                     <div class="inline-flex items-center gap-1.5">
                         <dt class="sr-only">{{ $t('author') }}</dt>
-                        <x-ic name="user" class="shrink-0 text-ink-3" aria-hidden="true" />
+                        <x-ic name="user" class="shrink-0 text-ink-3" />
                         <dd><bdi>{{ $authorName }}</bdi></dd>
                     </div>
                 @endif
@@ -114,7 +114,7 @@
                 <dl class="space-y-4">
                     @if (filled($eventLabel))
                         <div class="flex items-start gap-3">
-                            <x-ic name="calendar" class="mt-1 shrink-0 text-ink-2" aria-hidden="true" />
+                            <x-ic name="calendar" class="mt-1 shrink-0 text-ink-2" />
                             <div class="min-w-0">
                                 <dt class="text-caption font-bold uppercase tracking-wide text-ink-3">{{ $t('event') }}</dt>
                                 <dd class="num mt-0.5 text-body font-semibold text-ink">{{ $eventLabel }}</dd>
@@ -123,7 +123,7 @@
                     @endif
                     @if (filled($relatedLabel))
                         <div class="flex items-start gap-3">
-                            <x-ic :name="$relatedIcon" class="mt-1 shrink-0 text-ink-2" aria-hidden="true" />
+                            <x-ic :name="$relatedIcon" class="mt-1 shrink-0 text-ink-2" />
                             <div class="min-w-0">
                                 <dt class="text-caption font-bold uppercase tracking-wide text-ink-3">{{ $t('related') }}</dt>
                                 <dd class="mt-0.5 text-body text-ink break-words"><bdi>{{ $relatedLabel }}</bdi></dd>
@@ -132,7 +132,7 @@
                     @endif
                     @if (filled($audienceLabel))
                         <div class="flex items-start gap-3">
-                            <x-ic :name="$audienceIcon" class="mt-1 shrink-0 text-ink-2" aria-hidden="true" />
+                            <x-ic :name="$audienceIcon" class="mt-1 shrink-0 text-ink-2" />
                             <div class="min-w-0">
                                 <dt class="text-caption font-bold uppercase tracking-wide text-ink-3">{{ $t('audience') }}</dt>
                                 <dd class="mt-0.5 text-body text-ink break-words"><bdi>{{ $audienceLabel }}</bdi></dd>

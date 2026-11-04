@@ -455,9 +455,13 @@ return [
         // reportLost belongs to the card's owner, who holds no HR permission,
         // and manage is city-scoped HR, which a permission cannot express.
         'employee-cards.manage-digital-id' => ['reissue', 'disable', 'enable', 'reportLost'],
-        // updatedFormNewsableType() only clears dependent form selections;
-        // it does not read a record or persist data. save() authorizes before writing.
-        'news.news-create' => ['save', 'updatedFormNewsableType',
+        // saveDraft() and publish() authorize before writing (NewsAccess::canCreate
+        // for a new item, canManage for the edited one). openPreview() runs the same
+        // check, then only validates and renders: it never writes; closePreview()
+        // only hides it. The updatedForm* hooks only clear dependent form
+        // selections; they neither read a record nor persist data.
+        'news.news-create' => ['saveDraft', 'publish', 'openPreview', 'closePreview',
+            'updatedFormRelatedTo', 'updatedFormAudienceType', 'updatedFormType', 'updatedFormPublishMode',
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
         // The details page / preview is read-only. updatedLocale() is UI-only:
