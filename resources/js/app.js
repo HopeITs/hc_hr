@@ -120,6 +120,9 @@ import './feedback.js';
 // Asks before leaving a page with unsaved changes (B2).
 import './unsaved.js';
 
+// Server-side autosave of an employee draft (B5 phase 2); never browser storage.
+import './employee-autosave.js';
+
 // Typed examples in empty fields' placeholders (data-typewriter).
 import './typewriter.js';
 
@@ -138,35 +141,37 @@ document.addEventListener('DOMContentLoaded', () => initClockTimepickers());
 
 // Flowbite binds its behaviour on load, but Livewire replaces DOM afterwards,
 // so any swapped-in dropdown/modal/tooltip has to be re-initialised.
-Livewire.hook('commit', ({ succeed }) => {
-    succeed(() => {
-        queueMicrotask(() => {
-            initFlowbite();
-            initClockTimepickers();
+const registerLivewireHooks = () => {
+    if (!window.Livewire) return;
+
+    window.Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => {
+            queueMicrotask(() => {
+                initFlowbite();
+                initClockTimepickers();
+            });
         });
     });
-});
+};
 
-// WebGuard (the host's bot filter) intercepts requests from our office IP and
-// redirects them to its CAPTCHA page (302 → /.captcha/… → 412, or 429 when it
-// rate-limits the IP). Fetch follows the redirect, so Livewire gets the
-// challenge HTML and renders it in its error modal — an iframe that inherits
-// our CSP, so the challenge scripts are blocked and it can never complete.
-// A full page load (GET) is served with WebGuard's own headers and solves the
-// challenge silently, so reload instead of showing the modal.
-const looksLikeWebGuard = (status, content = '') =>
-    status === 412 ||
-    status === 429 ||
-    /\/\.captcha\/|hcaptcha\.com|Verifying that you are human/i.test(content);
+if (window.Livewire) {
+    registerLivewireHooks();
+} else {
+    document.addEventListener('livewire:init', registerLivewireHooks, { once: true });
+}
 
+// WebGuard (the host's bot filter) periodically redirects requests from our
+// office IP to a CAPTCHA page (302 → /.captcha/… → 412). Fetch follows the
+// redirect, so Livewire receives a 412 with the challenge HTML and shows it in
+// its error modal, where the challenge can never run. A full page load (GET)
+// solves the challenge silently, so reload instead of showing the modal.
+// The timestamp guard stops a reload loop if the GET itself is challenged.
 Livewire.hook('request', ({ fail }) => {
-    fail(({ status, content, preventDefault }) => {
-        if (!looksLikeWebGuard(status, content)) return;
+    fail(({ status, preventDefault }) => {
+        if (status !== 412) return;
 
         preventDefault();
 
-        // One reload per 15 s: if the GET itself is challenged or rate-limited,
-        // the user sees WebGuard's page instead of an endless reload loop.
         const last = Number(sessionStorage.getItem('hc-412-reload') || 0);
         if (Date.now() - last < 15_000) return;
         sessionStorage.setItem('hc-412-reload', String(Date.now()));
@@ -187,6 +192,25 @@ document.addEventListener('livewire:navigated', () => {
     initFlowbite();
     initClockTimepickers();
     dropReturnParam();
+});
+
+// A Livewire action that opens or closes an inline panel names the element
+// that should hold focus next: `$this->dispatch('focus-element', id: '…')`.
+// Without it, removing the button that had focus drops a keyboard user back
+// to the top of the page. Livewire fires dispatches after the DOM is patched,
+// so the target already exists; scrolling goes through scrollIntoView so the
+// target's scroll-margin clears the fixed top bar.
+window.addEventListener('focus-element', (event) => {
+    const target = document.getElementById(event.detail?.id);
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'nearest' });
+
+    // A target without its own scroll-margin can still land under the bar.
+    const bar = document.querySelector('nav.fixed')?.getBoundingClientRect().bottom ?? 0;
+    const top = target.getBoundingClientRect().top;
+    if (top < bar) window.scrollBy({ top: top - bar - 16 });
 });
 
 // ?from= (set by the header's New menu) is read once by the server when the
