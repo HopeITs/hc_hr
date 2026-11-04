@@ -11,9 +11,11 @@ use App\Models\News;
 use App\Support\News\NewsAccess;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Closure;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
+use Throwable;
 
 /**
  * Create / edit a News & Events item. Two writes (save as draft, publish
@@ -40,17 +42,16 @@ class NewsCreate extends Component
 
             $this->news = $news;
             $this->form->fillFromNews($news);
-
-            // The list's "Schedule" action opens the editor with ?mode=schedule.
-            if (request()->query('mode') === NewsForm::MODE_SCHEDULE && ! $this->form->isScheduled()) {
-                $this->form->publish_mode = NewsForm::MODE_SCHEDULE;
-                $this->form->publish_at = null;
-            }
-
-            return;
+        } else {
+            abort_unless(NewsAccess::canCreate(auth()->user()), 403);
         }
 
-        abort_unless(NewsAccess::canCreate(auth()->user()), 403);
+        // The list's "Schedule" action opens the editor with ?mode=schedule:
+        // schedule mode, with the time left for the user to choose.
+        if (request()->query('mode') === NewsForm::MODE_SCHEDULE && ! $this->form->isScheduled()) {
+            $this->form->publish_mode = NewsForm::MODE_SCHEDULE;
+            $this->form->publish_at = null;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -94,6 +95,33 @@ class NewsCreate extends Component
         return $this->store(NewsForm::INTENT_PUBLISH);
     }
 
+    // ------------------------------------------------------------------
+    // Preview (validates, never writes)
+    // ------------------------------------------------------------------
+
+    public function openPreview(): void
+    {
+        $this->authorizeWrite();
+
+        $this->form->check($this->news);
+        $this->previewing = true;
+    }
+
+    public function closePreview(): void
+    {
+        $this->previewing = false;
+    }
+
+    public function render()
+    {
+        return view('livewire.news.news-create', [
+            'relatedOptions' => $this->form->relatedEnum()->needsEntity() ? $this->form->entities() : collect(),
+            'audienceOptions' => $this->form->audienceEnum()->needsTargets() ? $this->form->audienceOptions() : collect(),
+            'currentState' => $this->news?->exists ? $this->news->state() : null,
+            'preview' => $this->previewing ? $this->previewProps() : null,
+        ]);
+    }
+
     private function store(string $intent)
     {
         $this->authorizeWrite();
@@ -120,33 +148,6 @@ class NewsCreate extends Component
                 : NewsAccess::canCreate(auth()->user()),
             403,
         );
-    }
-
-    // ------------------------------------------------------------------
-    // Preview (validates, never writes)
-    // ------------------------------------------------------------------
-
-    public function openPreview(): void
-    {
-        $this->authorizeWrite();
-
-        $this->form->check($this->news);
-        $this->previewing = true;
-    }
-
-    public function closePreview(): void
-    {
-        $this->previewing = false;
-    }
-
-    public function render()
-    {
-        return view('livewire.news.news-create', [
-            'relatedOptions' => $this->form->relatedEnum()->needsEntity() ? $this->form->entities() : collect(),
-            'audienceOptions' => $this->form->audienceEnum()->needsTargets() ? $this->form->audienceOptions() : collect(),
-            'currentState' => $this->news?->exists ? $this->news->state() : null,
-            'preview' => $this->previewing ? $this->previewProps() : null,
-        ]);
     }
 
     /**
@@ -179,7 +180,7 @@ class NewsCreate extends Component
         if ($form->photo instanceof TemporaryUploadedFile) {
             try {
                 $coverUrl = $form->photo->temporaryUrl();
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 $coverUrl = null;
             }
         }
@@ -233,7 +234,7 @@ class NewsCreate extends Component
     }
 
     /** Run $callback with the app (and Carbon) in $locale, then restore both. */
-    private function inLocale(string $locale, \Closure $callback): mixed
+    private function inLocale(string $locale, Closure $callback): mixed
     {
         $previous = app()->getLocale();
         $previousCarbon = Carbon::getLocale();

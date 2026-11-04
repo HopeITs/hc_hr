@@ -20,6 +20,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Form;
+use Throwable;
 
 /**
  * The News & Events create/edit form. Six concepts, kept apart (see News):
@@ -197,42 +198,6 @@ class NewsForm extends Form
         return $this->validate(null, [], $attributes);
     }
 
-    /** A future Publish At is required unless the item is already out. */
-    private function mustBeFuture(): bool
-    {
-        if ($this->subject === null) {
-            return true;
-        }
-
-        return in_array($this->subject->state(), [NewsState::Draft, NewsState::Scheduled], true);
-    }
-
-    /** Display until: after the publish moment, and for an event not before it starts. */
-    private function displayUntilRule(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            $until = $this->parseDisplayUntil($value);
-
-            if ($until === null) {
-                return;
-            }
-
-            $publishAt = $this->publishMoment();
-
-            if ($publishAt !== null && $until->lte($publishAt)) {
-                $fail(__('news.form.errors.display_until_after_publish'));
-
-                return;
-            }
-
-            $start = $this->typeEnum()->isEvent() ? $this->parseMoment($this->event_starts_at) : null;
-
-            if ($start !== null && $until->lt($start)) {
-                $fail(__('news.form.errors.display_until_after_event'));
-            }
-        };
-    }
-
     /** When the item becomes visible, as the chosen settings would store it. */
     public function publishMoment(): ?CarbonInterface
     {
@@ -248,32 +213,6 @@ class NewsForm extends Form
         }
 
         return now();
-    }
-
-    /** Values that do not apply to the chosen type/related/audience are cleared, never stored. */
-    private function normalize(): void
-    {
-        if (! $this->typeEnum()->isEvent()) {
-            $this->event_starts_at = null;
-            $this->event_ends_at = null;
-        }
-
-        if (! RelatedTo::tryFrom($this->related_to)?->needsEntity()) {
-            $this->related_id = '';
-        }
-
-        if (! AudienceType::tryFrom($this->audience_type)?->needsTargets()) {
-            $this->audience_ids = [];
-        }
-
-        $this->audience_ids = array_values(array_unique(array_filter(
-            $this->audience_ids,
-            fn ($id) => is_scalar($id) && (string) $id !== '',
-        )));
-
-        if (! $this->isScheduled()) {
-            $this->publish_at = null;
-        }
     }
 
     // ------------------------------------------------------------------
@@ -312,18 +251,6 @@ class NewsForm extends Form
                 ->get(),
             default => collect(),
         };
-    }
-
-    /** @return list<int> */
-    private function entityIds(RelatedTo $related): array
-    {
-        return $this->entities($related)->pluck('id')->map(fn ($id) => (int) $id)->all();
-    }
-
-    /** @return list<int> */
-    private function audienceIds(AudienceType $audience): array
-    {
-        return $this->audienceOptions($audience)->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 
     // ------------------------------------------------------------------
@@ -452,7 +379,7 @@ class NewsForm extends Form
 
         try {
             return Carbon::parse($value, config('app.timezone'));
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -467,5 +394,79 @@ class NewsForm extends Form
         }
 
         return $moment;
+    }
+
+    /** A future Publish At is required unless the item is already out. */
+    private function mustBeFuture(): bool
+    {
+        if ($this->subject === null) {
+            return true;
+        }
+
+        return in_array($this->subject->state(), [NewsState::Draft, NewsState::Scheduled], true);
+    }
+
+    /** Display until: after the publish moment, and for an event not before it starts. */
+    private function displayUntilRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $until = $this->parseDisplayUntil($value);
+
+            if ($until === null) {
+                return;
+            }
+
+            $publishAt = $this->publishMoment();
+
+            if ($publishAt !== null && $until->lte($publishAt)) {
+                $fail(__('news.form.errors.display_until_after_publish'));
+
+                return;
+            }
+
+            $start = $this->typeEnum()->isEvent() ? $this->parseMoment($this->event_starts_at) : null;
+
+            if ($start !== null && $until->lt($start)) {
+                $fail(__('news.form.errors.display_until_after_event'));
+            }
+        };
+    }
+
+    /** Values that do not apply to the chosen type/related/audience are cleared, never stored. */
+    private function normalize(): void
+    {
+        if (! $this->typeEnum()->isEvent()) {
+            $this->event_starts_at = null;
+            $this->event_ends_at = null;
+        }
+
+        if (! RelatedTo::tryFrom($this->related_to)?->needsEntity()) {
+            $this->related_id = '';
+        }
+
+        if (! AudienceType::tryFrom($this->audience_type)?->needsTargets()) {
+            $this->audience_ids = [];
+        }
+
+        $this->audience_ids = array_values(array_unique(array_filter(
+            $this->audience_ids,
+            fn ($id) => is_scalar($id) && (string) $id !== '',
+        )));
+
+        if (! $this->isScheduled()) {
+            $this->publish_at = null;
+        }
+    }
+
+    /** @return list<int> */
+    private function entityIds(RelatedTo $related): array
+    {
+        return $this->entities($related)->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** @return list<int> */
+    private function audienceIds(AudienceType $audience): array
+    {
+        return $this->audienceOptions($audience)->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 }
