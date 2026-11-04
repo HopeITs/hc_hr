@@ -20,10 +20,10 @@
         'week' => __('team_calendar.range', ['from' => $from->locale($locale)->translatedFormat('j M'), 'to' => $to->locale($locale)->translatedFormat('j M Y')]),
         default => $anchor->locale($locale)->translatedFormat('F Y'),
     };
-    // The list shows the days that matter: in a month, only those of that month with someone away or a holiday.
+    // The list shows the days that matter: in a month, only those of that month with someone away, a holiday, a birthday or an event.
     $listDays = collect($days)->filter(fn (array $day) => match ($viewName) {
         'week', 'day' => true,
-        default => ($day['members'] !== [] || isset($holidays[$day['date']]) || isset($birthdays[$day['date']])) && substr($day['date'], 0, 7) === $anchor->format('Y-m'),
+        default => ($day['members'] !== [] || isset($holidays[$day['date']]) || isset($birthdays[$day['date']]) || isset($events[$day['date']])) && substr($day['date'], 0, 7) === $anchor->format('Y-m'),
     });
     $iconBtn = 'inline-flex size-11 items-center justify-center rounded-full border-[1.5px] border-line bg-card text-ink shadow-e1 transition hover:border-ink-2 hover:bg-hover';
 @endphp
@@ -84,6 +84,11 @@
                 </div>
             @endif
 
+            <label class="inline-flex min-h-10 cursor-pointer items-center gap-2 self-end rounded-full px-1 text-small font-semibold text-ink" data-testid="calendar-show-events">
+                <input type="checkbox" wire:model.live="showEvents" class="size-4 rounded border-line text-ink">
+                {{ __('team_calendar.events.toggle') }}
+            </label>
+
             @if ($cities->isNotEmpty())
                 <div class="min-w-40 flex-1 sm:flex-none">
                     <x-forms.input-label for="calendar-city" class="text-caption">{{ __('team_calendar.city.label') }}</x-forms.input-label>
@@ -136,11 +141,17 @@
                 <svg class="size-3.5 text-ink-2" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3.5 17h13M4.5 17v-5.5a1.5 1.5 0 011.5-1.5h8a1.5 1.5 0 011.5 1.5V17M4.5 13.5c1 .8 2.2.8 3 0s2.2-.8 3 0 2.2.8 3 0 1.5-.5 2 0M10 10V7.5M10 5.5c-.8-.7-.8-1.6 0-2.5.8.9.8 1.8 0 2.5z"/></svg>
                 {{ __('team_calendar.birthday') }}
             </li>
+            @if ($showEvents)
+                <li class="inline-flex items-center gap-1.5">
+                    <span class="inline-flex h-3.5 w-4 items-center justify-center rounded-[3px] border border-line-soft border-s-[3px] border-s-ink bg-card text-ink" aria-hidden="true"></span>
+                    {{ __('team_calendar.events.legend') }}
+                </li>
+            @endif
         </ul>
     </div>
     <p class="sr-only">{{ __('team_calendar.legend') }}</p>
 
-    <div wire:loading.class="opacity-60" wire:target="move,jumpTo,goToday,view,scope,status,cityId" class="transition-opacity">
+    <div wire:loading.class="opacity-60" wire:target="move,jumpTo,goToday,view,scope,status,cityId,showEvents" class="transition-opacity">
         @if ($failed)
             <div class="rounded-surface border border-line-soft bg-card p-6 text-center" role="alert">
                 <p class="text-body text-ink">{{ __('team_calendar.failed') }}</p>
@@ -178,6 +189,7 @@
                                     $isHoliday = $day['is_holiday'] || $dayHolidays !== [];
                                     $awayCount = $day['away'] + $day['partial'];
                                     $dayBirthdays = $birthdays[$day['date']] ?? [];
+                                    $dayEvents = $events[$day['date']] ?? [];
                                     $requestHere = $requestUrl !== null && $day['date'] >= $today;
                                     $cellClasses = [
                                         'border-line-soft',
@@ -237,7 +249,7 @@
                                     </div>
                                 </div>
 
-                                @if ($dayHolidays !== [] || $day['is_holiday'] || $dayBirthdays !== [])
+                                @if ($dayHolidays !== [] || $day['is_holiday'] || $dayBirthdays !== [] || $dayEvents !== [])
                                     <div class="flex min-w-0 flex-col gap-1 px-2" style="grid-column: {{ $col }}; grid-row: 2">
                                         @foreach ($dayHolidays as $holiday)
                                             @if ($holiday['editable'])
@@ -259,6 +271,11 @@
                                         @endif
                                         @foreach ($dayBirthdays as $person)
                                             @include('livewire.team.partials.birthday', ['person' => $person])
+                                        @endforeach
+                                        @foreach ($dayEvents as $event)
+                                            <div wire:key="grid-{{ $event['key'] }}" class="min-w-0">
+                                                @include('livewire.team.partials.event', ['event' => $event])
+                                            </div>
                                         @endforeach
                                     </div>
                                 @endif
@@ -382,6 +399,16 @@
                                                 @include('livewire.team.partials.birthday', ['person' => $person, 'inline' => true])
                                             @endforeach
                                         </div>
+                                    @endif
+
+                                    @if (($events[$day['date']] ?? []) !== [])
+                                        <ul class="mt-2 flex flex-col gap-1.5" aria-label="{{ __('team_calendar.event') }}">
+                                            @foreach ($events[$day['date']] as $event)
+                                                <li wire:key="list-{{ $event['key'] }}" class="min-w-0">
+                                                    @include('livewire.team.partials.event', ['event' => $event, 'inline' => true])
+                                                </li>
+                                            @endforeach
+                                        </ul>
                                     @endif
 
                                     @if ($day['members'] === [])

@@ -252,6 +252,23 @@ class CalendarFeedTest extends TestCase
         $this->assertSame(['2026-12-05', '2026-12-06'], array_keys($news));
     }
 
+    public function test_an_event_carries_its_time_on_its_first_day_only_and_none_when_whole_day(): void
+    {
+        $user = $this->makeUser($this->dms, 'employee');
+        $this->makeContractFor($user->profile);
+        $this->news('Retreat', '2026-11-10', attributes: ['event_starts_at' => '2026-11-10 09:30:00', 'event_ends_at' => '2026-11-11 15:00:00']);
+        $this->news('Workshop', '2026-11-12', attributes: ['event_starts_at' => '2026-11-12 10:00:00', 'event_ends_at' => '2026-11-12 12:00:00']);
+        $this->news('Open day', '2026-11-13', attributes: ['event_starts_at' => '2026-11-13 00:00:00']);
+
+        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
+
+        $this->assertSame('09:30', $news['2026-11-10'][0]['detail']);
+        $this->assertNull($news['2026-11-11'][0]['detail']);
+        $this->assertSame('10:00–12:00', $news['2026-11-12'][0]['detail']);
+        $this->assertNull($news['2026-11-13'][0]['detail']);
+        $this->assertNotSame($news['2026-11-10'][0]['key'], $news['2026-11-11'][0]['key']);
+    }
+
     public function test_there_are_no_interviews_without_a_recruitment_module(): void
     {
         // Recruitment does not exist on this branch, so no role is ever given interviews.

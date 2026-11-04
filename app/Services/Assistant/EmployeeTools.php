@@ -58,7 +58,7 @@ class EmployeeTools
         'get_my_salary' => "The employee's own pay on their current contract: amount (or pay tiers), currency and period.",
         'get_my_items' => 'The items handed to the employee (laptop, phone, badge, keys…) as the My items page lists them: item, brand, model, serial, status (on hold, delivered, returned) and dates.',
         'get_holidays' => "The public holidays and one-off grants that apply to the employee's own project and governorate in the coming days (default 60, up to 366): name, first and last day, length. The birthday holiday is personal and not included.",
-        'get_news' => 'The latest live news, announcements and events addressed to this employee, newest publication first: title, type, publication date, event date and time (events), what it is about and a short excerpt.',
+        'get_news' => 'The latest live news, announcements and events addressed to this employee, newest publication first: title, type, publication date, event date and time (events), its tags (what it is about) and a short excerpt.',
         'get_app_pages' => 'The pages of this app the employee may open, with their menu area and link, plus the "New …" actions they may start. Use it to answer "where do I…", "how do I open…" and to give a link.',
         'get_my_inbox' => 'What waits on the employee in their work inbox right now (leave requests to decide or review, items to hand out or take back, profile changes to approve): counts and the first rows, as the inbox page shows them.',
         'get_team_absences' => 'Who is away on APPROVED leave on a day or between two dates, among the people this user may see on the team calendar (the same people and the same details): name, position, dates and leave type. Pending or refused requests are never included, and nothing else about anyone (no reason, balance or pay).',
@@ -631,7 +631,7 @@ class EmployeeTools
     /**
      * The live news, announcements and events the user is in the audience
      * of (NewsFeed::live: no drafts, scheduled or expired items), newest
-     * publication first. 'about' is the Related To subject, not the audience.
+     * publication first. 'tags' say what an item is about, never who sees it.
      */
     private function news(User $user, array $args): array
     {
@@ -650,7 +650,7 @@ class EmployeeTools
                 'published' => $item->published_at?->format('Y-m-d'),
                 'event_date' => $item->isEvent() ? $item->event_starts_at?->format('Y-m-d H:i') : null,
                 'event_ends' => $item->isEvent() ? $item->event_ends_at?->format('Y-m-d H:i') : null,
-                'about' => $item->newsable_name,
+                'tags' => $item->tagNames(),
                 // At most 300 characters, ellipsis included.
                 'excerpt' => Str::limit($this->plain($item->localizedDescription()), 299, '…'),
             ], fn ($value) => filled($value)))->values()->all(),

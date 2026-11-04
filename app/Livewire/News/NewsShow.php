@@ -9,7 +9,6 @@ use App\Services\News\NewsFeed;
 use App\Services\News\Publishing\ExternalPublishing;
 use App\Support\News\NewsAccess;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -50,7 +49,7 @@ class NewsShow extends Component
         $this->canManage = NewsAccess::canManage($user, $news);
         $this->locale = $this->normalizeLocale(app()->getLocale());
 
-        $news->loadMissing(['newsable', 'creator.profile', 'media', 'audienceTargets']);
+        $news->loadMissing(['tags', 'creator.profile', 'media', 'audienceTargets']);
         $this->news = $news;
     }
 
@@ -63,7 +62,7 @@ class NewsShow extends Component
     public function render()
     {
         $this->locale = $this->normalizeLocale($this->locale);
-        $this->news->loadMissing(['newsable', 'creator.profile', 'media', 'audienceTargets']);
+        $this->news->loadMissing(['tags', 'creator.profile', 'media', 'audienceTargets']);
 
         $state = $this->news->state();
         $isReleased = in_array($state, [NewsState::Published, NewsState::Expired], true);
@@ -90,7 +89,6 @@ class NewsShow extends Component
     {
         $news = $this->news;
         $trans = fn (string $key, array $replace = []) => __($key, $replace, $locale);
-        $related = $news->relatedTo();
         $timing = $news->eventTiming();
         $author = $news->creator?->profile instanceof Employee
             ? $news->creator->profile->nameForLocale($locale)
@@ -116,11 +114,7 @@ class NewsShow extends Component
             'eventStart' => $this->formatMoment($news->event_starts_at, $locale),
             'eventEnd' => $this->formatMoment($news->event_ends_at, $locale),
             'eventIso' => $news->event_starts_at?->toIso8601String(),
-            'relatedIcon' => $related->icon(),
-            'relatedKind' => $trans('news.related.'.$related->value),
-            'relatedEntity' => $related->needsEntity() && $news->newsable
-                ? $this->entityName($news->newsable, $locale)
-                : null,
+            'tags' => $news->tagNames(),
             'authorName' => filled($author) ? $author : null,
             't' => $trans,
         ];
@@ -166,20 +160,10 @@ class NewsShow extends Component
             : $moment->translatedFormat('l j F Y, H:i');
     }
 
-    private function entityName(Model $entity, string $locale): string
-    {
-        if (method_exists($entity, 'nameForLocale')) {
-            return (string) $entity->nameForLocale($locale);
-        }
-
-        $localized = $entity->getAttribute('name_'.$locale);
-
-        return (string) (filled($localized) ? $localized : ($entity->name ?? __('general.na')));
-    }
-
     /**
-     * Up to three other live items the viewer may see: same Related To first,
-     * then upcoming events, then the latest news.
+     * Up to three other live items the viewer may see: those sharing a tag
+     * with this one first (most shared tags, then newest), then upcoming
+     * events, then the latest news.
      */
     private function related(): Collection
     {
@@ -188,11 +172,21 @@ class NewsShow extends Component
         $exclude = [$this->news->getKey()];
         $items = collect();
 
-        if ($this->news->newsable_type && $this->news->newsable_id) {
+        $tags = array_map('mb_strtolower', $this->news->tagNames());
+
+        if ($tags !== []) {
+            $placeholders = implode(', ', array_fill(0, count($tags), '?'));
+
             $items = $feed->live($user)
                 ->whereKeyNot($exclude)
-                ->where('news.newsable_type', $this->news->newsable_type)
-                ->where('news.newsable_id', $this->news->newsable_id)
+                ->whereExists(fn ($sub) => $sub->selectRaw('1')
+                    ->from('news_tags')
+                    ->whereColumn('news_tags.news_id', 'news.id')
+                    ->whereRaw('LOWER(tag) IN ('.$placeholders.')', $tags))
+                ->orderByDesc(fn ($sub) => $sub->selectRaw('COUNT(*)')
+                    ->from('news_tags')
+                    ->whereColumn('news_tags.news_id', 'news.id')
+                    ->whereRaw('LOWER(tag) IN ('.$placeholders.')', $tags))
                 ->orderByDesc('news.published_at')
                 ->limit(3)
                 ->get();

@@ -21,8 +21,8 @@ use Tests\Concerns\CreatesNews;
 use Tests\TestCase;
 
 /**
- * Audience decides who may see an item, in SQL. Related To (newsable_*) is
- * only what the item is about and never restricts visibility.
+ * Audience decides who may see an item, in SQL. Tags are only what the item
+ * is about and never restrict visibility.
  *
  * Two viewers sit on deliberately disjoint coordinates: a Damascus employee
  * (city, center, program, department of their contract's position) and an
@@ -205,30 +205,37 @@ class NewsAudienceTest extends TestCase
         );
     }
 
-    public function test_related_to_never_restricts_visibility(): void
+    public function test_tags_never_restrict_visibility(): void
     {
-        $news = $this->makeNews([
-            'newsable_type' => City::class,
-            'newsable_id' => $this->alp->id,
-        ]);
+        $news = $this->makeNews();
+        $news->syncTags([$this->alp->name_en, 'Study Zone']);
 
         $this->assertSame(AudienceType::All, $news->audience_type);
         $this->assertTrue($news->isVisibleTo($this->dmsUser->fresh()));
         $this->assertTrue($news->isVisibleTo($this->alpEmployee->fresh()));
     }
 
-    public function test_audience_decides_even_when_related_to_names_another_city(): void
+    public function test_audience_decides_even_when_a_tag_names_another_city(): void
     {
-        $news = $this->makeNewsFor(AudienceType::Cities, [$this->dms->id], [
+        $news = $this->makeNewsFor(AudienceType::Cities, [$this->dms->id]);
+        $news->syncTags([$this->alp->name_en]);
+
+        $this->assertTrue($news->isVisibleTo($this->dmsUser->fresh()));
+        $this->assertFalse($news->isVisibleTo($this->alpEmployee->fresh()));
+        // The tag is kept as the subject.
+        $this->assertSame([$this->alp->name_en], $news->fresh()->tagNames());
+    }
+
+    public function test_a_legacy_related_to_never_restricts_visibility(): void
+    {
+        // Old rows keep newsable_* (no longer written or read by the app).
+        $news = $this->makeNews([
             'newsable_type' => City::class,
             'newsable_id' => $this->alp->id,
         ]);
 
         $this->assertTrue($news->isVisibleTo($this->dmsUser->fresh()));
-        $this->assertFalse($news->isVisibleTo($this->alpEmployee->fresh()));
-        // Related To is kept as the subject.
-        $this->assertSame(City::class, $news->newsable_type);
-        $this->assertSame($this->alp->id, (int) $news->newsable_id);
+        $this->assertTrue($news->isVisibleTo($this->alpEmployee->fresh()));
     }
 
     public function test_the_feed_applies_the_audience(): void

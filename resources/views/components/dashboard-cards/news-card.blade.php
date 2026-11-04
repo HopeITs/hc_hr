@@ -20,6 +20,9 @@
             <article class="pb-3 border-b border-b-line-soft last:border-b-0 last:pb-0" wire:key="dashboard-news-{{ $news->id }}">
                 <div class="flex flex-wrap items-center gap-2">
                     <x-tag variant="soft" :icon="$news->type->icon()" :label="$news->type->label()" />
+                    @if ($firstTag = ($news->tagNames()[0] ?? null))
+                        <x-tag variant="soft" icon="tag" class="max-w-40 truncate"><bdi>{{ $firstTag }}</bdi></x-tag>
+                    @endif
                     <time class="text-caption font-light text-ink-3"
                         datetime="{{ $news->published_at?->toIso8601String() }}"
                         title="{{ $news->published_at?->translatedFormat('j F Y, H:i') }}">

@@ -4,7 +4,6 @@ namespace App\Services\Assistant\Drafts;
 
 use App\Enums\News\AudienceType;
 use App\Enums\News\NewsType;
-use App\Enums\News\RelatedTo;
 use App\Livewire\Forms\NewsForm;
 use App\Models\Center;
 use App\Models\City;
@@ -29,6 +28,8 @@ use Livewire\Component;
  * activity log entry are exactly what the page's Publish button writes.
  * Drafts from the chat are always published immediately; images and
  * scheduling are done later on the item's edit page.
+ *
+ * Tags are free text (what the item is about) and never decide who sees it.
  *
  * Who may create mirrors NewsCreate: the news.create permission (the
  * route's middleware) and NewsAccess::canCreate().
@@ -59,13 +60,12 @@ class NewsDraft implements RecordDraft
             return [];
         }
 
-        $related = array_column(RelatedTo::cases(), 'value');
         $audiences = array_column(AudienceType::cases(), 'value');
 
         return [
             [
                 'name' => 'get_news_options',
-                'description' => 'The ids a News & Events item can use, for two separate choices: related_to (what the item is ABOUT: a city, center, program/project, department or employee; it never limits who sees it) and audience (WHO may see it: everyone, or selected cities, centers, programs, departments or employees). Lists cities, centers, programs and departments; employees only when employee_search is given. Call it before drafting an item that is about, or addressed to, something specific.',
+                'description' => 'The ids a News & Events item can use for its audience (WHO may see it: everyone, or selected cities, centers, programs, departments or employees), plus suggested tags (tags already in use and city, center and program names). Lists cities, centers, programs and departments; employees only when employee_search is given. Call it before drafting an item addressed to something specific.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -75,7 +75,7 @@ class NewsDraft implements RecordDraft
             ],
             [
                 'name' => 'draft_news',
-                'description' => 'Checks a new News & Events item with every rule of the news page and prepares it for the user to confirm. It never publishes anything by itself; on the user\'s confirmation the item is published immediately. The Arabic title and description are required: write them in Arabic (translate the user\'s text if needed) and show them to the user. Keep related_to (the subject) and the audience (who sees it) apart: an item about the Aleppo center can still be for all employees. Images and scheduling cannot be set from the chat; the user can do both later on the item\'s edit page. Returns either the errors to tell the user, or the checked draft. Only the user can create it, with the Confirm button shown under your answer.',
+                'description' => 'Checks a new News & Events item with every rule of the news page and prepares it for the user to confirm. It never publishes anything by itself; on the user\'s confirmation the item is published immediately. The Arabic title and description are required: write them in Arabic (translate the user\'s text if needed) and show them to the user. Keep tags (what it is about) and the audience (who sees it) apart: an item tagged "Aleppo" can still be for all employees. Images and scheduling cannot be set from the chat; the user can do both later on the item\'s edit page. Returns either the errors to tell the user, or the checked draft. Only the user can create it, with the Confirm button shown under your answer.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -87,8 +87,7 @@ class NewsDraft implements RecordDraft
                         'event_starts_at' => ['type' => 'string', 'description' => 'Events only, and then required: when the event starts, as YYYY-MM-DD HH:MM (local time). Ask for it if the user did not say.'],
                         'event_ends_at' => ['type' => 'string', 'description' => 'Events only, optional: when it ends, as YYYY-MM-DD HH:MM, not before the start.'],
                         'display_until' => ['type' => 'string', 'description' => 'Optional: when the item leaves the active feeds, as YYYY-MM-DD (end of that day) or YYYY-MM-DD HH:MM. Must be in the future and, for an event, not before it starts.'],
-                        'related_to' => ['type' => 'string', 'enum' => $related, 'description' => 'What the item is about: organization (the default, no id) or one city, center, program, department or employee. It does not decide who sees it.'],
-                        'related_id' => ['type' => 'integer', 'description' => 'Required unless related_to is organization: the id from get_news_options.'],
+                        'tags' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: up to '.News::MAX_TAGS.' short labels describing what the item is about (e.g. "Aleppo", "Study Zone", "Training"), at most '.News::MAX_TAG_LENGTH.' characters each. Prefer the tag_suggestions from get_news_options when one fits; any text is allowed. Tags never decide who sees the item.'],
                         'audience_type' => ['type' => 'string', 'enum' => $audiences, 'description' => 'Who may see the item: all (every employee, the default) or selected cities, centers, programs, departments or employees.'],
                         'audience_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Required unless audience_type is all: at least one id of that kind, from get_news_options.'],
                     ],
@@ -126,7 +125,9 @@ class NewsDraft implements RecordDraft
                 __('assistant-news.fields.description_en') => filled($proposal['description_en'] ?? null) ? Str::limit((string) $proposal['description_en'], 400) : null,
                 __('assistant-news.fields.event') => $proposal['event'] ?? null,
                 __('assistant-news.fields.display_until') => $proposal['display_until'] ?? null,
-                __('assistant-news.fields.related') => $proposal['related'] ?? null,
+                __('assistant-news.fields.tags') => is_array($proposal['tags'] ?? null) && $proposal['tags'] !== []
+                    ? implode(app()->getLocale() === 'ar' ? '، ' : ', ', array_map('strval', $proposal['tags']))
+                    : null,
                 __('assistant-news.fields.audience') => $proposal['audience'] ?? null,
                 __('assistant-news.fields.publication') => __('assistant-news.publish_now'),
             ], fn ($value) => filled($value)),
@@ -188,14 +189,14 @@ class NewsDraft implements RecordDraft
         }
 
         return array_filter([
-            'related_to' => array_column(RelatedTo::cases(), 'value'),
             'audience_types' => array_column(AudienceType::cases(), 'value'),
             ...$lists,
             'employees' => $search !== ''
                 ? $employees->take(self::MAX_EMPLOYEES)->map(fn ($e) => ['id' => $e->id, 'name' => $e->name])->values()->all()
                 : null,
             'employees_truncated' => $employees->count() > self::MAX_EMPLOYEES ?: null,
-            'note' => 'Use only these ids, for related_id (one, matching related_to) and audience_ids (one or more, matching audience_type). related_to organization and audience_type all need no id.',
+            'tag_suggestions' => NewsForm::tagSuggestions(),
+            'note' => 'Use only these ids, for audience_ids (one or more, matching audience_type). audience_type all needs no id. Tags are free text; tag_suggestions only lists common ones.',
         ], fn ($value) => $value !== null);
     }
 
@@ -258,11 +259,16 @@ class NewsDraft implements RecordDraft
         $form->event_ends_at = $this->text($input['event_ends_at'] ?? '') ?: null;
         $form->display_until = $this->text($input['display_until'] ?? '') ?: null;
 
-        // An unknown name is left as it is, for the form's own rule to refuse.
-        $form->related_to = $this->text($input['related_to'] ?? '') ?: RelatedTo::Organization->value;
-        $id = $input['related_id'] ?? '';
-        $form->related_id = is_scalar($id) ? (string) $id : '';
+        // Tags: a list of strings (a single comma-separated string is split).
+        $tags = $input['tags'] ?? [];
+        if (is_string($tags)) {
+            $tags = preg_split('/[,،]/u', $tags) ?: [];
+        }
+        $form->tags = is_array($tags)
+            ? array_values(array_map(fn ($v) => (string) $v, array_filter($tags, 'is_scalar')))
+            : [];
 
+        // An unknown name is left as it is, for the form's own rule to refuse.
         $form->audience_type = $this->text($input['audience_type'] ?? '') ?: AudienceType::All->value;
         $ids = $input['audience_ids'] ?? [];
         $form->audience_ids = is_array($ids)
@@ -281,10 +287,8 @@ class NewsDraft implements RecordDraft
     private function proposal(NewsForm $form): array
     {
         $type = $form->typeEnum();
-        $related = $form->relatedEnum();
         $audience = $form->audienceEnum();
 
-        $relatedEntity = $related->needsEntity() ? $form->entities()->firstWhere('id', (int) $form->related_id) : null;
         $audienceNames = $audience->needsTargets()
             ? $form->audienceOptions()->whereIn('id', array_map('intval', $form->audience_ids))->pluck('name')
             : collect();
@@ -303,13 +307,11 @@ class NewsDraft implements RecordDraft
             'event_ends_at' => $end?->format('Y-m-d H:i'),
             // As given: a plain date keeps meaning "until the end of that day" on replay.
             'display_until' => $until ? $form->display_until : null,
-            'related_to' => $related->value,
-            'related_id' => $relatedEntity ? (int) $relatedEntity->id : null,
+            'tags' => News::normalizeTags($form->tags),
             'audience_type' => $audience->value,
             'audience_ids' => array_map('intval', $form->audience_ids),
             // For the card only (checkedForm() ignores them).
             'event' => $start ? $start->format('Y-m-d H:i').($end ? ' – '.$end->format('Y-m-d H:i') : '') : null,
-            'related' => $relatedEntity ? $related->label().': '.$relatedEntity->name : $related->label(),
             'audience' => $audience->needsTargets()
                 ? $audience->label().': '.$audienceNames->implode('، ')
                 : $audience->label(),
@@ -319,7 +321,7 @@ class NewsDraft implements RecordDraft
     /** @return array<string, string> */
     private function attributes(): array
     {
-        return collect(['type', 'title_ar', 'title_en', 'description_ar', 'description_en', 'event_starts_at', 'event_ends_at', 'display_until', 'related_to', 'related_id', 'audience_type', 'audience_ids'])
+        return collect(['type', 'title_ar', 'title_en', 'description_ar', 'description_en', 'event_starts_at', 'event_ends_at', 'display_until', 'tags', 'audience_type', 'audience_ids'])
             ->mapWithKeys(fn (string $field) => [$field => __('assistant-news.fields.'.$field)])
             ->all();
     }

@@ -6,7 +6,6 @@ use App\Enums\News\AudienceType;
 use App\Enums\News\NewsState;
 use App\Enums\News\NewsStatus;
 use App\Enums\News\NewsType;
-use App\Enums\News\RelatedTo;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
@@ -24,10 +23,11 @@ use Throwable;
 
 /**
  * The News & Events create/edit form. Six concepts, kept apart (see News):
- * type, Related To (subject only), Audience (who may see it), Publish At,
- * the event's own dates and Display until. Every option a dropdown offers
- * comes from entities() / audienceOptions(), and validation accepts only
- * those ids, so the browser can never widen the lists.
+ * type, tags (what it is about, free text, optional), Audience (who may see
+ * it), Publish At, the event's own dates and Display until. Every audience
+ * option comes from audienceOptions(), and validation accepts only those
+ * ids, so the browser can never widen the list. Tags are free text:
+ * tagSuggestions() only helps typing them.
  *
  * Date fields hold the browser's datetime-local strings (Y-m-d\TH:i), read
  * in config('app.timezone').
@@ -54,9 +54,8 @@ class NewsForm extends Form
 
     public mixed $photo = null;
 
-    public string $related_to = 'organization';
-
-    public string|int|null $related_id = '';
+    /** @var list<string> free labels, see News::normalizeTags() */
+    public array $tags = [];
 
     public string $audience_type = 'all';
 
@@ -85,11 +84,6 @@ class NewsForm extends Form
         return NewsType::tryFrom($this->type) ?? NewsType::News;
     }
 
-    public function relatedEnum(): RelatedTo
-    {
-        return RelatedTo::tryFrom($this->related_to) ?? RelatedTo::Organization;
-    }
-
     public function audienceEnum(): AudienceType
     {
         return AudienceType::tryFrom($this->audience_type) ?? AudienceType::All;
@@ -107,7 +101,6 @@ class NewsForm extends Form
     public function rules(): array
     {
         $isEvent = $this->typeEnum()->isEvent();
-        $related = RelatedTo::tryFrom($this->related_to);
         $audience = AudienceType::tryFrom($this->audience_type);
 
         return [
@@ -117,10 +110,8 @@ class NewsForm extends Form
             'description_ar' => ['required', 'string'],
             'description_en' => ['nullable', 'string'],
 
-            'related_to' => ['required', Rule::enum(RelatedTo::class)],
-            'related_id' => $related?->needsEntity()
-                ? ['required', 'integer', Rule::in($this->entityIds($related))]
-                : ['nullable'],
+            'tags' => ['nullable', 'array', 'max:'.News::MAX_TAGS],
+            'tags.*' => ['string', 'max:'.News::MAX_TAG_LENGTH],
 
             'audience_type' => ['required', Rule::enum(AudienceType::class)],
             'audience_ids' => $audience?->needsTargets()
@@ -153,8 +144,9 @@ class NewsForm extends Form
     public function messages(): array
     {
         return [
-            'related_id.required' => __('news.form.errors.related_required'),
-            'related_id.in' => __('news.form.errors.related_offered'),
+            'tags.max' => __('news.form.errors.tags_max', ['max' => News::MAX_TAGS]),
+            'tags.*.max' => __('news.form.errors.tag_length', ['max' => News::MAX_TAG_LENGTH]),
+            'tags.*.string' => __('news.form.errors.tag_length', ['max' => News::MAX_TAG_LENGTH]),
             'audience_ids.required' => __('news.form.errors.audience_required'),
             'audience_ids.min' => __('news.form.errors.audience_required'),
             'audience_ids.*.in' => __('news.form.errors.audience_offered'),
@@ -173,8 +165,7 @@ class NewsForm extends Form
             'title_en' => __('news.form.fields.title_en'),
             'description_ar' => __('news.form.fields.description_ar'),
             'description_en' => __('news.form.fields.description_en'),
-            'related_to' => __('news.form.fields.related_to'),
-            'related_id' => __('news.form.fields.related_id'),
+            'tags' => __('news.form.fields.tags'),
             'audience_type' => __('news.form.fields.audience_type'),
             'audience_ids' => __('news.form.fields.audience_ids'),
             'publish_at' => __('news.form.fields.publish_at'),
@@ -219,10 +210,33 @@ class NewsForm extends Form
     // Options
     // ------------------------------------------------------------------
 
-    /** What the Related To entity dropdown offers for $related (default: the chosen one). */
-    public function entities(?RelatedTo $related = null): Collection
+    /**
+     * What the tag input suggests: the most used tags, then the names of the
+     * active cities, centers and programs. Suggestions only: any text is a
+     * valid tag.
+     *
+     * @return list<string>
+     */
+    public static function tagSuggestions(int $popular = 30): array
     {
-        return self::optionsFor(($related ?? $this->relatedEnum())->modelClass());
+        $names = collect()
+            ->concat(City::query()->where('is_active', true)->get())
+            ->concat(Center::query()->where('is_active', true)->get())
+            ->concat(Program::query()->where('is_active', true)->get())
+            ->map(fn ($entity) => (string) ($entity->name ?? ''))
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE);
+
+        $seen = [];
+
+        foreach ([...News::popularTags($popular), ...$names->all()] as $tag) {
+            $tag = trim((string) preg_replace('/\s+/u', ' ', $tag));
+
+            if ($tag !== '' && mb_strlen($tag) <= News::MAX_TAG_LENGTH) {
+                $seen[mb_strtolower($tag)] ??= $tag;
+            }
+        }
+
+        return array_values($seen);
     }
 
     /** What the audience list offers for $audience (default: the chosen one). */
@@ -257,11 +271,6 @@ class NewsForm extends Form
     // Dependent selections
     // ------------------------------------------------------------------
 
-    public function updatedRelatedTo(): void
-    {
-        $this->related_id = '';
-    }
-
     public function updatedAudienceType(): void
     {
         $this->audience_ids = [];
@@ -291,8 +300,7 @@ class NewsForm extends Form
             'title_en' => $news->title_en,
             'description_ar' => $news->description_ar ?? '',
             'description_en' => $news->description_en,
-            'related_to' => $news->relatedTo()->value,
-            'related_id' => $news->relatedTo()->needsEntity() ? (string) ($news->newsable_id ?? '') : '',
+            'tags' => $news->tagNames(),
             'audience_type' => $news->audience_type?->value ?? AudienceType::All->value,
             'audience_ids' => $news->audienceTargets()->pluck('target_id')->map(fn ($id) => (string) $id)->all(),
             'publish_mode' => $scheduled ? self::MODE_SCHEDULE : self::MODE_NOW,
@@ -336,7 +344,6 @@ class NewsForm extends Form
             $news->published_at = $publishAt ?? ($alreadyOut ? $news->published_at : now());
         }
 
-        $related = $this->relatedEnum();
         $isEvent = $this->typeEnum()->isEvent();
 
         $news->fill([
@@ -345,8 +352,6 @@ class NewsForm extends Form
             'title_en' => $this->title_en ?: null,
             'description_ar' => $this->description_ar,
             'description_en' => $this->description_en ?: null,
-            'newsable_type' => $related->modelClass(),
-            'newsable_id' => $related->needsEntity() ? (int) $this->related_id : null,
             'event_starts_at' => $isEvent ? $this->parseMoment($this->event_starts_at) : null,
             'event_ends_at' => $isEvent ? $this->parseMoment($this->event_ends_at) : null,
             'display_until' => $this->parseDisplayUntil($this->display_until),
@@ -356,8 +361,16 @@ class NewsForm extends Form
             $news->event_date = null;
         }
 
+        // The legacy Related To is no longer written: a new item has none,
+        // and an old item keeps what it had (its tag was made from it).
+        if ($isNew) {
+            $news->newsable_type = null;
+            $news->newsable_id = null;
+        }
+
         // syncAudience() saves the item (with the audience type) first.
         $news->syncAudience($this->audienceEnum(), $this->audience_ids);
+        $this->tags = $news->syncTags($this->tags);
 
         if ($this->photo instanceof TemporaryUploadedFile) {
             $news->clearMediaCollection('news-image');
@@ -432,7 +445,7 @@ class NewsForm extends Form
         };
     }
 
-    /** Values that do not apply to the chosen type/related/audience are cleared, never stored. */
+    /** Values that do not apply to the chosen type/audience are cleared, never stored. */
     private function normalize(): void
     {
         if (! $this->typeEnum()->isEvent()) {
@@ -440,9 +453,7 @@ class NewsForm extends Form
             $this->event_ends_at = null;
         }
 
-        if (! RelatedTo::tryFrom($this->related_to)?->needsEntity()) {
-            $this->related_id = '';
-        }
+        $this->tags = $this->cleanTags($this->tags);
 
         if (! AudienceType::tryFrom($this->audience_type)?->needsTargets()) {
             $this->audience_ids = [];
@@ -458,10 +469,36 @@ class NewsForm extends Form
         }
     }
 
-    /** @return list<int> */
-    private function entityIds(RelatedTo $related): array
+    /**
+     * Trimmed, spaces collapsed, blanks and case-insensitive duplicates
+     * dropped. Length and count are left for the rules to report.
+     *
+     * @return list<mixed>
+     */
+    private function cleanTags(mixed $tags): array
     {
-        return $this->entities($related)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if (! is_array($tags)) {
+            return is_scalar($tags) && trim((string) $tags) !== '' ? [trim((string) $tags)] : [];
+        }
+
+        $clean = [];
+
+        foreach ($tags as $tag) {
+            if (! is_scalar($tag)) {
+                // Left in place for the tags.* rule to refuse.
+                $clean[] = $tag;
+
+                continue;
+            }
+
+            $tag = trim((string) preg_replace('/\s+/u', ' ', (string) $tag));
+
+            if ($tag !== '') {
+                $clean[mb_strtolower($tag)] ??= $tag;
+            }
+        }
+
+        return array_values($clean);
     }
 
     /** @return list<int> */

@@ -66,6 +66,14 @@ return [
     'request_leave_on' => 'Request leave on :date',
     'add_holiday_on' => 'Add a holiday on :date',
     'legend' => 'Accepted leave has a solid border and a tick; pending leave has a dashed border and a clock. Part-day leave is marked with a half circle.',
+    'event' => 'Event',
+    'events' => [
+        'toggle' => 'Show events',
+        'legend' => 'Organization event',
+        'open' => 'Open event: :title',
+        'continues' => 'continues',
+        'all_day' => 'All day',
+    ],
 
     'hint' => [
         'colleagues_away' => '{1} 1 colleague is already away on some of these days.|[2,*] :count colleagues are already away on some of these days.',

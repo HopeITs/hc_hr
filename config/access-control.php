@@ -459,9 +459,10 @@ return [
         // for a new item, canManage for the edited one). openPreview() runs the same
         // check, then only validates and renders: it never writes; closePreview()
         // only hides it. The updatedForm* hooks only clear dependent form
-        // selections; they neither read a record nor persist data.
+        // selections; they neither read a record nor persist data. Tags are added
+        // and removed in the browser only (an entangled array), no server method.
         'news.news-create' => ['saveDraft', 'publish', 'openPreview', 'closePreview',
-            'updatedFormRelatedTo', 'updatedFormAudienceType', 'updatedFormType', 'updatedFormPublishMode',
+            'updatedFormAudienceType', 'updatedFormType', 'updatedFormPublishMode',
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
         // The details page / preview is read-only. updatedLocale() is UI-only:

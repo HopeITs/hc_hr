@@ -58,12 +58,6 @@ class NewsCreate extends Component
     // Dependent selections (no reads of records, no writes)
     // ------------------------------------------------------------------
 
-    public function updatedFormRelatedTo(): void
-    {
-        $this->form->updatedRelatedTo();
-        $this->resetErrorBag(['form.related_id']);
-    }
-
     public function updatedFormAudienceType(): void
     {
         $this->form->updatedAudienceType();
@@ -115,7 +109,7 @@ class NewsCreate extends Component
     public function render()
     {
         return view('livewire.news.news-create', [
-            'relatedOptions' => $this->form->relatedEnum()->needsEntity() ? $this->form->entities() : collect(),
+            'tagSuggestions' => NewsForm::tagSuggestions(),
             'audienceOptions' => $this->form->audienceEnum()->needsTargets() ? $this->form->audienceOptions() : collect(),
             'currentState' => $this->news?->exists ? $this->news->state() : null,
             'preview' => $this->previewing ? $this->previewProps() : null,
@@ -160,7 +154,6 @@ class NewsCreate extends Component
     {
         $form = $this->form;
         $type = $form->typeEnum();
-        $related = $form->relatedEnum();
         $audience = $form->audienceEnum();
         $publishAt = $form->isScheduled() ? $form->parseMoment($form->publish_at) : null;
         $alreadyOut = $this->news?->exists
@@ -169,9 +162,7 @@ class NewsCreate extends Component
         $publishedAt = $publishAt ?? ($alreadyOut ? $this->news->published_at : now());
         $scheduled = $publishedAt->isFuture();
 
-        $relatedEntity = $related->needsEntity()
-            ? $form->entities()->firstWhere('id', (int) $form->related_id)
-            : null;
+        $tags = News::normalizeTags($form->tags);
         $audienceNames = $audience->needsTargets()
             ? $form->audienceOptions()->whereIn('id', array_map('intval', $form->audience_ids))->pluck('name')->filter()->values()
             : collect();
@@ -192,7 +183,7 @@ class NewsCreate extends Component
 
         foreach (['en', 'ar'] as $locale) {
             $props[$locale] = $this->inLocale($locale, function () use (
-                $locale, $form, $type, $related, $audience, $publishedAt, $scheduled, $relatedEntity, $audienceNames, $coverUrl, $author
+                $locale, $form, $type, $audience, $publishedAt, $scheduled, $tags, $audienceNames, $coverUrl, $author
             ) {
                 $title = $locale === 'ar' ? ($form->title_ar ?: $form->title_en) : ($form->title_en ?: $form->title_ar);
                 $description = $locale === 'ar' ? ($form->description_ar ?: $form->description_en) : ($form->description_en ?: $form->description_ar);
@@ -217,10 +208,7 @@ class NewsCreate extends Component
                     'eventLabel' => $type->isEvent()
                         ? self::eventLabel($form->parseMoment($form->event_starts_at), $form->parseMoment($form->event_ends_at))
                         : null,
-                    'relatedLabel' => $relatedEntity
-                        ? $related->label().': '.$relatedEntity->name
-                        : $related->label(),
-                    'relatedIcon' => $related->icon(),
+                    'tags' => $tags,
                     'audienceLabel' => $audience->needsTargets()
                         ? $audience->label().': '.$shown.($more > 0 ? ' +'.$more : '')
                         : $audience->label(),

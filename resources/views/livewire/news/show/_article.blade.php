@@ -3,7 +3,8 @@
     switch) without changing the app locale. The wrapper carries that
     language's direction; the title and body carry the direction of the text
     actually shown ($news->textDirection), since a missing translation falls
-    back to the other language.
+    back to the other language. No cover image means no image area at all:
+    the card simply starts with its text.
 --}}
 @php($t = $article['t'])
 
@@ -12,12 +13,6 @@
     @if ($article['coverUrl'])
         <img src="{{ $article['coverUrl'] }}" alt="" loading="eager"
             class="block aspect-[16/9] w-full bg-surface object-cover" />
-    @else
-        <div class="flex aspect-[21/9] w-full items-center justify-center bg-surface text-ink-3" aria-hidden="true">
-            <span class="inline-flex size-20 items-center justify-center rounded-full border border-line bg-card text-[2.5rem]">
-                <x-ic :name="$article['typeIcon']" />
-            </span>
-        </div>
     @endif
 
     <div class="p-5 sm:p-8">
@@ -61,14 +56,17 @@
                     <bdi class="font-semibold text-ink">{{ $article['authorName'] }}</bdi>
                 </li>
             @endif
-            <li class="inline-flex items-center gap-1.5">
-                <x-ic :name="$article['relatedIcon']" class="text-ink-3" />
-                <span>{{ $article['relatedKind'] }}</span>
-                @if ($article['relatedEntity'])
-                    <bdi class="font-semibold text-ink">{{ $article['relatedEntity'] }}</bdi>
-                @endif
-            </li>
         </ul>
+
+        @if ($article['tags'] !== [])
+            <ul class="mt-3 flex flex-wrap items-center gap-1.5" role="list" aria-label="{{ $t('news.show.tags') }}">
+                @foreach ($article['tags'] as $tag)
+                    <li class="max-w-full">
+                        <x-tag variant="soft" icon="tag" class="max-w-full whitespace-normal break-words"><bdi>{{ $tag }}</bdi></x-tag>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
 
         <div class="mt-6 border-t border-line-soft pt-6">
             @if (filled($article['description']))

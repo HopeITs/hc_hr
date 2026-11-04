@@ -15,6 +15,7 @@ use App\Services\LeaveRequestPricing;
 use App\Services\News\NewsFeed;
 use App\Services\TeamCoverage;
 use App\Support\DirectoryAccess;
+use App\Support\News\EventDays;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -322,20 +323,16 @@ final class CalendarFeed
      */
     private function news(User $user, CarbonImmutable $from, CarbonImmutable $to): iterable
     {
-        $tz = config('app.timezone');
         $events = [];
 
         foreach (app(NewsFeed::class)->eventsBetween($user, $from, $to) as $item) {
             /** @var News $item */
-            $start = $item->event_starts_at->copy()->timezone($tz);
-            $end = ($item->event_ends_at ?? $item->event_starts_at)->copy()->timezone($tz);
-            $end = $end->lt($start) ? $start : $end;
-
-            foreach ($this->datesBetween($start, $end, $from, $to) as $date) {
-                $events[] = [$date, [
-                    'key' => 'news-'.$item->getKey().'-'.$date,
+            foreach (EventDays::within($item, $from, $to) as $day) {
+                $events[] = [$day['date'], [
+                    'key' => 'news-'.$item->getKey().'-'.$day['date'],
                     'title' => $item->localizedTitle(),
-                    'detail' => null,
+                    // The time on the day it starts, when it is not a whole-day event.
+                    'detail' => $day['time'],
                     'url' => route('news.show', $item->getKey()),
                 ]];
             }

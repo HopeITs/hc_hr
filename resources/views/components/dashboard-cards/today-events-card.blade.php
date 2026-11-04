@@ -21,20 +21,15 @@
                                 @endif
 
                                 <div class="flex flex-col h-full w-full justify-center z-30 items-center -translate-y-[15px]">
-                                    {{-- Avatar --}}
-                                    @php $isDefaultIcon = str_ends_with($event['photo'], '.svg'); @endphp
-                                    @if($isDefaultIcon)
-                                        <div class="relative z-20 flex items-center justify-center bg-card border border-primary w-18 h-18 rounded-full">
-                                            <img src="{{ $event['photo'] }}" alt="{{ $event['name'] }}"
-                                                 class="w-10 h-10 opacity-70">
-                                        </div>
-                                    @else
-                                        <img src="{{ $event['photo'] }}" alt="{{ $event['name'] }}"
+                                    {{-- Avatar (birthdays) or the event's cover. An event
+                                         without a cover has no image: its text is centred alone. --}}
+                                    @if(! empty($event['photo']))
+                                        <img src="{{ $event['photo'] }}" alt="{{ $event['type'] === 'birthday' ? $event['name'] : '' }}"
                                              class="relative z-20 bg-card border border-primary w-18 h-18 rounded-full object-cover">
                                     @endif
 
                                     {{-- Info --}}
-                                    <div class="mt-2 z-20 text-center w-full">
+                                    <div @class(['z-20 text-center w-full', 'mt-2' => ! empty($event['photo'])])>
                                         <p class="font-semibold text-body mt-2 text-ink">
                                             @if (! empty($event['url']))
                                                 <a href="{{ $event['url'] }}" wire:navigate class="hover:underline underline-offset-4">{{ $event['name'] }}</a>

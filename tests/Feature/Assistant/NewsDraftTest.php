@@ -23,8 +23,8 @@ use Tests\TestCase;
 /**
  * A News & Events item asked for in the chat: the model only drafts it
  * through the page's own NewsForm, and only the user's confirmation writes
- * it, exactly as the page's Publish button would. Related To (the subject)
- * and the audience (who sees it) stay two separate choices.
+ * it, exactly as the page's Publish button would. Tags (what it is about,
+ * free text) and the audience (who sees it) stay two separate choices.
  */
 class NewsDraftTest extends TestCase
 {
@@ -60,7 +60,10 @@ class NewsDraftTest extends TestCase
 
         // The schema tells the subject and the audience apart.
         $properties = $this->draft->declarations($this->hr)[1]['parameters']['properties'];
-        $this->assertArrayHasKey('related_to', $properties);
+        $this->assertArrayHasKey('tags', $properties);
+        $this->assertSame('array', $properties['tags']['type']);
+        $this->assertArrayNotHasKey('related_to', $properties);
+        $this->assertArrayNotHasKey('related_id', $properties);
         $this->assertArrayHasKey('audience_type', $properties);
         $this->assertSame(NewsType::values(), $properties['type']['enum']);
 
@@ -84,8 +87,11 @@ class NewsDraftTest extends TestCase
 
         $this->assertSame([$this->city->id], array_column($options['cities'], 'id'));
         $this->assertArrayHasKey('departments', $options);
-        $this->assertContains('organization', $options['related_to']);
+        $this->assertArrayNotHasKey('related_to', $options);
         $this->assertContains('all', $options['audience_types']);
+        // Tag suggestions: tags in use and active city names; never a closed city.
+        $this->assertContains('ALP', $options['tag_suggestions']);
+        $this->assertNotContains('HMS', $options['tag_suggestions']);
         $this->assertArrayNotHasKey('employees', $options);
 
         $found = $this->draft->call($this->hr, 'get_news_options', ['employee_search' => 'rana']);
@@ -97,21 +103,24 @@ class NewsDraftTest extends TestCase
         $result = $this->draft->call($this->hr, 'draft_news', [
             'type' => 'event',
             'title_en' => 'Only English',
-            'related_to' => 'galaxy',
             'audience_type' => 'cities',
         ]);
 
         $this->assertSame('invalid', $result['status']);
-        // title_ar, description_ar, the event's start, related_to, and an audience without members.
-        $this->assertCount(5, $result['errors']);
+        // title_ar, description_ar, the event's start, and an audience without members.
+        $this->assertCount(4, $result['errors']);
         $this->assertStringContainsString(__('assistant-news.fields.title_ar'), implode(' ', $result['errors']));
         $this->assertContains(__('news.form.errors.event_start_required'), $result['errors']);
         $this->assertContains(__('news.form.errors.audience_required'), $result['errors']);
 
-        // A related kind without its id.
-        $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['related_id' => null]));
+        // Too many tags, and a tag that is too long.
+        $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['tags' => array_map(fn ($i) => 'Tag '.$i, range(1, 11))]));
         $this->assertSame('invalid', $result['status']);
-        $this->assertSame([__('news.form.errors.related_required')], $result['errors']);
+        $this->assertSame([__('news.form.errors.tags_max', ['max' => 10])], $result['errors']);
+
+        $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['tags' => [str_repeat('x', 61)]]));
+        $this->assertSame('invalid', $result['status']);
+        $this->assertSame([__('news.form.errors.tag_length', ['max' => 60])], $result['errors']);
 
         $this->assertSame(0, News::query()->count());
     }
@@ -119,11 +128,6 @@ class NewsDraftTest extends TestCase
     public function test_ids_the_page_does_not_offer_are_refused(): void
     {
         foreach ([$this->closedCity->id, 999999] as $id) {
-            $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['related_id' => $id]));
-
-            $this->assertSame('invalid', $result['status']);
-            $this->assertSame([__('news.form.errors.related_offered')], $result['errors']);
-
             $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['audience_type' => 'cities', 'audience_ids' => [$this->city->id, $id]]));
 
             $this->assertSame('invalid', $result['status']);
@@ -131,8 +135,9 @@ class NewsDraftTest extends TestCase
         }
 
         $inactive = $this->makeEmployee($this->city, 'inactive', ['is_active' => false]);
-        $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['related_to' => 'employee', 'related_id' => $inactive->id]));
+        $result = $this->draft->call($this->hr, 'draft_news', $this->valid(['audience_type' => 'employees', 'audience_ids' => [$inactive->id]]));
         $this->assertSame('invalid', $result['status']);
+        $this->assertSame([__('news.form.errors.audience_offered')], $result['errors']);
 
         $this->assertSame(0, News::query()->count());
     }
@@ -169,20 +174,29 @@ class NewsDraftTest extends TestCase
         $proposal = $this->drafted();
 
         $this->assertSame(0, News::query()->count());
-        $this->assertSame('city', $proposal['related_to']);
-        $this->assertSame($this->city->id, $proposal['related_id']);
+        $this->assertSame(['Aleppo', 'Study Zone'], $proposal['tags']);
+        $this->assertArrayNotHasKey('related_to', $proposal);
         $this->assertSame('all', $proposal['audience_type']);
 
         $card = $this->draft->card($proposal);
         $this->assertSame(__('assistant-news.title'), $card['title']);
         $this->assertSame('افتتاح المركز', $card['rows'][__('assistant-news.fields.title_ar')]);
-        $this->assertStringContainsString('ALP', $card['rows'][__('assistant-news.fields.related')]);
+        $this->assertSame('Aleppo, Study Zone', $card['rows'][__('assistant-news.fields.tags')]);
         $this->assertSame(AudienceType::All->label(), $card['rows'][__('assistant-news.fields.audience')]);
 
-        // The organization, with no optional values: empty rows are left out.
-        $proposal = $this->drafted(['related_to' => 'organization', 'related_id' => null, 'title_en' => '', 'description_en' => '', 'display_until' => '']);
-        $this->assertNull($proposal['related_id']);
-        $this->assertArrayNotHasKey(__('assistant-news.fields.title_en'), $this->draft->card($proposal)['rows']);
+        // Tags are normalized: trimmed, spaces collapsed, case-insensitive duplicates dropped.
+        $proposal = $this->drafted(['tags' => ['  Study   Zone ', 'study zone', '', 'Training']]);
+        $this->assertSame(['Study Zone', 'Training'], $proposal['tags']);
+
+        // A comma-separated string is read as a list.
+        $this->assertSame(['Aleppo', 'Training'], $this->drafted(['tags' => 'Aleppo, Training'])['tags']);
+
+        // No tags and no optional values: empty rows are left out.
+        $proposal = $this->drafted(['tags' => [], 'title_en' => '', 'description_en' => '', 'display_until' => '']);
+        $this->assertSame([], $proposal['tags']);
+        $rows = $this->draft->card($proposal)['rows'];
+        $this->assertArrayNotHasKey(__('assistant-news.fields.title_en'), $rows);
+        $this->assertArrayNotHasKey(__('assistant-news.fields.tags'), $rows);
     }
 
     public function test_submit_creates_what_the_news_page_publishes(): void
@@ -194,8 +208,7 @@ class NewsDraftTest extends TestCase
             ->set('form.title_en', 'Center opening')
             ->set('form.description_ar', 'يسرنا الإعلان عن افتتاح المركز الجديد.')
             ->set('form.description_en', 'We are glad to announce the new center.')
-            ->set('form.related_to', 'city')
-            ->set('form.related_id', $this->city->id)
+            ->set('form.tags', ['Aleppo', 'Study Zone'])
             ->set('form.audience_type', 'cities')
             ->set('form.audience_ids', [(string) $this->city->id])
             ->set('form.display_until', '2026-11-30')
@@ -217,6 +230,11 @@ class NewsDraftTest extends TestCase
         $this->assertSame(NewsStatus::Published, $byChat->status);
         $this->assertSame($this->hr->id, (int) $byChat->created_by);
         $this->assertSame([$this->city->id], $byChat->audienceTargets()->pluck('target_id')->map(fn ($id) => (int) $id)->all());
+        $this->assertSame(['Aleppo', 'Study Zone'], $byChat->tagNames());
+        $this->assertSame($byPage->tagNames(), $byChat->tagNames());
+        // The legacy Related To is no longer written.
+        $this->assertNull($byChat->newsable_type);
+        $this->assertNull($byChat->newsable_id);
 
         $this->assertSame(__('assistant-news.created'), $result['message']);
         $this->assertSame(route('news.show', $byChat), $result['url']);
@@ -287,9 +305,9 @@ class NewsDraftTest extends TestCase
 
     public function test_submit_validates_again(): void
     {
-        $proposal = $this->drafted();
+        $proposal = $this->drafted(['audience_type' => 'cities', 'audience_ids' => [$this->city->id]]);
 
-        // The related city was closed between the draft and the confirmation.
+        // The audience's city was closed between the draft and the confirmation.
         $this->city->forceFill(['is_active' => false])->save();
 
         $this->expectException(ValidationException::class);
@@ -323,8 +341,7 @@ class NewsDraftTest extends TestCase
             'description_ar' => 'يسرنا الإعلان عن افتتاح المركز الجديد.',
             'description_en' => 'We are glad to announce the new center.',
             'display_until' => '2026-11-30',
-            'related_to' => 'city',
-            'related_id' => $this->city->id,
+            'tags' => ['Aleppo', 'Study Zone'],
             'audience_type' => 'all',
         ], $overrides);
     }

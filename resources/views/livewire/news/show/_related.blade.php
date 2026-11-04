@@ -1,5 +1,6 @@
-{{-- Other live items this viewer may see: same subject first, then upcoming
-     events, then the latest news (NewsShow::related()). --}}
+{{-- Other live items this viewer may see: those sharing a tag first, then
+     upcoming events, then the latest news (NewsShow::related()). An item
+     without a cover has no image area: its card is text only. --}}
 <section class="mt-10" aria-labelledby="news-related-heading">
     <h2 id="news-related-heading" class="mb-4 text-h4 font-extrabold text-ink">{{ __('news.show.more') }}</h2>
 
@@ -15,10 +16,6 @@
                     class="group flex h-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-e1 hover:border-line hover:bg-hover">
                     @if ($cover)
                         <img src="{{ $cover }}" alt="" loading="lazy" class="block aspect-[16/9] w-full bg-surface object-cover" />
-                    @else
-                        <div class="flex aspect-[16/9] w-full items-center justify-center bg-surface text-[2rem] text-ink-3" aria-hidden="true">
-                            <x-ic :name="$item->type->icon()" />
-                        </div>
                     @endif
                     <div class="flex flex-1 flex-col gap-2 p-4">
                         <div class="flex flex-wrap items-center gap-2">
@@ -30,6 +27,10 @@
                         <h3 dir="{{ $item->textDirection() }}" class="line-clamp-2 font-bold text-ink group-hover:underline group-hover:underline-offset-2">
                             {{ $item->title }}
                         </h3>
+                        @if (! $cover && filled($excerpt = trim(strip_tags((string) $item->localizedDescription()))))
+                            {{-- Text-only card: a short excerpt takes the image's place. --}}
+                            <p dir="{{ $item->textDirection() }}" class="line-clamp-3 text-small text-ink-2">{{ $excerpt }}</p>
+                        @endif
                         <p class="mt-auto flex items-center justify-between gap-2 text-small text-ink-2">
                             @if ($date)
                                 <time datetime="{{ $date->toIso8601String() }}" class="num inline-flex items-center gap-1.5">
