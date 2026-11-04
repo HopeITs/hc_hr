@@ -127,7 +127,7 @@ class NewsForm extends Form
                 : ['nullable', 'array'],
             'audience_ids.*' => $audience?->needsTargets()
                 ? ['integer', Rule::in($this->audienceIds($audience))]
-                : [],
+                : ['nullable'],
 
             'publish_mode' => ['required', Rule::in([self::MODE_NOW, self::MODE_SCHEDULE])],
             'publish_at' => $this->isScheduled()

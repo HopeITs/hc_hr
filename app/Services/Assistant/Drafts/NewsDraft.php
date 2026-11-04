@@ -301,7 +301,8 @@ class NewsDraft implements RecordDraft
             'description_en' => $form->description_en,
             'event_starts_at' => $start?->format('Y-m-d H:i'),
             'event_ends_at' => $end?->format('Y-m-d H:i'),
-            'display_until' => $until?->format('Y-m-d H:i'),
+            // As given: a plain date keeps meaning "until the end of that day" on replay.
+            'display_until' => $until ? $form->display_until : null,
             'related_to' => $related->value,
             'related_id' => $relatedEntity ? (int) $relatedEntity->id : null,
             'audience_type' => $audience->value,
