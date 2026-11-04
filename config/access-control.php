@@ -232,7 +232,15 @@ return [
             'confirmToggleAutoRenew' => 'contracts.update',
             'toggleAutoRenewConfirmed' => 'contracts.update',
         ],
-        'news.news-table' => ['delete' => 'news.delete'],
+        // Lifecycle actions: each re-loads the record, re-runs NewsAccess::canManage
+        // and re-checks the item's derived state before writing.
+        'news.news-table' => [
+            'delete' => 'news.delete',
+            'publishNow' => 'news.update',
+            'unpublish' => 'news.update',
+            'archive' => 'news.update',
+            'restore' => 'news.update',
+        ],
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
             'openDecision' => 'leaves.decide', 'submitDecision' => 'leaves.decide',
@@ -383,7 +391,14 @@ return [
         ],
         // Closing the read-only drawer only clears its own locked id.
         'contract.contract-drawer' => ['close'],
-        'news.news-table' => ['confirmDelete'],
+        // confirm* only open the confirm dialog (each still 403s an item the caller may not
+        // manage); setStateFilter / clearAllFilters change the caller's own view state and only
+        // narrow query(); renderEmptyState / stateAnnouncement / cardView render text;
+        // retryLoad re-renders. No writes.
+        'news.news-table' => [
+            'confirmDelete', 'confirmPublishNow', 'confirmUnpublish', 'confirmArchive',
+            'setStateFilter', 'clearAllFilters', 'renderEmptyState', 'stateAnnouncement', 'cardView', 'retryLoad',
+        ],
         'position.position-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.center.centers-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.default-deliverable.default-deliverables-table' => ['confirmDelete'],
@@ -445,6 +460,10 @@ return [
         'news.news-create' => ['save', 'updatedFormNewsableType',
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
+        // The details page / preview is read-only. updatedLocale() is UI-only:
+        // it clamps the article language to en|ar for the preview switch; the
+        // item was authorized in mount() (NewsAccess) and is #[Locked].
+        'news.news-show' => ['updatedLocale'],
         // Also runs assertCityIsAuthorized() and a Gate check on the city.
         'program-management.center.centers-module' => ['save', ...$closeGuard],
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
