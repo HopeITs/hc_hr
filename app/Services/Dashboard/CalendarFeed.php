@@ -4,17 +4,15 @@ namespace App\Services\Dashboard;
 
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\LeaveRequestStatus;
-use App\Models\Center;
-use App\Models\City;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\News;
-use App\Models\Program;
 use App\Models\User;
 use App\Services\BirthdayHoliday;
 use App\Services\LeaveRequestPricing;
+use App\Services\News\NewsFeed;
 use App\Services\TeamCoverage;
 use App\Support\DirectoryAccess;
 use Carbon\CarbonImmutable;
@@ -32,7 +30,7 @@ use Illuminate\Database\Eloquent\Builder;
  *   team-leave    the viewer's team: TeamCoverage's default scope (city / org / reports), as UpcomingLeavesCard reads it; never plain colleagues
  *   birthday      self; HR also the active employees of its cities (access-policy §4.4: birthday is Private)
  *   contract-end  contracts ending, Contract::visibleTo         city HR with contracts.view (the contracts page)
- *   news          events addressed to everyone or to the viewer's record, city, center or program (UpcomingEventsCard)
+ *   news          live events whose audience includes the viewer, one entry per event day (NewsFeed::eventsBetween; Related To never decides)
  *
  * Recruitment interviews are not here: the recruitment module does not exist
  * on this branch.
@@ -315,42 +313,35 @@ final class CalendarFeed
         ]])->all();
     }
 
-    /** @return iterable<array{0: string, 1: array<string, mixed>}> */
+    /**
+     * Live events whose audience includes the viewer (NewsFeed: drafts,
+     * scheduled and expired items never appear; Related To plays no part),
+     * one entry per day of the event inside the window.
+     *
+     * @return iterable<array{0: string, 1: array<string, mixed>}>
+     */
     private function news(User $user, CarbonImmutable $from, CarbonImmutable $to): iterable
     {
-        $employee = $user->profile;
-        $position = $employee?->latestActiveContract()?->position;
+        $tz = config('app.timezone');
+        $events = [];
 
-        $audience = [
-            Employee::class => $employee?->getKey(),
-            City::class => $employee?->city_id,
-            Center::class => $position?->center_id,
-            Program::class => $position?->program_id,
-        ];
+        foreach (app(NewsFeed::class)->eventsBetween($user, $from, $to) as $item) {
+            /** @var News $item */
+            $start = $item->event_starts_at->copy()->timezone($tz);
+            $end = ($item->event_ends_at ?? $item->event_starts_at)->copy()->timezone($tz);
+            $end = $end->lt($start) ? $start : $end;
 
-        $news = News::query()
-            ->whereNotNull('event_date')
-            ->whereDate('event_date', '>=', $from->toDateString())
-            ->whereDate('event_date', '<=', $to->toDateString())
-            ->where(function (Builder $q) use ($audience) {
-                $q->whereNull('newsable_type');
+            foreach ($this->datesBetween($start, $end, $from, $to) as $date) {
+                $events[] = [$date, [
+                    'key' => 'news-'.$item->getKey().'-'.$date,
+                    'title' => $item->localizedTitle(),
+                    'detail' => null,
+                    'url' => route('news.show', $item->getKey()),
+                ]];
+            }
+        }
 
-                foreach ($audience as $type => $id) {
-                    if ($id !== null) {
-                        $q->orWhere(fn (Builder $one) => $one->where('newsable_type', $type)->where('newsable_id', $id));
-                    }
-                }
-            })
-            ->where(fn (Builder $q) => $q->whereNull('display_until')->orWhere('display_until', '>=', now()->startOfDay()))
-            ->orderBy('event_date')
-            ->get(['id', 'title_en', 'title_ar', 'event_date']);
-
-        return $news->map(fn (News $item) => [$item->event_date->toDateString(), [
-            'key' => 'news-'.$item->getKey(),
-            'title' => $item->title,
-            'detail' => null,
-            'url' => null,
-        ]])->all();
+        return $events;
     }
 
     /** @return list<string> the dates a leave covers inside [$from, $to] */

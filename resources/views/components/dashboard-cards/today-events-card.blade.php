@@ -35,7 +35,13 @@
 
                                     {{-- Info --}}
                                     <div class="mt-2 z-20 text-center w-full">
-                                        <p class="font-semibold text-body mt-2 text-ink">{{ $event['name'] }}</p>
+                                        <p class="font-semibold text-body mt-2 text-ink">
+                                            @if (! empty($event['url']))
+                                                <a href="{{ $event['url'] }}" wire:navigate class="hover:underline underline-offset-4">{{ $event['name'] }}</a>
+                                            @else
+                                                {{ $event['name'] }}
+                                            @endif
+                                        </p>
 
                                         @php
                                             $details = trim(
@@ -47,7 +53,7 @@
                                             <p class="text-small tracking-wider font-light text-ink">{{ $details }}</p>
                                         @endif
 
-                                        <p class="text-small text-ink-3 mt-1">{{ $event['message'] }}</p>
+                                        <p class="text-small text-ink-3 mt-1 line-clamp-2 px-4">{{ $event['message'] }}</p>
                                     </div>
                                 </div>
 

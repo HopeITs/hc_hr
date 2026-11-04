@@ -185,7 +185,9 @@ class EmployeeToolsTest extends TestCase
         $result = $tools->call($user, 'get_news');
 
         $this->assertSame(['News 7', 'News 6', 'News 5', 'News 4', 'News 3'], array_column($result['news'], 'title'));
-        $this->assertSame('2026-10-07', $result['news'][0]['date']);
+        $this->assertSame(now()->format('Y-m-d'), $result['news'][0]['published']);
+        $this->assertSame('news', $result['news'][0]['type']);
+        $this->assertArrayNotHasKey('event_date', $result['news'][0]);
         $this->assertLessThanOrEqual(300, mb_strlen($result['news'][0]['excerpt']));
 
         $this->assertCount(2, $tools->call($user, 'get_news', ['limit' => 2])['news']);
