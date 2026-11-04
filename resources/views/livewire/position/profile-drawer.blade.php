@@ -52,49 +52,61 @@
      }"
      x-cloak
      x-show="show"
+     x-trap.inert.noscroll="show"
      x-effect="document.body.classList.toggle('overflow-hidden', show)"
      x-on:open-profile.window="open($event.detail.employeeId)"
      x-on:profile-unavailable.window="unavailable()"
      x-on:livewire:navigating.window="show = false; document.body.classList.remove('overflow-hidden')"
      x-on:keydown.escape.window="show = false"
-     class="fixed inset-0 z-50">
+     class="fixed inset-0 z-50 flex items-end justify-center dialog:items-center dialog:p-6">
 
     {{-- Backdrop --}}
     <div class="absolute inset-0 bg-backdrop backdrop-blur-[1px]"
+         aria-hidden="true"
          x-show="show" x-transition.opacity
          x-on:click="show = false"></div>
 
-    {{-- Panel: right drawer on desktop, bottom sheet on mobile --}}
-    <div class="absolute inset-x-0 bottom-0 flex max-h-[92dvh] min-h-0 flex-col rounded-t-3xl bg-card shadow-e3
-                sm:inset-y-0 sm:end-0 sm:start-auto sm:h-dvh sm:max-h-none sm:w-[28rem] sm:rounded-none"
+    {{-- Panel: centred dialog on tablet/desktop, bottom sheet on phones (sheet: also covers a
+         landscape phone). Its height follows the content, capped to the viewport; only the
+         body scrolls, so the header and the footer action stay in reach. --}}
+    <div role="dialog" aria-modal="true" aria-labelledby="profile-drawer-title" tabindex="-1"
+         class="relative flex max-h-[92dvh] w-full min-h-0 flex-col overflow-hidden rounded-t-3xl border border-line-soft bg-card shadow-e3 focus:outline-none
+                dialog:max-h-[min(44rem,calc(100dvh-3rem))] dialog:max-w-[32rem] dialog:rounded-2xl"
          x-show="show"
          x-on:wheel.stop
          x-on:touchmove.stop
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="translate-y-full sm:translate-y-0 sm:translate-x-full sm:rtl:-translate-x-full"
-         x-transition:enter-end="translate-y-0 sm:translate-x-0"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="translate-y-0 sm:translate-x-0"
-         x-transition:leave-end="translate-y-full sm:translate-y-0 sm:translate-x-full sm:rtl:-translate-x-full">
+         x-transition:enter="transition ease-out duration-200 motion-reduce:transition-none"
+         x-transition:enter-start="translate-y-full dialog:translate-y-2 dialog:scale-[.98] dialog:opacity-0"
+         x-transition:enter-end="translate-y-0 dialog:scale-100 dialog:opacity-100"
+         x-transition:leave="transition ease-in duration-150 motion-reduce:transition-none"
+         x-transition:leave-start="translate-y-0 dialog:scale-100 dialog:opacity-100"
+         x-transition:leave-end="translate-y-full dialog:translate-y-2 dialog:scale-[.98] dialog:opacity-0">
+
+        {{-- Sheet grab handle (decorative). --}}
+        <div class="flex shrink-0 justify-center pt-2 dialog:hidden" aria-hidden="true">
+            <span class="h-1 w-10 rounded-full bg-line"></span>
+        </div>
+
+        {{-- Always rendered, so the dialog can be closed while it is still loading. --}}
+        <button type="button" x-on:click="show = false" aria-label="{{ __('access.close') }}"
+                class="absolute end-3 top-3 z-20 flex size-11 items-center justify-center rounded-control text-ink-2 transition hover:bg-hover hover:text-ink sheet:top-4">
+            <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+        </button>
 
         @if($employee)
         <div class="flex min-h-0 flex-1 flex-col" x-show="ready">
-            {{-- Header --}}
-            <div class="relative px-6 pt-6 pb-4 overflow-hidden text-on-ink shrink-0 bg-gradient-to-b from-ink to-ink-2">
-
-                <button type="button" x-on:click="show = false" aria-label="{{ __('access.close') }}"
-                        class="absolute z-20 flex items-center justify-center transition rounded-surface end-3 top-3 size-11 text-on-ink/80 hover:bg-on-ink/10 hover:text-on-ink">
-                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
-                    </svg>
-                </button>
-
-                <div class="relative flex flex-col items-center text-center">
-                    <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}"
-                         class="object-cover rounded-full shadow-e3 size-20 ring-4 ring-on-ink/30 sm:size-24">
-                    <h2 class="mt-3 text-h4 font-extrabold tracking-tight">{{ $employee->name }}</h2>
+            {{-- Identity --}}
+            <div class="flex shrink-0 items-center gap-4 border-b border-line-soft px-5 pb-5 pe-16 pt-4 dialog:px-6 dialog:pe-16 dialog:pt-6">
+                <img src="{{ $employee->avatar_url }}" alt=""
+                     class="size-16 max-w-none shrink-0 rounded-full bg-soft object-cover ring-1 ring-line-soft dialog:size-[4.5rem]">
+                <div class="min-w-0">
+                    <h2 id="profile-drawer-title" class="break-words text-h4 font-extrabold leading-snug tracking-tight text-ink text-balance">
+                        <bdi>{{ $employee->name }}</bdi>
+                    </h2>
                     @if($position)
-                        <p class="mt-1 text-body font-semibold text-on-ink/80">{{ $position->title }}</p>
+                        <p class="mt-0.5 break-words text-small font-medium text-ink-2"><bdi>{{ $position->title }}</bdi></p>
                     @endif
                     @if($employee->is_board_member)
                         <x-tag class="mt-2" icon="star" :label="__('general.board-member')" />
@@ -103,23 +115,47 @@
             </div>
 
             {{-- Body --}}
-            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth px-4 py-4 [scrollbar-gutter:stable] sm:px-6">
-                <div class="pb-4 space-y-4">
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 dialog:px-6">
+                <div class="space-y-6">
                 {{-- Org placement --}}
                 @if($position)
-                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <dl class="grid grid-cols-1 gap-x-6 gap-y-4 min-[360px]:grid-cols-2">
                         @foreach([
                             ['label' => trans_choice('general.program', 1), 'value' => $position->program?->name],
                             ['label' => trans_choice('general.department', 1), 'value' => $position->department?->name],
                             ['label' => trans_choice('general.center', 1), 'value' => $position->center?->name],
                             ['label' => trans_choice('general.city', 1), 'value' => $position->city?->name ?? $employee->city?->name],
                         ] as $item)
-                            <div class="px-3 py-2 border border-line-soft rounded-surface bg-soft">
-                                <div class="text-small font-bold uppercase tracking-wide text-ink-3">{{ $item['label'] }}</div>
-                                <div class="mt-1 truncate text-body font-semibold text-ink">{{ $item['value'] ?? __('general.not-specified') }}</div>
+                            <div class="min-w-0">
+                                <dt class="text-caption font-bold uppercase tracking-wide text-ink-2">{{ $item['label'] }}</dt>
+                                @if(filled($item['value']))
+                                    <dd class="mt-1 break-words text-body font-semibold text-ink"><bdi>{{ $item['value'] }}</bdi></dd>
+                                @else
+                                    <dd class="mt-1 text-body text-ink-2">{{ __('general.not-specified') }}</dd>
+                                @endif
                             </div>
                         @endforeach
-                    </div>
+                    </dl>
+                @endif
+
+                {{-- Manager: who this person reports to. --}}
+                @if($position)
+                    <section aria-labelledby="profile-drawer-manager">
+                        <h3 id="profile-drawer-manager" class="mb-2 text-caption font-bold uppercase tracking-wide text-ink-2">@lang('general.direct-manager')</h3>
+                        @if($managerEmployee)
+                            <button type="button" wire:click="$dispatch('open-profile', { employeeId: {{ $managerEmployee->id }} })"
+                                    class="group flex w-full items-center gap-3 rounded-surface border border-line-soft bg-soft px-3 py-2.5 text-start transition hover:border-line hover:bg-hover">
+                                <img src="{{ $managerEmployee->avatar_url }}" alt="" class="size-10 max-w-none shrink-0 rounded-full object-cover ring-1 ring-line-soft">
+                                <div class="min-w-0 flex-1">
+                                    <div class="truncate text-body font-bold text-ink"><bdi>{{ $managerEmployee->name }}</bdi></div>
+                                    <div class="truncate text-small text-ink-2"><bdi>{{ $manager->title }}</bdi></div>
+                                </div>
+                                <svg class="size-4 shrink-0 text-ink-3 transition group-hover:text-ink rtl:rotate-180" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></svg>
+                            </button>
+                        @else
+                            <p class="rounded-surface border border-dashed border-line px-3 py-2.5 text-small text-ink-2">{{ __('general.not-specified') }}</p>
+                        @endif
+                    </section>
                 @endif
 
                 {{-- Contact --}}
@@ -128,80 +164,64 @@
                     ['icon' => 'mail', 'value' => $employee->work_email, 'href' => 'mailto:'],
                 ])->filter(fn ($c) => filled($c['value'])))
                 @if($contacts->isNotEmpty())
-                    <div>
-                        <h3 class="mb-2 text-small font-bold tracking-wide uppercase text-ink-3">@lang('general.contact')</h3>
-                        <div class="space-y-2">
+                    <section>
+                        <h3 class="mb-2 text-caption font-bold uppercase tracking-wide text-ink-2">@lang('general.contact')</h3>
+                        <div class="space-y-1">
                             @foreach($contacts as $contact)
                                 <a href="{{ $contact['href'].$contact['value'] }}"
-                                   class="flex items-center gap-2 rounded-surface border border-line-soft px-3 py-2 text-body font-medium text-ink transition hover:border-line hover:bg-hover">
-                                    <span class="flex items-center justify-center rounded-surface size-7 shrink-0 bg-soft text-ink-2">
+                                   class="-mx-2 flex min-h-11 items-center gap-3 rounded-control px-2 py-1.5 text-body font-medium text-ink transition hover:bg-hover">
+                                    <span class="flex size-8 shrink-0 items-center justify-center rounded-control bg-soft text-ink-2">
                                         @if($contact['icon'] === 'mail')
-                                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                                            <svg class="size-4" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
                                         @else
-                                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 5a2 2 0 0 1 2-2h2l2 5-2 1a12 12 0 0 0 5 5l1-2 5 2v2a2 2 0 0 1-2 2A16 16 0 0 1 2 5Z"/></svg>
+                                            <svg class="size-4" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 5a2 2 0 0 1 2-2h2l2 5-2 1a12 12 0 0 0 5 5l1-2 5 2v2a2 2 0 0 1-2 2A16 16 0 0 1 2 5Z"/></svg>
                                         @endif
                                     </span>
                                     <span class="truncate" dir="ltr">{{ $contact['value'] }}</span>
                                 </a>
                             @endforeach
                         </div>
-                    </div>
-                @endif
-
-                {{-- Manager --}}
-                @if($managerEmployee)
-                    <div>
-                        <h3 class="mb-2 text-small font-bold tracking-wide uppercase text-ink-3">@lang('general.direct-manager')</h3>
-                        <button type="button" wire:click="$dispatch('open-profile', { employeeId: {{ $managerEmployee->id }} })"
-                                class="flex items-center w-full gap-3 px-3 py-2 transition border border-line-soft rounded-surface text-start hover:border-line hover:bg-hover">
-                            <img src="{{ $managerEmployee->avatar_url }}" alt="" class="object-cover rounded-full size-9">
-                            <div class="min-w-0">
-                                <div class="text-body font-bold truncate text-ink">{{ $managerEmployee->name }}</div>
-                                <div class="text-small truncate text-ink-3">{{ $manager->title }}</div>
-                            </div>
-                        </button>
-                    </div>
+                    </section>
                 @endif
 
                 {{-- Direct reports --}}
                 @if($reports->isNotEmpty())
-                    <div>
-                        <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-ink-3">
+                    <section>
+                        <h3 class="mb-2 flex items-center gap-2 text-caption font-bold uppercase tracking-wide text-ink-2">
                             @lang('general.direct-reports')
-                            <span class="rounded-full bg-surface px-2 py-1 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
+                            <span class="rounded-full bg-surface px-2 py-0.5 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
                         </h3>
-                        <div class="space-y-2">
+                        <div class="divide-y divide-line-soft rounded-surface border border-line-soft">
                             @foreach($reports as $report)
                                 @forelse($report->activeContracts->pluck('employee')->filter()->unique('id') as $rEmployee)
                                     <button type="button" wire:click="$dispatch('open-profile', { employeeId: {{ $rEmployee->id }} })"
-                                            class="flex items-center w-full gap-3 px-3 py-2 transition border border-line-soft rounded-surface text-start hover:border-line hover:bg-hover">
-                                        <img src="{{ $rEmployee->avatar_url }}" alt="" class="object-cover rounded-full size-9">
+                                            class="flex w-full items-center gap-3 px-3 py-2 text-start transition first:rounded-t-surface last:rounded-b-surface hover:bg-hover">
+                                        <img src="{{ $rEmployee->avatar_url }}" alt="" class="size-8 max-w-none shrink-0 rounded-full object-cover">
                                         <div class="min-w-0">
-                                            <div class="text-body font-bold truncate text-ink">{{ $rEmployee->name }}</div>
-                                            <div class="text-small truncate text-ink-3">{{ $report->title }}</div>
+                                            <div class="truncate text-body font-semibold text-ink"><bdi>{{ $rEmployee->name }}</bdi></div>
+                                            <div class="truncate text-small text-ink-2"><bdi>{{ $report->title }}</bdi></div>
                                         </div>
                                     </button>
                                 @empty
-                                    <div class="flex items-center gap-3 px-3 py-2 border border-line-soft border-dashed rounded-surface text-ink-3">
-                                        <span class="flex items-center justify-center border border-line border-dashed rounded-full size-9"><x-icons.user class="size-4"/></span>
+                                    <div class="flex items-center gap-3 px-3 py-2 text-ink-2">
+                                        <span class="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-line"><x-icons.user class="size-4"/></span>
                                         <div class="min-w-0">
-                                            <div class="text-body font-semibold truncate">@lang('general.vacant-position')</div>
-                                            <div class="text-small truncate">{{ $report->title }}</div>
+                                            <div class="truncate text-body font-semibold">@lang('general.vacant-position')</div>
+                                            <div class="truncate text-small"><bdi>{{ $report->title }}</bdi></div>
                                         </div>
                                     </div>
                                 @endforelse
                             @endforeach
                         </div>
-                    </div>
+                    </section>
                 @endif
-
                 </div>
             </div>
 
             {{-- Footer action stays visible while the details scroll. --}}
             @if(filled($employee->username))
-                <div class="shrink-0 border-t border-line-soft bg-card/95 px-4 py-4 shadow-e2 backdrop-blur sm:px-6">
-                    <x-button full :href="route('employees.show', ['employee' => $employee->username])">
+                <div class="flex shrink-0 justify-end border-t border-line-soft px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dialog:px-6">
+                    <x-button class="w-full dialog:w-auto" :href="route('employees.show', ['employee' => $employee->username])">
                         @lang('general.view-full-profile')
                         <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
                     </x-button>
@@ -211,8 +231,9 @@
         @endif
 
         {{-- Shown while the requested employee is still loading. --}}
-        <div class="flex items-center justify-center flex-1 p-8" x-show="! ready">
+        <div class="flex min-h-40 flex-1 items-center justify-center p-8" x-show="! ready" role="status">
             <x-icons.spinner class="size-6 animate-spin text-ink-2" />
+            <span class="sr-only">{{ __('general.a11y.loading') }}</span>
         </div>
     </div>
 </div>
