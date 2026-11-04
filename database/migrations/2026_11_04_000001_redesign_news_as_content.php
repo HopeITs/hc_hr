@@ -35,6 +35,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Backfill only on the run that adds the columns: a re-run must never
+        // publish drafts or reclassify items edited with the new form.
+        $fresh = ! Schema::hasColumn('news', 'type');
+
         Schema::table('news', function (Blueprint $table) {
             if (! Schema::hasColumn('news', 'type')) {
                 $table->string('type', 20)->default('news')->after('id');
@@ -96,7 +100,9 @@ return new class extends Migration
             });
         }
 
-        $this->backfill();
+        if ($fresh) {
+            $this->backfill();
+        }
     }
 
     /** Existing rows: same visibility, a sensible type, a Publish At and an event start. */
@@ -110,7 +116,9 @@ return new class extends Migration
                 // Every old item had to carry an event_date. One dated after
                 // its publication was an announcement of an event; one dated
                 // on or before it reported something that had happened.
-                $isEvent = $row->event_date && $row->event_date > $publishedDate;
+                // SQLite may hand the date back as "Y-m-d 00:00:00".
+                $eventDate = $row->event_date ? substr((string) $row->event_date, 0, 10) : null;
+                $isEvent = $eventDate !== null && $eventDate > $publishedDate;
 
                 $audience = self::AUDIENCE_BY_TYPE[$row->newsable_type] ?? 'all';
 
@@ -118,7 +126,7 @@ return new class extends Migration
                     'type' => $isEvent ? 'event' : 'news',
                     'status' => 'published',
                     'published_at' => $published,
-                    'event_starts_at' => $isEvent ? $row->event_date.' 00:00:00' : null,
+                    'event_starts_at' => $isEvent ? $eventDate.' 00:00:00' : null,
                     // event_date is left as it was (no data is dropped); for a
                     // news item it is simply no longer read.
                     'audience_type' => $row->newsable_id ? $audience : 'all',
