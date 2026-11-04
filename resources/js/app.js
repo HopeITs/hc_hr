@@ -147,18 +147,26 @@ Livewire.hook('commit', ({ succeed }) => {
     });
 });
 
-// WebGuard (the host's bot filter) periodically redirects requests from our
-// office IP to a CAPTCHA page (302 → /.captcha/… → 412). Fetch follows the
-// redirect, so Livewire receives a 412 with the challenge HTML and shows it in
-// its error modal, where the challenge can never run. A full page load (GET)
-// solves the challenge silently, so reload instead of showing the modal.
-// The timestamp guard stops a reload loop if the GET itself is challenged.
+// WebGuard (the host's bot filter) intercepts requests from our office IP and
+// redirects them to its CAPTCHA page (302 → /.captcha/… → 412, or 429 when it
+// rate-limits the IP). Fetch follows the redirect, so Livewire gets the
+// challenge HTML and renders it in its error modal — an iframe that inherits
+// our CSP, so the challenge scripts are blocked and it can never complete.
+// A full page load (GET) is served with WebGuard's own headers and solves the
+// challenge silently, so reload instead of showing the modal.
+const looksLikeWebGuard = (status, content = '') =>
+    status === 412 ||
+    status === 429 ||
+    /\/\.captcha\/|hcaptcha\.com|Verifying that you are human/i.test(content);
+
 Livewire.hook('request', ({ fail }) => {
-    fail(({ status, preventDefault }) => {
-        if (status !== 412) return;
+    fail(({ status, content, preventDefault }) => {
+        if (!looksLikeWebGuard(status, content)) return;
 
         preventDefault();
 
+        // One reload per 15 s: if the GET itself is challenged or rate-limited,
+        // the user sees WebGuard's page instead of an endless reload loop.
         const last = Number(sessionStorage.getItem('hc-412-reload') || 0);
         if (Date.now() - last < 15_000) return;
         sessionStorage.setItem('hc-412-reload', String(Date.now()));
