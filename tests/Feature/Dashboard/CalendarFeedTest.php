@@ -3,6 +3,7 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Enums\LeaveRequestStatus;
+use App\Enums\News\AudienceType;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\Employee;
@@ -199,12 +200,56 @@ class CalendarFeedTest extends TestCase
         $user = $this->makeUser($this->dms, 'employee');
         $this->makeContractFor($user->profile);
         $this->news('For everyone', '2026-11-05');
-        $this->news('For Damascus', '2026-11-06', City::class, $this->dms->id);
-        $this->news('For Aleppo', '2026-11-07', City::class, $this->alp->id);
+        $this->news('For Damascus', '2026-11-06', audience: AudienceType::Cities, targets: [$this->dms->id]);
+        $this->news('For Aleppo', '2026-11-07', audience: AudienceType::Cities, targets: [$this->alp->id]);
 
         $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
 
         $this->assertSame(['2026-11-05', '2026-11-06'], array_keys($news));
+        $this->assertSame('For everyone', $news['2026-11-05'][0]['title']);
+        $this->assertNotNull($news['2026-11-05'][0]['url']);
+    }
+
+    public function test_the_audience_not_related_to_decides_who_sees_an_event(): void
+    {
+        $user = $this->makeUser($this->dms, 'employee');
+        $this->makeContractFor($user->profile);
+
+        // About Aleppo, but addressed to everyone: a Damascus employee sees it.
+        $this->news('About Aleppo', '2026-11-05', City::class, $this->alp->id);
+        // About Damascus, but addressed to Aleppo only: the Damascus employee does not.
+        $this->news('About Damascus for Aleppo', '2026-11-06', City::class, $this->dms->id, AudienceType::Cities, [$this->alp->id]);
+
+        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
+
+        $this->assertSame(['2026-11-05'], array_keys($news));
+        $this->assertSame('About Aleppo', $news['2026-11-05'][0]['title']);
+    }
+
+    public function test_drafts_scheduled_and_expired_events_stay_off_the_calendar(): void
+    {
+        $user = $this->makeUser($this->dms, 'employee');
+        $this->makeContractFor($user->profile);
+        $this->news('Live', '2026-11-05');
+        $this->news('Draft', '2026-11-06', attributes: ['status' => 'draft']);
+        $this->news('Scheduled', '2026-11-07', attributes: ['published_at' => now()->addDay()]);
+        $this->news('Expired', '2026-11-08', attributes: ['display_until' => now()->subHour()]);
+
+        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
+
+        $this->assertSame(['2026-11-05'], array_keys($news));
+    }
+
+    public function test_a_multi_day_event_is_listed_on_each_of_its_days_inside_the_window(): void
+    {
+        $user = $this->makeUser($this->dms, 'employee');
+        $this->makeContractFor($user->profile);
+        // The November grid runs 2026-10-26 .. 2026-12-06.
+        $this->news('Retreat', '2026-12-05', attributes: ['event_ends_at' => '2026-12-08 17:00:00']);
+
+        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
+
+        $this->assertSame(['2026-12-05', '2026-12-06'], array_keys($news));
     }
 
     public function test_there_are_no_interviews_without_a_recruitment_module(): void
@@ -288,18 +333,38 @@ class CalendarFeedTest extends TestCase
         ]);
     }
 
-    private function news(string $title, string $date, ?string $type = null, ?int $id = null): News
-    {
-        return News::query()->forceCreate([
+    /**
+     * A live event on $date (09:00), addressed to $audience/$targets and
+     * Related To $type/$id; $attributes override any column.
+     *
+     * @param  list<int>  $targets
+     */
+    private function news(
+        string $title,
+        string $date,
+        ?string $type = null,
+        ?int $id = null,
+        AudienceType $audience = AudienceType::All,
+        array $targets = [],
+        array $attributes = [],
+    ): News {
+        $news = News::query()->forceCreate([
+            'type' => 'event',
+            'status' => 'published',
             'title_en' => $title,
             'title_ar' => $title,
             'description_en' => '',
             'description_ar' => '',
-            'event_date' => $date,
-            'published_at' => now(),
+            'event_starts_at' => $date.' 09:00:00',
+            'published_at' => now()->subDay(),
             'newsable_type' => $type,
             'newsable_id' => $id,
+            ...$attributes,
         ]);
+
+        $news->syncAudience($audience, $targets);
+
+        return $news;
     }
 
     /** @return array<string, list<array<string, mixed>>> only $type's events, by date */

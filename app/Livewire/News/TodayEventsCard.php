@@ -5,6 +5,7 @@ namespace App\Livewire\News;
 use App\Livewire\Concerns\IsDashboardTile;
 use App\Models\Employee;
 use App\Models\News;
+use App\Services\News\NewsFeed;
 use Carbon\Carbon;
 use Livewire\Component;
 
@@ -39,16 +40,18 @@ class TodayEventsCard extends Component
                     ?: asset('images/default-avatar.png'),
             ]);
 
-        $newsEvents = News::whereDate('event_date', $today)
-            ->latest()
-            ->get()
-            ->map(fn ($news) => [
+        // Live events taking place today whose audience includes the
+        // viewer (NewsFeed): drafts, scheduled, expired items and other
+        // audiences never reach this tile.
+        $newsEvents = app(NewsFeed::class)->todayEvents(auth()->user())
+            ->map(fn (News $news) => [
                 'type' => 'event',
-                'name' => $news->title,
+                'name' => $news->localizedTitle(),
                 'position' => $news->newsable_name ?? '',
                 'department' => '',
-                'message' => strip_tags($news->description ?? ''),
-                'photo' => $news->getFirstMediaUrl('news-image') ?: '/assets/icons/event.svg',
+                'message' => strip_tags($news->localizedDescription() ?? ''),
+                'photo' => $news->coverUrl() ?: '/assets/icons/event.svg',
+                'url' => route('news.show', $news),
             ]);
 
         $this->events = $birthdays->concat($newsEvents)->toArray();

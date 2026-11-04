@@ -24,6 +24,7 @@ use App\Livewire\EmployeeCards\ShowDigitalId;
 use App\Livewire\Feedback\FeedbackIndex;
 use App\Livewire\News\NewsCreate;
 use App\Livewire\News\NewsModule;
+use App\Livewire\News\NewsShow;
 use App\Livewire\Notifications\Index;
 use App\Livewire\Settings\InstallApp;
 use App\Livewire\Settings\NotificationSettings;
@@ -151,6 +152,12 @@ Route::group(
 
             Route::get('/news/create', NewsCreate::class)->name('news.create')->middleware('active_permission:news.create');
             Route::get('/news/{news}/edit', NewsCreate::class)->name('news.edit')->middleware('active_permission:news.update');
+            // The published details page: any signed-in user, but NewsShow
+            // refuses an item that is not released to them (audience, draft,
+            // schedule) unless they manage it. The preview is the same page for
+            // a manager of the item, in any state, and never publishes.
+            Route::get('/news/{news}/preview', NewsShow::class)->name('news.preview')->middleware('active_permission:news.view');
+            Route::get('/news/{news}', NewsShow::class)->name('news.show')->whereNumber('news');
 
             Route::get('/course-categories', CourseCategoryModule::class)->middleware('reference_page:project-basics')->name('course-categories.index');
             Route::get('/activity-log', ActivityLogModule::class)

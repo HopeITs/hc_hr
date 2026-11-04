@@ -2,14 +2,18 @@
 
 namespace App\Services\Assistant\Drafts;
 
+use App\Enums\News\AudienceType;
+use App\Enums\News\NewsType;
+use App\Enums\News\RelatedTo;
 use App\Livewire\Forms\NewsForm;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\News;
 use App\Models\Program;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Support\News\NewsAccess;
 use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -18,25 +22,26 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 /**
- * A news item drafted from the chat, created through the News page's own
- * NewsForm: the same rules (NewsForm::rules()), the same target lists
- * (NewsForm::entities(), what the page's dropdown offers) and the same
- * persist(), so the creator, published_at and the activity log entry are
- * exactly what the page writes. Images are not drafted: one can be added
- * later on the news item's page (the form's photo is optional).
+ * A News & Events item drafted from the chat, created through the page's own
+ * NewsForm: the same rules (NewsForm::rules(), including "only the ids the
+ * page offers"), the same option lists (NewsForm::optionsFor()) and the same
+ * persist(), so the creator, status, published_at, audience rows and the
+ * activity log entry are exactly what the page's Publish button writes.
+ * Drafts from the chat are always published immediately; images and
+ * scheduling are done later on the item's edit page.
  *
- * Who may create mirrors NewsCreate::canCreateNews(): the news.create
- * permission (the route's middleware) and an active role of HR,
- * super-admin, general-manager or manager.
+ * Who may create mirrors NewsCreate: the news.create permission (the
+ * route's middleware) and NewsAccess::canCreate().
  */
 class NewsDraft implements RecordDraft
 {
-    /** The page's target types, by the short names the model uses. */
-    private const TARGETS = [
-        'city' => City::class,
-        'center' => Center::class,
-        'program' => Program::class,
-        'employee' => Employee::class,
+    /** The option lists by the names the model uses, keyed to their model. */
+    private const LISTS = [
+        'cities' => City::class,
+        'centers' => Center::class,
+        'programs' => Program::class,
+        'departments' => Department::class,
+        'employees' => Employee::class,
     ];
 
     private const MAX_EMPLOYEES = 20;
@@ -54,33 +59,40 @@ class NewsDraft implements RecordDraft
             return [];
         }
 
+        $related = array_column(RelatedTo::cases(), 'value');
+        $audiences = array_column(AudienceType::cases(), 'value');
+
         return [
             [
                 'name' => 'get_news_options',
-                'description' => 'What a new news item can be addressed to: everyone, or one city, center, program or employee, with the ids to use. Employees are only listed when employee_search is given. Call it before drafting news for a specific audience.',
+                'description' => 'The ids a News & Events item can use, for two separate choices: related_to (what the item is ABOUT: a city, center, program/project, department or employee; it never limits who sees it) and audience (WHO may see it: everyone, or selected cities, centers, programs, departments or employees). Lists cities, centers, programs and departments; employees only when employee_search is given. Call it before drafting an item that is about, or addressed to, something specific.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'employee_search' => ['type' => 'string', 'description' => 'Optional: part of an employee\'s name, to find the id of an employee the news is addressed to.'],
+                        'employee_search' => ['type' => 'string', 'description' => 'Optional: part of an employee\'s name, to find the id of an employee the item is about or addressed to.'],
                     ],
                 ],
             ],
             [
                 'name' => 'draft_news',
-                'description' => 'Checks a new news item with every rule of the news page and prepares it for the user to confirm. It never publishes anything. The Arabic title and description are required: write them in Arabic (translate the user\'s text if needed) and show them to the user. Images cannot be attached from the chat; the user can add one later on the news page. Returns either the errors to tell the user, or the checked draft. Only the user can create it, with the Confirm button shown under your answer.',
+                'description' => 'Checks a new News & Events item with every rule of the news page and prepares it for the user to confirm. It never publishes anything by itself; on the user\'s confirmation the item is published immediately. The Arabic title and description are required: write them in Arabic (translate the user\'s text if needed) and show them to the user. Keep related_to (the subject) and the audience (who sees it) apart: an item about the Aleppo center can still be for all employees. Images and scheduling cannot be set from the chat; the user can do both later on the item\'s edit page. Returns either the errors to tell the user, or the checked draft. Only the user can create it, with the Confirm button shown under your answer.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
+                        'type' => ['type' => 'string', 'enum' => NewsType::values(), 'description' => 'news (something that happened, the default), announcement (important organizational information) or event (something taking place at a date and time).'],
                         'title_ar' => ['type' => 'string', 'description' => 'The title in Arabic (at most 255 characters).'],
                         'title_en' => ['type' => 'string', 'description' => 'Optional: the title in English (at most 255 characters).'],
-                        'description_ar' => ['type' => 'string', 'description' => 'The text of the news item in Arabic.'],
+                        'description_ar' => ['type' => 'string', 'description' => 'The text in Arabic.'],
                         'description_en' => ['type' => 'string', 'description' => 'Optional: the text in English.'],
-                        'event_date' => ['type' => 'string', 'description' => 'The date of the event or news as YYYY-MM-DD. Ask for it if the user did not say.'],
-                        'display_until' => ['type' => 'string', 'description' => 'Optional: the last day the item is shown, as YYYY-MM-DD.'],
-                        'target_type' => ['type' => 'string', 'enum' => ['all', ...array_keys(self::TARGETS)], 'description' => 'Who the news is for: all (the whole organization, the default), or one city, center, program or employee.'],
-                        'target_id' => ['type' => 'integer', 'description' => 'Required unless target_type is all: the id of that city, center, program or employee, from get_news_options.'],
+                        'event_starts_at' => ['type' => 'string', 'description' => 'Events only, and then required: when the event starts, as YYYY-MM-DD HH:MM (local time). Ask for it if the user did not say.'],
+                        'event_ends_at' => ['type' => 'string', 'description' => 'Events only, optional: when it ends, as YYYY-MM-DD HH:MM, not before the start.'],
+                        'display_until' => ['type' => 'string', 'description' => 'Optional: when the item leaves the active feeds, as YYYY-MM-DD (end of that day) or YYYY-MM-DD HH:MM. Must be in the future and, for an event, not before it starts.'],
+                        'related_to' => ['type' => 'string', 'enum' => $related, 'description' => 'What the item is about: organization (the default, no id) or one city, center, program, department or employee. It does not decide who sees it.'],
+                        'related_id' => ['type' => 'integer', 'description' => 'Required unless related_to is organization: the id from get_news_options.'],
+                        'audience_type' => ['type' => 'string', 'enum' => $audiences, 'description' => 'Who may see the item: all (every employee, the default) or selected cities, centers, programs, departments or employees.'],
+                        'audience_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Required unless audience_type is all: at least one id of that kind, from get_news_options.'],
                     ],
-                    'required' => ['title_ar', 'description_ar', 'event_date'],
+                    'required' => ['title_ar', 'description_ar'],
                 ],
             ],
         ];
@@ -101,17 +113,22 @@ class NewsDraft implements RecordDraft
 
     public function card(array $proposal): array
     {
+        $type = NewsType::tryFrom((string) ($proposal['type'] ?? '')) ?? NewsType::News;
+
         return [
             'title' => __('assistant-news.title'),
-            'icon' => 'file',
+            'icon' => $type->icon(),
             'rows' => array_filter([
+                __('assistant-news.fields.type') => $type->label(),
                 __('assistant-news.fields.title_ar') => $proposal['title_ar'] ?? null,
                 __('assistant-news.fields.title_en') => $proposal['title_en'] ?? null,
                 __('assistant-news.fields.description_ar') => filled($proposal['description_ar'] ?? null) ? Str::limit((string) $proposal['description_ar'], 400) : null,
                 __('assistant-news.fields.description_en') => filled($proposal['description_en'] ?? null) ? Str::limit((string) $proposal['description_en'], 400) : null,
-                __('assistant-news.fields.event_date') => $proposal['event_date'] ?? null,
+                __('assistant-news.fields.event') => $proposal['event'] ?? null,
                 __('assistant-news.fields.display_until') => $proposal['display_until'] ?? null,
-                __('assistant-news.fields.target') => $proposal['target'] ?? null,
+                __('assistant-news.fields.related') => $proposal['related'] ?? null,
+                __('assistant-news.fields.audience') => $proposal['audience'] ?? null,
+                __('assistant-news.fields.publication') => __('assistant-news.publish_now'),
             ], fn ($value) => filled($value)),
         ];
     }
@@ -131,10 +148,10 @@ class NewsDraft implements RecordDraft
             }
 
             $news = $this->asUser($user, function () use ($proposal): News {
-                // Every rule again (the target may have been deactivated since).
+                // Every rule again (a target may have been deactivated since).
                 $form = $this->checkedForm($proposal);
 
-                return $form->persist();
+                return $form->persist(null, NewsForm::INTENT_PUBLISH);
             });
 
             Cache::put($key, $news->id, now()->addHours(self::REPLAY_TTL_HOURS));
@@ -142,51 +159,56 @@ class NewsDraft implements RecordDraft
             return $news;
         });
 
-        $canEdit = $user->hasActivePermission('news.update');
+        $canView = NewsAccess::canView($user, $news);
 
         return [
             'message' => __('assistant-news.created'),
-            'url' => $canEdit ? route('news.edit', $news) : route('news.index'),
-            'link' => $canEdit ? __('assistant-news.open') : __('assistant-news.open-list'),
+            'url' => $canView ? route('news.show', $news) : route('news.index'),
+            'link' => $canView ? __('assistant-news.open') : __('assistant-news.open-list'),
         ];
     }
 
-    /** NewsCreate::canCreateNews() behind the route's news.create permission. */
+    /** NewsAccess::canCreate() behind the route's news.create permission. */
     private function mayCreate(User $user): bool
     {
-        return $user->hasActivePermission('news.create')
-            && $user->activeRoleIs('HR', 'super-admin', 'general-manager', 'manager');
+        return $user->hasActivePermission('news.create') && NewsAccess::canCreate($user);
     }
 
-    /** The page's target dropdowns (NewsForm::entities()), as ids and names. */
+    /** The page's option lists (NewsForm::optionsFor()), as ids and names. */
     private function options(array $args): array
     {
         $search = trim((string) ($args['employee_search'] ?? ''));
         $employees = $search !== '' ? $this->matchingEmployees($search) : collect();
 
+        $lists = [];
+        foreach (self::LISTS as $name => $class) {
+            if ($class !== Employee::class) {
+                $lists[$name] = $this->listed($class);
+            }
+        }
+
         return array_filter([
-            'target_types' => ['all', ...array_keys(self::TARGETS)],
-            'cities' => $this->listed(City::class),
-            'centers' => $this->listed(Center::class),
-            'programs' => $this->listed(Program::class),
+            'related_to' => array_column(RelatedTo::cases(), 'value'),
+            'audience_types' => array_column(AudienceType::cases(), 'value'),
+            ...$lists,
             'employees' => $search !== ''
                 ? $employees->take(self::MAX_EMPLOYEES)->map(fn ($e) => ['id' => $e->id, 'name' => $e->name])->values()->all()
                 : null,
             'employees_truncated' => $employees->count() > self::MAX_EMPLOYEES ?: null,
-            'note' => 'Use only these ids. target_type all needs no id. Images can be added later on the news page.',
+            'note' => 'Use only these ids, for related_id (one, matching related_to) and audience_ids (one or more, matching audience_type). related_to organization and audience_type all need no id.',
         ], fn ($value) => $value !== null);
     }
 
-    private function listed(string $type): array
+    private function listed(string $class): array
     {
-        return $this->entities($type)->map(fn ($entity) => ['id' => $entity->id, 'name' => $entity->name])->values()->all();
+        return NewsForm::optionsFor($class)->map(fn ($entity) => ['id' => $entity->id, 'name' => $entity->name])->values()->all();
     }
 
     private function matchingEmployees(string $search): Collection
     {
         $needle = Str::lower($search);
 
-        return $this->entities(Employee::class)->filter(function (Employee $employee) use ($needle): bool {
+        return NewsForm::optionsFor(Employee::class)->filter(function (Employee $employee) use ($needle): bool {
             $names = Str::lower(implode(' ', [
                 $employee->first_name_en, $employee->last_name_en,
                 $employee->first_name_ar, $employee->last_name_ar,
@@ -194,15 +216,6 @@ class NewsDraft implements RecordDraft
 
             return Str::contains($names, $needle);
         })->values();
-    }
-
-    /** What the page's dropdown offers for a target type. */
-    private function entities(string $type): Collection
-    {
-        $form = $this->form();
-        $form->newsable_type = $type;
-
-        return $form->entities();
     }
 
     /** Validates without writing: the error messages, or the proposal for the card. */
@@ -227,7 +240,7 @@ class NewsDraft implements RecordDraft
 
     /**
      * The page's form filled from a draft and checked with its own rules,
-     * plus the one check its dropdown makes: the target must be one it lists.
+     * as a new item published immediately.
      *
      * @throws ValidationException
      */
@@ -235,60 +248,79 @@ class NewsDraft implements RecordDraft
     {
         $form = $this->form();
 
+        $form->type = $this->text($input['type'] ?? '') ?: NewsType::News->value;
         $form->title_ar = $this->text($input['title_ar'] ?? '');
         $form->title_en = $this->text($input['title_en'] ?? '') ?: null;
         $form->description_ar = $this->text($input['description_ar'] ?? '');
         $form->description_en = $this->text($input['description_en'] ?? '') ?: null;
-        $form->event_date = $this->text($input['event_date'] ?? '') ?: null;
+        // event_date: the name this tool used before events had a time.
+        $form->event_starts_at = $this->text($input['event_starts_at'] ?? ($input['event_date'] ?? '')) ?: null;
+        $form->event_ends_at = $this->text($input['event_ends_at'] ?? '') ?: null;
         $form->display_until = $this->text($input['display_until'] ?? '') ?: null;
 
-        $target = $this->text($input['target_type'] ?? '');
         // An unknown name is left as it is, for the form's own rule to refuse.
-        $form->newsable_type = ($target === '' || $target === 'all') ? '' : (self::TARGETS[$target] ?? $target);
-        $id = $input['target_id'] ?? '';
-        $form->newsable_id = $form->newsable_type === '' || ! is_scalar($id) ? '' : (string) $id;
+        $form->related_to = $this->text($input['related_to'] ?? '') ?: RelatedTo::Organization->value;
+        $id = $input['related_id'] ?? '';
+        $form->related_id = is_scalar($id) ? (string) $id : '';
 
-        $form->validate(null, [], $this->attributes());
+        $form->audience_type = $this->text($input['audience_type'] ?? '') ?: AudienceType::All->value;
+        $ids = $input['audience_ids'] ?? [];
+        $form->audience_ids = is_array($ids)
+            ? array_values(array_map(fn ($v) => (string) $v, array_filter($ids, 'is_scalar')))
+            : [];
 
-        if ($form->newsable_type !== ''
-            && ! $this->entities($form->newsable_type)->contains('id', (int) $form->newsable_id)) {
-            throw ValidationException::withMessages([
-                'newsable_id' => __('assistant-news.errors.target'),
-            ]);
-        }
+        $form->publish_mode = NewsForm::MODE_NOW;
+        $form->publish_at = null;
+        $form->photo = null;
+
+        $form->check(null, $this->attributes());
 
         return $form;
     }
 
     private function proposal(NewsForm $form): array
     {
-        $target = array_search($form->newsable_type, self::TARGETS, true) ?: 'all';
-        $entity = $target === 'all'
-            ? null
-            : $this->entities($form->newsable_type)->firstWhere('id', (int) $form->newsable_id);
+        $type = $form->typeEnum();
+        $related = $form->relatedEnum();
+        $audience = $form->audienceEnum();
+
+        $relatedEntity = $related->needsEntity() ? $form->entities()->firstWhere('id', (int) $form->related_id) : null;
+        $audienceNames = $audience->needsTargets()
+            ? $form->audienceOptions()->whereIn('id', array_map('intval', $form->audience_ids))->pluck('name')
+            : collect();
+
+        $start = $type->isEvent() ? $form->parseMoment($form->event_starts_at) : null;
+        $end = $type->isEvent() ? $form->parseMoment($form->event_ends_at) : null;
+        $until = $form->parseDisplayUntil($form->display_until);
 
         return [
+            'type' => $type->value,
             'title_ar' => $form->title_ar,
             'title_en' => $form->title_en,
             'description_ar' => $form->description_ar,
             'description_en' => $form->description_en,
-            'event_date' => Carbon::parse($form->event_date)->format('Y-m-d'),
-            'display_until' => $form->display_until ? Carbon::parse($form->display_until)->format('Y-m-d') : null,
-            'target_type' => $target,
-            'target_id' => $entity ? (int) $entity->id : null,
-            'target' => $entity
-                ? __('assistant-news.targets.'.$target).': '.$entity->name
-                : __('assistant-news.targets.all'),
+            'event_starts_at' => $start?->format('Y-m-d H:i'),
+            'event_ends_at' => $end?->format('Y-m-d H:i'),
+            // As given: a plain date keeps meaning "until the end of that day" on replay.
+            'display_until' => $until ? $form->display_until : null,
+            'related_to' => $related->value,
+            'related_id' => $relatedEntity ? (int) $relatedEntity->id : null,
+            'audience_type' => $audience->value,
+            'audience_ids' => array_map('intval', $form->audience_ids),
+            // For the card only (checkedForm() ignores them).
+            'event' => $start ? $start->format('Y-m-d H:i').($end ? ' – '.$end->format('Y-m-d H:i') : '') : null,
+            'related' => $relatedEntity ? $related->label().': '.$relatedEntity->name : $related->label(),
+            'audience' => $audience->needsTargets()
+                ? $audience->label().': '.$audienceNames->implode('، ')
+                : $audience->label(),
         ];
     }
 
     /** @return array<string, string> */
     private function attributes(): array
     {
-        return collect(['title_ar', 'title_en', 'description_ar', 'description_en', 'event_date', 'display_until'])
+        return collect(['type', 'title_ar', 'title_en', 'description_ar', 'description_en', 'event_starts_at', 'event_ends_at', 'display_until', 'related_to', 'related_id', 'audience_type', 'audience_ids'])
             ->mapWithKeys(fn (string $field) => [$field => __('assistant-news.fields.'.$field)])
-            ->put('newsable_type', __('assistant-news.fields.target_type'))
-            ->put('newsable_id', __('assistant-news.fields.target'))
             ->all();
     }
 
