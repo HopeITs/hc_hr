@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\Gender;
 use App\Enums\LeaveType as LeaveTypeEnum;
@@ -10,7 +9,6 @@ use App\Enums\LeaveTypeCases;
 use App\Enums\MaritalStatus;
 use App\Models\AnnualLeaveRule;
 use App\Models\Contract;
-use App\Models\ContractAmendment;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
@@ -123,20 +121,16 @@ class LeaveBalanceService
 
     /**
      * Recalculate and reconcile the leave balances of an existing contract.
+     *
+     * A balance an amendment converted to a new working day keeps that
+     * conversion: every figure written here goes through reprice(), which adds
+     * that balance's amendment_offset (see rescaleForDailyHours()).
      */
     public function update(Contract $contract): void
     {
         $contract->load(['employee', 'contractType', 'leaveBalances']);
 
         if ($this->isExemptFromLeave($contract)) {
-            return;
-        }
-
-        // Its balances were converted to the new working day when the
-        // amendment took effect (rescaleForDailyHours). Pricing the whole term
-        // again on the new day would also re-price the hours already used and
-        // hand back leave the employee never had.
-        if ($this->hasAmendedWorkingDay($contract)) {
             return;
         }
 
@@ -150,7 +144,11 @@ class LeaveBalanceService
         [$yearly, $sick, $unpaid] = $this->calculateDeservedLeaves($contract->duration, $annualMonths, $leaveRule, $dailyWorkHours, $extra);
 
         // Annual
-        $contract->leaveBalances->where('type_id', LeaveTypeCases::Annual)->first()?->update(['deserved' => $yearly]);
+        $annual = $contract->leaveBalances->where('type_id', LeaveTypeCases::Annual)->first();
+
+        if ($annual) {
+            $this->reprice($annual, $yearly);
+        }
 
         // Skip if in trial period
         if ($contract->contractType->category === 'trial') {
@@ -174,6 +172,11 @@ class LeaveBalanceService
      * re-price against those very hours (computed_hours), and an hourly leave
      * of 2 hours is still 2 hours — and only what is left is scaled:
      * deserved = used + (deserved − used) × new ÷ old.
+     *
+     * Pricing the term from scratch on the new day (update()) would instead
+     * scale the used hours too. The difference, used × (1 − new ÷ old), is
+     * kept as amendment_offset so update() can add it back; a second
+     * amendment scales the offset already there by its own ratio.
      */
     public function rescaleForDailyHours(Contract $contract, int $oldDailyHours, int $newDailyHours): void
     {
@@ -187,22 +190,26 @@ class LeaveBalanceService
             return;
         }
 
+        $ratio = $newDailyHours / $oldDailyHours;
+
         foreach ($contract->leaveBalances as $balance) {
             $used = (float) ($balance->used ?? 0);
             $left = (float) $balance->deserved - $used;
 
             $balance->update([
-                'deserved' => (int) round($used + $left * $newDailyHours / $oldDailyHours),
+                'deserved' => (int) round($used + $left * $ratio),
+                'amendment_offset' => round($used * (1 - $ratio) + (float) $balance->amendment_offset * $ratio, 2),
             ]);
         }
     }
 
-    private function hasAmendedWorkingDay(Contract $contract): bool
+    /**
+     * Set an existing balance to a freshly priced figure, keeping the
+     * conversion an amendment made to it (zero for a balance never converted).
+     */
+    private function reprice(LeaveBalance $balance, int|float $hours): void
     {
-        return $contract->amendments()
-            ->where('status', ContractAmendmentStatus::Applied)
-            ->get()
-            ->contains(fn (ContractAmendment $amendment) => $amendment->dailyHoursBefore() !== $amendment->dailyHoursAfter());
+        $balance->update(['deserved' => (int) round($hours + (float) $balance->amendment_offset)]);
     }
 
     /**
@@ -348,7 +355,11 @@ class LeaveBalanceService
         ];
 
         foreach ($updates as $type => $deserved) {
-            $contract->leaveBalances->where('type_id', $type)->first()?->update(['deserved' => $deserved]);
+            $balance = $contract->leaveBalances->where('type_id', $type)->first();
+
+            if ($balance) {
+                $this->reprice($balance, $deserved);
+            }
         }
     }
 
@@ -409,7 +420,7 @@ class LeaveBalanceService
             if ($employee->gender === $type->allowed_gender || $type->allowed_gender === LeaveTypeEnum::GENDER_ANY) {
                 $balance = $contract->leaveBalances->where('type_id', $type->id)->first();
                 if ($balance) {
-                    $balance->update(['deserved' => $type->base_days * $dailyWorkHours]);
+                    $this->reprice($balance, $type->base_days * $dailyWorkHours);
                 } else {
                     LeaveBalance::create([
                         'contract_id' => $contract->id,
@@ -457,11 +468,11 @@ class LeaveBalanceService
 
             if ($employee->gender === Gender::Female && ! $employee->abilityToTakeLeave($type->id)) {
                 $balance
-                    ? $balance->update(['deserved' => $deserved])
+                    ? $this->reprice($balance, $deserved)
                     : LeaveBalance::create(['contract_id' => $contract->id, 'type_id' => $type->id, 'deserved' => $deserved]);
             } elseif ($employee->gender === Gender::Male) {
                 $balance
-                    ? $balance->update(['deserved' => $deserved])
+                    ? $this->reprice($balance, $deserved)
                     : LeaveBalance::create(['contract_id' => $contract->id, 'type_id' => $type->id, 'deserved' => $deserved]);
             }
         }

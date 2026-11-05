@@ -18,6 +18,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
@@ -253,6 +254,26 @@ trailer<<>>
         $this->actingAs($hms)
             ->get(route('contracts.amendments.signed', [$contract, $amendment]))
             ->assertNotFound();
+    }
+
+    public function test_deleting_the_contract_removes_the_signed_copy_too(): void
+    {
+        Storage::fake('local');
+        $contract = $this->contract();
+        $amendment = app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmendments::class, ['contract' => $contract])
+            ->set("signedFiles.{$amendment->id}", UploadedFile::fake()->createWithContent('signed.pdf', '%PDF-1.4
+%%EOF'));
+        $path = $amendment->refresh()->getFirstMedia('signed')->getPathRelativeToRoot();
+        Storage::disk('local')->assertExists($path);
+
+        $contract->delete();
+
+        $this->assertSame(0, ContractAmendment::query()->count());
+        $this->assertSame(0, Media::query()->where('model_type', ContractAmendment::class)->count());
+        Storage::disk('local')->assertMissing($path);
     }
 
     public function test_a_signed_copy_must_be_a_document(): void

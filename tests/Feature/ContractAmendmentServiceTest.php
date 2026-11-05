@@ -6,6 +6,7 @@ use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\Currency;
 use App\Exceptions\ContractAmendmentCannotApply;
+use App\Models\AnnualLeaveRule;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
@@ -204,15 +205,51 @@ class ContractAmendmentServiceTest extends TestCase
         $this->assertSame(56, (int) $balance->refresh()->deserved);
     }
 
-    public function test_recalculation_leaves_a_converted_contract_alone(): void
+    public function test_recalculation_keeps_the_conversion(): void
     {
+        $this->annualRule();
         $contract = $this->makeContract();
         $balance = $this->balanceOn($contract, deserved: 56, used: 16, annual: true);
 
         $this->service->approve($this->service->draft($contract, $this->mayaChanges(), '2026-05-01'));
+        $this->assertSame(76, (int) $balance->refresh()->deserved);
+
+        // Priced from scratch on the 6-hour day: 14 days = 84 hours, then the
+        // conversion's offset (16 used × (1 − 6/4) = −8) puts back the 10 days left.
+        app(LeaveBalanceService::class)->update($contract->refresh());
+        $this->assertSame(76, (int) $balance->refresh()->deserved);
+
+        // And again: recalculating twice does not stack the offset.
+        app(LeaveBalanceService::class)->update($contract->refresh());
+        $this->assertSame(76, (int) $balance->refresh()->deserved);
+    }
+
+    public function test_an_edited_term_is_still_repriced_after_an_amendment(): void
+    {
+        $this->annualRule();
+        $contract = $this->makeContract();
+        $balance = $this->balanceOn($contract, deserved: 56, used: 16, annual: true);
+        $this->service->approve($this->service->draft($contract, $this->mayaChanges(), '2026-05-01'));
+
+        // HR shortens the term to six months: round(6 × 7/6) = 7 days on a 6-hour day, minus the 8-hour offset.
+        $contract->refresh()->update(['end_date' => '2026-06-30']);
         app(LeaveBalanceService::class)->update($contract->refresh());
 
-        $this->assertSame(76, (int) $balance->refresh()->deserved);
+        $this->assertSame(34, (int) $balance->refresh()->deserved);
+        // 18 hours left = 3 days, the same 3 days the 4-hour day would have left (28 − 16 = 12 hours).
+        $this->assertSame(3.0, ($balance->deserved - $balance->used) / 6);
+    }
+
+    public function test_a_balance_never_converted_is_priced_as_before(): void
+    {
+        $this->annualRule();
+        $contract = $this->makeContract();
+        $balance = $this->balanceOn($contract, deserved: 10, used: 0, annual: true);
+
+        app(LeaveBalanceService::class)->update($contract);
+
+        $this->assertSame(56, (int) $balance->refresh()->deserved);
+        $this->assertSame(0.0, (float) $balance->amendment_offset);
     }
 
     public function test_pay_tiers_are_replaced_on_apply(): void
@@ -345,6 +382,12 @@ class ContractAmendmentServiceTest extends TestCase
             'salary' => 150,
             'currency' => Currency::USD,
         ], $overrides))->refresh();
+    }
+
+    /** 14 days a year, 7 per six months (round(6 × 7/6)). */
+    private function annualRule(): void
+    {
+        AnnualLeaveRule::query()->forceCreate(['years_of_volunteering' => 0, 'days' => 14, 'day_per_month' => 7 / 6]);
     }
 
     private function balanceOn(Contract $contract, int $deserved, float $used, bool $annual = false): LeaveBalance
