@@ -36,73 +36,47 @@ class ContractAmendmentService
      */
     public function draft(Contract $contract, array $changes, string|CarbonInterface $effectiveFrom, ?string $reason = null, ?User $by = null): ContractAmendment
     {
-        $effectiveFrom = Carbon::parse($effectiveFrom)->startOfDay();
-
-        $this->assertAmendable($contract);
-        $this->assertNoneOpen($contract);
-        $this->assertEffectiveDate($contract, $effectiveFrom);
-
-        if (array_key_exists('type', $changes)
-            && ! in_array((int) $changes['type'], [ContractTypeEnum::FullTime, ContractTypeEnum::PartTime, ContractTypeEnum::Freelance], true)) {
-            throw ValidationException::withMessages(['type' => __('contracts.amendment.errors.invalid-type')]);
-        }
-
-        // The "before" figure must be readable, or the amendment would record
-        // a null as the old pay and later write it back as the new one.
-        if (filled($contract->getAttributes()['salary'] ?? null) && $contract->salary === null) {
-            throw ValidationException::withMessages(['salary' => __('contracts.amendment.errors.unreadable-pay')]);
-        }
-
-        $before = ContractAmendment::snapshotOf($contract);
-        $after = array_merge($before, array_map(
-            // A form sends "15:00"; the column holds "15:00:00".
-            fn ($value) => is_string($value) && preg_match('/^\d{2}:\d{2}$/', $value) ? $value.':00' : $value,
-            array_intersect_key($changes, array_flip(ContractAmendment::AMENDABLE_FIELDS)),
-        ));
-        $tiersBefore = $contract->payTiers()->get();
-
-        return DB::transaction(function () use ($contract, $changes, $effectiveFrom, $reason, $by, $before, $after, $tiersBefore): ContractAmendment {
-            $amendment = ContractAmendment::query()->create([
-                'contract_id' => $contract->id,
-                'number' => $contract->nextAmendmentNumber(),
-                'status' => ContractAmendmentStatus::Draft,
-                'effective_from' => $effectiveFrom->toDateString(),
-                'reason' => filled($reason) ? trim($reason) : null,
-                'terms_before' => $before,
-                'terms_after' => $after,
-                'salary_before' => $contract->salary,
-                'salary_after' => array_key_exists('salary', $changes) ? $changes['salary'] : $contract->salary,
-                'created_by' => $by?->id,
-            ]);
-
-            foreach ($tiersBefore as $tier) {
-                $this->addTier($amendment, ContractAmendmentPayTier::SIDE_BEFORE, $tier->condition_en, $tier->condition_ar, $tier->amount, $tier->sort_order);
-            }
-
-            $tiersAfter = array_key_exists('pay_tiers', $changes)
-                ? collect($changes['pay_tiers'])->values()->map(fn (array $tier, int $i) => [$tier['condition_en'] ?? '', $tier['condition_ar'] ?? '', $tier['amount'] ?? null, $i])
-                : $tiersBefore->map(fn ($tier) => [$tier->condition_en, $tier->condition_ar, $tier->amount, $tier->sort_order]);
-
-            foreach ($tiersAfter as [$en, $ar, $amount, $order]) {
-                $this->addTier($amendment, ContractAmendmentPayTier::SIDE_AFTER, $en, $ar, $amount, $order);
-            }
-
-            if ($amendment->changedFields() === []) {
-                throw ValidationException::withMessages(['terms' => __('contracts.amendment.errors.nothing-changed')]);
-            }
-
-            return $amendment;
-        });
+        return $this->record($contract, $changes, $effectiveFrom, $reason, $by);
     }
 
-    /** A draft that was never signed can simply be thrown away. */
+    /**
+     * Throw away an amendment that has not changed the contract yet: a draft
+     * never signed, or one approved for a date still to come. One in effect
+     * stays — it is part of the signed history and the leave conversion has
+     * been made; a correction is a new amendment.
+     */
     public function discard(ContractAmendment $amendment): void
+    {
+        if ($amendment->isApplied()) {
+            throw ValidationException::withMessages(['amendment' => __('contracts.amendment.errors.already-applied')]);
+        }
+
+        $amendment->delete();
+    }
+
+    /**
+     * Change a draft: the same checks as drafting it, under the same number.
+     * Its signed copy, if one was attached, goes with the old wording.
+     */
+    public function redraft(ContractAmendment $amendment, array $changes, string|CarbonInterface $effectiveFrom, ?string $reason = null, ?User $by = null): ContractAmendment
     {
         if (! $amendment->isDraft()) {
             throw ValidationException::withMessages(['amendment' => __('contracts.amendment.errors.not-a-draft')]);
         }
 
-        $amendment->delete();
+        // The new draft is checked and written first, and only then is the old
+        // one deleted: deleting it removes its signed copy from the disk, which
+        // a rollback after a failed check could not bring back.
+        return DB::transaction(function () use ($amendment, $changes, $effectiveFrom, $reason, $by): ContractAmendment {
+            $contract = $amendment->contract()->lockForUpdate()->firstOrFail();
+            $replacement = $this->record($contract, $changes, $effectiveFrom, $reason, $by, replacing: $amendment);
+            $number = $amendment->number;
+
+            $amendment->delete();
+            $replacement->update(['number' => $number]);
+
+            return $replacement->refresh();
+        });
     }
 
     /**
@@ -221,6 +195,68 @@ class ContractAmendmentService
         return ['applied' => $applied, 'failed' => $failed];
     }
 
+    /** @param  ContractAmendment|null  $replacing  the draft this one replaces (redraft()) */
+    private function record(Contract $contract, array $changes, string|CarbonInterface $effectiveFrom, ?string $reason, ?User $by, ?ContractAmendment $replacing = null): ContractAmendment
+    {
+        $effectiveFrom = Carbon::parse($effectiveFrom)->startOfDay();
+
+        $this->assertAmendable($contract);
+        $this->assertNoneOpen($contract, except: $replacing?->id);
+        $this->assertEffectiveDate($contract, $effectiveFrom);
+
+        if (array_key_exists('type', $changes)
+            && ! in_array((int) $changes['type'], [ContractTypeEnum::FullTime, ContractTypeEnum::PartTime, ContractTypeEnum::Freelance], true)) {
+            throw ValidationException::withMessages(['type' => __('contracts.amendment.errors.invalid-type')]);
+        }
+
+        // The "before" figure must be readable, or the amendment would record
+        // a null as the old pay and later write it back as the new one.
+        if (filled($contract->getAttributes()['salary'] ?? null) && $contract->salary === null) {
+            throw ValidationException::withMessages(['salary' => __('contracts.amendment.errors.unreadable-pay')]);
+        }
+
+        $before = ContractAmendment::snapshotOf($contract);
+        $after = array_merge($before, array_map(
+            // A form sends "15:00"; the column holds "15:00:00".
+            fn ($value) => is_string($value) && preg_match('/^\d{2}:\d{2}$/', $value) ? $value.':00' : $value,
+            array_intersect_key($changes, array_flip(ContractAmendment::AMENDABLE_FIELDS)),
+        ));
+        $tiersBefore = $contract->payTiers()->get();
+
+        return DB::transaction(function () use ($contract, $changes, $effectiveFrom, $reason, $by, $before, $after, $tiersBefore): ContractAmendment {
+            $amendment = ContractAmendment::query()->create([
+                'contract_id' => $contract->id,
+                'number' => $contract->nextAmendmentNumber(),
+                'status' => ContractAmendmentStatus::Draft,
+                'effective_from' => $effectiveFrom->toDateString(),
+                'reason' => filled($reason) ? trim($reason) : null,
+                'terms_before' => $before,
+                'terms_after' => $after,
+                'salary_before' => $contract->salary,
+                'salary_after' => array_key_exists('salary', $changes) ? $changes['salary'] : $contract->salary,
+                'created_by' => $by?->id,
+            ]);
+
+            foreach ($tiersBefore as $tier) {
+                $this->addTier($amendment, ContractAmendmentPayTier::SIDE_BEFORE, $tier->condition_en, $tier->condition_ar, $tier->amount, $tier->sort_order);
+            }
+
+            $tiersAfter = array_key_exists('pay_tiers', $changes)
+                ? collect($changes['pay_tiers'])->values()->map(fn (array $tier, int $i) => [$tier['condition_en'] ?? '', $tier['condition_ar'] ?? '', $tier['amount'] ?? null, $i])
+                : $tiersBefore->map(fn ($tier) => [$tier->condition_en, $tier->condition_ar, $tier->amount, $tier->sort_order]);
+
+            foreach ($tiersAfter as [$en, $ar, $amount, $order]) {
+                $this->addTier($amendment, ContractAmendmentPayTier::SIDE_AFTER, $en, $ar, $amount, $order);
+            }
+
+            if ($amendment->changedFields() === []) {
+                throw ValidationException::withMessages(['terms' => __('contracts.amendment.errors.nothing-changed')]);
+            }
+
+            return $amendment;
+        });
+    }
+
     private function assertAmendable(Contract $contract): void
     {
         if (! $contract->canBeAmended()) {
@@ -232,10 +268,11 @@ class ContractAmendmentService
      * One amendment in flight at a time: a second draft would record a
      * "before" that the first one is about to change.
      */
-    private function assertNoneOpen(Contract $contract): void
+    private function assertNoneOpen(Contract $contract, ?int $except = null): void
     {
         $open = ContractAmendment::query()
             ->where('contract_id', $contract->id)
+            ->when($except, fn ($query) => $query->whereKeyNot($except))
             ->whereIn('status', [ContractAmendmentStatus::Draft, ContractAmendmentStatus::Approved])
             ->exists();
 

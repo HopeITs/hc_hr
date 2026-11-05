@@ -122,7 +122,14 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
-        'print' => 'Print sheet',
+        'download-signed' => 'Download signed copy',
+        'replace-signed' => 'Replace signed copy',
+        'earlier' => '{1} 1 earlier amendment|[2,*] :count earlier amendments',
+        'edit-title' => 'Edit amendment :number',
+        'redrafted' => 'Amendment updated. Export it again for signing.',
+        'cancel' => 'Cancel amendment',
+        'cancel-title' => 'Cancel this amendment?',
+        'cancel-body' => 'It was approved for :date and has not taken effect, so the contract stays as it is.',
         'title' => 'Contract amendment',
         'section' => 'Amendment',
         'list-title' => 'Amendments',
@@ -160,6 +167,7 @@ return [
         'attach-signed' => 'Attach signed copy',
         'signed-attached' => 'Signed copy attached.',
         'errors' => [
+            'already-applied' => 'An amendment in effect cannot be deleted. To change the terms again, add a new amendment.',
             'not-in-force' => 'Only a contract in force can be amended: not a draft, not terminated, and running today.',
             'one-open' => 'This contract already has an amendment waiting. Approve or discard it first.',
             'outside-term' => 'The effective date must fall within the contract term.',
@@ -175,6 +183,7 @@ return [
             'draft' => 'Draft',
             'approved' => 'Approved, not yet in effect',
             'applied' => 'In effect',
+            'superseded' => 'Superseded',
         ],
     ],
 ];

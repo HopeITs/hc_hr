@@ -1,12 +1,14 @@
+@php($pageTitle = $editingNumber ? __('contracts.amendment.edit-title', ['number' => $editingNumber]) : __('contracts.amendment.title'))
+
 <x-slot:title>
-    {{ __('contracts.amendment.title') }}
+    {{ $pageTitle }}
 </x-slot:title>
 
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <livewire:layout.breadcrumbs :title="__('contracts.amendment.title')" :crumbs="[
+    <livewire:layout.breadcrumbs :title="$pageTitle" :crumbs="[
         ['label' => trans_choice('general.contracts', 2), 'url' => route('contracts.index')],
         ['label' => $contract->employee?->name ?? __('general.na'), 'url' => route('contracts.show', $contract->id)],
-        ['label' => __('contracts.amendment.title')],
+        ['label' => $pageTitle],
     ]"/>
 
     @include('livewire.contract.composer._screen', [

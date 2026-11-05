@@ -29,7 +29,8 @@ final class ContractAmendmentStatus extends Enum implements HasStatusTone
     public function tone(): StatusTone
     {
         return match ($this->value) {
-            self::Applied => StatusTone::Done,
+            // The one the contract runs on now; a superseded one is shown as done.
+            self::Applied => StatusTone::Work,
             self::Approved => StatusTone::Wait,
             default => StatusTone::Attn,
         };

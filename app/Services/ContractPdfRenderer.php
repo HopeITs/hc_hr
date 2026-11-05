@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Models\Contract;
 use App\Models\ContractAmendment;
-use App\Models\ContractAmendmentPayTier;
-use App\Models\ContractPayTier;
 use App\Support\InspectableBrowsershot;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\File;
@@ -87,10 +85,7 @@ class ContractPdfRenderer
         $contract = $amendment->contract;
         $locale = app()->getLocale();
 
-        // The contract as it becomes — built in memory only, never saved.
-        $after = $contract->replicate();
-        $after->forceFill($amendment->terms_after ?? []);
-        $after->salary = $amendment->salary_after;
+        $after = $amendment->termsAsContract();
 
         // The sheet states every term that changed, whatever the contract's
         // print toggles say: a new day range left off the page would leave the
@@ -103,14 +98,6 @@ class ContractPdfRenderer
         $dayRangeChanged = array_intersect(['work_day_from', 'work_day_to'], $changed) !== [];
         $after->show_day_range = $after->show_day_range || $dayRangeChanged;
         $after->show_days_per_week = $after->show_days_per_week || $dayRangeChanged;
-        $after->setRelation('payTiers', $amendment->payTiersAfter()->get()->map(
-            fn (ContractAmendmentPayTier $tier) => new ContractPayTier([
-                'condition_en' => $tier->condition_en,
-                'condition_ar' => $tier->condition_ar,
-                'amount' => $tier->amount,
-                'sort_order' => $tier->sort_order,
-            ]),
-        ));
 
         return view('pdf.amendment', [
             'amendment' => $amendment,

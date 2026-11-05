@@ -84,13 +84,17 @@
                     <div class="contract-title-separator">|</div>
                     <div class="dual-ar fw-title">تعديل عقد</div>
                 </div>
+                {{-- Which amendment this is, so a contract amended twice has two
+                     sheets that cannot be mistaken for one another. --}}
+                <div class="dual-row dual-tight">
+                    <div class="dual-en">No. {{ $amendment->number }}</div>
+                    <div class="contract-title-separator">|</div>
+                    <div class="dual-ar">رقم {{ $amendment->number }}</div>
+                </div>
             </div>
 
             <div class="avoid-break mt-4">
                 <x-contract.dual
-                    :en="'Amendment No. <strong>'.$amendment->number.'</strong> to the voluntary contract dated <strong>'.e($contract->start_date?->format('d/m/Y')).'</strong>.'"
-                    :ar="'الملحق رقم <strong>'.$amendment->number.'</strong> لعقد التطوّع المؤرّخ في <strong><span dir=\'ltr\'>'.e($contract->start_date?->format('d/m/Y')).'</span></strong>.'" />
-                <x-contract.dual class="mt-2"
                     :en="'The following amendments were made to the contract of the volunteer <strong>'.e($nameEn).'</strong>:'"
                     :ar="'تم إجراء التعديلات التالية في عقد '.($female ? 'المتطوعة' : 'المتطوع').' <strong>'.e($nameAr).'</strong>:'" />
             </div>

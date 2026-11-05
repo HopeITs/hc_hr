@@ -76,10 +76,19 @@ class ContractPolicy
                 ->exists();
     }
 
-    /** Approve or discard a draft amendment: the same people who may draft one. */
+    /** Approve a draft once signed, or change it before: the people who may draft one. */
     public function decideAmendment(User $user, ContractAmendment $amendment): bool
     {
         return $amendment->isDraft() && $this->mayAmend($user, $amendment->contract);
+    }
+
+    /**
+     * Delete an amendment that has not changed the contract yet — a draft, or
+     * one approved for a date still to come. One in effect is history.
+     */
+    public function discardAmendment(User $user, ContractAmendment $amendment): bool
+    {
+        return ! $amendment->isApplied() && $this->mayAmend($user, $amendment->contract);
     }
 
     /** Attach the signed sheet, at any point after it was drafted. */

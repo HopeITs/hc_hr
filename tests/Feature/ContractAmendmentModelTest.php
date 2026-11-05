@@ -222,7 +222,7 @@ class ContractAmendmentModelTest extends TestCase
 
         $this->assertSame(StatusTone::Attn, $draft->tone());
         $this->assertSame(StatusTone::Wait, $approved->tone());
-        $this->assertSame(StatusTone::Done, $applied->tone());
+        $this->assertSame(StatusTone::Work, $applied->tone());
 
         $this->assertSame('pen', $draft->icon());
         $this->assertSame('clock', $approved->icon());

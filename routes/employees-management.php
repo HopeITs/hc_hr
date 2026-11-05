@@ -33,6 +33,10 @@ Route::prefix('contracts')
         // The creation wizard again, prefilled from the contract being renewed.
         // A contract amendment (ملحق عقد): a dated change to the schedule or pay.
         Route::get('/{contract}/amend', ContractAmend::class)->middleware('active_permission:contracts.amend')->name('amend');
+        Route::get('/{contract}/amendments/{amendment}/edit', ContractAmend::class)
+            ->middleware('active_permission:contracts.amend')
+            ->scopeBindings()
+            ->name('amendments.edit');
         Route::get('/{contract}/amendments/{amendment}/export', [ContractExportController::class, 'amendmentPdf'])
             ->middleware('active_permission:contracts.export')
             ->scopeBindings()

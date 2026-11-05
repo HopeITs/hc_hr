@@ -8,17 +8,11 @@
 
 {{--
     Amend mode's rail: the terms as they stand today beside what the amendment
-    makes of them. "Now" is captured from the composer's own getters the moment
-    it opens, so both columns are worded by the same code and can be compared.
+    makes of them. "Now" comes worded from the server (ContractAmend::nowCard),
+    because the composer may be seeded from a draft rather than the contract.
 --}}
 <div class="flex h-full flex-col rounded-surface border border-line-soft bg-card shadow-e1"
-     x-data="{ typeLabels: @js($typeLabels), before: null }"
-     x-init="$nextTick(() => before = {
-        type: typeLabels[type] ?? labels.empty,
-        workDays: cardWorkDays,
-        hours: cardHours,
-        salary: cardSalary,
-     })">
+     x-data="{ typeLabels: @js($typeLabels), before: @js($nowCard ?? []) }">
     <div class="flex items-center gap-3 border-b border-line-soft p-3">
         <img class="size-10 shrink-0 rounded-round object-cover ring-1 ring-line-soft"
              src="{{ $contract->employee?->avatar_url }}" alt="" loading="lazy" />
@@ -44,8 +38,7 @@
             <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 border-b border-line-soft py-2 last:border-b-0">
                 <dt class="truncate text-caption text-ink-2">{{ $row['key'] }}</dt>
                 <dd class="truncate text-end text-small tabular-nums text-ink-2" x-text="{{ $row['now'] }}"></dd>
-                <dd class="truncate text-end text-small font-semibold tabular-nums"
-                    x-bind:class="({{ $row['new'] }}) !== ({{ $row['now'] }}) ? 'text-ink' : 'text-ink-3'"
+                <dd class="truncate text-end text-small font-semibold tabular-nums text-ink"
                     x-text="{{ $row['new'] }}"></dd>
             </div>
         @endforeach

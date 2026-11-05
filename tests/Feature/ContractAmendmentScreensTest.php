@@ -200,6 +200,90 @@ class ContractAmendmentScreensTest extends TestCase
         $this->assertSame(0, ContractAmendment::query()->count());
     }
 
+    public function test_a_draft_is_edited_in_place_under_its_number(): void
+    {
+        $contract = $this->contract();
+        $draft = app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+
+        $this->actingAs($this->hr())->get(route('contracts.amendments.edit', [$contract, $draft]))
+            ->assertOk()
+            ->assertSee(__('contracts.amendment.edit-title', ['number' => 1]));
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract, 'amendment' => $draft])
+            ->call('submit', $this->payload(['weeklyHours' => 30, 'salary' => 300, 'effectiveFrom' => '2026-06-01']))
+            ->assertHasNoErrors();
+
+        $amendment = ContractAmendment::query()->sole();
+        $this->assertSame(1, $amendment->number);
+        $this->assertSame('2026-06-01', $amendment->effective_from->toDateString());
+        $this->assertSame('300.00', $amendment->salary_after);
+        $this->assertTrue($amendment->isDraft());
+    }
+
+    public function test_a_failed_edit_keeps_the_draft_and_its_signed_copy(): void
+    {
+        Storage::fake('local');
+        $contract = $this->contract();
+        $draft = app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+        $draft->addMediaFromString('%PDF-1.4')->usingFileName('signed.pdf')->toMediaCollection('signed');
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract, 'amendment' => $draft])
+            ->call('submit', $this->payload(['effectiveFrom' => '2027-06-01']))
+            ->assertHasErrors('effective_from');
+
+        $this->assertNotNull($draft->refresh()->getFirstMedia('signed'));
+        Storage::disk('local')->assertExists($draft->getFirstMedia('signed')->getPathRelativeToRoot());
+    }
+
+    public function test_only_a_draft_can_be_edited(): void
+    {
+        $contract = $this->contract();
+        $service = app(ContractAmendmentService::class);
+        $applied = $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-11-01'));
+
+        $this->actingAs($this->hr())->get(route('contracts.amendments.edit', [$contract, $applied]))->assertForbidden();
+    }
+
+    public function test_an_approved_amendment_not_yet_in_effect_can_be_cancelled_one_in_effect_cannot(): void
+    {
+        $contract = $this->contract();
+        $service = app(ContractAmendmentService::class);
+        $pending = $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-12-01'));
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmendments::class, ['contract' => $contract])
+            ->assertSee(__('contracts.amendment.cancel'))
+            ->call('discard', $pending->id);
+        $this->assertSame(0, ContractAmendment::query()->count());
+        $this->assertSame(20, $contract->refresh()->weekly_hours);
+
+        $applied = $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-11-01'));
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmendments::class, ['contract' => $contract])
+            ->call('discard', $applied->id)
+            ->assertForbidden();
+    }
+
+    public function test_only_the_newest_amendment_in_effect_reads_as_in_effect(): void
+    {
+        $contract = $this->contract();
+        $service = app(ContractAmendmentService::class);
+        $service->approve($service->draft($contract, ['weekly_hours' => 25], '2026-05-01'));
+        $service->approve($service->draft($contract->refresh(), ['weekly_hours' => 30], '2026-09-01'));
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmendments::class, ['contract' => $contract])
+            ->assertSeeInOrder([
+                __('contracts.amendment.number', ['number' => 2]),
+                __('contracts.amendment.status.applied'),
+                trans_choice('contracts.amendment.earlier', 1, ['count' => 1]),
+                __('contracts.amendment.number', ['number' => 1]),
+                __('contracts.amendment.status.superseded'),
+            ]);
+    }
+
     public function test_hr_of_another_city_cannot_approve(): void
     {
         $other = $this->makeCity('HMS', '002');

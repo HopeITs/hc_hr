@@ -58,7 +58,12 @@
         'dayNames' => $dayNames,
         // An edit opens with everything collapsed and summarised: there is
         // nothing to fill in, only something to change.
-        'initialSection' => $isEdit || $isAmend ? '' : 'assignment',
+        // An amendment walks its three steps in order, Continue to Continue.
+        'initialSection' => match (true) {
+            $isAmend => 'schedule',
+            $isEdit => '',
+            default => 'assignment',
+        },
         'typeDefaults' => $types->mapWithKeys(fn ($type) => [
             (string) $type->id => [
                 'name' => $type->name,
@@ -155,7 +160,7 @@
             @endunless
             @include('livewire.contract.composer._schedule', ['dayNames' => $dayNames, 'scheduleIndex' => $isAmend ? 1 : 2])
 
-            @include('livewire.contract.composer._pay', ['payHidden' => $payHidden, 'payIndex' => $isAmend ? 2 : 3])
+            @include('livewire.contract.composer._pay', ['payHidden' => $payHidden, 'payIndex' => $isAmend ? 2 : 3, 'payContinue' => $isAmend])
 
             @if($isAmend)
                 @include('livewire.contract.composer._amendment', ['amendmentIndex' => 3, 'isService' => $isService ?? false])

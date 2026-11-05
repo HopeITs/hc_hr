@@ -2,14 +2,22 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractType as ContractTypeEnum;
+use App\Enums\Currency;
+use App\Enums\PayMode;
+use App\Enums\SalaryPer;
+use App\Enums\ScheduleMode;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Forms\ContractForm;
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Services\ContractAmendmentService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
 
@@ -35,6 +43,10 @@ class ContractAmend extends Component
 
     public Contract $contract;
 
+    /** Set when the page edits a draft instead of drafting a new amendment. */
+    #[Locked]
+    public ?int $draftId = null;
+
     // Read by composerSeed(); an amendment has no location to choose.
     public ?int $city_id = null;
 
@@ -42,19 +54,30 @@ class ContractAmend extends Component
 
     public ?int $center_id = null;
 
-    public function mount(Contract $contract): void
+    public function mount(Contract $contract, ?ContractAmendment $amendment = null): void
     {
+        $this->contract = $contract->loadMissing(['employee', 'position', 'contractType', 'payTiers']);
+        $this->form->setDefaults();
+
+        if ($amendment?->exists) {
+            Gate::authorize('decideAmendment', $amendment);
+
+            $this->draftId = $amendment->id;
+            // Opened on the terms the draft makes, so only what HR changes now moves.
+            $this->form->setContract($amendment->termsAsContract());
+
+            return;
+        }
+
         Gate::authorize('amend', $contract);
 
-        $this->contract = $contract->loadMissing(['employee', 'position', 'contractType', 'payTiers']);
-
-        $this->form->setDefaults();
         $this->form->setContract($this->contract);
     }
 
     public function submit(array $payload, ContractAmendmentService $amendments): mixed
     {
-        Gate::authorize('amend', $this->contract);
+        $draft = $this->draft();
+        Gate::authorize(...$draft ? ['decideAmendment', $draft] : ['amend', $this->contract]);
 
         $contract = $this->contract->fresh(['payTiers', 'contractType']);
 
@@ -83,14 +106,16 @@ class ContractAmend extends Component
                 throw ValidationException::withMessages(['reason' => __('validation.max.string', ['attribute' => __('contracts.amendment.reason'), 'max' => 2000])]);
             }
 
-            $amendments->draft($contract, $this->form->amendmentTerms(), $effectiveFrom, $reason, auth()->user());
+            $draft
+                ? $amendments->redraft($draft, $this->form->amendmentTerms(), $effectiveFrom, $reason, auth()->user())
+                : $amendments->draft($contract, $this->form->amendmentTerms(), $effectiveFrom, $reason, auth()->user());
         } catch (ValidationException $exception) {
             $this->dispatch('composer-invalid', sections: $this->sectionsFor(array_keys($exception->errors())));
 
             throw $exception;
         }
 
-        $this->toast(__('contracts.amendment.drafted'));
+        $this->toast(__($draft ? 'contracts.amendment.redrafted' : 'contracts.amendment.drafted'));
 
         return $this->redirectRoute('contracts.show', $this->contract->id, navigate: true);
     }
@@ -116,7 +141,9 @@ class ContractAmend extends Component
                 'startDate' => $this->contract->start_date?->toDateString(),
                 'endDate' => $this->contract->end_date?->toDateString(),
             ]]),
-            'seed' => $this->composerSeed(),
+            'seed' => [...$this->composerSeed(), ...$this->draftSeed()],
+            'editingNumber' => $this->draft()?->number,
+            'nowCard' => $this->nowCard(),
             'errorSections' => $this->errorSections(),
             'isService' => $category === 'service',
         ]);
@@ -136,5 +163,62 @@ class ContractAmend extends Component
             'terms' => 'amendment',
             'contract' => 'amendment',
         ]);
+    }
+
+    /** The draft being edited, re-read on every call (draftId alone is never trusted). */
+    private function draft(): ?ContractAmendment
+    {
+        return $this->draftId
+            ? ContractAmendment::query()->where('contract_id', $this->contract->id)->findOrFail($this->draftId)
+            : null;
+    }
+
+    /**
+     * The "Now" column of the side card: the contract as it stands, worded on
+     * the server. The composer itself may be seeded from a draft, so its own
+     * getters cannot speak for the contract.
+     *
+     * @return array{type: string, workDays: string, hours: string, salary: string}
+     */
+    private function nowCard(): array
+    {
+        $contract = $this->contract;
+        $locale = app()->getLocale();
+        $digits = fn (string $s) => $locale === 'ar' ? ar_digits($s) : $s;
+        $dayName = fn (int $d) => Carbon::now()->startOfWeek(Carbon::SUNDAY)->addDays($d)->translatedFormat('l');
+
+        $workDays = (int) $contract->schedule_mode === ScheduleMode::Fixed && $contract->work_day_from !== null && $contract->work_day_to !== null
+            ? $dayName((int) $contract->work_day_from).' – '.$dayName((int) $contract->work_day_to)
+            : '—';
+
+        $salary = match (true) {
+            ! (auth()->user()?->canViewSalary() ?? false) => __('general.salary-hidden'),
+            (int) $contract->pay_mode === PayMode::Flexible => trans_choice('contracts.tiers-count', $contract->payTiers->count(), ['count' => $contract->payTiers->count()]),
+            blank($contract->salary) => '—',
+            default => $digits(number_format((float) $contract->salary)).' '
+                .(Currency::getLocalizedName((int) $contract->currency)[$locale] ?? '').' '
+                .__(match ((int) $contract->salary_per) {
+                    SalaryPer::Hour => 'general.composer.per-hour',
+                    SalaryPer::Session => 'general.composer.per-session',
+                    default => 'general.composer.per-month',
+                }),
+        };
+
+        return [
+            'type' => ContractTypeEnum::getLocalizedName((int) $contract->type)['value'],
+            'workDays' => $workDays,
+            'hours' => (int) $contract->weekly_hours > 0 ? $digits(__('contracts.hours-short', ['count' => (int) $contract->weekly_hours])) : '—',
+            'salary' => $salary,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function draftSeed(): array
+    {
+        $draft = $this->draft();
+
+        return $draft
+            ? ['effectiveFrom' => $draft->effective_from->toDateString(), 'amendmentReason' => $draft->reason ?? '']
+            : [];
     }
 }

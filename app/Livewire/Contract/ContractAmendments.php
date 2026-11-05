@@ -82,21 +82,26 @@ class ContractAmendments extends Component
 
     public function askDiscard(int $amendmentId): void
     {
-        Gate::authorize('decideAmendment', $this->amendment($amendmentId));
+        $amendment = $this->amendment($amendmentId);
+        Gate::authorize('discardAmendment', $amendment);
+
+        $draft = $amendment->isDraft();
 
         $this->confirm(
             'discard',
             $amendmentId,
-            title: __('contracts.amendment.discard-title'),
-            message: __('contracts.amendment.discard-body'),
-            confirmLabel: __('contracts.amendment.discard'),
+            title: __($draft ? 'contracts.amendment.discard-title' : 'contracts.amendment.cancel-title'),
+            message: $draft
+                ? __('contracts.amendment.discard-body')
+                : __('contracts.amendment.cancel-body', ['date' => $amendment->effective_from->format('d/m/Y')]),
+            confirmLabel: __($draft ? 'contracts.amendment.discard' : 'contracts.amendment.cancel'),
         );
     }
 
     public function discard(int $amendmentId, ContractAmendmentService $amendments): void
     {
         $amendment = $this->amendment($amendmentId);
-        Gate::authorize('decideAmendment', $amendment);
+        Gate::authorize('discardAmendment', $amendment);
 
         $amendments->discard($amendment);
 
@@ -133,7 +138,9 @@ class ContractAmendments extends Component
         $amendments = $contract->amendments()
             ->with(['payTiers', 'media'])
             ->get()
-            ->sortByDesc(fn (ContractAmendment $a) => [$a->effective_from->toDateString(), $a->number])
+            // Newest first. Numbers follow effective dates (a new one may not
+            // take effect before the last one in effect), so the number orders them.
+            ->sortByDesc('number')
             ->values();
 
         $withPay = $user?->canViewSalary() ?? false;
@@ -144,6 +151,8 @@ class ContractAmendments extends Component
             'amendments' => $amendments,
             'changes' => $amendments->mapWithKeys(fn (ContractAmendment $a) => [$a->id => $describer->lines($a, $withPay)]),
             'canAmend' => $user?->can('amend', $contract) ?? false,
+            // The amendment whose terms the contract carries now; older ones in effect are superseded.
+            'currentId' => $amendments->first(fn (ContractAmendment $a) => $a->isApplied())?->id,
         ]);
     }
 

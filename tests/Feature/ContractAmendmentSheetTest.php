@@ -94,7 +94,9 @@ class ContractAmendmentSheetTest extends TestCase
 
         $this->assertStringContainsString('300 USD', $html);
         $this->assertStringNotContainsString('Volunteer Work Hours,', $html);
-        $this->assertStringContainsString('<strong>1</strong>', $html); // Amendment No. 1
+        $this->assertStringContainsString('No. 1', $html);
+        $this->assertStringContainsString('رقم 1', $html);
+        $this->assertStringNotContainsString('to the voluntary contract dated', $html);
     }
 
     public function test_every_changed_term_is_printed_whatever_the_print_toggles(): void
@@ -160,7 +162,7 @@ class ContractAmendmentSheetTest extends TestCase
             ->get(route('contracts.amendments.export', [$amendment->contract_id, $amendment->id]))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('Content-Disposition', 'inline; filename="maya-doumat-amendment-1-20260501.pdf"');
+            ->assertHeader('Content-Disposition', 'attachment; filename="maya-doumat-amendment-1-20260501.pdf"');
     }
 
     public function test_hr_of_another_city_and_salary_blind_roles_are_refused(): void
@@ -202,7 +204,7 @@ class ContractAmendmentSheetTest extends TestCase
 
         $this->actingAs($this->hr())->get(route('contracts.show', $amendment->contract_id))
             ->assertOk()
-            ->assertSee(__('contracts.amendment.print'))
+            ->assertSee(__('general.export-pdf'))
             ->assertSee(route('contracts.amendments.export', [$amendment->contract_id, $amendment->id]), false);
     }
 

@@ -198,6 +198,28 @@ class ContractAmendment extends Model implements HasMedia
         return $changed;
     }
 
+    /**
+     * The contract as this amendment makes it — in memory only, never saved.
+     * The sheet words it through the contract's own clause components, and
+     * editing a draft opens the composer on it.
+     */
+    public function termsAsContract(): Contract
+    {
+        $after = $this->contract->replicate();
+        $after->forceFill($this->terms_after ?? []);
+        $after->salary = $this->salary_after;
+        $after->setRelation('payTiers', $this->payTiersAfter()->get()->map(
+            fn (ContractAmendmentPayTier $tier) => new ContractPayTier([
+                'condition_en' => $tier->condition_en,
+                'condition_ar' => $tier->condition_ar,
+                'amount' => $tier->amount,
+                'sort_order' => $tier->sort_order,
+            ]),
+        ));
+
+        return $after;
+    }
+
     public function touchesPay(): bool
     {
         return array_intersect($this->changedFields(), self::PAY_FIELDS) !== [];

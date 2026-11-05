@@ -1,106 +1,78 @@
 {{--
-    The amendments of one contract (ملحق عقد), newest first: what each changed
-    and from when, and the steps of the one in flight. Rendered on the
-    contract page only when there is something to show or something to do.
+    The amendments of one contract (ملحق عقد). The newest is shown open — it is
+    either the one in flight or the one that says what the contract is now;
+    older ones fold into one line each under "Earlier amendments", so a
+    contract amended many times still costs the page one card.
 --}}
 <div>
     @if($amendments->isNotEmpty() || $canAmend)
+        @php
+            $latest = $amendments->first();
+            $earlier = $amendments->slice(1)->values();
+            $arrow = app()->getLocale() === 'ar' ? '←' : '→';
+        @endphp
+
         <x-card :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
             <x-slot:icon>
                 @if($canAmend)
-                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)" wire:navigate>
+                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)">
                         <x-ic name="plus" class="size-4" />
                         @lang('contracts.amendment.add')
                     </x-button>
                 @endif
             </x-slot:icon>
 
-            @if($amendments->isEmpty())
+            @if($latest === null)
                 <p class="text-small text-ink-2">@lang('contracts.amendment.none')</p>
             @else
-                <ol class="divide-y divide-line-soft">
-                    @foreach($amendments as $amendment)
-                        @php
-                            $lines = $changes[$amendment->id] ?? [];
-                            $signed = $amendment->getFirstMedia('signed');
-                        @endphp
-                        <li class="py-3 first:pt-0 last:pb-0" wire:key="amendment-{{ $amendment->id }}">
-                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                <span class="font-semibold text-ink">
-                                    @lang('contracts.amendment.number', ['number' => $amendment->number])
-                                </span>
-                                <x-status :status="$amendment->statusEnum()" />
-                                <span class="num text-small text-ink-2">
-                                    @lang('contracts.amendment.effective-from-summary', ['date' => $amendment->effective_from->format('d/m/Y')])
-                                </span>
-                            </div>
+                <div wire:key="amendment-{{ $latest->id }}">
+                    @include('livewire.contract._amendment-item', [
+                        'amendment' => $latest,
+                        'lines' => $changes[$latest->id] ?? [],
+                        'isCurrent' => $latest->id === $currentId,
+                    ])
+                </div>
 
-                            @if($lines !== [])
-                                <dl class="mt-2 grid gap-1 text-small sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4">
-                                    @foreach($lines as [$label, $from, $to])
-                                        <dt class="text-ink-2">{{ $label }}</dt>
-                                        <dd class="num text-ink">
-                                            @if($from !== '' || $to !== '')
-                                                <span class="text-ink-2">{{ $from }}</span>
-                                                <span aria-hidden="true" class="text-ink-3">{{ app()->getLocale() === 'ar' ? '←' : '→' }}</span>
-                                                <span class="sr-only">@lang('contracts.amendment.becomes')</span>
-                                                <span class="font-semibold">{{ $to }}</span>
+                @if($earlier->isNotEmpty())
+                    <details wire:ignore.self class="group/earlier mt-4 border-t border-line-soft pt-3">
+                        <summary class="flex cursor-pointer list-none items-center gap-2 text-small font-semibold text-ink
+                                        [&::-webkit-details-marker]:hidden">
+                            <x-ic name="chevron" class="size-4 transition-transform group-open/earlier:rotate-90 rtl:-scale-x-100" />
+                            {{ trans_choice('contracts.amendment.earlier', $earlier->count(), ['count' => $earlier->count()]) }}
+                        </summary>
+
+                        <ol class="mt-2 divide-y divide-line-soft">
+                            @foreach($earlier as $amendment)
+                                @php($lines = $changes[$amendment->id] ?? [])
+                                <li wire:key="amendment-{{ $amendment->id }}">
+                                    <details wire:ignore.self class="group/item py-2">
+                                        {{-- One line: number, date and the first change. --}}
+                                        <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-small
+                                                        [&::-webkit-details-marker]:hidden">
+                                            <x-ic name="chevron" class="size-3.5 text-ink-3 transition-transform group-open/item:rotate-90 rtl:-scale-x-100" />
+                                            <span class="font-semibold text-ink">@lang('contracts.amendment.number', ['number' => $amendment->number])</span>
+                                            <span class="num text-ink-2">{{ $amendment->effective_from->format('d/m/Y') }}</span>
+                                            @if($lines !== [])
+                                                <span class="num min-w-0 flex-1 truncate text-ink-2">
+                                                    {{ $lines[0][0] }}@if($lines[0][1] !== '' || $lines[0][2] !== ''): {{ $lines[0][1] }} {{ $arrow }} {{ $lines[0][2] }}@endif
+                                                    @if(count($lines) > 1) · +{{ count($lines) - 1 }}@endif
+                                                </span>
                                             @endif
-                                        </dd>
-                                    @endforeach
-                                </dl>
-                            @endif
+                                        </summary>
 
-                            @if(filled($amendment->reason))
-                                <p class="mt-2 text-small text-ink-2">{{ $amendment->reason }}</p>
-                            @endif
-
-                            <div class="mt-2 flex flex-wrap items-center gap-2">
-                                {{-- The sheet to sign; the browser's own PDF viewer prints it. --}}
-                                @can('exportAmendment', $amendment)
-                                    {{-- A plain <a>, not <x-button href>: that one adds wire:navigate,
-                                         which cannot open a PDF. --}}
-                                    <a class="hc-btn hc-btn--outline hc-btn--sm" target="_blank" rel="noopener"
-                                       href="{{ route('contracts.amendments.export', [$contract->id, $amendment->id]) }}">
-                                        <x-ic name="file" class="size-4" />
-                                        @lang('contracts.amendment.print')
-                                    </a>
-                                @endcan
-                                @can('decideAmendment', $amendment)
-                                    <x-button size="sm" wire:click="askApprove({{ $amendment->id }})">
-                                        @lang('contracts.amendment.approve')
-                                    </x-button>
-                                    <x-button size="sm" variant="quiet" wire:click="askDiscard({{ $amendment->id }})">
-                                        @lang('contracts.amendment.discard')
-                                    </x-button>
-                                @endcan
-
-                                @if($signed)
-                                    @can('exportAmendment', $amendment)
-                                        <a class="hc-btn hc-btn--link hc-btn--sm"
-                                           href="{{ route('contracts.amendments.signed', [$contract->id, $amendment->id]) }}">
-                                            <x-ic name="file" class="size-4" />
-                                            @lang('contracts.amendment.signed-copy')
-                                        </a>
-                                    @endcan
-                                @else
-                                    @can('attachSignedAmendment', $amendment)
-                                        <label class="inline-flex cursor-pointer items-center gap-1.5 text-small font-semibold text-ink underline-offset-2 hover:underline">
-                                            <x-ic name="plus" class="size-4" />
-                                            @lang('contracts.amendment.attach-signed')
-                                            <input type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                   wire:model="signedFiles.{{ $amendment->id }}" />
-                                        </label>
-                                        <span wire:loading wire:target="signedFiles.{{ $amendment->id }}" class="text-caption text-ink-2">
-                                            @lang('general.saving')
-                                        </span>
-                                    @endcan
-                                @endif
-                            </div>
-                            <x-error-span>{{ $errors->first('signedFiles.'.$amendment->id) }}</x-error-span>
-                        </li>
-                    @endforeach
-                </ol>
+                                        <div class="ps-6 pt-2">
+                                            @include('livewire.contract._amendment-item', [
+                                                'amendment' => $amendment,
+                                                'lines' => $lines,
+                                                'isCurrent' => $amendment->id === $currentId,
+                                            ])
+                                        </div>
+                                    </details>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </details>
+                @endif
             @endif
         </x-card>
     @endif

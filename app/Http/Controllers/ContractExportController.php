@@ -83,7 +83,8 @@ class ContractExportController extends Controller
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$this->renderer->amendmentFileName($amendment).'"',
+            // Downloaded straight away: the sheet is printed and signed, not read here.
+            'Content-Disposition' => 'attachment; filename="'.$this->renderer->amendmentFileName($amendment).'"',
         ]);
     }
 
