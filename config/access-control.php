@@ -86,7 +86,7 @@ return [
         'access-management' => ['view', 'manage-employees', 'manage-roles', 'manage-permissions'],
         'statistics' => ['view'],
         'employees' => ['view', 'create', 'update', 'delete', 'export'],
-        'contracts' => ['view', 'create', 'update', 'delete', 'export'],
+        'contracts' => ['view', 'create', 'update', 'delete', 'export', 'amend'],
         'programs' => ['view', 'create', 'update', 'delete'],
         'centers' => ['view', 'create', 'update', 'delete', 'export'],
         'positions' => ['view', 'create', 'update', 'delete', 'export'],
@@ -202,6 +202,21 @@ return [
             'employeeSearchOptions' => 'contracts.create',
             'leavePreview' => 'contracts.create',
             'draftContractFor' => 'contracts.create',
+        ],
+        // The amendment page and the amendments card on a contract. Every one of
+        // these re-runs ContractPolicy (amend / decideAmendment /
+        // attachSignedAmendment) on the record, which is the HR-only and
+        // city-scope control; the permission here is the coarse gate.
+        'contract.contract-amend' => [
+            'submit' => 'contracts.amend',
+            'leavePreview' => 'contracts.amend', // returns null, reads nothing
+        ],
+        'contract.contract-amendments' => [
+            'askApprove' => 'contracts.amend',
+            'approve' => 'contracts.amend',
+            'askDiscard' => 'contracts.amend',
+            'discard' => 'contracts.amend',
+            'updatedSignedFiles' => 'contracts.amend',
         ],
         'contract.contract-edit' => [
             'submit' => 'contracts.update',

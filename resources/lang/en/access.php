@@ -79,7 +79,7 @@ return [
     'actions' => [
         'view' => 'View', 'view-own' => 'View own', 'view-all' => 'View all',
         'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete',
-        'export' => 'Export', 'decide' => 'Approve / reject', 'review' => 'Review',
+        'export' => 'Export', 'decide' => 'Approve / reject', 'review' => 'Review', 'amend' => 'Amend (contract amendment)',
         'manage' => 'Manage', 'manage-balances' => 'Manage balances',
         'manage-employees' => 'Manage employee access', 'manage-roles' => 'Manage roles',
         'manage-permissions' => 'Manage permissions', 'share' => 'Share',

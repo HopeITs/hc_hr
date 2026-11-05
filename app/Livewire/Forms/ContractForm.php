@@ -9,6 +9,7 @@ use App\Enums\SalaryPer;
 use App\Enums\ScheduleMode;
 use App\Enums\SessionDuration;
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\ContractPayTier;
 use App\Models\ContractType;
 use App\Models\Employee;
@@ -535,6 +536,61 @@ class ContractForm extends Form
             'salary' => $this->salary,
             'salary_per' => (string) $this->salary_per,
         ]);
+    }
+
+    /**
+     * The schedule and pay this form now holds, as an amendment's changes
+     * (ContractAmendmentService::draft): the same columns a save would write,
+     * so an amendment can never word a term differently from an edit.
+     *
+     * A role barred from pay figures sends no pay at all, and the amendment
+     * keeps the contract's (preserveHiddenPay() has already dropped the keys).
+     *
+     * @return array<string, mixed>
+     */
+    public function amendmentTerms(): array
+    {
+        $terms = array_intersect_key(
+            $this->buildPayload(),
+            array_flip([...ContractAmendment::AMENDABLE_FIELDS, 'salary']),
+        );
+
+        if (! $this->payIsHidden()) {
+            $terms['pay_tiers'] = $this->pay_mode === PayMode::Flexible
+                ? collect($this->pay_tiers)->values()->map(fn (array $tier) => [
+                    'condition_en' => trim((string) ($tier['condition_en'] ?? '')),
+                    'condition_ar' => trim((string) ($tier['condition_ar'] ?? '')),
+                    'amount' => $tier['amount'] ?? 0,
+                ])->all()
+                : [];
+        }
+
+        return $terms;
+    }
+
+    /**
+     * Put the stored schedule and pay of $contract back into the form, keeping
+     * everything else the form holds. Once an amendment has changed those
+     * terms they change only through amendments (ContractEdit), whatever the
+     * browser sends.
+     */
+    public function keepAmendableTermsOf(Contract $contract): void
+    {
+        $kept = [
+            'employee_id', 'position_id', 'contract_type_id', 'place', 'is_active', 'auto_renew',
+            'start_date', 'end_date', 'terminated_at', 'termination_reason_id', 'reason_of_termination',
+        ];
+        $values = [];
+
+        foreach ($kept as $field) {
+            $values[$field] = $this->{$field};
+        }
+
+        $this->fillFromModel($contract);
+
+        foreach ($values as $field => $value) {
+            $this->{$field} = $value;
+        }
     }
 
     private function employeeIsCompleteRule(): Closure

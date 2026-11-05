@@ -91,6 +91,8 @@
         </x-badge>
     </div>
 
+    <livewire:contract.contract-amendments :contract="$contract" :key="'amendments-'.$contract->id" />
+
     <div data-tour="contract-details.document" class="contract-review">
         @includeIf($partialPath)
     </div>
