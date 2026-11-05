@@ -121,4 +121,11 @@ return [
     'drawer-close' => 'Close contract details',
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
+    'amendment' => [
+        'status' => [
+            'draft' => 'Draft',
+            'approved' => 'Approved, not yet in effect',
+            'applied' => 'In effect',
+        ],
+    ],
 ];

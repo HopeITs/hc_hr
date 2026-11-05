@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\EncryptedSalary;
+use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
@@ -305,6 +306,42 @@ class Contract extends Model
     public function payTiers()
     {
         return $this->hasMany(ContractPayTier::class)->orderBy('sort_order');
+    }
+
+    public function amendments()
+    {
+        return $this->hasMany(ContractAmendment::class)->orderBy('effective_from')->orderBy('number');
+    }
+
+    /**
+     * Only a contract in force can be amended: not a draft, not terminated,
+     * and today within its term. A contract yet to start is still edited
+     * directly; one that has ended has nothing left to amend.
+     */
+    public function canBeAmended(): bool
+    {
+        $today = now()->startOfDay();
+
+        return $this->is_active
+            && (int) $this->type !== ContractTypeEnum::Draft
+            && ! $this->isTerminated()
+            && $this->start_date !== null && $this->start_date->lte($today)
+            && $this->end_date !== null && $this->end_date->gte($today);
+    }
+
+    /**
+     * Once an amendment has changed a contract's terms, they change only
+     * through amendments, or the history they record stops being true.
+     */
+    public function hasAppliedAmendments(): bool
+    {
+        return $this->amendments()->where('status', ContractAmendmentStatus::Applied)->exists();
+    }
+
+    public function nextAmendmentNumber(): int
+    {
+        // Not through amendments(): its ORDER BY on an aggregate trips MySQL's ONLY_FULL_GROUP_BY.
+        return (int) ContractAmendment::query()->where('contract_id', $this->getKey())->max('number') + 1;
     }
 
     /**

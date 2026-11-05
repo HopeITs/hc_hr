@@ -120,4 +120,11 @@ return [
     'drawer-close' => 'إغلاق تفاصيل العقد',
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
+    'amendment' => [
+        'status' => [
+            'draft' => 'مسودة',
+            'approved' => 'معتمد، لم يسرِ بعد',
+            'applied' => 'ساري',
+        ],
+    ],
 ];
