@@ -1,7 +1,8 @@
 {{--
     Phone card for one request in All leaves (B4-D §6, G-B-4). The name opens
-    what a row click opens: the decision while pending, the read-only details
-    once decided (G-B-5). Receives $item (LeaveRequest), $link and $table.
+    what a row click opens: the decision while pending and the viewer's to
+    decide, otherwise the read-only details (G-B-5). Receives $item
+    (LeaveRequest), $link and $table.
 --}}
 @php
     $name = $item->leaveBalance?->contract?->employee?->name ?? __('general.na');
