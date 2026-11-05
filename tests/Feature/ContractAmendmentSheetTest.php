@@ -94,8 +94,8 @@ class ContractAmendmentSheetTest extends TestCase
 
         $this->assertStringContainsString('300 USD', $html);
         $this->assertStringNotContainsString('Volunteer Work Hours,', $html);
-        $this->assertStringContainsString('No. 1', $html);
-        $this->assertStringContainsString('رقم 1', $html);
+        $this->assertStringNotContainsString('No. 1', $html);
+        $this->assertStringNotContainsString('رقم 1', $html);
         $this->assertStringNotContainsString('to the voluntary contract dated', $html);
     }
 

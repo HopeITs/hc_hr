@@ -84,13 +84,6 @@
                     <div class="contract-title-separator">|</div>
                     <div class="dual-ar fw-title">تعديل عقد</div>
                 </div>
-                {{-- Which amendment this is, so a contract amended twice has two
-                     sheets that cannot be mistaken for one another. --}}
-                <div class="dual-row dual-tight">
-                    <div class="dual-en">No. {{ $amendment->number }}</div>
-                    <div class="contract-title-separator">|</div>
-                    <div class="dual-ar">رقم {{ $amendment->number }}</div>
-                </div>
             </div>
 
             <div class="avoid-break mt-4">
