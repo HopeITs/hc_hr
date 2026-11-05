@@ -122,6 +122,18 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'errors' => [
+            'not-in-force' => 'Only a contract in force can be amended: not a draft, not terminated, and running today.',
+            'one-open' => 'This contract already has an amendment waiting. Approve or discard it first.',
+            'outside-term' => 'The effective date must fall within the contract term.',
+            'before-latest' => 'The effective date cannot be before the last amendment in effect (:date).',
+            'invalid-type' => 'Choose full time, part time or freelance.',
+            'nothing-changed' => 'Nothing was changed. Change at least one term.',
+            'not-a-draft' => 'Only a draft can be approved or discarded.',
+            'not-approved' => 'Only an approved amendment can be applied.',
+            'contract-changed' => 'The contract changed after this amendment was drafted. Discard it and draft it again.',
+            'unreadable-pay' => 'The pay figures cannot be read on this server, so nothing was changed.',
+        ],
         'status' => [
             'draft' => 'Draft',
             'approved' => 'Approved, not yet in effect',

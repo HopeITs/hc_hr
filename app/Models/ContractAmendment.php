@@ -236,6 +236,43 @@ class ContractAmendment extends Model implements HasMedia
     }
 
     /**
+     * Does $contract still carry exactly the terms this amendment recorded as
+     * its "before"? If not, someone changed the contract in between, and
+     * writing the "after" over it would silently undo their change.
+     */
+    public function matchesContract(Contract $contract): bool
+    {
+        $before = $this->terms_before ?? [];
+
+        foreach (ContractAmendment::snapshotOf($contract) as $field => $value) {
+            if (self::normalise($value) !== self::normalise($before[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return self::normalise($contract->salary) === self::normalise($this->salary_before)
+            && self::tiersOf($contract->payTiers()->get()) === $this->tierSignature(ContractAmendmentPayTier::SIDE_BEFORE);
+    }
+
+    /**
+     * Is any pay figure on this amendment stored but unreadable here? On a
+     * database copy without the salary key every figure reads as null, and
+     * applying would write that null over the contract's real pay.
+     */
+    public function hasUnreadablePay(): bool
+    {
+        foreach (['salary_before', 'salary_after'] as $field) {
+            if (filled($this->getAttributes()[$field] ?? null) && $this->{$field} === null) {
+                return true;
+            }
+        }
+
+        return $this->payTiers()->get()->contains(
+            fn (ContractAmendmentPayTier $tier) => filled($tier->getAttributes()['amount'] ?? null) && $tier->amount === null,
+        );
+    }
+
+    /**
      * @return list<array{0: string, 1: string, 2: string|null}>
      */
     private function tierSignature(int $side): array
@@ -244,10 +281,18 @@ class ContractAmendment extends Model implements HasMedia
             ? $this->payTiers
             : $this->payTiers()->get();
 
-        return $tiers
-            ->where('side', $side)
+        return self::tiersOf($tiers->where('side', $side));
+    }
+
+    /**
+     * @param  iterable<ContractAmendmentPayTier|ContractPayTier>  $tiers
+     * @return list<array{0: string, 1: string, 2: string|null}>
+     */
+    private static function tiersOf(iterable $tiers): array
+    {
+        return collect($tiers)
             ->sortBy('sort_order')
-            ->map(fn (ContractAmendmentPayTier $tier) => [
+            ->map(fn (ContractAmendmentPayTier|ContractPayTier $tier) => [
                 trim((string) $tier->condition_en),
                 trim((string) $tier->condition_ar),
                 self::normalise($tier->amount),

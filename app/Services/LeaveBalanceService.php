@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\Gender;
 use App\Enums\LeaveType as LeaveTypeEnum;
@@ -9,6 +10,7 @@ use App\Enums\LeaveTypeCases;
 use App\Enums\MaritalStatus;
 use App\Models\AnnualLeaveRule;
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
@@ -130,6 +132,14 @@ class LeaveBalanceService
             return;
         }
 
+        // Its balances were converted to the new working day when the
+        // amendment took effect (rescaleForDailyHours). Pricing the whole term
+        // again on the new day would also re-price the hours already used and
+        // hand back leave the employee never had.
+        if ($this->hasAmendedWorkingDay($contract)) {
+            return;
+        }
+
         $employee = $contract->employee;
         $leaveRule = $this->getAnnualLeaveRule($employee);
         $leaveTypes = LeaveType::whereNot('base_days', 12)->get();
@@ -152,6 +162,47 @@ class LeaveBalanceService
 
         // Gender and marital-specific leaves
         $this->updateSpecificLeaves($employee, $contract, $leaveTypes, $dailyWorkHours);
+    }
+
+    /**
+     * An amendment changed the length of this contract's working day: convert
+     * its balances so the employee keeps the same number of days left.
+     *
+     * Balances are stored in hours of the contract's own working day, so 40
+     * hours left is 10 days on a 4-hour day but under 7 on a 6-hour one. The
+     * hours already used stay exactly as deducted — leave requests refund and
+     * re-price against those very hours (computed_hours), and an hourly leave
+     * of 2 hours is still 2 hours — and only what is left is scaled:
+     * deserved = used + (deserved − used) × new ÷ old.
+     */
+    public function rescaleForDailyHours(Contract $contract, int $oldDailyHours, int $newDailyHours): void
+    {
+        if ($oldDailyHours < 1 || $newDailyHours < 1 || $oldDailyHours === $newDailyHours) {
+            return;
+        }
+
+        $contract->load(['contractType', 'leaveBalances']);
+
+        if ($this->isExemptFromLeave($contract)) {
+            return;
+        }
+
+        foreach ($contract->leaveBalances as $balance) {
+            $used = (float) ($balance->used ?? 0);
+            $left = (float) $balance->deserved - $used;
+
+            $balance->update([
+                'deserved' => (int) round($used + $left * $newDailyHours / $oldDailyHours),
+            ]);
+        }
+    }
+
+    private function hasAmendedWorkingDay(Contract $contract): bool
+    {
+        return $contract->amendments()
+            ->where('status', ContractAmendmentStatus::Applied)
+            ->get()
+            ->contains(fn (ContractAmendment $amendment) => $amendment->dailyHoursBefore() !== $amendment->dailyHoursAfter());
     }
 
     /**
