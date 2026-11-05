@@ -49,7 +49,8 @@ class ContractPdfRenderer
         $locale = app()->getLocale();
 
         return view('pdf.contract', [
-            'contract' => $contract,
+            // The signed contract, not its current terms: amendments are their own sheets.
+            'contract' => $contract->asSigned(),
             'category' => $category,
             'totalPages' => self::PAGES_PER_CATEGORY[$category] ?? 1,
             'locale' => $locale,

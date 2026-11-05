@@ -323,6 +323,40 @@ class Contract extends Model
     }
 
     /**
+     * The contract as it was signed: this row with the amendable terms put back
+     * to what the first amendment in effect recorded as its "before".
+     *
+     * The row itself holds the *current* terms, which is what leave pricing,
+     * exports and renewals need; the contract document (its page and its PDF)
+     * is the signed paper, and an amendment is a sheet of its own beside it
+     * ("يحافظ على كافة بنود العقد الأساسي"). In memory only — never saved.
+     */
+    public function asSigned(): self
+    {
+        $first = $this->relationLoaded('appliedAmendments')
+            ? $this->appliedAmendments->first()
+            : $this->appliedAmendments()->with('payTiers')->first();
+
+        if ($first === null) {
+            return $this;
+        }
+
+        $signed = clone $this;
+        $signed->forceFill($first->terms_before ?? []);
+        $signed->salary = $first->salary_before;
+        $signed->setRelation('payTiers', $first->payTiersBefore()->get()->map(
+            fn (ContractAmendmentPayTier $tier) => new ContractPayTier([
+                'condition_en' => $tier->condition_en,
+                'condition_ar' => $tier->condition_ar,
+                'amount' => $tier->amount,
+                'sort_order' => $tier->sort_order,
+            ]),
+        ));
+
+        return $signed;
+    }
+
+    /**
      * Only a contract in force can be amended: not a draft, not terminated,
      * and today within its term. A contract yet to start is still edited
      * directly; one that has ended has nothing left to amend.

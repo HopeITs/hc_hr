@@ -153,6 +153,51 @@ class ContractAmendmentSheetTest extends TestCase
         $this->assertSame('maya-doumat-amendment-1-20260501.pdf', app(ContractPdfRenderer::class)->amendmentFileName($amendment->fresh()));
     }
 
+    // ── the contract itself stays as signed ─────────────────────────
+
+    public function test_the_contract_document_keeps_the_signed_terms_after_an_amendment(): void
+    {
+        $service = app(ContractAmendmentService::class);
+        $contract = $this->contract();
+        $service->approve($service->draft($contract, ['weekly_hours' => 30, 'work_hours_to' => '15:00', 'salary' => 250], '2026-05-01'));
+        $contract->refresh();
+
+        // The row carries the current terms (leave, exports, renewals read them)...
+        $this->assertSame('250.00', $contract->salary);
+        $this->assertSame(30, $contract->weekly_hours);
+
+        // ...the document is the paper that was signed.
+        $html = app(ContractPdfRenderer::class)->view($contract)->render();
+        $this->assertStringContainsString('150 USD', $html);
+        $this->assertStringNotContainsString('250 USD', $html);
+        $this->assertStringContainsString('1:00 PM', $html);
+        $this->assertStringNotContainsString('3:00 PM', $html);
+
+        $this->actingAs($this->hr())->get(route('contracts.show', $contract))
+            ->assertOk()
+            ->assertSee(__('contracts.amendment.document-as-signed'));
+    }
+
+    public function test_a_second_amendment_does_not_move_the_signed_terms(): void
+    {
+        $service = app(ContractAmendmentService::class);
+        $contract = $this->contract();
+        $service->approve($service->draft($contract, ['salary' => 250], '2026-05-01'));
+        $service->approve($service->draft($contract->refresh(), ['salary' => 300], '2026-09-01'));
+
+        $this->assertSame('150.00', $contract->refresh()->asSigned()->salary);
+        $this->assertSame('300.00', $contract->salary);
+    }
+
+    public function test_a_contract_never_amended_is_its_own_signed_version(): void
+    {
+        $contract = $this->contract();
+
+        $this->assertSame($contract, $contract->asSigned());
+        $this->actingAs($this->hr())->get(route('contracts.show', $contract))
+            ->assertDontSee(__('contracts.amendment.document-as-signed'));
+    }
+
     // ── the endpoint ────────────────────────────────────────────────
 
     public function test_hr_gets_the_pdf(): void
