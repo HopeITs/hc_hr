@@ -114,7 +114,9 @@ class ContractPdfRenderer
     {
         return sprintf(
             '%s-amendment-%d-%s.pdf',
-            Str::slug($amendment->contract?->employee?->name ?? 'contract'),
+            // The English name whatever the page's language: slugging the Arabic
+            // one transliterates it badly ("لارا منصور" became "lara-mnsor").
+            Str::slug(trim(($amendment->contract?->employee?->first_name_en ?? '').' '.($amendment->contract?->employee?->last_name_en ?? '')) ?: 'contract'),
             $amendment->number,
             $amendment->effective_from->format('Ymd'),
         );

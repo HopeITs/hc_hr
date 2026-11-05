@@ -145,10 +145,12 @@ class ContractAmendmentSheetTest extends TestCase
 
     public function test_file_name_names_the_person_the_number_and_the_date(): void
     {
-        $this->assertSame(
-            'maya-doumat-amendment-1-20260501.pdf',
-            app(ContractPdfRenderer::class)->amendmentFileName($this->amend(['salary' => 300])),
-        );
+        $amendment = $this->amend(['salary' => 300]);
+
+        $this->assertSame('maya-doumat-amendment-1-20260501.pdf', app(ContractPdfRenderer::class)->amendmentFileName($amendment));
+
+        app()->setLocale('ar');
+        $this->assertSame('maya-doumat-amendment-1-20260501.pdf', app(ContractPdfRenderer::class)->amendmentFileName($amendment->fresh()));
     }
 
     // ── the endpoint ────────────────────────────────────────────────
