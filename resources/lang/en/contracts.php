@@ -122,6 +122,7 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'print' => 'Print sheet',
         'title' => 'Contract amendment',
         'section' => 'Amendment',
         'list-title' => 'Amendments',

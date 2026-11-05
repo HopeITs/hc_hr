@@ -121,6 +121,7 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'amendment' => [
+        'print' => 'طباعة الملحق',
         'title' => 'ملحق عقد',
         'section' => 'الملحق',
         'list-title' => 'ملحقات العقد',

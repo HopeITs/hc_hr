@@ -33,6 +33,10 @@ Route::prefix('contracts')
         // The creation wizard again, prefilled from the contract being renewed.
         // A contract amendment (ملحق عقد): a dated change to the schedule or pay.
         Route::get('/{contract}/amend', ContractAmend::class)->middleware('active_permission:contracts.amend')->name('amend');
+        Route::get('/{contract}/amendments/{amendment}/export', [ContractExportController::class, 'amendmentPdf'])
+            ->middleware('active_permission:contracts.export')
+            ->scopeBindings()
+            ->name('amendments.export');
         Route::get('/{contract}/amendments/{amendment}/signed', ContractAmendmentSignedController::class)
             ->middleware('active_permission:contracts.export')
             ->scopeBindings()
@@ -46,6 +50,10 @@ Route::prefix('contracts')
 // 404 outside the local environment (the controller checks, so the gate is
 // testable) and otherwise holds the same export/salary/city gates as the PDF:
 // the page carries the pay clause.
+Route::get('contracts/{contract}/amendments/{amendment}/export-preview', [ContractExportController::class, 'amendmentPreview'])
+    ->middleware('active_permission:contracts.export')
+    ->scopeBindings()
+    ->name('contracts.amendments.export-preview');
 Route::get('contracts/{contract}/export-preview', [ContractExportController::class, 'preview'])
     ->middleware('active_permission:contracts.export')
     ->name('contracts.export-preview');

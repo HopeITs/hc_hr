@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\ContractAmendment;
+use App\Models\ContractAmendmentPayTier;
+use App\Models\ContractPayTier;
 use App\Support\InspectableBrowsershot;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\File;
@@ -71,6 +74,59 @@ class ContractPdfRenderer
             $this->category($contract),
             now()->format('Ymd'),
         );
+    }
+
+    /**
+     * The amendment sheet (ملحق عقد) as a Blade view: one page on the
+     * contract's letterhead, worded by the same clause components as the
+     * contract, fed the contract as the amendment makes it.
+     */
+    public function amendmentView(ContractAmendment $amendment, bool $inlineAssets = false): View
+    {
+        $amendment->loadMissing(['payTiers', 'contract.employee', 'contract.contractType']);
+        $contract = $amendment->contract;
+        $locale = app()->getLocale();
+
+        // The contract as it becomes — built in memory only, never saved.
+        $after = $contract->replicate();
+        $after->forceFill($amendment->terms_after ?? []);
+        $after->salary = $amendment->salary_after;
+        $after->setRelation('payTiers', $amendment->payTiersAfter()->get()->map(
+            fn (ContractAmendmentPayTier $tier) => new ContractPayTier([
+                'condition_en' => $tier->condition_en,
+                'condition_ar' => $tier->condition_ar,
+                'amount' => $tier->amount,
+                'sort_order' => $tier->sort_order,
+            ]),
+        ));
+
+        return view('pdf.amendment', [
+            'amendment' => $amendment,
+            'contract' => $contract,
+            'after' => $after,
+            'locale' => $locale,
+            'dir' => $locale === 'ar' ? 'rtl' : 'ltr',
+            'fileTitle' => $this->amendmentFileName($amendment),
+            'inlineAssets' => $inlineAssets,
+        ]);
+    }
+
+    public function amendmentFileName(ContractAmendment $amendment): string
+    {
+        return sprintf(
+            '%s-amendment-%d-%s.pdf',
+            Str::slug($amendment->contract?->employee?->name ?? 'contract'),
+            $amendment->number,
+            $amendment->effective_from->format('Ymd'),
+        );
+    }
+
+    /**
+     * @throws RuntimeException
+     */
+    public function renderAmendment(ContractAmendment $amendment): string
+    {
+        return $this->renderHtml($this->amendmentView($amendment, inlineAssets: true)->render());
     }
 
     /**

@@ -56,6 +56,16 @@
                             @endif
 
                             <div class="mt-2 flex flex-wrap items-center gap-2">
+                                {{-- The sheet to sign; the browser's own PDF viewer prints it. --}}
+                                @can('exportAmendment', $amendment)
+                                    {{-- A plain <a>, not <x-button href>: that one adds wire:navigate,
+                                         which cannot open a PDF. --}}
+                                    <a class="hc-btn hc-btn--outline hc-btn--sm" target="_blank" rel="noopener"
+                                       href="{{ route('contracts.amendments.export', [$contract->id, $amendment->id]) }}">
+                                        <x-ic name="file" class="size-4" />
+                                        @lang('contracts.amendment.print')
+                                    </a>
+                                @endcan
                                 @can('decideAmendment', $amendment)
                                     <x-button size="sm" wire:click="askApprove({{ $amendment->id }})">
                                         @lang('contracts.amendment.approve')
@@ -67,11 +77,11 @@
 
                                 @if($signed)
                                     @can('exportAmendment', $amendment)
-                                        <x-button size="sm" variant="link"
-                                                  :href="route('contracts.amendments.signed', [$contract->id, $amendment->id])">
+                                        <a class="hc-btn hc-btn--link hc-btn--sm"
+                                           href="{{ route('contracts.amendments.signed', [$contract->id, $amendment->id]) }}">
                                             <x-ic name="file" class="size-4" />
                                             @lang('contracts.amendment.signed-copy')
-                                        </x-button>
+                                        </a>
                                     @endcan
                                 @else
                                     @can('attachSignedAmendment', $amendment)
