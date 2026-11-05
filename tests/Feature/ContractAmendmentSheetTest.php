@@ -97,6 +97,33 @@ class ContractAmendmentSheetTest extends TestCase
         $this->assertStringContainsString('<strong>1</strong>', $html); // Amendment No. 1
     }
 
+    public function test_every_changed_term_is_printed_whatever_the_print_toggles(): void
+    {
+        // The contract prints none of its four optional schedule pieces.
+        $html = $this->sheet($this->amend([
+            'work_day_from' => 0,
+            'work_day_to' => 3,
+            'weekly_hours' => 16,
+            'work_hours_to' => '13:00',
+            'work_hours_from' => '09:00',
+        ], toggles: false));
+
+        $this->assertStringContainsString('Sunday to Wednesday', $html);
+        $this->assertStringContainsString('من الأحد إلى الأربعاء', $html);
+        $this->assertStringContainsString('4 days</strong> per week', $html);
+        $this->assertStringContainsString('16 working hours', $html);
+    }
+
+    public function test_a_term_that_did_not_change_stays_as_the_contract_prints_it(): void
+    {
+        // Only the hours change: the unchanged day range stays off the sheet.
+        $html = $this->sheet($this->amend(['weekly_hours' => 16, 'work_hours_to' => '12:00'], toggles: false));
+
+        $this->assertStringContainsString('16 working hours', $html);
+        $this->assertStringNotContainsString('Sunday to Thursday', $html);
+        $this->assertStringNotContainsString('days</strong> per week', $html);
+    }
+
     public function test_a_male_volunteer_is_addressed_as_such(): void
     {
         $html = $this->sheet($this->amend(['salary' => 300], gender: Gender::Male));
@@ -186,9 +213,9 @@ class ContractAmendmentSheetTest extends TestCase
         return app(ContractPdfRenderer::class)->amendmentView($amendment)->render();
     }
 
-    private function amend(array $changes, int $gender = Gender::Female): ContractAmendment
+    private function amend(array $changes, int $gender = Gender::Female, bool $toggles = true): ContractAmendment
     {
-        return app(ContractAmendmentService::class)->draft($this->contract($gender), $changes, '2026-05-01');
+        return app(ContractAmendmentService::class)->draft($this->contract($gender, $toggles), $changes, '2026-05-01');
     }
 
     private function hr(): User
@@ -196,7 +223,7 @@ class ContractAmendmentSheetTest extends TestCase
         return $this->makeUser($this->city, 'HR-ALP', self::PERMISSIONS);
     }
 
-    private function contract(int $gender = Gender::Female): Contract
+    private function contract(int $gender = Gender::Female, bool $toggles = true): Contract
     {
         $employee = $this->makeEmployee($this->city, 'maya-'.uniqid(), [
             'first_name_en' => 'Maya', 'father_name_en' => 'Habib', 'last_name_en' => 'Doumat',
@@ -216,6 +243,10 @@ class ContractAmendmentSheetTest extends TestCase
             'currency' => Currency::USD,
             'salary_per' => 1,
             'pay_mode' => 1,
+            'show_days_per_week' => $toggles,
+            'show_hours_per_week' => $toggles,
+            'show_hours_per_day' => $toggles,
+            'show_day_range' => $toggles,
         ])->refresh();
     }
 }

@@ -91,6 +91,18 @@ class ContractPdfRenderer
         $after = $contract->replicate();
         $after->forceFill($amendment->terms_after ?? []);
         $after->salary = $amendment->salary_after;
+
+        // The sheet states every term that changed, whatever the contract's
+        // print toggles say: a new day range left off the page would leave the
+        // signed amendment silent about the very thing it changes. Toggles
+        // already on stay on; nothing that did not change is switched on.
+        $changed = $amendment->changedFields();
+        $after->show_hours_per_week = $after->show_hours_per_week || in_array('weekly_hours', $changed, true);
+        $after->show_hours_per_day = $after->show_hours_per_day
+            || array_intersect(['work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'], $changed) !== [];
+        $dayRangeChanged = array_intersect(['work_day_from', 'work_day_to'], $changed) !== [];
+        $after->show_day_range = $after->show_day_range || $dayRangeChanged;
+        $after->show_days_per_week = $after->show_days_per_week || $dayRangeChanged;
         $after->setRelation('payTiers', $amendment->payTiersAfter()->get()->map(
             fn (ContractAmendmentPayTier $tier) => new ContractPayTier([
                 'condition_en' => $tier->condition_en,
