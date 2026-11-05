@@ -313,6 +313,15 @@ class Contract extends Model
         return $this->hasMany(ContractAmendment::class)->orderBy('effective_from')->orderBy('number');
     }
 
+    /** The amendments in effect, oldest first: the contract's history of terms. */
+    public function appliedAmendments()
+    {
+        return $this->hasMany(ContractAmendment::class)
+            ->where('status', ContractAmendmentStatus::Applied)
+            ->orderBy('effective_from')
+            ->orderBy('number');
+    }
+
     /**
      * Only a contract in force can be amended: not a draft, not terminated,
      * and today within its term. A contract yet to start is still edited

@@ -103,6 +103,7 @@ return [
             'contract-joined' => 'الانضمام',
             'contract-started' => 'عقد جديد',
             'position-changed' => 'انتقال إلى منصب جديد',
+            'contract-amended' => 'تعديل العقد',
             'contract-ended' => 'انتهاء العقد',
             'badge-reward' => 'مكافأة',
             'badge-warning' => 'إنذار',

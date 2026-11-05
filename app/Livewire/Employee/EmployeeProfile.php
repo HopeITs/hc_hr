@@ -298,7 +298,7 @@ class EmployeeProfile extends Component
         ];
 
         if ($this->canViewRecords) {
-            array_push($contractRelations, 'contractType', 'terminationReason');
+            array_push($contractRelations, 'contractType', 'terminationReason', 'appliedAmendments.payTiers');
         }
 
         $relations = [
