@@ -122,6 +122,7 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'reason-label' => 'Reason for the amendment',
         'unchanged' => 'Unchanged',
         'newly-set' => 'Set by this amendment',
         'was' => 'was :value',

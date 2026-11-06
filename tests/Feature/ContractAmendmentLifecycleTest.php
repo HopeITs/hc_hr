@@ -231,6 +231,11 @@ class ContractAmendmentLifecycleTest extends TestCase
             ->assertSee('150 USD per month')
             ->assertSee(__('contracts.amendment.was', ['value' => 'Sunday – Thursday']));
 
+        // The reason is labelled, not a stray line of small text.
+        $contract->amendments()->first()->update(['reason' => 'Moved to three days']);
+        Livewire::actingAs($hr)->test(ContractAmendments::class, ['contract' => $contract])
+            ->assertSeeInOrder([__('contracts.amendment.reason-label'), 'Moved to three days', __('general.work-days')]);
+
         config(['salary.blind_roles' => ['super-admin', 'HR-ALP']]);
         Livewire::actingAs($hr)->test(ContractAmendments::class, ['contract' => $contract])
             ->assertSee(__('general.work-days'))

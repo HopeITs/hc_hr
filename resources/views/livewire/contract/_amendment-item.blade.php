@@ -27,6 +27,14 @@
     </span>
 </div>
 
+{{-- Why, before what: read first, labelled, at body size, line breaks kept. --}}
+@if(filled($amendment->reason))
+    <div class="mt-3 rounded-control border-s-4 border-ink bg-soft px-3 py-2">
+        <p class="text-caption font-semibold text-ink-2">@lang('contracts.amendment.reason-label')</p>
+        <p dir="auto" class="whitespace-pre-line text-body text-ink">{{ $amendment->reason }}</p>
+    </div>
+@endif
+
 @if($terms !== [])
     {{-- Every term the contract runs on after this amendment, so it reads on its
          own. What changed is outlined, with what it replaced beneath; what did
@@ -57,9 +65,6 @@
     </dl>
 @endif
 
-@if(filled($amendment->reason))
-    <p class="mt-2 text-small text-ink-2">{{ $amendment->reason }}</p>
-@endif
 
 <div class="mt-3 flex flex-wrap items-center gap-2">
     @can('decideAmendment', $amendment)

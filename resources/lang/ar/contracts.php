@@ -121,6 +121,7 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'amendment' => [
+        'reason-label' => 'سبب التعديل',
         'unchanged' => 'لم يتغيّر',
         'newly-set' => 'حُدِّد في هذا الملحق',
         'was' => 'كان: :value',
