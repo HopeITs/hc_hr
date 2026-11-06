@@ -99,17 +99,17 @@ class ContractStatistics extends Component
         } elseif ($this->selectedCity && ! $this->selectedProgram) {
             $this->cardType = 'program';
             $programs = Program::where('is_active', true)
-                ->whereHas('positions', fn ($q) => $q->where('city_id', $this->selectedCity))
+                ->whereHas('positions', fn ($q) => $q->inCity($this->selectedCity))
                 ->get();
 
             foreach ($programs as $program) {
                 $positionsQuery = Position::where('program_id', $program->id)
-                    ->where('city_id', $this->selectedCity);
+                    ->inCity($this->selectedCity);
 
                 $contractsQuery = Contract::where('is_active', true)
                     ->whereHas('position', fn ($q) => $q
                         ->where('program_id', $program->id)
-                        ->where('city_id', $this->selectedCity),
+                        ->inCity($this->selectedCity),
                     );
 
                 $this->cards[] = [
@@ -132,7 +132,7 @@ class ContractStatistics extends Component
                     ->whereHas('position', fn ($q) => $q
                         ->where('center_id', $center->id)
                         ->where('program_id', $this->selectedProgram)
-                        ->where('city_id', $this->selectedCity),
+                        ->inCity($this->selectedCity),
                     );
 
                 $this->cards[] = [
