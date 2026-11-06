@@ -1,30 +1,20 @@
 @php
     $title = __('Course Categories');
 @endphp
+<div>
+@unless ($inSettings)
 <x-slot:title>
     {{ $title }}
 </x-slot:title>
+@endunless
+    <div @class(['flex items-center mb-6', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
 
-<div>
-    {{-- <div class="flex justify-between">
+        @unless ($inSettings)
         <livewire:layout.breadcrumbs :title="$title" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => $title, 'route' => 'course-categories.index'],
         ]" :showButton="true" />
-        @activerole('HR', 'super-admin')
-            <div>
-                <x-primary-button wire:click="create" :showSpinner="false">
-                    @lang('general.add-new')
-                </x-primary-button>
-            </div>
-        @endactiverole
-    </div> --}}
-    <div class="flex justify-between items-center mb-6">
-
-        <livewire:layout.breadcrumbs :title="$title" :crumbs="[
-            ['label' => __('general.project-basics')],
-            ['label' => $title, 'route' => 'course-categories.index'],
-        ]" :showButton="true" />
+        @endunless
         @activerole('HR', 'super-admin')
             <div class="flex items-center gap-2">
 

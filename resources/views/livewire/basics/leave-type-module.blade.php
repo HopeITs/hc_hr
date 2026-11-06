@@ -1,30 +1,20 @@
 @php
     use App\Enums\LeaveType;
 @endphp
+<div>
+@unless ($inSettings)
 <x-slot:title>
     {{ trans_choice('general.leave-type', 2) }}
 </x-slot:title>
+@endunless
+    <div @class(['flex items-center mb-6', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
 
-<div>
-    {{-- <div class="flex justify-between">
+        @unless ($inSettings)
         <livewire:layout.breadcrumbs :title="trans_choice('general.leave-type', 2)" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => trans_choice('general.leave-type', 2), 'route' => 'leave-types.index'],
         ]" :showButton="true" />
-        @activerole('HR', 'super-admin')
-            <div>
-                <x-primary-button wire:click="create" :showSpinner="false">
-                    @lang('general.add-new')
-                </x-primary-button>
-            </div>
-        @endactiverole
-    </div> --}}
-    <div class="flex justify-between items-center mb-6">
-
-        <livewire:layout.breadcrumbs :title="trans_choice('general.leave-type', 2)" :crumbs="[
-            ['label' => __('general.project-basics')],
-            ['label' => trans_choice('general.leave-type', 2), 'route' => 'leave-types.index'],
-        ]" :showButton="true" />
+        @endunless
 
         @activerole('HR', 'super-admin')
             <div class="flex items-center gap-2">
