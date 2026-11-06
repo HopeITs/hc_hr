@@ -150,6 +150,8 @@ class ContractAmendments extends Component
             'contract' => $contract,
             'amendments' => $amendments,
             'changes' => $amendments->mapWithKeys(fn (ContractAmendment $a) => [$a->id => $describer->lines($a, $withPay)]),
+            // Every term after each amendment, changed or not, so each reads on its own.
+            'terms' => $amendments->mapWithKeys(fn (ContractAmendment $a) => [$a->id => $describer->terms($a, $withPay)]),
             'canAmend' => $user?->can('amend', $contract) ?? false,
             // The amendment whose terms the contract carries now; older ones in effect are superseded.
             'currentId' => $amendments->first(fn (ContractAmendment $a) => $a->isApplied())?->id,

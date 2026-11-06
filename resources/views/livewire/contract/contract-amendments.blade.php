@@ -27,7 +27,7 @@
                 <div wire:key="amendment-{{ $latest->id }}">
                     @include('livewire.contract._amendment-item', [
                         'amendment' => $latest,
-                        'lines' => $changes[$latest->id] ?? [],
+                        'terms' => $terms[$latest->id] ?? [],
                         'isCurrent' => $latest->id === $currentId,
                     ])
                 </div>
@@ -62,7 +62,7 @@
                                         <div class="ps-6 pt-2">
                                             @include('livewire.contract._amendment-item', [
                                                 'amendment' => $amendment,
-                                                'lines' => $lines,
+                                                'terms' => $terms[$amendment->id] ?? [],
                                                 'isCurrent' => $amendment->id === $currentId,
                                             ])
                                         </div>

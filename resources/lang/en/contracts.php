@@ -122,6 +122,8 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'unchanged' => 'Unchanged',
+        'newly-set' => 'Set by this amendment',
         'was' => 'was :value',
         'flexible-terms' => 'Flexible schedule',
         'pay-mode' => 'Pay',

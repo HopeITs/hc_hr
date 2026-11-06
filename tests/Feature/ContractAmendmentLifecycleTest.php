@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\Currency;
+use App\Livewire\Contract\ContractAmendments;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
@@ -12,6 +13,7 @@ use App\Services\ContractAmendmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
@@ -194,6 +196,45 @@ class ContractAmendmentLifecycleTest extends TestCase
         // Isolated left-to-right, so an Arabic line does not print it as 15:00–09:00.
         $this->assertSame("\u{2066}09:00–15:00\u{2069}", $to);
         $this->assertSame("\u{2066}09:00–13:00\u{2069}", $from);
+    }
+
+    public function test_the_card_lists_every_term_and_marks_what_changed(): void
+    {
+        $amendment = $this->service->draft($this->contract(), ['work_day_to' => 2], '2026-12-01');
+
+        $terms = collect(app(ContractAmendmentDescriber::class)->terms($amendment, true))->keyBy('label');
+
+        // Everything the contract runs on after it...
+        $this->assertSame([
+            __('general.type'), __('general.composer.schedule-mode'), __('general.weekly-hours'),
+            __('contracts.amendment.hours'), __('general.work-days'), __('general.salary'),
+        ], $terms->keys()->all());
+
+        // ...with only the work days marked, and what they were.
+        $this->assertTrue($terms[__('general.work-days')]['changed']);
+        $this->assertSame('Sunday – Tuesday', $terms[__('general.work-days')]['after']);
+        $this->assertSame('Sunday – Thursday', $terms[__('general.work-days')]['before']);
+
+        $this->assertFalse($terms[__('general.salary')]['changed']);
+        $this->assertSame('150 USD per month', $terms[__('general.salary')]['after']);
+        $this->assertSame('', $terms[__('general.salary')]['before']);
+    }
+
+    public function test_the_card_says_unchanged_and_keeps_pay_from_a_role_barred_from_it(): void
+    {
+        $contract = $this->contract();
+        $this->service->draft($contract, ['work_day_to' => 2], '2026-12-01');
+        $hr = $this->makeUser($contract->employee->city, 'HR-ALP', ['contracts.view', 'contracts.amend', 'contracts.export']);
+
+        Livewire::actingAs($hr)->test(ContractAmendments::class, ['contract' => $contract])
+            ->assertSee(__('contracts.amendment.unchanged'))
+            ->assertSee('150 USD per month')
+            ->assertSee(__('contracts.amendment.was', ['value' => 'Sunday – Thursday']));
+
+        config(['salary.blind_roles' => ['super-admin', 'HR-ALP']]);
+        Livewire::actingAs($hr)->test(ContractAmendments::class, ['contract' => $contract])
+            ->assertSee(__('general.work-days'))
+            ->assertDontSee('150 USD');
     }
 
     public function test_money_drops_empty_decimals_and_says_the_period(): void

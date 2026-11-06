@@ -4,7 +4,7 @@
      *
      * @var \App\Models\ContractAmendment $amendment
      * @var \App\Models\Contract $contract
-     * @var array<int, array{0: string, 1: string, 2: string}> $lines  what changed (ContractAmendmentDescriber)
+     * @var array<int, array{label: string, after: string, before: string, changed: bool}> $terms  every term after it (ContractAmendmentDescriber::terms)
      * @var bool $isCurrent  the latest amendment in effect: its terms are the contract's now
      */
     $signed = $amendment->getFirstMedia('signed');
@@ -27,18 +27,31 @@
     </span>
 </div>
 
-@if($lines !== [])
-    {{-- The new value first and plain; what it replaced, quietly beneath. No
-         arrows: they read backwards in one of the two languages, and a term
-         that had no value before has nothing to point from. --}}
-    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach($lines as [$label, $from, $to])
-            <div class="min-w-0 rounded-control bg-soft px-3 py-2">
-                <dt class="text-caption text-ink-2">{{ $label }}</dt>
-                <dd class="num font-semibold text-ink">{{ $to }}</dd>
-                @if($from !== '')
-                    <dd class="num text-caption text-ink-3">@lang('contracts.amendment.was', ['value' => $from])</dd>
-                @endif
+@if($terms !== [])
+    {{-- Every term the contract runs on after this amendment, so it reads on its
+         own. What changed is outlined, with what it replaced beneath; what did
+         not change is quieter and says so. No colour: shape and words only. --}}
+    <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach($terms as $term)
+            <div @class([
+                'min-w-0 rounded-control px-3 py-2',
+                'border border-ink bg-card' => $term['changed'],
+                'border border-transparent bg-soft' => ! $term['changed'],
+            ])>
+                <dt class="flex items-center justify-between gap-2 text-caption text-ink-2">
+                    <span class="truncate">{{ $term['label'] }}</span>
+                    @if($term['changed'])
+                        <span class="shrink-0 font-semibold text-ink">@lang('contracts.amendment.changed')</span>
+                    @endif
+                </dt>
+                <dd @class(['num', 'font-semibold text-ink' => $term['changed'], 'text-ink-2' => ! $term['changed']])>{{ $term['after'] }}</dd>
+                <dd class="num text-caption text-ink-3">
+                    @if($term['changed'])
+                        {{ $term['before'] !== '' ? __('contracts.amendment.was', ['value' => $term['before']]) : __('contracts.amendment.newly-set') }}
+                    @else
+                        @lang('contracts.amendment.unchanged')
+                    @endif
+                </dd>
             </div>
         @endforeach
     </dl>

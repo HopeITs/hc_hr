@@ -121,6 +121,8 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'amendment' => [
+        'unchanged' => 'لم يتغيّر',
+        'newly-set' => 'حُدِّد في هذا الملحق',
         'was' => 'كان: :value',
         'flexible-terms' => 'الدوام المرن',
         'pay-mode' => 'طريقة الأجر',

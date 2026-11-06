@@ -32,62 +32,76 @@ final class ContractAmendmentDescriber
      */
     public function lines(ContractAmendment $amendment, bool $withPay): array
     {
+        return collect($this->terms($amendment, $withPay))
+            ->filter(fn (array $term) => $term['changed'])
+            ->map(fn (array $term) => [$term['label'], $term['before'], $term['after']])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Every term the contract runs on after this amendment, changed or not —
+     * what the card shows, so an amendment reads on its own: type, schedule,
+     * weekly hours, working hours and days (or the flexible terms), pay.
+     * A term with no value is left out; `before` is filled only when changed.
+     *
+     * @return list<array{label: string, after: string, before: string, changed: bool}>
+     */
+    public function terms(ContractAmendment $amendment, bool $withPay): array
+    {
         $changed = $amendment->changedFields();
         $has = fn (string ...$fields) => array_intersect($fields, $changed) !== [];
         $before = $amendment->terms_before ?? [];
         $after = $amendment->terms_after ?? [];
-        $lines = [];
+        $terms = [];
 
-        $add = function (string $label, string $from, string $to) use (&$lines): void {
-            if ($to !== '' && $from !== $to) {
-                $lines[] = [$label, $from, $to];
+        $add = function (string $label, string $from, string $to, bool $moved) use (&$terms): void {
+            if ($to === '') {
+                return;
             }
+
+            $moved = $moved && $from !== $to;
+            $terms[] = ['label' => $label, 'after' => $to, 'before' => $moved ? $from : '', 'changed' => $moved];
         };
 
-        if ($has('type')) {
-            $add(__('general.type'), $this->type($before), $this->type($after));
-        }
+        $add(__('general.type'), $this->type($before), $this->type($after), $has('type'));
+        $add(__('general.composer.schedule-mode'), $this->scheduleMode($before), $this->scheduleMode($after), $has('schedule_mode'));
+        $add(__('general.weekly-hours'), $this->weeklyHours($before), $this->weeklyHours($after), $has('weekly_hours'));
 
-        if ($has('schedule_mode')) {
-            $add(__('general.composer.schedule-mode'), $this->scheduleMode($before), $this->scheduleMode($after));
-        }
-
-        if ($has('weekly_hours')) {
-            $add(__('general.weekly-hours'), $this->weeklyHours($before), $this->weeklyHours($after));
-        }
+        $modeMoved = $has('schedule_mode');
 
         if ($this->isFlexible($after)) {
-            if ($has('flex_days_per_week', 'flex_hours_per_week', 'flex_hours_per_month', 'flex_varies_by_requirements',
-                'flex_coordinated_with_manager', 'flex_custom_en', 'flex_custom_ar', 'schedule_mode')) {
-                $add(__('contracts.amendment.flexible-terms'), $this->isFlexible($before) ? $this->flexible($before) : '', $this->flexible($after));
-            }
+            $add(__('contracts.amendment.flexible-terms'), $this->isFlexible($before) ? $this->flexible($before) : '', $this->flexible($after),
+                $modeMoved || $has('flex_days_per_week', 'flex_hours_per_week', 'flex_hours_per_month', 'flex_varies_by_requirements',
+                    'flex_coordinated_with_manager', 'flex_custom_en', 'flex_custom_ar'));
         } else {
             $wasFixed = ! $this->isFlexible($before);
 
-            if ($has('work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to', 'schedule_mode')) {
-                $add(__('contracts.amendment.hours'), $wasFixed ? $this->shifts($before) : '', $this->shifts($after));
-            }
-
-            if ($has('work_day_from', 'work_day_to', 'schedule_mode')) {
-                $add(__('general.work-days'), $wasFixed ? $this->days($before) : '', $this->days($after));
-            }
+            $add(__('contracts.amendment.hours'), $wasFixed ? $this->shifts($before) : '', $this->shifts($after),
+                $modeMoved || $has('work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'));
+            $add(__('general.work-days'), $wasFixed ? $this->days($before) : '', $this->days($after),
+                $modeMoved || $has('work_day_from', 'work_day_to'));
         }
 
         if ($withPay) {
             if ($has('pay_mode')) {
-                $add(__('contracts.amendment.pay-mode'), $this->payMode($before), $this->payMode($after));
+                $add(__('contracts.amendment.pay-mode'), $this->payMode($before), $this->payMode($after), true);
             }
 
             if ($this->isFlexiblePay($after)) {
-                if ($has('pay_tiers', 'currency', 'pay_mode')) {
-                    $add(__('contracts.amendment.pay-tiers'), $this->isFlexiblePay($before) ? $this->tiers($amendment->payTiersBefore()->get(), $before) : '', $this->tiers($amendment->payTiersAfter()->get(), $after));
-                }
-            } elseif ($has('salary', 'currency', 'salary_per', 'session_duration', 'pay_mode')) {
-                $add(__('general.salary'), $this->isFlexiblePay($before) ? '' : $this->money($amendment->salary_before, $before), $this->money($amendment->salary_after, $after));
+                $add(__('contracts.amendment.pay-tiers'),
+                    $this->isFlexiblePay($before) ? $this->tiers($amendment->payTiersBefore()->get(), $before) : '',
+                    $this->tiers($amendment->payTiersAfter()->get(), $after),
+                    $has('pay_tiers', 'currency', 'pay_mode'));
+            } else {
+                $add(__('general.salary'),
+                    $this->isFlexiblePay($before) ? '' : $this->money($amendment->salary_before, $before),
+                    $this->money($amendment->salary_after, $after),
+                    $has('salary', 'currency', 'salary_per', 'session_duration', 'pay_mode'));
             }
         }
 
-        return $lines;
+        return $terms;
     }
 
     /** The labels alone, for a folded line: "Weekly hours · Work days · Salary". */
