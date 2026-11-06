@@ -73,6 +73,13 @@ class ContractEdit extends Component
 
         $this->applyComposerPayload($payload);
 
+        // Once an amendment has changed the schedule or pay, they change only
+        // through amendments: whatever the browser sent for them is replaced
+        // by what is stored, or the amendment history would stop being true.
+        if ($this->contract->hasAppliedAmendments()) {
+            $this->form->keepAmendableTermsOf($this->contract->fresh('payTiers'));
+        }
+
         try {
             $this->form->validateIdentity();
             $this->form->validateTerms();
@@ -114,6 +121,7 @@ class ContractEdit extends Component
         $nameColumn = "name_{$locale}";
 
         $cities = $this->getCities($nameColumn);
+        $termsLocked = $this->contract->hasAppliedAmendments();
 
         return view('livewire.contract.contract-edit', [
             'cities' => $cities,
@@ -126,6 +134,9 @@ class ContractEdit extends Component
             'seed' => $this->composerSeed(),
             'errorSections' => $this->errorSections(),
             'canManageAutoRenew' => auth()->user()->can('manageAutoRenew', $this->contract),
+            'termsLocked' => $termsLocked,
+            'frozenSections' => $termsLocked ? ['schedule', 'pay'] : [],
+            'canAmend' => auth()->user()->can('amend', $this->contract),
         ]);
     }
 

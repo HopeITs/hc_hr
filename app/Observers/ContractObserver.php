@@ -170,6 +170,16 @@ class ContractObserver
         }
     }
 
+    /**
+     * Delete the amendments one by one before the row goes. The foreign key's
+     * cascade would remove them too, but in the database alone: their signed
+     * copies (media on the private disk) would stay behind, files included.
+     */
+    public function deleting(Contract $contract): void
+    {
+        $contract->amendments()->get()->each->delete();
+    }
+
     public function deleted(Contract $contract): void
     {
         DB::transaction(function () use ($contract) {

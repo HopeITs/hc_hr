@@ -4,7 +4,8 @@
      * one. Everything that differs between the two screens arrives as a
      * variable, so neither page owns a private copy of this layout:
      *
-     *   $mode               'create' | 'edit'
+     *   $mode               'create' | 'edit' | 'amend' (a contract amendment: schedule and pay only)
+     *   $frozenSections     sections shown closed and read-only (edit, once an amendment changed them)
      *   $seed               the contract's current values, or null for a blank create
      *   $cities / $lockedCity / $types   option data
      *   $terminationReasons only meaningful in edit mode
@@ -17,8 +18,10 @@
     $canManageAutoRenew ??= false;
     $cancelUrl ??= route('contracts.index');
     $currentPeriod ??= null;
+    $frozenSections ??= [];
 
     $isEdit = $mode === 'edit';
+    $isAmend = $mode === 'amend';
 
     // Mirrors ContractForm::payIsHidden(). The pay figures are already absent
     // from $seed for such a role (ContractForm::fillFromModel withholds them);
@@ -27,7 +30,7 @@
     $payHidden = auth()->check() && ! auth()->user()->canViewSalary();
 
     // Editing adds the one section a contract that does not exist cannot have.
-    $sections = ['assignment', 'schedule', 'pay'];
+    $sections = $isAmend ? ['schedule', 'pay', 'amendment'] : ['assignment', 'schedule', 'pay'];
 
     if ($isEdit) {
         $sections[] = 'termination';
@@ -46,14 +49,21 @@
         // contract-composer.js) calls a method that exists only on the
         // create screen's component — an edit is always about a contract
         // that already exists, so there is no "latest contract" to check.
-        'allowDraftUpgrade' => ! $isEdit,
+        'allowDraftUpgrade' => ! $isEdit && ! $isAmend,
+        'mode' => $mode,
+        'frozenSections' => $frozenSections,
         'cityId' => $lockedCity?->id ?? ($seed['cityId'] ?? null),
         'cities' => $cities->map(fn ($city) => ['value' => $city->id, 'label' => $city->name])->values(),
         'sections' => $sections,
         'dayNames' => $dayNames,
         // An edit opens with everything collapsed and summarised: there is
         // nothing to fill in, only something to change.
-        'initialSection' => $isEdit ? '' : 'assignment',
+        // An amendment walks its three steps in order, Continue to Continue.
+        'initialSection' => match (true) {
+            $isAmend => 'schedule',
+            $isEdit => '',
+            default => 'assignment',
+        },
         'typeDefaults' => $types->mapWithKeys(fn ($type) => [
             (string) $type->id => [
                 'name' => $type->name,
@@ -79,7 +89,10 @@
                 'schedule' => __('general.composer.schedule'),
                 'pay' => __('general.composer.pay'),
                 'termination' => __('general.composer.termination'),
+                'amendment' => __('contracts.amendment.section'),
             ],
+            'frozen' => __('contracts.amendment.frozen'),
+            'effectiveFrom' => __('contracts.amendment.effective-from-summary'),
             // Passed with their :placeholders intact; the composer substitutes
             // them client-side so no formatting logic is duplicated in PHP.
             'progress' => __('general.composer.progress'),
@@ -142,10 +155,16 @@
     --}}
     <div class="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] xl:gap-5">
         <div class="flex min-w-0 flex-col gap-2.5">
-            @include('livewire.contract.composer._assignment')
-            @include('livewire.contract.composer._schedule', ['dayNames' => $dayNames])
+            @unless($isAmend)
+                @include('livewire.contract.composer._assignment')
+            @endunless
+            @include('livewire.contract.composer._schedule', ['dayNames' => $dayNames, 'scheduleIndex' => $isAmend ? 1 : 2])
 
-            @include('livewire.contract.composer._pay', ['payHidden' => $payHidden])
+            @include('livewire.contract.composer._pay', ['payHidden' => $payHidden, 'payIndex' => $isAmend ? 2 : 3, 'payContinue' => $isAmend])
+
+            @if($isAmend)
+                @include('livewire.contract.composer._amendment', ['amendmentIndex' => 3, 'isService' => $isService ?? false])
+            @endif
 
             @if($isEdit)
                 @include('livewire.contract.composer._termination')
@@ -153,12 +172,20 @@
 
             @include('livewire.contract.composer._action-bar', [
                 'cancelUrl' => $cancelUrl,
-                'submitLabel' => $isEdit ? __('general.save') : __('general.composer.create'),
+                'submitLabel' => match (true) {
+                    $isAmend => __('contracts.amendment.save-draft'),
+                    $isEdit => __('general.save'),
+                    default => __('general.composer.create'),
+                },
             ])
         </div>
 
         <aside class="hidden lg:block" data-tour="contract.card">
-            @include('livewire.contract.composer._contract-card')
+            @if($isAmend)
+                @include('livewire.contract.composer._amendment-card')
+            @else
+                @include('livewire.contract.composer._contract-card')
+            @endif
         </aside>
     </div>
 </div>

@@ -1285,12 +1285,97 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('view', $leave));
         $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('decide', $leave));
 
+        // Opening it shows the read-only details instead of a 403, and no decision.
         Livewire::actingAs($hr)
             ->test(AllLeaveRequestModule::class)
             ->call('openDecision', $leave->id)
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSet('decisionModal', false)
+            ->assertSet('showModal', true)
+            ->assertSet('linkedLeaveMode', 'details');
 
-        $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+        // A decision forced past the dialog is still refused where it is written.
+        $form = new \App\Livewire\Forms\LeaveRequestForm(new AllLeaveRequestModule, 'form');
+        $form->decisionLeave = $leave;
+        $form->status = LeaveRequestStatus::Accepted;
+        $this->actingAs($hr);
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+
+        try {
+            $form->submitDecision();
+        } finally {
+            $this->assertSame(LeaveRequestStatus::Pending, $leave->fresh()->status);
+        }
+    }
+
+    public function test_c3_a_pending_row_offers_the_decision_only_to_whoever_may_decide_it(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $decision = "openDecisionRequestLeave', { id: {$leave->id} }";
+        $details = "openShowRequestLeave', { id: {$leave->id} }";
+
+        // HR sees the row; the manager is at work, so the row opens the details.
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestTable::class)
+            ->assertSeeHtml($details)
+            ->assertDontSeeHtml($decision);
+
+        Livewire::actingAs($manager)
+            ->test(AllLeaveRequestTable::class)
+            ->assertSeeHtml($decision);
+
+        // The manager goes on leave: HR now decides on their behalf, so HR gets the decision.
+        $this->putOnAcceptedLeaveToday($manager);
+
+        Livewire::actingAs($hr->fresh())
+            ->test(AllLeaveRequestTable::class)
+            ->assertSeeHtml($decision);
+
+        Livewire::actingAs($hr->fresh())
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->assertSet('decisionModal', true)
+            ->assertSet('showModal', false);
+    }
+
+    public function test_deleting_from_the_details_closes_them_without_a_404(): void
+    {
+        [$manager, $leave] = $this->createManagerEditFixture();
+        $manager->givePermissionTo('leaves.delete');
+
+        // The details still held the deleted request and re-rendered it: the
+        // delete was written, then the request answered 404.
+        Livewire::actingAs($manager->fresh())
+            ->test(AllLeaveRequestModule::class)
+            ->call('show', $leave->id)
+            ->call('delete', ['id' => $leave->id])
+            ->assertOk()
+            ->assertSet('selectedLeave', null)
+            ->assertSet('showModal', false)
+            ->assertSet('linkedLeaveId', null);
+
+        $this->assertNull(LeaveRequest::query()->find($leave->id));
+    }
+
+    public function test_the_details_offer_delete_only_to_whoever_may_delete(): void
+    {
+        [$manager, $leave] = $this->createManagerEditFixture();
+        $delete = 'wire:click="confirmDelete('.$leave->id.')"';
+
+        // The manager baseline has no leaves.delete: the button only led to a 403.
+        Livewire::actingAs($manager)
+            ->test(AllLeaveRequestModule::class)
+            ->call('show', $leave->id)
+            ->assertSet('showModal', true)
+            ->assertDontSeeHtml($delete);
+
+        $manager->givePermissionTo('leaves.delete');
+
+        Livewire::actingAs($manager->fresh())
+            ->test(AllLeaveRequestModule::class)
+            ->call('show', $leave->id)
+            ->assertSeeHtml($delete);
     }
 
     public function test_c3_hr_decides_on_behalf_while_the_manager_is_on_accepted_leave(): void
@@ -1345,10 +1430,13 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertNull($authority->basisFor($hr, $own));
         $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('decide', $own));
 
+        // Their own request opens read-only, never as a decision.
         Livewire::actingAs($hr)
             ->test(AllLeaveRequestModule::class)
             ->call('openDecision', $own->id)
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSet('decisionModal', false)
+            ->assertSet('showModal', true);
 
         $this->assertSame(LeaveRequestStatus::Pending, $own->fresh()->status);
     }

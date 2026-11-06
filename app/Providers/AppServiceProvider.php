@@ -10,6 +10,7 @@ use App\Models\ApplicationForm;
 use App\Models\Badge;
 use App\Models\Center;
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\DefaultDeliverable;
 use App\Models\Employee;
 use App\Models\HiringCampaign;
@@ -181,6 +182,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Badge::class, BadgePolicy::class);
         Gate::policy(Center::class, CenterPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
+        // An amendment is part of its contract: the same policy decides both.
+        Gate::policy(ContractAmendment::class, ContractPolicy::class);
         Gate::policy(DefaultDeliverable::class, DefaultDeliverablePolicy::class);
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(LeaveRequest::class, LeaveRequestPolicy::class);

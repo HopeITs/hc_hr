@@ -52,21 +52,12 @@ final class Navigation
             // button on every page (<x-assistant.widget>).
         ]));
 
-        $basics = self::group('nav.basics', __('general.project-basics'), 'home', array_values(array_filter([
-            self::item('nav.basics.cities', trans_choice('general.city', 2), 'cities.index', ['cities.*']),
-            self::item('nav.basics.contract-types', trans_choice('general.contract-type', 2), 'contract-types.index', ['contract-types.*']),
-            self::item('nav.basics.leave-types', trans_choice('general.leave-type', 2), 'leave-types.index', ['leave-types.*']),
-            self::item('nav.basics.annual-leave-rules', __('general.annual_leave_rules'), 'annual-leave-rules.index', ['annual-leave-rules.*']),
-            self::item('nav.basics.termination-reasons', __('general.termination_reasons'), 'termination-reasons.index', ['termination-reasons.*']),
-            self::item('nav.basics.checklist-items', trans_choice('general.checklist-items', 2), 'basic-checklist-items.index', ['basic-checklist-items.*']),
-            self::item('nav.basics.job-levels', trans_choice('general.job-level', 2), 'job-levels.index', ['job-levels.*']),
-            self::item('nav.basics.departments', trans_choice('general.department', 2), 'departments.index', ['departments.*']),
-            self::item('nav.basics.course-categories', trans_choice('general.course-category', 2), 'course-categories.index', ['course-categories.*']),
-            // Set by national HR only (D-4 refinement); others never see the link.
-            $user->activeRoleIs(...config('access-control.administrator_roles', []))
-                ? self::item('nav.basics.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'])
-                : null,
-        ])), 'nav.project-basics');
+        // One entry for all the reference tables (tabs of Basic Settings). The
+        // old page routes redirect there, so they still count as this item.
+        $basics = self::item('nav.basics', __('general.basic-settings'), 'basic-settings.index', [
+            'basic-settings.*', 'cities.*', 'contract-types.*', 'leave-types.*', 'annual-leave-rules.*',
+            'termination-reasons.*', 'basic-checklist-items.*', 'job-levels.*', 'departments.*', 'course-categories.*',
+        ], 'home', 'nav.project-basics');
 
         $programs = self::item('nav.programs', trans_choice('general.program', 2), 'programs.index', ['programs.*'], 'program', 'nav.programs');
         $positions = self::item('nav.positions', __('general.positions'), 'positions.index', ['positions.*'], 'layers');

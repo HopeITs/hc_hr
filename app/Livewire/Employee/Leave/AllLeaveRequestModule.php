@@ -169,6 +169,14 @@ class AllLeaveRequestModule extends Component
             return;
         }
 
+        // Pending but not this viewer's to decide (HR while the manager is in,
+        // C3): the read-only details, as the deep link in mount() already does.
+        if (Gate::denies('decide', $id) && Gate::allows('view', $id)) {
+            $this->show($id->id);
+
+            return;
+        }
+
         Gate::authorize('decide', $id);
 
         $this->form->setDecisionLeave($id);
@@ -308,6 +316,10 @@ class AllLeaveRequestModule extends Component
         return view('livewire.employee.leave.all', [
             ...compact('employees', 'allAvailableLeaves', 'alternativeEmployees'),
             'decisionOverlap' => $this->decisionOverlap(),
+            // The same two checks delete() meets: the permission (route rule) and the policy.
+            'canDeleteSelected' => $this->selectedLeave
+                && auth()->user()->hasActivePermission('leaves.delete')
+                && Gate::allows('delete', $this->selectedLeave),
         ]);
     }
 
@@ -360,6 +372,10 @@ class AllLeaveRequestModule extends Component
         Gate::authorize('delete', $leaveRequest);
 
         $leaveRequest->delete();
+        // The details markup re-renders from this property, and Livewire loads
+        // a model property lazily on first use: still set, it was looked up
+        // after the delete and the request answered 404.
+        $this->selectedLeave = null;
         $this->showModal = false;
         $this->clearLinkedLeave();
         $this->refreshCounts();

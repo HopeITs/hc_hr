@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\LeaveDecisionAuthority;
 use App\Services\LeaveRequestReview;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,9 @@ class AllLeaveRequestTable extends LivewireTable
         'leaveRequestDecisionSaved' => 'refreshTable',
         'leaveRequestSaved' => 'refreshTable',
     ];
+
+    /** Not state: rebuilt on every request, so a decision basis is never stale. */
+    private ?LeaveDecisionAuthority $decisionAuthority = null;
 
     public function setStatusFilter(string $status): void
     {
@@ -130,7 +134,7 @@ class AllLeaveRequestTable extends LivewireTable
         $key = $model->getKey();
         $pending = $model->status === LeaveRequestStatus::Pending;
 
-        $decisionBtn = $pending
+        $decisionBtn = $this->canDecide($model)
             ? Blade::render('<x-table.decision-btn wire:click="$dispatch(\'openDecisionRequestLeave\', { id: '.$key.' })" />')
             : '';
 
@@ -170,12 +174,14 @@ class AllLeaveRequestTable extends LivewireTable
     }
 
     /**
-     * Pending: the decision. Decided: the read-only details, never the editor
-     * (B4D-Q2, G-B-5); editing is the separate Edit action.
+     * Pending and yours to decide: the decision. Otherwise the read-only
+     * details, never the editor (B4D-Q2, G-B-5); editing is the separate Edit
+     * action. HR sees every request in scope but decides only on a manager's
+     * behalf (C3), so a pending row is not always a decision.
      */
     protected function rowClickAction(Model $model): ?string
     {
-        return $model->status === LeaveRequestStatus::Pending
+        return $this->canDecide($model)
             ? "\$dispatch('openDecisionRequestLeave', { id: {$model->getKey()} })"
             : "\$dispatch('openShowRequestLeave', { id: {$model->getKey()} })";
     }
@@ -307,5 +313,17 @@ class AllLeaveRequestTable extends LivewireTable
                 ->asHtml()->clickable(false),
 
         ];
+    }
+
+    /** One authority per render, as the work inbox does: the managers and their leave are read once, not per row. */
+    private function canDecide(Model $model): bool
+    {
+        if ($model->status !== LeaveRequestStatus::Pending || ! auth()->user()?->hasActivePermission('leaves.decide')) {
+            return false;
+        }
+
+        $this->decisionAuthority ??= LeaveDecisionAuthority::forOnePass();
+
+        return Gate::allows('decide', [$model, $this->decisionAuthority]);
     }
 }
