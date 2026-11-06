@@ -7,6 +7,7 @@ use App\Enums\Currency;
 use App\Livewire\Contract\ContractAmend;
 use App\Livewire\Contract\ContractAmendments;
 use App\Livewire\Contract\ContractEdit;
+use App\Livewire\Contract\ContractsTable;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
@@ -378,6 +379,43 @@ trailer<<>>
         $this->actingAs($this->hr())->get(route('contracts.show', $contract))
             ->assertOk()
             ->assertSee(__('contracts.amendment.add'));
+    }
+
+    // ── the contracts list ──────────────────────────────────────────
+
+    public function test_the_list_offers_add_amendment_to_hr(): void
+    {
+        $contract = $this->contract();
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractsTable::class)
+            ->assertSee(route('contracts.amend', $contract), false)
+            ->assertDontSee(__('contracts.amendment.view-list', ['count' => 1]));
+    }
+
+    public function test_the_list_links_to_the_amendments_once_there_are_some(): void
+    {
+        $contract = $this->contract();
+        app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractsTable::class)
+            ->assertSee(__('contracts.amendment.view-list', ['count' => 1]))
+            ->assertSee(route('contracts.show', $contract).'#amendments', false)
+            // One is waiting, so no second one is offered.
+            ->assertDontSee(route('contracts.amend', $contract), false);
+    }
+
+    public function test_a_role_that_cannot_amend_only_sees_the_link(): void
+    {
+        $contract = $this->contract();
+        app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+        $readOnly = $this->makeUser($this->city, 'HR-ALP', ['contracts.view']);
+
+        Livewire::actingAs($readOnly)
+            ->test(ContractsTable::class)
+            ->assertSee(__('contracts.amendment.view-list', ['count' => 1]))
+            ->assertDontSee(route('contracts.amend', $contract), false);
     }
 
     // ── the edit screen once amended ────────────────────────────────

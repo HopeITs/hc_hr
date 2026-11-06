@@ -122,6 +122,7 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'view-list' => 'Amendments (:count)',
         'document-as-signed' => 'This is the contract as signed. Its current hours and pay are in the amendments above.',
         'download-signed' => 'Download signed copy',
         'replace-signed' => 'Replace signed copy',

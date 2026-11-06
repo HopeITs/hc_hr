@@ -121,6 +121,7 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'amendment' => [
+        'view-list' => 'الملحقات (:count)',
         'document-as-signed' => 'هذا هو العقد كما وُقّع. الدوام والأجر الحاليان في الملحقات أعلاه.',
         'download-signed' => 'تنزيل النسخة الموقّعة',
         'replace-signed' => 'استبدال النسخة الموقّعة',

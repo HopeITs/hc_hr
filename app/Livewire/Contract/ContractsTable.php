@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\SalaryPer;
@@ -294,6 +295,12 @@ class ContractsTable extends LivewireTable
                 'leaveBalances',
                 'terminationReason',
             ])
+            // For the row menu's amendment items, without a query per row.
+            ->withCount([
+                'amendments',
+                'amendments as open_amendments_count' => fn (Builder $q) => $q
+                    ->whereIn('status', [ContractAmendmentStatus::Draft, ContractAmendmentStatus::Approved]),
+            ])
             ->visibleTo(auth()->user());
 
         $this->applyPreset($query);
@@ -320,7 +327,7 @@ class ContractsTable extends LivewireTable
      * and the row's own state are left to check per row, without touching the
      * database (the server re-authorizes every action when it is used).
      *
-     * @return array{update: bool, delete: bool, create: bool, export: bool, autoRenew: bool}
+     * @return array{update: bool, delete: bool, create: bool, export: bool, autoRenew: bool, amend: bool}
      */
     protected function abilities(): array
     {
@@ -337,6 +344,8 @@ class ContractsTable extends LivewireTable
                 // Hoisted so the item is absent rather than present and 403-ing.
                 'export' => ($user?->hasActivePermission('contracts.export') ?? false) && ($user?->canViewSalary() ?? false),
                 'autoRenew' => ($user?->activeRoleIs('HR') ?? false) && $canUpdate,
+                // ContractPolicy::amend's role half; the row's half is below.
+                'amend' => ($user?->activeRoleIs('HR') ?? false) && ($user?->hasActivePermission('contracts.amend') ?? false),
             ];
         });
     }
@@ -357,6 +366,11 @@ class ContractsTable extends LivewireTable
             'canRenew' => $can['create'] && $contract->is_active && $contract->terminated_at === null,
             'canExport' => $can['export'],
             'canAutoRenew' => $can['autoRenew'] && $contract->canAutoRenew(),
+            // Mirrors ContractPolicy::amend: the role (hoisted), visibility
+            // (query()), a contract in force and no amendment already waiting.
+            'canAmend' => $can['amend'] && $contract->canBeAmended() && (int) $contract->open_amendments_count === 0,
+            // Anyone who sees the row sees its amendments, on the contract page.
+            'amendmentsCount' => (int) $contract->amendments_count,
             'openJs' => $this->openDrawerJs($contract->getKey()),
         ])->render();
     }

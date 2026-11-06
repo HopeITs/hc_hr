@@ -12,7 +12,7 @@
             $arrow = app()->getLocale() === 'ar' ? '←' : '→';
         @endphp
 
-        <x-card :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
+        <x-card id="amendments" class="scroll-mt-24" :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
             <x-slot:icon>
                 @if($canAmend)
                     <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)">
