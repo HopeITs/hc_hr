@@ -385,6 +385,27 @@ class ContractsTable extends LivewireTable
             ->orderBy($name)->pluck($name, 'id')->toArray();
     }
 
+    protected function listPath(): ?string
+    {
+        return parse_url(route('contracts.index', [], false), PHP_URL_PATH);
+    }
+
+    /**
+     * The codes these columns had while they followed the locale. Codes are
+     * fixed now (the third argument to make()), so switching EN/AR no longer
+     * hides them; these turn what a session or saved view still holds into
+     * the new codes.
+     */
+    protected function columnCodeAliases(): array
+    {
+        return [
+            'position_title_en' => 'position_title', 'position_title_ar' => 'position_title',
+            'contractType_name_en' => 'contract_type', 'contractType_name_ar' => 'contract_type',
+            'position_jobLevel_name_en' => 'job_level', 'position_jobLevel_name_ar' => 'job_level',
+            ...$this->labelCodes('general.actions', 'actions'),
+        ];
+    }
+
     protected function columns(): array
     {
         $loc = app()->getLocale();
@@ -437,11 +458,11 @@ class ContractsTable extends LivewireTable
                 ->options(Program::orderBy('slug')->pluck('slug', 'slug')->toArray())
                 ->sortable()->searchable()->hide(),
 
-            SelectColumn::make(__('general.position'), 'position.'.$title)
+            SelectColumn::make(__('general.position'), 'position.'.$title, 'position_title')
                 ->options(Position::orderBy($title)->pluck($title, $title)->toArray())
                 ->sortable()->searchable()->hide(),
 
-            SelectColumn::make(trans_choice('general.contract-type', 1), 'contractType.'.$name)
+            SelectColumn::make(trans_choice('general.contract-type', 1), 'contractType.'.$name, 'contract_type')
                 ->options(ContractType::orderBy($name)->pluck($name, $name)->toArray())
                 ->sortable()->searchable(),
 
@@ -460,7 +481,7 @@ class ContractsTable extends LivewireTable
                 ->options(Department::orderBy('name')->pluck('name', 'name')->toArray())
                 ->sortable()->searchable()->hide(),
 
-            SelectColumn::make(trans_choice('general.job-level', 1), 'position.jobLevel.'.$name)
+            SelectColumn::make(trans_choice('general.job-level', 1), 'position.jobLevel.'.$name, 'job_level')
                 ->options(JobLevel::orderBy('grade')->pluck($name, $name)->toArray())
                 ->sortable()->searchable()->hide(),
 
@@ -554,7 +575,7 @@ class ContractsTable extends LivewireTable
 
             // Main action View (the read-only drawer) + a More menu. The label
             // is matched by exportExcel() to keep this column out of the file.
-            Column::make(__('general.actions'), fn (Model $m): string => $this->rowActions($m))
+            Column::make(__('general.actions'), fn (Model $m): string => $this->rowActions($m), 'actions')
                 ->asHtml()->clickable(false),
         ];
     }

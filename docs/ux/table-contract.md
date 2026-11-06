@@ -82,6 +82,8 @@ Principles: one **identity** column (who/what) that also carries a secondary lin
 | **Active role or city scope changes** | Restore **nothing** from the other role's session state; start from the role's defaults. The session key includes role and city scope (contracts today use user only) |
 | Column that the role may not see (e.g. HR-only "Seen by HR") | Never restored for a role that may not see it |
 | URL and session disagree | **URL wins** (already the contracts rule) |
+| Arriving from another page (menu, another list, dashboard) | The **text searches** (global and per column) are **not** restored; filters, sort, columns, per-page stay. They come back only when returning from the list's own pages (a record, its edit page, the list in the other language), told by the Referer. The page number is not reused when a search was dropped. (2026-11-06) |
+| Language switch (EN/AR) | Nothing changes: column codes are **fixed, never derived from a translated label or a `_en`/`_ar` column**, because stored columns, searches and sorts are keyed by code. Old codes are translated on restore (`columnCodeAliases()`). (2026-11-06) |
 | User presses "Clear all" | Clears search, filters, sort, preset and page; keeps column choice |
 
 Results are always re-queried through the table's authorized `query()` (`Contract::visibleTo`, `LeaveRequest::manageableBy`, city scope): a restored search can never show rows the active role may not see. The rules above are about **sensible screens**, not access.

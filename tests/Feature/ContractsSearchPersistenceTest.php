@@ -39,7 +39,8 @@ class ContractsSearchPersistenceTest extends TestCase
         $backUrl = $links->item(0)->getAttribute('href');
         $this->assertSame(route('contracts.index'), $backUrl);
 
-        $this->get($backUrl)->assertOk()
+        // The browser says it comes from the contract's page.
+        $this->withHeader('Referer', route('contracts.show', $contract))->get($backUrl)->assertOk()
             ->assertSeeLivewire(ContractsTable::class)
             ->assertSee('"globalSearch":"Joseph"')
             ->assertSee('"employee":"Joseph"')
@@ -69,7 +70,7 @@ class ContractsSearchPersistenceTest extends TestCase
             ->call('gotoPage', 5)
             ->set('globalSearch', 'Joseph');
 
-        Livewire::test(ContractsTable::class)
+        Livewire::withHeaders(['Referer' => route('contracts.index')])->test(ContractsTable::class)
             ->assertSet('globalSearch', 'Joseph')
             ->assertSet('paginators.page', 1);
     }
@@ -87,7 +88,7 @@ class ContractsSearchPersistenceTest extends TestCase
             ->assertSet('paginators.page', 2);
     }
 
-    public function test_searches_are_restored_when_returning_to_contracts(): void
+    public function test_searches_are_restored_when_returning_from_a_contract(): void
     {
         $user = $this->makeUser($this->makeCity('DMS', '003'), 'HR-DMS');
 
@@ -95,9 +96,33 @@ class ContractsSearchPersistenceTest extends TestCase
             ->set('globalSearch', 'Joseph')
             ->set('search.employee', 'Joseph');
 
-        Livewire::test(ContractsTable::class)
-            ->assertSet('globalSearch', 'Joseph')
-            ->assertSet('search.employee', 'Joseph');
+        foreach (['/en/contracts/24', '/ar/contracts/24/edit', '/ar/contracts'] as $from) {
+            Livewire::withHeaders(['Referer' => url($from)])->test(ContractsTable::class)
+                ->assertSet('globalSearch', 'Joseph')
+                ->assertSet('search.employee', 'Joseph');
+        }
+    }
+
+    public function test_a_search_is_not_carried_back_from_another_page(): void
+    {
+        $city = $this->makeCity('DMS', '003');
+        $user = $this->makeUser($city, 'HR-DMS');
+        $this->seedContracts($city, 28);
+
+        Livewire::actingAs($user)->test(ContractsTable::class)
+            ->set('globalSearch', 'Joseph')
+            ->set('search.employee', 'Joseph')
+            ->set('perPage', 25)
+            ->call('gotoPage', 2);
+
+        foreach ([url('/en/employees'), url('/en'), null] as $from) {
+            Livewire::withHeaders($from ? ['Referer' => $from] : [])->test(ContractsTable::class)
+                ->assertSet('globalSearch', '')
+                ->assertSet('search', [])
+                // The page belonged to the searched list; the rest of the state stays.
+                ->assertSet('paginators.page', 1)
+                ->assertSet('perPage', 25);
+        }
     }
 
     public function test_clearing_search_also_clears_the_saved_search(): void
