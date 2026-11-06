@@ -78,6 +78,8 @@ return [
     'contracts' => 'العقود',
     'basic-management' => 'الإدارة الأساسية',
     'project-basics' => 'أساسيات المشروع',
+    'basic-settings' => 'الإعدادات الأساسية',
+    'basic-settings-description' => 'إدارة البيانات المرجعية الأساسية المستخدمة في النظام.',
     'contract-type' => 'أنواع العقود|نوع العقد',
     'activity-log' => 'سجل الأنشطة',
     'leave-type' => 'أنواع الإجازات|نوع الإجازة',

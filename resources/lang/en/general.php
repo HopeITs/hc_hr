@@ -77,6 +77,8 @@ return [
     'contracts' => 'Contracts',
     'basic-management' => 'Basic Management',
     'project-basics' => 'Project Basics',
+    'basic-settings' => 'Basic Settings',
+    'basic-settings-description' => 'Manage the fundamental reference data used throughout the HRM system.',
     'activity-log' => 'Activity Log',
     'contract-type' => 'Contract Type|Contract Types',
     'leave-type' => 'Leave Type|Leave Types',

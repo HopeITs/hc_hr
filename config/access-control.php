@@ -346,6 +346,8 @@ return [
     */
 
     'livewire_exempt' => [
+        // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
+        'basics.basic-settings' => ['tabs', 'setTab'],
 
         // --- Authentication -------------------------------------------------
         // Reached before a session exists, or acting only on the caller's own

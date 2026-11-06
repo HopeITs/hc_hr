@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\EmbedsInSettings;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\ContractType;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class ContractTypeModule extends Component
 {
     use AuthorizesActivePermissions;
+    use EmbedsInSettings;
     use GuardsModalClose;
     use WithFeedback;
 
