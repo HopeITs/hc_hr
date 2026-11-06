@@ -99,6 +99,8 @@ return [
         'timeline' => 'السجل الزمني',
         'timeline-subtitle' => 'المسار الوظيفي والشارات',
         'timeline-empty' => 'لا شيء لعرضه بعد.',
+        'more-changes' => '{1} +:count تغيير آخر|{2} +تغييران آخران|[3,10] +:count تغييرات أخرى|[11,*] +:count تغييرًا آخر',
+        'fewer-changes' => 'عرض أقل',
         'events' => [
             'contract-joined' => 'الانضمام',
             'contract-started' => 'عقد جديد',

@@ -113,6 +113,20 @@ final class ContractAmendmentDescriber
      */
     public function brief(ContractAmendment $amendment, bool $withPay): string
     {
+        ['shown' => $shown, 'more' => $more] = $this->briefParts($amendment, $withPay);
+
+        return collect($shown)->when($more !== [], fn ($s) => $s->push('+'.count($more)))->implode(' · ');
+    }
+
+    /**
+     * brief() in its two halves, for a timeline that opens the rest on demand:
+     * `shown` the new values on the line, `more` the remaining changes as
+     * [label, new value].
+     *
+     * @return array{shown: list<string>, more: list<array{0: string, 1: string}>}
+     */
+    public function briefParts(ContractAmendment $amendment, bool $withPay): array
+    {
         $priority = [
             __('general.type'),
             __('general.weekly-hours'),
@@ -127,10 +141,10 @@ final class ContractAmendmentDescriber
             ->sortBy(fn (array $line) => ($i = array_search($line[0], $priority, true)) === false ? 99 : $i)
             ->values();
 
-        $shown = $lines->take(2)->map(fn (array $line) => $line[2]);
-        $rest = $lines->count() - $shown->count();
-
-        return $shown->when($rest > 0, fn ($s) => $s->push('+'.$rest))->implode(' · ');
+        return [
+            'shown' => $lines->take(2)->map(fn (array $line) => $line[2])->values()->all(),
+            'more' => $lines->slice(2)->map(fn (array $line) => [$line[0], $line[2]])->values()->all(),
+        ];
     }
 
     /** The labels alone, for a folded line: "Weekly hours · Work days · Salary". */

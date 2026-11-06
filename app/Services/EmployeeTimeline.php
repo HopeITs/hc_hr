@@ -59,12 +59,15 @@ final class EmployeeTimeline
 
             foreach ($amendments as $amendment) {
                 $salaryMoved = in_array('salary', $amendment->changedFields(), true);
+                ['shown' => $shown, 'more' => $more] = app(ContractAmendmentDescriber::class)->briefParts($amendment, $withPay);
 
                 $events[] = [
                     'kind' => 'contract.amended',
                     'date' => $amendment->effective_from->toDateString(),
                     'title' => $contract->position?->title,
-                    'detail' => app(ContractAmendmentDescriber::class)->brief($amendment, $withPay) ?: null,
+                    'detail' => implode(' · ', $shown) ?: null,
+                    // The rest, opened on demand under the line: [label, new value].
+                    'more' => $more,
                     'pay' => $withPay && $salaryMoved && $amendment->salary_after
                         ? ['amount' => $amendment->salary_after, 'currency' => $amendment->terms_after['currency'] ?? $contract->currency]
                         : null,
