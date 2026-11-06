@@ -112,6 +112,8 @@ class ContractAmendmentScreensTest extends TestCase
             ->assertSee(trans_choice('contracts.amendment.previous-title', 1, ['count' => 1]))
             ->assertSee('01/11/2026')
             ->assertSee('30 hours a week')
+            // Opens in the same tab: a new one launched the installed app window instead.
+            ->assertDontSeeHtml('target="_blank"')
             // The date picker starts at the last amendment's date, not the contract's start.
             ->assertViewHas('seed', fn (array $seed) => ($seed['minEffectiveFrom'] ?? null) === '2026-11-01');
     }

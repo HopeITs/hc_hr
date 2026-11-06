@@ -29,7 +29,9 @@
                 </p>
                 <p class="text-ink-2">@lang('contracts.amendment.previous-hint', ['date' => $previous['date']])</p>
             </div>
-            <a class="hc-btn hc-btn--quiet hc-btn--sm shrink-0 self-start" target="_blank" rel="noopener"
+            {{-- Same tab: a new one opened the installed app window instead. The
+                 composer's unsaved-changes guard asks first if anything was typed. --}}
+            <a class="hc-btn hc-btn--quiet hc-btn--sm shrink-0 self-start"
                href="{{ route('contracts.show', $contract->id) }}#amendments">
                 @lang('contracts.amendment.previous-view')
             </a>
