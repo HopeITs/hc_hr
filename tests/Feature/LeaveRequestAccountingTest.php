@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Gender;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
+use App\Enums\MaritalStatus;
 use App\Livewire\Employee\Leave\AllLeaveRequestModule;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Models\City;
@@ -480,10 +482,13 @@ class LeaveRequestAccountingTest extends TestCase
 
         $component = Livewire::actingAs($user)->test(MyLeaveRequestModule::class)->call('create');
         $this->assertSame(['ready' => false], $component->instance()->leaveImpact);
-        $component->assertSee(__('leave_quote.preview.hint'));
 
+        // The guided form shows its summary step once a leave type is chosen;
+        // until the dates are complete that step is the neutral hint.
         $component->set('form.leave_balance_id', (string) $balance->id)
-            ->set('form.start_at', '2026-11-05')
+            ->assertSee(__('leave_quote.preview.hint'));
+
+        $component->set('form.start_at', '2026-11-05')
             ->set('form.end_at', 'not-a-date');
         $this->assertSame(['ready' => false], $component->instance()->leaveImpact);
 
@@ -561,7 +566,10 @@ class LeaveRequestAccountingTest extends TestCase
             'city_id' => $this->cityId, 'first_name_en' => 'Test', 'first_name_ar' => 'اختبار',
             'last_name_en' => 'Requester '.$this->sequence, 'last_name_ar' => 'طالب '.$this->sequence,
             'username' => 'accounting-requester-'.$this->sequence, 'is_active' => true,
-        ]);
+        ] + (in_array($typeId, [LeaveTypeCases::MaternityFirst, LeaveTypeCases::MaternitySecond], true)
+            // Maternity is requestable only by a married woman (LeaveEligibility).
+            ? ['gender' => Gender::Female, 'marital_status' => MaritalStatus::Married]
+            : []));
         $positionId = $this->insert('positions', [
             'program_id' => $this->programId, 'center_id' => $this->centers[$center], 'city_id' => $this->cityId,
             'job_level_id' => $this->jobLevelId, 'department_id' => $this->departmentId,

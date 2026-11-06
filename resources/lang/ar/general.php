@@ -521,6 +521,8 @@ return [
     'employment-overview' => 'نظرة عامة عن التوظيف',
     'name' => 'الاسم',
     'orgn-chart' => 'هيكلية المؤسسة',
+    'service-agreement' => 'اتفاقية خدمة',
+    'service-agreement-short' => 'اتفاقية خدمة',
     'on_hold' => 'بالانتظار',
     'bio-birthday' => 'السيرة الذاتية وتاريخ الميلاد',
     'bio-text' => 'لم يتم إضافة سيرة ذاتية بعد.',

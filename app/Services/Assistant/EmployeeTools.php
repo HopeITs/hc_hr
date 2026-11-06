@@ -19,7 +19,9 @@ use App\Models\News;
 use App\Models\User;
 use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\LeaveAlternativeEmployees;
+use App\Services\LeaveEligibility;
 use App\Services\LeaveRequestPricing;
+use App\Services\News\NewsFeed;
 use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
 use App\Support\Leave\LeaveQuote;
@@ -56,7 +58,7 @@ class EmployeeTools
         'get_my_salary' => "The employee's own pay on their current contract: amount (or pay tiers), currency and period.",
         'get_my_items' => 'The items handed to the employee (laptop, phone, badge, keys…) as the My items page lists them: item, brand, model, serial, status (on hold, delivered, returned) and dates.',
         'get_holidays' => "The public holidays and one-off grants that apply to the employee's own project and governorate in the coming days (default 60, up to 366): name, first and last day, length. The birthday holiday is personal and not included.",
-        'get_news' => 'The latest published news of the organisation, newest first: title, date, who it is for and a short excerpt.',
+        'get_news' => 'The latest live news, announcements and events addressed to this employee, newest publication first: title, type, publication date, event date and time (events), its tags (what it is about) and a short excerpt.',
         'get_app_pages' => 'The pages of this app the employee may open, with their menu area and link, plus the "New …" actions they may start. Use it to answer "where do I…", "how do I open…" and to give a link.',
         'get_my_inbox' => 'What waits on the employee in their work inbox right now (leave requests to decide or review, items to hand out or take back, profile changes to approve): counts and the first rows, as the inbox page shows them.',
         'get_team_absences' => 'Who is away on APPROVED leave on a day or between two dates, among the people this user may see on the team calendar (the same people and the same details): name, position, dates and leave type. Pending or refused requests are never included, and nothing else about anyone (no reason, balance or pay).',
@@ -194,7 +196,7 @@ class EmployeeTools
             'get_my_files' => $this->files($user, $employee),
             'get_my_items' => $this->items($employee),
             'get_holidays' => $this->holidays($employee, $args),
-            'get_news' => $this->news($args),
+            'get_news' => $this->news($user, $args),
             'get_app_pages' => $this->appPages($user),
             'get_my_inbox' => $this->inbox($user),
             'get_team_absences' => $this->teamAbsences($user, $args),
@@ -424,13 +426,13 @@ class EmployeeTools
     }
 
     /**
-     * The balances the page's request form offers (allAvailableLeaves: the
-     * latest active contract's, with something left) and the alternatives
+     * The balances the page's request form offers (LeaveEligibility:
+     * what the employee may request now) and the alternatives
      * LeaveAlternativeEmployees allows. The form validates against the same.
      */
     private function leaveOptions(Employee $employee): array
     {
-        $balances = $employee->allAvailableLeaves() ?? collect();
+        $balances = app(LeaveEligibility::class)->requestableBalances($employee);
         $alternatives = app(LeaveAlternativeEmployees::class)->for($employee);
         $locale = app()->getLocale();
 
@@ -627,27 +629,28 @@ class EmployeeTools
     }
 
     /**
-     * What the news page (news.view) lists for anyone: published, not past
-     * its display date, newest event first.
+     * The live news, announcements and events the user is in the audience
+     * of (NewsFeed::live: no drafts, scheduled or expired items), newest
+     * publication first. 'tags' say what an item is about, never who sees it.
      */
-    private function news(array $args): array
+    private function news(User $user, array $args): array
     {
         $limit = min(max((int) ($args['limit'] ?? 5) ?: 5, 1), 10);
 
-        $news = News::query()
-            ->with('newsable')
-            ->whereNotNull('published_at')
-            ->where(fn (Builder $query) => $query->whereNull('display_until')->orWhere('display_until', '>=', now()))
-            ->orderByDesc('event_date')
-            ->orderByDesc('published_at')
+        $news = app(NewsFeed::class)->live($user)
+            ->orderByDesc('news.published_at')
+            ->orderByDesc('news.id')
             ->limit($limit)
             ->get();
 
         return [
             'news' => $news->map(fn (News $item) => array_filter([
                 'title' => $item->localizedTitle(),
-                'date' => $item->event_date?->format('Y-m-d'),
-                'for' => $item->newsable_name,
+                'type' => $item->type->value,
+                'published' => $item->published_at?->format('Y-m-d'),
+                'event_date' => $item->isEvent() ? $item->event_starts_at?->format('Y-m-d H:i') : null,
+                'event_ends' => $item->isEvent() ? $item->event_ends_at?->format('Y-m-d H:i') : null,
+                'tags' => $item->tagNames(),
                 // At most 300 characters, ellipsis included.
                 'excerpt' => Str::limit($this->plain($item->localizedDescription()), 299, '…'),
             ], fn ($value) => filled($value)))->values()->all(),

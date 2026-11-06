@@ -523,6 +523,8 @@ return [
     'counterparty' => 'Counterparty',
     'request' => 'Request|Requests',
     'orgn-chart' => 'Organization Chart',
+    'service-agreement' => 'Service agreement',
+    'service-agreement-short' => 'Service',
     'my-leaves' => 'My Leaves',
     'dates' => 'Dates',
     'saving' => 'Saving',

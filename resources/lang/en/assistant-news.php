@@ -1,29 +1,26 @@
 <?php
 
-// A news item the assistant drafted (App\Services\Assistant\Drafts\NewsDraft).
+// A News & Events item the assistant drafted (App\Services\Assistant\Drafts\NewsDraft).
 return [
-    'title' => 'News item draft',
+    'title' => 'News & Events draft',
     'fields' => [
+        'type' => 'Type',
         'title_ar' => 'Title (Arabic)',
         'title_en' => 'Title (English)',
         'description_ar' => 'Text (Arabic)',
         'description_en' => 'Text (English)',
-        'event_date' => 'Event date',
-        'display_until' => 'Shown until',
-        'target_type' => 'Audience type',
-        'target' => 'Audience',
+        'event' => 'Event date',
+        'event_starts_at' => 'Event start',
+        'event_ends_at' => 'Event end',
+        'display_until' => 'Display until',
+        'tags' => 'Tags',
+        'audience_type' => 'Audience type',
+        'audience_ids' => 'Audience',
+        'audience' => 'Audience',
+        'publication' => 'Publication',
     ],
-    'targets' => [
-        'all' => 'Everyone',
-        'city' => 'City',
-        'center' => 'Center',
-        'program' => 'Program',
-        'employee' => 'Employee',
-    ],
-    'errors' => [
-        'target' => 'Choose the audience from the list the news page offers.',
-    ],
-    'created' => 'The news item was published. You can add an image on its page.',
-    'open' => 'Open the news item',
-    'open-list' => 'Open the news',
+    'publish_now' => 'Published immediately on confirmation',
+    'created' => 'The item was published. You can add an image or change the schedule on its edit page.',
+    'open' => 'Open the item',
+    'open-list' => 'Open News & Events',
 ];

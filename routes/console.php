@@ -3,7 +3,9 @@
 use App\Console\Commands\ApplyContractAmendments;
 use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateEmployee;
+use App\Console\Commands\DispatchDueNotifications;
 use App\Console\Commands\ProcessContractAutoRenewals;
+use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
 use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
@@ -32,6 +34,10 @@ Schedule::command(PruneTaskAttempts::class)->dailyAt('03:10');
 Schedule::command(SyncPolicies::class)->dailyAt('02:30')->withoutOverlapping();
 // D3 / DEC-08: in-app feedback is deleted after one year (InAppFeedback::prunable()).
 Schedule::command('model:prune', ['--model' => [InAppFeedback::class]])->dailyAt('03:20');
+// Notification preferences: push / email held back by quiet hours, working days or a digest.
+Schedule::command(DispatchDueNotifications::class)->everyMinute()->withoutOverlapping();
+// Expired or long-unseen push devices, and outbox rows finished over 30 days ago.
+Schedule::command(PrunePushData::class)->dailyAt('03:30');
 Schedule::call(function () {
     Log::info('الكرون جوب يعمل بنجاح!');
 })->daily();

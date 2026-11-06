@@ -7,7 +7,9 @@ use App\Models\Holiday;
 use App\Services\Dashboard\CalendarFeed;
 use App\Services\HolidayProjects;
 use App\Services\LeaveRequestPricing;
+use App\Services\News\NewsFeed;
 use App\Services\TeamCoverage;
+use App\Support\News\EventDays;
 use Carbon\CarbonImmutable;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -44,6 +46,9 @@ class Calendar extends Component
 
     #[Url(as: 'city', except: 0)]
     public int $cityId = 0;
+
+    /** Organization events (News & Events) on their days: a display toggle, on by default. */
+    public bool $showEvents = true;
 
     /** The embedded holiday dialog saved: redraw with the new day names. */
     protected $listeners = ['holidaysChanged' => '$refresh'];
@@ -115,12 +120,15 @@ class Calendar extends Component
             $failed = true;
         }
 
+        $events = $this->showEvents ? $this->eventsByDay($user, $from, $to) : [];
+
         $holidayProjects = app(HolidayProjects::class);
         $canManageHolidays = $holidayProjects->canManage($user);
 
         return view('livewire.team.calendar', [
             'holidays' => $this->holidayLabels($user, $from, $to, $holidayProjects, $canManageHolidays),
             'birthdays' => $birthdays,
+            'events' => $events,
             // A day from today on opens the leave form on that date (the dashboard calendar's link).
             'requestUrl' => app(CalendarFeed::class)->canRequestLeave($user) ? route('leaves.index', ['new' => 1, 'date' => '__DATE__']) : null,
             'today' => CarbonImmutable::today()->toDateString(),
@@ -264,6 +272,43 @@ class Calendar extends Component
         }
 
         return $labels;
+    }
+
+    /**
+     * Live organization events the viewer is in the audience of
+     * (NewsFeed::eventsBetween: drafts, scheduled, expired and other
+     * audiences never appear), laid out on each of their days in the period.
+     * One read for the whole period; the team scope plays no part, and a
+     * failure here never takes the leave calendar down with it.
+     *
+     * @return array<string, list<array{key: string, title: string, time: ?string, url: string, first: bool, last: bool}>>
+     */
+    private function eventsByDay($user, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        try {
+            $items = app(NewsFeed::class)->eventsBetween($user, $from, $to);
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
+
+        $byDay = [];
+
+        foreach ($items as $item) {
+            foreach (EventDays::within($item, $from, $to) as $day) {
+                $byDay[$day['date']][] = [
+                    'key' => 'event-'.$item->getKey().'-'.$day['date'],
+                    'title' => $item->localizedTitle(),
+                    'time' => $day['time'],
+                    'url' => route('news.show', $item->getKey()),
+                    'first' => $day['first'],
+                    'last' => $day['last'],
+                ];
+            }
+        }
+
+        return $byDay;
     }
 
     private function normalisedView(): string
