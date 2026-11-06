@@ -81,7 +81,7 @@ class CenterExport implements FromCollection, ShouldAutoSize, WithHeadings, With
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

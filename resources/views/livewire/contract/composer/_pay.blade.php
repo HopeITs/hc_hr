@@ -46,7 +46,7 @@
 {{-- Section 4 — the one field where a typo costs the most. --}}
 <x-contract.section
     name="pay"
-    index="3"
+    :index="$payIndex ?? 3"
     :title="__('general.composer.pay')"
     summary="paySummary"
 >
@@ -256,4 +256,10 @@
          only thing that can say why it is grey. --}}
     <p x-cloak x-show="payBlockedHint" class="mt-4 font-medium text-small text-primary" x-text="payBlockedHint"></p>
 @endif
+
+    {{-- Pay is the last step everywhere but the amendment page, where the
+         amendment's own date and reason still follow. --}}
+    @if($payContinue ?? false)
+        <x-contract.continue section="pay" />
+    @endif
 </x-contract.section>

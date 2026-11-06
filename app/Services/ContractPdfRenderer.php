@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Support\InspectableBrowsershot;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\File;
@@ -48,7 +49,8 @@ class ContractPdfRenderer
         $locale = app()->getLocale();
 
         return view('pdf.contract', [
-            'contract' => $contract,
+            // The signed contract, not its current terms: amendments are their own sheets.
+            'contract' => $contract->asSigned(),
             'category' => $category,
             'totalPages' => self::PAGES_PER_CATEGORY[$category] ?? 1,
             'locale' => $locale,
@@ -71,6 +73,62 @@ class ContractPdfRenderer
             $this->category($contract),
             now()->format('Ymd'),
         );
+    }
+
+    /**
+     * The amendment sheet (ملحق عقد) as a Blade view: one page on the
+     * contract's letterhead, worded by the same clause components as the
+     * contract, fed the contract as the amendment makes it.
+     */
+    public function amendmentView(ContractAmendment $amendment, bool $inlineAssets = false): View
+    {
+        $amendment->loadMissing(['payTiers', 'contract.employee', 'contract.contractType']);
+        $contract = $amendment->contract;
+        $locale = app()->getLocale();
+
+        $after = $amendment->termsAsContract();
+
+        // The sheet states every term that changed, whatever the contract's
+        // print toggles say: a new day range left off the page would leave the
+        // signed amendment silent about the very thing it changes. Toggles
+        // already on stay on; nothing that did not change is switched on.
+        $changed = $amendment->changedFields();
+        $after->show_hours_per_week = $after->show_hours_per_week || in_array('weekly_hours', $changed, true);
+        $after->show_hours_per_day = $after->show_hours_per_day
+            || array_intersect(['work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'], $changed) !== [];
+        $dayRangeChanged = array_intersect(['work_day_from', 'work_day_to'], $changed) !== [];
+        $after->show_day_range = $after->show_day_range || $dayRangeChanged;
+        $after->show_days_per_week = $after->show_days_per_week || $dayRangeChanged;
+
+        return view('pdf.amendment', [
+            'amendment' => $amendment,
+            'contract' => $contract,
+            'after' => $after,
+            'locale' => $locale,
+            'dir' => $locale === 'ar' ? 'rtl' : 'ltr',
+            'fileTitle' => $this->amendmentFileName($amendment),
+            'inlineAssets' => $inlineAssets,
+        ]);
+    }
+
+    public function amendmentFileName(ContractAmendment $amendment): string
+    {
+        return sprintf(
+            '%s-amendment-%d-%s.pdf',
+            // The English name whatever the page's language: slugging the Arabic
+            // one transliterates it badly ("لارا منصور" became "lara-mnsor").
+            Str::slug(trim(($amendment->contract?->employee?->first_name_en ?? '').' '.($amendment->contract?->employee?->last_name_en ?? '')) ?: 'contract'),
+            $amendment->number,
+            $amendment->effective_from->format('Ymd'),
+        );
+    }
+
+    /**
+     * @throws RuntimeException
+     */
+    public function renderAmendment(ContractAmendment $amendment): string
+    {
+        return $this->renderHtml($this->amendmentView($amendment, inlineAssets: true)->render());
     }
 
     /**

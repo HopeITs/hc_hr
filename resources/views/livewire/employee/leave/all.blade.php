@@ -259,11 +259,14 @@ use App\Enums\LeaveRequestStatus;
 
                 </div>
 
-                <div class="mt-4 flex flex-wrap justify-end gap-2">
-                    <x-primary-button wire:click="confirmDelete({{$selectedLeave->id}})"
-                                      class="!w-auto">
-                        {{ __('general.delete') }}
-                    </x-primary-button>
+                <div class="flex justify-end gap-2 mt-4">
+                    {{-- Only for whoever delete() would allow; the others got a 403. --}}
+                    @if($canDeleteSelected)
+                        <x-primary-button wire:click="confirmDelete({{$selectedLeave->id}})"
+                                          class="!w-auto">
+                            {{ __('general.delete') }}
+                        </x-primary-button>
+                    @endif
                     <x-button variant="quiet" wire:click="closeDetails">
                         {{ __('general.cancel') }}
                     </x-button>

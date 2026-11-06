@@ -153,6 +153,7 @@ return [
             'contract-joined' => 'Joined',
             'contract-started' => 'New contract',
             'position-changed' => 'Moved to a new position',
+            'contract-amended' => 'Contract amended',
             'contract-ended' => 'Contract ended',
             'badge-reward' => 'Reward',
             'badge-warning' => 'Warning',

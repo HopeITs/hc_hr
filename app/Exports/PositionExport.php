@@ -47,7 +47,7 @@ class PositionExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 // Match both EN and AR generated codes from the table
                 'city_name_en', 'city_name_ar' => trans_choice('general.city', 1, [], 'en'),
                 'program_name' => trans_choice('general.program', 1, [], 'en'),
-                'center_name' => trans_choice('general.center', 1, [], 'en'),
+                'center_name_en', 'center_name_ar' => trans_choice('general.center', 1, [], 'en'),
                 'department_name' => trans_choice('general.department', 1, [], 'en'),
                 'jobLevel_name_en', 'jobLevel_name_ar' => trans_choice('general.job-level', 1, [], 'en'),
                 'directManager_title_en', 'directManager_title_ar' => __('general.direct-manager', [], 'en'),
@@ -68,7 +68,7 @@ class PositionExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'title_en' => $row->title_en,
                 'title_ar' => $row->title_ar,
                 'program_name' => $row->program?->name ?? '',
-                'center_name' => $row->center?->name ?? '',
+                'center_name_en', 'center_name_ar' => $row->center?->name_en ?? '',
                 'department_name' => $row->department?->name ?? '',
 
                 // Force the English translation properties since the Excel locale is forced to English
@@ -84,7 +84,7 @@ class PositionExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

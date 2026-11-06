@@ -69,7 +69,7 @@ class CourseCategoryExport implements FromCollection, ShouldAutoSize, WithHeadin
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();
