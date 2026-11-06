@@ -64,7 +64,7 @@ final class EmployeeTimeline
                     'kind' => 'contract.amended',
                     'date' => $amendment->effective_from->toDateString(),
                     'title' => $contract->position?->title,
-                    'detail' => app(ContractAmendmentDescriber::class)->summary($amendment, $withPay, withSalary: false) ?: null,
+                    'detail' => app(ContractAmendmentDescriber::class)->brief($amendment, $withPay) ?: null,
                     'pay' => $withPay && $salaryMoved && $amendment->salary_after
                         ? ['amount' => $amendment->salary_after, 'currency' => $amendment->terms_after['currency'] ?? $contract->currency]
                         : null,

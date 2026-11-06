@@ -104,6 +104,35 @@ final class ContractAmendmentDescriber
         return $terms;
     }
 
+    /**
+     * The shortest telling, for the employee timeline: the new value of the two
+     * changes a person looks for first (work type, weekly hours, work days,
+     * working hours, in that order), then "+N" for the rest. No "was", and no
+     * salary: the timeline prints the new salary on a line of its own. Empty
+     * when only pay changed. The amendment's card has the full detail.
+     */
+    public function brief(ContractAmendment $amendment, bool $withPay): string
+    {
+        $priority = [
+            __('general.type'),
+            __('general.weekly-hours'),
+            __('general.work-days'),
+            __('contracts.amendment.hours'),
+            __('contracts.amendment.flexible-terms'),
+            __('general.composer.schedule-mode'),
+        ];
+
+        $lines = collect($this->lines($amendment, $withPay))
+            ->reject(fn (array $line) => in_array($line[0], [__('general.salary'), __('contracts.amendment.pay-tiers'), __('contracts.amendment.pay-mode')], true))
+            ->sortBy(fn (array $line) => ($i = array_search($line[0], $priority, true)) === false ? 99 : $i)
+            ->values();
+
+        $shown = $lines->take(2)->map(fn (array $line) => $line[2]);
+        $rest = $lines->count() - $shown->count();
+
+        return $shown->when($rest > 0, fn ($s) => $s->push('+'.$rest))->implode(' · ');
+    }
+
     /** The labels alone, for a folded line: "Weekly hours · Work days · Salary". */
     public function labels(ContractAmendment $amendment, bool $withPay): string
     {
