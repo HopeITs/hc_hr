@@ -122,6 +122,10 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'amendment' => [
+        'previous-title' => '{1} This contract has already been amended once|[2,*] This contract has already been amended :count times',
+        'previous-last' => 'The last one, amendment :number, took effect on :date (:ago)',
+        'previous-hint' => 'This amendment starts from the terms as that one left them, shown under "Now", and cannot take effect before :date. Check it is not the same change entered twice.',
+        'previous-view' => 'View amendments',
         'view-list' => 'Amendments (:count)',
         'document-as-signed' => 'This is the contract as signed. Its current hours and pay are in the amendments above.',
         'download-signed' => 'Download signed copy',

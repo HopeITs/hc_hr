@@ -100,6 +100,30 @@ class ContractAmendmentScreensTest extends TestCase
         $this->actingAs($hms)->get(route('contracts.amend', $contract))->assertForbidden();
     }
 
+    public function test_the_page_warns_when_the_contract_was_already_amended(): void
+    {
+        $contract = $this->contract();
+        $service = app(ContractAmendmentService::class);
+        $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-11-01'));
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract->refresh()])
+            ->assertSeeHtml('data-testid="amend-previous"')
+            ->assertSee(trans_choice('contracts.amendment.previous-title', 1, ['count' => 1]))
+            ->assertSee('01/11/2026')
+            ->assertSee('30 hours a week')
+            // The date picker starts at the last amendment's date, not the contract's start.
+            ->assertViewHas('seed', fn (array $seed) => ($seed['minEffectiveFrom'] ?? null) === '2026-11-01');
+    }
+
+    public function test_no_warning_on_a_contract_never_amended(): void
+    {
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $this->contract()])
+            ->assertDontSeeHtml('data-testid="amend-previous"')
+            ->assertViewHas('seed', fn (array $seed) => ! array_key_exists('minEffectiveFrom', $seed));
+    }
+
     public function test_submitting_drafts_the_amendment_and_leaves_the_contract_alone(): void
     {
         $contract = $this->contract();

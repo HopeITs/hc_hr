@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\Currency;
 use App\Enums\PayMode;
@@ -12,6 +13,7 @@ use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Forms\ContractForm;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
+use App\Services\ContractAmendmentDescriber;
 use App\Services\ContractAmendmentService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -144,6 +146,7 @@ class ContractAmend extends Component
             'seed' => [...$this->composerSeed(), ...$this->draftSeed()],
             'editingNumber' => $this->draft()?->number,
             'nowCard' => $this->nowCard(),
+            'previous' => $this->previousAmendment(),
             'errorSections' => $this->errorSections(),
             'isService' => $category === 'service',
         ]);
@@ -212,13 +215,48 @@ class ContractAmend extends Component
         ];
     }
 
+    /**
+     * The last amendment in effect, told up front: HR may open this page from
+     * the list without knowing the contract was amended only days ago, and the
+     * new amendment starts from the terms that one left.
+     *
+     * @return array{number: int, date: string, ago: string, recent: bool, summary: string, count: int}|null
+     */
+    private function previousAmendment(): ?array
+    {
+        $applied = $this->contract->appliedAmendments()->with('payTiers')->get();
+        $last = $applied->sortByDesc('number')->first();
+
+        if ($last === null) {
+            return null;
+        }
+
+        return [
+            'number' => $last->number,
+            'date' => $last->effective_from->format('d/m/Y'),
+            'ago' => $last->effective_from->diffForHumans(),
+            // A month or less: likely to be the same change being entered twice.
+            'recent' => $last->effective_from->gte(today()->subDays(30)),
+            'summary' => app(ContractAmendmentDescriber::class)->summary($last, auth()->user()?->canViewSalary() ?? false),
+            'count' => $applied->count(),
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function draftSeed(): array
     {
         $draft = $this->draft();
+        // A new amendment may not take effect before the last one in effect
+        // (ContractAmendmentService::assertEffectiveDate); the picker says so first.
+        // Not through appliedAmendments(): its ORDER BY on an aggregate trips MySQL's ONLY_FULL_GROUP_BY.
+        $latest = ContractAmendment::query()
+            ->where('contract_id', $this->contract->id)
+            ->where('status', ContractAmendmentStatus::Applied)
+            ->max('effective_from');
+        $min = $latest ? ['minEffectiveFrom' => Carbon::parse($latest)->toDateString()] : [];
 
         return $draft
-            ? ['effectiveFrom' => $draft->effective_from->toDateString(), 'amendmentReason' => $draft->reason ?? '']
-            : [];
+            ? [...$min, 'effectiveFrom' => $draft->effective_from->toDateString(), 'amendmentReason' => $draft->reason ?? '']
+            : $min;
     }
 }
