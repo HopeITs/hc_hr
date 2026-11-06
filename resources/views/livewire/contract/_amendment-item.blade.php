@@ -39,7 +39,7 @@
     {{-- Every term the contract runs on after this amendment, so it reads on its
          own. What changed is outlined, with what it replaced beneath; what did
          not change is quieter and says so. No colour: shape and words only. --}}
-    <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" @if($tour ?? false) data-tour="contract-details.amend-terms" @endif>
         @foreach($terms as $term)
             <div @class([
                 'min-w-0 rounded-control px-3 py-2',
@@ -66,7 +66,8 @@
 @endif
 
 
-<div class="mt-3 flex flex-wrap items-center gap-2">
+{{-- Only the open (newest) amendment carries the tour hooks: one per page. --}}
+<div class="mt-3 flex flex-wrap items-center gap-2" @if($tour ?? false) data-tour="contract-details.amend-actions" @endif>
     @can('decideAmendment', $amendment)
         <x-button size="sm" wire:click="askApprove({{ $amendment->id }})">@lang('contracts.amendment.approve')</x-button>
     @endcan

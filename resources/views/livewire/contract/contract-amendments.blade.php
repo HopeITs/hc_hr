@@ -14,7 +14,7 @@
         <x-card id="amendments" class="scroll-mt-24" :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
             <x-slot:icon>
                 @if($canAmend)
-                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)">
+                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)" data-tour="contract-details.amend-add">
                         <x-ic name="plus" class="size-4" />
                         @lang('contracts.amendment.add')
                     </x-button>
@@ -29,11 +29,12 @@
                         'amendment' => $latest,
                         'terms' => $terms[$latest->id] ?? [],
                         'isCurrent' => $latest->id === $currentId,
+                        'tour' => true,
                     ])
                 </div>
 
                 @if($earlier->isNotEmpty())
-                    <details wire:ignore.self class="group/earlier mt-4 border-t border-line-soft pt-3">
+                    <details wire:ignore.self class="group/earlier mt-4 border-t border-line-soft pt-3" data-tour="contract-details.amend-earlier">
                         <summary class="flex cursor-pointer list-none items-center gap-2 text-small font-semibold text-ink
                                         [&::-webkit-details-marker]:hidden">
                             <x-ic name="chevron" class="size-4 transition-transform group-open/earlier:rotate-90 rtl:-scale-x-100" />

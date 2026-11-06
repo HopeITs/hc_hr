@@ -15,7 +15,7 @@
         {{-- Said before anything is filled in: the contract was already amended,
              perhaps days ago, and this amendment starts from what that one left. --}}
         <div class="mb-4 flex gap-3 rounded-control border border-line border-s-4 border-s-ink bg-card px-4 py-3 text-small text-ink shadow-e1"
-             role="note" data-testid="amend-previous">
+             role="note" data-testid="amend-previous" data-tour="amend.previous">
             <x-ic :name="$previous['recent'] ? 'alert' : 'info'" class="mt-0.5 size-5 shrink-0" />
             <div class="min-w-0 flex-1 space-y-1">
                 <p class="font-semibold">
