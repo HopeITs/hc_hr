@@ -13,9 +13,13 @@ class ApplyContractAmendments extends Command
 
     public function handle(ContractAmendmentService $amendments): int
     {
-        ['applied' => $applied, 'failed' => $failed] = $amendments->applyDue();
+        ['applied' => $applied, 'failed' => $failed, 'cancelled' => $cancelled] = $amendments->applyDue();
 
         $this->info('Applied '.$applied->count().' amendment(s).');
+
+        if ($cancelled->isNotEmpty()) {
+            $this->info('Cancelled, the contract ended first: '.$cancelled->pluck('id')->implode(', '));
+        }
 
         if ($failed->isNotEmpty()) {
             $this->warn('Not applied (see the log): '.$failed->pluck('id')->implode(', '));

@@ -8,7 +8,6 @@
      * @var bool $isCurrent  the latest amendment in effect: its terms are the contract's now
      */
     $signed = $amendment->getFirstMedia('signed');
-    $arrow = app()->getLocale() === 'ar' ? '←' : '→';
 
     // An amendment in effect that a later one has replaced is history, not
     // "in effect": only the newest one describes the contract as it stands.
@@ -29,17 +28,18 @@
 </div>
 
 @if($lines !== [])
-    <dl class="mt-2 grid gap-1 text-small sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4">
+    {{-- The new value first and plain; what it replaced, quietly beneath. No
+         arrows: they read backwards in one of the two languages, and a term
+         that had no value before has nothing to point from. --}}
+    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
         @foreach($lines as [$label, $from, $to])
-            <dt class="text-ink-2">{{ $label }}</dt>
-            <dd class="num text-ink">
-                @if($from !== '' || $to !== '')
-                    <span class="text-ink-2">{{ $from }}</span>
-                    <span aria-hidden="true" class="text-ink-3">{{ $arrow }}</span>
-                    <span class="sr-only">@lang('contracts.amendment.becomes')</span>
-                    <span class="font-semibold">{{ $to }}</span>
+            <div class="min-w-0 rounded-control bg-soft px-3 py-2">
+                <dt class="text-caption text-ink-2">{{ $label }}</dt>
+                <dd class="num font-semibold text-ink">{{ $to }}</dd>
+                @if($from !== '')
+                    <dd class="num text-caption text-ink-3">@lang('contracts.amendment.was', ['value' => $from])</dd>
                 @endif
-            </dd>
+            </div>
         @endforeach
     </dl>
 @endif

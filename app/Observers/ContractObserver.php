@@ -6,6 +6,7 @@ use App\Enums\ContractType as ContractTypeEnum;
 use App\Models\Contract;
 use App\Models\Position;
 use App\Services\ChecklistWorkflow;
+use App\Services\ContractAmendmentService;
 use App\Support\StatisticsCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -154,6 +155,12 @@ class ContractObserver
             && (bool) $contract->getOriginal('auto_renew')
             && ! $contract->auto_renew) {
             app(ChecklistWorkflow::class)->requestBelongingsReturn($contract->employee);
+        }
+
+        // Terminated, or its term shortened: an amendment approved for a date
+        // the contract no longer reaches is cancelled now, not left waiting.
+        if ($contract->wasChanged(['terminated_at', 'termination_reason_id', 'end_date'])) {
+            app(ContractAmendmentService::class)->cancelForEndedContract($contract);
         }
 
         if ($this->wasUpgradedFromDraft($contract)) {

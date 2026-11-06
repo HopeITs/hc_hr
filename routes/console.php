@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\ApplyContractAmendments;
+use App\Console\Commands\CheckContractAmendments;
 use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateEmployee;
 use App\Console\Commands\DispatchDueNotifications;
@@ -22,6 +23,8 @@ Artisan::command('inspire', function () {
 
 // Before deactivation and auto-renewal, so a renewal inherits the amended terms.
 Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
+// Weekly: an amendment deleted outside the app leaves the history broken; this logs it.
+Schedule::command(CheckContractAmendments::class)->weeklyOn(0, '06:00');
 Schedule::command(DeactivateContract::class)->dailyAt('21:30');
 Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 // DEC-05 revision 2 (G-C-1): one reminder per pending leave request.

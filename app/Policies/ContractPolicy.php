@@ -76,10 +76,16 @@ class ContractPolicy
                 ->exists();
     }
 
-    /** Approve a draft once signed, or change it before: the people who may draft one. */
+    /**
+     * Approve a draft once signed, or change it before: the people who may
+     * draft one, while the contract is still in force. A draft left open on a
+     * contract that has since ended can only be deleted.
+     */
     public function decideAmendment(User $user, ContractAmendment $amendment): bool
     {
-        return $amendment->isDraft() && $this->mayAmend($user, $amendment->contract);
+        return $amendment->isDraft()
+            && $amendment->contract->canBeAmended()
+            && $this->mayAmend($user, $amendment->contract);
     }
 
     /**

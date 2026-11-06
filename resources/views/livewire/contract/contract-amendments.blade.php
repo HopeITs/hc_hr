@@ -9,7 +9,6 @@
         @php
             $latest = $amendments->first();
             $earlier = $amendments->slice(1)->values();
-            $arrow = app()->getLocale() === 'ar' ? '←' : '→';
         @endphp
 
         <x-card id="amendments" class="scroll-mt-24" :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
@@ -46,16 +45,16 @@
                                 @php($lines = $changes[$amendment->id] ?? [])
                                 <li wire:key="amendment-{{ $amendment->id }}">
                                     <details wire:ignore.self class="group/item py-2">
-                                        {{-- One line: number, date and the first change. --}}
+                                        {{-- One line: number, date and what changed. --}}
                                         <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-small
                                                         [&::-webkit-details-marker]:hidden">
                                             <x-ic name="chevron" class="size-3.5 text-ink-3 transition-transform group-open/item:rotate-90 rtl:-scale-x-100" />
                                             <span class="font-semibold text-ink">@lang('contracts.amendment.number', ['number' => $amendment->number])</span>
                                             <span class="num text-ink-2">{{ $amendment->effective_from->format('d/m/Y') }}</span>
                                             @if($lines !== [])
-                                                <span class="num min-w-0 flex-1 truncate text-ink-2">
-                                                    {{ $lines[0][0] }}@if($lines[0][1] !== '' || $lines[0][2] !== ''): {{ $lines[0][1] }} {{ $arrow }} {{ $lines[0][2] }}@endif
-                                                    @if(count($lines) > 1) · +{{ count($lines) - 1 }}@endif
+                                                {{-- What changed, named, not valued: the values open with the row. --}}
+                                                <span class="min-w-0 flex-1 truncate text-ink-2">
+                                                    @lang('contracts.amendment.changed'): {{ collect($lines)->pluck(0)->implode(' · ') }}
                                                 </span>
                                             @endif
                                         </summary>
