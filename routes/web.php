@@ -10,7 +10,6 @@ use App\Livewire\AccessManagement\Index as AccessManagementIndex;
 use App\Livewire\ActivityLog\ActivityLogModule;
 use App\Livewire\Archives\ArchivedFilesModule;
 use App\Livewire\Badges\BadgesModule;
-use App\Livewire\Basics\CourseCategoryModule;
 use App\Livewire\ChecklistItems\AllItems;
 use App\Livewire\ChecklistItems\DoneRequests;
 use App\Livewire\ChecklistItems\PendingItems;
@@ -179,7 +178,7 @@ Route::group(
             Route::get('/news/{news}/preview', NewsShow::class)->name('news.preview')->middleware('active_permission:news.view');
             Route::get('/news/{news}', NewsShow::class)->name('news.show')->whereNumber('news');
 
-            Route::get('/course-categories', CourseCategoryModule::class)->middleware('reference_page:project-basics')->name('course-categories.index');
+            Route::get('/course-categories', fn () => redirect()->route('basic-settings.index', ['tab' => 'course-categories']))->middleware('reference_page:project-basics')->name('course-categories.index');
             Route::get('/activity-log', ActivityLogModule::class)
                 ->name('activity-log.index')
                 ->middleware('active_permission:activity-log.view');

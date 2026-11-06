@@ -673,6 +673,8 @@ return [
     */
 
     'livewire_exempt' => [
+        // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
+        'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
         'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
         // The same resets, inherited from Create (Edit pins the type back to
