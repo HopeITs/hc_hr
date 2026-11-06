@@ -10,6 +10,13 @@
                     'date' => $assignment->created_at?->format('Y-m-d H:i') ?? '—',
                 ]) }}"
                 class="inline-flex max-w-full items-center gap-1 rounded-control px-2 py-0.5 text-xs font-semibold wrap-anywhere {{ $assignment->tag->classes() }}">
+                @if ($assignment->tag->kind === \App\Models\RecruitmentTag::KIND_GREEN_FLAG)
+                    <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6"/></svg>
+                    <span>{{ $assignment->tag->kindLabel() }}:</span>
+                @elseif ($assignment->tag->kind === \App\Models\RecruitmentTag::KIND_RED_FLAG)
+                    <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
+                    <span>{{ $assignment->tag->kindLabel() }}:</span>
+                @endif
                 {{ $assignment->tag->name }}
                 <span class="font-normal opacity-75">&middot; {{ $assignment->creator?->profile?->name ?? $assignment->creator?->name ?? '—' }}, {{ $assignment->created_at?->format('Y-m-d') }}</span>
                 @if ($mayTag)
@@ -32,7 +39,7 @@
                         class="rounded-control border-neutral-300 text-sm">
                         <option value="">{{ __('recruitment-applicant.tags.choose') }}</option>
                         @foreach ($available as $tag)
-                            <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                            <option value="{{ $tag->id }}">{{ $tag->kindLabel() }} — {{ $tag->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -47,6 +54,14 @@
                     <input id="new-tag-{{ $applicationId }}" type="text" wire:model="newTagName" maxlength="{{ config('recruitment.tags.max_length') }}"
                         @error('tagName') aria-invalid="true" aria-describedby="new-tag-{{ $applicationId }}-error" @enderror
                         placeholder="{{ __('recruitment-applicant.tags.new_name') }}" class="rounded-control border-neutral-300 text-sm">
+                    <label for="new-tag-kind-{{ $applicationId }}" class="sr-only">{{ __('recruitment-applicant.tags.kind') }}</label>
+                    <select id="new-tag-kind-{{ $applicationId }}" wire:model="newTagKind"
+                        @error('tagKind') aria-invalid="true" aria-describedby="new-tag-kind-{{ $applicationId }}-error" @enderror
+                        class="rounded-control border-neutral-300 text-sm">
+                        @foreach ($kinds as $kind)
+                            <option value="{{ $kind }}">{{ __('recruitment-applicant.tags.kinds.'.$kind) }}</option>
+                        @endforeach
+                    </select>
                     <label for="new-tag-color-{{ $applicationId }}" class="sr-only">{{ __('recruitment-applicant.tags.color') }}</label>
                     <select id="new-tag-color-{{ $applicationId }}" wire:model="newTagColor"
                         @error('tagColor') aria-invalid="true" aria-describedby="new-tag-color-{{ $applicationId }}-error" @enderror
@@ -63,6 +78,7 @@
         </div>
         <x-forms.input-error field="tagId" :input-id="'tag-'.$applicationId" />
         <x-forms.input-error field="tagName" :input-id="'new-tag-'.$applicationId" />
+        <x-forms.input-error field="tagKind" :input-id="'new-tag-kind-'.$applicationId" />
         <x-forms.input-error field="tagColor" :input-id="'new-tag-color-'.$applicationId" />
     @endif
 </div>

@@ -143,13 +143,12 @@ class TeamStaffingScreenTest extends TestCase
     }
 
     /**
-     * Sibling posts flow: one wrapping row, never a fixed column count.
+     * Sibling posts stay on one reporting level, never a fixed column count.
      *
-     * Four posts sit side by side while the canvas is wide enough and fold onto
-     * the next line when it is not, so the count of columns is never in the
-     * markup. Managers come before the reports who manage nobody.
+     * A wide reporting level scrolls horizontally instead of wrapping into what
+     * looks like a different level. Managers come before individual contributors.
      */
-    public function test_sibling_posts_wrap_by_available_width_in_both_views(): void
+    public function test_sibling_posts_stay_on_one_reporting_level_in_both_views(): void
     {
         $branch = $this->openPost('Branch report', filled: 0, capacity: 1);
         $this->openPost('Leaf report', filled: 0, capacity: 1);
@@ -160,7 +159,7 @@ class TeamStaffingScreenTest extends TestCase
         foreach (['positions', 'staff'] as $view) {
             $html = $this->chart($view);
 
-            $this->assertStringContainsString('flex flex-wrap items-start justify-center', $html);
+            $this->assertStringContainsString('min-w-max flex-nowrap items-start justify-center', $html);
             $this->assertStringNotContainsString('grid-template-columns', $html);
             $this->assertLessThan(strpos($html, 'Leaf report'), strpos($html, 'Branch report'));
         }
@@ -200,12 +199,9 @@ class TeamStaffingScreenTest extends TestCase
 
         // The fixed width is on a content column, never on a box that wraps
         // children: every occurrence of it carries mx-auto with it.
-        $this->assertStringContainsString('w-52 mx-auto', $html);
-        $this->assertSame(
-            substr_count($html, 'w-52'),
-            substr_count($html, 'w-52 mx-auto'),
-            'a fixed width escaped onto a box that contains a subtree',
-        );
+        $this->assertStringContainsString('w-44 mx-auto', $html);
+        $this->assertStringContainsString('class="flex min-w-0 max-w-full flex-col items-center"', $html);
+        $this->assertStringNotContainsString('class="flex min-w-0 max-w-full flex-col items-center w-44', $html);
     }
 
     /** The filter that the page is really for: where is the establishment short. */
@@ -263,6 +259,15 @@ class TeamStaffingScreenTest extends TestCase
             ->assertSet('data.vacancy_id', $vacancy->id);
     }
 
+    public function test_an_applied_fill_request_with_an_unfilled_vacancy_hides_the_duplicate_action(): void
+    {
+        $position = $this->openPost('Hiring already underway', filled: 0, capacity: 1);
+        $vacancy = $this->opening($position, RecruitmentRequestType::FillVacancy);
+
+        Livewire::actingAs($this->manager)->test(TeamStaffing::class)
+            ->assertDontSee('vacancy_id='.$vacancy->id, escape: false);
+    }
+
     /** Two openings are a real choice, so the link stays silent about them. */
     public function test_two_open_vacancies_are_left_for_the_form_to_ask_about(): void
     {
@@ -290,12 +295,12 @@ class TeamStaffingScreenTest extends TestCase
      * unique, so two openings on one post need two requests behind them — which
      * is what really happens: each opening was asked for separately.
      */
-    private function opening(Position $position): Vacancy
+    private function opening(Position $position, int $type = RecruitmentRequestType::IncreaseHeadcount): Vacancy
     {
         $request = RecruitmentRequest::query()->create([
             'request_number' => 'HS-'.str_pad((string) (RecruitmentRequest::query()->count() + 1), 3, '0', STR_PAD_LEFT),
             'requester_user_id' => $this->manager->getKey(),
-            'request_type' => RecruitmentRequestType::FillVacancy,
+            'request_type' => $type,
             'mode' => \App\Enums\RecruitmentRequestMode::Normal,
             'status' => \App\Enums\RecruitmentRequestStatus::Applied,
             'scope_city_id' => $this->root->city_id,

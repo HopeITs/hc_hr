@@ -5,6 +5,7 @@ namespace Tests\Feature\Recruitment;
 use App\Enums\HiringCampaignStatus;
 use App\Enums\RecruitmentApplicationStatus as Status;
 use App\Enums\RecruitmentFileScanStatus;
+use App\Livewire\Recruitment\Applicants\ApplicationReviewPanel;
 use App\Livewire\Recruitment\Applicants\ApplicationTable;
 use App\Livewire\Recruitment\Applicants\Index;
 use App\Livewire\Recruitment\Applicants\Notes;
@@ -21,9 +22,12 @@ use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplicantNote;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentApplicationDecision;
+use App\Models\RecruitmentApplicationParticipant;
+use App\Models\RecruitmentApplicationReview;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RecruitmentApplicantNoteService;
+use App\Services\RecruitmentApplicationParticipantService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -81,6 +85,36 @@ class RecruitmentApplicantProfileTest extends TestCase
             ->assertSee('Returning Rana')
             ->assertSee('Damascus Dani')
             ->assertDontSee(__('recruitment-applicant.previous_applicant_flag'));
+    }
+
+    public function test_list_shows_each_applicant_once_and_counts_unique_people(): void
+    {
+        $applicant = $this->makeApplicant('Single Samer');
+        $olderCampaign = $this->makeCampaignIn($this->homs, title: 'Older Role');
+        $newerCampaign = $this->makeCampaignIn($this->homs, title: 'Newer Role');
+        $this->applyTo($olderCampaign, $applicant, [
+            'status' => Status::Submitted,
+            'submitted_at' => now()->subDay(),
+        ]);
+        $this->applyTo($newerCampaign, $applicant, [
+            'status' => Status::Submitted,
+            'submitted_at' => now(),
+        ]);
+        $this->actingAs($this->hr($this->homs));
+
+        $table = Livewire::test(ApplicationTable::class);
+        $index = Livewire::test(Index::class);
+
+        $this->assertSame(1, substr_count($table->html(), 'Single Samer'));
+        $table
+            ->assertSee(__('recruitment-applicant.campaign_number', ['number' => $newerCampaign->id]));
+        $this->assertSame(1, $index->viewData('allCount'));
+        $this->assertSame(1, (int) $index->viewData('counts')[Status::Submitted]);
+
+        Livewire::test(ApplicationTable::class)
+            ->set('filters.campaign_id', $olderCampaign->id)
+            ->assertSee('Single Samer')
+            ->assertSee(__('recruitment-applicant.campaign_number', ['number' => $olderCampaign->id]));
     }
 
     public function test_filters_narrow_by_status_campaign_and_source(): void
@@ -157,12 +191,154 @@ class RecruitmentApplicantProfileTest extends TestCase
 
         // Another governorate guessing the id learns nothing, not even that it exists.
         $this->actingAs($this->hr($this->damascus));
-        Livewire::test(Show::class, ['applicantId' => $applicant->id])->assertNotFound();
+        $this->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))->assertNotFound();
         Livewire::test(Notes::class, ['applicantId' => $applicant->id])->assertNotFound();
 
         $this->actingAs($this->makeUser($this->homs, 'employee'))
             ->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))
+            ->assertNotFound();
+    }
+
+    public function test_hr_syria_can_open_an_applicant_shown_in_the_organization_wide_list(): void
+    {
+        $applicant = $this->makeApplicant('Organization Olivia');
+        $this->applyTo($this->makeCampaignIn($this->homs), $applicant);
+        $hrSyria = $this->makeUser($this->damascus, 'HR-SYR', ['recruitment-applicants.view']);
+
+        $this->actingAs($hrSyria);
+        Livewire::test(ApplicationTable::class)->assertSee('Organization Olivia');
+
+        $this->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))
+            ->assertSee('Organization Olivia');
+    }
+
+    public function test_hr_can_assign_view_only_access_and_removing_it_revokes_the_profile(): void
+    {
+        $applicant = $this->makeApplicant('Shared Shireen');
+        $application = $this->applyTo($this->makeCampaignIn($this->homs, title: 'Shared Role'), $applicant);
+        $unsharedApplicant = $this->makeApplicant('Hidden Hala');
+        $this->applyTo($this->makeCampaignIn($this->homs, title: 'Hidden Role'), $unsharedApplicant);
+        $hr = $this->hr($this->homs);
+        $viewer = $this->makeUser($this->damascus, 'employee');
+
+        $this->actingAs($hr);
+        Livewire::test(ApplicationReviewPanel::class, ['applicationId' => $application->id])
+            ->set('newParticipantId', (string) $viewer->id)
+            ->set('newParticipantRole', RecruitmentApplicationParticipant::ROLE_VIEWER)
+            ->call('addParticipant')
+            ->assertHasNoErrors();
+
+        $participant = RecruitmentApplicationParticipant::query()->sole();
+        $this->assertSame(RecruitmentApplicationParticipant::ROLE_VIEWER, $participant->role);
+
+        $this->actingAs($viewer);
+        $this->assertTrue(Gate::allows('viewAny', RecruitmentApplicant::class));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(__('recruitment.navigation_applicants'));
+
+        $this->get(route('recruitment.applicants.index'))
+            ->assertOk();
+
+        Livewire::test(ApplicationTable::class)
+            ->assertSee('Shared Shireen')
+            ->assertDontSee('Hidden Hala');
+
+        $this
+            ->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))
+            ->assertOk()
+            ->assertSee('Shared Shireen')
+            ->assertSee(__('recruitment-applicant.profile_reviews.viewer_hint'));
+
+        $this->actingAs($hr);
+        Livewire::test(ApplicationReviewPanel::class, ['applicationId' => $application->id])
+            ->call('removeParticipant', $participant->id)
+            ->assertHasNoErrors();
+
+        $this->actingAs($viewer)
+            ->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))
+            ->assertNotFound();
+    }
+
+    public function test_assigned_reviewer_can_submit_an_advisory_review_without_changing_the_workflow(): void
+    {
+        $applicant = $this->makeApplicant('Reviewed Rima');
+        $application = $this->applyTo($this->makeCampaignIn($this->homs), $applicant);
+        $hr = $this->hr($this->homs);
+        $reviewer = $this->makeUser($this->damascus, 'employee');
+        app(RecruitmentApplicationParticipantService::class)->assign(
+            $hr,
+            $application,
+            $reviewer->id,
+            RecruitmentApplicationParticipant::ROLE_REVIEWER,
+        );
+
+        $originalStatus = $application->status;
+        $this->actingAs($reviewer);
+        Livewire::test(ApplicationReviewPanel::class, ['applicationId' => $application->id])
+            ->set('recommendation', 'yes')
+            ->set('pros', 'Strong relevant experience')
+            ->set('cons', 'Availability needs confirmation')
+            ->set('notes', 'Recommended for the next HR step')
+            ->call('saveReview')
+            ->assertHasNoErrors();
+
+        $review = RecruitmentApplicationReview::query()->sole();
+        $this->assertSame($reviewer->id, $review->reviewer_user_id);
+        $this->assertSame('yes', $review->recommendation);
+        $this->assertSame('Strong relevant experience', $review->pros);
+        $this->assertSame($originalStatus, $application->fresh()->status);
+        $this->assertSame(0, $application->endorsements()->count());
+        $this->assertSame(0, $application->decisions()->count());
+    }
+
+    public function test_view_only_participant_cannot_submit_a_profile_review(): void
+    {
+        $applicant = $this->makeApplicant('View Only Vana');
+        $application = $this->applyTo($this->makeCampaignIn($this->homs), $applicant);
+        $viewer = $this->makeUser($this->damascus, 'employee');
+        app(RecruitmentApplicationParticipantService::class)->assign(
+            $this->hr($this->homs),
+            $application,
+            $viewer->id,
+            RecruitmentApplicationParticipant::ROLE_VIEWER,
+        );
+
+        $this->actingAs($viewer);
+        Livewire::test(ApplicationReviewPanel::class, ['applicationId' => $application->id])
+            ->set('recommendation', 'yes')
+            ->call('saveReview')
             ->assertForbidden();
+
+        $this->assertSame(0, RecruitmentApplicationReview::query()->count());
+    }
+
+    public function test_delegated_hr_access_does_not_grant_operational_actions_outside_normal_scope(): void
+    {
+        $applicant = $this->makeApplicant('Delegated Dalia');
+        $application = $this->applyTo($this->makeCampaignIn($this->homs), $applicant);
+        $delegatedHr = $this->hr($this->damascus);
+        app(RecruitmentApplicationParticipantService::class)->assign(
+            $this->hr($this->homs),
+            $application,
+            $delegatedHr->id,
+            RecruitmentApplicationParticipant::ROLE_REVIEWER,
+        );
+
+        $this->actingAs($delegatedHr);
+
+        $this->assertTrue(Gate::allows('view', $application));
+        $this->assertFalse(Gate::allows('changeStatus', $application));
+        $this->assertFalse(Gate::allows('tag', $application));
+        $this->assertFalse(Gate::allows('manageReviewParticipants', $application));
+
+        Livewire::test(Show::class, ['applicantId' => $applicant->id])
+            ->call('endorse', $application->id)
+            ->assertForbidden();
+
+        $this->assertSame(0, $application->endorsements()->count());
+        $this->assertSame(0, $application->decisions()->count());
     }
 
     public function test_profile_shows_only_in_scope_applications_and_notes(): void
@@ -500,7 +676,6 @@ class RecruitmentApplicantProfileTest extends TestCase
         $cv = $this->cvFor($applicant);
         $hr = $this->hr($this->homs);
         $this->actingAs($hr);
-
         Livewire::test(Show::class, ['applicantId' => $applicant->id])
             ->call('beginArchive', $cv->id)
             ->call('archiveCv')
@@ -518,7 +693,7 @@ class RecruitmentApplicantProfileTest extends TestCase
 
         // Another governorate cannot reach the record at all.
         $this->actingAs($this->hr($this->damascus));
-        Livewire::test(Show::class, ['applicantId' => $applicant->id])->assertNotFound();
+        $this->get(route('recruitment.applicants.show', ['applicantId' => $applicant->id]))->assertNotFound();
     }
 
     public function test_a_cv_with_a_vacancy_archives_without_a_reason(): void

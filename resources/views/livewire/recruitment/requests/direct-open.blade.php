@@ -2,7 +2,6 @@
 
 <div class="mx-auto max-w-5xl space-y-6">
     <livewire:layout.breadcrumbs :title="__('recruitment.direct_open.title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment.navigation_requests'), 'route' => 'recruitment.requests.index'], ['label' => __('recruitment.direct_open.title')]]" />
-    <p class="-mt-4 text-secondary-medium">{{ __('recruitment.direct_open.hint') }}</p>
 
     <form wire:submit="save" class="space-y-6">
         <section class="space-y-5 rounded-surface border border-secondary-soft bg-white p-6">

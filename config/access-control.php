@@ -103,7 +103,7 @@ return [
             'recruitment-job-posts.view', 'recruitment-forms.view',
             'recruitment-links.view',
             // General managers endorse applicants for their campaigns.
-            'recruitment-applicants.view', 'recruitment-applicants.endorse',
+            'recruitment-applicants.view', 'recruitment-applicants.endorse', 'recruitment-applicants.tag',
             // Read-only, across every city like HR-SYR: see Badge::scopeVisibleTo().
             'badges.view',
         ],
@@ -128,7 +128,7 @@ return [
             'recruitment-requests.request-changes', 'recruitment-requests.export',
             // Managers see and endorse applicants for their campaigns.
             'recruitment-vacancies.view', 'recruitment-campaigns.view',
-            'recruitment-applicants.view', 'recruitment-applicants.endorse',
+            'recruitment-applicants.view', 'recruitment-applicants.endorse', 'recruitment-applicants.tag',
         ],
         'employee' => [
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
@@ -592,6 +592,27 @@ return [
             'confirmDelete' => 'recruitment-applicants.delete-notes',
             'deleteNote' => 'recruitment-applicants.delete-notes',
         ],
+        'recruitment.applicants.applicant-profile-access' => [
+            'addParticipant' => 'recruitment-applicants.manage',
+            'removeParticipant' => 'recruitment-applicants.manage',
+        ],
+        'recruitment.applicants.application-review-panel' => [
+            'addParticipant' => 'recruitment-applicants.manage',
+            'removeParticipant' => 'recruitment-applicants.manage',
+        ],
+        'recruitment.applicants.bulk-review-participants' => [
+            'open' => 'recruitment-applicants.manage',
+            'apply' => 'recruitment-applicants.manage',
+        ],
+        'recruitment.applicants.application-flags' => [
+            'create' => 'recruitment-applicants.tag',
+            'discardFlag' => 'recruitment-applicants.tag',
+        ],
+        'recruitment.applicants.index' => ['finalizeSingleCandidate' => 'recruitment-applicants.change-status'],
+        'recruitment.interviews.calendar' => [
+            'startScheduling' => 'recruitment-applicants.schedule-interviews',
+            'continueScheduling' => 'recruitment-applicants.schedule-interviews',
+        ],
         // Phase 2 Task 7. Each method re-resolves the interview through
         // RecruitmentInterview::visibleTo() and asks the policy (manage /
         // schedule, scope included) again; the service authorizes a third time.
@@ -601,6 +622,8 @@ return [
             'cancelInterview' => 'recruitment-applicants.schedule-interviews',
             'beginOutcome' => 'recruitment-applicants.schedule-interviews',
             'recordOutcome' => 'recruitment-applicants.schedule-interviews',
+            'uploadAttachment' => 'recruitment-applicants.schedule-interviews',
+            'discardAttachment' => 'recruitment-applicants.schedule-interviews',
         ],
         // Phase 2 Task 8. Each method re-resolves the interview and the
         // evaluation through the scoped query and asks the policy again; the
@@ -611,6 +634,8 @@ return [
             'beginWithdraw' => 'recruitment-applicants.correct-evaluations',
             'withdraw' => 'recruitment-applicants.correct-evaluations',
             'closeEvaluations' => 'recruitment-applicants.schedule-interviews',
+            'beginNote' => 'recruitment-applicants.add-notes',
+            'addNote' => 'recruitment-applicants.add-notes',
         ],
         // Phase 2 Task 9. Each method re-resolves the offer through the scoped
         // query and asks the policy (manage: permission + scope +
@@ -624,6 +649,8 @@ return [
             'recordResponse' => 'recruitment-applicants.manage-offers',
             'beginCancel' => 'recruitment-applicants.manage-offers',
             'cancelOffer' => 'recruitment-applicants.manage-offers',
+            'uploadResponseEvidence' => 'recruitment-applicants.manage-offers',
+            'discardResponseEvidence' => 'recruitment-applicants.manage-offers',
         ],
         // Phase 2 Task 10. save() re-resolves the offer through the scoped
         // query and asks the policy (convert) again; the service authorizes a
@@ -688,9 +715,14 @@ return [
         ],
         // Close an open panel; they clear component state and touch no record.
         'recruitment.applicants.show' => ['cancelStatusChange', 'cancelArchive'],
+        // Reviewer access is checked by policy and the review service for each saved assessment.
+        'recruitment.applicants.application-review-panel' => ['saveReview', 'reloadReview'],
+        'recruitment.applicants.bulk-review-participants' => ['cancel'],
+        'recruitment.applicants.application-flags' => ['updatedCategory'],
         // Filter clicks on the status / endorsement counters; render() asks
         // viewAny and counts through visibleTo().
-        'recruitment.applicants.index' => ['filterByStatus', 'filterByEndorsementGroup'],
+        'recruitment.applicants.index' => ['filterByStatus', 'filterByEndorsementGroup', 'filterByEvaluationRecommendation'],
+        'recruitment.campaigns.index' => ['filterByStatus'],
         // cancelRename clears the rename form (component state only).
         'recruitment.applicants.tag-manager' => ['cancelRename'],
         // refreshTags re-renders through the same scoped lookup.
@@ -703,10 +735,10 @@ return [
         // selectTable() reads ids through the same scoped, filtered query.
         // executeAction/executeItemAction authorize their action code by policy.
         'recruitment.applicants.application-table' => [
-            'refreshDecisions', 'selectTable', 'executeAction', 'executeItemAction',
+            'refreshDecisions', 'refreshFlags', 'refreshReviewAccess', 'selectTable', 'executeAction', 'executeItemAction',
             // Filter changes and the tag refresh: they clear the selection and
             // reset the page; rows still come from query() -> visibleTo().
-            'refreshTags', 'filterByStatus', 'updatedStageStatus', 'updatedCampaignFilter',
+            'refreshTags', 'filterByStatus', 'updatedStageStatus', 'updatedCampaignFilter', 'updatedEvaluationRecommendation',
         ],
         'recruitment.applicants.bulk-reject' => ['cancel'],
         // Phase 2 Task 7. Form-only state: the participant list is validated
@@ -728,7 +760,7 @@ return [
         // expiry field to the campaign's own end date (form state only).
         'recruitment.public-links.manager' => ['refreshCampaign', 'refreshCampaignStatus', 'useCampaignExpiry'],
         // Month navigation; re-renders through the same visibleTo() query.
-        'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth'],
+        'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth', 'cancelScheduling', 'updatedCampaignId'],
         // Phase 2 Task 8. save() writes the caller's OWN evaluation, which
         // needs no permission — the grant is being a current participant in a
         // reviewer role, checked by the evaluate policy in the component and

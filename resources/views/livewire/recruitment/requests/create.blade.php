@@ -2,7 +2,6 @@
 
 <div class="mx-auto max-w-5xl space-y-6">
     <livewire:layout.breadcrumbs :title="__('recruitment.create')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment.navigation_requests'), 'route' => 'recruitment.requests.index'], ['label' => __('recruitment.create')]]" />
-    <p class="-mt-4 text-secondary-medium">{{ __('recruitment.create_description') }}</p>
     <form wire:submit="save" class="space-y-6">
         @if (($editing ?? false) && filled($changeRequest ?? null))
             <section class="rounded-surface border border-neutral-200 bg-white p-5">

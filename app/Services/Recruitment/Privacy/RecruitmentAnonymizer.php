@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\DB;
  *   invites        name and email, for every campaign the address was invited to
  *   interviews     cancellation and outcome notes, reschedule reasons,
  *                  evaluation opinions and their revisions
+ *   profile reviews strengths, concerns and notes
  *   offers         response, cancellation and revision notes
  *   indicators     the per-indicator detail (the counts stay)
  *
@@ -159,6 +160,13 @@ class RecruitmentAnonymizer
             'indicators_json' => json_encode([]),
             'updated_at' => $now,
         ]);
+
+        DB::table('recruitment_application_reviews')->whereIn('application_id', $applicationIds)->update([
+            'pros' => null,
+            'cons' => null,
+            'notes' => null,
+            'updated_at' => $now,
+        ]);
     }
 
     /**
@@ -242,6 +250,11 @@ class RecruitmentAnonymizer
             'cons' => null,
             'notes' => null,
             'reason' => null,
+        ]);
+
+        DB::table('recruitment_interview_evaluation_notes')->whereIn('evaluation_id', $evaluationIds)->update([
+            'body' => config('recruitment-privacy.anonymized.text'),
+            'updated_at' => $now,
         ]);
     }
 

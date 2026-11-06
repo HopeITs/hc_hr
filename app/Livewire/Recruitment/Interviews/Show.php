@@ -3,15 +3,17 @@
 namespace App\Livewire\Recruitment\Interviews;
 
 use App\Enums\RecruitmentInterviewStatus;
-use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Services\RecruitmentInterviewEvaluationService;
 use App\Services\RecruitmentInterviewSchedulingService;
+use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Phase 2 Task 7: one interview.
@@ -28,7 +30,7 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use WithFeedback;
+    use WithAlerts, WithFileUploads;
 
     #[Locked]
     public int $interviewId;
@@ -60,13 +62,15 @@ class Show extends Component
     /** Internal note on the outcome. */
     public string $outcomeNote = '';
 
+    public mixed $attachment = null;
+
     public function mount(int $interviewId): void
     {
         $this->interviewId = $interviewId;
         $this->resolveInterview();
 
         if ($message = session()->pull('recruitment_toast')) {
-            $this->toast($message);
+            $this->successToast($message);
         }
     }
 
@@ -130,6 +134,54 @@ class Show extends Component
         ), __('recruitment-applicant.interviews.outcome_recorded'));
     }
 
+    public function uploadAttachment(): void
+    {
+        $interview = $this->resolveInterview();
+        Gate::authorize('manage', $interview);
+
+        $this->validate([
+            'attachment' => [
+                'required', 'file', 'max:12288',
+                'mimetypes:audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,video/mp4,video/webm,application/pdf,image/jpeg,image/png',
+            ],
+        ], [
+            'attachment.required' => __('recruitment-applicant.interviews.attachments.required'),
+            'attachment.file' => __('recruitment-applicant.interviews.attachments.invalid'),
+            'attachment.max' => __('recruitment-applicant.interviews.attachments.too_large'),
+            'attachment.mimetypes' => __('recruitment-applicant.interviews.attachments.invalid'),
+        ]);
+
+        $originalName = basename($this->attachment->getClientOriginalName());
+        $extension = strtolower((string) $this->attachment->getClientOriginalExtension());
+
+        $interview
+            ->addMedia($this->attachment->getRealPath())
+            ->usingName(Str::limit(pathinfo($originalName, PATHINFO_FILENAME), 120, ''))
+            ->usingFileName(Str::uuid().($extension !== '' ? '.'.$extension : ''))
+            ->withCustomProperties([
+                'original_name' => $originalName,
+                'uploaded_by_user_id' => auth()->id(),
+            ])
+            ->toMediaCollection(RecruitmentInterview::ATTACHMENTS);
+
+        $this->reset('attachment');
+        $this->successToast(__('recruitment-applicant.interviews.attachments.uploaded'));
+    }
+
+    public function discardAttachment(int $mediaId): void
+    {
+        $interview = $this->resolveInterview();
+        Gate::authorize('manage', $interview);
+
+        $media = $interview->media()
+            ->whereKey($mediaId)
+            ->where('collection_name', RecruitmentInterview::ATTACHMENTS)
+            ->firstOrFail();
+
+        $media->delete();
+        $this->successToast(__('recruitment-applicant.interviews.attachments.removed'));
+    }
+
     public function render(RecruitmentInterviewSchedulingService $scheduling)
     {
         $interview = $this->resolveInterview()->load([
@@ -137,11 +189,14 @@ class Show extends Component
             'application.campaign.vacancy.position',
             'participants' => fn ($participants) => $participants->orderByRaw('removed_at is not null')->orderBy('id'),
             'participants.user.profile',
+            'requiredParticipants.owner.profile',
+            'requiredParticipants.attendee.profile',
             'creator.profile',
             'cancelledBy.profile',
             'outcomeRecordedBy.profile',
             'reschedules' => fn ($history) => $history->latest('rescheduled_at')->latest('id'),
             'reschedules.rescheduledBy.profile',
+            'media',
         ]);
 
         $canManage = Gate::allows('manage', $interview);
@@ -158,6 +213,7 @@ class Show extends Component
             'notices' => $canManage ? $interview->notices()->latest('id')->get() : collect(),
             'cancellationReasons' => $scheduling->cancellationReasons(),
             'hasStarted' => ! $interview->scheduled_at->isFuture(),
+            'attachments' => $interview->getMedia(RecruitmentInterview::ATTACHMENTS),
         ]);
     }
 
@@ -195,7 +251,7 @@ class Show extends Component
         }
 
         $this->closePanel();
-        $this->toast($message);
+        $this->successToast($message);
 
         // The buttons that opened and confirmed the panel are gone once the
         // interview is closed: the interview itself, with its new status, is next.

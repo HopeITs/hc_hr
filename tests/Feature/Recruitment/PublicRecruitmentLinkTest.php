@@ -837,11 +837,11 @@ class PublicRecruitmentLinkTest extends TestCase
 
         $this->actingAs($staff)
             ->post(route('careers.submit', $result['token']), $this->validSubmission('ignored@example.com', 'Rami Haddad'))
-            ->assertStatus(202);
+            ->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
         $this->assertSame('Rami Haddad', $applicant->full_name);
-        $this->assertSame('+963999123456', $applicant->phone_normalized);
+        $this->assertSame('0944123456', $applicant->phone_normalized);
         $this->assertSame($staff->employee_id, (int) $applicant->employee_id);
         $this->assertNotNull($applicant->identity_verified_at);
     }

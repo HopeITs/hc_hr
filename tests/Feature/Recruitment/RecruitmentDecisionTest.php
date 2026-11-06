@@ -15,6 +15,7 @@ use App\Models\RecruitmentRejectionNotice;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RecruitmentApplicationStatusService;
+use App\Services\RecruitmentFinalistService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -86,7 +87,7 @@ class RecruitmentDecisionTest extends TestCase
     public function test_accepting_needs_its_own_permission_on_top_of_change_status(): void
     {
         $applicant = $this->makeApplicant();
-        $application = $this->applyTo($this->makeCampaignIn($this->homs), $applicant, ['status' => Status::Interviewed]);
+        $application = $this->applyTo($this->makeCampaignIn($this->homs), $applicant, ['status' => Status::Finalist]);
         $hr = $this->without($this->hr($this->homs), ['recruitment-applicants.accept']);
         $this->actingAs($hr);
 
@@ -99,7 +100,7 @@ class RecruitmentDecisionTest extends TestCase
 
         // The service refuses too, whoever calls it.
         $this->expectException(AuthorizationException::class);
-        app(RecruitmentApplicationStatusService::class)->change($hr, $application, Status::Interviewed, Status::Selected, null);
+        app(RecruitmentApplicationStatusService::class)->change($hr, $application, Status::Finalist, Status::Selected, null);
     }
 
     public function test_selected_applications_move_forward_to_offer_not_back_to_screening(): void
@@ -110,7 +111,8 @@ class RecruitmentDecisionTest extends TestCase
         $statuses = app(RecruitmentApplicationStatusService::class);
         $this->actingAs($hr);
 
-        $statuses->change($hr, $application, Status::Interviewed, Status::Selected, null);
+        $statuses->change($hr, $application, Status::Interviewed, Status::Finalist, null);
+        $statuses->change($hr, $application->fresh(), Status::Finalist, Status::Selected, null);
         $application->refresh();
 
         $this->assertSame(Status::Selected, $application->status);
@@ -118,10 +120,56 @@ class RecruitmentDecisionTest extends TestCase
 
         Livewire::test(Show::class, ['applicantId' => $applicant->id])
             ->assertSee(__('recruitment-applicant.offers.create'))
-            ->assertDontSee(__('recruitment-applicant.decisions.actions.shortlisted'))
-            ->assertDontSee(__('recruitment-applicant.decisions.actions.rejected'))
+            ->assertDontSee('id="decide-'.$application->id.'-'.Status::Shortlisted.'"', false)
+            ->assertDontSee('id="decide-'.$application->id.'-'.Status::Rejected.'"', false)
             ->call('beginStatusChange', $application->id, Status::Rejected)
             ->assertForbidden();
+    }
+
+    public function test_finalizing_a_single_candidate_moves_only_that_finalist_to_selected(): void
+    {
+        $campaign = $this->makeCampaignIn($this->homs);
+        $finalist = $this->applyTo($campaign, $this->makeApplicant('Only Finalist'), ['status' => Status::Finalist]);
+        $other = $this->applyTo($campaign, $this->makeApplicant('Not Finalist'), ['status' => Status::Interviewed]);
+        $hr = $this->hr($this->homs);
+
+        $selected = app(RecruitmentFinalistService::class)->selectSingle($hr, $campaign);
+
+        $this->assertSame($finalist->id, $selected->id);
+        $this->assertSame(Status::Selected, $finalist->fresh()->status);
+        $this->assertSame(Status::Interviewed, $other->fresh()->status);
+        $this->assertDatabaseHas('recruitment_application_decisions', [
+            'application_id' => $finalist->id,
+            'from_status' => Status::Finalist,
+            'to_status' => Status::Selected,
+            'decided_by_user_id' => $hr->id,
+        ]);
+    }
+
+    public function test_single_candidate_finalization_refuses_an_empty_or_multiple_final_list(): void
+    {
+        $campaign = $this->makeCampaignIn($this->homs);
+        $hr = $this->hr($this->homs);
+        $service = app(RecruitmentFinalistService::class);
+
+        try {
+            $service->selectSingle($hr, $campaign);
+            $this->fail('An empty final list must not be finalized.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('finalists', $exception->errors());
+        }
+
+        $first = $this->applyTo($campaign, $this->makeApplicant('First Finalist'), ['status' => Status::Finalist]);
+        $second = $this->applyTo($campaign, $this->makeApplicant('Second Finalist'), ['status' => Status::Finalist]);
+
+        try {
+            $service->selectSingle($hr, $campaign);
+            $this->fail('Multiple finalists must use a comparison round.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('finalists', $exception->errors());
+        }
+        $this->assertSame(Status::Finalist, $first->fresh()->status);
+        $this->assertSame(Status::Finalist, $second->fresh()->status);
     }
 
     public function test_rejecting_requires_a_configured_reason(): void

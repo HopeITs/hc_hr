@@ -71,17 +71,30 @@
 
                     @include('livewire.recruitment.interviews.partials.evaluation-content', ['evaluation' => $evaluation])
 
-                    @if (! $evaluation->isWithdrawn())
-                        @can('correct', $evaluation)
-                            <div class="mt-3 flex gap-3 text-sm">
-                                @foreach (['correct' => 'beginCorrect', 'withdraw' => 'beginWithdraw'] as $action => $method)
-                                    <button type="button" id="evaluation-{{ $evaluation->id }}-{{ $action }}" wire:click="{{ $method }}({{ $evaluation->id }})"
-                                        aria-expanded="{{ $panel === $action && $evaluationId === $evaluation->id ? 'true' : 'false' }}"
-                                        class="min-h-11 cursor-pointer font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0">{{ __('recruitment-applicant.evaluations.'.$action) }}</button>
+                    @if ($evaluation->opinionNotes->isNotEmpty())
+                        <div class="mt-3 rounded-control border border-secondary-soft bg-selection/40 p-3">
+                            <p class="text-sm font-semibold">{{ __('recruitment-applicant.evaluations.notes_title') }}</p>
+                            <ul class="mt-2 space-y-3">
+                                @foreach ($evaluation->opinionNotes as $opinionNote)
+                                    <li class="text-sm">
+                                        <p class="text-xs text-secondary-medium">
+                                            {{ $opinionNote->author?->profile?->name ?? $opinionNote->author?->email }}
+                                            &middot; {{ $at($opinionNote->created_at) }}
+                                        </p>
+                                        <p class="mt-1 whitespace-pre-line">{{ $opinionNote->body }}</p>
+                                    </li>
                                 @endforeach
-                            </div>
-                        @endcan
+                            </ul>
+                        </div>
                     @endif
+
+                    @can('addNote', $evaluation)
+                        <button type="button" id="evaluation-{{ $evaluation->id }}-note" wire:click="beginNote({{ $evaluation->id }})"
+                            aria-expanded="{{ $panel === 'note' && $evaluationId === $evaluation->id ? 'true' : 'false' }}"
+                            class="mt-3 min-h-11 cursor-pointer text-sm font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0">
+                            {{ __('recruitment-applicant.evaluations.add_note') }}
+                        </button>
+                    @endcan
 
                     @if ($evaluation->revisions->count() > 1)
                         <details class="mt-3 text-sm">
@@ -94,14 +107,12 @@
         </ul>
     @endif
 
-    {{-- Correct and withdraw open one popup, like the Leaves decision popup (<x-modal.dialog>). Its title keeps the id focus moves to. --}}
+    {{-- HR's separate opinion note never changes the participant's evaluation. --}}
     @php $panelEvaluation = $evaluationId !== null ? $evaluations->firstWhere('id', $evaluationId) : null; @endphp
     <x-modal.dialog id="evaluationActionModal" max-width="xl" wire:model.defer="panelOpen" wire:ignore.self>
         <x-slot:title>
             <span id="evaluation-panel-title" tabindex="-1" class="focus:outline-none">
-                @if ($panel !== null)
-                    {{ __('recruitment-applicant.evaluations.'.$panel.'_title') }}
-                @endif
+                {{ __('recruitment-applicant.evaluations.note_title') }}
             </span>
         </x-slot:title>
         @if ($panel !== null)
@@ -115,36 +126,16 @@
                     <p role="alert" class="rounded-control border border-primary bg-white p-3 text-sm text-primary">{{ $message }}</p>
                 @enderror
 
-                @if ($panel === 'correct')
-                    <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="{{ __('recruitment-applicant.evaluations.recommendation') }}"
-                         @if ($errors->has('recommendation')) aria-invalid="true" aria-describedby="correct-recommendation-error" @endif>
-                        @foreach (Recommendation::values() as $value)
-                            <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-secondary-light bg-white px-3 text-sm sm:min-h-9 has-[:checked]:border-secondary-dark has-[:checked]:bg-selection has-[:checked]:font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
-                                <input type="radio" wire:model="recommendation" value="{{ $value }}" class="text-primary focus:ring-0">
-                                {{ __('recruitment-applicant.evaluations.recommendations.'.$value) }}
-                            </label>
-                        @endforeach
-                    </div>
-                    <x-forms.input-error field="recommendation" input-id="correct-recommendation" />
-                    @foreach (['pros', 'cons', 'notes'] as $field)
-                        <div>
-                            <x-forms.input-label :for="'correct-'.$field" :value="__('recruitment-applicant.evaluations.'.$field)" />
-                            <x-forms.textarea :id="'correct-'.$field" wire:model="{{ $field }}" rows="2" />
-                            <x-forms.input-error :field="$field" :input-id="'correct-'.$field" />
-                        </div>
-                    @endforeach
-                @endif
-
                 <div>
-                    <x-forms.input-label for="evaluation-reason" required :value="__('recruitment-applicant.evaluations.reason')" />
-                    <x-forms.textarea id="evaluation-reason" wire:model="reason" rows="2" />
-                    <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.reason_hint') }}</p>
-                    <x-forms.input-error field="reason" input-id="evaluation-reason" />
+                    <x-forms.input-label for="evaluation-opinion-note" required :value="__('recruitment-applicant.evaluations.opinion_note')" />
+                    <x-forms.textarea id="evaluation-opinion-note" wire:model="opinionNote" rows="4" />
+                    <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.note_hint') }}</p>
+                    <x-forms.input-error field="opinionNote" input-id="evaluation-opinion-note" />
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <x-primary-button type="button" wire:click="{{ $panel === 'correct' ? 'saveCorrection' : 'withdraw' }}">
-                        {{ __('recruitment-applicant.evaluations.'.$panel.'_confirm') }}
+                    <x-primary-button type="button" wire:click="addNote">
+                        {{ __('recruitment-applicant.evaluations.note_confirm') }}
                     </x-primary-button>
                     <x-secondary-button wire:click="dismissPanel">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
                 </div>

@@ -10,8 +10,6 @@
     />
 
     <form wire:submit="save" class="mx-auto max-w-3xl space-y-6">
-        <p class="text-body text-secondary-medium">{{ __('recruitment-campaign.new_campaign_hint') }}</p>
-
         {{-- 1. The seat --}}
         <section class="rounded-surface border border-secondary-soft bg-white p-5 shadow-e1 sm:p-6" aria-labelledby="create-vacancy-heading">
             <h2 id="create-vacancy-heading" class="text-subtitle font-bold text-secondary-dark">

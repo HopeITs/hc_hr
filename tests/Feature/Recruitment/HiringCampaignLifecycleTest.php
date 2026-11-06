@@ -11,6 +11,7 @@ use App\Enums\RecruitmentRequestType;
 use App\Exceptions\PublicRecruitmentSubmissionException;
 use App\Livewire\Recruitment\Campaigns\CampaignTable;
 use App\Livewire\Recruitment\Campaigns\Create as CampaignCreate;
+use App\Livewire\Recruitment\Campaigns\Index as CampaignIndex;
 use App\Livewire\Recruitment\Campaigns\Show as CampaignShow;
 use App\Livewire\Recruitment\Requests\RequestTable;
 use App\Models\ApplicationForm;
@@ -263,7 +264,7 @@ class HiringCampaignLifecycleTest extends TestCase
 
     public function test_campaign_table_filters_rows_and_lists_newest_campaign_first(): void
     {
-        $this->travelTo('2026-09-01 09:00:00');
+        $this->travelTo('2026-09-01T09:00:00');
         [$vacancy, $hr, $request] = $this->makeVacancy();
         $service = app(HiringCampaignService::class);
 
@@ -273,7 +274,7 @@ class HiringCampaignLifecycleTest extends TestCase
         ]);
         $older->forceFill(['status' => HiringCampaignStatus::Closed])->save();
 
-        $this->travelTo('2026-09-02 09:00:00');
+        $this->travelTo('2026-09-02T09:00:00');
         $newer = $service->create($hr, $vacancy, [
             'link_mode' => HiringCampaign::PUBLIC_OPEN,
             'ends_at' => now()->addWeek(),
@@ -283,8 +284,8 @@ class HiringCampaignLifecycleTest extends TestCase
             ->test(CampaignTable::class)
             ->assertSee($request->request_number)
             ->assertSeeInOrder([
-                '2026-09-02 09:00',
-                '2026-09-01 09:00',
+                '2026-09-02T09:00',
+                '2026-09-01T09:00',
             ]);
 
         Livewire::actingAs($hr)
@@ -295,14 +296,89 @@ class HiringCampaignLifecycleTest extends TestCase
         Livewire::actingAs($hr)
             ->test(CampaignTable::class)
             ->set('search.link_mode', HiringCampaign::INTERNAL)
-            ->assertSee('2026-09-01 09:00')
-            ->assertDontSee('2026-09-02 09:00');
+            ->assertSee('2026-09-01T09:00')
+            ->assertDontSee('2026-09-02T09:00');
 
         Livewire::actingAs($hr)
             ->test(CampaignTable::class)
             ->set('search.status', HiringCampaignStatus::Draft)
-            ->assertSee((string) $newer->created_at->format('Y-m-d H:i'))
-            ->assertDontSee('2026-09-01 09:00');
+            ->assertSee((string) $newer->created_at->toIso8601String())
+            ->assertDontSee('2026-09-01T09:00');
+    }
+
+    public function test_status_tiles_count_only_scoped_campaigns_using_the_effective_status(): void
+    {
+        $this->travelTo('2026-10-09 09:00:00');
+        [$vacancy, $hr] = $this->makeVacancy();
+        [$remoteVacancy, $remoteHr] = $this->makeVacancy('ALP', '001');
+
+        foreach ([
+            [HiringCampaignStatus::Open, now()->addDays(3)],
+            [HiringCampaignStatus::Open, now()->subMinute()],
+            [HiringCampaignStatus::Published, now()->addMonth()],
+            [HiringCampaignStatus::Draft, now()->addDay()],
+            [HiringCampaignStatus::Closed, now()->addDay()],
+        ] as [$status, $endsAt]) {
+            $vacancy->campaigns()->create([
+                'status' => $status,
+                'ends_at' => $endsAt,
+                'link_mode' => HiringCampaign::PUBLIC_OPEN,
+                'created_by_user_id' => $hr->id,
+            ]);
+        }
+        $remoteVacancy->campaigns()->create([
+            'status' => HiringCampaignStatus::Open,
+            'ends_at' => now()->addDay(),
+            'link_mode' => HiringCampaign::PUBLIC_OPEN,
+            'created_by_user_id' => $remoteHr->id,
+        ]);
+
+        Livewire::actingAs($hr)
+            ->test(CampaignIndex::class)
+            ->assertViewHas('total', 5)
+            ->assertViewHas('closingSoon', 1)
+            ->assertViewHas('counts', [
+                HiringCampaignStatus::Open => 1,
+                HiringCampaignStatus::Expired => 1,
+                HiringCampaignStatus::Published => 1,
+                HiringCampaignStatus::Draft => 1,
+                HiringCampaignStatus::Closed => 1,
+            ])
+            ->call('filterByStatus', HiringCampaignStatus::Open)
+            ->assertSet('statusFilter', HiringCampaignStatus::Open)
+            ->call('filterByStatus', HiringCampaignStatus::Open)
+            ->assertSet('statusFilter', null)
+            ->call('filterByStatus', 999)
+            ->assertSet('statusFilter', null);
+    }
+
+    public function test_status_tile_filter_excludes_expired_and_out_of_scope_campaigns(): void
+    {
+        $this->travelTo('2026-10-09 09:00:00');
+        [$vacancy, $hr] = $this->makeVacancy();
+        [$remoteVacancy, $remoteHr] = $this->makeVacancy('ALP', '001');
+        $open = $vacancy->campaigns()->create([
+            'status' => HiringCampaignStatus::Open, 'ends_at' => now()->addDay(),
+            'link_mode' => HiringCampaign::PUBLIC_OPEN, 'created_by_user_id' => $hr->id,
+        ]);
+        $expired = $vacancy->campaigns()->create([
+            'status' => HiringCampaignStatus::Open, 'ends_at' => now()->subMinute(),
+            'link_mode' => HiringCampaign::PUBLIC_OPEN, 'created_by_user_id' => $hr->id,
+        ]);
+        $remote = $remoteVacancy->campaigns()->create([
+            'status' => HiringCampaignStatus::Open, 'ends_at' => now()->addDay(),
+            'link_mode' => HiringCampaign::PUBLIC_OPEN, 'created_by_user_id' => $remoteHr->id,
+        ]);
+
+        Livewire::actingAs($hr)
+            ->test(CampaignTable::class, ['statusFilter' => HiringCampaignStatus::Open])
+            ->assertSee('wire:key="row-'.$open->id.'"', false)
+            ->assertDontSee('wire:key="row-'.$expired->id.'"', false)
+            ->assertDontSee('wire:key="row-'.$remote->id.'"', false)
+            ->set('statusFilter', HiringCampaignStatus::Expired)
+            ->assertSee('wire:key="row-'.$expired->id.'"', false)
+            ->assertDontSee('wire:key="row-'.$open->id.'"', false)
+            ->assertDontSee('wire:key="row-'.$remote->id.'"', false);
     }
 
     public function test_request_table_opens_the_current_campaign_and_allows_the_next_after_it_closes(): void

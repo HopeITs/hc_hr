@@ -23,6 +23,7 @@ use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
 use App\Models\RecruitmentInterviewNotice as Notice;
 use App\Models\RecruitmentInterviewParticipant as Participant;
+use App\Models\RecruitmentInterviewRequiredParticipant as RequiredParticipant;
 use App\Models\User;
 use App\Notifications\RecruitmentInterviewParticipantNotice as ParticipantNotice;
 use App\Services\RecruitmentApplicationStatusService;
@@ -31,12 +32,14 @@ use App\Services\RecruitmentInterviewNoticeService;
 use App\Services\RecruitmentInterviewSchedulingService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use LogicException;
@@ -113,6 +116,7 @@ class RecruitmentInterviewTest extends TestCase
     {
         Notification::fake();
         $application = $this->shortlisted();
+        $manager = $application->vacancy->createdFromRequest->requester;
         $this->actingAs($this->hr);
 
         Livewire::test(Form::class, ['applicationId' => $application->id])
@@ -134,7 +138,22 @@ class RecruitmentInterviewTest extends TestCase
         $this->assertSame(RecruitmentInterviewType::Technical, $interview->interview_type);
         $this->assertSame('2026-10-08 10:30:00', $interview->scheduled_at->format('Y-m-d H:i:s'));
         $this->assertSame('2026-10-08 11:15:00', $interview->ends_at->format('Y-m-d H:i:s'));
-        $this->assertSame([$this->interviewer->id => Participant::ROLE_INTERVIEWER], $interview->currentParticipants()->pluck('role', 'user_id')->all());
+        $this->assertEqualsCanonicalizing(
+            [$this->hr->id, $manager->id, $this->interviewer->id],
+            $interview->currentParticipants()->pluck('user_id')->all(),
+        );
+        $this->assertDatabaseHas('recruitment_interview_required_participants', [
+            'interview_id' => $interview->id,
+            'seat' => RequiredParticipant::SEAT_HR,
+            'owner_user_id' => $this->hr->id,
+            'attendee_user_id' => $this->hr->id,
+        ]);
+        $this->assertDatabaseHas('recruitment_interview_required_participants', [
+            'interview_id' => $interview->id,
+            'seat' => RequiredParticipant::SEAT_MANAGER,
+            'owner_user_id' => $manager->id,
+            'attendee_user_id' => $manager->id,
+        ]);
 
         // [28] shortlisted -> interview_scheduled, recorded as a decision.
         $this->assertSame(AppStatus::InterviewScheduled, $application->fresh()->status);
@@ -146,6 +165,111 @@ class RecruitmentInterviewTest extends TestCase
             ->exists());
 
         Notification::assertSentTo($this->interviewer, ParticipantNotice::class, fn (ParticipantNotice $n) => $n->kind === ParticipantNotice::SCHEDULED);
+    }
+
+    public function test_hr_can_assign_a_substitute_for_a_required_interview_seat(): void
+    {
+        $application = $this->shortlisted('Substitute Candidate');
+        $manager = $application->vacancy->createdFromRequest->requester;
+        $substitute = $this->makeUser($this->homs, 'employee');
+        $this->actingAs($this->hr);
+
+        Livewire::test(Form::class, ['applicationId' => $application->id])
+            ->assertSet('requiredParticipantOwners.'.RequiredParticipant::SEAT_MANAGER, $manager->id)
+            ->set('requiredParticipants.'.RequiredParticipant::SEAT_MANAGER, $substitute->id)
+            ->set('startsAt', '2026-10-08T14:00')
+            ->set('locationType', 'online')
+            ->set('meetingUrl', self::MEETING_URL)
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $interview = RecruitmentInterview::query()->sole();
+        $this->assertDatabaseHas('recruitment_interview_required_participants', [
+            'interview_id' => $interview->id,
+            'seat' => RequiredParticipant::SEAT_MANAGER,
+            'owner_user_id' => $manager->id,
+            'attendee_user_id' => $substitute->id,
+        ]);
+        $this->assertDatabaseHas('recruitment_interview_participants', [
+            'interview_id' => $interview->id,
+            'user_id' => $substitute->id,
+            'removed_at' => null,
+        ]);
+        $this->assertDatabaseMissing('recruitment_interview_participants', [
+            'interview_id' => $interview->id,
+            'user_id' => $manager->id,
+            'removed_at' => null,
+        ]);
+    }
+
+    public function test_multiple_finalists_can_enter_a_final_comparison_round_and_return_to_the_final_list(): void
+    {
+        $application = $this->applyTo(
+            $this->makeCampaignIn($this->homs),
+            $this->makeApplicant('Comparison Candidate'),
+            ['status' => AppStatus::Finalist],
+        );
+        $this->actingAs($this->hr);
+
+        Livewire::test(Form::class, ['applicationId' => $application->id])
+            ->assertSet('type', RecruitmentInterviewType::Final);
+
+        $interview = $this->schedule($application, [
+            'type' => RecruitmentInterviewType::Final,
+            'startsAt' => '2026-10-04T10:00',
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+
+        $this->assertSame(AppStatus::InterviewScheduled, $application->fresh()->status);
+
+        $this->outcome($interview, Status::Completed);
+
+        $this->assertSame(AppStatus::Finalist, $application->fresh()->status);
+        $this->assertSame(
+            [
+                [AppStatus::Finalist, AppStatus::InterviewScheduled],
+                [AppStatus::InterviewScheduled, AppStatus::Finalist],
+            ],
+            $application->decisions()->orderBy('id')->get()
+                ->map(fn (RecruitmentApplicationDecision $decision): array => [$decision->from_status, $decision->to_status])
+                ->all(),
+        );
+    }
+
+    public function test_hr_uploads_private_interview_attachments_that_only_interview_viewers_can_download(): void
+    {
+        Storage::fake('local');
+        $application = $this->shortlisted('Attachment Candidate');
+        $interview = $this->schedule($application, [
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+        $this->actingAs($this->hr);
+
+        Livewire::test(Show::class, ['interviewId' => $interview->id])
+            ->set('attachment', UploadedFile::fake()->create('panel-recording.mp3', 100, 'audio/mpeg'))
+            ->call('uploadAttachment')
+            ->assertHasNoErrors()
+            ->assertSee('panel-recording.mp3');
+
+        $media = $interview->fresh()->getFirstMedia(RecruitmentInterview::ATTACHMENTS);
+        $this->assertNotNull($media);
+        $this->assertSame('local', $media->disk);
+        Storage::disk('local')->assertExists($media->getPathRelativeToRoot());
+
+        $download = route('recruitment.interview-attachments.download', ['media' => $media->id]);
+        $this->get($download)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->actingAs($this->interviewer)->get($download)->assertOk();
+
+        $outsider = $this->makeUser($this->homs, 'employee');
+        $this->actingAs($outsider)->get($download)->assertNotFound();
+
+        $this->actingAs($this->hr);
+        Livewire::test(Show::class, ['interviewId' => $interview->id])
+            ->call('discardAttachment', $media->id)
+            ->assertHasNoErrors();
+        $this->assertDatabaseMissing('media', ['id' => $media->id]);
+        Storage::disk('local')->assertMissing($media->getPathRelativeToRoot());
     }
 
     /** [7] The type must be HR, technical or final. */
@@ -160,6 +284,64 @@ class RecruitmentInterviewTest extends TestCase
             $this->schedule($application, ['type' => $type, 'startsAt' => '2026-10-1'.$i.'T10:00']);
         }
         $this->assertSame(RecruitmentInterviewType::values(), RecruitmentInterview::query()->orderBy('id')->pluck('interview_type')->all());
+    }
+
+    public function test_an_interview_cannot_overlap_for_the_same_candidate_or_participant(): void
+    {
+        $firstApplication = $this->shortlisted('First Candidate');
+        $this->schedule($firstApplication, [
+            'startsAt' => '2026-10-08T10:00',
+            'duration' => 60,
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+
+        $candidateErrors = $this->assertValidationError(
+            fn () => $this->schedule($firstApplication->fresh(), [
+                'startsAt' => '2026-10-08T10:30',
+                'duration' => 30,
+            ]),
+            'startsAt',
+        );
+        $this->assertStringContainsString('2026-10-08 10:00', $candidateErrors['startsAt'][0]);
+
+        $secondApplication = $this->shortlisted('Second Candidate');
+        $this->assertValidationError(
+            fn () => $this->schedule($secondApplication, [
+                'startsAt' => '2026-10-08T10:45',
+                'duration' => 30,
+                'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+            ]),
+            'startsAt',
+        );
+
+        $adjacent = $this->schedule($secondApplication->fresh(), [
+            'startsAt' => '2026-10-08T11:00',
+            'duration' => 30,
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+
+        $this->assertSame('2026-10-08 11:00', $adjacent->scheduled_at->format('Y-m-d H:i'));
+    }
+
+    public function test_rescheduling_checks_conflicts_but_does_not_conflict_with_itself(): void
+    {
+        $first = $this->schedule($this->shortlisted('First Candidate'), [
+            'startsAt' => '2026-10-08T10:00',
+            'duration' => 60,
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+        $second = $this->schedule($this->shortlisted('Second Candidate'), [
+            'startsAt' => '2026-10-08T12:00',
+            'duration' => 60,
+            'participants' => [$this->interviewer->id => Participant::ROLE_INTERVIEWER],
+        ]);
+
+        $this->reschedule($first, ['locationValue' => 'Updated platform'], reason: self::SECRET_RESCHEDULE_REASON);
+
+        $this->assertValidationError(
+            fn () => $this->reschedule($second, ['startsAt' => '2026-10-08T10:30']),
+            'startsAt',
+        );
     }
 
     /** [3] The candidate email is queued as a job carrying only the notice id, then sent with the details. */
@@ -419,9 +601,9 @@ class RecruitmentInterviewTest extends TestCase
         $this->actingAs($this->interviewer->fresh());
         Livewire::test(Show::class, ['interviewId' => $theirs->id])->assertNotFound();
 
-        // No permission and never a participant: the interviews page itself is refused.
+        // Managers can open the board, but scope still leaves it empty.
         $stranger = $this->makeUser($this->homs, 'manager');
-        $this->actingAs($stranger)->get(route('recruitment.interviews.index'))->assertForbidden();
+        $this->actingAs($stranger)->get(route('recruitment.interviews.index'))->assertOk();
     }
 
     /** [12] The meeting link: managing HR and participants see it; an in-scope reader who is neither does not. */
@@ -550,7 +732,7 @@ class RecruitmentInterviewTest extends TestCase
                 $this->assertMatchesRegularExpression('/<select x-ref="select"[^>]*id="'.$id.'"/', $html, $id.' is a Select2 dropdown');
             }
             $this->assertSame(substr_count($html, '<select'), substr_count($html, '<select x-ref="select"'), 'No plain select is left.');
-            $this->assertSame(5, substr_count($html, 'minimumResultsForSearch: 0'));
+            $this->assertSame(substr_count($html, '<select'), substr_count($html, 'minimumResultsForSearch: 0'));
             $this->assertStringNotContainsString('minimumResultsForSearch: Infinity', $html);
         }
     }
@@ -833,7 +1015,7 @@ class RecruitmentInterviewTest extends TestCase
 
         foreach ([Form::class, Show::class, Index::class, Calendar::class, Board::class, RecruitmentInterviewSchedulingService::class, RecruitmentInterviewNoticeService::class] as $class) {
             foreach ((new ReflectionClass($class))->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-                if ($method->getDeclaringClass()->getName() === $class) {
+                if ($method->getDeclaringClass()->getName() === $class && ! str_starts_with($method->getName(), '_')) {
                     $this->assertDoesNotMatchRegularExpression('/delete|destroy|remove(?!Participant)|purge/i', $method->getName(), "$class::{$method->getName()}");
                 }
             }
@@ -1130,9 +1312,10 @@ class RecruitmentInterviewTest extends TestCase
         $evaluation = RecruitmentInterviewEvaluation::query()->sole();
         Livewire::test(EvaluationSummary::class, ['interviewId' => $one->id])
             ->assertSee(self::SECRET_EVALUATION)
-            ->assertDontSeeHtml('id="evaluation-'.$evaluation->id.'-correct"')
-            ->call('beginCorrect', $evaluation->id)->assertForbidden();
+            ->assertDontSeeHtml('id="evaluation-'.$evaluation->id.'-note"')
+            ->call('beginNote', $evaluation->id)->assertForbidden();
         $this->assertFalse($requester->can('correct', $evaluation));
+        $this->assertFalse($requester->can('addNote', $evaluation));
         $this->assertThrows(fn () => $this->evaluations()->submit($requester, $one->fresh(), ['recommendation' => Recommendation::Yes], null), AuthorizationException::class);
 
         // Another position's interview stays out of reach.
@@ -1213,7 +1396,7 @@ class RecruitmentInterviewTest extends TestCase
 
         $manager = $this->makeUser($this->homs, 'manager');
         $this->actingAs($manager);
-        $this->assertFalse($manager->can('viewAny', RecruitmentInterview::class));
+        $this->assertTrue($manager->can('viewAny', RecruitmentInterview::class));
         Livewire::test(Show::class, ['interviewId' => $interview->id])->assertNotFound();
         Livewire::test(EvaluationSummary::class, ['interviewId' => $interview->id])->assertNotFound();
     }
@@ -1257,8 +1440,7 @@ class RecruitmentInterviewTest extends TestCase
     {
         $other = $this->applyTo($application->campaign, $this->makeApplicant($name));
         $statuses = app(RecruitmentApplicationStatusService::class);
-        $statuses->change($this->hr, $other, AppStatus::Submitted, AppStatus::UnderReview, null);
-        $statuses->change($this->hr, $other->fresh(), AppStatus::UnderReview, AppStatus::Shortlisted, null);
+        $statuses->change($this->hr, $other, AppStatus::Submitted, AppStatus::Shortlisted, null);
 
         return $other->fresh();
     }

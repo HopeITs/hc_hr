@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use LogicException;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * The job offer for one selected application (Phase 2 Task 9). One per
@@ -20,9 +22,13 @@ use LogicException;
  * move, keeps every version, and hands an accepted offer to the hiring
  * conversion exactly once. Never deleted: "gone" is Cancelled.
  */
-class RecruitmentJobOffer extends Model
+class RecruitmentJobOffer extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
     public const CANCEL_APPLICATION_CLOSED = 'application_closed';
+
+    public const RESPONSE_EVIDENCE = 'response_evidence';
 
     protected $guarded = ['id'];
 
@@ -71,6 +77,12 @@ class RecruitmentJobOffer extends Model
     public function hiringConversion(): HasOne
     {
         return $this->hasOne(RecruitmentHiringConversion::class, 'job_offer_id');
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::RESPONSE_EVIDENCE)
+            ->useDisk('local');
     }
 
     public function isEditable(): bool

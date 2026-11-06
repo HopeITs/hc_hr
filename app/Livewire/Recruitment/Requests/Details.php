@@ -4,7 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestStatus;
-use App\Livewire\Concerns\WithFeedback;
+use App\Livewire\Features\SupportToasts;
 use App\Models\Center;
 use App\Models\ContractType;
 use App\Models\Department;
@@ -30,8 +30,6 @@ use Livewire\Component;
 
 class Details extends Component
 {
-    use WithFeedback;
-
     #[Locked]
     public int $requestId;
 
@@ -200,7 +198,7 @@ class Details extends Component
 
         $this->toast(
             __($applied ? 'recruitment.executed' : 'recruitment.execution_failed'),
-            $applied ? 'success' : 'error',
+            success: $applied,
         );
     }
 
@@ -278,7 +276,7 @@ class Details extends Component
     {
         $messages = collect($e->errors())->flatten()->unique()->values();
 
-        $this->toast($messages->implode(' '), 'error');
+        $this->toast($messages->implode(' '), false);
     }
 
     /**
@@ -333,5 +331,21 @@ class Details extends Component
         Gate::authorize('view', $request);
 
         return $request;
+    }
+
+    /**
+     * Say what happened, the way the rest of the application says it.
+     *
+     * A toast rather than a coloured panel: the panel pushed the page down on
+     * every save, and a red or green block across a form reads as part of the
+     * form rather than as a remark about it.
+     */
+    private function toast(string $message, bool $success = true): void
+    {
+        SupportToasts::queue($this, [
+            'type' => $success ? 'success' : 'error',
+            'message' => $message,
+            'undo' => null,
+        ]);
     }
 }

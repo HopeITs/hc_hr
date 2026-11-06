@@ -19,6 +19,12 @@ class RecruitmentTag extends Model
 {
     use SoftDeletes;
 
+    public const KIND_NEUTRAL = 'neutral';
+
+    public const KIND_GREEN_FLAG = 'green_flag';
+
+    public const KIND_RED_FLAG = 'red_flag';
+
     protected $guarded = ['id'];
 
     public function creator(): BelongsTo
@@ -46,8 +52,27 @@ class RecruitmentTag extends Model
     /** Whole class names from a closed palette, so Tailwind's scanner finds them. */
     public function classes(): string
     {
+        if ($this->kind === self::KIND_GREEN_FLAG) {
+            return 'bg-white text-secondary-dark ring-1 ring-inset ring-secondary-light';
+        }
+
+        if ($this->kind === self::KIND_RED_FLAG) {
+            return 'bg-white text-primary ring-1 ring-inset ring-primary';
+        }
+
         $palette = config('recruitment.tags.palette', []);
 
         return $palette[$this->color] ?? $palette['neutral'] ?? 'bg-neutral-100 text-neutral-800';
+    }
+
+    /** @return array<int, string> */
+    public static function kinds(): array
+    {
+        return [self::KIND_NEUTRAL, self::KIND_GREEN_FLAG, self::KIND_RED_FLAG];
+    }
+
+    public function kindLabel(): string
+    {
+        return __('recruitment-applicant.tags.kinds.'.($this->kind ?: self::KIND_NEUTRAL));
     }
 }

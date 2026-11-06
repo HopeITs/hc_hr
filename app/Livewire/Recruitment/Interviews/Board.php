@@ -4,10 +4,14 @@ namespace App\Livewire\Recruitment\Interviews;
 
 use App\Enums\RecruitmentInterviewStatus;
 use App\Enums\RecruitmentInterviewType;
+use App\Models\HiringCampaign;
+use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
+use App\Models\RecruitmentInterviewParticipant;
 use App\Models\Vacancy;
 use Closure;
+use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -40,6 +44,21 @@ class Board extends Component
 
     #[Url(except: '')]
     public string $vacancy = '';
+
+    #[Url(except: '')]
+    public string $campaign = '';
+
+    #[Url(except: '')]
+    public string $applicant = '';
+
+    #[Url(except: '')]
+    public string $participant = '';
+
+    #[Url(except: '')]
+    public string $dateFrom = '';
+
+    #[Url(except: '')]
+    public string $dateTo = '';
 
     #[Url(except: false)]
     public bool $mine = false;
@@ -75,13 +94,13 @@ class Board extends Component
 
     public function clearFilters(): void
     {
-        $this->reset('search', 'type', 'vacancy', 'mine');
+        $this->reset('search', 'type', 'vacancy', 'campaign', 'applicant', 'participant', 'dateFrom', 'dateTo', 'mine');
         $this->resetLimits();
     }
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'type', 'vacancy', 'mine'], true)) {
+        if (in_array($property, ['search', 'type', 'vacancy', 'campaign', 'applicant', 'participant', 'dateFrom', 'dateTo', 'mine'], true)) {
             $this->resetLimits();
         }
     }
@@ -119,8 +138,20 @@ class Board extends Component
             // Candidates with more than one card on the board get a thread.
             'threaded' => $shown->countBy('application_id')->filter(fn (int $count) => $count > 1)->keys()->all(),
             'vacancies' => $this->vacancyOptions(),
+            'campaigns' => $this->campaignOptions(),
+            'applicants' => $this->applicantOptions(),
+            'participants' => $this->participantOptions(),
             'canFilterMine' => $user->hasActivePermission('recruitment-applicants.view'),
-            'filtering' => $this->search !== '' || $this->type !== '' || $this->vacancy !== '' || $this->mine,
+            'filtering' => collect([
+                $this->search,
+                $this->type,
+                $this->vacancy,
+                $this->campaign,
+                $this->applicant,
+                $this->participant,
+                $this->dateFrom,
+                $this->dateTo,
+            ])->contains(fn (string $value): bool => $value !== '') || $this->mine,
             'timezone' => config('app.timezone'),
         ]);
     }
@@ -151,6 +182,11 @@ class Board extends Component
             ->visibleTo($user)
             ->when(in_array($this->type, RecruitmentInterviewType::values(), true), fn (Builder $q) => $q->where('interview_type', $this->type))
             ->when(ctype_digit($this->vacancy), fn (Builder $q) => $q->whereHas('application', fn (Builder $a) => $a->where('vacancy_id', (int) $this->vacancy)))
+            ->when(ctype_digit($this->campaign), fn (Builder $q) => $q->whereHas('application', fn (Builder $a) => $a->where('campaign_id', (int) $this->campaign)))
+            ->when(ctype_digit($this->applicant), fn (Builder $q) => $q->whereHas('application', fn (Builder $a) => $a->where('applicant_id', (int) $this->applicant)))
+            ->when(ctype_digit($this->participant), fn (Builder $q) => $q->whereHas('currentParticipants', fn (Builder $p) => $p->where('user_id', (int) $this->participant)))
+            ->when($this->validDate($this->dateFrom), fn (Builder $q) => $q->whereDate('scheduled_at', '>=', $this->dateFrom))
+            ->when($this->validDate($this->dateTo), fn (Builder $q) => $q->whereDate('scheduled_at', '<=', $this->dateTo))
             ->when($this->mine, fn (Builder $q) => $q->whereHas('currentParticipants', fn (Builder $p) => $p->where('user_id', $user->getKey())))
             ->when($search !== '', function (Builder $q) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
@@ -189,6 +225,55 @@ class Board extends Component
             ->get()
             ->mapWithKeys(fn (Vacancy $vacancy) => [$vacancy->getKey() => $vacancy->position?->{transColumn('title')} ?? '#'.$vacancy->getKey()])
             ->sort();
+    }
+
+    /** Campaigns that have at least one interview this user can see. */
+    private function campaignOptions(): Collection
+    {
+        $user = auth()->user();
+
+        return HiringCampaign::query()
+            ->whereHas('applications.interviews', fn (Builder $q) => $q->visibleTo($user))
+            ->with('vacancy.position')
+            ->get()
+            ->mapWithKeys(fn ($campaign) => [$campaign->getKey() => '#'.$campaign->getKey().' · '.($campaign->vacancy?->position?->{transColumn('title')} ?? __('recruitment-applicant.no_vacancy'))])
+            ->sort();
+    }
+
+    /** Applicants that have at least one interview this user can see. */
+    private function applicantOptions(): Collection
+    {
+        $user = auth()->user();
+
+        return RecruitmentApplicant::query()
+            ->whereHas('applications.interviews', fn (Builder $q) => $q->visibleTo($user))
+            ->orderBy('full_name')
+            ->pluck('full_name', 'id');
+    }
+
+    /** Current participants on at least one interview this user can see. */
+    private function participantOptions(): Collection
+    {
+        $user = auth()->user();
+
+        return RecruitmentInterviewParticipant::query()
+            ->current()
+            ->whereHas('interview', fn (Builder $q) => $q->visibleTo($user))
+            ->with('user.profile')
+            ->get()
+            ->mapWithKeys(fn (RecruitmentInterviewParticipant $participant) => [
+                $participant->user_id => $participant->user?->profile?->name ?? $participant->user?->email ?? '#'.$participant->user_id,
+            ])
+            ->sort();
+    }
+
+    private function validDate(string $date): bool
+    {
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1
+            && $parsed !== false
+            && $parsed->format('Y-m-d') === $date;
     }
 
     private function resetLimits(): void

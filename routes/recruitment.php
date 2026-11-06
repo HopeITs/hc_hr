@@ -3,6 +3,8 @@
 use App\Http\Controllers\RecruitmentApplicantErasureController;
 use App\Http\Controllers\RecruitmentApplicantExportController;
 use App\Http\Controllers\RecruitmentApplicantFileController;
+use App\Http\Controllers\RecruitmentInterviewAttachmentController;
+use App\Http\Controllers\RecruitmentJobOfferResponseEvidenceController;
 use App\Livewire\Recruitment\Applicants\Index as ApplicantIndex;
 use App\Livewire\Recruitment\Applicants\Show as ApplicantShow;
 use App\Livewire\Recruitment\Approvals\Pending;
@@ -57,10 +59,10 @@ Route::prefix('recruitment/campaigns')->name('recruitment.campaigns.')
         Route::get('/{campaignId}', CampaignShow::class)->whereNumber('campaignId')->name('show');
     });
 
-// The permission is the outer wall; each applicant is re-resolved through the
-// recruitment scope inside the component, so a guessed id is a 404.
+// The policy admits normal recruitment viewers and named profile participants.
+// Components still re-resolve every row through profileVisibleTo(), so a
+// guessed applicant id outside either scope remains a 404.
 Route::prefix('recruitment/applicants')->name('recruitment.applicants.')
-    ->middleware('active_permission:recruitment-applicants.view')
     ->group(function () {
         Route::get('/', ApplicantIndex::class)->name('index');
         Route::get('/{applicantId}', ApplicantShow::class)->whereNumber('applicantId')->name('show');
@@ -83,6 +85,11 @@ Route::get('recruitment/applications/{applicationId}/interviews/create', Intervi
     ->whereNumber('applicationId')
     ->middleware('active_permission:recruitment-applicants.schedule-interviews')
     ->name('recruitment.interviews.create');
+
+Route::get('recruitment/interview-attachments/{media}/download', RecruitmentInterviewAttachmentController::class)
+    ->whereNumber('media')
+    ->middleware('throttle:60,1')
+    ->name('recruitment.interview-attachments.download');
 
 // Phase 2 Task 9 (Team 2): job offers. The list and a single offer have no
 // permission middleware on purpose: the manager who requested the position
@@ -109,6 +116,11 @@ Route::get('recruitment/applications/{applicationId}/offer/create', OfferForm::c
     ->whereNumber('applicationId')
     ->middleware('active_permission:recruitment-applicants.manage-offers')
     ->name('recruitment.offers.create');
+
+Route::get('recruitment/offer-response-evidence/{media}/download', RecruitmentJobOfferResponseEvidenceController::class)
+    ->whereNumber('media')
+    ->middleware('throttle:60,1')
+    ->name('recruitment.offer-response-evidence.download');
 
 // Phase 2 Task 11. Outside the group above, with no permission middleware, for
 // the same reason as the file download below: the policy enforces the explicit

@@ -49,14 +49,14 @@ class RecruitmentPositionActionService
             ->contains(fn ($request): bool => in_array((int) $request->request_type, [
                 RecruitmentRequestType::FillVacancy,
                 RecruitmentRequestType::CloseVacancy,
-            ], true) && ($request->target_vacancy_id === null
-                || (int) $request->target_vacancy_id === $vacancyId));
+            ], true) && (($request->target_vacancy_id ?? $request->vacancy?->id) === null
+                || (int) ($request->target_vacancy_id ?? $request->vacancy?->id) === $vacancyId));
 
         $fillConflictWithoutNamedVacancy = $activeRequests->contains(
             fn ($request): bool => in_array((int) $request->request_type, [
                 RecruitmentRequestType::FillVacancy,
                 RecruitmentRequestType::CloseVacancy,
-            ], true) && $request->target_vacancy_id === null,
+            ], true) && ($request->target_vacancy_id ?? $request->vacancy?->id) === null,
         );
 
         $fillCanTargetSeat = ! $fillConflictWithoutNamedVacancy

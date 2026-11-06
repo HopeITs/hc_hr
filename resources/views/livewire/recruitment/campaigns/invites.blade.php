@@ -2,7 +2,6 @@
 
 <div class="space-y-6">
     <livewire:layout.breadcrumbs :title="__('recruitment-applicants.invites_title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment-campaign.campaigns'), 'route' => 'recruitment.campaigns.index'], ['label' => __('recruitment-applicants.invites_title')]]" />
-    <p class="-mt-4 text-secondary-medium">{{ __('recruitment-applicants.invites_description') }}</p>
 
 
     <form wire:submit="add" class="flex flex-wrap items-end gap-4 rounded-control border border-secondary-soft bg-white p-4 shadow-e1">

@@ -11,6 +11,7 @@ use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentRequestVersion;
 use App\Models\User;
 use App\Models\Vacancy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -121,6 +122,77 @@ class RecruitmentRequestSubmissionService
         return $version;
     }
 
+    /**
+     * One active request per subject per type.
+     *
+     * A fill request tied to a specific vacancy uses that vacancy as its
+     * subject. Every other request uses the position. Filling an unassigned
+     * seat and removing an approved empty seat from the same position are
+     * contradictory intentions and are refused against each other.
+     *
+     * Rejected and cancelled requests are final and release the subject at once,
+     * which is why they are not in self::ACTIVE.
+     */
+    public function assertNoActiveDuplicate(RecruitmentRequest $request): void
+    {
+        $type = (int) $request->request_type;
+        $vacancyScoped = $type === Type::FillVacancy;
+
+        $base = RecruitmentRequest::query()
+            ->when($request->exists, fn (Builder $query): Builder => $query->whereKeyNot($request->getKey()))
+            ->where(function (Builder $query) use ($type): void {
+                $query->whereIn('status', self::ACTIVE);
+                if ($type === Type::FillVacancy) {
+                    $query->orWhere(fn (Builder $fill): Builder => $fill->blockingFill());
+                }
+            });
+
+        if ($vacancyScoped && $request->target_vacancy_id !== null) {
+            // Same intention twice, or the opposite intention, on one vacancy.
+            $clash = (clone $base)
+                ->where(function (Builder $subject) use ($request): void {
+                    $subject->where('target_vacancy_id', $request->target_vacancy_id)
+                        ->orWhereHas('vacancy', fn (Builder $vacancy): Builder => $vacancy->whereKey($request->target_vacancy_id))
+                        ->orWhere(fn (Builder $position): Builder => $position
+                            ->where('target_position_id', $request->target_position_id)->whereNull('target_vacancy_id')
+                            ->whereDoesntHave('vacancy'));
+                })
+                ->whereIn('request_type', [Type::FillVacancy, Type::CloseVacancy])
+                ->first(['request_number']);
+
+            if ($clash !== null) {
+                throw ValidationException::withMessages([
+                    'data.vacancy_id' => __('recruitment.duplicate_vacancy_request', [
+                        'number' => $clash->request_number,
+                    ]),
+                ]);
+            }
+
+            return;
+        }
+
+        if ($request->target_position_id === null) {
+            return;
+        }
+
+        $positionTypes = in_array($type, [Type::FillVacancy, Type::CloseVacancy], true)
+            ? [Type::FillVacancy, Type::CloseVacancy]
+            : [$type];
+
+        $clash = $base
+            ->where('target_position_id', $request->target_position_id)
+            ->whereIn('request_type', $positionTypes)
+            ->first(['request_number']);
+
+        if ($clash !== null) {
+            throw ValidationException::withMessages([
+                'data.position_id' => __('recruitment.duplicate_position_request', [
+                    'number' => $clash->request_number,
+                ]),
+            ]);
+        }
+    }
+
     private function submitWithin(User $actor, RecruitmentRequest $request): RecruitmentRequest
     {
         return DB::transaction(function () use ($actor, $request) {
@@ -225,66 +297,6 @@ class RecruitmentRequestSubmissionService
             Type::CloseVacancy => ['reason', 'effective_date'],
             default => [],
         };
-    }
-
-    /**
-     * One active request per subject per type.
-     *
-     * A fill request tied to a specific vacancy uses that vacancy as its
-     * subject. Every other request uses the position. Filling an unassigned
-     * seat and removing an approved empty seat from the same position are
-     * contradictory intentions and are refused against each other.
-     *
-     * Rejected and cancelled requests are final and release the subject at once,
-     * which is why they are not in self::ACTIVE.
-     */
-    private function assertNoActiveDuplicate(RecruitmentRequest $request): void
-    {
-        $type = (int) $request->request_type;
-        $vacancyScoped = $type === Type::FillVacancy;
-
-        $base = RecruitmentRequest::query()
-            ->whereKeyNot($request->getKey())
-            ->whereIn('status', self::ACTIVE);
-
-        if ($vacancyScoped && $request->target_vacancy_id !== null) {
-            // Same intention twice, or the opposite intention, on one vacancy.
-            $clash = (clone $base)
-                ->where('target_vacancy_id', $request->target_vacancy_id)
-                ->whereIn('request_type', [Type::FillVacancy, Type::CloseVacancy])
-                ->first(['request_number']);
-
-            if ($clash !== null) {
-                throw ValidationException::withMessages([
-                    'data.vacancy_id' => __('recruitment.duplicate_vacancy_request', [
-                        'number' => $clash->request_number,
-                    ]),
-                ]);
-            }
-
-            return;
-        }
-
-        if ($request->target_position_id === null) {
-            return;
-        }
-
-        $positionTypes = in_array($type, [Type::FillVacancy, Type::CloseVacancy], true)
-            ? [Type::FillVacancy, Type::CloseVacancy]
-            : [$type];
-
-        $clash = $base
-            ->where('target_position_id', $request->target_position_id)
-            ->whereIn('request_type', $positionTypes)
-            ->first(['request_number']);
-
-        if ($clash !== null) {
-            throw ValidationException::withMessages([
-                'data.position_id' => __('recruitment.duplicate_position_request', [
-                    'number' => $clash->request_number,
-                ]),
-            ]);
-        }
     }
 
     /**

@@ -22,7 +22,6 @@
 
     <x-recruitment.editor-context
         :campaign="$campaign"
-        :subtitle="__('recruitment.job_post.subtitle')"
         :version-number="$versionNumber"
         :version-status="$versionStatus"
         :published-version-number="$publishedVersionNumber"

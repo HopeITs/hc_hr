@@ -24,6 +24,9 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class RequestTable extends LivewireTable
 {
+    /** Opening of the page's one neutral pill; callers close the class attribute. */
+    private const PILL = '<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark';
+
     public string $sortColumn = 'created_at';
 
     public string $sortDirection = 'desc';
@@ -81,7 +84,11 @@ class RequestTable extends LivewireTable
     protected function columns(): array
     {
         return [
-            Column::make(__('recruitment.number'), 'request_number')->sortable()->searchable(),
+            // Long generated numbers are shortened with an ellipsis; the full value stays in the title and for screen readers.
+            Column::make(__('recruitment.number'), 'request_number')
+                ->displayUsing(fn ($value): string => '<span title="'.e($value).'" class="block max-w-40 truncate font-semibold tabular-nums text-neutral-900"><bdi>'.e($value).'</bdi></span>')
+                ->asHtml()
+                ->sortable()->searchable(),
 
             SelectColumn::make(__('recruitment.type'), 'request_type')
                 ->options($this->enumOptions(RecruitmentRequestType::class, 'request_type'))
@@ -90,7 +97,8 @@ class RequestTable extends LivewireTable
 
             SelectColumn::make(__('recruitment.status'), 'status')
                 ->options($this->enumOptions(RecruitmentRequestStatus::class, 'status'))
-                ->displayUsing(fn ($value) => RecruitmentRequestStatus::getLocalizedName((int) $value)['value'])
+                ->displayUsing(fn ($value): string => $this->statusPill((int) $value))
+                ->asHtml()
                 ->sortable()->searchable(),
 
             SelectColumn::make(__('recruitment.mode'), 'mode')
@@ -104,9 +112,10 @@ class RequestTable extends LivewireTable
                 'priority',
             )
                 ->options($this->priorityOptions())
-                ->displayUsing(fn ($value, Model $request): string => $this->priorityLabel(
+                ->displayUsing(fn ($value, Model $request): string => $this->priorityCell(
                     $this->requestPriority($request),
                 ))
+                ->asHtml()
                 ->searchable(fn (Builder $query, mixed $search, SearchScope $scope) => $this
                     ->applyPrioritySearch($query, $search, $scope)),
 
@@ -118,16 +127,25 @@ class RequestTable extends LivewireTable
 
             SelectColumn::make(__('recruitment.city'), 'scope_city_id')
                 ->options($this->cityOptions())
-                ->displayUsing(fn ($value, Model $request) => $request->scopeCity?->name ?? '—')
+                ->displayUsing(fn ($value, Model $request): string => $this->plainCell($request->scopeCity?->name))
+                ->asHtml()
                 ->searchable(),
 
             SelectColumn::make(__('recruitment.position'), 'target_position_id')
                 ->options($this->positionOptions())
-                ->displayUsing(fn ($value, Model $request) => $request->targetPosition?->title ?? '—')
+                ->displayUsing(fn ($value, Model $request): string => $this->plainCell($request->targetPosition?->title))
+                ->asHtml()
                 ->searchable(),
 
             Column::make(__('recruitment.created_at'), 'created_at')
-                ->displayUsing(fn ($value) => $value?->format('Y-m-d H:i'))->sortable(),
+                // Date on top, time underneath: the column reads as dates and stays narrow.
+                ->displayUsing(fn ($value): string => $value === null
+                    ? '<span class="text-secondary-light">—</span>'
+                    : '<time datetime="'.e($value->toIso8601String()).'" class="block whitespace-nowrap tabular-nums">'
+                        .'<span class="block text-secondary-dark">'.e($value->translatedFormat('j M Y')).'</span>'
+                        .'<span class="block text-xs text-secondary-medium">'.e($value->format('H:i')).'</span></time>')
+                ->asHtml()
+                ->sortable(),
 
             // An approved request has a seat waiting to be advertised, and the
             // person who advertises it is HR. Handing the vacancy over here
@@ -214,19 +232,30 @@ class RequestTable extends LivewireTable
         });
     }
 
+    /**
+     * Monogram + name. A request waiting on the viewer gets a red-outlined
+     * marker under the name: the only red in the table, because it is the
+     * only thing in a row that asks the viewer to act.
+     */
     private function requesterCell(Model $request): string
     {
         return Blade::render(
             <<<'BLADE'
-                <div class="space-y-1.5">
-                    <div>{{ $name }}</div>
-                    @if ($needsReview)
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <span class="inline-flex h-5 items-center rounded-full bg-primary px-2 text-xs leading-none font-semibold text-white">
+                @php
+                    $initials = collect(preg_split('/\s+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [])
+                        ->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: '?';
+                @endphp
+                <div class="flex min-w-40 items-center gap-2.5">
+                    <span aria-hidden="true" class="inline-flex size-8 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-caption font-semibold text-secondary-dark">{{ $initials }}</span>
+                    <div class="min-w-0">
+                        <div class="whitespace-nowrap text-neutral-900"><bdi>{{ $name }}</bdi></div>
+                        @if ($needsReview)
+                            <span class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-control border border-primary bg-white px-1.5 py-px text-xs font-semibold text-primary">
+                                <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
                                 {{ __('recruitment.needs_my_review') }}
                             </span>
-                        </div>
-                    @endif
+                        @endif
+                    </div>
                 </div>
                 BLADE,
             [
@@ -234,6 +263,53 @@ class RequestTable extends LivewireTable
                 'needsReview' => isset($this->pendingReviewLookup()[(int) $request->getKey()]),
             ],
         );
+    }
+
+    /**
+     * Status as one grey pill with a stage dot: hollow while it is still with
+     * the requester, mid-grey while under review, solid ink once approved or
+     * applied, faded once it is out of the process.
+     */
+    private function statusPill(int $status): string
+    {
+        $dot = match ($status) {
+            RecruitmentRequestStatus::Draft, RecruitmentRequestStatus::ChangesRequested => 'border border-neutral-500 bg-white',
+            RecruitmentRequestStatus::Submitted, RecruitmentRequestStatus::UnderReview,
+            RecruitmentRequestStatus::Resubmitted => 'bg-neutral-500',
+            RecruitmentRequestStatus::Approved, RecruitmentRequestStatus::Applied => 'bg-neutral-900',
+            RecruitmentRequestStatus::FailedApplication => 'bg-primary',
+            default => 'bg-neutral-300',
+        };
+
+        return self::PILL.'"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full '.$dot.'"></span>'
+            .e(RecruitmentRequestStatus::getLocalizedName($status)['value']).'</span>';
+    }
+
+    /** Priority as a short bar meter: one, two or three filled steps. Urgent is the darkest, never red. */
+    private function priorityCell(?string $priority): string
+    {
+        if ($priority === null) {
+            return '<span class="text-secondary-light">—</span>';
+        }
+
+        $level = match ($priority) {
+            'urgent' => 3,
+            'high' => 2,
+            default => 1,
+        };
+
+        $bars = collect([1, 2, 3])->map(fn (int $step): string => '<span class="w-1 rounded-full '
+            .($step <= $level ? 'bg-neutral-900' : 'bg-neutral-200').'" style="height:'.(4 + $step * 3).'px"></span>')->implode('');
+
+        return '<span class="inline-flex items-center gap-2 whitespace-nowrap"><span aria-hidden="true" class="flex items-end gap-0.5">'.$bars.'</span>'
+            .'<span class="'.($level === 3 ? 'font-semibold text-neutral-900' : 'text-secondary-dark').'">'.e($this->priorityLabel($priority)).'</span></span>';
+    }
+
+    private function plainCell(?string $value): string
+    {
+        return $value === null || $value === ''
+            ? '<span class="text-secondary-light">—</span>'
+            : '<span class="whitespace-nowrap text-secondary-dark">'.e($value).'</span>';
     }
 
     /** @return array<int, true> */
@@ -358,10 +434,11 @@ class RequestTable extends LivewireTable
     private function campaignButton(string $url, string $label, bool $outlined = false): string
     {
         return Blade::render(
-            '<a href="{{ $url }}" wire:navigate @class(['
-            .'"inline-flex h-7 min-h-7 w-40 items-center justify-center rounded-control px-3 py-0 text-center text-sm font-semibold transition", '
-            .'"border border-primary text-primary hover:bg-neutral-50" => $outlined, '
-            .'"bg-primary text-white hover:bg-primary-600" => ! $outlined, '
+            // Solid ink for the next step, quiet outline for "view"; both one width so the column lines up.
+            '<a href="{{ $url }}" wire:navigate x-on:click.stop @class(['
+            .'"inline-flex h-8 w-40 items-center justify-center whitespace-nowrap rounded-control border px-3 text-center text-sm font-semibold shadow-e1 transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", '
+            .'"border-neutral-200 bg-white text-secondary-dark hover:bg-selection" => $outlined, '
+            .'"border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-800" => ! $outlined, '
             .'])>{{ $label }}</a>',
             compact('url', 'label', 'outlined'),
         );

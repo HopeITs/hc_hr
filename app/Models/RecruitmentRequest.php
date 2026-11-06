@@ -89,6 +89,28 @@ class RecruitmentRequest extends Model
         return app(RecruitmentScopeResolver::class)->scopeRequests($query, $user);
     }
 
+    public function scopeBlockingFill(Builder $query): Builder
+    {
+        return $query->where('request_type', \App\Enums\RecruitmentRequestType::FillVacancy)
+            ->where(function (Builder $statuses): void {
+                $statuses->whereIn('status', [
+                    \App\Enums\RecruitmentRequestStatus::Submitted,
+                    \App\Enums\RecruitmentRequestStatus::UnderReview,
+                    \App\Enums\RecruitmentRequestStatus::ChangesRequested,
+                    \App\Enums\RecruitmentRequestStatus::Resubmitted,
+                    \App\Enums\RecruitmentRequestStatus::Approved,
+                ])->orWhere(function (Builder $applied): void {
+                    $unfilled = fn (Builder $vacancies): Builder => $vacancies
+                        ->where('status', Vacancy::OPEN)->whereNull('closed_at')
+                        ->whereColumn('filled_count', '<', 'needed_count');
+
+                    $applied->where('status', \App\Enums\RecruitmentRequestStatus::Applied)
+                        ->where(fn (Builder $vacancies): Builder => $vacancies
+                            ->whereHas('vacancy', $unfilled)->orWhereHas('targetVacancy', $unfilled));
+                });
+            });
+    }
+
     protected function casts(): array
     {
         return [

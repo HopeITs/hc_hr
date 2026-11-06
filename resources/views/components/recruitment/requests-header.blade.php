@@ -1,4 +1,4 @@
-@props(['title', 'description', 'current'])
+@props(['title', 'description' => null, 'current'])
 
 {{--
     The head of both recruitment request tabs.
@@ -21,7 +21,9 @@
     <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div class="min-w-0">
             <livewire:layout.breadcrumbs :title="$title" :crumbs="$crumbs" />
-            <p class="max-w-2xl text-secondary-medium">{{ $description }}</p>
+            @if ($description)
+                <p class="max-w-2xl text-secondary-medium">{{ $description }}</p>
+            @endif
         </div>
 
         {{-- The primary action stays here on both tabs, so it never moves as

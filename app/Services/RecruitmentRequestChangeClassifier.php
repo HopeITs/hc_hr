@@ -98,7 +98,7 @@ class RecruitmentRequestChangeClassifier
         self::SUBSTANTIVE => [
             'request_type', 'position_id', 'vacancy_id', 'city_id', 'program_id',
             'center_id', 'department_id', 'job_level_id',
-            'max_emp', 'additional_count', 'reduce_by',
+            'max_emp', 'additional_count', 'reduce_by', 'volunteers_required',
         ],
         self::FINANCIAL => [
             'salary_amount', 'currency', 'salary_per', 'contract_type_id',

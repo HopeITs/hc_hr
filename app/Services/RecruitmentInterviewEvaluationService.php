@@ -6,6 +6,7 @@ use App\Enums\RecruitmentEvaluationRecommendation as Recommendation;
 use App\Enums\RecruitmentInterviewStatus as Status;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation as Evaluation;
+use App\Models\RecruitmentInterviewEvaluationNote as EvaluationNote;
 use App\Models\RecruitmentInterviewEvaluationRevision as Revision;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -17,9 +18,7 @@ use Illuminate\Validation\ValidationException;
  * Phase 2 Task 8: every write to an interview evaluation goes through here.
  *
  * - submit(): a participant writes or edits their own evaluation.
- * - correct(): HR fixes a mistake in someone else's, with a reason.
- * - withdraw(): HR takes one out of the aggregate, with a reason. Nothing is
- *   ever deleted.
+ * - addNote(): HR records a separate opinion without changing the review.
  * - close(): HR closes evaluation of a completed interview.
  *
  * Every method authorizes the actor itself (components check too), then
@@ -27,13 +26,13 @@ use Illuminate\Validation\ValidationException;
  * then the evaluation. Two reviewers writing at once each write their own
  * row, one after the other; the unique (interview, reviewer) key makes a
  * second row for the same reviewer impossible. A save made against an older
- * version than the one stored (another tab, or HR correcting meanwhile) is
- * refused instead of silently overwriting it.
+ * version than the one stored in another tab is refused instead of silently
+ * overwriting it.
  *
- * Every change bumps the version and appends a full revision (who, when,
- * why, and the content after the change), so no edit loses the history, and
- * logs an activity entry that names what changed without repeating it: the
- * activity log is read outside recruitment scope, evaluations are not.
+ * Every participant edit bumps the version and appends a full revision (who,
+ * when, and the content after the change), so no edit loses the history. HR
+ * notes are append-only separate records. Activity entries never repeat the
+ * protected evaluation or note text.
  *
  * A recommendation is one reviewer's advice. Nothing here reads or changes
  * the application's status: the hiring decision stays in
@@ -124,64 +123,47 @@ class RecruitmentInterviewEvaluationService
         }
     }
 
-    /**
-     * HR corrects a mistake in someone else's evaluation — allowed after
-     * evaluation closed, never without a reason, never without history.
-     *
-     * @param  array{pros?: mixed, cons?: mixed, notes?: mixed, recommendation?: mixed}  $input
-     */
-    public function correct(User $actor, Evaluation $evaluation, int $expectedVersion, array $input, ?string $reason): Evaluation
+    /** HR adds an internal opinion without changing the participant's evaluation. */
+    public function addNote(User $actor, Evaluation $evaluation, ?string $body): EvaluationNote
     {
-        Gate::forUser($actor)->authorize('correct', $evaluation);
-        $content = $this->validateContent($input);
-        $reason = $this->validateReason($reason);
+        Gate::forUser($actor)->authorize('addNote', $evaluation);
 
-        return DB::transaction(function () use ($actor, $evaluation, $expectedVersion, $content, $reason): Evaluation {
-            $interview = $this->lockInterview($evaluation->interview()->firstOrFail());
-            $locked = Evaluation::query()->whereKey($evaluation->getKey())->lockForUpdate()->firstOrFail();
+        $body = trim((string) $body);
+        $max = (int) config('recruitment.evaluations.max_text_length', 5000);
 
-            if ($locked->isWithdrawn()) {
-                throw ValidationException::withMessages(['evaluation' => __('recruitment-applicant.evaluations.errors.withdrawn')]);
-            }
+        if ($body === '') {
+            throw ValidationException::withMessages([
+                'opinionNote' => __('recruitment-applicant.evaluations.errors.note_required'),
+            ]);
+        }
 
-            $this->assertVersion($locked, $expectedVersion);
+        if (mb_strlen($body) > $max) {
+            throw ValidationException::withMessages([
+                'opinionNote' => __('recruitment-applicant.evaluations.errors.too_long', ['max' => $max]),
+            ]);
+        }
 
-            if ($this->changedFields($locked, $content) === []) {
-                throw ValidationException::withMessages(['evaluation' => __('recruitment-applicant.evaluations.errors.no_changes')]);
-            }
+        $note = EvaluationNote::query()->forceCreate([
+            'evaluation_id' => $evaluation->getKey(),
+            'author_user_id' => $actor->getKey(),
+            'body' => $body,
+        ]);
 
-            return $this->change($actor, $interview, $locked, $content, Evaluation::ACTION_CORRECTED, $reason);
-        });
-    }
+        $this->activity->log(
+            'recruitment_interview_evaluation.note_added',
+            subject: $evaluation,
+            causer: $actor,
+            properties: [
+                'interview_id' => $evaluation->interview_id,
+                'application_id' => $evaluation->interview()->value('application_id'),
+                'reviewer_user_id' => (int) $evaluation->reviewer_user_id,
+                'note_id' => $note->getKey(),
+                'role' => $actor->myRole(),
+            ],
+            logName: self::AUDIT_LOG,
+        );
 
-    /** HR takes an evaluation out of the aggregate. Its content and history stay. */
-    public function withdraw(User $actor, Evaluation $evaluation, int $expectedVersion, ?string $reason): Evaluation
-    {
-        Gate::forUser($actor)->authorize('withdraw', $evaluation);
-        $reason = $this->validateReason($reason);
-
-        return DB::transaction(function () use ($actor, $evaluation, $expectedVersion, $reason): Evaluation {
-            $interview = $this->lockInterview($evaluation->interview()->firstOrFail());
-            $locked = Evaluation::query()->whereKey($evaluation->getKey())->lockForUpdate()->firstOrFail();
-
-            if ($locked->isWithdrawn()) {
-                throw ValidationException::withMessages(['evaluation' => __('recruitment-applicant.evaluations.errors.withdrawn')]);
-            }
-
-            $this->assertVersion($locked, $expectedVersion);
-
-            $locked->forceFill([
-                'version' => $locked->version + 1,
-                'updated_by_user_id' => $actor->getKey(),
-                'withdrawn_at' => now(),
-                'withdrawn_by_user_id' => $actor->getKey(),
-                'withdrawal_reason' => $reason,
-            ])->save();
-
-            $this->record($actor, $interview, $locked, Evaluation::ACTION_WITHDRAWN, [], $reason);
-
-            return $locked;
-        });
+        return $note;
     }
 
     /** HR closes evaluation of a completed interview; reviewers can no longer edit. */
@@ -275,18 +257,6 @@ class RecruitmentInterviewEvaluationService
         }
 
         return $content;
-    }
-
-    private function validateReason(?string $reason): string
-    {
-        $reason = trim((string) $reason);
-        $min = (int) config('recruitment.evaluations.min_reason_length', 10);
-
-        if (mb_strlen($reason) < $min) {
-            throw ValidationException::withMessages(['reason' => __('recruitment-applicant.evaluations.errors.reason_required', ['min' => $min])]);
-        }
-
-        return $reason;
     }
 
     /** Applies $content, bumps the version and records the revision. */

@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Recruitment\Applicants;
 
-use App\Livewire\Concerns\WithFeedback;
+use App\Livewire\Features\SupportToasts;
 use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplication;
@@ -35,8 +35,6 @@ use Livewire\Component;
  */
 class Show extends Component
 {
-    use WithFeedback;
-
     #[Locked]
     public int $applicantId;
 
@@ -221,7 +219,7 @@ class Show extends Component
         $applicant = $this->resolveApplicant();
 
         $applications = $applicant->applications()
-            ->visibleTo($user)
+            ->profileVisibleTo($user)
             ->with([
                 'campaign.vacancy.createdFromRequest.scopeCity',
                 'campaign.vacancy.position',
@@ -241,6 +239,10 @@ class Show extends Component
             ->latest('id')
             ->get();
 
+        $normalScopeApplicationIds = $applicant->applications()
+            ->visibleTo($user)
+            ->pluck('id');
+
         $totalApplications = $applicant->applications()->count();
 
         // Files with no application left to inherit scope from belong to the
@@ -254,6 +256,9 @@ class Show extends Component
         return view('livewire.recruitment.applicants.show', [
             'applicant' => $applicant,
             'applications' => $applications,
+            'normalScopeApplicationIds' => $normalScopeApplicationIds,
+            'canViewInternalNotes' => $normalScopeApplicationIds->isNotEmpty()
+                || $scopes->ownsApplicantRecord($user, $applicant),
             'currentApplication' => $applications->first(),
             // A count only: what the other applications were stays out of scope.
             'hiddenApplications' => max(0, $totalApplications - $applications->count()),
@@ -395,7 +400,9 @@ class Show extends Component
     {
         return $applications
             ->mapWithKeys(fn (RecruitmentApplication $application): array => [
-                $application->getKey() => $statuses->targetsFor(auth()->user(), $application),
+                $application->getKey() => app(RecruitmentScopeResolver::class)->canAccessApplication(auth()->user(), $application)
+                    ? $statuses->targetsFor(auth()->user(), $application)
+                    : [],
             ])
             ->all();
     }
@@ -417,7 +424,7 @@ class Show extends Component
         $this->resolveApplicant();
 
         $application = RecruitmentApplication::query()
-            ->visibleTo(auth()->user())
+            ->profileVisibleTo(auth()->user())
             ->where('applicant_id', $this->applicantId)
             ->findOrFail($applicationId);
 
@@ -437,7 +444,7 @@ class Show extends Component
 
         $visible = $file->application_id === null
             ? app(RecruitmentScopeResolver::class)->ownsApplicantRecord(auth()->user(), $applicant)
-            : RecruitmentApplication::query()->visibleTo(auth()->user())->whereKey($file->application_id)->exists();
+            : RecruitmentApplication::query()->profileVisibleTo(auth()->user())->whereKey($file->application_id)->exists();
 
         if (! $visible) {
             throw (new ModelNotFoundException)->setModel(RecruitmentApplicantFile::class, [$fileId]);
@@ -462,5 +469,11 @@ class Show extends Component
         $this->addError('statusReason', __('recruitment-applicant.decisions.internal_note_required'));
 
         return false;
+    }
+
+    /** Reports the result without moving page content. */
+    private function toast(string $message): void
+    {
+        SupportToasts::queue($this, ['type' => 'success', 'message' => $message, 'undo' => null]);
     }
 }

@@ -33,6 +33,9 @@ class PendingApprovalTable extends LivewireTable
     /** From this many days a wait is marked as long. */
     public const LONG_WAIT_DAYS = 3;
 
+    /** A wait this long fills the meter. */
+    private const METER_FULL_DAYS = 7;
+
     public string $sortColumn = 'waiting';
 
     public string $sortDirection = 'asc';
@@ -69,10 +72,13 @@ class PendingApprovalTable extends LivewireTable
             Column::make(__('recruitment-workflow.request'), function (RecruitmentWorkflowInstanceStep $step): string {
                 $request = $step->workflowInstance->request;
                 $position = $request->targetPosition;
-                $detail = collect([$position?->title, $position?->center?->name])->filter()->implode(' · ');
 
-                return '<span class="block font-semibold text-neutral-900">'.e($request->request_number).'</span>'
-                    .($detail !== '' ? '<span class="block text-xs text-secondary-medium">'.e($detail).'</span>' : '');
+                return '<span class="block min-w-48">'
+                    .'<span class="block break-words font-semibold text-neutral-900"><bdi>'.e($position?->title ?? $request->request_number).'</bdi></span>'
+                    .'<span class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-secondary-medium">'
+                    .'<span title="'.e($request->request_number).'" class="max-w-40 truncate tabular-nums"><bdi>'.e($request->request_number).'</bdi></span>'
+                    .($position?->center?->name ? '<span aria-hidden="true">·</span><span>'.e($position->center->name).'</span>' : '')
+                    .'</span></span>';
             }, 'request')
                 ->asHtml()
                 ->sortable(fn (Builder $query, Direction $direction) => $query->orderBy('pending_requests.request_number', $direction->value))
@@ -80,15 +86,23 @@ class PendingApprovalTable extends LivewireTable
                     ? $query->whereLike('pending_requests.request_number', '%'.$search.'%')
                     : null),
 
-            Column::make(__('recruitment-workflow.request_type'), fn (RecruitmentWorkflowInstanceStep $step): string => RecruitmentRequestType::getLocalizedName((int) $step->workflowInstance->request->request_type)['value'], 'type'),
+            Column::make(__('recruitment-workflow.request_type'), fn (RecruitmentWorkflowInstanceStep $step): string => '<span class="inline-flex whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark">'
+                .e(RecruitmentRequestType::getLocalizedName((int) $step->workflowInstance->request->request_type)['value']).'</span>', 'type')
+                ->asHtml(),
 
             Column::make(__('recruitment-workflow.requester'), function (RecruitmentWorkflowInstanceStep $step): string {
                 $request = $step->workflowInstance->request;
                 $name = $request->requester?->profile?->name ?? $request->requester?->name ?? '—';
                 $city = $request->scopeCity?->name;
 
-                return '<span class="block text-neutral-900">'.e($name).'</span>'
-                    .($city ? '<span class="block text-xs text-secondary-medium">'.e($city).'</span>' : '');
+                $initials = collect(preg_split('/\s+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [])
+                    ->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: '?';
+
+                return '<span class="flex items-center gap-2.5 whitespace-nowrap">'
+                    .'<span aria-hidden="true" class="inline-flex size-8 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-secondary-dark">'.e($initials).'</span>'
+                    .'<span><span class="block text-neutral-900"><bdi>'.e($name).'</bdi></span>'
+                    .($city ? '<span class="block text-xs text-secondary-medium">'.e($city).'</span>' : '')
+                    .'</span></span>';
             }, 'requester')
                 ->asHtml()
                 ->searchable(fn (Builder $query, mixed $search) => is_string($search)
@@ -101,13 +115,14 @@ class PendingApprovalTable extends LivewireTable
                     : null),
 
             Column::make(__('recruitment-workflow.your_step'), function (RecruitmentWorkflowInstanceStep $step): string {
-                return '<span class="inline-block whitespace-nowrap rounded-control border border-primary px-2 py-0.5 text-xs font-semibold text-primary">'
+                return '<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-small text-secondary-dark">'
+                    .'<svg class="size-4 shrink-0 text-secondary-medium" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>'
                     .e(WorkflowStepKey::getLocalizedName((int) $step->workflowStep->step_key)['value']).'</span>';
             }, 'step')->asHtml(),
 
             Column::make(__('recruitment-workflow.waiting'), function (RecruitmentWorkflowInstanceStep $step): string {
                 if ($step->waiting_since === null) {
-                    return '—';
+                    return '<span class="text-secondary-light">—</span>';
                 }
 
                 $since = CarbonImmutable::parse($step->waiting_since);
@@ -117,13 +132,22 @@ class PendingApprovalTable extends LivewireTable
                     ? __('recruitment-workflow.waiting_today')
                     : trans_choice('recruitment-workflow.waiting_days', $days, ['count' => $days]);
 
-                return '<span class="flex items-center gap-1.5 whitespace-nowrap '.($long ? 'font-semibold text-primary' : 'text-neutral-900').'">'
-                    .($long ? '<span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>' : '')
-                    .e($label).'</span>'
-                    .'<span class="block text-xs text-secondary-medium">'.e($since->format('Y-m-d H:i')).'</span>';
+                $fill = min(100, (int) round(max($days, 0.5) / self::METER_FULL_DAYS * 100));
+
+                return '<span class="block min-w-28">'
+                    .'<span class="flex items-center gap-1.5 whitespace-nowrap '.($long ? 'font-semibold text-primary' : 'text-neutral-900').'">'.e($label).'</span>'
+                    .'<span aria-hidden="true" class="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-neutral-200"><span class="block h-full rounded-full '.($long ? 'bg-primary' : 'bg-neutral-500').'" style="width:'.$fill.'%"></span></span>'
+                    .'<time datetime="'.e($since->toIso8601String()).'" class="mt-1 block text-xs tabular-nums text-secondary-medium">'.e(__('recruitment-workflow.since', ['date' => $since->translatedFormat('j M, H:i')])).'</time>'
+                    .'</span>';
             }, 'waiting')
                 ->asHtml()
                 ->sortable(fn (Builder $query, Direction $direction) => $query->orderBy('waiting_since', $direction->value)),
+
+            Column::make(__('recruitment-workflow.review'), fn (RecruitmentWorkflowInstanceStep $step): string => '<a href="'.e($this->link($step)).'" x-on:click.stop'
+                .' aria-label="'.e(__('recruitment-workflow.review_request', ['number' => $step->workflowInstance->request->request_number])).'"'
+                .' class="inline-flex min-h-11 sm:min-h-10 items-center gap-1.5 whitespace-nowrap rounded-control border border-neutral-900 bg-neutral-900 px-3 text-sm font-semibold text-white shadow-e1 transition duration-150 hover:opacity-90 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">'
+                .e(__('recruitment-workflow.review')).'</a>', 'action')
+                ->asHtml(),
         ];
     }
 

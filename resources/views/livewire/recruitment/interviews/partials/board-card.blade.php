@@ -13,6 +13,11 @@
     $start = $interview->scheduled_at->copy()->setTimezone($zone);
     $end = $interview->ends_at?->copy()->setTimezone($zone);
     $underWay = $lane === 'upcoming' && $end !== null && $interview->scheduled_at->lte(now()) && $interview->ends_at->isFuture();
+    $dayLabel = match (true) {
+        $start->isToday() => __('recruitment-applicant.interviews.today'),
+        $start->isTomorrow() => __('recruitment-applicant.interviews.board.tomorrow'),
+        default => $start->translatedFormat('D j M'),
+    };
 
     $position = $interview->application?->vacancy?->position?->{transColumn('title')};
 
@@ -44,7 +49,7 @@
     $reasonKey = 'recruitment-applicant.interviews.cancellation_reasons.'.$interview->cancellation_reason;
 @endphp
 <li wire:key="board-card-{{ $interview->id }}"
-    class="relative rounded-control border border-neutral-200 bg-white p-3 shadow-e1 transition duration-200 hover:border-neutral-300 hover:shadow-e2 motion-reduce:transition-none has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-2 has-[.card-link:focus-visible]:outline-primary"
+    class="relative rounded-surface border border-neutral-200 bg-white p-4 transition duration-200 hover:border-neutral-300 hover:shadow-e1 motion-reduce:transition-none has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-2 has-[.card-link:focus-visible]:outline-primary"
     x-bind:class="thread === null ? '' : (thread === {{ $appId }} ? 'ring-2 ring-neutral-900 shadow-e2' : 'opacity-40')"
     @if ($threaded)
         x-on:mouseenter="thread = {{ $appId }}" x-on:mouseleave="thread = null"
@@ -59,22 +64,27 @@
             {{ $start->format('H:i') }}@if ($end)&ndash;{{ $end->format('H:i') }}@endif
         </time>
 
-        @if ($underWay)
-            <span class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-neutral-900 px-2 py-0.5 text-xs font-semibold text-white">
-                <span class="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" aria-hidden="true"></span>
-                {{ __('recruitment-applicant.interviews.board.now') }}
-            </span>
-        @elseif ($status !== RecruitmentInterviewStatus::Scheduled)
-            <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($status)">{{ __('recruitment-applicant.interviews.statuses.'.$status) }}</x-recruitment.pill>
-        @endif
+        <div class="flex shrink-0 items-center gap-2">
+            @if ($lane === 'upcoming')
+                <span class="text-caption font-semibold uppercase tracking-wider text-secondary-medium">{{ $dayLabel }}</span>
+            @endif
+            @if ($underWay)
+                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-secondary-dark px-2 py-0.5 text-xs font-semibold text-white">
+                    <span class="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" aria-hidden="true"></span>
+                    {{ __('recruitment-applicant.interviews.board.now') }}
+                </span>
+            @elseif ($status !== RecruitmentInterviewStatus::Scheduled)
+                <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($status)">{{ __('recruitment-applicant.interviews.statuses.'.$status) }}</x-recruitment.pill>
+            @endif
+        </div>
     </div>
 
-    <div class="mt-2 flex items-center gap-2.5">
+    <div class="mt-3 flex items-center gap-3">
         <x-recruitment.monogram :name="$interview->application?->applicant?->full_name" tone="candidate" />
         <div class="min-w-0">
             <h3 class="truncate text-body font-semibold text-neutral-900">
                 <a href="{{ $showUrl }}" wire:navigate
-                   @class(['card-link after:absolute after:inset-0 after:rounded-control focus-visible:outline-none', 'line-through' => $lane === 'closed'])>{{ $interview->application?->applicant?->full_name }}</a>
+                   @class(['card-link after:absolute after:inset-0 after:rounded-surface focus-visible:outline-none', 'line-through' => $lane === 'closed'])>{{ $interview->application?->applicant?->full_name }}</a>
             </h3>
             <p class="truncate text-small text-secondary-medium">
                 @if ($position)
@@ -93,7 +103,7 @@
     @endif
 
     {{-- Round track: which of the candidate's rounds this is, and where the others stand. Logical start/end, so it mirrors in RTL. --}}
-    <ol class="pointer-events-none isolate mt-3 grid grid-cols-3" aria-label="{{ __('recruitment-applicant.interviews.board.rounds') }}">
+    <ol class="pointer-events-none isolate mt-4 grid grid-cols-3" aria-label="{{ __('recruitment-applicant.interviews.board.rounds') }}">
         @foreach ($rounds as $round)
             <li @class([
                 'relative flex flex-col items-center gap-1',
@@ -102,7 +112,7 @@
             ])>
                 <span class="relative z-1 flex h-4 items-center justify-center" aria-hidden="true">
                     @if ($round['this'])
-                        <span class="size-3 rounded-full ring-2 ring-neutral-900 ring-offset-2 ring-offset-white {{ RecruitmentInterviewStatus::dotClasses($round['status']) }}"></span>
+                        <span class="size-3 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-white {{ RecruitmentInterviewStatus::dotClasses($round['status']) }}"></span>
                     @elseif ($round['status'] !== null)
                         <span class="size-2.5 rounded-full {{ RecruitmentInterviewStatus::dotClasses($round['status']) }}"></span>
                     @else
@@ -128,7 +138,7 @@
         @endforeach
     </ol>
 
-    <div class="mt-3 flex items-center justify-between gap-2 border-t border-neutral-100 pt-2.5">
+    <div class="mt-4 flex items-center justify-between gap-2 border-t border-neutral-100 pt-3">
         {{-- Where it is held. Never the meeting link: that is only on the interview page, behind its own permission. --}}
         <p class="flex min-w-0 items-center gap-1 text-small text-secondary-medium">
             @if ($interview->location_type === RecruitmentInterviewLocationType::Online)
@@ -162,7 +172,7 @@
         @if ($pending)
             <div class="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <a href="{{ $showUrl }}#my-evaluation" wire:navigate
-                   class="relative z-10 inline-flex min-h-11 items-center gap-1.5 rounded-control bg-neutral-900 px-3 text-small font-semibold text-white transition duration-150 hover:bg-neutral-800 motion-reduce:transition-none sm:min-h-8 {{ $focusRing }}">
+                   class="relative z-10 inline-flex py-2 items-center gap-1.5 rounded-control bg-primary px-3 text-body font-semibold text-white transition duration-150 hover:bg-primary-hover motion-reduce:transition-none {{ $focusRing }}">
                     {{ __('recruitment-applicant.interviews.board.evaluate') }}
                     <flux:icon.arrow-right variant="micro" class="size-3.5 rtl:rotate-180" />
                 </a>

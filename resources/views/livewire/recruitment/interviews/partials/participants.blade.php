@@ -1,5 +1,9 @@
 {{-- The interview's staff. Removed participants stay listed, struck through, so the history reads true. --}}
-@php use App\Services\RecruitmentInterviewSchedulingService; @endphp
+@php
+    use App\Services\RecruitmentInterviewSchedulingService;
+
+    $requiredByAttendee = $interview->requiredParticipants->groupBy('attendee_user_id');
+@endphp
 <section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
     <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.participants') }}</h2>
     @if ($interview->participants->isEmpty())
@@ -11,6 +15,14 @@
                     <div>
                         <span class="font-medium {{ $participant->removed_at ? 'line-through' : '' }}">{{ $personName($participant->user) }}</span>
                         <span class="text-secondary-medium">&middot; {{ __('recruitment-applicant.interviews.roles.'.$participant->role) }}</span>
+                        @foreach ($requiredByAttendee->get($participant->user_id, collect()) as $required)
+                            <x-recruitment.pill class="ms-2">
+                                {{ __('recruitment-applicant.interviews.required_seats.'.$required->seat) }}
+                                @if ($required->owner_user_id !== $required->attendee_user_id)
+                                    &middot; {{ __('recruitment-applicant.interviews.on_behalf_of', ['name' => $personName($required->owner)]) }}
+                                @endif
+                            </x-recruitment.pill>
+                        @endforeach
                         @unless (RecruitmentInterviewSchedulingService::isActiveUser($participant->user))
                             <x-recruitment.pill class="ms-2">{{ __('recruitment-applicant.interviews.inactive') }}</x-recruitment.pill>
                         @endunless

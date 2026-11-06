@@ -182,6 +182,82 @@ class RecruitmentRequestRulesTest extends TestCase
         $this->assertSame('XX-001', $number);
     }
 
+    public function test_pending_and_approved_fill_requests_block_draft_creation_without_writing_another_request(): void
+    {
+        [$user, $payload] = $this->requester();
+        $first = $this->draft($user, $payload);
+
+        foreach ([\App\Enums\RecruitmentRequestStatus::Submitted, \App\Enums\RecruitmentRequestStatus::UnderReview,
+            \App\Enums\RecruitmentRequestStatus::ChangesRequested, \App\Enums\RecruitmentRequestStatus::Resubmitted,
+            \App\Enums\RecruitmentRequestStatus::Approved] as $status) {
+            $first->forceFill(['status' => $status])->save();
+
+            try {
+                $this->draft($user, $payload);
+                $this->fail('An unfinished fill request must block a duplicate draft.');
+            } catch (ValidationException $exception) {
+                $this->assertStringContainsString($first->request_number, implode(' ', $exception->errors()['data.position_id']));
+            }
+            $this->assertSame(1, RecruitmentRequest::query()->count());
+        }
+    }
+
+    public function test_editing_the_same_active_fill_request_does_not_conflict_with_itself(): void
+    {
+        [$user, $payload] = $this->requester();
+        $request = $this->draft($user, $payload);
+        $request->forceFill(['status' => \App\Enums\RecruitmentRequestStatus::ChangesRequested])->save();
+
+        $updated = app(RecruitmentRequestDraftService::class)->update($user, $request, ['request_type' => Type::FillVacancy] + $payload);
+
+        $this->assertSame($request->id, $updated->id);
+    }
+
+    public function test_applied_fill_blocks_its_unfilled_vacancy_but_releases_it_when_filled(): void
+    {
+        [$user, $payload] = $this->requester();
+        $first = $this->draft($user, $payload);
+        $first->forceFill(['status' => \App\Enums\RecruitmentRequestStatus::Applied])->save();
+        $vacancy = $first->vacancy()->create([
+            'position_id' => $payload['position_id'], 'status' => \App\Models\Vacancy::OPEN,
+            'needed_count' => 1, 'filled_count' => 0, 'open_at' => now()->subDay(),
+        ]);
+
+        try {
+            $this->draft($user, ['vacancy_id' => $vacancy->id] + $payload);
+            $this->fail('The existing hiring request must block its vacancy.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('data.vacancy_id', $exception->errors());
+        }
+        $this->assertSame(1, RecruitmentRequest::query()->count());
+
+        $vacancy->forceFill(['filled_count' => 1, 'status' => \App\Models\Vacancy::FILLED])->save();
+        $newRequest = $this->draft($user, $payload);
+
+        $this->assertNotSame($first->id, $newRequest->id);
+    }
+
+    public function test_a_pending_fill_for_another_named_vacancy_does_not_block_a_new_draft(): void
+    {
+        [$user, $payload] = $this->requester();
+        $origin = $this->draft($user, ['additional_count' => 1] + $payload, Type::IncreaseHeadcount);
+        $one = $origin->vacancy()->create([
+            'position_id' => $payload['position_id'], 'status' => \App\Models\Vacancy::OPEN,
+            'needed_count' => 1, 'filled_count' => 0, 'open_at' => now()->subDay(),
+        ]);
+        $secondOrigin = $this->draft($user, ['additional_count' => 1] + $payload, Type::IncreaseHeadcount);
+        $two = $secondOrigin->vacancy()->create([
+            'position_id' => $payload['position_id'], 'status' => \App\Models\Vacancy::OPEN,
+            'needed_count' => 1, 'filled_count' => 0, 'open_at' => now()->subDay(),
+        ]);
+        $first = $this->draft($user, ['vacancy_id' => $one->id] + $payload);
+        $first->forceFill(['status' => \App\Enums\RecruitmentRequestStatus::UnderReview])->save();
+
+        $second = $this->draft($user, ['vacancy_id' => $two->id] + $payload);
+
+        $this->assertSame($two->id, $second->target_vacancy_id);
+    }
+
     /** @param array<string, mixed> $payload */
     private function draft(User $user, array $payload, int $type = Type::FillVacancy): RecruitmentRequest
     {

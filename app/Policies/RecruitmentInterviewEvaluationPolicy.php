@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Gate;
  *   not other reviewers on the same interview, not the candidate.
  * - update: only the reviewer who wrote it, while still on the interview
  *   (the service also checks evaluation is still open).
- * - correct / withdraw: HR with correct-evaluations who can also see it —
- *   changing someone else's evaluation always needs that permission.
+ * - addNote: HR may record a separate opinion, but never edit or withdraw a
+ *   participant's evaluation.
  */
 class RecruitmentInterviewEvaluationPolicy
 {
@@ -33,13 +33,19 @@ class RecruitmentInterviewEvaluationPolicy
 
     public function correct(User $user, RecruitmentInterviewEvaluation $evaluation): bool
     {
-        return $user->hasActivePermission('recruitment-applicants.correct-evaluations')
-            && Gate::forUser($user)->allows('viewEvaluations', $this->interview($evaluation));
+        return false;
     }
 
     public function withdraw(User $user, RecruitmentInterviewEvaluation $evaluation): bool
     {
-        return $this->correct($user, $evaluation);
+        return false;
+    }
+
+    public function addNote(User $user, RecruitmentInterviewEvaluation $evaluation): bool
+    {
+        return $user->hasActivePermission('recruitment-applicants.add-notes')
+            && $user->hasActivePermission('recruitment-applicants.view-evaluations')
+            && Gate::forUser($user)->allows('viewEvaluations', $this->interview($evaluation));
     }
 
     private function interview(RecruitmentInterviewEvaluation $evaluation)

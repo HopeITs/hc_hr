@@ -35,12 +35,13 @@ class RecruitmentTagService
     // The tag list
     // --------------------------------------------
 
-    public function create(User $actor, mixed $name, mixed $color = null): RecruitmentTag
+    public function create(User $actor, mixed $name, mixed $color = null, mixed $kind = null): RecruitmentTag
     {
         $name = $this->normalizeName($name);
         $color = $this->normalizeColor($color);
+        $kind = $this->normalizeKind($kind);
 
-        return DB::transaction(function () use ($actor, $name, $color): RecruitmentTag {
+        return DB::transaction(function () use ($actor, $name, $color, $kind): RecruitmentTag {
             $existing = $this->findByName($name, withTrashed: true);
 
             if ($existing?->trashed()) {
@@ -55,6 +56,7 @@ class RecruitmentTagService
                 $tag = RecruitmentTag::query()->forceCreate([
                     'name' => $name,
                     'color' => $color,
+                    'kind' => $kind,
                     'scope_key' => $this->scopeKey(),
                     'created_by_user_id' => $actor->getKey(),
                 ]);
@@ -62,7 +64,7 @@ class RecruitmentTagService
                 throw ValidationException::withMessages(['tagName' => __('recruitment-applicant.tags.name_taken')]);
             }
 
-            $this->log('recruitment_tag.created', $tag, $actor, ['name' => $name, 'color' => $color]);
+            $this->log('recruitment_tag.created', $tag, $actor, ['name' => $name, 'color' => $color, 'kind' => $kind]);
 
             return $tag;
         });
@@ -72,12 +74,13 @@ class RecruitmentTagService
      * Renaming relabels every application carrying the tag at once — which is
      * the point, and why the old name goes into the audit entry.
      */
-    public function rename(User $actor, RecruitmentTag $tag, mixed $name, mixed $color = null): RecruitmentTag
+    public function rename(User $actor, RecruitmentTag $tag, mixed $name, mixed $color = null, mixed $kind = null): RecruitmentTag
     {
         $name = $this->normalizeName($name);
         $color = $color === null ? $tag->color : $this->normalizeColor($color);
+        $kind = $kind === null ? ($tag->kind ?: RecruitmentTag::KIND_NEUTRAL) : $this->normalizeKind($kind);
 
-        return DB::transaction(function () use ($actor, $tag, $name, $color): RecruitmentTag {
+        return DB::transaction(function () use ($actor, $tag, $name, $color, $kind): RecruitmentTag {
             $locked = $this->lockTag($tag);
 
             $clash = $this->findByName($name, withTrashed: true);
@@ -87,15 +90,15 @@ class RecruitmentTagService
                     : __('recruitment-applicant.tags.name_taken')]);
             }
 
-            $before = ['name' => $locked->name, 'color' => $locked->color];
+            $before = ['name' => $locked->name, 'color' => $locked->color, 'kind' => $locked->kind];
 
             try {
-                $locked->forceFill(['name' => $name, 'color' => $color, 'updated_by_user_id' => $actor->getKey()])->save();
+                $locked->forceFill(['name' => $name, 'color' => $color, 'kind' => $kind, 'updated_by_user_id' => $actor->getKey()])->save();
             } catch (UniqueConstraintViolationException) {
                 throw ValidationException::withMessages(['tagName' => __('recruitment-applicant.tags.name_taken')]);
             }
 
-            $this->log('recruitment_tag.renamed', $locked, $actor, ['before' => $before, 'after' => ['name' => $name, 'color' => $color]]);
+            $this->log('recruitment_tag.renamed', $locked, $actor, ['before' => $before, 'after' => ['name' => $name, 'color' => $color, 'kind' => $kind]]);
 
             return $locked;
         });
@@ -309,6 +312,19 @@ class RecruitmentTagService
         }
 
         return $color;
+    }
+
+    public function normalizeKind(mixed $kind): string
+    {
+        if ($kind === null || $kind === '') {
+            return RecruitmentTag::KIND_NEUTRAL;
+        }
+
+        if (! is_string($kind) || ! in_array($kind, RecruitmentTag::kinds(), true)) {
+            throw ValidationException::withMessages(['tagKind' => __('recruitment-applicant.tags.kind_invalid')]);
+        }
+
+        return $kind;
     }
 
     public function bulkLimit(): int

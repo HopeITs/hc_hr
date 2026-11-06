@@ -52,8 +52,10 @@ class RecruitmentErasureAndRetentionTest extends TestCase
         'recruitment_applicants', 'recruitment_applications', 'recruitment_application_answers',
         'recruitment_applicant_files', 'recruitment_applicant_notes', 'recruitment_application_decisions',
         'recruitment_rejection_notices', 'recruitment_campaign_invites', 'recruitment_application_indicator_snapshots',
+        'recruitment_application_participants', 'recruitment_application_reviews',
         'recruitment_interviews', 'recruitment_interview_reschedules', 'recruitment_interview_notices',
         'recruitment_interview_evaluations', 'recruitment_interview_evaluation_revisions',
+        'recruitment_interview_evaluation_notes',
         'recruitment_job_offers', 'recruitment_job_offer_versions',
     ];
 
@@ -163,6 +165,11 @@ class RecruitmentErasureAndRetentionTest extends TestCase
         $this->assertNull(DB::table('recruitment_job_offer_versions')->value('revision_reason'));
         $this->assertSame([], json_decode((string) DB::table('recruitment_application_indicator_snapshots')->value('indicators_json'), true));
         $this->assertSame(3, (int) DB::table('recruitment_application_indicator_snapshots')->value('met_count'));
+        $profileReview = DB::table('recruitment_application_reviews')->sole();
+        $this->assertNull($profileReview->pros);
+        $this->assertNull($profileReview->cons);
+        $this->assertNull($profileReview->notes);
+        $this->assertSame('yes', $profileReview->recommendation);
 
         // Nothing the person typed is left anywhere in the recruitment tables.
         foreach (self::KEPT_TABLES as $table) {
@@ -631,6 +638,26 @@ class RecruitmentErasureAndRetentionTest extends TestCase
             'application_id' => $application->id, 'criteria_version' => 'v1', 'met_count' => 3, 'assessed_count' => 4,
             'indicators_json' => json_encode([['key' => 'languages', 'detail' => 'Rana speaks French']]),
             'computed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('recruitment_application_participants')->insert([
+            'application_id' => $application->id,
+            'user_id' => $hr->id,
+            'role' => 'reviewer',
+            'added_by_user_id' => $hr->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('recruitment_application_reviews')->insert([
+            'application_id' => $application->id,
+            'reviewer_user_id' => $hr->id,
+            'recommendation' => 'yes',
+            'pros' => 'Rana understands budgets',
+            'cons' => 'Rana needs more training',
+            'notes' => 'Private profile review for Rana',
+            'version' => 1,
+            'submitted_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $interviewId = DB::table('recruitment_interviews')->insertGetId([

@@ -382,6 +382,39 @@ class RecruitmentWorkflowInstanceTest extends TestCase
             ->assertSee(__('recruitment-workflow.empty_title'));
     }
 
+    public function test_queue_summary_counts_calendar_day_arrivals_and_three_day_waits(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 9)->setTime(0, 30));
+        $fixtures = $this->normalWorkflowFixtures();
+        $service = app(RecruitmentWorkflowInstanceService::class);
+        $instance = $service->start($fixtures['request'], $fixtures['version']);
+        $instance->forceFill(['started_at' => '2026-10-06 00:30:00'])->save();
+
+        foreach (['2026-10-06 00:31:00', '2026-10-08 23:30:00', '2026-10-09 00:15:00'] as $startedAt) {
+            [$request, $version] = $this->makeRequest(
+                $fixtures['requester'],
+                $fixtures['request']->scopeCity,
+                RecruitmentRequestMode::Normal,
+                $fixtures['request']->targetPosition,
+            );
+            $service->start($request, $version)->forceFill(['started_at' => $startedAt])->save();
+        }
+
+        Livewire::actingAs($fixtures['manager'])
+            ->test(Pending::class)
+            ->assertViewHas('waiting', 4)
+            ->assertViewHas('longest', 3)
+            ->assertViewHas('overdue', 1)
+            ->assertViewHas('arrivedToday', 1);
+
+        Livewire::actingAs($fixtures['finance'])
+            ->test(Pending::class)
+            ->assertViewHas('waiting', 0)
+            ->assertViewHas('longest', null)
+            ->assertViewHas('overdue', 0)
+            ->assertViewHas('arrivedToday', 0);
+    }
+
     public function test_waiting_is_counted_from_when_the_step_became_yours(): void
     {
         $fixtures = $this->normalWorkflowFixtures();

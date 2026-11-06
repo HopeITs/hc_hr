@@ -22,6 +22,7 @@ use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplicantNote;
 use App\Models\RecruitmentApplication;
+use App\Models\RecruitmentApplicationReview;
 use App\Models\RecruitmentCampaignInvite;
 use App\Models\RecruitmentHiringConversion;
 use App\Models\RecruitmentInterview;
@@ -55,6 +56,7 @@ use App\Policies\RecruitmentApplicantFilePolicy;
 use App\Policies\RecruitmentApplicantNotePolicy;
 use App\Policies\RecruitmentApplicantPolicy;
 use App\Policies\RecruitmentApplicationPolicy;
+use App\Policies\RecruitmentApplicationReviewPolicy;
 use App\Policies\RecruitmentCampaignInvitePolicy;
 use App\Policies\RecruitmentHiringConversionPolicy;
 use App\Policies\RecruitmentInterviewEvaluationPolicy;
@@ -66,18 +68,18 @@ use App\Policies\RecruitmentTagPolicy;
 use App\Policies\RecruitmentWorkflowInstanceStepPolicy;
 use App\Policies\VacancyPolicy;
 use App\Services\ActivityLogger;
+use App\Services\Assistant\ChatModel;
+use App\Services\Assistant\ModelRouter;
 use App\Services\Monitoring\SecurityMonitor;
+use App\Services\Notifications\MinishlinkPushClient;
+use App\Services\Notifications\NotificationPreferenceGate;
+use App\Services\Notifications\PushClient;
 use App\Services\Recruitment\Privacy\ConfiguredRetentionPolicy;
 use App\Services\Recruitment\Privacy\RetentionPolicy;
 use App\Services\Recruitment\Scanning\ClamdScanner;
 use App\Services\Recruitment\Scanning\DisabledScanner;
 use App\Services\Recruitment\Scanning\RecruitmentFileScanner;
 use App\Services\RecruitmentIndicatorRules;
-use App\Services\Assistant\ChatModel;
-use App\Services\Assistant\ModelRouter;
-use App\Services\Notifications\MinishlinkPushClient;
-use App\Services\Notifications\NotificationPreferenceGate;
-use App\Services\Notifications\PushClient;
 use App\Services\SalaryCipher;
 use App\Support\Permissions\PermissionCacheGeneration;
 use Illuminate\Auth\Events\Logout;
@@ -113,6 +115,11 @@ class AppServiceProvider extends ServiceProvider
         // The seam for the organization's retention decision: bind another
         // RetentionPolicy here once the periods are confirmed.
         $this->app->bind(RetentionPolicy::class, ConfiguredRetentionPolicy::class);
+
+        $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
+            ? new ClamdScanner
+            : new DisabledScanner);
+        $this->app->singleton(RecruitmentIndicatorRules::class);
 
         // Singleton so the Encrypter - and the "this host cannot read the
         // figures" warning that goes with it - is built once per request
@@ -182,6 +189,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(RecruitmentApplicantFile::class, RecruitmentApplicantFilePolicy::class);
         Gate::policy(RecruitmentApplicant::class, RecruitmentApplicantPolicy::class);
         Gate::policy(RecruitmentApplication::class, RecruitmentApplicationPolicy::class);
+        Gate::policy(RecruitmentApplicationReview::class, RecruitmentApplicationReviewPolicy::class);
         Gate::policy(RecruitmentTag::class, RecruitmentTagPolicy::class);
         Gate::policy(RecruitmentApplicantNote::class, RecruitmentApplicantNotePolicy::class);
         Gate::policy(RecruitmentWorkflowInstanceStep::class, RecruitmentWorkflowInstanceStepPolicy::class);

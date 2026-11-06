@@ -19,6 +19,7 @@ use App\Models\RecruitmentCampaignInvite;
 use App\Models\RecruitmentHiringConversion;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
+use App\Models\RecruitmentInterviewEvaluationNote;
 use App\Models\RecruitmentInterviewParticipant;
 use App\Models\RecruitmentJobOffer;
 use App\Models\RecruitmentJobOfferVersion;
@@ -55,7 +56,7 @@ class RecruitmentModelLayerTest extends TestCase
             $this->assertSame($table, (new $modelClass)->getTable(), "Incorrect table mapping for [{$modelClass}].");
         }
 
-        $this->assertCount(33, $this->tableModels());
+        $this->assertCount(34, $this->tableModels());
     }
 
     public function test_the_complete_model_graph_exposes_the_expected_relationships(): void
@@ -128,6 +129,7 @@ class RecruitmentModelLayerTest extends TestCase
             'recruitment_interviews' => RecruitmentInterview::class,
             'recruitment_interview_participants' => RecruitmentInterviewParticipant::class,
             'recruitment_interview_evaluations' => RecruitmentInterviewEvaluation::class,
+            'recruitment_interview_evaluation_notes' => RecruitmentInterviewEvaluationNote::class,
             'recruitment_job_offers' => RecruitmentJobOffer::class,
             'recruitment_job_offer_versions' => RecruitmentJobOfferVersion::class,
             'recruitment_hiring_conversions' => RecruitmentHiringConversion::class,
@@ -188,6 +190,8 @@ class RecruitmentModelLayerTest extends TestCase
             [RecruitmentInterview::class, 'evaluations', HasMany::class, RecruitmentInterviewEvaluation::class],
             [RecruitmentInterviewParticipant::class, 'interview', BelongsTo::class, RecruitmentInterview::class],
             [RecruitmentInterviewEvaluation::class, 'interview', BelongsTo::class, RecruitmentInterview::class],
+            [RecruitmentInterviewEvaluation::class, 'opinionNotes', HasMany::class, RecruitmentInterviewEvaluationNote::class],
+            [RecruitmentInterviewEvaluationNote::class, 'evaluation', BelongsTo::class, RecruitmentInterviewEvaluation::class],
             [RecruitmentJobOffer::class, 'versions', HasMany::class, RecruitmentJobOfferVersion::class],
             [RecruitmentJobOffer::class, 'currentVersion', BelongsTo::class, RecruitmentJobOfferVersion::class],
             [RecruitmentJobOffer::class, 'hiringConversion', HasOne::class, RecruitmentHiringConversion::class],

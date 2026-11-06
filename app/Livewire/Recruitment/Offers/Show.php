@@ -4,16 +4,18 @@ namespace App\Livewire\Recruitment\Offers;
 
 use App\Enums\HiringCampaignStatus;
 use App\Enums\RecruitmentJobOfferStatus as Status;
-use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentJobOffer;
 use App\Models\Vacancy;
 use App\Services\HiringCampaignStateMachine;
 use App\Services\RecruitmentJobOfferService;
+use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Phase 2 Task 9: one job offer — the internal offer view, every version as
@@ -26,13 +28,13 @@ use Livewire\Component;
  * HR with manage-offers can send the draft, record the candidate's answer,
  * cancel, and start a revision or edit the draft (on the form). Send, answer
  * and cancel open in a popup — the Leaves decision popup, <x-modal.dialog> —
- * and end with the same success toast (WithFeedback). Each action locks the
+ * and end with the same success toast (WithAlerts). Each action locks the
  * version the user was looking at; the service refuses if the offer moved on
  * since.
  */
 class Show extends Component
 {
-    use WithFeedback;
+    use WithAlerts, WithFileUploads;
 
     #[Locked]
     public int $offerId;
@@ -58,6 +60,8 @@ class Show extends Component
     /** Internal: the candidate's reasons, as HR recorded them. */
     public string $responseNote = '';
 
+    public mixed $responseEvidence = null;
+
     public string $cancelReason = '';
 
     public string $cancelNote = '';
@@ -68,7 +72,7 @@ class Show extends Component
         $this->resolveOffer();
 
         if ($message = session()->pull('recruitment_toast')) {
-            $this->toast($message);
+            $this->successToast($message);
         }
     }
 
@@ -98,7 +102,40 @@ class Show extends Component
         abort_unless($this->panel === 'response', 404);
         $offer = $this->authorizedOffer();
 
-        $this->attempt(fn () => $offers->recordResponse(auth()->user(), $offer, (int) $this->expectedVersionId, $this->response, $this->responseNote), 'response_recorded');
+        if ($this->responseEvidence !== null) {
+            $this->validateResponseEvidence();
+        }
+
+        $this->attempt(function () use ($offers, $offer): void {
+            $recordedOffer = $offers->recordResponse(auth()->user(), $offer, (int) $this->expectedVersionId, $this->response, $this->responseNote);
+
+            if ($this->responseEvidence !== null) {
+                $this->storeResponseEvidence($recordedOffer);
+            }
+        }, 'response_recorded');
+    }
+
+    public function uploadResponseEvidence(): void
+    {
+        $offer = $this->authorizedOffer();
+        abort_unless(in_array($offer->status, [Status::Accepted, Status::Rejected], true), 404);
+
+        $this->validateResponseEvidence();
+        $this->storeResponseEvidence($offer);
+        $this->reset('responseEvidence');
+        $this->successToast(__('recruitment-applicant.offers.response_evidence.uploaded'));
+    }
+
+    public function discardResponseEvidence(int $mediaId): void
+    {
+        $offer = $this->authorizedOffer();
+        $media = $offer->media()
+            ->whereKey($mediaId)
+            ->where('collection_name', RecruitmentJobOffer::RESPONSE_EVIDENCE)
+            ->firstOrFail();
+
+        $media->delete();
+        $this->successToast(__('recruitment-applicant.offers.response_evidence.removed'));
     }
 
     public function beginCancel(): void
@@ -116,7 +153,7 @@ class Show extends Component
 
     public function closePanel(): void
     {
-        $this->reset('panel', 'panelOpen', 'expectedVersionId', 'expiresOn', 'response', 'responseNote', 'cancelReason', 'cancelNote');
+        $this->reset('panel', 'panelOpen', 'expectedVersionId', 'expiresOn', 'response', 'responseNote', 'responseEvidence', 'cancelReason', 'cancelNote');
         $this->resetErrorBag();
     }
 
@@ -135,6 +172,7 @@ class Show extends Component
             'cancelledBy.profile',
             'hiringConversion.employee',
             'hiringConversion.convertedBy.profile',
+            'media',
         ]);
         $conversion = $offer->hiringConversion;
 
@@ -151,6 +189,7 @@ class Show extends Component
             'seatsLeft' => $offer->vacancy ? $offers->seatsLeft($offer->vacancy, $offer) : 0,
             'canRevise' => $offers->canRevise($offer),
             'cancellationReasons' => $offers->cancellationReasons(),
+            'responseEvidenceFiles' => $offer->getMedia(RecruitmentJobOffer::RESPONSE_EVIDENCE),
         ]);
     }
 
@@ -199,7 +238,7 @@ class Show extends Component
         }
 
         $this->closePanel();
-        $this->toast(__('recruitment-applicant.offers.'.$messageKey));
+        $this->successToast(__('recruitment-applicant.offers.'.$messageKey));
     }
 
     private function authorizedOffer(): RecruitmentJobOffer
@@ -208,6 +247,39 @@ class Show extends Component
         Gate::authorize('manage', $offer);
 
         return $offer;
+    }
+
+    private function validateResponseEvidence(): void
+    {
+        $this->validate([
+            'responseEvidence' => [
+                'required', 'file', 'max:12288',
+                'extensions:eml,msg,pdf,jpg,jpeg,png,txt',
+                'mimetypes:message/rfc822,application/vnd.ms-outlook,application/pdf,image/jpeg,image/png,text/plain,application/octet-stream',
+            ],
+        ], [
+            'responseEvidence.required' => __('recruitment-applicant.offers.response_evidence.required'),
+            'responseEvidence.file' => __('recruitment-applicant.offers.response_evidence.invalid'),
+            'responseEvidence.max' => __('recruitment-applicant.offers.response_evidence.too_large'),
+            'responseEvidence.extensions' => __('recruitment-applicant.offers.response_evidence.invalid'),
+            'responseEvidence.mimetypes' => __('recruitment-applicant.offers.response_evidence.invalid'),
+        ]);
+    }
+
+    private function storeResponseEvidence(RecruitmentJobOffer $offer): void
+    {
+        $originalName = basename($this->responseEvidence->getClientOriginalName());
+        $extension = strtolower((string) $this->responseEvidence->getClientOriginalExtension());
+
+        $offer
+            ->addMedia($this->responseEvidence->getRealPath())
+            ->usingName(Str::limit(pathinfo($originalName, PATHINFO_FILENAME), 120, ''))
+            ->usingFileName(Str::uuid().($extension !== '' ? '.'.$extension : ''))
+            ->withCustomProperties([
+                'original_name' => $originalName,
+                'uploaded_by_user_id' => auth()->id(),
+            ])
+            ->toMediaCollection(RecruitmentJobOffer::RESPONSE_EVIDENCE);
     }
 
     /** Out of reach is a 404, like everywhere else on these pages. */

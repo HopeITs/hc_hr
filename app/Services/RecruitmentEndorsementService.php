@@ -49,6 +49,12 @@ class RecruitmentEndorsementService
      */
     public function endorse(User $user, RecruitmentApplication $application): RecruitmentApplicationEndorsement
     {
+        abort_unless(
+            $user->hasActivePermission('recruitment-applicants.endorse')
+                && app(RecruitmentScopeResolver::class)->canAccessApplication($user, $application),
+            403,
+        );
+
         $role = $this->voterRole($user);
         abort_if($role === null, 403);
 
@@ -63,6 +69,12 @@ class RecruitmentEndorsementService
      */
     public function retract(User $user, RecruitmentApplication $application): void
     {
+        abort_unless(
+            $user->hasActivePermission('recruitment-applicants.endorse')
+                && app(RecruitmentScopeResolver::class)->canAccessApplication($user, $application),
+            403,
+        );
+
         RecruitmentApplicationEndorsement::query()
             ->where('application_id', $application->getKey())
             ->where('user_id', $user->getKey())

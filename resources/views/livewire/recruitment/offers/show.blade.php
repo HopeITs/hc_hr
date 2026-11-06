@@ -55,6 +55,39 @@
                 @if ($canManage && $offer->response_note)
                     <p class="mt-1 whitespace-pre-line text-secondary-medium">{{ $offer->response_note }}</p>
                 @endif
+                @if ($canManage)
+                    <div class="mt-3 border-t border-secondary-soft pt-3">
+                        <p class="font-medium">{{ __('recruitment-applicant.offers.response_evidence.title') }}</p>
+                        @if ($responseEvidenceFiles->isEmpty())
+                            <p class="mt-1 text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.empty') }}</p>
+                        @else
+                            <ul class="mt-2 space-y-2">
+                                @foreach ($responseEvidenceFiles as $evidence)
+                                    <li class="flex flex-wrap items-center gap-2" wire:key="offer-response-evidence-{{ $evidence->id }}">
+                                        <a href="{{ route('recruitment.offer-response-evidence.download', ['media' => $evidence->id]) }}" class="font-medium text-primary hover:underline">
+                                            {{ $evidence->getCustomProperty('original_name', $evidence->file_name) }}
+                                        </a>
+                                        <button type="button" wire:click="discardResponseEvidence({{ $evidence->id }})" wire:confirm="{{ __('recruitment-applicant.offers.response_evidence.remove_confirm') }}" class="rounded-control border border-primary px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5">
+                                            {{ __('recruitment-applicant.offers.response_evidence.remove') }}
+                                        </button>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        <div class="mt-3 flex flex-wrap items-end gap-2">
+                            <div class="min-w-64 flex-1">
+                                <x-forms.input-label for="responseEvidenceAfter" :value="__('recruitment-applicant.offers.response_evidence.add')" />
+                                <input id="responseEvidenceAfter" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-sm" />
+                                <x-forms.input-error field="responseEvidence" input-id="responseEvidenceAfter" />
+                            </div>
+                            <x-primary-button type="button" wire:click="uploadResponseEvidence" wire:loading.attr="disabled" wire:target="responseEvidence,uploadResponseEvidence" class="!w-auto">
+                                {{ __('recruitment-applicant.offers.response_evidence.upload') }}
+                            </x-primary-button>
+                        </div>
+                        <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
+                    </div>
+                @endif
                 @if ($offer->status === Status::Accepted && $conversion)
                     {{-- Task 10: the hire itself --}}
                     <div class="mt-3 space-y-2 border-t border-secondary-soft pt-3">
@@ -161,6 +194,12 @@
                             <div>
                                 <x-forms.input-label for="responseNote" :value="__('recruitment-applicant.offers.response_note')" />
                                 <x-forms.textarea id="responseNote" wire:model="responseNote" rows="2" />
+                            </div>
+                            <div>
+                                <x-forms.input-label for="responseEvidence" :value="__('recruitment-applicant.offers.response_evidence.label')" />
+                                <input id="responseEvidence" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-sm" />
+                                <x-forms.input-error field="responseEvidence" input-id="responseEvidence" />
+                                <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
                             </div>
                             <x-forms.input-error field="response" input-id="responseNote" />
                         @else

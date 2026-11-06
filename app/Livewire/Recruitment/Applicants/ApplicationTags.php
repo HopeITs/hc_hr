@@ -31,6 +31,8 @@ class ApplicationTags extends Component
 
     public string $newTagColor = 'neutral';
 
+    public string $newTagKind = RecruitmentTag::KIND_NEUTRAL;
+
     public function mount(int $applicationId): void
     {
         $this->applicationId = $applicationId;
@@ -68,12 +70,12 @@ class ApplicationTags extends Component
         // One transaction: a tag is never left on the list without the
         // assignment it was created for.
         $done = $this->run(fn () => DB::transaction(function () use ($tags, $application): void {
-            $tag = $tags->create(auth()->user(), $this->newTagName, $this->newTagColor);
+            $tag = $tags->create(auth()->user(), $this->newTagName, $this->newTagColor, $this->newTagKind);
             $tags->attach(auth()->user(), $application, $tag->getKey());
         }));
 
         if ($done) {
-            $this->reset('newTagName', 'newTagColor');
+            $this->reset('newTagName', 'newTagColor', 'newTagKind');
         }
     }
 
@@ -103,9 +105,10 @@ class ApplicationTags extends Component
             'mayTag' => $mayTag,
             'mayCreate' => $mayTag && Gate::allows('create', RecruitmentTag::class),
             'available' => $mayTag
-                ? RecruitmentTag::query()->whereNotIn('id', $assignments->pluck('tag_id'))->orderBy('name')->get()
+                ? RecruitmentTag::query()->whereNotIn('id', $assignments->pluck('tag_id'))->orderBy('kind')->orderBy('name')->get()
                 : collect(),
             'palette' => array_keys(config('recruitment.tags.palette', [])),
+            'kinds' => RecruitmentTag::kinds(),
         ]);
     }
 

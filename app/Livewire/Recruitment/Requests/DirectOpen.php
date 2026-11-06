@@ -6,7 +6,7 @@ use App\Enums\ExternalConfirmationDecision;
 use App\Enums\ExternalConfirmationMethod;
 use App\Enums\RecruitmentRequestType;
 use App\Livewire\Concerns\InitializesRecruitmentRequestSelects;
-use App\Livewire\Concerns\WithFeedback;
+use App\Livewire\Features\SupportToasts;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\ContractType;
@@ -38,7 +38,6 @@ use Livewire\Component;
 class DirectOpen extends Component
 {
     use InitializesRecruitmentRequestSelects;
-    use WithFeedback;
 
     /** @var array<string, mixed> */
     public array $data = ['request_type' => RecruitmentRequestType::FillVacancy];
@@ -221,5 +220,21 @@ class DirectOpen extends Component
         foreach (app(RecruitmentDirectOpenService::class)->confirmableSteps() as $stepKey) {
             $this->documentation['confirmations'][$stepKey]['confirmer_user_id'] = null;
         }
+    }
+
+    /**
+     * Say what happened, the way the rest of the application says it.
+     *
+     * A toast rather than a coloured panel: the panel pushed the page down on
+     * every save, and a red or green block across a form reads as part of the
+     * form rather than as a remark about it.
+     */
+    private function toast(string $message, bool $success = true): void
+    {
+        SupportToasts::queue($this, [
+            'type' => $success ? 'success' : 'error',
+            'message' => $message,
+            'undo' => null,
+        ]);
     }
 }

@@ -56,7 +56,7 @@ class RecruitmentRequestDraftService
 
             $numbers = app(RecruitmentRequestNumber::class);
 
-            $request = RecruitmentRequest::query()->create([
+            $request = new RecruitmentRequest([
                 'request_number' => $numbers->next(
                     $cityId,
                     $numbers->programIdFor($data, $isNewPosition ? null : $target->id),
@@ -70,6 +70,11 @@ class RecruitmentRequestDraftService
                 'target_vacancy_id' => $data['vacancy_id'] ?? null,
                 'draft_payload_json' => $data,
             ]);
+
+            if ($data['request_type'] === Type::FillVacancy) {
+                $this->submissions->assertNoActiveDuplicate($request);
+            }
+            $request->save();
 
             $this->recordEvent($request, $actor, [
                 'event_type' => RecruitmentEventType::RequestCreated,
@@ -135,7 +140,11 @@ class RecruitmentRequestDraftService
                 'target_position_id' => $data['request_type'] === Type::CreatePosition ? null : $target->getKey(),
                 'target_vacancy_id' => $data['vacancy_id'] ?? null,
                 'draft_payload_json' => $data,
-            ])->save();
+            ]);
+            if ($data['request_type'] === Type::FillVacancy) {
+                $this->submissions->assertNoActiveDuplicate($fresh);
+            }
+            $fresh->save();
 
             // A direct opening's frozen version must stay current: the
             // approver sees the version, not the draft payload.

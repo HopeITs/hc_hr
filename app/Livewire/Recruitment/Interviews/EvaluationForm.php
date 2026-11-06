@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Recruitment\Interviews;
 
-use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
 use App\Services\RecruitmentInterviewEvaluationService;
+use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -17,12 +17,12 @@ use Livewire\Component;
  *
  * Only ever loads the current user's own evaluation — never another
  * reviewer's. The version it was opened on is locked here and checked by the
- * service, so a save from a stale tab (or over an HR correction) is refused
+ * service, so a save from a stale tab is refused
  * rather than overwriting what is stored.
  */
 class EvaluationForm extends Component
 {
-    use WithFeedback;
+    use WithAlerts;
 
     #[Locked]
     public int $interviewId;
@@ -68,7 +68,7 @@ class EvaluationForm extends Component
 
         $this->expectedVersion = $evaluation->version;
         $this->dispatch('recruitment-evaluations-changed');
-        $this->toast(__('recruitment-applicant.evaluations.saved'));
+        $this->successToast(__('recruitment-applicant.evaluations.saved'));
     }
 
     /** Discards unsaved edits and reloads what is stored — the way out of a stale save. */

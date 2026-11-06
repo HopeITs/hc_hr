@@ -128,13 +128,13 @@ final class Navigation
         // Team 2: interview participants and offer viewers reach their pages
         // through the policies, without any recruitment permission.
         $recruitment = array_values(array_filter([
-            $can('recruitment-requests.view') ? self::item('nav.recruitment.requests', __('recruitment.navigation_requests'), 'recruitment.requests.index', ['recruitment.requests.*'], 'clipboard-list') : null,
-            app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user) ? self::item('nav.recruitment.approvals', __('recruitment.navigation_pending_approvals'), 'recruitment.approvals.pending', ['recruitment.approvals.*'], 'check') : null,
-            $can('recruitment-campaigns.view') ? self::item('nav.recruitment.campaigns', __('recruitment.navigation_campaigns'), 'recruitment.campaigns.index', ['recruitment.campaigns.*'], 'newspaper') : null,
-            $can('recruitment-applicants.view') ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'users') : null,
-            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'check') : null,
-            $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'calendar') : null,
-            $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'clipboard-list') : null,
+            $can('recruitment-requests.view') ? self::item('nav.recruitment.requests', __('recruitment.navigation_requests'), 'recruitment.requests.index', ['recruitment.requests.*'], 'recruitment-request') : null,
+            app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user) ? self::item('nav.recruitment.approvals', __('recruitment.navigation_pending_approvals'), 'recruitment.approvals.pending', ['recruitment.approvals.*'], 'recruitment-approval') : null,
+            $can('recruitment-campaigns.view') ? self::item('nav.recruitment.campaigns', __('recruitment.navigation_campaigns'), 'recruitment.campaigns.index', ['recruitment.campaigns.*'], 'recruitment-campaign') : null,
+            $user->can('viewAny', RecruitmentApplicant::class) ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'recruitment-applicant') : null,
+            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
+            $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'recruitment-interview') : null,
+            $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'recruitment-offer') : null,
         ]));
 
         $settings = array_values(array_filter([

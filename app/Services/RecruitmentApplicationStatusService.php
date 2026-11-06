@@ -100,9 +100,12 @@ class RecruitmentApplicationStatusService
         // Task 7: this state had no way out before. Interviewed / Shortlisted
         // are set by the interview service when the last open interview ends
         // or is cancelled; Rejected stays a manual screening decision.
-        Status::InterviewScheduled => [Status::Interviewed, Status::Rejected, Status::Shortlisted],
+        Status::InterviewScheduled => [Status::Interviewed, Status::Finalist, Status::Rejected, Status::Shortlisted],
         // Task 7: + InterviewScheduled (an additional interview).
-        Status::Interviewed => [Status::Selected, Status::Rejected, Status::InterviewScheduled],
+        Status::Interviewed => [Status::Finalist, Status::Rejected, Status::InterviewScheduled],
+        // Finalist means selected for the final comparison, not selected for
+        // hire. It keeps a multi-candidate final list separate from offers.
+        Status::Finalist => [Status::Selected, Status::Rejected, Status::InterviewScheduled],
         // Task 9: + OfferSent (the offer went to the candidate). Once selected,
         // the manual decision panel stops; offer actions own the next moves.
         Status::Selected => [Status::OfferSent],
@@ -120,7 +123,9 @@ class RecruitmentApplicationStatusService
     private const INTERVIEW_DRIVEN = [
         [Status::Shortlisted, Status::InterviewScheduled],
         [Status::Interviewed, Status::InterviewScheduled],
+        [Status::Finalist, Status::InterviewScheduled],
         [Status::InterviewScheduled, Status::Interviewed],
+        [Status::InterviewScheduled, Status::Finalist],
         [Status::InterviewScheduled, Status::Shortlisted],
     ];
 

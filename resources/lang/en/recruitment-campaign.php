@@ -20,6 +20,8 @@ return [
 
     // Screens.
     'campaigns' => 'Hiring campaigns',
+    'closing_soon' => '{1} 1 campaign closes within a week.|[2,*] :count campaigns close within a week.',
+    'no_end_date' => 'No end date',
     'campaigns_hint' => 'One seat is usually advertised more than once: inside the organisation first, then more widely.',
     'new_campaign' => 'New campaign',
     'campaign' => 'Campaign',
@@ -46,6 +48,11 @@ return [
         'internal' => 'Current staff sign in with their HC-HR account to apply. Their details are filled in for them.',
         'public_open' => 'Open to the public through a shared link.',
         'invitation_only' => 'Only people whose name and email are added in advance.',
+    ],
+    'notify' => [
+        'restricted_launched_subject' => 'A restricted hiring campaign was launched',
+        'restricted_launched_line' => 'Campaign #:campaign was launched for :audience applicants. Open it in HC-HR to review the details.',
+        'open_campaign' => 'Open campaign',
     ],
     'starts_at' => 'Starts',
     'ends_at' => 'Ends',

@@ -31,6 +31,20 @@
     ];
     $sourceIcons = ['form' => 'clipboard-document-list', 'cv' => 'document-text', 'record' => 'identification'];
 
+    // Greys only, told apart by fill strength and icon: ink = met, outline = partly, light = not met,
+    // faint = does not apply, soft = unknown. Local to this page; other pages keep Outcome::classes().
+    $tones = [
+        'met' => 'bg-neutral-900 text-white',
+        'partial' => 'bg-white text-neutral-900 ring-1 ring-inset ring-neutral-900',
+        'not_met' => 'bg-neutral-200 text-neutral-800',
+        'not_applicable' => 'bg-neutral-50 text-secondary-medium ring-1 ring-inset ring-neutral-200',
+        'unknown' => 'bg-neutral-100 text-secondary-medium',
+        'info' => 'bg-neutral-100 text-secondary-dark',
+    ];
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $card = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $countedNow = count(array_filter($enabled)) - (($enabled['previous_applicant'] ?? false) ? 1 : 0);
+
     $years = range(0, 10);
     $outcomes = ['met', 'partial', 'not_met', 'not_applicable'];
 
@@ -39,7 +53,7 @@
         'levels' => collect($levels)->mapWithKeys(fn ($l) => [$l => ['label' => $levelLabel($l), 'rank' => $ranks[$l]]])->all(),
         'criteria' => collect($indicatorKeys)->mapWithKeys(fn ($k) => [$k => $criterionName($k)])->all(),
         'scored' => array_values(array_diff($indicatorKeys, ['previous_applicant'])),
-        'tones' => collect([...$outcomes, 'unknown'])->mapWithKeys(fn ($o) => [$o => Outcome::classes($o)])->all(),
+        'tones' => collect([...$outcomes, 'unknown'])->mapWithKeys(fn ($o) => [$o => $tones[$o]])->all(),
         'outcomes' => collect([...$outcomes, 'unknown'])->mapWithKeys(fn ($o) => [$o => __('recruitment-applicant.indicators.outcomes.'.$o)])->all(),
         'counted' => collect(range(0, count($indicatorKeys)))->map(fn ($n) => trans_choice('recruitment-indicator-rules.counted', $n, ['count' => $n]))->all(),
         'changes' => collect(range(0, 40))->map(fn ($n) => $n === 0 ? $t('no_changes') : trans_choice('recruitment-indicator-rules.changes', $n, ['count' => $n]))->all(),
@@ -63,137 +77,116 @@
 <div class="mx-auto max-w-7xl space-y-6 p-4 pb-0 sm:p-6 sm:pb-0"
      x-data="matchingRules(@js($ui))">
 
-    {{-- Heading ---------------------------------------------------------- --}}
-    <header class="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-        <div class="max-w-3xl">
-            <livewire:layout.breadcrumbs :title="$t('title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => $t('title')]]" />
-            <p class="text-body text-secondary-medium">{{ $t('hint') }} {{ $t('sources_statement') }}</p>
-        </div>
-        <dl class="flex flex-wrap items-center gap-2 text-small">
-            <dt class="sr-only">{{ $t('version_short') }}</dt>
-            <dd>
-                <x-recruitment.pill :tone="$customised ? 'bg-neutral-800 text-white' : 'bg-neutral-100 text-secondary-dark'"
-                                    title="{{ $customised ? $t('customised') : $t('defaults') }}">
+    {{-- Heading: what this page controls, which rule set is live, and a jump list for a long page. --}}
+    <header class="space-y-4">
+        <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+            <div class="max-w-3xl">
+                <livewire:layout.breadcrumbs :title="$t('title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => $t('title')]]" />
+            </div>
+            <dl class="flex flex-wrap items-center gap-2 text-small">
+                <dt class="sr-only">{{ $t('version_short') }}</dt>
+                <dd class="inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 font-semibold {{ $customised ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-secondary-dark' }}"
+                    title="{{ $customised ? $t('customised') : $t('defaults') }}">
+                    <span aria-hidden="true" class="size-1.5 rounded-full {{ $customised ? 'bg-white' : 'bg-neutral-400' }}"></span>
                     {{ $customised ? $t('customised_short') : $t('defaults_short') }}
-                </x-recruitment.pill>
-            </dd>
-            <dd class="inline-flex items-center gap-2 rounded-control border border-neutral-200 bg-white px-2 py-0.5 text-secondary-dark shadow-e1">
-                <span>{{ $t('version_short') }}</span>
-                <code dir="ltr" class="font-mono text-caption font-semibold text-neutral-900">{{ $version }}</code>
-            </dd>
-        </dl>
+                </dd>
+                <dd class="inline-flex items-center gap-2 rounded-control border border-neutral-200 bg-white px-2.5 py-1 text-secondary-dark shadow-e1">
+                    <span>{{ $t('version_short') }}</span>
+                    <code dir="ltr" class="font-mono text-caption font-semibold text-neutral-900">{{ $version }}</code>
+                </dd>
+            </dl>
+        </div>
+
+        <nav aria-label="{{ $t('title') }}" class="flex flex-wrap gap-1 rounded-control border border-neutral-200 bg-white p-1 shadow-e1 w-fit">
+            @foreach (['criteria-title' => $t('criteria_title'), 'experience-title' => $t('experience_title'), 'qualification-title' => $t('qualification_title'), 'tester-title' => $t('tester_title')] as $anchor => $label)
+                <a href="#{{ $anchor }}" class="inline-flex min-h-11 items-center rounded-inset px-3 text-small font-medium text-secondary-dark hover:bg-selection hover:text-neutral-900 sm:min-h-8 {{ $focus }}">{{ $label }}</a>
+            @endforeach
+        </nav>
     </header>
 
     <form wire:submit="save" class="space-y-6">
 
-        {{-- Criteria and their sources --------------------------------------- --}}
-        <section aria-labelledby="criteria-title" class="rounded-surface border border-neutral-100 bg-white shadow-e1">
-            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 pt-5 sm:px-6">
-                <div>
-                    <h2 id="criteria-title" class="text-h4 font-semibold text-neutral-900">{{ $t('criteria_title') }}</h2>
-                    <p class="mt-1 max-w-2xl text-small text-secondary-medium">{{ $t('criteria_hint') }}</p>
-                </div>
-                <p class="text-body font-medium text-neutral-800" aria-live="polite" x-text="ui.counted[countedCount]">
-                    {{ trans_choice('recruitment-indicator-rules.counted', count(array_filter($enabled)) - (($enabled['previous_applicant'] ?? false) ? 1 : 0), ['count' => count(array_filter($enabled)) - (($enabled['previous_applicant'] ?? false) ? 1 : 0)]) }}
+        {{-- Criteria: one row each. Switch, what it reads, and every result it can give, in that reading order. --}}
+        <section aria-labelledby="criteria-title" class="{{ $card }} scroll-mt-48 sm:scroll-mt-36">
+            <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-neutral-100 px-5 py-4 sm:px-6">
+                <h2 id="criteria-title" class="text-h4 font-semibold text-neutral-900 scroll-mt-48 sm:scroll-mt-36">{{ $t('criteria_title') }}</h2>
+                <p class="inline-flex items-center gap-2 rounded-control bg-selection px-2.5 py-1 text-small font-semibold text-secondary-dark" aria-live="polite">
+                    <flux:icon.calculator variant="micro" class="size-4 text-secondary-medium" aria-hidden="true" />
+                    <span x-text="ui.counted[countedCount]">{{ trans_choice('recruitment-indicator-rules.counted', $countedNow, ['count' => $countedNow]) }}</span>
                 </p>
             </div>
 
-            <div class="mt-4 overflow-x-auto">
-                <table class="w-full text-body">
-                    <thead>
-                        <tr class="border-y border-neutral-100 bg-neutral-50 text-caption font-semibold uppercase tracking-wide text-secondary-medium">
-                            <th scope="col" class="w-16 px-5 py-2 text-start sm:ps-6"><span class="sr-only">{{ $t('on') }}</span></th>
-                            <th scope="col" class="py-2 pe-4 text-start xl:w-[28%]">{{ $t('criterion') }}</th>
-                            @foreach ($sourceIcons as $source => $icon)
-                                <th scope="col" class="hidden w-20 px-1 py-2 text-center xl:table-cell">
-                                    <span class="inline-flex flex-col items-center gap-1">
-                                        <flux:icon :name="$icon" variant="micro" class="size-4 text-secondary-light" />
-                                        <span class="normal-case tracking-normal">{{ $t('sources.'.$source) }}</span>
-                                    </span>
-                                </th>
-                            @endforeach
-                            <th scope="col" class="hidden py-2 pe-5 text-start xl:table-cell sm:pe-6">{{ $t('possible_outcomes') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-100">
-                        @foreach ($indicatorKeys as $key)
-                            <tr wire:key="criterion-{{ $key }}" class="transition-colors duration-150"
-                                :class="$wire.enabled['{{ $key }}'] ? '' : 'bg-neutral-50'">
-                                <td class="px-5 py-3 align-top sm:ps-6">
-                                    <label class="relative inline-flex cursor-pointer items-center">
-                                        <input type="checkbox" role="switch" id="criterion-{{ $key }}"
-                                               wire:model="enabled.{{ $key }}"
-                                               aria-describedby="criterion-{{ $key }}-reads"
-                                               class="peer sr-only">
-                                        <span aria-hidden="true"
-                                              class="h-5 w-9 rounded-round bg-neutral-300 transition-colors duration-200 ease-[var(--ease-fluid)]
-                                                     peer-checked:bg-neutral-800
-                                                     peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"></span>
-                                        <span aria-hidden="true"
-                                              class="absolute start-0.5 top-0.5 size-4 rounded-round bg-white shadow-e1 transition-transform duration-200 ease-[var(--ease-fluid)]
-                                                     ltr:peer-checked:translate-x-4 rtl:peer-checked:-translate-x-4"></span>
-                                    </label>
-                                </td>
-                                <td class="py-3 pe-4 align-top">
+            <ul class="divide-y divide-neutral-100">
+                @foreach ($indicatorKeys as $key)
+                    <li wire:key="criterion-{{ $key }}"
+                        class="grid gap-x-6 gap-y-3 px-5 py-4 transition-colors duration-150 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]"
+                        :class="$wire.enabled['{{ $key }}'] ? '' : 'bg-neutral-50'">
+                        <div class="flex min-w-0 items-start gap-4">
+                            <label class="relative inline-flex min-h-11 shrink-0 cursor-pointer items-center">
+                                <input type="checkbox" role="switch" id="criterion-{{ $key }}"
+                                       wire:model="enabled.{{ $key }}"
+                                       aria-describedby="criterion-{{ $key }}-reads"
+                                       class="peer sr-only">
+                                <span aria-hidden="true"
+                                      class="h-6 w-11 rounded-round bg-neutral-300 transition-colors duration-200 ease-[var(--ease-fluid)]
+                                             peer-checked:bg-neutral-900
+                                             peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"></span>
+                                <span aria-hidden="true"
+                                      class="absolute start-0.5 top-1/2 -translate-y-1/2 size-5 rounded-round bg-white shadow-e1 transition-transform duration-200 ease-[var(--ease-fluid)]
+                                             ltr:peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5"></span>
+                            </label>
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <label for="criterion-{{ $key }}" class="cursor-pointer font-semibold text-neutral-900"
-                                           :class="$wire.enabled['{{ $key }}'] ? '' : 'text-secondary-medium line-through decoration-neutral-300'">
+                                           :class="$wire.enabled['{{ $key }}'] ? '' : 'text-secondary-medium'">
                                         {{ $criterionName($key) }}
                                     </label>
                                     @if ($key === 'previous_applicant')
-                                        <x-recruitment.pill :tone="Outcome::classes('info')" class="ms-2 align-middle">{{ $t('not_scored') }}</x-recruitment.pill>
+                                        <span class="inline-flex items-center gap-1 rounded-control bg-neutral-100 px-1.5 py-0.5 text-caption font-semibold text-secondary-dark">
+                                            <flux:icon.information-circle variant="micro" class="size-3.5" aria-hidden="true" />{{ $t('not_scored') }}
+                                        </span>
                                     @endif
-                                    <p id="criterion-{{ $key }}-reads" class="mt-0.5 text-small text-secondary-medium">{{ $t('criterion_reads.'.$key) }}</p>
-                                    <p class="mt-1.5 flex flex-wrap gap-1.5 xl:hidden">
-                                        @foreach ($sources[$key] as $source => $kind)
-                                            <span @class([
-                                                'inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-caption font-semibold',
-                                                'bg-neutral-800 text-white' => $kind === 'indicator',
-                                                'border border-neutral-800 text-neutral-800' => $kind === 'reading',
-                                                Outcome::classes('info') => $kind === 'info',
-                                            ])>
-                                                <flux:icon :name="$sourceIcons[$source]" variant="micro" class="size-3" aria-hidden="true" />{{ $t('sources.'.$source) }}<span class="sr-only">: {{ $t('source_kinds.'.$kind) }}</span>
-                                            </span>
-                                        @endforeach
-                                    </p>
-                                    @include('livewire.recruitment.indicators.partials.criterion-cases', ['key' => $key, 'name' => $criterionName($key), 'cases' => $cases[$key] ?? [], 'class' => 'mt-2 xl:hidden'])
-                                </td>
-                                @foreach (array_keys($sourceIcons) as $source)
-                                    @php $kind = $sources[$key][$source] ?? null; @endphp
-                                    <td class="hidden px-2 py-3 text-center align-top xl:table-cell">
-                                        @if ($kind)
-                                            <span class="sr-only">{{ $t('sources.'.$source) }}: {{ $t('source_kinds.'.$kind) }}</span>
-                                            <span aria-hidden="true" @class([
-                                                'mt-1 inline-block size-3 rounded-round transition-colors duration-150',
-                                                'bg-neutral-800' => $kind === 'indicator',
-                                                'border-2 border-neutral-800 bg-white' => $kind === 'reading',
-                                                'bg-neutral-600' => $kind === 'info',
-                                            ]) :class="$wire.enabled['{{ $key }}'] ? '' : 'opacity-30'"></span>
-                                        @endif
-                                    </td>
-                                @endforeach
-                                <td class="hidden py-3 pe-5 align-top xl:table-cell sm:pe-6">
-                                    @include('livewire.recruitment.indicators.partials.criterion-cases', ['key' => $key, 'name' => $criterionName($key), 'cases' => $cases[$key] ?? [], 'class' => ''])
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                    <span x-cloak x-show="! $wire.enabled['{{ $key }}']" class="rounded-control border border-neutral-300 px-1.5 py-0.5 text-caption font-semibold text-secondary-medium">{{ $t('off') }}</span>
+                                </div>
+                                <p id="criterion-{{ $key }}-reads" class="mt-0.5 max-w-prose text-small text-secondary-medium">{{ $t('criterion_reads.'.$key) }}</p>
+                                {{-- Sources as labelled chips: solid = counts, outline = shown as a separate reading, soft = for information. --}}
+                                <ul class="mt-2 flex flex-wrap gap-1.5" :class="$wire.enabled['{{ $key }}'] ? '' : 'opacity-50'">
+                                    @foreach ($sources[$key] as $source => $kind)
+                                        <li @class([
+                                            'inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-caption font-semibold',
+                                            'bg-neutral-900 text-white' => $kind === 'indicator',
+                                            'border border-neutral-900 bg-white text-neutral-900' => $kind === 'reading',
+                                            'bg-neutral-100 text-secondary-dark' => $kind === 'info',
+                                        ]) title="{{ $t('source_kinds.'.$kind) }}">
+                                            <flux:icon :name="$sourceIcons[$source]" variant="micro" class="size-3" aria-hidden="true" />{{ $t('sources.'.$source) }}<span class="sr-only">: {{ $t('source_kinds.'.$kind) }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="min-w-0 lg:pt-0.5" :class="$wire.enabled['{{ $key }}'] ? '' : 'opacity-50'">
+                            <p class="mb-1.5 text-caption font-semibold uppercase tracking-wider rtl:normal-case rtl:tracking-normal text-secondary-medium lg:sr-only">{{ $t('possible_outcomes') }}</p>
+                            @include('livewire.recruitment.indicators.partials.criterion-cases', ['key' => $key, 'name' => $criterionName($key), 'cases' => $cases[$key] ?? [], 'class' => '', 'tones' => $tones])
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-neutral-100 bg-neutral-50 px-5 py-3 text-small text-secondary-medium sm:px-6 rounded-b-surface" aria-hidden="true">
+                <span class="inline-flex items-center gap-1.5"><span class="h-3 w-5 rounded-inset bg-neutral-900"></span>{{ $t('source_kinds.indicator') }}</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-3 w-5 rounded-inset border border-neutral-900"></span>{{ $t('source_kinds.reading') }}</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-3 w-5 rounded-inset bg-neutral-200"></span>{{ $t('source_kinds.info') }}</span>
             </div>
-            <p class="hidden flex-wrap gap-x-5 gap-y-1 border-t border-neutral-100 px-5 py-3 text-small text-secondary-medium sm:px-6 xl:flex" aria-hidden="true">
-                <span class="inline-flex items-center gap-2"><span aria-hidden="true" class="size-2.5 rounded-round bg-neutral-800"></span>{{ $t('source_kinds.indicator') }}</span>
-                <span class="inline-flex items-center gap-2"><span aria-hidden="true" class="size-2.5 rounded-round border-2 border-neutral-800"></span>{{ $t('source_kinds.reading') }}</span>
-                <span class="inline-flex items-center gap-2"><span aria-hidden="true" class="size-2.5 rounded-round bg-neutral-600"></span>{{ $t('source_kinds.info') }}</span>
-            </p>
             @error('disabled') <p class="px-6 pb-4 text-body text-primary" role="alert">{{ $message }}</p> @enderror
         </section>
 
         <p id="grid-keys-hint" class="sr-only">{{ $t('grid_keys') }}</p>
 
         {{-- Outcome legend, shared by both matrices --}}
-        <div class="flex flex-wrap items-center gap-2 text-small" aria-hidden="true">
-            <span class="me-1 text-secondary-medium">{{ $t('legend_title') }}</span>
+        <div class="sticky top-16 z-[5] flex flex-wrap items-center gap-2 rounded-control border border-neutral-200 bg-white/95 px-3 py-2 text-small shadow-e1 backdrop-blur" aria-hidden="true">
+            <span class="me-1 font-semibold text-secondary-dark">{{ $t('legend_title') }}</span>
             @foreach ($outcomes as $outcome)
-                <span @class(['inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 font-semibold', Outcome::classes($outcome)])>
+                <span @class(['inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 font-semibold', $tones[$outcome]])>
                     @include('livewire.recruitment.indicators.partials.outcome-icon', ['outcome' => $outcome])
                     {{ __('recruitment-applicant.indicators.outcomes.'.$outcome) }}
                 </span>
@@ -202,20 +195,20 @@
 
         {{-- Experience ---------------------------------------------------------- --}}
         <section aria-labelledby="experience-title"
-                 class="rounded-surface border border-neutral-100 bg-white p-5 shadow-e1 transition-opacity duration-200 sm:p-6"
+                 class="{{ $card }} scroll-mt-48 sm:scroll-mt-36 p-5 transition-opacity duration-200 sm:p-6"
                  :class="$wire.enabled.experience ? '' : 'opacity-60'">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="max-w-3xl">
-                    <h2 id="experience-title" class="text-h4 font-semibold text-neutral-900">{{ $t('experience_title') }}</h2>
+                    <h2 id="experience-title" class="scroll-mt-48 sm:scroll-mt-36 text-h4 font-semibold text-neutral-900">{{ $t('experience_title') }}</h2>
                     <p class="mt-1 text-small text-secondary-medium">{{ $t('experience_hint') }}</p>
                 </div>
-                <p x-cloak x-show="! $wire.enabled.experience" class="rounded-control bg-neutral-100 px-2 py-1 text-small font-medium text-secondary-dark">{{ $t('switched_off') }}</p>
+                <p x-cloak x-show="! $wire.enabled.experience" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
             </div>
 
             <div class="mt-5 flex flex-wrap items-start gap-x-4 gap-y-1">
                 <div>
                     <x-forms.input-label for="defaultYears">{{ $t('default_experience') }}</x-forms.input-label>
-                    <input id="defaultYears" type="number" inputmode="numeric" min="0" max="50" wire:model="defaultYears"
+                    <input id="defaultYears" type="number" dir="ltr" inputmode="numeric" min="0" max="50" wire:model="defaultYears"
                            aria-describedby="defaultYears-hint @error('defaultYears') defaultYears-error @enderror"
                            @error('defaultYears') aria-invalid="true" @enderror
                            class="mt-1 w-28 rounded-control border-neutral-300 text-body tabular-nums shadow-e1 focus:border-primary focus:ring-2 focus:ring-neutral-200">
@@ -235,7 +228,7 @@
                             <thead>
                                 <tr>
                                     <td></td>
-                                    <th scope="colgroup" colspan="{{ count($years) }}" class="pb-1 text-start text-caption font-semibold uppercase tracking-wide text-secondary-medium">
+                                    <th scope="colgroup" colspan="{{ count($years) }}" class="pb-1 text-start text-caption font-semibold uppercase tracking-wide rtl:normal-case rtl:tracking-normal text-secondary-medium">
                                         <span class="sticky start-28 inline-block max-w-48 sm:start-52 sm:max-w-none">{{ $t('years_axis') }}</span>
                                     </th>
                                 </tr>
@@ -265,14 +258,14 @@
                                             <span class="block leading-tight">{{ $rangeLabel($option) }}</span>
                                             <span class="mt-1 flex items-center gap-1 font-normal sm:gap-1.5">
                                                 <label class="sr-only" for="min-{{ $option }}">{{ $rangeLabel($option) }}: {{ $t('min_years') }}</label>
-                                                <input id="min-{{ $option }}" type="number" inputmode="numeric" min="0" max="50"
+                                                <input id="min-{{ $option }}" type="number" dir="ltr" inputmode="numeric" min="0" max="50"
                                                        wire:model="ranges.{{ $option }}.min"
                                                        @focus="select({ kind: 'exp', option: '{{ $option }}', req: selected?.req ?? 3 })"
                                                        @if ($invalid) aria-invalid="true" aria-describedby="range-{{ $option }}-error" @endif
                                                        class="w-10 rounded-control border-neutral-300 bg-white px-1 py-0.5 text-body tabular-nums sm:w-16 sm:px-2 shadow-e1 focus:border-primary focus:ring-2 focus:ring-neutral-200">
                                                 <span aria-hidden="true" class="text-secondary-light">–</span>
                                                 <label class="sr-only" for="max-{{ $option }}">{{ $rangeLabel($option) }}: {{ $t('max_years') }} ({{ $t('open_ended') }})</label>
-                                                <input id="max-{{ $option }}" type="number" inputmode="numeric" min="0" max="50"
+                                                <input id="max-{{ $option }}" type="number" dir="ltr" inputmode="numeric" min="0" max="50"
                                                        wire:model="ranges.{{ $option }}.max" placeholder="{{ $t('no_limit') }}"
                                                        @focus="select({ kind: 'exp', option: '{{ $option }}', req: selected?.req ?? 3 })"
                                                        @if ($invalid) aria-invalid="true" aria-describedby="range-{{ $option }}-error" @endif
@@ -314,7 +307,7 @@
                                                     aria-label="{{ $t('fewer_years') }}">
                                                 <flux:icon.minus variant="micro" class="size-4" />
                                             </button>
-                                            <input id="cvYears" type="number" min="0" max="50" x-model.number="cvYears"
+                                            <input id="cvYears" type="number" dir="ltr" min="0" max="50" x-model.number="cvYears"
                                                    class="w-10 rounded-control border-neutral-300 px-1 py-1 text-center text-body tabular-nums sm:w-12 focus:border-primary focus:ring-2 focus:ring-neutral-200">
                                             <button type="button" @click="cvYears = Math.min(50, cvYears + 1)"
                                                     class="grid size-6 cursor-pointer place-items-center rounded-control text-secondary-dark sm:size-7 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-primary"
@@ -355,14 +348,14 @@
 
         {{-- Qualification ------------------------------------------------------- --}}
         <section aria-labelledby="qualification-title"
-                 class="rounded-surface border border-neutral-100 bg-white p-5 shadow-e1 transition-opacity duration-200 sm:p-6"
+                 class="{{ $card }} scroll-mt-48 sm:scroll-mt-36 p-5 transition-opacity duration-200 sm:p-6"
                  :class="$wire.enabled.qualification ? '' : 'opacity-60'">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="max-w-3xl">
-                    <h2 id="qualification-title" class="text-h4 font-semibold text-neutral-900">{{ $t('qualification_title') }}</h2>
+                    <h2 id="qualification-title" class="scroll-mt-48 sm:scroll-mt-36 text-h4 font-semibold text-neutral-900">{{ $t('qualification_title') }}</h2>
                     <p class="mt-1 text-small text-secondary-medium">{{ $t('qualification_hint') }}</p>
                 </div>
-                <p x-cloak x-show="! $wire.enabled.qualification" class="rounded-control bg-neutral-100 px-2 py-1 text-small font-medium text-secondary-dark">{{ $t('switched_off') }}</p>
+                <p x-cloak x-show="! $wire.enabled.qualification" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
             </div>
 
             <div class="mt-6 grid gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
@@ -433,7 +426,7 @@
                             <thead>
                                 <tr>
                                     <td></td>
-                                    <th scope="colgroup" colspan="{{ count($levels) + 1 }}" class="pb-1 text-center text-caption font-semibold uppercase tracking-wide text-secondary-medium">
+                                    <th scope="colgroup" colspan="{{ count($levels) + 1 }}" class="pb-1 text-center text-caption font-semibold uppercase tracking-wide rtl:normal-case rtl:tracking-normal text-secondary-medium">
                                         {{ $t('required_level') }}
                                     </th>
                                 </tr>
@@ -506,7 +499,7 @@
 
                     {{-- Word tester --}}
                     <div class="mt-6 border-t border-neutral-100 pt-5">
-                        <h3 class="text-body font-semibold text-neutral-900">{{ $t('tester_title') }}</h3>
+                        <h3 id="tester-title" class="scroll-mt-48 sm:scroll-mt-36 flex items-center gap-2 text-body font-semibold text-neutral-900"><flux:icon.beaker variant="mini" class="size-4 text-secondary-medium" aria-hidden="true" />{{ $t('tester_title') }}</h3>
                         <p class="mt-0.5 text-small text-secondary-medium">{{ $t('tester_hint') }}</p>
 
                         <div role="radiogroup" aria-label="{{ $t('tester_title') }}" class="mt-3 inline-flex rounded-control bg-neutral-100 p-0.5">
@@ -553,7 +546,7 @@
         </section>
 
         {{-- Save bar ------------------------------------------------------------ --}}
-        <div class="sticky bottom-0 z-10 -mx-4 border-t border-neutral-200 bg-white px-4 py-3 shadow-e2 sm:-mx-6 sm:px-6">
+        <div class="sticky bottom-4 z-10 {{ $card }} px-5 py-4 sm:px-6">
             <div x-cloak x-show="showChanges && changes.length" x-collapse class="mb-3">
                 <ul class="max-h-48 space-y-1 overflow-y-auto text-small text-neutral-800">
                     <template x-for="(line, i) in changes" :key="i">
@@ -564,7 +557,9 @@
 
             <div class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    <p class="text-body font-semibold text-neutral-900" aria-live="polite">
+                    <p class="inline-flex items-center gap-2 text-body font-semibold" aria-live="polite"
+                       :class="changes.length ? 'text-neutral-900' : 'text-secondary-medium'">
+                        <span aria-hidden="true" class="size-2 rounded-full" :class="changes.length ? 'bg-primary' : 'bg-neutral-300'"></span>
                         <span x-text="ui.changes[Math.min(changes.length, 40)]">{{ $t('no_changes') }}</span>
                     </p>
                     <span x-cloak x-show="changes.length" class="flex items-center gap-3 text-small">
@@ -590,7 +585,7 @@
                     <p x-cloak x-show="changes.length" class="hidden basis-full text-small text-secondary-medium sm:block">{{ $t('form_hint') }}</p>
                 </div>
 
-                <x-primary-button type="submit" wire:target="save" class="shrink-0">{{ $t('save') }}</x-primary-button>
+                <x-primary-button type="submit" wire:target="save" class="shrink-0 disabled:cursor-not-allowed disabled:opacity-50" x-bind:disabled="! changes.length">{{ $t('save') }}</x-primary-button>
             </div>
         </div>
     </form>

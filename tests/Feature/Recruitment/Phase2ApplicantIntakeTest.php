@@ -175,12 +175,12 @@ class Phase2ApplicantIntakeTest extends TestCase
         [, , $first] = $this->campaignWithLink();
         [, , $second] = $this->campaignWithLink();
 
-        $this->submit($first, $this->answers('victim@example.com', 'Real Person', '+963 111 111 111'))->assertStatus(202);
-        $this->submit($second, $this->answers('VICTIM@example.com', 'Someone Else', '+963 999 999 999'))->assertStatus(202);
+        $this->submit($first, $this->answers('victim@example.com', 'Real Person', '0944000000'))->assertRedirect();
+        $this->submit($second, $this->answers('VICTIM@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
         $this->assertSame('Real Person', $applicant->full_name);
-        $this->assertSame('+963111111111', $applicant->phone_normalized);
+        $this->assertSame('0944000000', $applicant->phone_normalized);
         $this->assertSame(2, $applicant->applications()->count());
     }
 
@@ -190,12 +190,12 @@ class Phase2ApplicantIntakeTest extends TestCase
         [, , $first] = $this->campaignWithLink();
         [, , $second] = $this->campaignWithLink();
 
-        $this->submit($first, $this->answers('kept@example.com', 'Real Person', '+963 111 111 111'))->assertStatus(202);
-        $this->submit($second, $this->answers('kept@example.com', 'Someone Else', '+963 999 999 999'))->assertStatus(202);
+        $this->submit($first, $this->answers('kept@example.com', 'Real Person', '0944000000'))->assertRedirect();
+        $this->submit($second, $this->answers('kept@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $latest = RecruitmentApplication::query()->latest('id')->first();
         $this->assertSame(['value' => 'Someone Else'], $latest->answers()->where('field_key', 'full_name')->sole()->answer_json);
-        $this->assertSame(['value' => '+963 999 999 999'], $latest->answers()->where('field_key', 'phone')->sole()->answer_json);
+        $this->assertSame(['value' => '0955000000'], $latest->answers()->where('field_key', 'phone')->sole()->answer_json);
     }
 
     /** Only what the record has no value for is filled in. */
@@ -204,14 +204,14 @@ class Phase2ApplicantIntakeTest extends TestCase
         [, , $first] = $this->campaignWithLink();
         [, , $second] = $this->campaignWithLink();
 
-        $this->submit($first, $this->answers('gap@example.com', 'Real Person', '+963 111 111 111'))->assertStatus(202);
+        $this->submit($first, $this->answers('gap@example.com', 'Real Person', '0944000000'))->assertRedirect();
         RecruitmentApplicant::query()->sole()->forceFill(['phone_normalized' => null])->save();
 
-        $this->submit($second, $this->answers('gap@example.com', 'Someone Else', '+963 999 999 999'))->assertStatus(202);
+        $this->submit($second, $this->answers('gap@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
         $this->assertSame('Real Person', $applicant->full_name);
-        $this->assertSame('+963999999999', $applicant->phone_normalized);
+        $this->assertSame('0955000000', $applicant->phone_normalized);
     }
 
     /** A new application restarts the retention clock, but never cancels an erasure request. */
@@ -221,17 +221,17 @@ class Phase2ApplicantIntakeTest extends TestCase
         [, , $second] = $this->campaignWithLink();
         [, , $third] = $this->campaignWithLink();
 
-        $this->submit($first, $this->answers('erase@example.com'))->assertStatus(202);
+        $this->submit($first, $this->answers('erase@example.com'))->assertRedirect();
         $requested = now()->subDay()->startOfSecond();
         $applicant = RecruitmentApplicant::query()->sole();
         $applicant->forceFill(['retention_until' => now()->addDays(30)])->save();
 
         // No erasure request: the clock restarts, as before.
-        $this->submit($second, $this->answers('erase@example.com'))->assertStatus(202);
+        $this->submit($second, $this->answers('erase@example.com'))->assertRedirect();
         $this->assertNull($applicant->fresh()->retention_until);
 
         $applicant->forceFill(['erasure_requested_at' => $requested, 'retention_until' => $requested])->save();
-        $this->submit($third, $this->answers('erase@example.com'))->assertStatus(202);
+        $this->submit($third, $this->answers('erase@example.com'))->assertRedirect();
 
         $applicant = $applicant->fresh();
         $this->assertTrue($requested->equalTo($applicant->erasure_requested_at));

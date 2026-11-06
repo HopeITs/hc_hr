@@ -5,7 +5,7 @@
 
         @if ($canSchedule)
             <a href="{{ route('recruitment.interviews.create', ['applicationId' => $application->id]) }}" wire:navigate
-               class="rounded-control border border-primary px-3 py-1 text-sm font-semibold text-primary hover:bg-selection">
+               class="inline-flex items-center justify-center rounded-control border border-primary px-4 py-2 text-body font-semibold text-primary hover:bg-selection">
                 {{ __('recruitment-applicant.interviews.schedule') }}
             </a>
         @endif

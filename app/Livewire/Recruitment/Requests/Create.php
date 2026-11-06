@@ -4,7 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentRequestType;
 use App\Livewire\Concerns\InitializesRecruitmentRequestSelects;
-use App\Livewire\Concerns\WithFeedback;
+use App\Livewire\Features\SupportToasts;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\ContractType;
@@ -24,7 +24,6 @@ use Livewire\Component;
 class Create extends Component
 {
     use InitializesRecruitmentRequestSelects;
-    use WithFeedback;
 
     public array $data = [
         'request_type' => RecruitmentRequestType::FillVacancy,
@@ -278,5 +277,20 @@ class Create extends Component
         return Vacancy::query()->available()
             ->whereIn('position_id', $positions->select('id'))
             ->where('position_id', $this->data['position_id'] ?? 0);
+    }
+
+    /**
+     * Say what happened, the way the rest of the application says it.
+     *
+     * A toast rather than a coloured panel: a red or green block across a form
+     * reads as part of the form rather than as a remark about it.
+     */
+    private function toast(string $message, bool $success = true): void
+    {
+        SupportToasts::queue($this, [
+            'type' => $success ? 'success' : 'error',
+            'message' => $message,
+            'undo' => null,
+        ]);
     }
 }

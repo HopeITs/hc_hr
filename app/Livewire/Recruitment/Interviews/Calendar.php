@@ -3,9 +3,14 @@
 namespace App\Livewire\Recruitment\Interviews;
 
 use App\Enums\RecruitmentInterviewStatus;
+use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentInterview;
+use App\Services\RecruitmentInterviewSchedulingService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -24,6 +29,54 @@ class Calendar extends Component
 
     #[Url]
     public bool $showCancelled = false;
+
+    #[Locked]
+    public ?string $selectedDate = null;
+
+    public ?string $campaignId = null;
+
+    public ?string $applicationId = null;
+
+    public function startScheduling(string $date): void
+    {
+        $this->authorizeScheduling();
+        Validator::make(['date' => $date], ['date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today']])->validate();
+        $this->selectedDate = $date;
+        $this->reset('campaignId', 'applicationId');
+        $this->resetErrorBag();
+    }
+
+    public function updatedCampaignId(): void
+    {
+        $this->reset('applicationId');
+    }
+
+    public function cancelScheduling(): void
+    {
+        $this->reset('selectedDate', 'campaignId', 'applicationId');
+        $this->resetErrorBag();
+    }
+
+    public function continueScheduling(): void
+    {
+        $this->authorizeScheduling();
+        $this->validate([
+            'selectedDate' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'campaignId' => ['required', 'integer'],
+            'applicationId' => ['required', 'integer'],
+        ]);
+        $application = RecruitmentApplication::query()->visibleTo(auth()->user())
+            ->where('campaign_id', $this->campaignId)
+            ->whereIn('status', RecruitmentInterviewSchedulingService::SCHEDULABLE)
+            ->findOrFail($this->applicationId);
+        Gate::authorize('schedule', [RecruitmentInterview::class, $application]);
+
+        $this->redirectRoute('recruitment.interviews.create', [
+            'applicationId' => $application->id,
+            'date' => $this->selectedDate,
+            'from_calendar' => 1,
+        ], navigate: true);
+    }
 
     public function mount(): void
     {
@@ -52,6 +105,7 @@ class Calendar extends Component
         Gate::authorize('viewAny', RecruitmentInterview::class);
 
         $first = $this->firstOfMonth();
+        $options = $this->schedulingOptions();
         // Weeks start on Saturday, as the working week does here.
         $gridStart = $first->copy()->startOfWeek(Carbon::SATURDAY);
         $gridEnd = $first->copy()->endOfMonth()->endOfWeek(Carbon::FRIDAY);
@@ -80,7 +134,33 @@ class Calendar extends Component
             'weeks' => $weeks,
             'weekdays' => collect(range(0, 6))->map(fn (int $offset) => $gridStart->copy()->addDays($offset)->translatedFormat('D')),
             'timezone' => config('app.timezone'),
+            'canSchedule' => $this->canSchedule(),
+            'schedulingOptions' => $options,
         ]);
+    }
+
+    private function authorizeScheduling(): void
+    {
+        Gate::authorize('viewAny', RecruitmentInterview::class);
+        abort_unless($this->canSchedule(), 403);
+    }
+
+    private function canSchedule(): bool
+    {
+        return auth()->user()->hasActivePermission('recruitment-applicants.schedule-interviews')
+            && auth()->user()->hasActivePermission('recruitment-applicants.view');
+    }
+
+    private function schedulingOptions(): Collection
+    {
+        if ($this->selectedDate === null || ! $this->canSchedule()) {
+            return collect();
+        }
+
+        return RecruitmentApplication::query()->visibleTo(auth()->user())
+            ->whereIn('status', RecruitmentInterviewSchedulingService::SCHEDULABLE)
+            ->with('applicant', 'campaign.vacancy.position')->get()
+            ->filter(fn (RecruitmentApplication $application): bool => Gate::allows('schedule', [RecruitmentInterview::class, $application]));
     }
 
     private function firstOfMonth(): Carbon

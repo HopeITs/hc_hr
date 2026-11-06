@@ -290,7 +290,7 @@ return [
     | cancelled or no-show interview. After completion HR can close it; with
     | auto_close_days set it also closes that many days after the outcome was
     | recorded (null: only HR closes it). Once closed, reviewers can no
-    | longer edit; HR with correct-evaluations still can, with a reason.
+    | longer edit; HR may still add a separate opinion note.
     |
     */
 

@@ -144,13 +144,17 @@ class Notes extends Component
             ->get();
 
         $hasApplications = $applicant->applications()->exists();
+        $mayAddUnattached = ! $hasApplications && $scopes->ownsApplicantRecord($user, $applicant);
+
+        $applications = $this->visibleApplications();
 
         return view('livewire.recruitment.applicants.notes', [
             'notes' => $notes,
-            'applications' => $this->visibleApplications(),
-            'mayAdd' => $user->hasActivePermission('recruitment-applicants.add-notes'),
+            'applications' => $applications,
+            'mayAdd' => ($applications->isNotEmpty() || $mayAddUnattached)
+                && $user->hasActivePermission('recruitment-applicants.add-notes'),
             // A note on the applicant alone only where there is no application to scope it by.
-            'mayAddUnattached' => ! $hasApplications && $scopes->ownsApplicantRecord($user, $applicant),
+            'mayAddUnattached' => $mayAddUnattached,
             'deletingNote' => $this->deletingNoteId === null ? null : $notes->firstWhere('id', $this->deletingNoteId),
         ]);
     }

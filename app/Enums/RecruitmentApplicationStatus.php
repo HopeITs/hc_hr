@@ -16,6 +16,8 @@ final class RecruitmentApplicationStatus
 
     public const Interviewed = 'interviewed';
 
+    public const Finalist = 'finalist';
+
     public const Selected = 'selected';
 
     public const OfferSent = 'offer_sent';
@@ -40,6 +42,7 @@ final class RecruitmentApplicationStatus
             self::Rejected,
             self::InterviewScheduled,
             self::Interviewed,
+            self::Finalist,
             self::Selected,
             self::OfferSent,
             self::OfferAccepted,
@@ -54,7 +57,7 @@ final class RecruitmentApplicationStatus
     public static function classes(?string $status): string
     {
         return match ($status) {
-            self::Shortlisted, self::InterviewScheduled, self::Interviewed => 'border border-primary bg-white text-primary',
+            self::Shortlisted, self::InterviewScheduled, self::Interviewed, self::Finalist => 'border border-primary bg-white text-primary',
             self::Selected, self::OfferSent, self::OfferAccepted, self::Hired => 'border border-primary bg-primary text-white',
             self::Rejected, self::OfferRejected => 'border border-primary bg-white text-primary',
             default => 'border border-neutral-300 bg-neutral-100 text-secondary-dark',
