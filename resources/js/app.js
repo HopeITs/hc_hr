@@ -60,6 +60,9 @@ import './commands.js';
 // "Install the app": header link, layout banner and settings.app (x-data="pwaInstall").
 import './pwa-install.js';
 
+// Team staffing chart: tidy-tree layout, pan / zoom / find (x-data="staffingTree").
+import './staffing-tree.js';
+
 // Web Push on this device (x-data="pushDevice"), page-load sync and the bell's chime.
 import './push-notifications.js';
 

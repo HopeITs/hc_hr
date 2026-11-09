@@ -1,59 +1,48 @@
-@php
-    $children = collect($node['children']);
-    $positionId = $node['id'];
-    $hasChildren = $children->isNotEmpty();
-    $waiting = $node['subtreeOpenSeats'] - $node['openSeats'];
-    $gap = $compact ? 'gap-3' : 'gap-4';
+{{--
+    One position on the staffing canvas: a flat, absolutely positioned wrapper.
 
-    // Managers before individual contributors.
-    $ordered = $children
-        ->filter(fn (array $child): bool => count($child['children']) > 0)
-        ->concat($children->reject(fn (array $child): bool => count($child['children']) > 0))
-        ->values();
+    The tree is not nested in the markup any more. Each visible position is a
+    sibling of the others, says who its parent is, and resources/js/staffing-tree.js
+    measures the card and places it (tidy-tree layout). A collapsed branch is not
+    rendered at all, so it takes no room.
+
+    wire:ignore.self keeps the transform the layout writes on this wrapper across
+    Livewire morphs; its own attributes never change for a given position (the
+    parent and depth of a position are fixed), while everything inside it is
+    morphed as usual. `invisible` is removed by the layout once the card is placed.
+
+    Expects: $entry (from the flat list built in team-staffing.blade.php), $compact, $view.
+--}}
+@php
+    $node = $entry['node'];
+    $positionId = $node['id'];
+    $reports = count($node['children']);
+    $waiting = $node['subtreeOpenSeats'] - $node['openSeats'];
+    $expanded = $entry['expanded'];
 @endphp
 
-<section wire:key="staffing-node-{{ $positionId }}"
-         x-data="{}"
-         class="flex min-w-0 max-w-full flex-col items-center">
+<div wire:key="staffing-node-{{ $positionId }}" wire:ignore.self
+     data-tree-node data-node-id="{{ $positionId }}" data-parent-id="{{ $entry['parent'] }}" data-depth="{{ $entry['depth'] }}"
+     class="staffing-tree-node invisible absolute left-0 top-0 w-max rounded-surface data-match:ring-2 data-match:ring-ink data-match:ring-offset-4 data-match:ring-offset-soft">
     <x-staffing-card :node="$node" :compact="$compact" :view="$view">
-        @if ($hasChildren)
+        @if ($reports > 0)
             {{-- A quiet text toggle. Open seats further down show as a small count with a red dot, not a red badge. --}}
-            <button type="button" wire:click="toggle({{ $positionId }})"
-                    :aria-expanded="! $wire.collapsed[{{ $positionId }}]" data-no-pan
-                    class="mt-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-control border-t border-neutral-100 px-1 pt-2 text-caption font-semibold text-secondary-dark transition hover:text-secondary-dark sm:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <button type="button" wire:click="toggle({{ $positionId }})" data-tree-toggle data-no-pan
+                    aria-expanded="{{ $expanded ? 'true' : 'false' }}"
+                    class="mt-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-control border-t border-line-soft px-1 pt-2 text-caption font-semibold text-ink transition hover:text-ink sm:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                 <span class="flex items-center gap-2">
-                    <flux:icon.user-group variant="micro" class="size-4 text-secondary-medium" aria-hidden="true" />
-                    {{ trans_choice('recruitment.team_staffing.reports_count', $children->count(), ['count' => $children->count()]) }}
+                    <flux:icon.user-group variant="micro" class="size-4 text-ink-2" aria-hidden="true" />
+                    {{ trans_choice('recruitment.team_staffing.reports_count', $reports, ['count' => $reports]) }}
                     @if ($waiting > 0)
-                        <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-px tabular-nums text-secondary-dark"
+                        <span class="inline-flex items-center gap-1 rounded-full bg-soft px-1.5 py-px tabular-nums text-ink"
                               title="{{ __('recruitment.team_staffing.open_seats_below', ['count' => $waiting]) }}">
                             <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>{{ $waiting }}
                             <span class="sr-only">{{ __('recruitment.team_staffing.open_seats_below', ['count' => $waiting]) }}</span>
                         </span>
                     @endif
                 </span>
-                <flux:icon.chevron-down variant="micro" class="size-4 shrink-0 text-secondary-medium transition-transform duration-200 motion-reduce:transition-none" ::class="! $wire.collapsed[{{ $positionId }}] ? 'rotate-180' : ''" aria-hidden="true" />
+                <flux:icon.chevron-down variant="micro" @class(['size-4 shrink-0 text-ink-2 transition-transform duration-200 motion-reduce:transition-none', 'rotate-180' => $expanded]) aria-hidden="true" />
             </button>
         @endif
     </x-staffing-card>
-
-    {{-- A reporting level stays on one rail so connector lines never imply a false second level. --}}
-    @if ($hasChildren)
-        {{-- Nested height animations measure partially hidden descendants during Expand all. Let the tree size itself naturally. --}}
-        <div x-show="! $wire.collapsed[{{ $positionId }}]" x-cloak class="flex w-full flex-col items-center">
-            <span aria-hidden="true" class="h-5 w-px bg-neutral-300"></span>
-            <div class="relative flex w-full min-w-max flex-nowrap items-start justify-center overflow-visible border-t border-neutral-300 pt-5 {{ $gap }}">
-                @foreach ($ordered as $child)
-                    <div class="relative flex min-w-0 flex-col items-center">
-                        <span aria-hidden="true" class="absolute -top-5 start-1/2 h-5 w-px bg-neutral-300"></span>
-                        @include('livewire.recruitment.requests.partials.team-staffing-node', [
-                            'node' => $child,
-                            'compact' => $compact,
-                            'view' => $view,
-                        ])
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
-</section>
+</div>

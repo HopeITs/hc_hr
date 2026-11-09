@@ -717,6 +717,7 @@ return [
     'collapse' => 'Collapse',
     'expand' => 'Expand',
     'vacant-position' => 'Vacant position',
+    'vacant-seats-count' => ':count open seats in this position',
     'not-specified' => 'Not specified',
     'view-profile-of' => 'View profile of :name',
     'collapse-sidebar' => 'Collapse sidebar',

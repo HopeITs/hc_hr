@@ -62,6 +62,50 @@ class TeamStaffing extends Component
         Gate::authorize('create', RecruitmentRequest::class);
     }
 
+    /**
+     * Open on the root and its direct reports, with every deeper team folded.
+     *
+     * A large organisation drawn in full is a wall of cards; the first look is
+     * "who reports to me", and each branch opens on demand. Presentation only:
+     * the walk follows the same active reporting lines the chart draws.
+     */
+    public function mount(): void
+    {
+        $root = app(RecruitmentScopeResolver::class)->position(auth()->user());
+
+        if ($root === null || $this->collapsed !== []) {
+            return;
+        }
+
+        $seen = [(int) $root->getKey() => true];
+        $frontier = [(int) $root->getKey()];
+
+        for ($depth = 0; $frontier !== []; $depth++) {
+            $children = Position::query()
+                ->where('is_active', true)
+                ->whereIn('direct_manager_id', $frontier)
+                ->get(['id', 'direct_manager_id']);
+
+            $next = [];
+            foreach ($children as $child) {
+                $id = (int) $child->getKey();
+
+                if (isset($seen[$id])) {
+                    continue;
+                }
+
+                $seen[$id] = true;
+                $next[] = $id;
+
+                if ($depth >= 2) {
+                    $this->collapsed[(int) $child->direct_manager_id] = true;
+                }
+            }
+
+            $frontier = $next;
+        }
+    }
+
     public function toggle(int $positionId): void
     {
         $this->collapsed[$positionId] = ! ($this->collapsed[$positionId] ?? false);

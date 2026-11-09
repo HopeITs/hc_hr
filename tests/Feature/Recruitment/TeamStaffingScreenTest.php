@@ -14,6 +14,8 @@ use App\Models\Position;
 use App\Models\Program;
 use App\Models\RecruitmentRequest;
 use App\Models\Vacancy;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\BuildsRecruitmentRequests;
@@ -145,13 +147,14 @@ class TeamStaffingScreenTest extends TestCase
     /**
      * Sibling posts stay on one reporting level, never a fixed column count.
      *
-     * A wide reporting level scrolls horizontally instead of wrapping into what
-     * looks like a different level. Managers come before individual contributors.
+     * The canvas lays the tree out from each card's parent and depth, so two
+     * reports of the same manager are one level: same parent, same depth.
+     * Managers come before individual contributors.
      */
     public function test_sibling_posts_stay_on_one_reporting_level_in_both_views(): void
     {
         $branch = $this->openPost('Branch report', filled: 0, capacity: 1);
-        $this->openPost('Leaf report', filled: 0, capacity: 1);
+        $leaf = $this->openPost('Leaf report', filled: 0, capacity: 1);
 
         $under = $this->openPost('Under the branch', filled: 0, capacity: 1);
         $under->update(['direct_manager_id' => $branch->getKey()]);
@@ -159,7 +162,10 @@ class TeamStaffingScreenTest extends TestCase
         foreach (['positions', 'staff'] as $view) {
             $html = $this->chart($view);
 
-            $this->assertStringContainsString('min-w-max flex-nowrap items-start justify-center', $html);
+            foreach ([$branch, $leaf] as $sibling) {
+                $this->assertStringContainsString($this->nodeAttributes($sibling, $this->root, 1), $html);
+            }
+            $this->assertStringContainsString($this->nodeAttributes($under, $branch, 2), $html);
             $this->assertStringNotContainsString('grid-template-columns', $html);
             $this->assertLessThan(strpos($html, 'Leaf report'), strpos($html, 'Branch report'));
         }
@@ -182,12 +188,13 @@ class TeamStaffingScreenTest extends TestCase
     }
 
     /**
-     * A manager's box grows with its subtree instead of strangling it.
+     * A manager's box never strangles its subtree.
      *
-     * The positions view fixes a card's width so posts can be compared, and once
-     * the reports moved inside their manager's box that width capped the whole
-     * subtree to one column — which is why a level of posts came out stacked one
-     * under another. The width belongs to the card's own content only.
+     * The positions view fixes a card's width so posts can be compared. When the
+     * reports were drawn inside their manager's box, that width capped the whole
+     * subtree to one column. Now every post is its own wrapper on the canvas,
+     * sized by its card alone (w-max, no fixed width), and a report is a sibling
+     * of its manager's wrapper that names its parent — never nested inside it.
      */
     public function test_the_positions_view_does_not_cap_the_width_of_a_subtree(): void
     {
@@ -197,11 +204,68 @@ class TeamStaffingScreenTest extends TestCase
 
         $html = $this->chart('positions');
 
-        // The fixed width is on a content column, never on a box that wraps
-        // children: every occurrence of it carries mx-auto with it.
-        $this->assertStringContainsString('w-44 mx-auto', $html);
-        $this->assertStringContainsString('class="flex min-w-0 max-w-full flex-col items-center"', $html);
-        $this->assertStringNotContainsString('class="flex min-w-0 max-w-full flex-col items-center w-44', $html);
+        $wrapper = 'class="staffing-tree-node invisible absolute left-0 top-0 w-max ';
+        $this->assertSame(3, substr_count($html, $wrapper));
+        $this->assertDoesNotMatchRegularExpression('/class="staffing-tree-node[^"]*\bw-(\d|\[)/', $html);
+
+        // The report names its manager instead of sitting inside the manager's
+        // box: no wrapper has another wrapper as an ancestor.
+        $this->assertStringContainsString($this->nodeAttributes($under, $branch, 2), $html);
+
+        $dom = new DOMDocument;
+        $dom->loadHTML('<?xml encoding="utf-8"?>'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new DOMXPath($dom);
+        $this->assertSame(3, $xpath->query('//*[@data-tree-node]')->length);
+        $this->assertSame(0, $xpath->query('//*[@data-tree-node]//*[@data-tree-node]')->length);
+    }
+
+    /** A collapsed branch is not rendered at all, so it takes no room on the canvas. */
+    public function test_a_collapsed_branch_leaves_its_reports_out_of_the_chart(): void
+    {
+        $branch = $this->openPost('Branch report', filled: 0, capacity: 1);
+        $under = $this->openPost('Under the branch', filled: 0, capacity: 1);
+        $under->update(['direct_manager_id' => $branch->getKey()]);
+
+        $screen = Livewire::actingAs($this->manager)->test(TeamStaffing::class)
+            ->call('setView', 'positions')
+            ->assertSee('Under the branch');
+
+        $screen->call('toggle', $branch->id)
+            ->assertDontSee('Under the branch')
+            ->assertSeeHtml('wire:click="toggle('.$branch->id.')" data-tree-toggle data-no-pan
+                    aria-expanded="false"');
+
+        $screen->call('expandAll')->assertSee('Under the branch');
+    }
+
+    /**
+     * The chart opens on the manager and their direct reports.
+     *
+     * A team two levels down is folded on first load, so a large organisation
+     * reads as "who reports to me" first; it opens on demand, and the unfilled
+     * filter shows every match.
+     */
+    public function test_the_chart_opens_with_teams_below_the_direct_reports_folded(): void
+    {
+        $direct = $this->openPost('Direct report', filled: 0, capacity: 1);
+        $second = $this->openPost('Second level', filled: 0, capacity: 1);
+        $second->update(['direct_manager_id' => $direct->getKey()]);
+        $third = $this->openPost('Third level', filled: 0, capacity: 1);
+        $third->update(['direct_manager_id' => $second->getKey()]);
+
+        $screen = Livewire::actingAs($this->manager)->test(TeamStaffing::class)
+            ->call('setView', 'positions')
+            ->assertSet('collapsed', [$second->id => true])
+            ->assertSee('Direct report')
+            ->assertSee('Second level')
+            ->assertDontSee('Third level')
+            ->assertSeeHtml('wire:click="toggle('.$second->id.')" data-tree-toggle data-no-pan
+                    aria-expanded="false"');
+
+        $screen->call('toggle', $second->id)->assertSee('Third level');
+
+        $screen->call('collapseAll')->assertDontSee('Third level')
+            ->call('toggleVacantOnly')->assertSet('collapsed', [])->assertSee('Third level');
     }
 
     /** The filter that the page is really for: where is the establishment short. */
@@ -278,6 +342,12 @@ class TeamStaffingScreenTest extends TestCase
 
         Livewire::actingAs($this->manager)->test(TeamStaffing::class)
             ->assertDontSee('vacancy_id=', escape: false);
+    }
+
+    /** The attributes the canvas reads off a post's wrapper: who it reports to, and how deep. */
+    private function nodeAttributes(Position $position, Position $parent, int $depth): string
+    {
+        return 'data-tree-node data-node-id="'.$position->id.'" data-parent-id="'.$parent->id.'" data-depth="'.$depth.'"';
     }
 
     /** The chart's rendered markup in one of its two views. */

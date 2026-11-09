@@ -717,6 +717,7 @@ return [
     'collapse' => 'طي',
     'expand' => 'توسيع',
     'vacant-position' => 'منصب شاغر',
+    'vacant-seats-count' => 'مقاعد شاغرة في هذا المنصب: :count',
     'not-specified' => 'غير محدد',
     'view-profile-of' => 'عرض ملف :name',
     'collapse-sidebar' => 'طي القائمة الجانبية',
