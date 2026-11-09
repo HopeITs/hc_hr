@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestStatus;
+use App\Livewire\Concerns\SubmitsRecruitmentRequests;
 use App\Livewire\Features\SupportToasts;
 use App\Models\Center;
 use App\Models\ContractType;
@@ -23,13 +24,14 @@ use App\Services\RecruitmentRequestApplicationService;
 use App\Services\RecruitmentRequestSubmissionService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Details extends Component
 {
+    use SubmitsRecruitmentRequests;
+
     #[Locked]
     public int $requestId;
 
@@ -83,20 +85,9 @@ class Details extends Component
         $request = $this->resolve();
         Gate::authorize('submit', $request);
 
-        try {
-            $submissions->submit(auth()->user(), $request);
-        } catch (ValidationException $e) {
-            // Every refusal the service raises is keyed to a form field —
-            // data.position_id, data.salary_amount — and this screen is not the
-            // form, so it has no outlet for any of them. The message went into
-            // the error bag and nowhere else, and the button simply did nothing.
-            // Saying it out loud is the only way the requester learns why.
-            $this->refuse($e);
-
-            return;
-        }
-
-        $this->toast(__('recruitment.submitted'));
+        // A refusal is toasted rather than left in the error bag: this screen
+        // is not the form and renders none of the data.* keys it is raised on.
+        $this->submitRecruitmentRequest($request, $submissions);
     }
 
     /** Cancel while the request is still the requester's to withdraw. */
@@ -262,21 +253,6 @@ class Details extends Component
         $this->askingForChanges = false;
         $this->rejecting = false;
         $this->toast(__('recruitment.decided'));
-    }
-
-    /**
-     * Report a refusal the requester can act on.
-     *
-     * Every message, not the first: a submission can fail on several counts at
-     * once — three unfilled fields, or a duplicate and a stale scope together —
-     * and fixing one to be told about the next is a worse experience than being
-     * told all of them now.
-     */
-    private function refuse(ValidationException $e): void
-    {
-        $messages = collect($e->errors())->flatten()->unique()->values();
-
-        $this->toast($messages->implode(' '), false);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentRequestType;
 use App\Livewire\Concerns\InitializesRecruitmentRequestSelects;
+use App\Livewire\Concerns\SubmitsRecruitmentRequests;
 use App\Livewire\Features\SupportToasts;
 use App\Models\Center;
 use App\Models\City;
@@ -23,7 +24,7 @@ use Livewire\Component;
 
 class Create extends Component
 {
-    use InitializesRecruitmentRequestSelects;
+    use InitializesRecruitmentRequestSelects, SubmitsRecruitmentRequests;
 
     public array $data = [
         'request_type' => RecruitmentRequestType::FillVacancy,
@@ -77,11 +78,47 @@ class Create extends Component
         $this->data['center_id'] = null;
     }
 
+    /** A changed reason makes the "other" text meaningless, so it goes with it. */
+    public function updatedDataRecruitmentReason(): void
+    {
+        if (($this->data['recruitment_reason'] ?? null) !== 'other') {
+            unset($this->data['other_reason']);
+            $this->resetValidation('data.other_reason');
+        }
+    }
+
     public function save(RecruitmentRequestDraftService $drafts)
     {
         $this->resetValidation();
-        $request = $drafts->create(auth()->user(), $this->data);
-        $this->toast(__('recruitment.draft_saved'));
+        $request = $this->persistDraft($drafts);
+        $this->toast($this->savedMessage());
+
+        return $this->redirectRoute('recruitment.requests.show', ['requestId' => $request->id]);
+    }
+
+    /**
+     * Save exactly as save() does, then submit (T3) or resubmit (T11).
+     *
+     * The draft is committed first, on its own: a submission the service then
+     * refuses leaves it saved, and the requester lands on its details page with
+     * the same message that page's own Submit button would have given. Invalid
+     * form data is refused before anything is written, inline, as with save().
+     */
+    public function saveAndSubmit(RecruitmentRequestDraftService $drafts)
+    {
+        $this->resetValidation();
+        $request = $this->persistDraft($drafts)->fresh();
+
+        if (! Gate::allows('submit', $request)) {
+            // Not this user's to submit (the button is not offered then):
+            // saved, and nothing more.
+            $this->toast($this->savedMessage());
+        } elseif (($refusal = $this->attemptSubmission($request)) !== null) {
+            $this->toast($this->savedMessage());
+            $this->toast($refusal, false);
+        } else {
+            $this->toast(__('recruitment.submitted'));
+        }
 
         return $this->redirectRoute('recruitment.requests.show', ['requestId' => $request->id]);
     }
@@ -158,7 +195,35 @@ class Create extends Component
             // Nothing is locked while a request is being written; Edit says
             // otherwise once an approver has named what may change.
             'lockedFields' => $this->lockedFields(),
+            // Whether "save & submit" is offered next to "save draft".
+            'canSubmit' => $this->canSubmit(),
         ]);
+    }
+
+    /**
+     * Whether this user could submit the request once it is saved.
+     *
+     * A new request is always a normal one owned by its author, so the submit
+     * policy reduces to the permission plus being allowed to raise one at all.
+     * Edit asks the policy about the request itself.
+     */
+    protected function canSubmit(): bool
+    {
+        $user = auth()->user();
+
+        return $user->hasActivePermission('recruitment-requests.submit')
+            && app(RecruitmentScopeResolver::class)->canRaiseNormalRequest($user);
+    }
+
+    /** Overridden by Edit, which updates the request it was opened on. */
+    protected function persistDraft(RecruitmentRequestDraftService $drafts): RecruitmentRequest
+    {
+        return $drafts->create(auth()->user(), $this->data);
+    }
+
+    protected function savedMessage(): string
+    {
+        return __('recruitment.draft_saved');
     }
 
     /** Overridden by Edit, which authorizes against an existing request. */

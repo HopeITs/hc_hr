@@ -131,7 +131,9 @@ class RecruitmentRequestDraftService
             // "the request was edited" without naming the fields is explicitly
             // not enough for the approver who has to decide whether their own
             // approval still stands.
-            $before = (array) ($fresh->draft_payload_json ?? []);
+            // Normalised like the incoming data, so a stale "other" text saved
+            // before it was stripped does not read as an edit to a locked field.
+            $before = $this->withoutStrayOtherReason((array) ($fresh->draft_payload_json ?? []));
 
             $this->assertOnlyPermittedFieldsChanged($fresh, $before, $data);
 
@@ -262,11 +264,31 @@ class RecruitmentRequestDraftService
             ->all();
         $data = Validator::make(['data' => $input], $prefixed, [], $attributes)->validate()['data'];
         $data['request_type'] = $type;
+        $data = $this->withoutStrayOtherReason($data);
 
         if ($type === Type::CreatePosition && (int) $data['volunteers_required'] > (int) $data['max_emp']) {
             throw ValidationException::withMessages([
                 'data.volunteers_required' => __('recruitment.volunteers_required_exceeds_available', ['count' => $data['max_emp']]),
             ]);
+        }
+
+        return $data;
+    }
+
+    /**
+     * The "other" text only answers the "other" reason.
+     *
+     * Kept with any other reason it would be frozen into the version and shown
+     * to approvers as part of a request that never chose it — whether the form
+     * left it behind or the payload was written by hand.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withoutStrayOtherReason(array $data): array
+    {
+        if (($data['recruitment_reason'] ?? null) !== 'other') {
+            unset($data['other_reason']);
         }
 
         return $data;
