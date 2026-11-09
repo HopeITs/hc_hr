@@ -264,16 +264,29 @@ class ContractAmendment extends Model implements HasMedia
      */
     public function matchesContract(Contract $contract): bool
     {
-        $before = $this->terms_before ?? [];
+        return $this->contractCarries($contract, 'before');
+    }
 
-        foreach (ContractAmendment::snapshotOf($contract) as $field => $value) {
-            if (self::normalise($value) !== self::normalise($before[$field] ?? null)) {
+    /**
+     * Does $contract carry this amendment's "after" — what it should, when
+     * this is the latest amendment in effect (contracts:amendments-check)?
+     */
+    public function isCarriedBy(Contract $contract): bool
+    {
+        return $this->contractCarries($contract, 'after');
+    }
+
+    /** Do this amendment's "before" terms equal $previous's "after" ones? */
+    public function followsOn(ContractAmendment $previous): bool
+    {
+        foreach (self::AMENDABLE_FIELDS as $field) {
+            if (self::normalise($this->terms_before[$field] ?? null) !== self::normalise($previous->terms_after[$field] ?? null)) {
                 return false;
             }
         }
 
-        return self::normalise($contract->salary) === self::normalise($this->salary_before)
-            && self::tiersOf($contract->payTiers()->get()) === $this->tierSignature(ContractAmendmentPayTier::SIDE_BEFORE);
+        return self::normalise($this->salary_before) === self::normalise($previous->salary_after)
+            && $this->tierSignature(ContractAmendmentPayTier::SIDE_BEFORE) === $previous->tierSignature(ContractAmendmentPayTier::SIDE_AFTER);
     }
 
     /**
@@ -292,6 +305,23 @@ class ContractAmendment extends Model implements HasMedia
         return $this->payTiers()->get()->contains(
             fn (ContractAmendmentPayTier $tier) => filled($tier->getAttributes()['amount'] ?? null) && $tier->amount === null,
         );
+    }
+
+    /** @param  'before'|'after'  $side */
+    private function contractCarries(Contract $contract, string $side): bool
+    {
+        $terms = ($side === 'before' ? $this->terms_before : $this->terms_after) ?? [];
+
+        foreach (ContractAmendment::snapshotOf($contract) as $field => $value) {
+            if (self::normalise($value) !== self::normalise($terms[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return self::normalise($contract->salary) === self::normalise($side === 'before' ? $this->salary_before : $this->salary_after)
+            && self::tiersOf($contract->payTiers()->get()) === $this->tierSignature(
+                $side === 'before' ? ContractAmendmentPayTier::SIDE_BEFORE : ContractAmendmentPayTier::SIDE_AFTER,
+            );
     }
 
     /**

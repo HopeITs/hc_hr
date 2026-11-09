@@ -4,11 +4,10 @@
      *
      * @var \App\Models\ContractAmendment $amendment
      * @var \App\Models\Contract $contract
-     * @var array<int, array{0: string, 1: string, 2: string}> $lines  what changed (ContractAmendmentDescriber)
+     * @var array<int, array{label: string, after: string, before: string, changed: bool}> $terms  every term after it (ContractAmendmentDescriber::terms)
      * @var bool $isCurrent  the latest amendment in effect: its terms are the contract's now
      */
     $signed = $amendment->getFirstMedia('signed');
-    $arrow = app()->getLocale() === 'ar' ? '←' : '→';
 
     // An amendment in effect that a later one has replaced is history, not
     // "in effect": only the newest one describes the contract as it stands.
@@ -28,27 +27,47 @@
     </span>
 </div>
 
-@if($lines !== [])
-    <dl class="mt-2 grid gap-1 text-small sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4">
-        @foreach($lines as [$label, $from, $to])
-            <dt class="text-ink-2">{{ $label }}</dt>
-            <dd class="num text-ink">
-                @if($from !== '' || $to !== '')
-                    <span class="text-ink-2">{{ $from }}</span>
-                    <span aria-hidden="true" class="text-ink-3">{{ $arrow }}</span>
-                    <span class="sr-only">@lang('contracts.amendment.becomes')</span>
-                    <span class="font-semibold">{{ $to }}</span>
-                @endif
-            </dd>
+{{-- Why, before what: read first, labelled, at body size, line breaks kept. --}}
+@if(filled($amendment->reason))
+    <div class="mt-3 rounded-control border-s-4 border-ink bg-soft px-3 py-2">
+        <p class="text-caption font-semibold text-ink-2">@lang('contracts.amendment.reason-label')</p>
+        <p dir="auto" class="whitespace-pre-line text-body text-ink">{{ $amendment->reason }}</p>
+    </div>
+@endif
+
+@if($terms !== [])
+    {{-- Every term the contract runs on after this amendment, so it reads on its
+         own. What changed is outlined, with what it replaced beneath; what did
+         not change is quieter and says so. No colour: shape and words only. --}}
+    <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" @if($tour ?? false) data-tour="contract-details.amend-terms" @endif>
+        @foreach($terms as $term)
+            <div @class([
+                'min-w-0 rounded-control px-3 py-2',
+                'border border-ink bg-card' => $term['changed'],
+                'border border-transparent bg-soft' => ! $term['changed'],
+            ])>
+                <dt class="flex items-center justify-between gap-2 text-caption text-ink-2">
+                    <span class="truncate">{{ $term['label'] }}</span>
+                    @if($term['changed'])
+                        <span class="shrink-0 font-semibold text-ink">@lang('contracts.amendment.changed')</span>
+                    @endif
+                </dt>
+                <dd @class(['num', 'font-semibold text-ink' => $term['changed'], 'text-ink-2' => ! $term['changed']])>{{ $term['after'] }}</dd>
+                <dd class="num text-caption text-ink-3">
+                    @if($term['changed'])
+                        {{ $term['before'] !== '' ? __('contracts.amendment.was', ['value' => $term['before']]) : __('contracts.amendment.newly-set') }}
+                    @else
+                        @lang('contracts.amendment.unchanged')
+                    @endif
+                </dd>
+            </div>
         @endforeach
     </dl>
 @endif
 
-@if(filled($amendment->reason))
-    <p class="mt-2 text-small text-ink-2">{{ $amendment->reason }}</p>
-@endif
 
-<div class="mt-3 flex flex-wrap items-center gap-2">
+{{-- Only the open (newest) amendment carries the tour hooks: one per page. --}}
+<div class="mt-3 flex flex-wrap items-center gap-2" @if($tour ?? false) data-tour="contract-details.amend-actions" @endif>
     @can('decideAmendment', $amendment)
         <x-button size="sm" wire:click="askApprove({{ $amendment->id }})">@lang('contracts.amendment.approve')</x-button>
     @endcan

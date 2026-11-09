@@ -149,6 +149,8 @@ return [
         'timeline' => 'Timeline',
         'timeline-subtitle' => 'Career and badges',
         'timeline-empty' => 'Nothing to show yet.',
+        'more-changes' => '{1} +:count more change|[2,*] +:count more changes',
+        'fewer-changes' => 'Show fewer',
         'events' => [
             'contract-joined' => 'Joined',
             'contract-started' => 'New contract',

@@ -47,7 +47,7 @@ class ContractsTableB4Test extends TestCase
         $cityScoped = Livewire::actingAs($this->hr())->test(ContractsTable::class);
         $labels = fn ($component) => collect($component->instance()->columns)->all();
         $this->assertSame(
-            ['employee', 'contractType_name_en', 'period', 'is_active', 'auto_renew'],
+            ['employee', 'contract_type', 'period', 'is_active', 'auto_renew'],
             array_slice($labels($cityScoped), 0, 5),
         );
         $this->assertNotContains('city', $labels($cityScoped));
@@ -151,7 +151,7 @@ class ContractsTableB4Test extends TestCase
             ->assertDispatched('contract-drawer-closed');
 
         // Same user, same scope: everything is exactly as it was left.
-        $after = Livewire::actingAs($user)->test(ContractsTable::class);
+        $after = Livewire::actingAs($user)->withHeaders(['Referer' => route('contracts.index')])->test(ContractsTable::class);
         $this->assertSame($before, [$after->get('globalSearch'), $after->get('search'), $after->get('sortColumn'), $after->get('sortDirection'), $after->get('paginators.page')]);
         $this->assertSame(2, $after->get('paginators.page'));
     }
@@ -201,14 +201,14 @@ class ContractsTableB4Test extends TestCase
         $user = $this->assignInactiveRole($user, 'HR-LAT', self::HR);
 
         Livewire::actingAs($user)->test(ContractsTable::class)->set('globalSearch', 'zed')->set('perPage', 25);
-        Livewire::actingAs($user)->test(ContractsTable::class)->assertSet('globalSearch', 'zed');
+        Livewire::actingAs($user)->withHeaders(['Referer' => route('contracts.index')])->test(ContractsTable::class)->assertSet('globalSearch', 'zed');
 
         foreach ($user->roles()->get() as $role) {
             $user->roles()->updateExistingPivot($role->id, ['is_active' => $role->name === 'HR-LAT']);
         }
         $user = $user->unsetRelation('roles')->fresh();
 
-        Livewire::actingAs($user)->test(ContractsTable::class)
+        Livewire::actingAs($user)->withHeaders(['Referer' => route('contracts.index')])->test(ContractsTable::class)
             ->assertSet('globalSearch', '')->assertSet('perPage', 15)->assertSet('preset', 'active');
         $this->assertNotNull($lat);
     }

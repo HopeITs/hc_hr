@@ -162,23 +162,33 @@ class ContractAmendmentService
     }
 
     /**
-     * Apply every approved amendment whose effective date has come. One that
-     * cannot be applied is logged and left approved; it never stops the rest.
+     * Apply every approved amendment whose effective date has come. One whose
+     * contract ended before that date is cancelled (deleted, and logged); one
+     * that cannot be applied is logged and left approved. Neither stops the rest.
      *
-     * @return array{applied: Collection<int, ContractAmendment>, failed: Collection<int, ContractAmendment>}
+     * @return array{applied: Collection<int, ContractAmendment>, failed: Collection<int, ContractAmendment>, cancelled: Collection<int, ContractAmendment>}
      */
     public function applyDue(?CarbonInterface $day = null): array
     {
         $day ??= today();
         $applied = collect();
         $failed = collect();
+        $cancelled = collect();
 
         ContractAmendment::query()
             ->dueOn($day)
             ->orderBy('effective_from')
             ->orderBy('number')
             ->get()
-            ->each(function (ContractAmendment $amendment) use ($applied, $failed): void {
+            ->each(function (ContractAmendment $amendment) use ($applied, $failed, $cancelled): void {
+                // The contract ended or was terminated before this amendment
+                // could take effect: there is no contract left to amend.
+                if ($this->cancelIfContractEnded($amendment)) {
+                    $cancelled->push($amendment);
+
+                    return;
+                }
+
                 try {
                     $this->apply($amendment);
                     $applied->push($amendment->refresh());
@@ -192,7 +202,66 @@ class ContractAmendmentService
                 }
             });
 
-        return ['applied' => $applied, 'failed' => $failed];
+        return ['applied' => $applied, 'failed' => $failed, 'cancelled' => $cancelled];
+    }
+
+    /**
+     * Cancel the approved amendments of $contract that it ended before. Called
+     * when a termination or a new end date is saved, so the card never shows
+     * an amendment waiting on a contract that is over.
+     *
+     * @return Collection<int, ContractAmendment>
+     */
+    public function cancelForEndedContract(Contract $contract): Collection
+    {
+        return ContractAmendment::query()
+            ->where('contract_id', $contract->id)
+            ->where('status', ContractAmendmentStatus::Approved)
+            ->get()
+            ->filter(fn (ContractAmendment $amendment) => $this->cancelIfContractEnded($amendment))
+            ->values();
+    }
+
+    private function cancelIfContractEnded(ContractAmendment $amendment): bool
+    {
+        if (! $this->endedBefore($amendment)) {
+            return false;
+        }
+
+        Log::info('Contract amendment cancelled: the contract ended before it took effect', [
+            'amendment_id' => $amendment->id,
+            'contract_id' => $amendment->contract_id,
+            'effective_from' => $amendment->effective_from->toDateString(),
+        ]);
+
+        // Through Eloquent, so a signed copy leaves the disk with it.
+        $amendment->delete();
+
+        return true;
+    }
+
+    /**
+     * Did the contract end before $amendment's effective date? Terminated
+     * before it (a termination recorded without a date counts as already
+     * terminated), or its term over before it. A termination dated on or
+     * after the effective date leaves the amendment to apply: the contract
+     * still runs on those terms until then.
+     */
+    private function endedBefore(ContractAmendment $amendment): bool
+    {
+        $contract = $amendment->contract()->first();
+        $from = $amendment->effective_from;
+
+        if ($contract === null) {
+            return true;
+        }
+
+        if ($contract->terminated_at !== null) {
+            return $contract->terminated_at->lt($from);
+        }
+
+        return filled($contract->termination_reason_id)
+            || ($contract->end_date !== null && $contract->end_date->lt($from));
     }
 
     /** @param  ContractAmendment|null  $replacing  the draft this one replaces (redraft()) */

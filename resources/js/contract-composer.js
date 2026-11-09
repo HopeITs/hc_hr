@@ -337,7 +337,8 @@ document.addEventListener('alpine:init', () => {
         // ---- amendment (amend mode only)
         effectiveFrom: config.seed?.effectiveFrom ?? '',
         amendmentReason: config.seed?.amendmentReason ?? '',
-        termStart: config.seed?.startDate ?? '',
+        // Not before the last amendment in effect, when there is one.
+        termStart: config.seed?.minEffectiveFrom ?? config.seed?.startDate ?? '',
         termEnd: config.seed?.endDate ?? '',
 
         terminatedAt: config.seed?.terminatedAt ?? '',

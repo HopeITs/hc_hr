@@ -24,6 +24,13 @@ use RamonRietdijk\LivewireTables\Filters\SelectFilter;
  *
  * Rules (docs/ux/table-contract.md §4.2):
  *  - URL wins over session; a URL search/filter also stops the saved page being reused;
+ *  - the text searches (global and per column) come back only to someone returning from
+ *    this list's own pages (a record, its edit page, the list itself in the other
+ *    language): opening the list from anywhere else starts unsearched. They also live in
+ *    the URL, so browser Back and a shared link carry them regardless;
+ *  - column codes must not depend on the locale (see columnCodeAliases()): stored
+ *    columns, searches and sorts are keyed by code, and a code that changes with the
+ *    language makes columns vanish when the user switches it;
  *  - the session key contains user id, active role and city scope, so nothing from
  *    another role/city is ever read back (AC-B4-02);
  *  - restored columns are limited to columns the role may see (`canBeSeen`);
@@ -167,6 +174,59 @@ trait RemembersTableState
         return ['globalSearch', 'search', 'filters', 'sortColumn', 'sortDirection', 'paginators', 'perPage', 'columns', 'columnOrder'];
     }
 
+    /**
+     * Is the user coming back from one of this list's own pages? The previous
+     * page (Referer) is under the same path as the list — /contracts/24 or
+     * /contracts/24/edit for /contracts — whatever the locale prefix. Coming
+     * from the menu, another list or the dashboard, they are starting over.
+     */
+    /** The list page's own path (e.g. "contracts"); null to read it off the request. */
+    protected function listPath(): ?string
+    {
+        return null;
+    }
+
+    protected function returningFromOwnPages(): bool
+    {
+        $referer = request()->headers->get('referer');
+
+        if (! $referer || parse_url($referer, PHP_URL_HOST) !== request()->getHost()) {
+            return false;
+        }
+
+        $strip = fn (string $path) => preg_replace('#^(en|ar)(/|$)#', '', trim($path, '/'));
+        $list = $strip($this->listPath() ?? request()->path());
+        $from = $strip((string) parse_url($referer, PHP_URL_PATH));
+
+        return $list !== '' && ($from === $list || str_starts_with($from, $list.'/'));
+    }
+
+    /**
+     * Column codes a stored state may still carry, and the code each one is
+     * now: codes that once changed with the locale (a closure column's
+     * md5(label), a `title_en` / `title_ar` column) before the table gave
+     * those columns fixed codes. Read on every restore and saved view.
+     *
+     * @return array<string, string> old code => current code
+     */
+    protected function columnCodeAliases(): array
+    {
+        return [];
+    }
+
+    /** md5() of a label in both languages, the code a closure column used to get. */
+    protected function labelCodes(string $key, string $code, bool $choice = false): array
+    {
+        $codes = [];
+
+        foreach (['en', 'ar'] as $locale) {
+            $label = $choice ? trans_choice($key, 1, [], $locale) : __($key, [], $locale);
+            $codes[md5($label)] = $code;
+        }
+
+        return $codes;
+    }
+
     // ---------------------------------------------------------------- session
 
     /** Package key + user + active role + city scope. */
@@ -208,9 +268,17 @@ trait RemembersTableState
             ->filter(fn (string $p) => $p !== 'paginators' && request()->query->has($this->getQueryStringName($p)))
             ->all();
         $narrowedByUrl = array_intersect(['globalSearch', 'search', 'filters'], $fromUrl) !== [];
+        $keepSearches = $this->returningFromOwnPages();
+        // The saved page was a page of the searched list; without the search it means nothing.
+        $searchDropped = ! $keepSearches && (filled($data['globalSearch'] ?? '') || ! empty($data['search'] ?? []));
 
         foreach ($this->rememberedProperties() as $property) {
             if (in_array($property, $fromUrl, true) || ! array_key_exists($property, $data)) {
+                continue;
+            }
+
+            // A search typed on the way to some other page is not carried back into the list.
+            if (! $keepSearches && in_array($property, ['globalSearch', 'search'], true)) {
                 continue;
             }
 
@@ -220,7 +288,7 @@ trait RemembersTableState
                 'globalSearch', 'sortColumn', 'sortDirection' => is_string($value) && $this->{$property} = $value,
                 'search', 'filters', 'columns', 'columnOrder' => is_array($value) && $this->{$property} = $value,
                 'perPage' => is_int($value) && $this->{$property} = $value,
-                'paginators' => ! $narrowedByUrl && ! request()->query->has('page') && is_array($value)
+                'paginators' => ! $narrowedByUrl && ! $searchDropped && ! request()->query->has('page') && is_array($value)
                     && $this->paginators['page'] = max(1, (int) ($value['page'] ?? 1)),
             };
         }
@@ -228,6 +296,10 @@ trait RemembersTableState
         if (request()->query->has('page')) {
             $this->paginators['page'] = max(1, request()->integer('page', 1));
         }
+
+        // Now, before anything sorts the columns: resolveColumns() is cached
+        // for the request, and an old code it cannot find sorts to the front.
+        $this->applyColumnCodeAliases();
     }
 
     /** Restore, then make the state safe for what the active role sees now. */
@@ -242,6 +314,8 @@ trait RemembersTableState
 
     protected function sanitizeTableState(): void
     {
+        $this->applyColumnCodeAliases();
+
         $columns = $this->resolveColumns();
         $known = $columns->map(fn (BaseColumn $c) => $c->code())->values()->all();
 
@@ -291,6 +365,30 @@ trait RemembersTableState
         }
 
         $this->updateSession();
+    }
+
+    /** Rewrite stored old column codes (columnCodeAliases()) to the current ones. */
+    protected function applyColumnCodeAliases(): void
+    {
+        $aliases = $this->columnCodeAliases();
+
+        if ($aliases === []) {
+            return;
+        }
+
+        $map = fn (array $codes) => array_values(array_unique(array_map(fn ($c) => $aliases[(string) $c] ?? (string) $c, $codes)));
+
+        $this->columns = $map($this->columns);
+        $this->columnOrder = $map($this->columnOrder);
+        $this->sortColumn = $aliases[$this->sortColumn] ?? $this->sortColumn;
+
+        foreach (['search', 'filters'] as $group) {
+            $renamed = [];
+            foreach ((array) $this->{$group} as $code => $value) {
+                $renamed[$aliases[(string) $code] ?? (string) $code] = $value;
+            }
+            $this->{$group} = $renamed;
+        }
     }
 
     /**

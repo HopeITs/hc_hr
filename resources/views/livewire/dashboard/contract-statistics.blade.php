@@ -17,7 +17,7 @@
                 {{ trans_choice('general.city', 1) }}
             </label>
 
-            <x-forms.select2-input wire:model.lazy="selectedCity" :hideSearch="true">
+            <x-forms.select2-input wire:model.live="selectedCity" :hideSearch="true">
                 <option value="">{{ __('dashboard.all-cities') }}</option>
                 @foreach($cities as $city)
                     <option value="{{ $city->id }}">{{ $city->name }}</option>
@@ -30,7 +30,7 @@
                     {{ trans_choice('general.program', 1) }}
                 </label>
 
-                <x-forms.select2-input wire:model.lazy="selectedProgram" :hideSearch="true">
+                <x-forms.select2-input wire:model.live="selectedProgram" :hideSearch="true">
                     <option value="">{{ __('dashboard.all-programs') }}</option>
                     @foreach($programs as $program)
                         <option value="{{ $program->id }}">{{ $program->name }}</option>
@@ -49,7 +49,7 @@
     </div>
 
 
-    <div wire:loading.flex wire:target="applyFilters, resetFilters" class="justify-center py-12">
+    <div wire:loading.flex wire:target="selectedCity, selectedProgram, resetFilters" class="justify-center py-12">
         <div class="text-body text-ink-2 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-ink-3 animate-pulse"></span>
             @lang('dashboard.updating-statistics')
@@ -57,7 +57,7 @@
     </div>
 
 
-    <div wire:loading.remove wire:target="applyFilters, resetFilters"
+    <div wire:loading.remove wire:target="selectedCity, selectedProgram, resetFilters"
          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ">
 
         @forelse ($cards as $card)

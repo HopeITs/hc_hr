@@ -9,13 +9,12 @@
         @php
             $latest = $amendments->first();
             $earlier = $amendments->slice(1)->values();
-            $arrow = app()->getLocale() === 'ar' ? '←' : '→';
         @endphp
 
-        <x-card :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
+        <x-card id="amendments" class="scroll-mt-24" :title="__('contracts.amendment.list-title')" data-tour="contract-details.amendments">
             <x-slot:icon>
                 @if($canAmend)
-                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)">
+                    <x-button variant="outline" size="sm" :href="route('contracts.amend', $contract->id)" data-tour="contract-details.amend-add">
                         <x-ic name="plus" class="size-4" />
                         @lang('contracts.amendment.add')
                     </x-button>
@@ -28,13 +27,14 @@
                 <div wire:key="amendment-{{ $latest->id }}">
                     @include('livewire.contract._amendment-item', [
                         'amendment' => $latest,
-                        'lines' => $changes[$latest->id] ?? [],
+                        'terms' => $terms[$latest->id] ?? [],
                         'isCurrent' => $latest->id === $currentId,
+                        'tour' => true,
                     ])
                 </div>
 
                 @if($earlier->isNotEmpty())
-                    <details wire:ignore.self class="group/earlier mt-4 border-t border-line-soft pt-3">
+                    <details wire:ignore.self class="group/earlier mt-4 border-t border-line-soft pt-3" data-tour="contract-details.amend-earlier">
                         <summary class="flex cursor-pointer list-none items-center gap-2 text-small font-semibold text-ink
                                         [&::-webkit-details-marker]:hidden">
                             <x-ic name="chevron" class="size-4 transition-transform group-open/earlier:rotate-90 rtl:-scale-x-100" />
@@ -46,16 +46,16 @@
                                 @php($lines = $changes[$amendment->id] ?? [])
                                 <li wire:key="amendment-{{ $amendment->id }}">
                                     <details wire:ignore.self class="group/item py-2">
-                                        {{-- One line: number, date and the first change. --}}
+                                        {{-- One line: number, date and what changed. --}}
                                         <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-small
                                                         [&::-webkit-details-marker]:hidden">
                                             <x-ic name="chevron" class="size-3.5 text-ink-3 transition-transform group-open/item:rotate-90 rtl:-scale-x-100" />
                                             <span class="font-semibold text-ink">@lang('contracts.amendment.number', ['number' => $amendment->number])</span>
                                             <span class="num text-ink-2">{{ $amendment->effective_from->format('d/m/Y') }}</span>
                                             @if($lines !== [])
-                                                <span class="num min-w-0 flex-1 truncate text-ink-2">
-                                                    {{ $lines[0][0] }}@if($lines[0][1] !== '' || $lines[0][2] !== ''): {{ $lines[0][1] }} {{ $arrow }} {{ $lines[0][2] }}@endif
-                                                    @if(count($lines) > 1) · +{{ count($lines) - 1 }}@endif
+                                                {{-- What changed, named, not valued: the values open with the row. --}}
+                                                <span class="min-w-0 flex-1 truncate text-ink-2">
+                                                    @lang('contracts.amendment.changed'): {{ collect($lines)->pluck(0)->implode(' · ') }}
                                                 </span>
                                             @endif
                                         </summary>
@@ -63,7 +63,7 @@
                                         <div class="ps-6 pt-2">
                                             @include('livewire.contract._amendment-item', [
                                                 'amendment' => $amendment,
-                                                'lines' => $lines,
+                                                'terms' => $terms[$amendment->id] ?? [],
                                                 'isCurrent' => $amendment->id === $currentId,
                                             ])
                                         </div>

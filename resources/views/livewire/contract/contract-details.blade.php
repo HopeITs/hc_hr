@@ -98,7 +98,8 @@
     {{-- The document is the contract as signed; what amendments changed is in
          the card above, so say so where the two could be confused. --}}
     @if($signed !== $contract)
-        <p class="flex items-center gap-2 rounded-control border border-line-soft border-s-4 border-s-ink bg-soft px-3 py-2 text-small text-ink">
+        <p class="flex items-center gap-2 rounded-control border border-line-soft border-s-4 border-s-ink bg-soft px-3 py-2 text-small text-ink"
+           data-tour="contract-details.as-signed">
             <x-ic name="info" class="size-4 shrink-0" />
             @lang('contracts.amendment.document-as-signed')
         </p>

@@ -7,6 +7,7 @@ use App\Enums\Currency;
 use App\Livewire\Contract\ContractAmend;
 use App\Livewire\Contract\ContractAmendments;
 use App\Livewire\Contract\ContractEdit;
+use App\Livewire\Contract\ContractsTable;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
@@ -97,6 +98,32 @@ class ContractAmendmentScreensTest extends TestCase
 
         $hms = $this->makeUser($this->makeCity('HMS', '002'), 'HR-HMS', self::PERMISSIONS);
         $this->actingAs($hms)->get(route('contracts.amend', $contract))->assertForbidden();
+    }
+
+    public function test_the_page_warns_when_the_contract_was_already_amended(): void
+    {
+        $contract = $this->contract();
+        $service = app(ContractAmendmentService::class);
+        $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-11-01'));
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract->refresh()])
+            ->assertSeeHtml('data-testid="amend-previous"')
+            ->assertSee(trans_choice('contracts.amendment.previous-title', 1, ['count' => 1]))
+            ->assertSee('01/11/2026')
+            ->assertSee('30 hours a week')
+            // Opens in the same tab: a new one launched the installed app window instead.
+            ->assertDontSeeHtml('target="_blank"')
+            // The date picker starts at the last amendment's date, not the contract's start.
+            ->assertViewHas('seed', fn (array $seed) => ($seed['minEffectiveFrom'] ?? null) === '2026-11-01');
+    }
+
+    public function test_no_warning_on_a_contract_never_amended(): void
+    {
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $this->contract()])
+            ->assertDontSeeHtml('data-testid="amend-previous"')
+            ->assertViewHas('seed', fn (array $seed) => ! array_key_exists('minEffectiveFrom', $seed));
     }
 
     public function test_submitting_drafts_the_amendment_and_leaves_the_contract_alone(): void
@@ -378,6 +405,43 @@ trailer<<>>
         $this->actingAs($this->hr())->get(route('contracts.show', $contract))
             ->assertOk()
             ->assertSee(__('contracts.amendment.add'));
+    }
+
+    // ── the contracts list ──────────────────────────────────────────
+
+    public function test_the_list_offers_add_amendment_to_hr(): void
+    {
+        $contract = $this->contract();
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractsTable::class)
+            ->assertSee(route('contracts.amend', $contract), false)
+            ->assertDontSee(__('contracts.amendment.view-list', ['count' => 1]));
+    }
+
+    public function test_the_list_links_to_the_amendments_once_there_are_some(): void
+    {
+        $contract = $this->contract();
+        app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractsTable::class)
+            ->assertSee(__('contracts.amendment.view-list', ['count' => 1]))
+            ->assertSee(route('contracts.show', $contract).'#amendments', false)
+            // One is waiting, so no second one is offered.
+            ->assertDontSee(route('contracts.amend', $contract), false);
+    }
+
+    public function test_a_role_that_cannot_amend_only_sees_the_link(): void
+    {
+        $contract = $this->contract();
+        app(ContractAmendmentService::class)->draft($contract, ['weekly_hours' => 30], '2026-11-01');
+        $readOnly = $this->makeUser($this->city, 'HR-ALP', ['contracts.view']);
+
+        Livewire::actingAs($readOnly)
+            ->test(ContractsTable::class)
+            ->assertSee(__('contracts.amendment.view-list', ['count' => 1]))
+            ->assertDontSee(route('contracts.amend', $contract), false);
     }
 
     // ── the edit screen once amended ────────────────────────────────

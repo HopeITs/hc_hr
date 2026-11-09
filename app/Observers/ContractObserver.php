@@ -8,6 +8,7 @@ use App\Models\OffboardingJourney;
 use App\Models\Position;
 use App\Models\User;
 use App\Services\ChecklistWorkflow;
+use App\Services\ContractAmendmentService;
 use App\Services\OffboardingJourneys;
 use App\Support\StatisticsCache;
 use Illuminate\Support\Facades\DB;
@@ -142,6 +143,12 @@ class ContractObserver
         if ($trigger = $this->departureTrigger($contract)) {
             $actor = auth()->user();
             app(OffboardingJourneys::class)->startForDeparture($contract, $trigger, $actor instanceof User ? $actor : null);
+        }
+
+        // Terminated, or its term shortened: an amendment approved for a date
+        // the contract no longer reaches is cancelled now, not left waiting.
+        if ($contract->wasChanged(['terminated_at', 'termination_reason_id', 'end_date'])) {
+            app(ContractAmendmentService::class)->cancelForEndedContract($contract);
         }
 
         // exist_emp counts the position's active, non-draft contracts. Every

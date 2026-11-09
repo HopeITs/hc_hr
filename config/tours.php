@@ -174,6 +174,8 @@ return [
     'contract-form' => [
         'routes' => ['contracts.create', 'contracts.renew', 'contracts.edit'],
         'steps' => [
+            // Edit only, once an amendment changed the contract.
+            'amend-locked' => ['target' => 'contract.amend-locked', 'placement' => 'bottom'],
             'assignment' => ['target' => 'contract.assignment', 'placement' => 'bottom'],
             'schedule' => ['target' => 'contract.schedule', 'placement' => 'bottom'],
             'pay' => ['target' => 'contract.pay', 'placement' => 'bottom'],
@@ -191,6 +193,29 @@ return [
             'edit' => ['target' => 'contract-details.edit', 'placement' => 'bottom'],
             'renew' => ['target' => 'contract-details.renew', 'placement' => 'bottom'],
             'export' => ['target' => 'contract-details.export', 'placement' => 'bottom'],
+            // Contract amendments (ملحق عقد). The card shows only when there are
+            // amendments or the role may add one; the buttons only to HR.
+            'amendments' => ['target' => 'contract-details.amendments', 'placement' => 'bottom'],
+            'amend-add' => ['target' => 'contract-details.amend-add', 'placement' => 'bottom'],
+            'amend-terms' => ['target' => 'contract-details.amend-terms', 'placement' => 'top'],
+            'amend-actions' => ['target' => 'contract-details.amend-actions', 'placement' => 'top'],
+            'amend-earlier' => ['target' => 'contract-details.amend-earlier', 'placement' => 'top'],
+            'as-signed' => ['target' => 'contract-details.as-signed', 'placement' => 'bottom'],
+        ],
+    ],
+
+    // Drafting a contract amendment, or editing a draft one.
+    'contract-amend' => [
+        'routes' => ['contracts.amend', 'contracts.amendments.edit'],
+        'steps' => [
+            'intro' => [],
+            'previous' => ['target' => 'amend.previous', 'placement' => 'bottom'],
+            'schedule' => ['target' => 'contract.schedule', 'placement' => 'bottom'],
+            'pay' => ['target' => 'contract.pay', 'placement' => 'bottom'],
+            'amendment' => ['target' => 'contract.amendment', 'placement' => 'top'],
+            'card' => ['target' => 'contract.card', 'placement' => 'start'],
+            'save' => ['target' => 'contract.save', 'placement' => 'top'],
+            'next' => [],
         ],
     ],
 

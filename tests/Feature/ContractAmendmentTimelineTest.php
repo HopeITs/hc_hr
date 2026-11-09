@@ -59,11 +59,41 @@ class ContractAmendmentTimelineTest extends TestCase
         $amended = $this->event('contract.amended', withPay: true);
 
         $this->assertSame('2026-05-01', $amended['date']);
-        $this->assertStringContainsString('20 hours a week', $amended['detail']);
-        $this->assertStringContainsString('30 hours a week', $amended['detail']);
+        // Short: the new values only, the most telling first; the salary has its own line.
+        $this->assertSame('Full Time · 30 hours a week', $amended['detail']);
         $this->assertSame(['amount' => '250.00', 'currency' => Currency::USD], $amended['pay']);
-        // Said once, on the pay line, not again in the summary.
-        $this->assertStringNotContainsString('250', $amended['detail']);
+    }
+
+    public function test_more_than_two_changes_are_counted_not_listed(): void
+    {
+        $this->applyAmendment('2026-05-01', ['type' => ContractTypeEnum::FullTime, 'weekly_hours' => 30, 'work_hours_from' => '09:00', 'work_hours_to' => '15:00', 'work_day_from' => 0, 'work_day_to' => 3]);
+
+        $amended = $this->event('contract.amended', withPay: true);
+
+        // The line keeps two; the rest open on demand, named.
+        $this->assertSame('Full Time · 30 hours a week', $amended['detail']);
+        $this->assertSame([__('general.work-days'), __('contracts.amendment.hours')], array_column($amended['more'], 0));
+    }
+
+    public function test_the_profile_offers_the_other_changes_behind_a_button(): void
+    {
+        $this->applyAmendment('2026-05-01', ['type' => ContractTypeEnum::FullTime, 'weekly_hours' => 30, 'work_hours_from' => '09:00', 'work_hours_to' => '15:00', 'work_day_from' => 0, 'work_day_to' => 3]);
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['employees.view', 'employees.update']);
+
+        Livewire::actingAs($hr)
+            ->test(EmployeeProfile::class, ['employee' => $this->maya])
+            ->assertSee(trans_choice('employees.profile.more-changes', 2, ['count' => 2]))
+            ->assertSee('Sunday – Wednesday')
+            ->assertSeeHtml('<details');
+    }
+
+    public function test_a_pay_only_amendment_has_just_the_pay_line(): void
+    {
+        $this->applyAmendment('2026-05-01', ['salary' => 250]);
+
+        $amended = $this->event('contract.amended', withPay: true);
+        $this->assertNull($amended['detail']);
+        $this->assertSame('250.00', $amended['pay']['amount']);
     }
 
     public function test_the_contract_start_keeps_the_pay_it_started_on(): void
