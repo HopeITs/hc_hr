@@ -52,7 +52,9 @@ class Breadcrumbs extends Component
             return ['label' => $label, 'href' => $href];
         })->toArray();
 
-        if ($this->area !== null) {
+        // Pages that already open with their area (e.g. "Recruitment") must not
+        // get it twice.
+        if ($this->area !== null && ($items[0]['label'] ?? null) !== $this->area) {
             array_unshift($items, ['label' => $this->area, 'href' => null]);
         }
 
