@@ -17,12 +17,14 @@ use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
 use App\Services\LeaveRequestNextStep;
+use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
 use Blade;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Throwable;
@@ -382,6 +384,47 @@ class AllLeaveRequestModule extends Component
         $this->toast();
         $this->dispatch('leaveRequestSaved')->to(AllLeaveRequestTable::class);
 
+    }
+
+    /**
+     * The leave-type step's cards: one per balance in $allAvailableLeaves (the
+     * same list the dropdown offered), with the category icon and what is left
+     * that the employee's own form shows.
+     *
+     * @return list<array{balance_id: int, label: string, icon: string, left: string}>
+     */
+    #[Computed]
+    public function leaveTypeCards(): array
+    {
+        $balances = collect($this->allAvailableLeaves);
+
+        if ($balances->isEmpty()) {
+            return [];
+        }
+
+        $eligibility = app(LeaveEligibility::class);
+        $contract = $balances->first()->contract;
+
+        try {
+            $perDay = $contract ? app(LeaveRequestPricing::class)->hoursPerDayFor($contract) : null;
+        } catch (Throwable $e) {
+            report($e);
+            $perDay = null;
+        }
+
+        return $balances->map(function (LeaveBalance $balance) use ($eligibility, $perDay) {
+            $category = collect(MyLeaveRequestModule::CATEGORIES)
+                ->search(fn (array $typeIds) => in_array((int) $balance->type_id, $typeIds, true));
+
+            return [
+                'balance_id' => (int) $balance->id,
+                'label' => (string) $balance->leaveType?->name,
+                'icon' => MyLeaveRequestModule::CATEGORY_ICONS[$category] ?? 'calendar',
+                'left' => __('leaves.request.left', [
+                    'amount' => $this->formatLeaveSplit(max(0, $eligibility->remainingHours($balance)), $perDay),
+                ]),
+            ];
+        })->values()->all();
     }
 
     /** The details dialog is read-only and keeps its ordinary close. */

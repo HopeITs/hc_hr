@@ -252,7 +252,7 @@
             $numberOf = fn (string $step) => array_search($step, $visibleSteps, true) + 1;
         @endphp
         {{-- Phones (M1): the sheet itself scrolls, so there is no nested scroll area; sm and up keeps the capped panel. --}}
-        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-10 dialog:md:py-6">
+        <div data-csb-exclude class="thin-scroll w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-10 dialog:md:py-6">
             {{-- Enter in a field takes the same path as Save (there is no save()). --}}
             <form wire:submit.prevent="confirmSave" class="space-y-8 sheet:flex-1 sheet:flex sheet:flex-col" data-testid="leave-request-form">
                 <x-forms.errors-validation-list/>
@@ -440,7 +440,7 @@
                                     :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                                 <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                             </div>
-                            <div class="md:col-span-1" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
+                            <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
                                 <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                                 <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
                                     <option

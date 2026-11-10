@@ -45,10 +45,10 @@
         @if($min) minimum="{{ $min }}" @endif
         @if($max) maximum="{{ $max }}" @endif
         @disabled($disabled)
-        class="block w-full min-h-[2.375rem]"
+        class="block w-full min-h-[46px]"
     ></clock-timepicker>
 
     <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
-        <x-icons.clock class="size-4 text-ink-3" />
+        <x-icons.clock class="size-4 text-ink" />
     </div>
 </div>
