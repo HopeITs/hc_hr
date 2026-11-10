@@ -124,7 +124,8 @@ use App\Enums\LeaveRequestStatus;
                 <x-leave.request-step :number="$numberOf('type')" id="leave-step-type" :title="__('leaves.request.steps.category')"
                                       help="leave-units" :state="$stateOf('type')"
                                       wire:key="container-leave-type-{{ $form->employee_id ?? 'none' }}-{{ $form->leaveRequest ? 'edit' : 'create' }}">
-                    @php $typeCards = $formModal ? $this->leaveTypeCards : []; @endphp
+                    {{-- No cards until the employee is known: they are that employee's balances. --}}
+                    @php $typeCards = $formModal && $done['employee'] ? $this->leaveTypeCards : []; @endphp
                     @if($typeCards === [])
                         <p class="rounded-control border border-dashed border-line bg-soft px-3 py-3 text-small text-ink-2" role="status">
                             {{ filled($form->employee_id) ? __('leaves.request.none-for-employee') : __('leaves.request.pick-employee-first') }}
@@ -134,7 +135,7 @@ use App\Enums\LeaveRequestStatus;
                              aria-labelledby="leave-step-type-title" data-testid="leave-type-cards">
                             @foreach($typeCards as $card)
                                 @php $selected = (string) $form->leave_balance_id === (string) $card['balance_id']; @endphp
-                                <label class="block cursor-pointer" wire:key="leave-type-card-{{ $card['balance_id'] }}">
+                                <label class="relative block cursor-pointer" wire:key="leave-type-card-{{ $card['balance_id'] }}">
                                     <input type="radio" class="peer sr-only" name="form.leave_balance_id" id="leave-type-card-{{ $card['balance_id'] }}"
                                            value="{{ $card['balance_id'] }}" wire:model.live="form.leave_balance_id" @checked($selected)>
                                     <span class="hc-choice flex h-full min-h-24 flex-col gap-1 p-3">
@@ -162,7 +163,7 @@ use App\Enums\LeaveRequestStatus;
                                           help="leave-units" :state="$stateOf('unit')" wire:key="leave-step-unit">
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" role="radiogroup" aria-labelledby="leave-step-unit-title">
                             @foreach(['day' => ['daily', 'calendar'], 'hour' => ['hourly', 'clock']] as $unit => [$labelKey, $icon])
-                                <label class="block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
+                                <label class="relative block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
                                     <input type="radio" class="peer sr-only" name="form.type" id="radio-formtype-{{ $unit }}"
                                            value="{{ $unit }}" wire:model.live="form.type" @checked($form->type === $unit)>
                                     <span class="hc-choice flex h-full min-h-16 items-center gap-3 p-3">

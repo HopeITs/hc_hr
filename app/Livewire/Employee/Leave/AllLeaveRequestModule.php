@@ -304,6 +304,10 @@ class AllLeaveRequestModule extends Component
         abort_unless(auth()->user()->activeRoleIs('HR', 'super-admin'), 403);
 
         $this->form->reset();
+        // The previous opening's employee lists, or the new form would offer
+        // that employee's leave types before anyone is chosen.
+        $this->allAvailableLeaves = [];
+        $this->alternativeEmployees = [];
         $this->markClean('formModal');
         $this->formModal = true;
         $this->modalTitle = __('general.add-new');

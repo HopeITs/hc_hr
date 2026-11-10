@@ -268,7 +268,7 @@
                         <div class="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4" role="radiogroup"
                              aria-labelledby="leave-step-category-title" data-testid="leave-categories">
                             @foreach($choices['categories'] as $category)
-                                <label class="block cursor-pointer" wire:key="leave-category-{{ $category['key'] }}">
+                                <label class="relative block cursor-pointer" wire:key="leave-category-{{ $category['key'] }}">
                                     <input type="radio" class="peer sr-only" name="leave_category" id="leave-category-{{ $category['key'] }}"
                                            value="{{ $category['key'] }}" wire:model.live="leaveCategory"
                                            @checked($activeKey === $category['key'])
@@ -311,7 +311,7 @@
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" role="radiogroup" aria-labelledby="leave-step-subtype-title">
                             @if($activeKey === 'annual')
                                 @foreach(['day' => ['daily', 'calendar'], 'hour' => ['hourly', 'clock']] as $unit => [$labelKey, $icon])
-                                    <label class="block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
+                                    <label class="relative block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
                                         <input type="radio" class="peer sr-only" name="form.type" id="radio-formtype-{{ $unit }}"
                                                value="{{ $unit }}" wire:model.live="form.type" @checked($form->type === $unit)>
                                         <span class="hc-choice flex h-full min-h-16 items-center gap-3 p-3">
@@ -331,7 +331,7 @@
                             @else
                                 @foreach($active['options'] as $option)
                                     @php $selected = (string) $form->leave_balance_id === (string) $option['balance_id']; @endphp
-                                    <label @class(['block', 'cursor-pointer' => ! $option['disabled'], 'cursor-not-allowed' => $option['disabled']])
+                                    <label @class(['relative block', 'cursor-pointer' => ! $option['disabled'], 'cursor-not-allowed' => $option['disabled']])
                                            wire:key="leave-subtype-{{ $option['balance_id'] }}">
                                         <input type="radio" class="peer sr-only" name="form.leave_balance_id" id="leave-subtype-{{ $option['balance_id'] }}"
                                                value="{{ $option['balance_id'] }}" wire:model.live="form.leave_balance_id"
