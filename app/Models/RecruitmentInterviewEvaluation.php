@@ -15,8 +15,8 @@ use LogicException;
  *
  * Written only by RecruitmentInterviewEvaluationService, which bumps
  * `version` and appends a revision on every change — so the history is never
- * lost, and a save made against an older version is refused. HR opinions are
- * stored separately and never alter this participant-authored record.
+ * lost, and a save made against an older version is refused. Never deleted:
+ * HR can withdraw one, with a reason, which keeps its content and history.
  *
  * Internal: nothing here is ever shown to the candidate, and pros, cons,
  * notes and recommendation are hidden from serialization so they cannot ride
@@ -30,7 +30,7 @@ class RecruitmentInterviewEvaluation extends Model
 
     public const ACTION_CORRECTED = 'corrected';
 
-    /** Legacy history action retained for existing records. */
+    /** Final: a reviewer cannot undo HR's withdrawal by saving again. */
     public const ACTION_WITHDRAWN = 'withdrawn';
 
     protected $guarded = ['id'];
@@ -62,11 +62,6 @@ class RecruitmentInterviewEvaluation extends Model
         return $this->hasMany(RecruitmentInterviewEvaluationRevision::class, 'evaluation_id');
     }
 
-    public function opinionNotes(): HasMany
-    {
-        return $this->hasMany(RecruitmentInterviewEvaluationNote::class, 'evaluation_id');
-    }
-
     public function isWithdrawn(): bool
     {
         return $this->withdrawn_at !== null;
@@ -84,7 +79,7 @@ class RecruitmentInterviewEvaluation extends Model
         {
             public function delete()
             {
-                throw new LogicException('Evaluations are never deleted.');
+                throw new LogicException('Evaluations are never deleted; withdraw them through RecruitmentInterviewEvaluationService.');
             }
 
             public function forceDelete()
@@ -102,7 +97,7 @@ class RecruitmentInterviewEvaluation extends Model
     protected static function booted(): void
     {
         static::deleting(function (): void {
-            throw new LogicException('Evaluations are never deleted.');
+            throw new LogicException('Evaluations are never deleted; withdraw them through RecruitmentInterviewEvaluationService.');
         });
     }
 

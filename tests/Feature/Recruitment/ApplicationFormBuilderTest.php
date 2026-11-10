@@ -147,8 +147,10 @@ class ApplicationFormBuilderTest extends TestCase
             ->assertSet('customType', 'text')
             ->assertCount('fields', count(RecruitmentApplicationFormService::FIELD_CATALOG) + 1);
 
-        $this->assertContains('الاسم الكامل', array_column(array_column($component->get('fields'), 'label'), 'ar'));
-        $this->assertContains('طريقة التواصل المفضلة', array_column(array_column($component->get('fields'), 'label'), 'ar'));
+        $component
+            ->assertSee('الاسم الكامل')
+            ->assertSee('إجابة قصيرة')
+            ->assertSee('طريقة التواصل المفضلة');
 
         $version = $campaign->fresh()->applicationForm->versions()->firstOrFail();
         $unsafe = [...$version->fields_json, [
@@ -228,7 +230,7 @@ class ApplicationFormBuilderTest extends TestCase
 
         $component = Livewire::actingAs($targetHr)
             ->test(Editor::class, ['campaign' => $targetCampaign])
-            ->assertSee('IT Specialist')
+            ->assertSee('اختصاصي تقنية معلومات')
             ->assertSee('HMS')
             ->set('selectedTemplateVersionId', (string) $published->id)
             ->call('applyPublishedTemplate')

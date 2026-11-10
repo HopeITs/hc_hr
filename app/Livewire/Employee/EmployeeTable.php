@@ -238,24 +238,6 @@ class EmployeeTable extends LivewireTable
             ->all();
     }
 
-    protected function listPath(): ?string
-    {
-        return parse_url(route('employees.index', [], false), PHP_URL_PATH);
-    }
-
-    /**
-     * The codes these columns had while they followed the locale; see
-     * RemembersTableState::columnCodeAliases().
-     */
-    protected function columnCodeAliases(): array
-    {
-        return [
-            'city_name_en' => 'city', 'city_name_ar' => 'city',
-            'contracts_position_title_en' => 'position_title', 'contracts_position_title_ar' => 'position_title',
-            ...$this->labelCodes('general.actions', 'actions'),
-        ];
-    }
-
     protected function columns(): array
     {
         $user = auth()->user();
@@ -319,7 +301,7 @@ class EmployeeTable extends LivewireTable
                 ->asHtml(),
 
             // A city column only helps roles that see more than one city.
-            SelectColumn::make(trans_choice('general.city', 1), 'city.'.transColumn('name'), 'city')
+            SelectColumn::make(trans_choice('general.city', 1), 'city.'.transColumn('name'))
                 ->options(City::query()->whereNot('code', '000')->where('is_active', true)->get()->pluck(transColumn('name'), transColumn('name'))->toArray())
                 ->sortable()->searchable()
                 ->visible($nationwide),
@@ -341,7 +323,7 @@ class EmployeeTable extends LivewireTable
                 ->sortable()
                 ->hide(),
 
-            SelectColumn::make(trans('general.position'), 'contracts.position.'.transColumn('title'), 'position_title')
+            SelectColumn::make(trans('general.position'), 'contracts.position.'.transColumn('title'))
                 ->options(Position::query()->orderby(transColumn('title'), 'asc')->get()->pluck(transColumn('title'), transColumn('title'))->toArray())
                 ->sortable()->searchable()
                 ->hide(),
@@ -352,7 +334,7 @@ class EmployeeTable extends LivewireTable
                 'employee' => $model,
                 'canUpdate' => $canUpdate,
                 'canDelete' => $canDelete,
-            ])->render(), 'actions')->asHtml()->clickable(false),
+            ])->render())->asHtml()->clickable(false),
         ];
     }
 }

@@ -1,48 +1,70 @@
-{{--
-    One position on the staffing canvas: a flat, absolutely positioned wrapper.
-
-    The tree is not nested in the markup any more. Each visible position is a
-    sibling of the others, says who its parent is, and resources/js/staffing-tree.js
-    measures the card and places it (tidy-tree layout). A collapsed branch is not
-    rendered at all, so it takes no room.
-
-    wire:ignore.self keeps the transform the layout writes on this wrapper across
-    Livewire morphs; its own attributes never change for a given position (the
-    parent and depth of a position are fixed), while everything inside it is
-    morphed as usual. `invisible` is removed by the layout once the card is placed.
-
-    Expects: $entry (from the flat list built in team-staffing.blade.php), $compact, $view.
---}}
 @php
-    $node = $entry['node'];
+    $children = collect($node['children']);
     $positionId = $node['id'];
-    $reports = count($node['children']);
+    $hasChildren = $children->isNotEmpty();
+    $startsOpen = ! ($this->collapsed[$positionId] ?? false);
+    // A subtree can be worth opening even when its own card is quiet, so the
+    // chip carries the open seats waiting below it rather than just a count.
     $waiting = $node['subtreeOpenSeats'] - $node['openSeats'];
-    $expanded = $entry['expanded'];
+
+    // Posts flow, they are not laid on a rail.
+    //
+    // A level of sibling posts is one wrapping row: as many across as the canvas
+    // is wide, the rest folding onto the next line by themselves. Nothing here
+    // counts columns or fixes a width, so the same markup is one row for four
+    // posts on a wide screen and two rows on a narrow one. The connectors are
+    // gone for the same reason — a rung and its stems only hold while a level is
+    // a single line. Containment carries the hierarchy instead: a manager's
+    // reports sit inside that manager's box, on a quiet tint of their own.
+    $gap = $compact ? 'gap-2' : 'gap-3';
+
+    // Managers before individual contributors.
+    $ordered = $children
+        ->filter(fn (array $child): bool => count($child['children']) > 0)
+        ->concat($children->reject(fn (array $child): bool => count($child['children']) > 0))
+        ->values();
 @endphp
 
-<div wire:key="staffing-node-{{ $positionId }}" wire:ignore.self
-     data-tree-node data-node-id="{{ $positionId }}" data-parent-id="{{ $entry['parent'] }}" data-depth="{{ $entry['depth'] }}"
-     class="staffing-tree-node invisible absolute left-0 top-0 w-max rounded-surface data-match:ring-2 data-match:ring-ink data-match:ring-offset-4 data-match:ring-offset-soft">
+<section wire:key="staffing-node-{{ $positionId }}"
+         x-data="{ open: @js($startsOpen) }"
+         x-on:staffing-expand-all.window="open = true"
+         x-on:staffing-collapse-all.window="open = false"
+         class="flex min-w-0 max-w-full flex-col items-stretch">
+
     <x-staffing-card :node="$node" :compact="$compact" :view="$view">
-        @if ($reports > 0)
-            {{-- A quiet text toggle. Open seats further down show as a small count with a red dot, not a red badge. --}}
-            <button type="button" wire:click="toggle({{ $positionId }})" data-tree-toggle data-no-pan
-                    aria-expanded="{{ $expanded ? 'true' : 'false' }}"
-                    class="mt-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-control border-t border-line-soft px-1 pt-2 text-caption font-semibold text-ink transition hover:text-ink sm:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
-                <span class="flex items-center gap-2">
-                    <flux:icon.user-group variant="micro" class="size-4 text-ink-2" aria-hidden="true" />
-                    {{ trans_choice('recruitment.team_staffing.reports_count', $reports, ['count' => $reports]) }}
+        @if ($hasChildren)
+            <button type="button" wire:click="toggle({{ $positionId }})" x-on:click="open = ! open"
+                    :aria-expanded="open" data-no-pan
+                    :title="open ? @js(__('general.collapse')) : @js(__('general.expand'))"
+                    class="mt-2 flex w-full items-center justify-between gap-2 rounded-control bg-neutral-100 px-2 py-1.5 text-caption font-bold text-secondary-medium transition hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                <span class="flex items-center gap-1.5">
+                    {{ trans_choice('recruitment.team_staffing.reports_count', $children->count(), ['count' => $children->count()]) }}
                     @if ($waiting > 0)
-                        <span class="inline-flex items-center gap-1 rounded-full bg-soft px-1.5 py-px tabular-nums text-ink"
+                        <span class="flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-caption font-bold text-white"
                               title="{{ __('recruitment.team_staffing.open_seats_below', ['count' => $waiting]) }}">
-                            <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>{{ $waiting }}
-                            <span class="sr-only">{{ __('recruitment.team_staffing.open_seats_below', ['count' => $waiting]) }}</span>
+                            {{ $waiting }}
                         </span>
                     @endif
                 </span>
-                <flux:icon.chevron-down variant="micro" @class(['size-4 shrink-0 text-ink-2 transition-transform duration-200 motion-reduce:transition-none', 'rotate-180' => $expanded]) aria-hidden="true" />
+                <svg class="size-4 shrink-0 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
             </button>
+
+            {{-- Children live inside their manager's box, which is what makes the
+                 containment of a subtree visible without a single extra line. --}}
+            <div x-show="open" x-cloak x-collapse>
+                <div class="mt-3 flex flex-wrap items-start justify-center rounded-inset bg-neutral-50 {{ $gap }} {{ $compact ? 'p-2' : 'p-3' }}">
+                    @foreach ($ordered as $child)
+                        @include('livewire.recruitment.requests.partials.team-staffing-node', [
+                            'node' => $child,
+                            'compact' => $compact,
+                            'view' => $view,
+                        ])
+                    @endforeach
+                </div>
+            </div>
         @endif
     </x-staffing-card>
-</div>
+</section>

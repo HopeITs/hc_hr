@@ -14,9 +14,7 @@
 --}}
 @php
     $menuId = "contract-menu-{$context}-{$contract->getKey()}";
-    $canAmend ??= false;
-    $amendmentsCount ??= 0;
-    $hasMenu = $canEdit || $canRenew || $canExport || $canAutoRenew || $canDelete || $canAmend || $amendmentsCount > 0;
+    $hasMenu = $canEdit || $canRenew || $canExport || $canAutoRenew || $canDelete;
 @endphp
 <div class="flex items-center justify-center gap-1"
     x-data="{
@@ -69,13 +67,6 @@
             @php($itemClass = 'flex min-h-11 w-full items-center gap-2 px-4 text-start text-small hover:bg-hover focus-visible:bg-surface focus-visible:-outline-offset-2')
             @if($canEdit)
                 <a role="menuitem" href="{{ route('contracts.edit', $contract->getKey()) }}" wire:navigate class="{{ $itemClass }}">{{ __('general.edit') }}</a>
-            @endif
-            {{-- Amendments sit beside Edit and Renew: the three ways a contract's terms move. --}}
-            @if($canAmend)
-                <a role="menuitem" href="{{ route('contracts.amend', $contract->getKey()) }}" wire:navigate class="{{ $itemClass }}">{{ __('contracts.amendment.add') }}</a>
-            @endif
-            @if($amendmentsCount > 0)
-                <a role="menuitem" href="{{ route('contracts.show', $contract->getKey()) }}#amendments" class="{{ $itemClass }}">{{ __('contracts.amendment.view-list', ['count' => $amendmentsCount]) }}</a>
             @endif
             @if($canRenew)
                 <button type="button" role="menuitem" class="{{ $itemClass }}"

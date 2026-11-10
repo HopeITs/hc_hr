@@ -131,66 +131,9 @@ return [
     // A5-M: the leave request dialog (new and edit). The close guard's wording is general.unsaved.*.
     'modal' => [
         'new-title' => 'Request leave',
-        'submit' => 'Submit leave request',
+        'submit' => 'Submit request',
         'edit-title' => 'Edit leave request',
         'save-changes' => 'Save changes',
-    ],
-
-    'eligibility' => [
-        'no-balance' => 'There is no balance left for this leave type.',
-        'annual-remains' => 'You cannot request unpaid leave while you still have annual leave balance.',
-        'annual-exhausted' => 'Your annual leave balance is used up; you can now request unpaid leave.',
-        'full-sick-remains' => 'Half-paid sick leave is available only after the fully paid sick leave balance is used up.',
-        'already-married' => 'Marriage leave is available only to unmarried employees.',
-        'not-married-male' => 'Paternity leave is available only to married male employees.',
-        'not-married-female' => 'Maternity leave is available only to married female employees.',
-        'first-maternity-not-taken' => 'Second-child maternity leave becomes available once first-child maternity leave has been approved.',
-        'maternity-taken' => 'This maternity leave has already been taken.',
-    ],
-
-    // The guided request form (category → subtype → dates → summary → details).
-    'request' => [
-        'steps' => [
-            'category' => 'What kind of leave?',
-            'subtype' => 'Which one?',
-            'unit' => 'By the day or by the hour?',
-            'dates' => 'When?',
-            'summary' => 'Summary',
-            'details' => 'Reason and cover',
-        ],
-        'step-of' => 'Step :number',
-        'done' => 'done',
-        'category' => [
-            'annual' => 'Annual',
-            'sick' => 'Sick',
-            'bereavement' => 'Bereavement',
-            'marriage' => 'Marriage',
-            'paternity' => 'Paternity',
-            'maternity' => 'Maternity',
-            'unpaid' => 'Unpaid',
-        ],
-        'subtype' => [
-            'daily' => 'Daily',
-            'daily-hint' => 'One or more whole days',
-            'hourly' => 'Hourly',
-            'hourly-hint' => 'A few hours within one day',
-            'full-paid' => 'Fully paid',
-            'half-paid' => 'Half paid',
-            'first-degree' => 'First degree',
-            'second-degree' => 'Second degree',
-            'first-child' => 'First child',
-            'second-child' => 'Second child',
-        ],
-        'left' => ':amount left',
-        'unavailable' => 'Not available yet',
-        'none-available' => 'There is no leave you can request right now.',
-        'own-balance' => 'The leave type of this request',
-        'duration' => 'Duration',
-        'duration-pending' => 'Fill in the dates to see the duration.',
-        'period' => 'Period',
-        'balance' => 'Balance',
-        'balance-after' => ':after left of :available after this request',
-        'time-range' => ':date, :from to :to',
     ],
 
 ];

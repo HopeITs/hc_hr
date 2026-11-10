@@ -32,6 +32,8 @@ class ConversationHistoryTest extends TestCase
 
         $this->mock(Assistant::class, function (MockInterface $mock) {
             $mock->shouldReceive('isAvailable')->andReturn(true);
+            $mock->shouldReceive('hasServerModel')->andReturn(true);
+            $mock->shouldReceive('usesBrowser')->andReturn(false);
             $mock->shouldReceive('reply')->andReturnUsing(fn ($user, $history, $question) => new AssistantReply('Answer to '.$question));
         });
     }

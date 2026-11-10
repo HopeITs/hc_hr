@@ -11,7 +11,7 @@
     </style>
 </head>
 
-<body class="antialiased min-h-screen bg-app-surface"
+<body class="antialiased min-h-screen bg-base"
       x-data="{ sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
@@ -39,7 +39,7 @@
 
 
 <div class="flex flex-col min-h-screen transition-[margin] duration-[400ms] ease-fluid md:ms-60"
-     :class="sidebarCollapsed ? 'md:!ms-16' : 'md:!ms-60'">
+     :class="sidebarCollapsed ? 'md:!ms-24' : 'md:!ms-60'">
 
 
 
@@ -73,38 +73,6 @@
         {{ __('general.connection.offline') }}
     </p>
 </div>
-
-{{-- "Install the app" (pwa-install.js): only where it can work — Chromium has its
-     prompt ready, or Safari on iPhone / iPad (Share → Add to Home Screen) — never
-     when already installed, and not again for 30 days after "Not now". The
-     settings page itself says it all, so the banner stays off there. --}}
-@auth
-    @unless (request()->routeIs('settings.app'))
-        <div x-data="pwaInstall" x-show="showBanner" x-cloak
-             x-transition.opacity.duration.160ms
-             role="region" aria-label="{{ __('pwa.banner.label') }}" data-testid="install-banner"
-             class="app-install-banner fixed inset-x-0 z-[9300] mx-auto max-w-lg px-4">
-            <div class="flex items-center gap-3 rounded-surface border border-line-soft bg-card p-3 shadow-e3">
-                <img src="{{ asset('favicons/android-chrome-192x192.png') }}" width="40" height="40" alt=""
-                     class="size-10 shrink-0 rounded-control">
-                <p class="min-w-0 flex-1 text-small text-ink">{{ __('pwa.banner.text') }}</p>
-                <div class="flex shrink-0 items-center gap-1">
-                    <x-button size="sm" :loading="false" x-show="canPrompt" x-on:click="install()" x-bind:disabled="busy">
-                        {{ __('pwa.install') }}
-                    </x-button>
-                    <x-button size="sm" variant="outline" :href="route('settings.app')" x-show="!canPrompt">
-                        {{ __('pwa.banner.how') }}
-                    </x-button>
-                    <button type="button" x-on:click="dismiss()"
-                            aria-label="{{ __('pwa.banner.dismiss') }}" title="{{ __('pwa.banner.dismiss') }}"
-                            class="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink">
-                        <x-ic name="x" class="size-5" />
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endunless
-@endauth
 
 <x-tour.overlay/>
 

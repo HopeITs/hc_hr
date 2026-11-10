@@ -14,7 +14,6 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
-use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
 use App\Services\LeaveRequestNextStep;
 use App\Services\TeamCoverage;
@@ -128,7 +127,7 @@ class AllLeaveRequestModule extends Component
         $employee = $id->leaveBalance->contract->employee;
 
         // hydrate dependent lists
-        $this->allAvailableLeaves = $this->leavesFor($employee, (int) $id->leave_balance_id);
+        $this->allAvailableLeaves = $this->leavesFor($employee);
         $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
 
         // hydrate form values
@@ -165,14 +164,6 @@ class AllLeaveRequestModule extends Component
         // A row or link from before someone decided it (G-B-1).
         if ($id->status !== LeaveRequestStatus::Pending && Gate::allows('view', $id)) {
             $this->showAlreadyDecided($id);
-
-            return;
-        }
-
-        // Pending but not this viewer's to decide (HR while the manager is in,
-        // C3): the read-only details, as the deep link in mount() already does.
-        if (Gate::denies('decide', $id) && Gate::allows('view', $id)) {
-            $this->show($id->id);
 
             return;
         }
@@ -316,10 +307,6 @@ class AllLeaveRequestModule extends Component
         return view('livewire.employee.leave.all', [
             ...compact('employees', 'allAvailableLeaves', 'alternativeEmployees'),
             'decisionOverlap' => $this->decisionOverlap(),
-            // The same two checks delete() meets: the permission (route rule) and the policy.
-            'canDeleteSelected' => $this->selectedLeave
-                && auth()->user()->hasActivePermission('leaves.delete')
-                && Gate::allows('delete', $this->selectedLeave),
         ]);
     }
 
@@ -356,8 +343,6 @@ class AllLeaveRequestModule extends Component
         $this->toast();
 
         $this->refreshCounts();
-        // The table is its own component: re-rendering this one leaves its rows stale.
-        $this->dispatch('leaveRequestSaved')->to(AllLeaveRequestTable::class);
     }
 
     public function confirmDelete($id)
@@ -372,15 +357,10 @@ class AllLeaveRequestModule extends Component
         Gate::authorize('delete', $leaveRequest);
 
         $leaveRequest->delete();
-        // The details markup re-renders from this property, and Livewire loads
-        // a model property lazily on first use: still set, it was looked up
-        // after the delete and the request answered 404.
-        $this->selectedLeave = null;
         $this->showModal = false;
         $this->clearLinkedLeave();
         $this->refreshCounts();
         $this->toast();
-        $this->dispatch('leaveRequestSaved')->to(AllLeaveRequestTable::class);
 
     }
 
@@ -468,33 +448,16 @@ class AllLeaveRequestModule extends Component
     }
 
     /**
-     * Leave balances selectable for an employee's latest active contract:
-     * the ones LeaveEligibility says they may request now (the form refuses
-     * the rest). Single source of truth for the leave-type dropdown (with
-     * leaveType eager-loaded for the option labels). An edit keeps its own
-     * balance in the list ($keepBalanceId), since a request keeps the type
-     * it was filed with.
+     * Leave balances selectable for an employee's latest active contract.
+     * Single source of truth for the leave-type dropdown (with leaveType
+     * eager-loaded for the option labels).
      */
-    protected function leavesFor(?Employee $employee, ?int $keepBalanceId = null): Collection
+    protected function leavesFor(?Employee $employee): Collection
     {
-        if (! $employee) {
-            return collect();
-        }
-
-        $balances = app(LeaveEligibility::class)->requestableBalances($employee);
-
-        if ($keepBalanceId && ! $balances->contains(fn (LeaveBalance $balance) => (int) $balance->id === $keepBalanceId)) {
-            $current = $employee->latestActiveContract()
-                ?->leaveBalances()
-                ->with('leaveType')
-                ->find($keepBalanceId);
-
-            if ($current) {
-                $balances = $balances->push($current)->sortBy('type_id')->values();
-            }
-        }
-
-        return $balances;
+        return $employee?->latestActiveContract()
+            ?->leaveBalances()
+            ->with('leaveType')
+            ->get() ?? collect();
     }
 
     protected function alternativeEmployeesFor(?Employee $employee): Collection

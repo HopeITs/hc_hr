@@ -6,8 +6,6 @@ use App\Enums\RecruitmentApplicationStatus as AppStatus;
 use App\Enums\RecruitmentInterviewStatus as Status;
 use App\Enums\RecruitmentInterviewType;
 use App\Livewire\Recruitment\Interviews\Board;
-use App\Livewire\Recruitment\Interviews\Calendar;
-use App\Livewire\Recruitment\Interviews\Form;
 use App\Livewire\Recruitment\Interviews\Index;
 use App\Models\City;
 use App\Models\RecruitmentApplication;
@@ -202,23 +200,9 @@ class RecruitmentInterviewBoardTest extends TestCase
         $board->set('mine', false)->set('vacancy', (string) $accountant->vacancy_id);
         $this->assertSame([$finance->id], $this->allKeys($board->viewData('lanes')));
 
-        $board->set('vacancy', '')->set('campaign', (string) $technical->application->campaign_id);
-        $this->assertSame([$technical->id], $this->allKeys($board->viewData('lanes')));
-
-        $board->set('campaign', '')->set('applicant', (string) $accountant->applicant_id);
-        $this->assertSame([$finance->id], $this->allKeys($board->viewData('lanes')));
-
-        $board->set('applicant', '')->set('participant', (string) $this->hr->id);
-        $this->assertSame([$hrOne->id], $this->allKeys($board->viewData('lanes')));
-
-        $board->set('participant', '')->set('dateFrom', '2026-10-09')->set('dateTo', '2026-10-09');
-        $this->assertSame([$technical->id], $this->allKeys($board->viewData('lanes')));
-
         $board->set('type', RecruitmentInterviewType::Technical)->set('search', 'Beta')->set('mine', true)
             ->call('clearFilters')
-            ->assertSet('type', '')->assertSet('search', '')->assertSet('vacancy', '')
-            ->assertSet('campaign', '')->assertSet('applicant', '')->assertSet('participant', '')
-            ->assertSet('dateFrom', '')->assertSet('dateTo', '')->assertSet('mine', false);
+            ->assertSet('type', '')->assertSet('search', '')->assertSet('vacancy', '')->assertSet('mine', false);
         $this->assertSame([$hrOne->id, $technical->id, $finance->id], $this->allKeys($board->viewData('lanes')));
 
         // Unknown values are ignored rather than trusted.
@@ -294,7 +278,7 @@ class RecruitmentInterviewBoardTest extends TestCase
         $this->assertTrue($index->viewData('next')->is($sooner));
 
         // Waiting evaluations count what awaitingEvaluationBy() finds.
-        $this->travelTo(Carbon::parse('2026-10-08 11:30:00'));
+        $this->travelTo(Carbon::parse('2026-10-08 10:30:00'));
         $this->actingAs($this->hr);
         $this->assertSame([$mine->id], RecruitmentInterview::query()->awaitingEvaluationBy($this->hr)->pluck('id')->all());
         Livewire::test(Index::class)->assertViewHas('waitingCount', 1);
@@ -305,77 +289,6 @@ class RecruitmentInterviewBoardTest extends TestCase
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
-
-    public function test_calendar_dates_open_a_scoped_campaign_and_application_chooser(): void
-    {
-        $application = $this->shortlisted('Calendar Candidate');
-        $submitted = $this->applyTo($application->campaign, $this->makeApplicant('Not shortlisted'));
-        $otherCity = $this->makeCity('DMS', '003');
-        $foreign = $this->applyTo($this->makeCampaignIn($otherCity), $this->makeApplicant('Outside scope'));
-        app(RecruitmentApplicationStatusService::class)->change($this->hr($otherCity), $foreign, AppStatus::Submitted, AppStatus::Shortlisted, null);
-
-        $calendar = Livewire::actingAs($this->hr)->test(Calendar::class)
-            ->call('startScheduling', '2026-10-08')
-            ->assertSet('selectedDate', '2026-10-08');
-
-        $this->assertSame([$application->id], $calendar->viewData('schedulingOptions')->modelKeys());
-        $calendar->set('campaignId', (string) $application->campaign_id)
-            ->set('applicationId', (string) $application->id)
-            ->assertSee('Calendar Candidate')
-            ->call('continueScheduling')
-            ->assertRedirect(route('recruitment.interviews.create', [
-                'applicationId' => $application->id, 'date' => '2026-10-08', 'from_calendar' => 1,
-            ]));
-        $this->assertDatabaseCount('recruitment_interviews', 0);
-    }
-
-    public function test_calendar_scheduling_rejects_past_dates_and_users_without_permission(): void
-    {
-        Livewire::actingAs($this->hr)->test(Calendar::class)
-            ->call('startScheduling', '2026-10-04')
-            ->assertHasErrors('date')
-            ->assertSet('selectedDate', null);
-
-        $reader = $this->without($this->hr, ['recruitment-applicants.schedule-interviews']);
-        Livewire::actingAs($reader)->test(Calendar::class)
-            ->assertDontSee(__('recruitment-applicant.interviews.schedule'))
-            ->call('startScheduling', '2026-10-08')
-            ->assertForbidden();
-    }
-
-    public function test_calendar_cannot_schedule_a_forged_application_or_mismatched_campaign(): void
-    {
-        $application = $this->shortlisted();
-        $another = $this->shortlisted('Another candidate');
-
-        Livewire::actingAs($this->hr)->test(Calendar::class)
-            ->call('startScheduling', '2026-10-08')
-            ->set('campaignId', (string) $another->campaign_id)
-            ->set('applicationId', (string) $application->id)
-            ->call('continueScheduling')
-            ->assertNotFound();
-        $this->assertDatabaseCount('recruitment_interviews', 0);
-    }
-
-    public function test_calendar_date_prefills_the_existing_form_and_saves_back_to_the_calendar(): void
-    {
-        $application = $this->shortlisted();
-
-        Livewire::actingAs($this->hr)->withQueryParams(['date' => '2026-10-08', 'from_calendar' => 1])
-            ->test(Form::class, ['applicationId' => $application->id])
-            ->assertSet('startsAt', '2026-10-08T09:00')
-            ->assertSet('fromCalendar', true)
-            ->set('startsAt', '2026-10-08T10:00')
-            ->set('locationValue', 'Meeting room')
-            ->set('notifyCandidate', false)
-            ->call('save')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('recruitment.interviews.index', ['view' => 'calendar', 'month' => '2026-10']));
-
-        $this->assertDatabaseCount('recruitment_interviews', 1);
-        $calendar = Livewire::actingAs($this->hr)->test(Calendar::class, ['month' => '2026-10']);
-        $this->assertSame(1, collect($calendar->viewData('weeks'))->flatten(1)->sum(fn (array $day): int => $day['interviews']->count()));
-    }
 
     /** @param  array<string, array<int, int>>  $expected  lanes not named must be empty */
     private function assertLanes(array $expected): void
@@ -431,7 +344,8 @@ class RecruitmentInterviewBoardTest extends TestCase
         $application = $this->applyTo($this->makeCampaignIn($this->homs, title: $title), $this->makeApplicant($name));
 
         $statuses = app(RecruitmentApplicationStatusService::class);
-        $statuses->change($this->hr, $application, AppStatus::Submitted, AppStatus::Shortlisted, null);
+        $statuses->change($this->hr, $application, AppStatus::Submitted, AppStatus::UnderReview, null);
+        $statuses->change($this->hr, $application->fresh(), AppStatus::UnderReview, AppStatus::Shortlisted, null);
 
         return $application->fresh();
     }

@@ -1,16 +1,13 @@
-<div>
-@unless ($inSettings)
 <x-slot:title>
     {{ __('general.termination_reasons') }}
 </x-slot:title>
-@endunless
-    <div @class(['flex', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-        @unless ($inSettings)
+
+<div>
+    <div class="flex justify-between">
         <livewire:layout.breadcrumbs :title="__('general.termination_reasons')" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => __('general.termination_reasons'), 'route' => 'termination-reasons.index'],
         ]" :showButton="true" />
-        @endunless
 
         @activerole('HR', 'super-admin')
             <div>

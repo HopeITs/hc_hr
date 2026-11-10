@@ -1,6 +1,6 @@
 @props([
     'campaign',
-    'subtitle' => null,
+    'subtitle',
     'versionNumber',
     'versionStatus',
     'publishedVersionNumber' => null,
@@ -22,9 +22,7 @@
                 <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m15 19-7-7 7-7"/></svg>
                 {{ __('recruitment.publishing.back') }}
             </a>
-            @if ($subtitle)
-                <p class="mt-2 text-body text-secondary-medium">{{ $subtitle }}</p>
-            @endif
+            <p class="mt-2 text-body text-secondary-medium">{{ $subtitle }}</p>
             @if ($campaign->vacancy?->createdFromRequest)
                 <p class="mt-1 text-small text-secondary-medium">
                     {{ __('recruitment.job_post.approved_request') }}:

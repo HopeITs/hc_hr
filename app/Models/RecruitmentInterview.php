@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * One interview of one application (Phase 2 Task 7). An application can have
@@ -24,12 +22,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * meeting_url is hidden from serialization: it reaches a page only through
  * the viewMeetingLink ability, never by riding along in a Livewire payload.
  */
-class RecruitmentInterview extends Model implements HasMedia
+class RecruitmentInterview extends Model
 {
-    use InteractsWithMedia;
-
-    public const ATTACHMENTS = 'attachments';
-
     protected $guarded = ['id'];
 
     protected $hidden = ['meeting_url'];
@@ -66,20 +60,9 @@ class RecruitmentInterview extends Model implements HasMedia
         return $this->participants()->whereNull('removed_at');
     }
 
-    public function requiredParticipants(): HasMany
-    {
-        return $this->hasMany(RecruitmentInterviewRequiredParticipant::class, 'interview_id');
-    }
-
     public function evaluations(): HasMany
     {
         return $this->hasMany(RecruitmentInterviewEvaluation::class, 'interview_id');
-    }
-
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection(self::ATTACHMENTS)
-            ->useDisk('local');
     }
 
     public function reschedules(): HasMany
@@ -217,7 +200,7 @@ class RecruitmentInterview extends Model implements HasMedia
             ->whereHas('currentParticipants', fn (Builder $participants): Builder => $participants
                 ->where('user_id', $user->getKey())
                 ->whereIn('role', (array) config('recruitment.evaluations.reviewer_roles', [])))
-            ->heldOrPast()
+            ->where($query->qualifyColumn('status'), RecruitmentInterviewStatus::Completed)
             ->evaluationsClosed(false)
             ->whereDoesntHave('evaluations', fn (Builder $evaluations): Builder => $evaluations->where('reviewer_user_id', $user->getKey()));
     }

@@ -263,17 +263,6 @@
         cursor: pointer;
     }
 
-    /* Flowbite's tick is a fixed white SVG: on dark mode's light ink it
-       vanished, so a checked box looked empty. Dark draws it in the card colour. */
-    .hc-check:checked {
-        border-color: var(--color-ink);
-        background-color: var(--color-ink);
-
-        @variant dark {
-            background-image: url("data:image/svg+xml,%3csvg aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 12'%3e%3cpath stroke='%231e1e20' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M1 5.917 5.724 10.5 15 1.5'/%3e%3c/svg%3e");
-        }
-    }
-
     .hc-check:hover:not(:disabled) {
         border-color: var(--color-ink-2);
     }

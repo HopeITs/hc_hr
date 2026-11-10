@@ -219,16 +219,6 @@ document.addEventListener('alpine:init', () => {
         cities: config.cities ?? [],
         terminationReasons: config.terminationReasons ?? [],
         canManageAutoRenew: Boolean(config.canManageAutoRenew),
-        // 'amend' is the contract amendment page (ContractAmend): the contract
-        // and its assignment are fixed, only the schedule, the pay and the
-        // amendment's own date and reason are filled in, so nothing is looked
-        // up by city or employee and no entitlement is previewed.
-        amending: config.mode === 'amend',
-        // Sections that stay closed and read-only: on the edit screen, the
-        // schedule and pay of a contract an amendment has already changed
-        // (ContractEdit) — they change only through another amendment now.
-        // A frozen section counts as complete, so it never holds up the save.
-        frozenSections: config.frozenSections ?? [],
         // True when the signed-in role may not see pay figures. The section is
         // rendered as a read-only notice in that case, the figures were never
         // sent down with the seed, and the server refuses to write them — so
@@ -334,13 +324,6 @@ document.addEventListener('alpine:init', () => {
         })),
 
         // ---- termination (edit only; create does not render the section)
-        // ---- amendment (amend mode only)
-        effectiveFrom: config.seed?.effectiveFrom ?? '',
-        amendmentReason: config.seed?.amendmentReason ?? '',
-        // Not before the last amendment in effect, when there is one.
-        termStart: config.seed?.minEffectiveFrom ?? config.seed?.startDate ?? '',
-        termEnd: config.seed?.endDate ?? '',
-
         terminatedAt: config.seed?.terminatedAt ?? '',
         terminationReasonId: str(config.seed?.terminationReasonId ?? ''),
         reasonOfTermination: config.seed?.reasonOfTermination ?? '',
@@ -378,9 +361,7 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            if (this.amending) {
-                // Nothing to look up: the contract's assignment is fixed.
-            } else if (this.selected.city) {
+            if (this.selected.city) {
                 this.loadCityOptions(false);
             } else {
                 // No city yet (a fresh create, for a user who is not pinned
@@ -595,10 +576,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         isValid(name) {
-            if (this.frozenSections.includes(name)) {
-                return true;
-            }
-
             return {
                 assignment: this.assignmentValid,
                 schedule: this.scheduleValid,
@@ -606,7 +583,6 @@ document.addEventListener('alpine:init', () => {
                 // Optional by nature: a contract is complete whether or not it
                 // ended early, so this section never locks the ones after it.
                 termination: true,
-                amendment: this.amendmentValid,
             }[name] ?? false;
         },
 
@@ -633,20 +609,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         isUnlocked(name) {
-            return !this.frozenSections.includes(name) && this.blockedBy(name) === null;
-        },
-
-        /** An effective date within the contract's term (ContractAmendmentService re-checks it). */
-        get amendmentValid() {
-            return Boolean(this.effectiveFrom)
-                && (!this.termStart || this.effectiveFrom >= this.termStart)
-                && (!this.termEnd || this.effectiveFrom <= this.termEnd);
-        },
-
-        get amendmentSummary() {
-            return this.effectiveFrom
-                ? this.fill(this.labels.effectiveFrom ?? ':date', { date: this.formatDate(this.effectiveFrom) })
-                : this.labels.empty;
+            return this.blockedBy(name) === null;
         },
 
         stateOf(name) {
@@ -1409,10 +1372,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         lockedHintFor(name) {
-            if (this.frozenSections.includes(name)) {
-                return this.labels.frozen ?? '';
-            }
-
             const blocker = this.blockedBy(name);
 
             return blocker
@@ -1736,10 +1695,6 @@ document.addEventListener('alpine:init', () => {
         scheduleLeavePreview() {
             clearTimeout(this.leaveTimer);
 
-            if (this.amending) {
-                return;
-            }
-
             if (!this.selected.employee || !this.startDate || !this.endDate
                 || Number(this.weeklyHours) < 1) {
                 this.leaveDays = null;
@@ -1823,11 +1778,6 @@ document.addEventListener('alpine:init', () => {
 
             if (this.canManageAutoRenew) {
                 payload.autoRenew = this.autoRenew;
-            }
-
-            if (this.amending) {
-                payload.effectiveFrom = this.effectiveFrom;
-                payload.reason = this.amendmentReason;
             }
 
             return payload;

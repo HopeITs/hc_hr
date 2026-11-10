@@ -3,7 +3,6 @@
 namespace App\Livewire\Basics;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
-use App\Livewire\Concerns\EmbedsInSettings;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\LeaveType;
@@ -12,7 +11,6 @@ use Livewire\Component;
 class LeaveTypeModule extends Component
 {
     use AuthorizesActivePermissions;
-    use EmbedsInSettings;
     use GuardsModalClose;
     use WithFeedback;
 

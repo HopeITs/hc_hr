@@ -4,14 +4,11 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\IsDashboardTile;
-use App\Services\News\NewsFeed;
+use App\Models\News;
+use Carbon\Carbon;
 use Livewire\Component;
 
-/**
- * The latest live news and announcements the viewer is in the audience of,
- * newest publication first. Events have their own tiles; drafts, scheduled
- * and expired items never reach a feed (NewsFeed).
- */
+/** The past week's news, newest first (it was a query inside the Blade card). */
 class NewsCard extends Component
 {
     use HandlesLoadFailure;
@@ -19,14 +16,14 @@ class NewsCard extends Component
 
     public function render()
     {
-        $user = auth()->user();
+        $today = Carbon::today();
 
         return view('livewire.dashboard.news-card', [
-            'newsItems' => $this->guardedLoad(
-                fn () => app(NewsFeed::class)->latestNews($user, (int) config('news.dashboard_news_limit', 8)),
-                collect(),
-            ),
-            'canViewAll' => (bool) $user?->hasActivePermission('news.view'),
+            'newsItems' => $this->guardedLoad(fn () => News::with(['newsable', 'creator.profile'])
+                ->whereDate('event_date', '<', $today)
+                ->whereDate('event_date', '>=', $today->copy()->subDays(7))
+                ->orderByDesc('event_date')
+                ->get(), collect()),
         ]);
     }
 }

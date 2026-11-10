@@ -15,7 +15,7 @@
 {{-- Section 2 — the working week, in the contract's own words. --}}
 <x-contract.section
     name="schedule"
-    :index="$scheduleIndex ?? 2"
+    index="2"
     :title="__('general.composer.schedule')"
     summary="scheduleSummary"
 >

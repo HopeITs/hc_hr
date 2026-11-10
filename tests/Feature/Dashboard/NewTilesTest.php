@@ -310,10 +310,9 @@ class NewTilesTest extends TestCase
 
         foreach (['who-is-out', 'next-holiday', 'leave-balance', 'birthdays'] as $key) {
             $this->assertNotNull($layout->component($key), $key);
-            // A panel never goes below its own minimum (no icon-sized tiles any more).
-            $bounds = $layout->bounds($key);
-            $this->assertSame(['min', 'max'], array_keys($bounds), $key);
-            $this->assertSame(implode('x', $bounds['min']), $layout->size($key, '1x1'), $key);
+            // Any widget goes down to one cell (an icon); below `card` it shows as one.
+            $this->assertSame('1x1', $layout->size($key, '1x1'), $key);
+            $this->assertNotSame([1, 1], $layout->bounds($key)['card'], $key);
 
             foreach (['en', 'ar'] as $locale) {
                 app()->setLocale($locale);

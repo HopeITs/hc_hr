@@ -3,7 +3,6 @@
 namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveRequestStatus;
-use App\Enums\LeaveTypeCases;
 use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\HandlesLoadFailure;
@@ -14,9 +13,7 @@ use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\LeaveAlternativeEmployees;
-use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
-use App\Services\LeaveRequestPricing;
 use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
 use Blade;
@@ -39,51 +36,6 @@ class MyLeaveRequestModule extends Component
     use HandlesLoadFailure;
     use TracksTaskAttempt;
     use WithFeedback;
-
-    /**
-     * The request form's categories, in the order shown, each with the leave
-     * types it groups (its subtypes). Keyed by LeaveTypeCases, never raw ids.
-     */
-    public const CATEGORIES = [
-        'annual' => [LeaveTypeCases::Annual],
-        'sick' => [LeaveTypeCases::FullSick, LeaveTypeCases::HalfSick],
-        'bereavement' => [LeaveTypeCases::DeathFirst, LeaveTypeCases::DeathSecond],
-        'marriage' => [LeaveTypeCases::Marriage],
-        'paternity' => [LeaveTypeCases::Paternity],
-        'maternity' => [LeaveTypeCases::MaternityFirst, LeaveTypeCases::MaternitySecond],
-        'unpaid' => [LeaveTypeCases::Unpaid],
-    ];
-
-    /** Icon (an <x-ic> name) per category. */
-    public const CATEGORY_ICONS = [
-        'annual' => 'sun',
-        'sick' => 'pulse',
-        'bereavement' => 'leaf',
-        'marriage' => 'heart',
-        'paternity' => 'user',
-        'maternity' => 'baby',
-        'unpaid' => 'wallet',
-    ];
-
-    /** Subtype label key (leaves.request.subtype.*) per leave type with siblings. */
-    private const SUBTYPE_LABELS = [
-        LeaveTypeCases::FullSick => 'full-paid',
-        LeaveTypeCases::HalfSick => 'half-paid',
-        LeaveTypeCases::DeathFirst => 'first-degree',
-        LeaveTypeCases::DeathSecond => 'second-degree',
-        LeaveTypeCases::MaternityFirst => 'first-child',
-        LeaveTypeCases::MaternitySecond => 'second-child',
-    ];
-
-    /**
-     * Refusals shown as a disabled subtype with their reason, so the employee
-     * sees why (half pay after full pay, second child after the first). Every
-     * other refused type is simply not offered.
-     */
-    private const EXPLAINED_REASONS = [
-        LeaveEligibility::REASON_FULL_SICK_REMAINS,
-        LeaveEligibility::REASON_FIRST_MATERNITY_NOT_TAKEN,
-    ];
 
     public LeaveBalance $leaveBalance;
 
@@ -115,13 +67,6 @@ class MyLeaveRequestModule extends Component
     public string $startDate = '';
 
     public string $statusFilter = 'all';
-
-    /**
-     * The category picked in the request form while no balance is chosen yet
-     * (a category with several subtypes). Once a balance is chosen the
-     * category is read from it, so this never disagrees with the form.
-     */
-    public ?string $leaveCategory = null;
 
     public array $counts = [];
 
@@ -206,7 +151,6 @@ class MyLeaveRequestModule extends Component
         // One token per opened form: a retried or double-sent save of this
         // form returns the request it already created (LeaveRequestForm::store).
         $this->form->submission_token = (string) Str::uuid();
-        $this->leaveCategory = null;
         $this->markClean();
         $this->modalTitle = __('leaves.modal.new-title');
         $this->showModal = true;
@@ -221,7 +165,6 @@ class MyLeaveRequestModule extends Component
 
         $this->form->resetValidation();
         $this->form->setLeaveRequest($id);
-        $this->leaveCategory = $this->categoryOfBalance($this->form->leave_balance_id);
 
         $this->markClean();
         $this->modalTitle = __('leaves.modal.edit-title');
@@ -291,8 +234,6 @@ class MyLeaveRequestModule extends Component
      */
     public function updatedFormLeaveBalanceId($value): void
     {
-        $this->leaveCategory = $this->categoryOfBalance($value);
-
         if ($this->form->type !== 'hour' || blank($value)) {
             return;
         }
@@ -305,194 +246,6 @@ class MyLeaveRequestModule extends Component
         if ($balance && ! $balance->isAnnual()) {
             $this->form->type = 'day';
         }
-    }
-
-    /**
-     * Step 1 of the form. A category with one requestable subtype picks its
-     * balance at once (annual then asks day or hour); one with several waits
-     * for the subtype. Only a balance offered in leaveChoices can be set here,
-     * and the save validates it again.
-     */
-    public function updatedLeaveCategory($key): void
-    {
-        $category = collect($this->leaveChoices['categories'])->firstWhere('key', $key);
-
-        if ($category === null) {
-            $this->leaveCategory = null;
-            $this->form->leave_balance_id = null;
-
-            return;
-        }
-
-        $enabled = array_values(array_filter($category['options'], fn (array $option) => ! $option['disabled']));
-        $current = collect($enabled)->contains(fn (array $option) => (string) $option['balance_id'] === (string) $this->form->leave_balance_id);
-
-        if (! $current) {
-            $this->form->leave_balance_id = count($enabled) === 1 ? $enabled[0]['balance_id'] : null;
-        }
-
-        // Only annual leave can be taken by the hour.
-        if ($key !== 'annual') {
-            $this->form->type = 'day';
-        }
-    }
-
-    /**
-     * The request form's choices, from LeaveEligibility (the same answer the
-     * save paths enforce): each category the employee may request now, with
-     * its subtypes, each mapped to one leave balance of the active contract.
-     * Half-paid sick and second-child maternity stay visible but disabled,
-     * with their reason, while their predecessor remains; unpaid leave hidden
-     * because annual remains gives a one-line notice. When editing, the
-     * request's own balance is always offered, eligible or not.
-     *
-     * @return array{categories: list<array<string, mixed>>, notice: ?string}
-     */
-    #[Computed]
-    public function leaveChoices(): array
-    {
-        $empty = ['categories' => [], 'notice' => null];
-        $employee = auth()->user()?->profile;
-
-        if (! $this->showModal || ! $employee) {
-            return $empty;
-        }
-
-        $eligibility = app(LeaveEligibility::class);
-        $contract = $employee->latestActiveContract();
-        $balances = $contract?->leaveBalances()->with(['leaveType', 'contract'])->get() ?? collect();
-        $requestable = $eligibility->requestableBalances($employee)->keyBy('id');
-        $own = $this->form->leaveRequest?->exists ? $this->form->leaveRequest->leaveBalance : null;
-
-        try {
-            $perDay = $contract ? app(LeaveRequestPricing::class)->hoursPerDayFor($contract) : null;
-        } catch (Throwable $e) {
-            report($e);
-            $perDay = null;
-        }
-
-        $left = fn ($balance): string => __('leaves.request.left', [
-            'amount' => $this->formatLeaveSplit(max(0, $eligibility->remainingHours($balance)), $perDay),
-        ]);
-
-        $categories = [];
-        $notice = null;
-
-        foreach (self::CATEGORIES as $key => $typeIds) {
-            $options = [];
-
-            foreach ($typeIds as $typeId) {
-                $balance = $own && (int) $own->type_id === $typeId
-                    ? $own
-                    : $balances->first(fn ($b) => (int) $b->type_id === $typeId);
-
-                if (! $balance) {
-                    continue;
-                }
-
-                $isOwn = $own !== null && $own->is($balance);
-                $reason = $requestable->has($balance->id) || $isOwn
-                    ? null
-                    : $eligibility->reasonAgainst($employee, $balance, $balances);
-
-                if ($reason === LeaveEligibility::REASON_ANNUAL_REMAINS) {
-                    $notice = $eligibility->message($reason);
-                }
-
-                if ($reason !== null && ! in_array($reason, self::EXPLAINED_REASONS, true)) {
-                    continue;
-                }
-
-                $options[] = [
-                    'balance_id' => $balance->id,
-                    'type_id' => $typeId,
-                    'label' => isset(self::SUBTYPE_LABELS[$typeId])
-                        ? __('leaves.request.subtype.'.self::SUBTYPE_LABELS[$typeId])
-                        : __('leaves.request.category.'.$key),
-                    'name' => $balance->leaveType?->name,
-                    'left' => $left($balance),
-                    'disabled' => $reason !== null,
-                    'reason' => $reason ? $eligibility->message($reason) : null,
-                    'own' => $isOwn && ! $requestable->has($balance->id),
-                ];
-            }
-
-            $enabled = array_values(array_filter($options, fn (array $option) => ! $option['disabled']));
-
-            if ($enabled === []) {
-                continue;
-            }
-
-            $categories[] = [
-                'key' => $key,
-                'label' => __('leaves.request.category.'.$key),
-                'icon' => self::CATEGORY_ICONS[$key],
-                'left' => $enabled[0]['left'],
-                'options' => $options,
-                // Unpaid is offered only once annual leave is used up: say so.
-                'note' => $key === 'unpaid' && $balances->contains(fn ($b) => (int) $b->type_id === LeaveTypeCases::Annual)
-                    ? $eligibility->message('annual-exhausted')
-                    : null,
-            ];
-        }
-
-        return ['categories' => $categories, 'notice' => $notice];
-    }
-
-    /**
-     * The category shown as chosen: the chosen balance's, else the one
-     * picked while its subtype is still open.
-     *
-     * @return array<string, mixed>|null
-     */
-    #[Computed]
-    public function activeCategory(): ?array
-    {
-        $categories = collect($this->leaveChoices['categories']);
-        $balanceId = (string) $this->form->leave_balance_id;
-
-        if ($balanceId !== '') {
-            $match = $categories->first(fn (array $category) => collect($category['options'])
-                ->contains(fn (array $option) => (string) $option['balance_id'] === $balanceId));
-
-            if ($match) {
-                return $match;
-            }
-        }
-
-        return $categories->firstWhere('key', $this->leaveCategory);
-    }
-
-    /**
-     * The typed period for the summary ("12-11-2026 → 14-11-2026", or the
-     * date with its hours), null while the dates are incomplete. Reads the
-     * same window the pricing service prices; never changes the form.
-     */
-    #[Computed]
-    public function requestPeriod(): ?string
-    {
-        $window = $this->form->window();
-
-        if ($window === null) {
-            return null;
-        }
-
-        // Each value isolated, so a date reads left to right inside Arabic.
-        $isolate = fn (?string $value): string => "\u{2068}{$value}\u{2069}";
-        $separator = ' '.__('leaves.range-separator').' ';
-
-        if ($window->isHourly()) {
-            return __('leaves.request.time-range', [
-                'date' => $isolate($window->startDate->format('d-m-Y')),
-                'from' => $isolate($window->startTime),
-                'to' => $isolate($window->endTime),
-            ]);
-        }
-
-        $start = $window->startDate->format('d-m-Y');
-        $end = $window->endDate->format('d-m-Y');
-
-        return $start === $end ? $isolate($start) : $isolate($start).$separator.$isolate($end);
     }
 
     public function openDetails(int $id): void
@@ -521,13 +274,14 @@ class MyLeaveRequestModule extends Component
 
         // A failed balance lookup shows a retry panel in place of the cards
         // instead of a 500; the request list below has its own failure state.
-        [$availableLeaves, $alternativeEmployees] = $this->guardedLoad(fn () => [
+        [$availableLeaves, $allAvailableLeaves, $alternativeEmployees] = $this->guardedLoad(fn () => [
             $employee->availableLeaves(),
+            $employee->allAvailableLeaves(),
             app(LeaveAlternativeEmployees::class)->for($employee),
-        ], fallback: [null, collect()]);
+        ], fallback: [null, collect(), collect()]);
 
         return view('livewire.employee.leave.index', compact(
-            'availableLeaves', 'alternativeEmployees',
+            'availableLeaves', 'allAvailableLeaves', 'alternativeEmployees',
         ));
     }
 
@@ -631,7 +385,6 @@ class MyLeaveRequestModule extends Component
     protected function closeGuardedDialog(string $dialog): void
     {
         $this->showModal = false;
-        $this->leaveCategory = null;
         $this->form->reset();
         $this->form->resetValidation();
     }
@@ -701,8 +454,6 @@ class MyLeaveRequestModule extends Component
             'hourly' => $this->form->type === 'hour',
             'calendar_days' => $quote->calendarDays,
             'available' => ($quote->availableHours < 0 ? '−' : '').$amount($quote->availableHours),
-            'available_hours' => $quote->availableHours,
-            'projected_hours' => $quote->projectedHours,
             'pending' => $amount($quote->pendingHours),
             'has_pending' => $quote->pendingHours > 0,
             'requested' => $amount($quote->requestedHours),
@@ -782,7 +533,6 @@ class MyLeaveRequestModule extends Component
     private function finishSave(LeaveRequest $leaveRequest, string $kind): void
     {
         $this->showModal = false;
-        $this->leaveCategory = null;
         $this->form->reset();
 
         $leaveRequest->refresh();
@@ -807,30 +557,6 @@ class MyLeaveRequestModule extends Component
     {
         $this->form->reset();
         $this->form->submission_token = $token;
-    }
-
-    /**
-     * The category key of one of the employee's own balances (or the edited
-     * request's own), null when blank or not theirs.
-     */
-    private function categoryOfBalance($balanceId): ?string
-    {
-        if (blank($balanceId)) {
-            return null;
-        }
-
-        $own = $this->form->leaveRequest?->exists ? $this->form->leaveRequest->leaveBalance : null;
-        $typeId = $own && (string) $own->id === (string) $balanceId
-            ? (int) $own->type_id
-            : auth()->user()->profile?->latestActiveContract()?->leaveBalances()->whereKey($balanceId)->value('type_id');
-
-        foreach (self::CATEGORIES as $key => $typeIds) {
-            if (in_array((int) $typeId, $typeIds, true)) {
-                return $key;
-            }
-        }
-
-        return null;
     }
 
     private function ownedLeaveRequests(): Builder

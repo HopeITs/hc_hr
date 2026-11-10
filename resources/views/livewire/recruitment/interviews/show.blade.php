@@ -13,7 +13,7 @@
     $at = fn ($date) => $date?->copy()->setTimezone($timezone)->format('Y-m-d H:i');
 
     // A bordered neutral button: every action here except the one primary next step.
-    $quiet = 'inline-flex cursor-pointer items-center justify-center rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-medium text-secondary-dark shadow-e1 transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $quiet = 'inline-flex min-h-11 cursor-pointer items-center rounded-control border border-secondary-light bg-white px-3 text-sm font-medium text-secondary-dark shadow-e1 transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-9';
     $link = 'font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 @endphp
 
@@ -127,7 +127,8 @@
                 @if ($hasStarted)
                     <x-primary-button type="button" id="interview-action-{{ RecruitmentInterviewStatus::Completed }}" :show-spinner="false"
                         wire:click="beginOutcome('{{ RecruitmentInterviewStatus::Completed }}')"
-                        aria-expanded="{{ $panel === RecruitmentInterviewStatus::Completed ? 'true' : 'false' }}">
+                        aria-expanded="{{ $panel === RecruitmentInterviewStatus::Completed ? 'true' : 'false' }}"
+                        class="min-h-11 sm:min-h-9">
                         {{ __('recruitment-applicant.interviews.actions.completed') }}
                     </x-primary-button>
                     <button type="button" id="interview-action-{{ RecruitmentInterviewStatus::NoShow }}"
@@ -214,78 +215,6 @@
                 </div>
             @endif
         </x-modal.dialog>
-    </section>
-
-    <section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.attachments.title') }}</h2>
-                <p class="mt-1 text-sm text-secondary-medium">{{ __('recruitment-applicant.interviews.attachments.hint') }}</p>
-            </div>
-        </div>
-
-        <ul class="mt-4 divide-y divide-secondary-soft text-sm">
-            @forelse ($attachments as $media)
-                <li wire:key="interview-attachment-{{ $media->id }}" class="flex flex-wrap items-center justify-between gap-3 py-3">
-                    <div class="min-w-0">
-                        <p class="font-medium wrap-anywhere">{{ $media->getCustomProperty('original_name', $media->name) }}</p>
-                        <p class="text-xs text-secondary-medium">{{ number_format($media->size / 1024, 1) }} KB &middot; {{ $media->created_at?->format('Y-m-d H:i') }}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <a href="{{ route('recruitment.interview-attachments.download', ['media' => $media->id]) }}" class="{{ $link }}">
-                            {{ __('recruitment-applicant.download') }}
-                        </a>
-                        @if ($canManage)
-                            <button type="button" wire:click="discardAttachment({{ $media->id }})" wire:confirm="{{ __('recruitment-applicant.interviews.attachments.remove_confirm') }}"
-                                class="cursor-pointer font-semibold text-primary hover:underline">
-                                {{ __('recruitment-applicant.interviews.attachments.remove') }}
-                            </button>
-                        @endif
-                    </div>
-                </li>
-            @empty
-                <li class="py-3 text-secondary-medium">{{ __('recruitment-applicant.interviews.attachments.none') }}</li>
-            @endforelse
-        </ul>
-
-        @if ($canManage)
-            <form wire:submit="uploadAttachment" class="mt-4 border-t border-secondary-soft pt-4">
-                <x-forms.input-label for="interviewAttachment" :value="__('recruitment-applicant.interviews.attachments.file')" required />
-                <div
-                    x-data="{ dragging: false, selectedName: '' }"
-                    x-on:dragover.prevent="dragging = true"
-                    x-on:dragleave.prevent="dragging = false"
-                    x-on:drop.prevent="
-                        dragging = false;
-                        const input = $refs.fileInput;
-                        const files = $event.dataTransfer.files;
-                        if (input && files.length) {
-                            input.files = files;
-                            selectedName = files[0].name;
-                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    "
-                    :class="dragging ? 'border-primary bg-primary/5' : 'border-secondary-light bg-white'"
-                    class="mt-1 rounded-surface border-2 border-dashed p-6 text-center transition duration-150 motion-reduce:transition-none sm:p-8"
-                >
-                    <x-icons.upload class="mx-auto size-12 text-primary" />
-                    <p class="mt-3 text-body text-secondary-dark">{{ __('recruitment-applicant.interviews.attachments.drop_hint') }}</p>
-                    <label for="interviewAttachment" class="mt-4 inline-flex cursor-pointer items-center justify-center rounded-control bg-primary px-4 py-2 text-body font-semibold text-white shadow-e1 transition hover:bg-primary-hover focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
-                        {{ __('recruitment-applicant.interviews.attachments.browse') }}
-                    </label>
-                    <input x-ref="fileInput" id="interviewAttachment" type="file" wire:model="attachment"
-                        x-on:change="selectedName = $event.target.files[0]?.name ?? ''"
-                        accept="audio/mpeg,audio/mp4,audio/wav,video/mp4,video/webm,application/pdf,image/jpeg,image/png"
-                        class="sr-only">
-                    <p x-show="selectedName" x-text="selectedName" class="mt-3 break-all text-small font-medium text-secondary-dark" x-cloak></p>
-                </div>
-                <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.attachments.formats') }}</p>
-                <x-forms.input-error field="attachment" input-id="interviewAttachment" />
-                <x-primary-button type="submit" wire:target="attachment,uploadAttachment" class="mt-3">
-                    {{ __('recruitment-applicant.interviews.attachments.upload') }}
-                </x-primary-button>
-            </form>
-        @endif
     </section>
 
     {{--

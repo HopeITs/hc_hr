@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Recruitment\Interviews;
 
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
 use App\Services\RecruitmentInterviewEvaluationService;
-use App\Traits\WithAlerts;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -20,18 +20,19 @@ use Livewire\Component;
  * Advisory: the view says so, and nothing on it moves the application. The
  * hiring decision stays in the applicant's decision panel.
  *
- * HR can add a separate professional note when their opinion differs. The
- * participant's evaluation remains untouched. HR managing the interview can
- * close evaluation once it is completed.
+ * HR with correct-evaluations can correct a mistake in an evaluation or
+ * withdraw it, each with a reason kept in the evaluation's history, in a
+ * popup (the Leaves decision popup, <x-modal.dialog>); HR managing the
+ * interview can close evaluation once it is completed.
  */
 class EvaluationSummary extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     #[Locked]
     public int $interviewId;
 
-    /** 'note' | null */
+    /** 'correct' | 'withdraw' | null */
     #[Locked]
     public ?string $panel = null;
 
@@ -45,7 +46,19 @@ class EvaluationSummary extends Component
     #[Locked]
     public ?int $evaluationId = null;
 
-    public string $opinionNote = '';
+    #[Locked]
+    public ?int $expectedVersion = null;
+
+    public string $recommendation = '';
+
+    public string $pros = '';
+
+    public string $cons = '';
+
+    public string $notes = '';
+
+    /** Why HR corrects or withdraws. Kept in the evaluation's history. */
+    public string $reason = '';
 
     public function mount(int $interviewId): void
     {
@@ -53,23 +66,49 @@ class EvaluationSummary extends Component
         Gate::authorize('viewEvaluations', $this->resolveInterview());
     }
 
-    public function beginNote(int $evaluationId): void
+    public function beginCorrect(int $evaluationId): void
     {
         $evaluation = $this->resolveEvaluation($evaluationId);
-        Gate::authorize('addNote', $evaluation);
+        Gate::authorize('correct', $evaluation);
 
-        $this->openPanel($evaluation);
+        $this->openPanel('correct', $evaluation);
+        $this->recommendation = (string) $evaluation->recommendation;
+        $this->pros = (string) $evaluation->pros;
+        $this->cons = (string) $evaluation->cons;
+        $this->notes = (string) $evaluation->notes;
     }
 
-    public function addNote(RecruitmentInterviewEvaluationService $evaluations): void
+    public function saveCorrection(RecruitmentInterviewEvaluationService $evaluations): void
     {
-        abort_unless($this->panel === 'note' && $this->evaluationId !== null, 404);
+        abort_unless($this->panel === 'correct' && $this->evaluationId !== null, 404);
         $evaluation = $this->resolveEvaluation($this->evaluationId);
-        Gate::authorize('addNote', $evaluation);
+        Gate::authorize('correct', $evaluation);
+
+        $this->attempt(fn () => $evaluations->correct(auth()->user(), $evaluation, (int) $this->expectedVersion, [
+            'recommendation' => $this->recommendation,
+            'pros' => $this->pros,
+            'cons' => $this->cons,
+            'notes' => $this->notes,
+        ], $this->reason), __('recruitment-applicant.evaluations.corrected'));
+    }
+
+    public function beginWithdraw(int $evaluationId): void
+    {
+        $evaluation = $this->resolveEvaluation($evaluationId);
+        Gate::authorize('withdraw', $evaluation);
+
+        $this->openPanel('withdraw', $evaluation);
+    }
+
+    public function withdraw(RecruitmentInterviewEvaluationService $evaluations): void
+    {
+        abort_unless($this->panel === 'withdraw' && $this->evaluationId !== null, 404);
+        $evaluation = $this->resolveEvaluation($this->evaluationId);
+        Gate::authorize('withdraw', $evaluation);
 
         $this->attempt(
-            fn () => $evaluations->addNote(auth()->user(), $evaluation, $this->opinionNote),
-            __('recruitment-applicant.evaluations.note_added'),
+            fn () => $evaluations->withdraw(auth()->user(), $evaluation, (int) $this->expectedVersion, $this->reason),
+            __('recruitment-applicant.evaluations.withdrawn_done'),
         );
     }
 
@@ -112,8 +151,6 @@ class EvaluationSummary extends Component
                     'withdrawnBy.profile',
                     'revisions' => fn ($revisions) => $revisions->latest('version'),
                     'revisions.changedBy.profile',
-                    'opinionNotes' => fn ($notes) => $notes->oldest(),
-                    'opinionNotes.author.profile',
                 ])
                 ->orderByRaw('withdrawn_at is not null')
                 ->orderBy('submitted_at')
@@ -127,19 +164,20 @@ class EvaluationSummary extends Component
         ]);
     }
 
-    private function openPanel(RecruitmentInterviewEvaluation $evaluation): void
+    private function openPanel(string $panel, RecruitmentInterviewEvaluation $evaluation): void
     {
         $this->cancelPanel();
-        $this->panel = 'note';
+        $this->panel = $panel;
         $this->panelOpen = true;
         $this->evaluationId = $evaluation->getKey();
+        $this->expectedVersion = $evaluation->version;
 
         $this->dispatch('focus-element', id: 'evaluation-panel-title');
     }
 
     private function cancelPanel(): void
     {
-        $this->reset('panel', 'panelOpen', 'evaluationId', 'opinionNote');
+        $this->reset('panel', 'panelOpen', 'evaluationId', 'expectedVersion', 'recommendation', 'pros', 'cons', 'notes', 'reason');
         $this->resetErrorBag();
     }
 
@@ -158,7 +196,7 @@ class EvaluationSummary extends Component
         }
 
         $this->cancelPanel();
-        $this->successToast($message);
+        $this->toast($message);
 
         // The panel and its buttons are gone: the evaluations, as they now stand, are next.
         $this->dispatch('focus-element', id: 'evaluations-title');

@@ -25,6 +25,7 @@ use App\Models\Employee;
 use App\Models\HiringCampaign;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\OnboardingJourney;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentApplicationDecision;
 use App\Models\RecruitmentHiringConversion as Conversion;
@@ -136,8 +137,8 @@ class RecruitmentHiringConversionTest extends TestCase
             ->assertSet('mode', Conversions::MODE_CREATE)
             ->set('employee', $this->person())
             ->call('confirmHire')
-            ->assertHasNoErrors()
-            ->assertDispatched('confirm-dialog');
+            ->assertHasNoErrors();
+        $page->assertDispatched('confirm-dialog', method: 'save', danger: false);
         $this->assertSame($employeesBefore, Employee::query()->count());
 
         // The confirm button runs save(); the page stays, now showing the hire.
@@ -160,6 +161,10 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertStringNotContainsString('1500', (string) DB::table('contracts')->where('id', $contract->id)->value('salary'), 'Encrypted at rest, like every contract.');
         $this->assertGreaterThan(0, LeaveBalance::query()->where('contract_id', $contract->id)->count(), 'Leave balances, as the contract page creates them.');
         $this->assertSame(1, $position->fresh()->exist_emp);
+
+        // D4-I: the hire starts the onboarding journey, due 14 days after the start.
+        $journey = OnboardingJourney::query()->where('employee_id', $employee->id)->sole();
+        $this->assertSame([$contract->id, '2026-11-15'], [$journey->contract_id, $journey->orientation_due_on->toDateString()]);
 
         // The vacancy needed one person: it is filled, and its campaign closed.
         $vacancy = $offer->vacancy->fresh();
@@ -186,9 +191,10 @@ class RecruitmentHiringConversionTest extends TestCase
         Notification::assertSentTo($this->hr, NewEmployeeWelcome::class);
 
         // Point 4: the message says what is next — a login account on the
-        // employee page, or the contract — and its buttons open them.
-        $page->assertDispatched('toast');
+        // employee page — and its button opens it; the contract is linked too.
+        $page->assertDispatched('confirm-dialog', method: 'openEmployee', danger: false);
         $page->assertSee(route('employees.edit', $employee->id))
+            ->assertSee(route('contracts.show', $contract->id))
             ->assertSee(__('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]))
             ->call('openEmployee')
             ->assertRedirect(route('employees.edit', $employee->id));
@@ -597,6 +603,7 @@ class RecruitmentHiringConversionTest extends TestCase
         ]);
         $this->assertSame(1, $conversion->fresh()->attempt_count);
         $this->assertSame(1, Activity::query()->where('description', 'recruitment_hiring_conversion.converted')->count());
+        $this->assertSame(1, OnboardingJourney::query()->count(), 'One onboarding journey, however often the hire is retried.');
 
         // The hire page shows what was done instead of the form.
         $this->actingAs($this->hr);
@@ -946,8 +953,7 @@ class RecruitmentHiringConversionTest extends TestCase
         // owns the earlier recruitment stages.
         $application = $this->applyTo($campaign ?? $this->campaign, $this->makeApplicant($name), ['status' => AppStatus::Interviewed]);
         $statuses = app(RecruitmentApplicationStatusService::class);
-        $statuses->change($this->hr, $application, AppStatus::Interviewed, AppStatus::Finalist, null);
-        $statuses->change($this->hr, $application->fresh(), AppStatus::Finalist, AppStatus::Selected, null);
+        $statuses->change($this->hr, $application, AppStatus::Interviewed, AppStatus::Selected, null);
 
         return $application->fresh();
     }
@@ -1050,6 +1056,7 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertNull($conversion->contract_id);
     }
 
+    /** @return array<string, array<int, string>> */
     private function assertValidationError(callable $action, string $field, ?string $errorKey = null, string $section = 'conversions'): array
     {
         try {

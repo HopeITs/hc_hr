@@ -14,29 +14,15 @@ class RecruitmentApplicationPolicy
 
     public function view(User $user, RecruitmentApplication $application): bool
     {
-        return ($user->hasActivePermission('recruitment-applicants.view')
-                && $this->scopes->canAccessApplication($user, $application))
-            || $application->applicant?->currentReviewParticipants()->where('user_id', $user->getKey())->exists();
-    }
-
-    /** Assigning access remains an HR action inside the application's normal scope. */
-    public function manageReviewParticipants(User $user, RecruitmentApplication $application): bool
-    {
-        return $user->hasActivePermission('recruitment-applicants.manage')
+        return $user->hasActivePermission('recruitment-applicants.view')
             && $this->scopes->canAccessApplication($user, $application);
-    }
-
-    public function bulkManageReviewParticipants(User $user): bool
-    {
-        return $user->hasActivePermission('recruitment-applicants.manage')
-            && $user->hasActivePermission('recruitment-applicants.view');
     }
 
     /** Its own permission: reading an application never implies deciding it. */
     public function changeStatus(User $user, RecruitmentApplication $application): bool
     {
         return $user->hasActivePermission('recruitment-applicants.change-status')
-            && $this->scopes->canAccessApplication($user, $application);
+            && $this->view($user, $application);
     }
 
     /** Accepting is a hiring decision: its own grant, on top of change-status. */
@@ -87,7 +73,7 @@ class RecruitmentApplicationPolicy
     public function tag(User $user, RecruitmentApplication $application): bool
     {
         return $user->hasActivePermission('recruitment-applicants.tag')
-            && $this->scopes->canAccessApplication($user, $application);
+            && $this->view($user, $application);
     }
 
     /**

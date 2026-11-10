@@ -8,11 +8,6 @@
     $city = $position->city?->slug ?? $position->center?->city?->slug;
     $cityName = $position->city?->name ?? $position->center?->city?->name;
 
-    // The seat this card draws: one position can hold several people.
-    $isService = (bool) $position->activeContracts
-        ->firstWhere('employee_id', $employee->id)
-        ?->isServiceAgreement();
-
     $modifiers = collect([
         'org-id-card',
         $org['modifier'],
@@ -36,9 +31,6 @@
 
     <div class="org-id-card__photo">
         <div class="org-id-card__bar" aria-hidden="true"></div>
-        @if ($isService)
-            <span class="org-id-card__contract" title="{{ __('general.service-agreement') }}">{{ __('general.service-agreement-short') }}</span>
-        @endif
         <img class="org-id-card__avatar" src="{{ $employee->avatar_url }}" alt="" loading="lazy">
     </div>
 

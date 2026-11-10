@@ -27,12 +27,7 @@ class CentersTable extends LivewireTable
 
     protected string $model = Center::class;
 
-    protected $listeners = [
-        'delete',
-        'toggleItemStatusConfirmed',
-        'exportExcel' => 'exportExcel',
-        'refreshCentersTable' => '$refresh',
-    ];
+    protected $listeners = ['delete', 'toggleItemStatusConfirmed', 'exportExcel' => 'exportExcel'];
 
     public function confirmToggleItemStatus($id): void
     {

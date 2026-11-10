@@ -50,10 +50,6 @@ return Application::configure(basePath: dirname(__DIR__))
             RecordPresence::class,
         ]);
 
-        // The service worker renews a rotated push subscription with no page and so
-        // no token; the old endpoint + auth secret prove ownership (routes/push-public.php).
-        $middleware->validateCsrfTokens(except: ['push/renew']);
-
         $middleware->alias([
             /**** OTHER MIDDLEWARE ALIASES ****/
             'localize' => LaravelLocalizationRoutes::class,

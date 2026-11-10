@@ -125,58 +125,42 @@ return [
 
     // Customising the dashboard (resources/js/dashboard/home-screen.js). :tile is a tile's name.
     'home' => [
+        'lead' => 'Your own home screen. Press and hold a tile, or choose Customise, to move, resize, pin or hide tiles.',
+        'edit-lead' => 'Drag a tile to move it, or select it and use the arrow keys. Drag the dark corner to resize it cell by cell. × hides a tile, the pin keeps it first.',
+        'customise' => 'Customise',
+        'done' => 'Done',
         'reset' => 'Reset',
         'reset-title' => 'Go back to the default dashboard?',
-        'reset-message' => 'Every panel returns to its usual place and size, and the panels you removed come back. Your notes stay.',
+        'reset-message' => 'Every tile returns to its usual place and size, and hidden tiles come back. Your notes stay.',
+        'add' => 'Add',
+        'add-title' => 'Add a tile',
+        'cards' => 'Cards',
+        'shortcuts' => 'Shortcuts',
         'close' => 'Close',
+        'hide' => 'Hide :tile',
+        'pin' => 'Pin :tile first',
+        'look' => 'Change the look of :tile',
         'looks' => [
             'digital' => 'Digital',
             'analog' => 'Analogue',
         ],
-        'resize-hint' => 'Pull to resize, cell by cell.',
+        'resize' => 'Resize :tile, now :size',
+        'resize-hint' => 'Drag to resize, cell by cell. Arrow keys work too.',
         'size' => ':cols by :rows cells',
+        'tile' => ':tile, :size, position :n of :total',
+        'tile-hint' => 'Arrow keys move this tile earlier or later. Home and End move it to the start or the end.',
         'moved' => ':tile moved to position :n of :total.',
         'resized' => ':tile is now :size.',
-        'undo' => 'Undo',
+        'hidden' => ':tile hidden. Add brings it back.',
         'added' => ':tile added.',
-        // A panel's tools (on hover): open in full and its options menu.
-        'open-full' => 'Open in full',
-        'open-full-tile' => 'Open :tile in full',
-        'options' => 'Options for :tile',
-        'move-top' => 'Move to top',
-        'move-earlier' => 'Move earlier',
-        'move-later' => 'Move later',
-        'remove' => 'Remove panel',
-        'removed' => ':tile removed.',
-        // The "Add a panel" tile at the end of the desk.
-        'add-panel' => 'Add a panel',
-        'more-available' => '{1} 1 more available|[2,*] :count more available',
-    ],
-
-    // "Customize your desk" (the dashboard's ready layouts and panels, like hc-tracking's desk).
-    'desk' => [
-        'open' => 'Customize',
-        'title' => 'Customize your desk',
-        'layouts' => 'Ready layouts',
-        'panels' => 'My panels',
-        'suggested' => 'Suggested for you',
-        'adjust' => 'Adjust panels',
-        'count' => '{1} 1 panel|[2,*] :count panels',
-        'panels-lead' => 'Switch on what you want on your desk. A panel you switch on joins at the end; move and resize it afterwards.',
-        'unchanged' => 'Nothing changes until you confirm.',
-        'use' => 'Use :layout',
-        'save-panels' => 'Save my panels',
-        'applied' => 'Your desk is updated.',
-        'preview' => 'Preview of :layout',
-    ],
-    'presets' => [
-        'my-day' => ['name' => 'My day', 'lead' => 'What waits for you, what is coming and what slipped'],
-        'time-off' => ['name' => 'Time off', 'lead' => 'Your leave, its balance and who is away'],
-        'team-lead' => ['name' => 'Team lead', 'lead' => "Your team's requests, absences and people"],
-        'hr-desk' => ['name' => 'HR desk', 'lead' => "Decisions, contracts ending soon and today's absences"],
-        'people-numbers' => ['name' => 'People in numbers', 'lead' => "The organisation's staff at a glance"],
-        'community' => ['name' => 'Community and news', 'lead' => 'News, events and birthdays across the centre'],
-        'leadership' => ['name' => 'Leadership overview', 'lead' => 'What needs a decision and how the organisation stands'],
+        'pinned' => ':tile pinned first.',
+        'unpinned' => ':tile no longer pinned.',
+        // Ported from media-request: closed tiles, icons, the side panel, double-click.
+        'nothing' => 'Nothing here right now',
+        'page-open' => 'Double-click to open the page',
+        'page-hint' => 'Double-click to open its page.',
+        'page-open-link' => 'Open the page',
+        'panel-close' => 'Close :tile',
     ],
 
     // The tiles that were fixed above the grid (Dashboard\LateCard, Dashboard\DecisionsCard).
@@ -189,13 +173,23 @@ return [
         'items' => '{1} 1 item to hand over or take back|[2,*] :count items to hand over or take back',
     ],
 
+    // A shortcut made big: its data as a small card (Dashboard\AppCard).
+    'app-card' => [
+        'in-inbox' => '{0} in your inbox|{1} item in your inbox|[2,*] items in your inbox',
+        'inbox-empty' => 'Your inbox is clear.',
+        'ending-soon' => '{0} contracts ending within 30 days|{1} contract ending within 30 days|[2,*] contracts ending within 30 days',
+        'not-renewed' => 'Ended without renewal',
+    ],
+
     // Prompt 7: the top of the dashboard (Dashboard\Header), fixed above the tiles.
     'header' => [
-        // The hello's figures and command strip.
-        'clear' => 'Nothing is waiting on you today',
-        'figures-link' => 'Go to your inbox panel',
-        'waiting' => 'waiting on you|waiting on you',
-        'late-figure' => 'late|late',
+        'headline' => [
+            'leave' => '{1} 1 leave request needs your decision|[2,*] :count leave requests need your decision',
+            'decisions' => '{1} 1 request needs your decision|[2,*] :count requests need your decision',
+            'inbox' => '{1} 1 item in your inbox|[2,*] :count items in your inbox',
+            'late' => '{1} 1 thing is late|[2,*] :count things are late',
+            'clear' => 'Nothing is waiting on you today',
+        ],
         'late' => [
             'leave' => '{1} 1 leave started with no decision|[2,*] :count leaves started with no decision',
             'contract' => '{1} 1 contract ended without renewal|[2,*] :count contracts ended without renewal',
@@ -207,6 +201,7 @@ return [
             'next' => 'Next decision',
             'all' => 'Show all',
             'one' => 'One at a time',
+            'pick' => 'Choose a decision',
             'since' => 'Waiting :time',
             'more' => '{1} 1 more in the inbox|[2,*] :count more in the inbox',
             'verb' => [

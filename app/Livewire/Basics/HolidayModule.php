@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Basics;
 
-use App\Livewire\Concerns\EmbedsInSettings;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\City;
@@ -23,7 +22,6 @@ use Livewire\Component;
  */
 class HolidayModule extends Component
 {
-    use EmbedsInSettings;
     use GuardsModalClose;
     use WithFeedback;
 
@@ -40,11 +38,10 @@ class HolidayModule extends Component
 
     protected $listeners = ['openHolidayEdit' => 'edit', 'openHolidayCreate' => 'createOn'];
 
-    public function mount(bool $embedded = false, bool $inSettings = false): void
+    public function mount(bool $embedded = false): void
     {
         $this->authorizeManager();
         $this->embedded = $embedded;
-        $this->inSettings = $inSettings;
         $this->item = $this->blank();
     }
 

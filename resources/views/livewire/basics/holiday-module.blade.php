@@ -1,15 +1,12 @@
-<div>
-@unless ($inSettings)
 <x-slot:title>
     {{ __('holidays.title') }}
 </x-slot:title>
-@endunless
-    <div @class(['flex', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-        @unless ($inSettings)
+
+<div>
+    <div class="flex justify-between">
         <livewire:layout.breadcrumbs :title="__('holidays.title')" :crumbs="[
             ['label' => __('holidays.title'), 'route' => 'holidays.index'],
         ]" :showButton="true" />
-        @endunless
 
         <div>
             <x-primary-button wire:click="create" :showSpinner="false">

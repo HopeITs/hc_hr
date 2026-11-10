@@ -22,10 +22,7 @@ class RecruitmentApplicantFilePolicy
      */
     public function download(User $user, RecruitmentApplicantFile $file): Response
     {
-        $isAssigned = $file->application?->applicant?->currentReviewParticipants()
-            ->where('user_id', $user->getKey())->exists() ?? false;
-
-        if (! $user->hasActivePermission('recruitment-applicants.download-cv') && ! $isAssigned) {
+        if (! $user->hasActivePermission('recruitment-applicants.download-cv')) {
             return Response::deny(code: 'missing_permission');
         }
 
@@ -33,7 +30,7 @@ class RecruitmentApplicantFilePolicy
             return Response::deny(code: 'scan_'.$file->scan_status);
         }
 
-        return ($this->inScope($user, $file) || $isAssigned) ? Response::allow() : Response::deny(code: 'out_of_scope');
+        return $this->inScope($user, $file) ? Response::allow() : Response::deny(code: 'out_of_scope');
     }
 
     public function archive(User $user, RecruitmentApplicantFile $file): bool

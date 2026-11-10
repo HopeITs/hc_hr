@@ -19,7 +19,6 @@ use Illuminate\Support\Collection;
  *
  *   contract.started   joined, new contract or renewal (R)
  *   position.changed   the new contract is on another position (R)
- *   contract.amended   an amendment changed the hours, schedule or pay (R; the figure F only)
  *   contract.ended     ended or terminated, with the reason (R; Q3 = A)
  *   badge.reward / badge.warning   (B, or the owner: Q2 = C)
  *   badge.salary       salary increase (B with F only; never the owner as such)
@@ -41,38 +40,14 @@ final class EmployeeTimeline
                 continue;
             }
 
-            // The contract row holds its *current* terms: once amended, the
-            // pay it started on is the first amendment's "before".
-            $amendments = $contract->relationLoaded('appliedAmendments') ? $contract->appliedAmendments : collect();
-            $first = $amendments->first();
-            $startSalary = $first ? $first->salary_before : $contract->salary;
-            $startCurrency = $first ? ($first->terms_before['currency'] ?? $contract->currency) : $contract->currency;
-
             $moved = $previous && $previous->position_id !== $contract->position_id;
             $events[] = [
                 'kind' => $previous === null ? 'contract.joined' : ($moved ? 'position.changed' : 'contract.started'),
                 'date' => $contract->start_date->toDateString(),
                 'title' => $contract->position?->title,
                 'detail' => $contract->contractType?->name,
-                'pay' => $withPay && $startSalary ? ['amount' => $startSalary, 'currency' => $startCurrency] : null,
+                'pay' => $withPay && $contract->salary ? ['amount' => $contract->salary, 'currency' => $contract->currency] : null,
             ];
-
-            foreach ($amendments as $amendment) {
-                $salaryMoved = in_array('salary', $amendment->changedFields(), true);
-                ['shown' => $shown, 'more' => $more] = app(ContractAmendmentDescriber::class)->briefParts($amendment, $withPay);
-
-                $events[] = [
-                    'kind' => 'contract.amended',
-                    'date' => $amendment->effective_from->toDateString(),
-                    'title' => $contract->position?->title,
-                    'detail' => implode(' · ', $shown) ?: null,
-                    // The rest, opened on demand under the line: [label, new value].
-                    'more' => $more,
-                    'pay' => $withPay && $salaryMoved && $amendment->salary_after
-                        ? ['amount' => $amendment->salary_after, 'currency' => $amendment->terms_after['currency'] ?? $contract->currency]
-                        : null,
-                ];
-            }
 
             $ended = $contract->terminated_at ?? ($contract->end_date && $contract->end_date->isPast() ? $contract->end_date : null);
 

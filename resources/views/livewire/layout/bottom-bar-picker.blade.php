@@ -1,5 +1,5 @@
 {{--
-    The phone bar's shortcuts (prompt 10), for the dashboard's Customize sheet (My panels) on a phone.
+    The phone bar's shortcuts (prompt 10), for the dashboard's customise mode on a phone.
     One select per place (46px, native, so the phone's own picker opens); each change
     is saved at once and the bar below the page follows (bottom-bar-changed). The first
     BottomBar::BEFORE_NEW places sit before the raised + and the rest after it; + and More

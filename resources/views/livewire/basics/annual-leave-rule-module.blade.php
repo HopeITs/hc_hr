@@ -1,17 +1,28 @@
-<div>
-@unless ($inSettings)
 <x-slot:title>
     {{ __('general.annual_leave_rules') }}
 </x-slot:title>
-@endunless
-        <div @class(['flex items-center mb-6', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
 
-        @unless ($inSettings)
+<div>
+    {{-- <div class="flex justify-between">
         <livewire:layout.breadcrumbs :title="__('general.annual_leave_rules')" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => __('general.annual_leave_rules'), 'route' => 'annual-leave-rules.index'],
         ]" :showButton="true" />
-        @endunless
+
+        @activerole('HR', 'super-admin')
+            <div>
+                <x-primary-button wire:click="create" :showSpinner="false">
+                    @lang('general.add-new')
+                </x-primary-button>
+            </div>
+        @endactiverole
+    </div> --}}
+        <div class="flex justify-between items-center mb-6">
+
+        <livewire:layout.breadcrumbs :title="__('general.annual_leave_rules')" :crumbs="[
+            ['label' => __('general.project-basics')],
+            ['label' => __('general.annual_leave_rules'), 'route' => 'annual-leave-rules.index'],
+        ]" :showButton="true" />
 
         @activerole('HR', 'super-admin')
             <div class="flex items-center gap-2">

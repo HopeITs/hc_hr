@@ -55,7 +55,7 @@ class RecruitmentSubmitRefusalTest extends TestCase
 
         // The refusal names the request in the way, so the requester knows
         // which one to cancel or finish.
-        $screen->assertDispatched('toast', fn (string $event, array $params): bool => str_contains($params['message'] ?? '', 'HS-007'));
+        $this->assertStringContainsString('HS-007', $this->toastText($screen));
 
         // And it is a refusal, not a warning after the fact.
         $this->assertSame(Status::Draft, (int) $draft->fresh()->status);
@@ -82,8 +82,26 @@ class RecruitmentSubmitRefusalTest extends TestCase
             ->call('submit');
 
         // Something was said at all — the defect was saying nothing.
-        $screen->assertDispatched('toast', fn (string $event, array $params): bool => ($params['type'] ?? null) === 'error'
-            && ($params['message'] ?? '') !== '');
+        $this->assertNotSame('', $this->toastText($screen));
+
+        // And it was said as a refusal rather than as a success.
+        $this->assertSame('error', $this->toastIcon($screen));
+    }
+
+    /** The last toast the request sent (WithFeedback dispatches it as a `toast` event). */
+    private function toast($screen): array
+    {
+        return collect($screen->effects['dispatches'] ?? [])->where('name', 'toast')->last()['params'] ?? [];
+    }
+
+    private function toastText($screen): string
+    {
+        return $this->toast($screen)['message'] ?? '';
+    }
+
+    private function toastIcon($screen): ?string
+    {
+        return $this->toast($screen)['type'] ?? null;
     }
 
     /**

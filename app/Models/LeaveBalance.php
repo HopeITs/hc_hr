@@ -15,7 +15,7 @@ class LeaveBalance extends Model
 {
     use HasFactory, LogsActivity;
 
-    protected $fillable = ['contract_id', 'type_id', 'deserved', 'used', 'amendment_offset'];
+    protected $fillable = ['contract_id', 'type_id', 'deserved', 'used'];
 
     /** @var array{0: float|null}|null */
     private ?array $workHoursPerDay = null;

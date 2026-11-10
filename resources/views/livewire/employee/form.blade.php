@@ -114,13 +114,6 @@
 
         <div class="flex-grow w-full">
             <x-tab.container activeTab="information">
-                {{--
-                    Keyed by tab so switching replaces the section instead of
-                    morphing the previous tab's form into the next one, which
-                    reused its Alpine components (save bar, select2) for a
-                    different form.
-                --}}
-                <div wire:key="employee-tab-{{ $activeTab }}">
                 @if ($activeTab === 'information')
                     @include('livewire.employee.tabs.personal-info-tab')
                 @elseif($activeTab === 'contact')
@@ -146,7 +139,6 @@
                 @else
                     @include('livewire.employee.tabs.personal-info-tab')
                 @endif
-                </div>
             </x-tab.container>
         </div>
     </x-tab.form>

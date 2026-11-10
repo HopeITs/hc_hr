@@ -1,88 +1,148 @@
-@php
-    $compact = $density === 'compact';
-    $card = 'rounded-surface border border-line-soft bg-card shadow-e1';
-
-    // The visible tree as a flat, depth-first list: managers before individual
-    // contributors, and nothing below a collapsed position (collapsed state is
-    // the server's, in $collapsed). Both the canvas and the phone outline read
-    // this one list; the canvas script lays it out as a tree.
-    $flat = [];
-    $walk = function (array $node, ?int $parent, int $depth) use (&$walk, &$flat, $collapsed): void {
-        $children = collect($node['children']);
-        $ordered = $children
-            ->filter(fn (array $child): bool => count($child['children']) > 0)
-            ->concat($children->reject(fn (array $child): bool => count($child['children']) > 0))
-            ->values();
-        $expanded = $children->isNotEmpty() && ! ($collapsed[$node['id']] ?? false);
-
-        $flat[] = ['node' => $node, 'parent' => $parent, 'depth' => $depth, 'expanded' => $expanded];
-
-        if ($expanded) {
-            foreach ($ordered as $child) {
-                $walk($child, $node['id'], $depth + 1);
-            }
-        }
-    };
-
-    if ($root) {
-        $walk($root, null, 0);
-    }
-@endphp
+@php($compact = $density === 'compact')
 
 <x-slot:title>{{ __('recruitment.team_staffing.title') }}</x-slot:title>
 
 <div class="space-y-6 pb-8">
     <x-recruitment.requests-header
         current="team"
-        :title="__('recruitment.team_staffing.title')" />
+        :title="__('recruitment.team_staffing.title')"
+        :description="__('recruitment.team_staffing.description')" />
 
-    @if ($root)
-        @include('livewire.recruitment.requests.partials.team-staffing-summary')
+    <section class="isolate overflow-hidden rounded-surface border border-neutral-200 bg-white shadow-e1">
+        @if ($root)
+            {{-- ---------- Toolbar ----------
+                 Two rows on purpose. The top row decides what the chart is
+                 about — which face, how much of it, how dense — and the bottom
+                 row only moves the camera. Mixing them put "show me the posts
+                 that are short" beside "zoom in", which are not the same kind
+                 of decision. --}}
+            <div class="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 backdrop-blur">
+                <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+                    {{-- The two faces of the same tree. A segmented control
+                         rather than tabs: it changes what the cards say, not
+                         which page you are on, and the page already has a tab
+                         strip above that does the other thing. --}}
+                    <div class="flex items-center rounded-control border border-neutral-200 bg-neutral-50 p-0.5"
+                         role="group" aria-label="{{ __('recruitment.team_staffing.view_label') }}">
+                        @foreach (['staff', 'positions'] as $mode)
+                            <button type="button" wire:click="setView('{{ $mode }}')"
+                                    aria-pressed="{{ $view === $mode ? 'true' : 'false' }}"
+                                    class="rounded-inset px-3 py-1.5 text-small font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1
+                                           {{ $view === $mode
+                                               ? 'bg-white text-secondary-dark shadow-e1'
+                                               : 'text-secondary-medium hover:text-secondary-dark' }}">
+                                {{ __('recruitment.team_staffing.views.'.$mode) }}
+                            </button>
+                        @endforeach
+                    </div>
 
-        {{-- x-data lives here, not on the canvas, so the toolbar's zoom / fit /
-             find controls reach the same staffingTree as the canvas. --}}
-        <section x-data="staffingTree" class="isolate {{ $card }}">
-            @include('livewire.recruitment.requests.partials.team-staffing-toolbar')
+                    <div class="flex flex-wrap items-center gap-2">
+                        {{-- Goes solid while on, so the chart never silently
+                             omits cards without saying it is doing so. --}}
+                        <button type="button" wire:click="toggleVacantOnly"
+                                aria-pressed="{{ $vacantOnly ? 'true' : 'false' }}"
+                                class="flex items-center gap-2 rounded-control border px-3 py-1.5 text-small font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1
+                                       {{ $vacantOnly
+                                           ? 'border-primary bg-primary text-white hover:bg-primary-hover'
+                                           : 'border-neutral-200 bg-white text-secondary-medium hover:border-secondary-light hover:bg-secondary-soft hover:text-primary' }}">
+                            {{ __('recruitment.team_staffing.vacant_only') }}
+                            @if ($summary['vacancies'] > 0)
+                                <span class="flex min-w-5 items-center justify-center rounded-full px-1 text-caption font-bold tabular-nums
+                                             {{ $vacantOnly ? 'bg-white text-primary' : 'bg-primary text-white' }}">
+                                    {{ $summary['vacancies'] }}
+                                </span>
+                            @endif
+                        </button>
 
+                        <button type="button" wire:click="toggleDensity"
+                                class="rounded-control border border-neutral-200 bg-white px-3 py-1.5 text-small font-semibold text-secondary-medium transition hover:border-secondary-light hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                            {{ $compact ? __('general.comfortable-view') : __('general.compact-view') }}
+                        </button>
+                    </div>
+                </div>
+
+                {{-- ---------- Reading ---------- --}}
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 px-4 py-2">
+                    {{-- The establishment in one line. Not a row of tiles: these
+                         are four numbers a manager glances at, not the subject
+                         of the page. --}}
+                    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-secondary-light">
+                        @foreach ([
+                            ['value' => $summary['positions'], 'label' => __('recruitment.team_staffing.positions'), 'accent' => false],
+                            ['value' => $summary['capacity'], 'label' => __('recruitment.team_staffing.approved_headcount'), 'accent' => false],
+                            ['value' => $summary['filled'], 'label' => __('recruitment.team_staffing.filled_headcount'), 'accent' => false],
+                            ['value' => $summary['vacancies'], 'label' => __('recruitment.team_staffing.open_capacity'), 'accent' => true],
+                        ] as $index => $stat)
+                            @if ($index > 0)
+                                <span aria-hidden="true" class="text-neutral-300">·</span>
+                            @endif
+                            <span class="{{ $stat['accent'] && $stat['value'] > 0 ? 'font-semibold text-primary' : '' }}">
+                                <span class="font-semibold tabular-nums {{ $stat['accent'] && $stat['value'] > 0 ? '' : 'text-secondary-dark' }}">{{ number_format($stat['value']) }}</span>
+                                {{ $stat['label'] }}
+                            </span>
+                        @endforeach
+
+                        @if ($vacantOnly && $hidden > 0)
+                            <span aria-hidden="true" class="text-neutral-300">·</span>
+                            <span class="font-medium">{{ __('recruitment.team_staffing.hidden_positions', ['count' => $hidden]) }}</span>
+                        @endif
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        @foreach ([
+                            ['action' => 'expandAll', 'label' => __('general.expand-all'), 'dispatch' => 'staffing-expand-all'],
+                            ['action' => 'collapseAll', 'label' => __('general.collapse-all'), 'dispatch' => 'staffing-collapse-all'],
+                        ] as $control)
+                            <button type="button" wire:click="{{ $control['action'] }}"
+                                    @if ($control['dispatch']) x-on:click="$dispatch('{{ $control['dispatch'] }}')" @endif
+                                    class="rounded-control border border-neutral-200 bg-white px-2.5 py-1.5 text-caption font-semibold text-secondary-medium transition hover:border-secondary-light hover:bg-secondary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                                {{ $control['label'] }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- ---------- Canvas ---------- --}}
             <div class="relative">
-                <div wire:loading.flex wire:target="toggleVacantOnly,setView,expandAll,collapseAll,toggle"
-                     class="absolute inset-0 z-30 items-center justify-center bg-card/75 backdrop-blur-[1px]">
-                    <div class="flex items-center gap-2 rounded-control bg-card px-4 py-3 text-small font-semibold text-ink shadow-e2">
-                        <x-icons.spinner class="size-5 animate-spin text-ink-2" />
+                <div wire:loading.flex wire:target="toggleVacantOnly,toggleDensity,setView,expandAll,collapseAll"
+                     class="absolute inset-0 z-30 items-center justify-center bg-white/75 backdrop-blur-[1px]">
+                    <div class="flex items-center gap-2 rounded-surface border border-neutral-200 bg-white px-4 py-3 text-body font-semibold text-secondary-medium shadow-e3">
+                        <x-icons.spinner class="size-5 animate-spin text-primary" />
                         {{ __('general.updating-chart') }}
                     </div>
                 </div>
 
-                {{-- Tablet and desktop: the tidy-tree canvas. --}}
-                @include('livewire.recruitment.requests.partials.team-staffing-canvas')
-
-                {{-- Phone: the same tree as an indented outline. --}}
-                @include('livewire.recruitment.requests.partials.team-staffing-outline')
+                <div class="p-4 sm:p-6">
+                    <div class="flex flex-col items-center">
+                        @include('livewire.recruitment.requests.partials.team-staffing-node', [
+                            'node' => $root,
+                            'compact' => $compact,
+                            'view' => $view,
+                        ])
+                    </div>
+                </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-b-surface border-t border-line-soft bg-soft px-4 py-3 text-caption text-ink-2">
-                <p class="flex max-w-2xl items-start gap-2">
-                    <flux:icon.information-circle variant="micro" class="mt-px size-4 shrink-0" aria-hidden="true" />
-                    {{ __('recruitment.team_staffing.tree_help') }}
+            <p class="border-t border-neutral-200 bg-neutral-50 px-4 py-3 text-caption leading-relaxed text-secondary-light">
+                {{ __('recruitment.team_staffing.tree_help') }}
+            </p>
+        @else
+            <div class="px-6 py-16 text-center">
+                <span class="mx-auto flex size-14 items-center justify-center rounded-surface bg-secondary-soft text-primary">
+                    <x-icons.code-fork class="size-7" />
+                </span>
+                <h2 class="mt-4 text-h4 font-semibold text-secondary-dark">
+                    {{ __('recruitment.team_staffing.no_position') }}
+                </h2>
+                <p class="mx-auto mt-2 max-w-sm text-body leading-relaxed text-secondary-light">
+                    {{ __('recruitment.team_staffing.no_position_help') }}
                 </p>
-                {{-- Key for the seat dots, which only the positions view draws. --}}
-                @if ($view === 'positions')
-                    <p class="flex items-center gap-4" aria-hidden="true">
-                        <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full bg-ink-2"></span>{{ __('recruitment.team_staffing.capacity') }}</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="size-2 rounded-full border border-dashed border-ink-3"></span>{{ __('recruitment.team_staffing.open_capacity') }}</span>
-                    </p>
-                @endif
             </div>
-        </section>
-    @else
-        <section class="{{ $card }} px-6 py-16 text-center">
-            <span class="mx-auto flex size-12 items-center justify-center rounded-full border border-line-soft bg-soft text-ink" aria-hidden="true">
-                <x-icons.code-fork class="size-6" />
-            </span>
-            <h2 class="mt-4 text-h4 font-semibold text-ink">{{ __('recruitment.team_staffing.no_position') }}</h2>
-            <p class="mx-auto mt-2 max-w-sm text-body text-pretty text-ink-2">{{ __('recruitment.team_staffing.no_position_help') }}</p>
-        </section>
-    @endif
+        @endif
+    </section>
 
+    {{-- The people view uses the organisation chart's own cards, so clicking one
+         opens the same employee profile it opens there. --}}
     <livewire:position.profile-drawer />
 </div>

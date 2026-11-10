@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [
         laravel({
             // The dashboard's home screen is its own entry, loaded by that page
-            // only.
+            // only; SortableJS is a dynamic import inside it (fetched on Customise).
             input: ['resources/js/app.js', 'resources/js/dashboard/home-screen.js'],
             refresh: true,
         }),

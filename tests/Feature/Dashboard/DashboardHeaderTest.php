@@ -29,9 +29,8 @@ use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
 /**
- * The hello at the top of the dashboard (Dashboard\Header: date, greeting,
- * the day in two figures, Customize) and what were its late strip and
- * decisions, panels now (LateCard, DecisionsCard). Aleppo: manager Sami with reports Lina
+ * Prompt 7: the top of the dashboard (the headline) and what were its
+ * late strip and decisions, tiles now (LateCard, DecisionsCard). Aleppo: manager Sami with reports Lina
  * and Omar, HR-ALP Huda. Damascus: Dana with her own manager, outside
  * Aleppo's scope. Today is Tuesday 27 October 2026.
  */
@@ -59,70 +58,37 @@ class DashboardHeaderTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_the_hello_counts_what_waits_in_three_states(): void
+    public function test_the_headline_says_what_waits_in_three_states(): void
     {
-        // 1. Decisions: the inbox's own count, as a figure.
+        // 1. Decisions: the inbox's own decide count.
         $this->leave('lina', '2026-11-03', LeaveRequestStatus::Pending);
         $this->leave('omar', '2026-11-10', LeaveRequestStatus::Pending);
         $this->assertSame(2, Livewire::actingAs($this->user('sami'))->test(Inbox::class)->viewData('counts')['decide']);
-        $this->header('sami')
-            ->assertViewHas('figures', ['waiting' => 2, 'late' => 0])
-            ->assertSeeHtml('data-testid="dashboard-figures"')
-            ->assertSeeHtml('<b class="num">2</b><span>'.trans_choice('dashboard.header.waiting', 2).'</span>')
-            ->assertDontSee(trans_choice('dashboard.header.late-figure', 1))
-            ->assertDontSee(__('dashboard.header.clear'));
+        $this->header('sami')->assertSee('2 leave requests need your decision');
 
         // 2. Only items to confirm: the inbox count, as on the badge.
         $item = ChecklistItem::query()->firstOrCreate(['name' => 'Laptop'], ['order' => 1]);
         Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $this->p['omar']['employee']->id, 'delivered_id' => $this->p['lina']['employee']->id, 'delivered_status' => 'pending']);
-        $this->header('lina')->assertViewHas('figures', ['waiting' => 1, 'late' => 0])
+        $this->header('lina')->assertSee('1 item in your inbox')
             ->assertDontSeeHtml('data-testid="decision-card"');
 
-        // 3. Nothing at all: one calm line instead of the figures.
+        // 3. Nothing at all.
         $this->header('omar')->assertSee('Nothing is waiting on you today')
-            ->assertDontSeeHtml('data-testid="dashboard-figures"')
             ->assertDontSeeHtml('data-testid="late-band"')
             ->assertDontSeeHtml('data-testid="decision-card"')
-            ->assertSee('Hello Omar')
-            // Today's date, above the greeting.
-            ->assertSee('Tuesday, 27 October 2026');
+            // The greeting is the small line above.
+            ->assertSee('Hello Omar,');
     }
 
-    public function test_the_figures_lead_to_the_inbox_panel_only_when_it_is_on_the_desk(): void
-    {
-        $this->leave('lina', '2026-11-03', LeaveRequestStatus::Pending);
-
-        Livewire::actingAs($this->user('sami'))->test(Header::class, ['name' => 'Sami', 'inboxPlaced' => true])
-            ->assertSeeHtml('<a href=#hc-tile-decide class="hc-hello-figs"')
-            ->assertSeeHtml('title="'.e(__('dashboard.header.figures-link')).'"');
-
-        Livewire::actingAs($this->user('sami'))->test(Header::class, ['name' => 'Sami', 'inboxPlaced' => false])
-            ->assertSeeHtml('<div class="hc-hello-figs"')
-            ->assertDontSeeHtml('#hc-tile-decide');
-    }
-
-    public function test_the_hello_offers_customize_and_no_new_actions(): void
-    {
-        // Sami may start a leave (leaves.create): the hello still has no New buttons.
-        $this->header('sami')
-            ->assertSeeHtml('data-testid="dashboard-customize"')
-            ->assertSeeHtml('data-tour="dashboard.customise"')
-            ->assertSee(__('dashboard.desk.open'))
-            ->assertDontSeeHtml('data-testid="dashboard-start"')
-            ->assertDontSeeHtml('data-action=')
-            ->assertDontSeeHtml(e(route('leaves.index', ['new' => 1])))
-            ->assertDontSee(__('general.new-menu.leave'));
-    }
-
-    public function test_arabic_figures_use_all_six_plural_forms(): void
+    public function test_arabic_counts_use_all_six_plural_forms(): void
     {
         app()->setLocale('ar');
 
-        $forms = array_map(fn (int $n) => trans_choice('dashboard.header.late-figure', $n), [0, 1, 2, 3, 11, 100]);
+        $forms = array_map(fn (int $n) => trans_choice('dashboard.header.headline.leave', $n, ['count' => $n]), [0, 1, 2, 3, 11, 100]);
 
-        $this->assertCount(4, array_unique($forms));
-        $this->assertSame('أمران متأخران', $forms[2]);
-        $this->assertSame('أمرًا متأخرًا', $forms[4]);
+        $this->assertCount(6, array_unique($forms));
+        $this->assertSame('طلبا إجازة بانتظار قرارك', $forms[2]);
+        $this->assertSame('11 طلبَ إجازة بانتظار قرارك', $forms[4]);
     }
 
     public function test_the_late_band_appears_for_a_started_leave_and_goes_once_it_is_decided(): void
@@ -163,10 +129,8 @@ class DashboardHeaderTest extends TestCase
             ->assertSee('Rami Ending')
             ->assertDontSee('Dana Damascus')
             ->assertSeeHtml('href="'.route('contracts.index', ['view' => 'not-renewed']).'"');
-        // Nothing in the inbox, so the hello's figures say what is late.
-        $this->header('huda')->assertViewHas('figures', ['waiting' => 0, 'late' => 1])
-            ->assertSeeHtml('<b class="num">1</b><span>'.trans_choice('dashboard.header.late-figure', 1).'</span>')
-            ->assertDontSeeHtml('data-testid="late-band"');
+        // Nothing in the inbox, so the headline says what is late.
+        $this->header('huda')->assertSee('1 thing is late')->assertDontSeeHtml('data-testid="late-band"');
 
         // The page it opens lists the same contract, and only it.
         Livewire::actingAs($huda)->withQueryParams(['view' => 'not-renewed'])->test(ContractsTable::class)
@@ -211,13 +175,12 @@ class DashboardHeaderTest extends TestCase
         $this->leave('lina', '2026-11-03', LeaveRequestStatus::Pending);
 
         $html = $this->actingAs($this->user('sami'))->get(route('dashboard'))->assertOk()
-            ->assertSee(trans_choice('dashboard.header.waiting', 1))
+            ->assertSee('1 leave request needs your decision')
             ->getContent();
 
         $this->assertLessThan(strpos($html, 'class="hc-home-screen"'), strpos($html, 'data-testid="dashboard-headline"'));
-        // The inbox panel is on Sami's desk, so the figures lead to it.
-        $this->assertStringContainsString('href=#hc-tile-decide', $html);
-        $this->assertStringContainsString('id="hc-tile-decide"', $html);
+        // The job title is the secondary line.
+        $this->assertStringContainsString('data-testid="dashboard-job-title"', $html);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────

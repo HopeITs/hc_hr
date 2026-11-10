@@ -16,8 +16,7 @@
         </svg>
     </span>
 @else
-    {{-- Not reviewed: an empty checkbox; ticking it confirms the HR review.
-         The 20px box keeps its look; the invisible ::before widens the tap area to 44px. --}}
+    {{-- Not reviewed: an empty checkbox; ticking it confirms the HR review --}}
     <button
         type="button"
         role="checkbox"
@@ -25,7 +24,7 @@
         wire:click="confirmHrReview({{ $modelId }})"
         aria-label="{{ __('general.mark-reviewed') }}"
         title="{{ __('general.mark-reviewed') }}"
-        class="relative inline-flex size-5 items-center justify-center rounded-inset border-2 border-line bg-card text-transparent transition before:absolute before:-inset-3 before:content-[''] hover:border-ink-2 hover:text-line"
+        class="inline-flex size-5 items-center justify-center rounded-inset border-2 border-line bg-card text-transparent transition hover:border-ink-2 hover:text-line"
     >
         <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 13l4 4L19 7" />

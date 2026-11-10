@@ -202,7 +202,7 @@ class ContractTypeExport implements FromCollection, ShouldAutoSize, WithHeadings
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet): ?array
+    public function styles(Worksheet $sheet)
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

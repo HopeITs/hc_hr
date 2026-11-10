@@ -43,9 +43,7 @@ class InviteTable extends LivewireTable
 
     public function confirmCancel(int $id): void
     {
-        $this->confirm(
-            then: 'cancelInvite',
-            payload: ['id' => $id],
+        $this->confirm('cancelInvite', ['id' => $id],
             title: __('recruitment-applicants.invite_cancel'),
             message: __('recruitment-applicants.invite_cancel_confirm'),
             confirmLabel: __('recruitment-applicants.invite_cancel'),
@@ -78,7 +76,7 @@ class InviteTable extends LivewireTable
 
             $this->toast(__('recruitment-applicants.invite_cancelled'));
         } catch (ValidationException $exception) {
-            // A used invite can't be cancelled — surfaced as an alert rather
+            // A used invite can't be cancelled — surfaced as a toast rather
             // than a fatal error.
             $this->toast(collect($exception->errors())->collapse()->first(), 'error');
         }

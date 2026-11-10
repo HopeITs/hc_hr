@@ -1,14 +1,15 @@
 /*
- * The desk's arithmetic (resources/js/dashboard/home-screen.js): where panels
- * go, how a pulled edge changes a size, which way it grows, where a carried
- * panel lands.
+ * The home screen's arithmetic (resources/js/dashboard/home-screen.js): where
+ * tiles go, how a drag or a key changes a size, which way the arrows point.
  * No DOM here, so it is unit-tested with Node (tests/js/dashboard-layout.test.mjs).
  */
+
+export const isApp = (key) => key.startsWith('app.');
 
 /** "CxR" → [columns, rows]. */
 export const parse = (size) => (size || '1x1').split('x').map((n) => parseInt(n, 10) || 1);
 
-/** A size kept inside the panel's bounds, never wider than the grid. */
+/** A size kept inside the tile's bounds, never wider than the grid. */
 export function clampSize(bounds, cols, c, r) {
     const b = bounds || { min: [1, 1], max: [1, 1] };
     const maxC = Math.min(b.max[0], cols);
@@ -17,14 +18,13 @@ export function clampSize(bounds, cols, c, r) {
 }
 
 /**
- * The size a panel keeps when the first move or resize starts from what is on
- * screen (home-screen.js bake()): the size it is seen at, so nothing jumps,
- * unless that size only comes from this screen. A phone (4 columns) shows
- * every panel at most 4 wide and grows panels into its own gaps, and any grid
- * narrower than the saved width cuts it down: saving that would overwrite the
- * computer's sizes (calendar 8x3 became 4x3 after a phone only moved a panel).
- * Then the saved size stays; the grid still shows it clamped. A size the
- * person sets by hand (setCells) is saved as set.
+ * The size a tile keeps when customising starts (home-screen.js bake()): the
+ * size it is seen at, so nothing jumps, unless that size only comes from this
+ * screen. A phone (4 columns) shows every tile at most 4 wide and grows tiles
+ * into its own gaps, and any grid narrower than the saved width cuts it down:
+ * saving that would overwrite the computer's sizes (calendar 8x3 became 4x3
+ * after a phone only pinned a tile). Then the saved size stays; the grid still
+ * shows it clamped. A size the person sets by hand (setCells) is saved as set.
  *
  * @param {string} stored  the saved size, "CxR"
  * @param {{w: number, h: number}|undefined} placed  where pack() put it
@@ -37,53 +37,22 @@ export function bakedSize(stored, placed, cols) {
 }
 
 /**
- * Pulling towards the inline end grows a panel: right in English, left in
- * Arabic. The pointer's x movement is mirrored in RTL; y is the same in both.
+ * The resize grip sits in the inline-end corner, so dragging towards the
+ * inline end grows the tile: right in English, left in Arabic. The pointer's
+ * x movement is mirrored in RTL; y is the same in both.
  */
 export const inlineDelta = (dx, rtl) => dx * (rtl ? -1 : 1);
 
-/**
- * Which way each resize handle grows the panel, as [columns, rows] signs for a
- * pointer moving towards the inline end (inlineDelta) and downwards. The end
- * edge and the corner grow towards the inline end, the start edge towards the
- * inline start, the bottom edge and the corner downwards, the top edge upwards.
- * An unknown edge changes nothing.
- */
-export function edgeGrowth(edge) {
-    return { end: [1, 0], start: [-1, 0], bottom: [0, 1], top: [0, -1], corner: [1, 1] }[edge] || [0, 0];
+/** Arrow keys on the grip: [columns, rows] to add. Towards the inline end grows. */
+export function resizeStep(key, rtl) {
+    const grow = rtl ? -1 : 1;
+
+    return { ArrowRight: [grow, 0], ArrowLeft: [-grow, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[key] || null;
 }
 
-/** A length in pixels as cells (not rounded): each cell after the first brings one gap with it. */
-export const rawCells = (px, cell, gap) => (px + gap) / (cell + gap);
-
-/**
- * A panel carried over another one lands after it once the pointer is past
- * that panel's middle along the reading direction (from the right in Arabic),
- * before it otherwise.
- *
- * @param {{left: number, right: number, width: number}} box  the panel under the pointer
- */
-export function dropsAfter(box, x, rtl) {
-    if (! (box.width > 0)) return false;
-    const along = rtl ? box.right - x : x - box.left;
-
-    return along > box.width / 2;
-}
-
-/**
- * The order once `key` is moved just before or just after `target`, or null
- * when that is where it already is (nothing to do, nothing to animate).
- *
- * @param {string[]} keys
- * @returns {string[]|null}
- */
-export function reorder(keys, key, target, after) {
-    if (key === target || ! keys.includes(key) || ! keys.includes(target)) return null;
-    const rest = keys.filter((k) => k !== key);
-    const at = rest.indexOf(target) + (after ? 1 : 0);
-    const next = [...rest.slice(0, at), key, ...rest.slice(at)];
-
-    return next.every((k, i) => k === keys[i]) ? null : next;
+/** Arrow keys on a tile: one place earlier (-1) or later (1), following the reading direction. */
+export function moveStep(key, rtl) {
+    return { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1, ArrowDown: 1, ArrowUp: -1 }[key] ?? null;
 }
 
 /**
@@ -93,59 +62,84 @@ export function reorder(keys, key, target, after) {
 export const stepCells = (raw, cur) => (raw > cur + 0.6 ? Math.floor(raw + 0.4) : raw < cur - 0.6 ? Math.ceil(raw - 0.4) : cur);
 
 /**
- * Panels a phone (4 columns) shows one row high whatever their saved size: the
+ * A tile drawn as an icon: every shortcut, and a widget made smaller than the
+ * smallest size it can show itself at (bounds.card). Such a widget opens in a
+ * side panel from its icon (media-request 30ca296).
+ */
+export function iconish(key, size, bounds, cols) {
+    if (isApp(key)) return true;
+    const card = (bounds[key] || {}).card;
+    if (! card) return false;
+    const [w, h] = parse(size);
+
+    return Math.min(w, cols) < Math.min(card[0], cols) || h < card[1];
+}
+
+/**
+ * Tiles a phone (4 columns) shows one row high whatever their saved size: the
  * clock, drawn there as one digital line (dashboard.css, "phone clock").
  */
 export const PHONE_ONE_ROW = ['clock'];
 
 /**
- * Every other panel is at least this many rows on a phone: a phone's row is
- * a square cell (~85px), too short for a card's header and a line under it
- * (the late strip was cut off at one row).
- */
-export const PHONE_MIN_ROWS = 2;
-
-/**
- * What the packer is given on a phone: the one-row panels as one row, kept
- * from growing taller, so the panels below close up under them instead of
- * leaving the rows the CSS no longer fills; every other panel at least
- * PHONE_MIN_ROWS high. The saved sizes are never changed.
+ * What the packer is given on a phone at rest: the one-row tiles as one row,
+ * kept from growing taller, so the tiles below close up under them instead of
+ * leaving the rows the CSS no longer fills. Customising shows the real size;
+ * the saved sizes are never changed.
  *
  * @returns {{shown: {key: string, size: string}[], bounds: Object}}
  */
-export function phoneView(shown, bounds, cols) {
-    if (cols > 4) return { shown, bounds };
+export function phoneView(shown, bounds, cols, editing = false) {
+    if (editing || cols > 4) return { shown, bounds };
+    const keys = shown.filter((i) => PHONE_ONE_ROW.includes(i.key)).map((i) => i.key);
+    if (! keys.length) return { shown, bounds };
     const out = { ...bounds };
-    const view = shown.map((i) => {
-        const b = bounds[i.key] || { min: [1, 1], max: [1, 1] };
-        const [w, h] = parse(i.size);
-        if (PHONE_ONE_ROW.includes(i.key)) {
-            out[i.key] = { ...b, min: [b.min[0], 1], max: [b.max[0], 1] };
+    for (const key of keys) {
+        const b = bounds[key] || { min: [1, 1], max: [1, 1] };
+        out[key] = { ...b, min: [b.min[0], 1], max: [b.max[0], 1] };
+    }
 
-            return h === 1 ? i : { ...i, size: w + 'x1' };
-        }
-        if (h >= PHONE_MIN_ROWS) return i;
-        out[i.key] = { ...b, min: [b.min[0], PHONE_MIN_ROWS], max: [b.max[0], Math.max(b.max[1], PHONE_MIN_ROWS)] };
-
-        return { ...i, size: w + 'x' + PHONE_MIN_ROWS };
-    });
-
-    return { shown: view, bounds: out };
+    return {
+        shown: shown.map((i) => (keys.includes(i.key) ? { ...i, size: parse(i.size)[0] + 'x1' } : i)),
+        bounds: out,
+    };
 }
 
+/** How wide a closed tile (nothing in it right now) is: one line, at most four cells. */
+export const closedSize = (cols) => Math.min(4, cols) + 'x1';
+
 /**
- * Where every visible panel goes, with no holes left beside them:
- *  1. place panels in order, each in the first free spot that fits (like CSS
- *     "dense");
- *  2. a panel with empty cells beside it grows into them, then into empty
- *     cells below it, never past its own maximum.
- * A panel the person sized by hand (`fixed`) keeps exactly that size. Only
- * what is shown changes; the saved sizes stay as the person set them.
+ * Where every visible tile goes, with no holes left beside the cards:
+ *  1. place tiles in order, each in the first free spot that fits (like a
+ *     phone's home screen, and CSS "dense");
+ *  2. a card with empty cells beside it grows into them, then into empty cells
+ *     below it, never past its own maximum.
+ * Two orders are tried: the person's own, and the same cards with the
+ * shortcuts dropped into the gaps between them afterwards. Whichever leaves
+ * fewer empty cells wins (the person's order on a tie). Only what is shown
+ * changes; the saved sizes stay as the person set them.
  *
- * @param {{key: string, size: string, fixed?: boolean}[]} shown  the visible panels, in order
+ * Tiles with nothing in them right now (`closed`) go last, as one line each,
+ * below everything else, and never grow taller (media-request d32e9d7). A tile
+ * the person sized by hand (`fixed`) keeps exactly that size (1ce880d). Icons
+ * (shortcuts, and widgets made small) are placed, never grown.
+ *
+ * @param {{key: string, size: string, fixed?: boolean}[]} shown  the visible tiles, in order
+ * @param {Set<string>} closed  keys of the tiles shown as one closed line
  * @returns {Object<string, {x: number, y: number, w: number, h: number}>}
  */
-export function pack(shown, cols, bounds) {
+export function pack(shown, cols, bounds, closed = new Set()) {
+    const visible = shown.map((i) => (closed.has(i.key) ? { ...i, size: closedSize(cols) } : i));
+    const full = visible.filter((i) => ! closed.has(i.key));
+    const shut = visible.filter((i) => closed.has(i.key));
+    const icon = (i) => iconish(i.key, i.size, bounds, cols);
+    const own = packOrder([...full, ...shut], cols, bounds, closed);
+    const gaps = packOrder([...full.filter((i) => ! icon(i)), ...full.filter(icon), ...shut], cols, bounds, closed);
+
+    return gaps.holes < own.holes ? gaps.out : own.out;
+}
+
+export function packOrder(list, cols, bounds, flat = new Set()) {
     const used = []; // used[row][col] = true
     const free = (x, y, w, h) => {
         if (x + w > cols) return false;
@@ -160,11 +154,30 @@ export function pack(shown, cols, bounds) {
         }
     };
     const out = {};
+    // Shortcuts, and widgets made so small they show as an icon: placed, never grown.
+    const icons = new Set(list.filter((it) => ! flat.has(it.key) && iconish(it.key, it.size, bounds, cols)).map((it) => it.key));
+    const fixed = new Set(list.filter((it) => it.fixed).map((it) => it.key));
 
-    for (const it of shown) {
+    // A one-row card followed by shortcuts takes the rest of that row, so the
+    // cards after it start on a clean row instead of squeezing in beside it.
+    const fillRow = {};
+    list.forEach((it, i) => {
+        if (icons.has(it.key) || fixed.has(it.key) || flat.has(it.key)) return;
+        const [w, h] = parse(it.size);
+        if (h !== 1) return;
+        let n = 0;
+        while (list[i + 1 + n] && icons.has(list[i + 1 + n].key)) n++;
+        const max = Math.min((bounds[it.key] || { max: [w, 1] }).max[0], cols);
+        // Too many to fit beside it (a phone): it takes the whole row and they go below.
+        if (n) fillRow[it.key] = Math.min(max, w + n <= cols ? Math.max(w, cols - n) : cols);
+    });
+
+    let floor = null; // the closed tiles start below everything else, not in a gap above
+    for (const it of list) {
         let [w, h] = parse(it.size);
-        w = Math.min(w, cols);
-        let y = 0;
+        w = Math.min(fillRow[it.key] || w, cols);
+        if (flat.has(it.key) && floor === null) floor = used.length;
+        let y = flat.has(it.key) ? floor : 0;
         let x = 0;
         for (;; y++) {
             x = 0;
@@ -189,10 +202,41 @@ export function pack(shown, cols, bounds) {
 
         return true;
     };
-    // A panel sized by hand keeps that size; the others grow into the gaps.
-    const growing = shown.filter((it) => ! it.fixed).map((it) => it.key);
-    for (const key of growing) while (grow(key, 1, 0));
-    for (const key of growing) while (grow(key, 0, 1));
+    // Shortcuts that end a row with empty cells after them move to the row's end,
+    // so the card before them can grow into the space instead.
+    for (let y = 0; y < rows; y++) {
+        let end = cols;
+        while (end > 0 && ! (used[y] && used[y][end - 1])) end--;
+        const k = cols - end;
+        if (! k) continue;
+        const run = Object.keys(out)
+            .filter((key) => icons.has(key) && out[key].y === y && out[key].x < end)
+            .sort((a, b) => out[b].x - out[a].x);
+        const moving = [];
+        let edge = end;
+        for (const key of run) {
+            if (out[key].x !== edge - 1) break;
+            moving.push(key);
+            edge--;
+        }
+        // Only worth it when a card sits just before them, one row high here, to take the space.
+        const before = edge > 0 && Object.keys(out).find((key) => ! icons.has(key) && ! fixed.has(key)
+            && out[key].y === y && out[key].h === 1 && out[key].x + out[key].w === edge);
+        if (! moving.length || ! before) continue;
+        for (const key of moving) {
+            used[y][out[key].x] = false;
+            out[key].x += k;
+            used[y][out[key].x] = true;
+        }
+    }
 
-    return out;
+    // A tile sized by hand keeps that size; the others grow into the gaps (a closed one only sideways).
+    const cards = Object.keys(out).filter((key) => ! icons.has(key) && ! fixed.has(key));
+    for (const key of cards) while (grow(key, 1, 0));
+    for (const key of cards) if (! flat.has(key)) while (grow(key, 0, 1));
+
+    let holes = 0;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (! (used[y] && used[y][x])) holes++;
+
+    return { out, holes };
 }

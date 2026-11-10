@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestMode;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Position;
 use App\Models\RecruitmentRequest;
 use App\Models\User;
@@ -24,6 +25,8 @@ use Livewire\Attributes\Locked;
  */
 class Edit extends Create
 {
+    use WithFeedback;
+
     #[Locked]
     public int $requestId;
 
@@ -47,6 +50,15 @@ class Edit extends Create
         $this->data['request_type'] = (int) $this->request()->request_type;
     }
 
+    public function save(RecruitmentRequestDraftService $drafts)
+    {
+        $this->resetValidation();
+        $drafts->update(auth()->user(), $this->request(), $this->data);
+        $this->toast(__('recruitment.saved'));
+
+        return $this->redirectRoute('recruitment.requests.show', ['requestId' => $this->requestId]);
+    }
+
     public function render()
     {
         $changeRequest = $this->latestChangeRequestContext();
@@ -59,27 +71,6 @@ class Edit extends Create
         ]);
 
         return $view;
-    }
-
-    /**
-     * save() and saveAndSubmit() are Create's; only the write differs. A
-     * request sent back for changes is resubmitted (T11) by the same call the
-     * details screen makes, so the approval flow cannot tell them apart.
-     */
-    protected function persistDraft(RecruitmentRequestDraftService $drafts): RecruitmentRequest
-    {
-        return $drafts->update(auth()->user(), $this->request(), $this->data);
-    }
-
-    protected function savedMessage(): string
-    {
-        return __('recruitment.saved');
-    }
-
-    /** Draft or changes-requested, owned, normal mode: the policy decides. */
-    protected function canSubmit(): bool
-    {
-        return Gate::allows('submit', $this->request());
     }
 
     protected function authorizeScreen(): void

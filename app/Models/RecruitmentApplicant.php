@@ -35,16 +35,6 @@ class RecruitmentApplicant extends Model
         return $this->hasMany(RecruitmentApplication::class, 'applicant_id');
     }
 
-    public function reviewParticipants(): HasMany
-    {
-        return $this->hasMany(RecruitmentApplicationParticipant::class, 'applicant_id');
-    }
-
-    public function currentReviewParticipants(): HasMany
-    {
-        return $this->reviewParticipants()->current();
-    }
-
     public function files(): HasMany
     {
         return $this->hasMany(RecruitmentApplicantFile::class, 'applicant_id');
@@ -85,20 +75,7 @@ class RecruitmentApplicant extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        $scopes = app(RecruitmentScopeResolver::class);
-
-        // An organization-wide scope adds no SQL constraint. Returning here
-        // prevents the empty nested group below from narrowing the result to
-        // explicitly assigned participants only.
-        if ($scopes->isOrganizationWide($user)) {
-            return $query;
-        }
-
-        return $query->where(function (Builder $visible) use ($user): void {
-            app(RecruitmentScopeResolver::class)->scopeApplicants($visible, $user);
-            $visible->orWhereHas('currentReviewParticipants', fn (Builder $participants): Builder => $participants
-                ->where('user_id', $user->getKey()));
-        });
+        return app(RecruitmentScopeResolver::class)->scopeApplicants($query, $user);
     }
 
     protected function casts(): array

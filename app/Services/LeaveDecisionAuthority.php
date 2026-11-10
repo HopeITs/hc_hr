@@ -129,27 +129,17 @@ final class LeaveDecisionAuthority
         return $this->askIsOnLeaveNow($employee);
     }
 
-    /**
-     * Does $user hold, today, a position another position reports to?
-     *
-     * Read once per employee per request, like WorkInbox::shared(): the
-     * sidebar badge, the dashboard's tiles and its header each ask
-     * (WorkInbox::hasSources) and it was two queries every time.
-     */
+    /** Does $user hold, today, a position another position reports to? */
     public function holdsManagerPosition(User $user): bool
     {
         if ($user->employee_id === null) {
             return false;
         }
 
-        $attributes = request()->attributes;
-        $key = 'holds-manager-position:'.$user->employee_id;
+        $positionIds = Contract::query()->activeNow()->where('employee_id', $user->employee_id)->pluck('position_id');
 
-        if (! $attributes->has($key)) {
-            $attributes->set($key, $this->askHoldsManagerPosition((int) $user->employee_id));
-        }
-
-        return $attributes->get($key);
+        return $positionIds->isNotEmpty()
+            && Position::query()->whereIn('direct_manager_id', $positionIds)->exists();
     }
 
     /**
@@ -206,14 +196,6 @@ final class LeaveDecisionAuthority
         foreach ($ids as $id) {
             $this->memo['scope'][$key][$id] = $inScope->has($id);
         }
-    }
-
-    private function askHoldsManagerPosition(int $employeeId): bool
-    {
-        $positionIds = Contract::query()->activeNow()->where('employee_id', $employeeId)->pluck('position_id');
-
-        return $positionIds->isNotEmpty()
-            && Position::query()->whereIn('direct_manager_id', $positionIds)->exists();
     }
 
     /** @return Collection<int, Employee> */

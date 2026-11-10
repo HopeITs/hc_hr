@@ -1,17 +1,16 @@
 {{--
     Phone bottom navigation (D2), app style (the media-request bar, 5814c31):
 
-      [ place 1 ][ place 2 ]( + )[ place 3 ][ place 4 ]
+      [ place 1 ][ place 2 ]( + )[ place 3 ][ place 4 ][ More ]
 
     The four places are the person's shortcuts (App\Support\BottomBar), two on
-    each side of the raised +, so the + is the bar's centre. + opens the New
-    sheet (Navigation::newActions: only what the role may start). The role's
-    whole menu is the header's menu button (the sidebar), so the bar has no
-    More of its own. The sheet is a dialog: aria-modal, focus trapped and given
-    back (x-trap), Escape, backdrop, swipe down on the handle. Red only for its jobs:
+    each side of the raised +. + opens the New sheet (Navigation::newActions:
+    only what the role may start); More opens the More sheet (the role's whole
+    menu). Both sheets are dialogs: aria-modal, focus trapped and given back
+    (x-trap), Escape, backdrop, swipe down on the handle. Red only for its jobs:
     the + (the primary action), the current page (aria-current, ink text and a
     red bar, as in the sidebar) and the inbox count (what waits on the viewer). Flex follows
-    the document direction, so the bar and the sheet mirror in Arabic.
+    the document direction, so the bar and the sheets mirror in Arabic.
     Hidden from md up, behind dialogs (z-30 < z-50), and, by app.css, while a
     field has focus or a page shows its own sticky save bar.
     Behaviour: App\Livewire\Layout\BottomNav.
@@ -95,6 +94,19 @@
             @endif
         @endforeach
 
+        {{-- Always the last place: More, the role's whole menu in a sheet. --}}
+        <li class="min-w-0 flex-1" wire:key="bottom-more">
+            <button type="button" data-testid="bottom-nav-more"
+                    x-on:click="open('more')"
+                    aria-haspopup="dialog" aria-controls="bottom-sheet-more" x-bind:aria-expanded="(sheet === 'more').toString()"
+                    aria-label="{{ __('mobile.bar.more-label') }}"
+                    class="{{ $place }} text-ink-2 hover:text-ink">
+                <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+                <span class="max-w-full truncate">{{ __('mobile.bar.more') }}</span>
+            </button>
+        </li>
     </ul>
 
     {{-- The New sheet: the header's New menu, for a thumb. --}}
@@ -142,4 +154,64 @@
         </template>
     @endif
 
+    {{-- The More sheet: everything the role's menu has, by area. --}}
+    <template x-teleport="body">
+        <div x-show="sheet === 'more'" x-cloak
+             x-trap.inert.noscroll="sheet === 'more'"
+             x-on:keydown.escape.prevent.stop="close()"
+             class="fixed inset-0 z-50 flex items-end md:hidden" data-testid="bottom-sheet-more-root">
+            <div class="absolute inset-0 bg-backdrop" x-on:click="close()" aria-hidden="true"
+                 x-show="sheet === 'more'" x-transition.opacity></div>
+            <div id="bottom-sheet-more" role="dialog" aria-modal="true" aria-labelledby="bottom-sheet-more-title"
+                 data-testid="bottom-sheet-more"
+                 x-show="sheet === 'more'"
+                 x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
+                 x-transition:leave="transition duration-150 ease-in" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full"
+                 class="relative max-h-[85dvh] w-full overflow-y-auto rounded-t-[22px] bg-card px-4 pt-2 shadow-e3"
+                 style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
+                <div class="flex justify-center py-2" x-on:touchstart.passive="swipeStart($event)" x-on:touchend="swipeEnd($event)" aria-hidden="true">
+                    <span class="h-1.5 w-10 rounded-full bg-line"></span>
+                </div>
+                <div class="mb-1 flex items-center justify-between gap-3">
+                    <h2 id="bottom-sheet-more-title" class="text-h4 font-extrabold text-ink">{{ __('mobile.bar.more-title') }}</h2>
+                    <button type="button" x-on:click="close()" aria-label="{{ __('mobile.bar.close') }}"
+                            class="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink focus-visible:outline-2">
+                        <x-icons.x-mark class="size-5" aria-hidden="true" />
+                    </button>
+                </div>
+
+                @foreach ($sections as $section)
+                    <section wire:key="bottom-more-{{ $section['id'] }}" data-section="{{ $section['id'] }}"
+                             class="border-b border-line-soft py-2 last:border-b-0"
+                             @if ($section['label']) aria-labelledby="bottom-more-{{ $section['id'] }}" @endif>
+                        @if ($section['label'])
+                            <h3 id="bottom-more-{{ $section['id'] }}" class="px-3 pb-1 pt-1 text-caption font-bold text-ink-3">{{ $section['label'] }}</h3>
+                        @endif
+                        <ul class="grid gap-0.5">
+                            @foreach ($section['rows'] as $row)
+                                @if (isset($row['heading']))
+                                    <li class="px-3 pb-0.5 pt-2 text-small font-bold text-ink-2" aria-hidden="true">{{ $row['heading'] }}</li>
+                                @else
+                                    <li @class(['ps-4' => isset($row['group'])])>
+                                        <a href="{{ $row['href'] }}" wire:navigate x-on:click="close()" data-testid="bottom-more-{{ $row['id'] }}"
+                                           @if ($row['current']) aria-current="page" @endif
+                                           @class([$tile, 'relative bg-soft text-ink before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-primary' => $row['current'], 'text-ink hover:bg-hover' => ! $row['current']])>
+                                            <x-dynamic-component :component="'icons.'.$row['icon']" class="size-5 shrink-0 text-ink-2" aria-hidden="true" />
+                                            <span class="min-w-0 flex-1 truncate">
+                                                @isset($row['group'])<span class="sr-only">{{ $row['group'] }}: </span>@endisset{{ $row['label'] }}
+                                            </span>
+                                            @if ($row['count'] > 0)
+                                                <span class="num min-w-6 rounded-full bg-primary px-1.5 text-center text-caption leading-5 text-on-brand" aria-hidden="true">{{ $row['count'] > 99 ? '99+' : $row['count'] }}</span>
+                                                <span class="sr-only">{{ __('general.nav.work-inbox-count', ['count' => $row['count']]) }}</span>
+                                            @endif
+                                        </a>
+                                    </li>
+                                @endif
+                            @endforeach
+                        </ul>
+                    </section>
+                @endforeach
+            </div>
+        </div>
+    </template>
 </nav>

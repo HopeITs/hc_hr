@@ -145,21 +145,6 @@
                                         @if ($event['detail'])
                                             <p class="text-small text-ink-2">{{ $event['detail'] }}</p>
                                         @endif
-                                        {{-- An amendment's other changes: a short line by default,
-                                             opened in place on demand. --}}
-                                        @if (! empty($event['more']))
-                                            <details wire:ignore.self class="group/more text-small">
-                                                <summary class="inline-flex cursor-pointer list-none items-center gap-1 rounded-control font-semibold text-ink underline underline-offset-2 [&::-webkit-details-marker]:hidden">
-                                                    <span class="group-open/more:hidden">{{ trans_choice('employees.profile.more-changes', count($event['more']), ['count' => count($event['more'])]) }}</span>
-                                                    <span class="hidden group-open/more:inline">@lang('employees.profile.fewer-changes')</span>
-                                                </summary>
-                                                <ul class="mt-1 space-y-0.5 text-ink-2">
-                                                    @foreach ($event['more'] as [$label, $value])
-                                                        <li><span class="text-ink-3">{{ $label }}:</span> <span class="num">{{ $value }}</span></li>
-                                                    @endforeach
-                                                </ul>
-                                            </details>
-                                        @endif
                                         @if ($event['pay'] && $event['pay']['amount'])
                                             <p class="text-small font-semibold text-ink"><bdi>{{ number_format((float) $event['pay']['amount']) }} {{ $currency[$event['pay']['currency'] ?? 0] ?? '' }}</bdi></p>
                                         @endif

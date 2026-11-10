@@ -87,16 +87,9 @@
                             <li wire:key="next-{{ $event['key'] }}" class="flex items-start gap-2 text-small" data-testid="calendar-next">
                                 <span class="hc-mark hc-mark--lg hc-mark--{{ $event['type'] }} mt-1.5" aria-hidden="true"></span>
                                 <span class="min-w-0">
-                                    @if ($event['url'])
-                                        <a href="{{ $event['url'] }}" wire:navigate class="block truncate font-bold text-ink underline-offset-2 hover:underline">{{ $event['title'] }}</a>
-                                    @else
-                                        <span class="block truncate font-bold text-ink">{{ $event['title'] }}</span>
-                                    @endif
-                                    <span class="flex items-center gap-1 truncate text-ink-2">
-                                        @if ($event['type'] === 'news')
-                                            <x-ic name="calendar" class="size-3.5 shrink-0" />
-                                        @endif
-                                        <span class="truncate">{{ \Carbon\CarbonImmutable::parse($date)->locale(app()->getLocale())->translatedFormat('D j M') }}@if ($event['type'] === 'news' && $event['detail'])<span aria-hidden="true"> · </span><bdi dir="ltr" class="num">{{ $event['detail'] }}</bdi>@endif<span aria-hidden="true"> · </span>{{ __('dashboard_calendar.types.'.$event['type']) }}</span>
+                                    <span class="block truncate font-bold text-ink">{{ $event['title'] }}</span>
+                                    <span class="block truncate text-ink-2">
+                                        {{ \Carbon\CarbonImmutable::parse($date)->locale(app()->getLocale())->translatedFormat('D j M') }}<span aria-hidden="true"> · </span>{{ __('dashboard_calendar.types.'.$event['type']) }}
                                     </span>
                                 </span>
                             </li>
@@ -142,20 +135,13 @@
                             <li class="flex items-start gap-3" data-testid="calendar-event">
                                 <span class="hc-mark hc-mark--lg hc-mark--{{ $event['type'] }} mt-2" aria-hidden="true"></span>
                                 <div class="min-w-0 flex-1">
-                                    <p class="flex items-center gap-1 text-small text-ink-2">
-                                        @if ($event['type'] === 'news')
-                                            <x-ic name="calendar" class="size-3.5 shrink-0" />
-                                        @endif
-                                        {{ __('dashboard_calendar.types.'.$event['type']) }}
-                                    </p>
+                                    <p class="text-small text-ink-2">{{ __('dashboard_calendar.types.'.$event['type']) }}</p>
                                     @if ($event['url'])
                                         <a href="{{ $event['url'] }}" wire:navigate class="font-bold text-ink underline underline-offset-2 hover:no-underline">{{ $event['title'] }}</a>
                                     @else
                                         <p class="font-bold text-ink">{{ $event['title'] }}</p>
                                     @endif
-                                    @if ($event['detail'] && $event['type'] === 'news')
-                                        <p class="text-small text-ink-2"><span class="sr-only">{{ __('dashboard_calendar.time') }}: </span><bdi dir="ltr" class="num">{{ $event['detail'] }}</bdi></p>
-                                    @elseif ($event['detail'])
+                                    @if ($event['detail'])
                                         <p class="text-small text-ink-2">{{ $event['detail'] }}</p>
                                     @endif
                                 </div>

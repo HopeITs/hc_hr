@@ -12,9 +12,6 @@
     A locked field is shown and disabled rather than hidden: after an approver
     asks for changes, only what they named may be edited, and a field that
     silently vanished would leave the requester wondering what happened to it.
-
-    Optional: $live (true when another part of the form reacts to the answer;
-    otherwise the value travels with the next request), $hint.
 --}}
 @php
     $isLocked = in_array($field, $lockedFields ?? [], true);
@@ -27,19 +24,9 @@
     // key makes Livewire replace the whole control when they change, which
     // re-initialises the select against the new list.
     $optionsKey = md5(json_encode(array_keys($options)));
-    $hasError = $errors->has('data.'.$field);
-    $describedBy = implode(' ', array_filter([
-        filled($hint ?? null) ? $field.'-hint' : null,
-        $hasError ? $field.'-error' : null,
-    ]));
-    // The binding is spread as an attribute bag because its name changes with
-    // $live, and Blade only spreads a bag called $attributes into a component.
-    $attributes = new \Illuminate\View\ComponentAttributeBag([
-        (($live ?? false) ? 'wire:model.live' : 'wire:model') => 'data.'.$field,
-    ]);
 @endphp
 <div wire:key="field-{{ $field }}-{{ $optionsKey }}" @class([
-    'min-w-0 rounded-control transition',
+    'rounded-control transition',
     'request-field--locked' => $isLocked,
     'border-s-2 border-primary ps-3' => $isChangeRequested,
 ])>
@@ -50,19 +37,16 @@
 
     <x-forms.select2-input
         :id="$field"
-        {{ $attributes }}
+        wire:model.live="data.{{ $field }}"
         :disabled="$isLocked"
-        aria-invalid="{{ $hasError ? 'true' : 'false' }}"
-        :aria-describedby="$describedBy ?: null">
+        aria-invalid="{{ $errors->has('data.'.$field) ? 'true' : 'false' }}"
+        aria-describedby="{{ $field }}-error">
         <option value="">{{ __('recruitment.choose') }}</option>
         @foreach ($options as $value => $option)
             <option value="{{ $value }}">{{ $option }}</option>
         @endforeach
     </x-forms.select2-input>
 
-    @if (filled($hint ?? null))
-        <x-forms.hint :id="$field.'-hint'">{{ $hint }}</x-forms.hint>
-    @endif
     @include('livewire.recruitment.requests.partials.field-state', ['isChangeRequested' => false, 'isLocked' => $isLocked])
-    <x-forms.input-error :field="'data.'.$field" :input-id="$field" />
+    <p id="{{ $field }}-error" class="mt-1 text-sm text-primary">@error('data.'.$field){{ $message }}@enderror</p>
 </div>

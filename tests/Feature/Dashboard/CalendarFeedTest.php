@@ -3,7 +3,6 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Enums\LeaveRequestStatus;
-use App\Enums\News\AudienceType;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\Employee;
@@ -89,20 +88,6 @@ class CalendarFeedTest extends TestCase
         $this->assertSame(['2026-11-04', '2026-11-10'], array_keys($this->ofType($days, 'team-leave')));
         $this->assertSame('Lina Person', $days['2026-11-04'][0]['title']);
         $this->assertStringContainsString(__('dashboard_calendar.status.pending'), $days['2026-11-10'][0]['detail']);
-    }
-
-    public function test_city_hr_sees_its_citys_leave_like_the_upcoming_leaves_tile(): void
-    {
-        $hr = $this->makeUser($this->dms, 'HR-DMS', ['leaves.view-own']);
-        $this->leave($this->makeContractFor($this->makeEmployee($this->dms, 'away-dms', ['first_name_en' => 'Damascene'])), '2026-11-04', '2026-11-05');
-        $this->leave($this->makeContractFor($this->makeEmployee($this->alp, 'away-alp', ['first_name_en' => 'Aleppine'])), '2026-11-04', '2026-11-05');
-
-        $feed = $this->feed();
-        $leave = $this->ofType($feed->forMonth($hr->fresh(), CarbonImmutable::parse('2026-11-01')), 'team-leave');
-
-        $this->assertContains('team-leave', $feed->typesFor($hr->fresh()));
-        $this->assertSame(['2026-11-04', '2026-11-05'], array_keys($leave));
-        $this->assertSame(['Damascene Person'], array_column($leave['2026-11-04'], 'title'));
     }
 
     public function test_my_leaves_are_accepted_and_pending_only(): void
@@ -200,73 +185,12 @@ class CalendarFeedTest extends TestCase
         $user = $this->makeUser($this->dms, 'employee');
         $this->makeContractFor($user->profile);
         $this->news('For everyone', '2026-11-05');
-        $this->news('For Damascus', '2026-11-06', audience: AudienceType::Cities, targets: [$this->dms->id]);
-        $this->news('For Aleppo', '2026-11-07', audience: AudienceType::Cities, targets: [$this->alp->id]);
+        $this->news('For Damascus', '2026-11-06', City::class, $this->dms->id);
+        $this->news('For Aleppo', '2026-11-07', City::class, $this->alp->id);
 
         $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
 
         $this->assertSame(['2026-11-05', '2026-11-06'], array_keys($news));
-        $this->assertSame('For everyone', $news['2026-11-05'][0]['title']);
-        $this->assertNotNull($news['2026-11-05'][0]['url']);
-    }
-
-    public function test_the_audience_not_related_to_decides_who_sees_an_event(): void
-    {
-        $user = $this->makeUser($this->dms, 'employee');
-        $this->makeContractFor($user->profile);
-
-        // About Aleppo, but addressed to everyone: a Damascus employee sees it.
-        $this->news('About Aleppo', '2026-11-05', City::class, $this->alp->id);
-        // About Damascus, but addressed to Aleppo only: the Damascus employee does not.
-        $this->news('About Damascus for Aleppo', '2026-11-06', City::class, $this->dms->id, AudienceType::Cities, [$this->alp->id]);
-
-        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
-
-        $this->assertSame(['2026-11-05'], array_keys($news));
-        $this->assertSame('About Aleppo', $news['2026-11-05'][0]['title']);
-    }
-
-    public function test_drafts_scheduled_and_expired_events_stay_off_the_calendar(): void
-    {
-        $user = $this->makeUser($this->dms, 'employee');
-        $this->makeContractFor($user->profile);
-        $this->news('Live', '2026-11-05');
-        $this->news('Draft', '2026-11-06', attributes: ['status' => 'draft']);
-        $this->news('Scheduled', '2026-11-07', attributes: ['published_at' => now()->addDay()]);
-        $this->news('Expired', '2026-11-08', attributes: ['display_until' => now()->subHour()]);
-
-        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
-
-        $this->assertSame(['2026-11-05'], array_keys($news));
-    }
-
-    public function test_a_multi_day_event_is_listed_on_each_of_its_days_inside_the_window(): void
-    {
-        $user = $this->makeUser($this->dms, 'employee');
-        $this->makeContractFor($user->profile);
-        // The November grid runs 2026-10-26 .. 2026-12-06.
-        $this->news('Retreat', '2026-12-05', attributes: ['event_ends_at' => '2026-12-08 17:00:00']);
-
-        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
-
-        $this->assertSame(['2026-12-05', '2026-12-06'], array_keys($news));
-    }
-
-    public function test_an_event_carries_its_time_on_its_first_day_only_and_none_when_whole_day(): void
-    {
-        $user = $this->makeUser($this->dms, 'employee');
-        $this->makeContractFor($user->profile);
-        $this->news('Retreat', '2026-11-10', attributes: ['event_starts_at' => '2026-11-10 09:30:00', 'event_ends_at' => '2026-11-11 15:00:00']);
-        $this->news('Workshop', '2026-11-12', attributes: ['event_starts_at' => '2026-11-12 10:00:00', 'event_ends_at' => '2026-11-12 12:00:00']);
-        $this->news('Open day', '2026-11-13', attributes: ['event_starts_at' => '2026-11-13 00:00:00']);
-
-        $news = $this->ofType($this->feed()->forMonth($user->fresh(), CarbonImmutable::parse('2026-11-01')), 'news');
-
-        $this->assertSame('09:30', $news['2026-11-10'][0]['detail']);
-        $this->assertNull($news['2026-11-11'][0]['detail']);
-        $this->assertSame('10:00–12:00', $news['2026-11-12'][0]['detail']);
-        $this->assertNull($news['2026-11-13'][0]['detail']);
-        $this->assertNotSame($news['2026-11-10'][0]['key'], $news['2026-11-11'][0]['key']);
     }
 
     public function test_there_are_no_interviews_without_a_recruitment_module(): void
@@ -350,38 +274,18 @@ class CalendarFeedTest extends TestCase
         ]);
     }
 
-    /**
-     * A live event on $date (09:00), addressed to $audience/$targets and
-     * Related To $type/$id; $attributes override any column.
-     *
-     * @param  list<int>  $targets
-     */
-    private function news(
-        string $title,
-        string $date,
-        ?string $type = null,
-        ?int $id = null,
-        AudienceType $audience = AudienceType::All,
-        array $targets = [],
-        array $attributes = [],
-    ): News {
-        $news = News::query()->forceCreate([
-            'type' => 'event',
-            'status' => 'published',
+    private function news(string $title, string $date, ?string $type = null, ?int $id = null): News
+    {
+        return News::query()->forceCreate([
             'title_en' => $title,
             'title_ar' => $title,
             'description_en' => '',
             'description_ar' => '',
-            'event_starts_at' => $date.' 09:00:00',
-            'published_at' => now()->subDay(),
+            'event_date' => $date,
+            'published_at' => now(),
             'newsable_type' => $type,
             'newsable_id' => $id,
-            ...$attributes,
         ]);
-
-        $news->syncAudience($audience, $targets);
-
-        return $news;
     }
 
     /** @return array<string, list<array<string, mixed>>> only $type's events, by date */

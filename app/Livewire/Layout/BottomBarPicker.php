@@ -8,7 +8,7 @@ use Livewire\Component;
 
 /**
  * Choosing the phone bar's four shortcuts (prompt 10), shown in the
- * dashboard's Customize sheet (My panels) on a phone: <livewire:layout.bottom-bar-picker />.
+ * dashboard's customise mode on a phone: <livewire:layout.bottom-bar-picker />.
  *
  * One select per place, so the bar is always complete: picking a page that
  * already sits in another place swaps the two. Each change is kept at once,

@@ -3,13 +3,9 @@
     (Navigation::newActions(); each screen checks the permission again).
     Links marked `returns` carry ?from=<this page> so Cancel can come back here
     (SafeReturn decides whether that page is allowed). A WAI-ARIA menu button.
-
-    md and up only. Below md the bottom bar's raised + (bottom-nav.blade.php)
-    is the one Create action and opens the same list as a sheet; the bar is
-    md:hidden, so exactly one of the two exists at any width.
 --}}
 @if ($actions !== [])
-    <div class="relative shrink-0 max-md:hidden"
+    <div class="relative shrink-0"
          x-data="{
              open: false,
              items() { return [...this.$refs.menu.querySelectorAll('[role=menuitem]')]; },
@@ -32,10 +28,10 @@
          x-on:keydown.escape="hide()">
         {{-- The header's one primary action. x-bind:, not :, so Blade leaves it to Alpine. --}}
         <x-button size="sm" icon="plus" :loading="false" x-ref="trigger" data-testid="new-menu-button"
-                  class="shrink-0"
+                  class="min-w-11 shrink-0"
                   aria-haspopup="menu" aria-controls="new-menu" x-bind:aria-expanded="open.toString()"
                   x-on:click="open ? hide() : show()" x-on:keydown.arrow-down.prevent="show()">
-            {{ __('general.new-menu.label') }}
+            <span class="max-sm:sr-only">{{ __('general.new-menu.label') }}</span>
         </x-button>
 
         <div id="new-menu" role="menu" x-ref="menu" x-show="open" x-cloak

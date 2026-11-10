@@ -27,12 +27,6 @@ class StateTestTable extends LivewireTable
         return 'state-test-card';
     }
 
-    /** A list page of its own, so a Referer under /state-test counts as coming back to it. */
-    protected function listPath(): ?string
-    {
-        return 'state-test';
-    }
-
     protected function emptyStateCreate(): ?array
     {
         return null;

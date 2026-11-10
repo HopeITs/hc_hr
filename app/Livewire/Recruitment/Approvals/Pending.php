@@ -6,7 +6,6 @@ use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Services\RecruitmentApproverEligibility;
 use App\Services\RecruitmentPendingApprovalQuery;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class Pending extends Component
@@ -22,23 +21,16 @@ class Pending extends Component
         abort_unless(app(RecruitmentApproverEligibility::class)->mayReceiveApprovals(auth()->user()), 403);
     }
 
-    public function render(): View
+    public function render()
     {
         $pending = app(RecruitmentPendingApprovalQuery::class);
         $queue = $pending->forUser(auth()->user())->setEagerLoads([])->reorder();
-
-        $now = CarbonImmutable::now();
-        $arrivals = (clone $queue)->select([])->addSelect(['waiting_since' => $pending->waitingSince()])
-            ->pluck('waiting_since')->filter()
-            ->map(fn ($since): CarbonImmutable => CarbonImmutable::parse($since));
-        $days = $arrivals->map(fn (CarbonImmutable $since): int => (int) $since->diffInDays($now));
+        $oldest = (clone $queue)->select([])->addSelect(['waiting_since' => $pending->waitingSince()])
+            ->pluck('waiting_since')->filter()->min();
 
         return view('livewire.recruitment.approvals.pending', [
             'waiting' => (clone $queue)->count(),
-            'longest' => $days->max(),
-            'overdue' => $days->filter(fn (int $d): bool => $d >= PendingApprovalTable::LONG_WAIT_DAYS)->count(),
-            'arrivedToday' => $arrivals->filter(fn (CarbonImmutable $since): bool => $since->isSameDay($now))->count(),
-            'longWaitDays' => PendingApprovalTable::LONG_WAIT_DAYS,
+            'longest' => $oldest ? (int) CarbonImmutable::parse($oldest)->diffInDays(now()) : null,
         ]);
     }
 }

@@ -23,8 +23,6 @@ class TagManager extends Component
 
     public string $tagColor = 'neutral';
 
-    public string $tagKind = RecruitmentTag::KIND_NEUTRAL;
-
     #[Locked]
     public ?int $renamingId = null;
 
@@ -32,14 +30,12 @@ class TagManager extends Component
 
     public string $renameColor = 'neutral';
 
-    public string $renameKind = RecruitmentTag::KIND_NEUTRAL;
-
     public function create(RecruitmentTagService $tags): void
     {
         Gate::authorize('create', RecruitmentTag::class);
 
-        if ($this->run(fn () => $tags->create(auth()->user(), $this->tagName, $this->tagColor, $this->tagKind))) {
-            $this->reset('tagName', 'tagColor', 'tagKind');
+        if ($this->run(fn () => $tags->create(auth()->user(), $this->tagName, $this->tagColor))) {
+            $this->reset('tagName', 'tagColor');
         }
     }
 
@@ -52,7 +48,6 @@ class TagManager extends Component
         $this->renamingId = $tag->getKey();
         $this->renameName = $tag->name;
         $this->renameColor = $tag->color ?? 'neutral';
-        $this->renameKind = $tag->kind ?? RecruitmentTag::KIND_NEUTRAL;
 
         $this->dispatch('focus-element', id: 'renameName');
     }
@@ -64,7 +59,7 @@ class TagManager extends Component
         $tag = RecruitmentTag::query()->findOrFail($this->renamingId);
         Gate::authorize('update', $tag);
 
-        if ($this->run(fn () => $tags->rename(auth()->user(), $tag, $this->renameName, $this->renameColor, $this->renameKind), 'renameName', 'renameColor', 'renameKind')) {
+        if ($this->run(fn () => $tags->rename(auth()->user(), $tag, $this->renameName, $this->renameColor), 'renameName', 'renameColor')) {
             $this->cancelRename();
         }
     }
@@ -74,7 +69,7 @@ class TagManager extends Component
     {
         $opener = 'tag-'.$this->renamingId.'-rename';
 
-        $this->reset('renamingId', 'renameName', 'renameColor', 'renameKind');
+        $this->reset('renamingId', 'renameName', 'renameColor');
         $this->resetErrorBag();
         $this->dispatch('focus-element', id: $opener);
     }
@@ -116,12 +111,11 @@ class TagManager extends Component
                     ->get()
                 : collect(),
             'palette' => array_keys(config('recruitment.tags.palette', [])),
-            'kinds' => RecruitmentTag::kinds(),
         ]);
     }
 
     /** Validation errors from the service land on the field they concern. */
-    private function run(callable $action, string $nameField = 'tagName', string $colorField = 'tagColor', string $kindField = 'tagKind'): bool
+    private function run(callable $action, string $nameField = 'tagName', string $colorField = 'tagColor'): bool
     {
         $this->resetErrorBag();
 
@@ -132,7 +126,6 @@ class TagManager extends Component
                 $this->addError(match ($field) {
                     'tagName' => $nameField,
                     'tagColor' => $colorField,
-                    'tagKind' => $kindField,
                     default => $field,
                 }, $messages[0]);
             }

@@ -14,7 +14,6 @@ return [
     'next-days' => 'Next 7 days',
     'next-days-empty' => 'Nothing in the next 7 days.',
     'legend' => 'Legend',
-    'time' => 'Time',
 
     'types' => [
         'holiday' => 'Holiday',

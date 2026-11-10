@@ -163,9 +163,8 @@ class RecruitmentSubmissionTest extends TestCase
     /** Same position, same type, while the first is still being processed. */
     public function test_a_second_active_request_of_the_same_type_on_one_position_is_refused(): void
     {
-        $first = $this->draft($this->complete());
+        $this->submit($this->draft($this->complete()));
         $second = $this->draft($this->complete());
-        $this->submit($first);
 
         try {
             $this->submit($second);

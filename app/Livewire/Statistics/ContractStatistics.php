@@ -13,7 +13,6 @@ use App\Models\Position;
 use App\Models\Program;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;
 
 class ContractStatistics extends Component
@@ -31,9 +30,6 @@ class ContractStatistics extends Component
     public $cards = [];
 
     public string $cardType = 'program';
-
-    /** @var Collection<int, ContractType>|null this request's contract types (not kept between requests) */
-    protected ?Collection $contractTypes = null;
 
     public function mount(): void
     {
@@ -99,17 +95,17 @@ class ContractStatistics extends Component
         } elseif ($this->selectedCity && ! $this->selectedProgram) {
             $this->cardType = 'program';
             $programs = Program::where('is_active', true)
-                ->whereHas('positions', fn ($q) => $q->inCity($this->selectedCity))
+                ->whereHas('positions', fn ($q) => $q->where('city_id', $this->selectedCity))
                 ->get();
 
             foreach ($programs as $program) {
                 $positionsQuery = Position::where('program_id', $program->id)
-                    ->inCity($this->selectedCity);
+                    ->where('city_id', $this->selectedCity);
 
                 $contractsQuery = Contract::where('is_active', true)
                     ->whereHas('position', fn ($q) => $q
                         ->where('program_id', $program->id)
-                        ->inCity($this->selectedCity),
+                        ->where('city_id', $this->selectedCity),
                     );
 
                 $this->cards[] = [
@@ -132,7 +128,7 @@ class ContractStatistics extends Component
                     ->whereHas('position', fn ($q) => $q
                         ->where('center_id', $center->id)
                         ->where('program_id', $this->selectedProgram)
-                        ->inCity($this->selectedCity),
+                        ->where('city_id', $this->selectedCity),
                     );
 
                 $this->cards[] = [
@@ -195,10 +191,7 @@ class ContractStatistics extends Component
      */
     private function contractTypeIdsForCategory(string $category): array
     {
-        // Six counts per card each asked for the whole table; read it once per request.
-        $this->contractTypes ??= ContractType::all();
-
-        return $this->contractTypes
+        return ContractType::all()
             ->filter(fn (ContractType $type): bool => $type->category === $category)
             ->pluck('id')
             ->all();

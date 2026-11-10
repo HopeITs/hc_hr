@@ -221,18 +221,6 @@ trait DrivesContractComposer
         $this->form->start_date = $this->dateOrNull($payload['startDate'] ?? null);
         $this->form->end_date = $this->dateOrNull($payload['endDate'] ?? null);
 
-        $this->applyComposerSchedule($payload);
-        $this->applyComposerPay($payload);
-
-        $this->applyComposerTermination($payload);
-    }
-
-    /**
-     * The schedule half of the payload. Also used on its own by the
-     * amendment page, which changes nothing but the schedule and the pay.
-     */
-    protected function applyComposerSchedule(array $payload): void
-    {
         $this->form->weekly_hours = max(0, (int) ($payload['weeklyHours'] ?? 0));
 
         // work_days_en/ar are deliberately left untouched here: the composer no
@@ -261,11 +249,7 @@ trait DrivesContractComposer
         $this->form->flex_coordinated_with_manager = (bool) ($payload['flexCoordinatedWithManager'] ?? false);
         $this->form->flex_custom_en = $this->textOrNull($payload['flexCustomEn'] ?? null);
         $this->form->flex_custom_ar = $this->textOrNull($payload['flexCustomAr'] ?? null);
-    }
 
-    /** The pay half of the payload; see applyComposerSchedule(). */
-    protected function applyComposerPay(array $payload): void
-    {
         $this->form->pay_mode = (int) ($payload['payMode'] ?? PayMode::Fixed);
         $this->form->currency = (int) ($payload['currency'] ?? 1);
         $this->form->salary = $payload['salary'] ?? null;
@@ -279,6 +263,8 @@ trait DrivesContractComposer
             ])
             ->values()
             ->all();
+
+        $this->applyComposerTermination($payload);
     }
 
     /**

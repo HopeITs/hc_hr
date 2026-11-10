@@ -366,27 +366,6 @@
       },
       "port": 8403,
       "autoPort": false
-    },
-    {
-      "name": "hc-hr amendments (synthetic SQLite copy)",
-      "runtimeExecutable": "C:/laragon/bin/php/php-8.5.11/php.exe",
-      "runtimeArgs": [
-        "-d",
-        "extension=pdo_sqlite",
-        "-d",
-        "extension=sqlite3",
-        "-S",
-        "127.0.0.1:8406",
-        "-t",
-        "public",
-        "tests/Usability/Baseline/router.php"
-      ],
-      "env": {
-        "X2_HOME": "C:/laragon/tmp/hc-hr-amend",
-        "X2_PORT": "8406"
-      },
-      "port": 8406,
-      "autoPort": false
     }
   ]
 }

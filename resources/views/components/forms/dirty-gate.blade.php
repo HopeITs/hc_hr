@@ -34,13 +34,6 @@
         },
         get dirty() {
             if (! this.gated) return true;
-            {{--
-                Alpine reads this getter while reconciling a reused x-data,
-                before init() has set the entry. A throw there escapes into
-                Alpine's mutation observer and leaves everything else in the
-                same morph uninitialized (empty inputs, no select2).
-            --}}
-            if (! this.entry) return false;
             this.tick;
             {{-- Reactive read: re-evaluates whenever the watched form changes. --}}
             $wire.$get(@js($watch), true);

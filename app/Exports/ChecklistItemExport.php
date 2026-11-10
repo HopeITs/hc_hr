@@ -72,7 +72,7 @@ class ChecklistItemExport implements FromCollection, ShouldAutoSize, WithHeading
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet): ?array
+    public function styles(Worksheet $sheet)
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

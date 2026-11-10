@@ -3,35 +3,25 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#BE1F24">
-    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#c2151c">
     <meta name="robots" content="noindex">
     <title>HopeHR · لا يوجد اتصال / No connection</title>
     <link rel="icon" href="/favicons/favicon-32x32.png">
     <style>
-        /* D2-PWA: shown by the service worker when a page cannot be reached. Static: it holds no HR data.
-           The Hope Center identity (resources/css/app.css): one red for the one action, the rest neutrals.
-           Only files the worker precaches may be used here (sw.js STATIC), so the font is the system one. */
-        :root { --primary: #BE1F24; --primary-hover: rgb(190 31 36 / .9); --on-primary: #FFFFFF; --ink: #414042; --ink-2: #6D6E71;
-                --line: #BCBEC0; --line-soft: #E6E7E8; --bg: #F3F3F4; --card: #FFFFFF; }
-        @media (prefers-color-scheme: dark) {
-            :root { --ink: #E6E7E8; --ink-2: #BCBEC0; --line: #4A4A4E; --line-soft: #333336; --bg: #1E1E20; --card: #232325; }
-        }
+        /* D2-PWA: shown by the service worker when a page cannot be reached. Static: it holds no HR data. */
+        :root { --primary: #c2151c; --ink: #1f2937; --muted: #4b5563; --line: #e5e7eb; --bg: #fafafa; }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
-               font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; font-size: 16px; line-height: 1.55;
-               padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px))
-                        calc(1rem + env(safe-area-inset-bottom, 0px)) calc(1rem + env(safe-area-inset-left, 0px)); }
-        main { width: 100%; max-width: 28rem; background: var(--card); border: 1px solid var(--line-soft);
-               border-radius: 1rem; padding: 1.5rem; }
-        img { display: block; width: 3rem; height: 3rem; }
-        h1 { font-size: 1.25rem; font-weight: 800; margin: .75rem 0 .5rem; color: var(--ink); }
-        section[lang="ar"] { font-size: 17px; line-height: 1.7; }
-        p { margin: .25rem 0; color: var(--ink-2); }
-        section + section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line-soft); }
+               font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; padding: 1rem;
+               padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+        main { width: 100%; max-width: 28rem; background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--primary);
+               border-radius: 1rem; padding: 1.5rem; box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+        img { width: 3rem; height: 3rem; }
+        h1 { font-size: 1.25rem; margin: .75rem 0 .5rem; }
+        p { margin: .25rem 0; line-height: 1.6; color: var(--muted); }
+        section + section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
         button { margin-top: 1.25rem; min-height: 2.75rem; width: 100%; border: 0; border-radius: .75rem; background: var(--primary);
-                 color: var(--on-primary); font: inherit; font-weight: 700; cursor: pointer; }
-        button:hover { background: var(--primary-hover); }
+                 color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
         button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
     </style>
 </head>

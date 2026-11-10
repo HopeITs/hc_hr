@@ -1,14 +1,10 @@
 <?php
 
-use App\Console\Commands\ApplyContractAmendments;
 use App\Console\Commands\ApplyDueRecruitmentRequests;
-use App\Console\Commands\CheckContractAmendments;
 use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateDepartedEmployees;
-use App\Console\Commands\DispatchDueNotifications;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\ProcessContractAutoRenewals;
-use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
 use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
 use App\Console\Commands\ScanRecruitmentFiles;
@@ -30,10 +26,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Before deactivation and auto-renewal, so a renewal inherits the amended terms.
-Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
-// Weekly: an amendment deleted outside the app leaves the history broken; this logs it.
-Schedule::command(CheckContractAmendments::class)->weeklyOn(0, '06:00');
 Schedule::command(DeactivateContract::class)->dailyAt('21:30');
 Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 // DEC-05 revision 2 (G-C-1): one reminder per pending leave request.
@@ -79,10 +71,6 @@ Schedule::command(PruneTaskAttempts::class)->dailyAt('03:10');
 Schedule::command(SyncPolicies::class)->dailyAt('02:30')->withoutOverlapping();
 // D3 / DEC-08: in-app feedback is deleted after one year (InAppFeedback::prunable()).
 Schedule::command('model:prune', ['--model' => [InAppFeedback::class]])->dailyAt('03:20');
-// Notification preferences: push / email held back by quiet hours, working days or a digest.
-Schedule::command(DispatchDueNotifications::class)->everyMinute()->withoutOverlapping();
-// Expired or long-unseen push devices, and outbox rows finished over 30 days ago.
-Schedule::command(PrunePushData::class)->dailyAt('03:30');
 Schedule::call(function () {
     Log::info('الكرون جوب يعمل بنجاح!');
 })->daily();

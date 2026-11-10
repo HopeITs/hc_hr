@@ -973,7 +973,7 @@ class ArchivedFilesModule extends Component
             return $path;
         }
 
-        $configured = config('uploads.office.soffice_path');
+        $configured = env('OFFICE_PREVIEW_SOFFICE_PATH');
 
         $candidates = array_filter([
             $configured,

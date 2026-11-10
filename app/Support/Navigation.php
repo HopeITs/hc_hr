@@ -42,7 +42,7 @@ final class Navigation
         $editsBasics = $can('project-basics.create', 'project-basics.update', 'project-basics.delete');
 
         $mySpace = array_values(array_filter([
-            self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard'], 'dashboard', 'nav.dashboard'),
+            self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'employee.dashboard'], 'dashboard', 'nav.dashboard'),
             $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
             $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
@@ -52,12 +52,21 @@ final class Navigation
             // button on every page (<x-assistant.widget>).
         ]));
 
-        // One entry for all the reference tables (tabs of Basic Settings). The
-        // old page routes redirect there, so they still count as this item.
-        $basics = self::item('nav.basics', __('general.basic-settings'), 'basic-settings.index', [
-            'basic-settings.*', 'cities.*', 'contract-types.*', 'leave-types.*', 'annual-leave-rules.*',
-            'termination-reasons.*', 'basic-checklist-items.*', 'job-levels.*', 'departments.*', 'course-categories.*',
-        ], 'home', 'nav.project-basics');
+        $basics = self::group('nav.basics', __('general.project-basics'), 'home', array_values(array_filter([
+            self::item('nav.basics.cities', trans_choice('general.city', 2), 'cities.index', ['cities.*']),
+            self::item('nav.basics.contract-types', trans_choice('general.contract-type', 2), 'contract-types.index', ['contract-types.*']),
+            self::item('nav.basics.leave-types', trans_choice('general.leave-type', 2), 'leave-types.index', ['leave-types.*']),
+            self::item('nav.basics.annual-leave-rules', __('general.annual_leave_rules'), 'annual-leave-rules.index', ['annual-leave-rules.*']),
+            self::item('nav.basics.termination-reasons', __('general.termination_reasons'), 'termination-reasons.index', ['termination-reasons.*']),
+            self::item('nav.basics.checklist-items', trans_choice('general.checklist-items', 2), 'basic-checklist-items.index', ['basic-checklist-items.*']),
+            self::item('nav.basics.job-levels', trans_choice('general.job-level', 2), 'job-levels.index', ['job-levels.*']),
+            self::item('nav.basics.departments', trans_choice('general.department', 2), 'departments.index', ['departments.*']),
+            self::item('nav.basics.course-categories', trans_choice('general.course-category', 2), 'course-categories.index', ['course-categories.*']),
+            // Set by national HR only (D-4 refinement); others never see the link.
+            $user->activeRoleIs(...config('access-control.administrator_roles', []))
+                ? self::item('nav.basics.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'])
+                : null,
+        ])), 'nav.project-basics');
 
         $programs = self::item('nav.programs', trans_choice('general.program', 2), 'programs.index', ['programs.*'], 'program', 'nav.programs');
         $positions = self::item('nav.positions', __('general.positions'), 'positions.index', ['positions.*'], 'layers');
@@ -119,13 +128,13 @@ final class Navigation
         // Team 2: interview participants and offer viewers reach their pages
         // through the policies, without any recruitment permission.
         $recruitment = array_values(array_filter([
-            $can('recruitment-requests.view') ? self::item('nav.recruitment.requests', __('recruitment.navigation_requests'), 'recruitment.requests.index', ['recruitment.requests.*'], 'recruitment-request') : null,
-            app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user) ? self::item('nav.recruitment.approvals', __('recruitment.navigation_pending_approvals'), 'recruitment.approvals.pending', ['recruitment.approvals.*'], 'recruitment-approval') : null,
-            $can('recruitment-campaigns.view') ? self::item('nav.recruitment.campaigns', __('recruitment.navigation_campaigns'), 'recruitment.campaigns.index', ['recruitment.campaigns.*'], 'recruitment-campaign') : null,
-            $user->can('viewAny', RecruitmentApplicant::class) ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'recruitment-applicant') : null,
-            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
-            $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'recruitment-interview') : null,
-            $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'recruitment-offer') : null,
+            $can('recruitment-requests.view') ? self::item('nav.recruitment.requests', __('recruitment.navigation_requests'), 'recruitment.requests.index', ['recruitment.requests.*'], 'clipboard-list') : null,
+            app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user) ? self::item('nav.recruitment.approvals', __('recruitment.navigation_pending_approvals'), 'recruitment.approvals.pending', ['recruitment.approvals.*'], 'check') : null,
+            $can('recruitment-campaigns.view') ? self::item('nav.recruitment.campaigns', __('recruitment.navigation_campaigns'), 'recruitment.campaigns.index', ['recruitment.campaigns.*'], 'newspaper') : null,
+            $can('recruitment-applicants.view') ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'users') : null,
+            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'check') : null,
+            $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'calendar') : null,
+            $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'clipboard-list') : null,
         ]));
 
         $settings = array_values(array_filter([

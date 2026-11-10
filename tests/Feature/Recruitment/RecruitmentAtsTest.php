@@ -3,38 +3,29 @@
 namespace Tests\Feature\Recruitment;
 
 use App\Enums\RecruitmentApplicationStatus as Status;
-use App\Enums\RecruitmentEvaluationRecommendation as Recommendation;
 use App\Enums\RecruitmentFileScanStatus;
 use App\Enums\RecruitmentIndicatorOutcome as Outcome;
-use App\Enums\RecruitmentInterviewStatus;
-use App\Livewire\Recruitment\Applicants\ApplicationFlags;
 use App\Livewire\Recruitment\Applicants\ApplicationTable;
-use App\Livewire\Recruitment\Applicants\ApplicationTags;
 use App\Livewire\Recruitment\Applicants\Show;
 use App\Models\City;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplication;
 use App\Models\RecruitmentApplicationDecision;
-use App\Models\RecruitmentApplicationFlag;
 use App\Models\RecruitmentApplicationIndicatorSnapshot;
 use App\Models\RecruitmentApplicationTag;
 use App\Models\RecruitmentIndicatorCriteriaVersion;
-use App\Models\RecruitmentInterview;
-use App\Models\RecruitmentInterviewEvaluation;
 use App\Models\RecruitmentRequestPositionDetail;
 use App\Models\RecruitmentRequestVersion;
 use App\Models\RecruitmentTag;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RecruitmentApplicationFilters;
-use App\Services\RecruitmentApplicationFlagService;
 use App\Services\RecruitmentApplicationFormService;
 use App\Services\RecruitmentMatchingIndicators;
 use App\Services\RecruitmentTagService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter;
@@ -138,48 +129,6 @@ class RecruitmentAtsTest extends TestCase
         $this->assertSame([$withCv->id], $filters->query($hr, ['previous' => '1'])->pluck('id')->all());
     }
 
-    public function test_candidate_dashboard_filters_by_interview_recommendation(): void
-    {
-        $campaign = $this->makeCampaignIn($this->homs);
-        $yes = $this->applyTo($campaign, $this->makeApplicant('Recommended Rima'));
-        $no = $this->applyTo($campaign, $this->makeApplicant('Declined Dalia'));
-        $notEvaluated = $this->applyTo($campaign, $this->makeApplicant('Pending Petra'));
-        $hr = $this->hr($this->homs);
-        $reviewer = $this->makeUser($this->homs, 'employee');
-
-        foreach ([[$yes, Recommendation::Yes], [$no, Recommendation::No]] as [$application, $recommendation]) {
-            $interview = RecruitmentInterview::query()->forceCreate([
-                'application_id' => $application->id,
-                'interview_type' => 'technical',
-                'status' => RecruitmentInterviewStatus::Completed,
-                'scheduled_at' => now()->subDay(),
-                'location_type' => 'in_person',
-                'created_by_user_id' => $hr->id,
-            ]);
-
-            RecruitmentInterviewEvaluation::query()->forceCreate([
-                'interview_id' => $interview->id,
-                'reviewer_user_id' => $reviewer->id,
-                'recommendation' => $recommendation,
-                'submitted_at' => now(),
-                'updated_by_user_id' => $reviewer->id,
-            ]);
-        }
-
-        $filters = app(RecruitmentApplicationFilters::class);
-
-        $this->assertSame([$yes->id], $filters->query($hr, ['evaluation' => Recommendation::Yes])->pluck('id')->all());
-        $this->assertSame([$no->id], $filters->query($hr, ['evaluation' => Recommendation::No])->pluck('id')->all());
-        $this->assertSame([$notEvaluated->id], $filters->query($hr, ['evaluation' => 'none'])->pluck('id')->all());
-        $this->assertCount(3, $filters->query($hr, ['evaluation' => 'invalid'])->get());
-
-        $this->actingAs($hr);
-        Livewire::test(ApplicationTable::class, ['campaignFilter' => $campaign->id, 'evaluationRecommendation' => Recommendation::Yes])
-            ->assertSee('Recommended Rima')
-            ->assertDontSee('Declined Dalia')
-            ->assertSee(__('recruitment-applicant.dashboard.evaluation_column'));
-    }
-
     // ------------------------------------------------------------------
     // Tags
     // ------------------------------------------------------------------
@@ -208,65 +157,6 @@ class RecruitmentAtsTest extends TestCase
         $removal = Activity::query()->where('description', 'recruitment_tag.detached')->sole();
         $this->assertSame($second->id, (int) $removal->causer_id);
         $this->assertSame($first->id, (int) $removal->properties['applied_by_user_id']);
-    }
-
-    public function test_hr_defines_flags_and_a_general_manager_can_apply_them_inside_their_scope(): void
-    {
-        $campaign = $this->makeCampaignIn($this->homs);
-        $manager = $this->makeUser($this->homs, 'general-manager');
-        $application = $this->applyTo($campaign, $this->makeApplicant('Flagged Farah'));
-        $hr = $this->hr($this->homs);
-        $tag = app(RecruitmentTagService::class)->create(
-            $hr,
-            'Excellent communication',
-            'neutral',
-            RecruitmentTag::KIND_GREEN_FLAG,
-        );
-
-        $this->assertSame(RecruitmentTag::KIND_GREEN_FLAG, $tag->kind);
-        $this->assertSame(__('recruitment-applicant.tags.kinds.green_flag'), $tag->kindLabel());
-
-        $this->assertTrue(Gate::forUser($manager)->allows('tag', $application));
-        app(RecruitmentTagService::class)->attach($manager, $application, $tag->id);
-
-        $this->actingAs($manager);
-        Livewire::test(ApplicationTags::class, ['applicationId' => $application->id])
-            ->assertSee(__('recruitment-applicant.tags.kinds.green_flag'))
-            ->assertSee('Excellent communication');
-
-        $this->assertDatabaseHas('recruitment_application_tags', [
-            'application_id' => $application->id,
-            'tag_id' => $tag->id,
-            'created_by_user_id' => $manager->id,
-        ]);
-    }
-
-    public function test_structured_flags_capture_category_reason_note_and_can_be_filtered(): void
-    {
-        $campaign = $this->makeCampaignIn($this->homs);
-        $application = $this->applyTo($campaign, $this->makeApplicant('Structured Farah'));
-        $hr = $this->hr($this->homs);
-        $flags = app(RecruitmentApplicationFlagService::class);
-
-        $red = $flags->create($hr, $application, RecruitmentApplicationFlag::TYPE_RED, 'ethics', 'concern', 'Needs an HR follow-up before progressing.');
-        $green = $flags->create($hr, $application, RecruitmentApplicationFlag::TYPE_GREEN, 'experience', 'relevant', null);
-
-        $this->assertSame(['ethics', 'concern', 'Needs an HR follow-up before progressing.'], [$red->category, $red->reason, $red->note]);
-        $this->assertSame(__('recruitment-applicant.flags.types.red'), $red->typeLabel());
-        $this->assertSame(__('recruitment-applicant.flags.types.green'), $green->typeLabel());
-        $this->assertSame([$application->id], app(RecruitmentApplicationFilters::class)->query($hr, ['flag_type' => 'red'])->pluck('id')->all());
-        $this->assertSame([$application->id], app(RecruitmentApplicationFilters::class)->query($hr, ['flag_category' => 'ethics'])->pluck('id')->all());
-
-        $this->actingAs($hr);
-        Livewire::test(ApplicationFlags::class, ['applicationId' => $application->id])
-            ->assertSee(__('recruitment-applicant.flags.types.red'))
-            ->assertSee(__('recruitment-applicant.flags.categories.ethics'))
-            ->assertSee('Needs an HR follow-up before progressing.')
-            ->call('discardFlag', $red->id)
-            ->assertHasNoErrors();
-
-        $this->assertDatabaseMissing('recruitment_application_flags', ['id' => $red->id]);
-        $this->assertDatabaseHas('recruitment_application_flags', ['id' => $green->id, 'type' => RecruitmentApplicationFlag::TYPE_GREEN]);
     }
 
     public function test_bulk_tagging_refuses_an_oversized_or_empty_selection(): void
@@ -348,7 +238,6 @@ class RecruitmentAtsTest extends TestCase
         }
 
         $this->assertValidationError(fn () => $tags->create($hr, 'Fine', 'chartreuse'), 'tagColor');
-        $this->assertValidationError(fn () => $tags->create($hr, 'Fine', 'neutral', 'blue_flag'), 'tagKind');
 
         foreach (['abc', '-1', 0, null, ['1'], '99999'] as $tagId) {
             $this->assertValidationError(fn () => $tags->attach($hr, $application, $tagId), 'tagId');

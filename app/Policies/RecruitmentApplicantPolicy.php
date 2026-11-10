@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\RecruitmentApplicant;
-use App\Models\RecruitmentApplicationParticipant;
 use App\Models\User;
 use App\Services\RecruitmentScopeResolver;
 use Illuminate\Auth\Access\Response;
@@ -14,20 +13,12 @@ class RecruitmentApplicantPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasActivePermission('recruitment-applicants.view')
-            || RecruitmentApplicationParticipant::query()
-                ->current()
-                ->where('user_id', $user->getKey())
-                ->exists();
+        return $user->hasActivePermission('recruitment-applicants.view');
     }
 
     public function view(User $user, RecruitmentApplicant $applicant): bool
     {
-        if ($this->viewAny($user) && $this->scopes->canAccessApplicant($user, $applicant)) {
-            return true;
-        }
-
-        return $applicant->currentReviewParticipants()->where('user_id', $user->getKey())->exists();
+        return $this->viewAny($user) && $this->scopes->canAccessApplicant($user, $applicant);
     }
 
     /**

@@ -83,7 +83,7 @@ class EmployeeLeaveBalanceExport implements FromCollection, ShouldAutoSize, With
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet): ?array
+    public function styles(Worksheet $sheet)
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

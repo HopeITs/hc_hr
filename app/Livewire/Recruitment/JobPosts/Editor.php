@@ -3,20 +3,20 @@
 namespace App\Livewire\Recruitment\JobPosts;
 
 use App\Exceptions\StaleRecruitmentDraftException;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\City;
 use App\Models\HiringCampaign;
 use App\Models\JobPost;
 use App\Models\JobPostVersion;
 use App\Models\Program;
 use App\Services\RecruitmentJobPostService;
-use App\Traits\WithAlerts;
 use DomainException;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class Editor extends Component
 {
-    use WithAlerts;
+    use WithFeedback;
 
     public HiringCampaign $campaign;
 
@@ -139,7 +139,7 @@ class Editor extends Component
         $this->hasConflict = false;
         $this->notice = __('recruitment.job_post.reloaded');
         $this->noticeType = 'info';
-        $this->infoToast($this->notice);
+        $this->toast($this->notice, 'info');
     }
 
     public function resetFromApprovedRequest(RecruitmentJobPostService $service): void
@@ -149,7 +149,7 @@ class Editor extends Component
         $this->resetValidation();
         $this->notice = __('recruitment.job_post.reset_notice');
         $this->noticeType = 'info';
-        $this->infoToast($this->notice);
+        $this->toast($this->notice, 'info');
     }
 
     public function updated(): void
@@ -262,7 +262,7 @@ class Editor extends Component
         $this->notice = $message;
         $this->noticeType = 'success';
         $this->hasConflict = false;
-        $this->successToast($message);
+        $this->toast($message);
     }
 
     private function conflict(): void
@@ -270,7 +270,7 @@ class Editor extends Component
         $this->notice = __('recruitment.job_post.conflict');
         $this->noticeType = 'error';
         $this->hasConflict = true;
-        $this->errorToast($this->notice);
+        $this->toast($this->notice, 'error');
     }
 
     private function arabicHeading(): string

@@ -26,17 +26,17 @@ class RemembersTableStateTest extends TestCase
             ->set('perPage', 25);
 
         // Same role again: restored.
-        Livewire::actingAs($user)->withHeaders(['Referer' => url('/state-test/1')])->test(StateTestTable::class)
+        Livewire::actingAs($user)->test(StateTestTable::class)
             ->assertSet('globalSearch', 'zed')->assertSet('perPage', 25);
 
         // Switch active role (different city scope): nothing of the other key comes back.
         $user = $this->activate($user, 'HR-LAT');
-        Livewire::actingAs($user)->withHeaders(['Referer' => url('/state-test/1')])->test(StateTestTable::class)
+        Livewire::actingAs($user)->test(StateTestTable::class)
             ->assertSet('globalSearch', '')->assertSet('perPage', 15);
 
         // And switching back still finds the original state, untouched.
         $user = $this->activate($user, 'HR-DMS');
-        Livewire::actingAs($user)->withHeaders(['Referer' => url('/state-test/1')])->test(StateTestTable::class)
+        Livewire::actingAs($user)->test(StateTestTable::class)
             ->assertSet('globalSearch', 'zed');
     }
 

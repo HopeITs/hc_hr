@@ -16,7 +16,7 @@ return [
         ],
         'customise' => [
             'title' => 'Make it yours',
-            'body' => 'Press Customize to pick a ready layout or switch panels on and off. Drag a panel to move it, pull its edges to resize it, and use its ⋯ menu to move or remove it. Your desk is kept for each of your roles.',
+            'body' => 'Press Customise to move, resize, hide or pin the cards, add shortcuts to the pages you use, then press Done. Your layout is kept for each of your roles.',
         ],
         'search' => [
             'title' => 'Search and act: Ctrl+K',
@@ -304,7 +304,7 @@ return [
         ],
         'row' => [
             'title' => 'A contract',
-            'body' => 'Click a row to edit it. The buttons at the far end of the row (scroll the table sideways to reach them) switch auto-renew, view, edit, add an amendment or open its amendments, renew, download the PDF, or delete.',
+            'body' => 'Click a row to edit it. The buttons at the far end of the row (scroll the table sideways to reach them) switch auto-renew, view, edit, renew, download the PDF, or delete.',
         ],
         'columns' => [
             'title' => 'Choose columns',
@@ -313,10 +313,6 @@ return [
     ],
 
     'contract-form' => [
-        'amend-locked' => [
-            'title' => 'Changed by an amendment',
-            'body' => 'This contract has an amendment in effect, so its schedule and pay change only through another amendment. The rest of the contract can still be corrected here.',
-        ],
         'assignment' => [
             'title' => 'Assignment & contract',
             'body' => 'Choose the employee, city, program and position, then the contract type and its dates. The number of free seats in the position is shown as you go.',
@@ -363,65 +359,6 @@ return [
         'export' => [
             'title' => 'Download PDF',
             'body' => 'Download the contract as a PDF, ready to print and sign.',
-        ],
-        'amendments' => [
-            'title' => 'Amendments',
-            'body' => 'A change to the hours, schedule or pay of a contract in force is made by an amendment: its own signed sheet, with a date it takes effect from. The newest one is shown open here.',
-        ],
-        'amend-add' => [
-            'title' => 'Add an amendment',
-            'body' => 'Opens the amendment page. Shown while the contract is in force and no other amendment is waiting.',
-        ],
-        'amend-terms' => [
-            'title' => 'The terms after it',
-            'body' => 'Every term the contract runs on after this amendment. What changed is outlined, with what it was beneath; the rest says "Unchanged".',
-        ],
-        'amend-actions' => [
-            'title' => 'From draft to in effect',
-            'body' => 'Export the sheet as a PDF, have it signed, attach the signed copy, then Approve. From its date the new terms apply to pay, hours and leave, and leave keeps the same days left. A draft can be edited or deleted; one approved but not yet in effect can be cancelled; one in effect cannot be deleted, so correct it with a new amendment.',
-        ],
-        'amend-earlier' => [
-            'title' => 'Earlier amendments',
-            'body' => 'Older amendments fold into one line each, naming what changed. Open one to see its terms and its sheets. Only the newest in effect reads "In effect".',
-        ],
-        'as-signed' => [
-            'title' => 'The contract as signed',
-            'body' => 'The contract below stays exactly as it was signed. Its current hours and pay are the ones in the amendments.',
-        ],
-    ],
-
-    'contract-amend' => [
-        'intro' => [
-            'title' => 'Contract amendment',
-            'body' => 'Change the hours, schedule or pay of this contract from a given date. Saving prepares a sheet to print and sign; the contract itself changes only once the amendment is approved.',
-        ],
-        'previous' => [
-            'title' => 'Already amended',
-            'body' => 'This contract has amendments in effect. The last one is named here with what it changed: the new amendment starts from those terms and cannot take effect before its date.',
-        ],
-        'schedule' => [
-            'title' => 'Schedule',
-            'body' => 'Opened on the current terms. Change only what changes: working days and hours, a second shift, or a flexible schedule. Continue moves to the next step.',
-        ],
-        'pay' => [
-            'title' => 'Pay',
-            'body' => 'The salary or the pay conditions, if they change. Leave them as they are otherwise.',
-        ],
-        'amendment' => [
-            'title' => 'Date and reason',
-            'body' => 'The date the change takes effect, as written on the signed sheet; it may be in the past. Then full or part time, and an optional reason shown on the contract page.',
-        ],
-        'card' => [
-            'title' => 'Now and new',
-            'body' => 'The current terms beside what the amendment makes of them, so you can check the change before saving.',
-        ],
-        'save' => [
-            'title' => 'Save the amendment',
-            'body' => 'Saves a draft. Nothing changes yet on the contract, its pay or its leave.',
-        ],
-        'next' => [
-            'title' => 'Then',
-            'body' => 'On the contract page: export the sheet as a PDF, have it signed, attach the signed copy and approve. When the working day changes, leave balances keep the same number of days left.',
         ],
     ],
 

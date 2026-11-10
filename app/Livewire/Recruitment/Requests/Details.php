@@ -4,8 +4,7 @@ namespace App\Livewire\Recruitment\Requests;
 
 use App\Enums\RecruitmentEventType;
 use App\Enums\RecruitmentRequestStatus;
-use App\Livewire\Concerns\SubmitsRecruitmentRequests;
-use App\Livewire\Features\SupportToasts;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\ContractType;
 use App\Models\Department;
@@ -24,13 +23,14 @@ use App\Services\RecruitmentRequestApplicationService;
 use App\Services\RecruitmentRequestSubmissionService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Details extends Component
 {
-    use SubmitsRecruitmentRequests;
+    use WithFeedback;
 
     #[Locked]
     public int $requestId;
@@ -85,9 +85,20 @@ class Details extends Component
         $request = $this->resolve();
         Gate::authorize('submit', $request);
 
-        // A refusal is toasted rather than left in the error bag: this screen
-        // is not the form and renders none of the data.* keys it is raised on.
-        $this->submitRecruitmentRequest($request, $submissions);
+        try {
+            $submissions->submit(auth()->user(), $request);
+        } catch (ValidationException $e) {
+            // Every refusal the service raises is keyed to a form field —
+            // data.position_id, data.salary_amount — and this screen is not the
+            // form, so it has no outlet for any of them. The message went into
+            // the error bag and nowhere else, and the button simply did nothing.
+            // Saying it out loud is the only way the requester learns why.
+            $this->refuse($e);
+
+            return;
+        }
+
+        $this->toast(__('recruitment.submitted'));
     }
 
     /** Cancel while the request is still the requester's to withdraw. */
@@ -189,7 +200,7 @@ class Details extends Component
 
         $this->toast(
             __($applied ? 'recruitment.executed' : 'recruitment.execution_failed'),
-            success: $applied,
+            $applied ? 'success' : 'error',
         );
     }
 
@@ -256,6 +267,21 @@ class Details extends Component
     }
 
     /**
+     * Report a refusal the requester can act on.
+     *
+     * Every message, not the first: a submission can fail on several counts at
+     * once — three unfilled fields, or a duplicate and a stale scope together —
+     * and fixing one to be told about the next is a worse experience than being
+     * told all of them now.
+     */
+    private function refuse(ValidationException $e): void
+    {
+        $messages = collect($e->errors())->flatten()->unique()->values();
+
+        $this->toast($messages->implode(' '), 'error');
+    }
+
+    /**
      * Requests on this same position that were rejected before (D61).
      *
      * Rejection and cancellation release the position at once (D54), so the
@@ -307,21 +333,5 @@ class Details extends Component
         Gate::authorize('view', $request);
 
         return $request;
-    }
-
-    /**
-     * Say what happened, the way the rest of the application says it.
-     *
-     * A toast rather than a coloured panel: the panel pushed the page down on
-     * every save, and a red or green block across a form reads as part of the
-     * form rather than as a remark about it.
-     */
-    private function toast(string $message, bool $success = true): void
-    {
-        SupportToasts::queue($this, [
-            'type' => $success ? 'success' : 'error',
-            'message' => $message,
-            'undo' => null,
-        ]);
     }
 }

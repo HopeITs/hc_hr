@@ -76,6 +76,8 @@ class CreateChoiceTest extends TestCase
         $user = $this->makeUser($this->city(), 'clerk', ['employees.create']);
         $this->mock(Assistant::class, function (MockInterface $mock) {
             $mock->shouldReceive('isAvailable')->andReturn(true);
+            $mock->shouldReceive('hasServerModel')->andReturn(true);
+            $mock->shouldReceive('usesBrowser')->andReturn(false);
             $mock->shouldReceive('reply')->andReturn(new AssistantReply('Here or on the page?', [
                 'kind' => 'employee', 'label' => 'Employee', 'url' => route('employees.create'), 'chat' => true,
             ], 'choice'));

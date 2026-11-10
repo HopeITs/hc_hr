@@ -36,7 +36,6 @@ class HiringCampaignService
     public function __construct(
         private readonly HiringCampaignStateMachine $states,
         private readonly RecruitmentApplicationFormService $applicationForms,
-        private readonly HiringCampaignNotifier $notifier,
     ) {}
 
     /**
@@ -141,9 +140,7 @@ class HiringCampaignService
      */
     public function launch(User $actor, HiringCampaign $campaign): HiringCampaign
     {
-        $launched = false;
-
-        $campaign = $this->act($actor, $campaign, 'publish', function (HiringCampaign $locked) use ($actor, &$launched) {
+        return $this->act($actor, $campaign, 'publish', function (HiringCampaign $locked) use ($actor) {
             if ($this->states->hasEnded($locked)) {
                 throw $this->refuse('campaign', 'recruitment-campaign.window_has_ended');
             }
@@ -152,22 +149,14 @@ class HiringCampaignService
 
             if ((int) $locked->status === Status::Draft) {
                 $this->transition($locked, $actor, 'publish', 'published');
-                $launched = true;
             }
 
             if ((int) $locked->status === Status::Published && $this->states->hasStarted($locked)) {
                 $this->transition($locked, $actor, 'open', 'opened');
-                $launched = true;
             }
 
             return $locked;
         });
-
-        if ($launched && ($campaign->isInternal() || $campaign->isInvitationOnly())) {
-            $this->notifier->notifyLaunched($campaign);
-        }
-
-        return $campaign;
     }
 
     /**

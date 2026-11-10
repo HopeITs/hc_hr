@@ -8,7 +8,6 @@ use App\Models\OffboardingJourney;
 use App\Models\Position;
 use App\Models\User;
 use App\Services\ChecklistWorkflow;
-use App\Services\ContractAmendmentService;
 use App\Services\OffboardingJourneys;
 use App\Support\StatisticsCache;
 use Illuminate\Support\Facades\DB;
@@ -145,12 +144,6 @@ class ContractObserver
             app(OffboardingJourneys::class)->startForDeparture($contract, $trigger, $actor instanceof User ? $actor : null);
         }
 
-        // Terminated, or its term shortened: an amendment approved for a date
-        // the contract no longer reaches is cancelled now, not left waiting.
-        if ($contract->wasChanged(['terminated_at', 'termination_reason_id', 'end_date'])) {
-            app(ContractAmendmentService::class)->cancelForEndedContract($contract);
-        }
-
         // exist_emp counts the position's active, non-draft contracts. Every
         // way a write can change that — a termination or the nightly
         // deactivation switching is_active off (E4/R3), a reactivation, a
@@ -175,16 +168,6 @@ class ContractObserver
         if ($claimId !== null) {
             $locked->get($claimId)?->inc();
         }
-    }
-
-    /**
-     * Delete the amendments one by one before the row goes. The foreign key's
-     * cascade would remove them too, but in the database alone: their signed
-     * copies (media on the private disk) would stay behind, files included.
-     */
-    public function deleting(Contract $contract): void
-    {
-        $contract->amendments()->get()->each->delete();
     }
 
     public function deleted(Contract $contract): void

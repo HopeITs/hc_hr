@@ -225,10 +225,10 @@ class RecruitmentFieldLockTest extends TestCase
         $this->assertContains('weekly_hours', $selectable);
         $this->assertContains('salary_amount', $selectable);
         $this->assertNotContains('request_type', $selectable);
-        $expected = array_values(array_diff(array_keys($payload), ['request_type']));
-        sort($expected);
-        sort($selectable);
-        $this->assertSame($expected, $selectable);
+        $this->assertEqualsCanonicalizing(
+            array_diff(array_keys($payload), ['request_type']),
+            $selectable,
+        );
     }
 
     /**

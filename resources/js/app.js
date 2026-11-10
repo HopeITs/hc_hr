@@ -57,15 +57,6 @@ import './help-panel.js';
 // Prompt 10: Ctrl+K commands, "g then a letter" and the "?" list of shortcuts.
 import './commands.js';
 
-// "Install the app": header link, layout banner and settings.app (x-data="pwaInstall").
-import './pwa-install.js';
-
-// Team staffing chart: tidy-tree layout, pan / zoom / find (x-data="staffingTree").
-import './staffing-tree.js';
-
-// Web Push on this device (x-data="pushDevice"), page-load sync and the bell's chime.
-import './push-notifications.js';
-
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
 import 'flowbite';
@@ -73,7 +64,7 @@ import 'flowbite';
 /**
  * Chart.js stays eagerly loaded and exposed on `window`.
  *
- * Four Blade views (the dashboard statistic cards) call `new Chart(...)` from
+ * Five Blade views (the dashboard statistic cards) call `new Chart(...)` from
  * inline <script> blocks that execute during parse, so the constructor must
  * already be present — a dynamic import would resolve too late. Only the
  * controllers, elements and scales those views actually use are registered,
@@ -128,6 +119,9 @@ import './employee-autosave.js';
 
 // Typed examples in empty fields' placeholders (data-typewriter).
 import './typewriter.js';
+
+// The assistant's browser-side model (Puter.js), loaded only when used.
+import './assistant-puter.js';
 
 import './password-toggle.js';
 import './password-strength.js';

@@ -15,7 +15,6 @@
         "livewire/volt": "^1.11",
         "maatwebsite/excel": "^4.0",
         "mcamara/laravel-localization": "^2.4",
-        "minishlink/web-push": "^11.0",
         "predis/predis": "^3.6",
         "ramonrietdijk/livewire-tables": "^6.5",
         "spatie/browsershot": "^5.4",
@@ -70,7 +69,8 @@
         ],
         "test": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -r \"passthru(escapeshellarg(PHP_BINARY).' artisan config:clear --ansi'); passthru(implode(' ', array_map('escapeshellarg', array_merge([PHP_BINARY, 'artisan', 'test'], array_slice($argv, 1)))), $code); passthru(escapeshellarg(PHP_BINARY).' artisan config:cache --ansi'); exit($code);\" -- @additional_args"
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
         ]
     },
     "extra": {

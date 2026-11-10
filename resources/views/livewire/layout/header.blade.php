@@ -25,9 +25,8 @@
         item, so it was the thing that silently went off-screen (x:-51 at 375px).
         At 420px the row needed 397px inside a 380px box. sm and up is untouched.
     --}}
-    {{-- md+: a fixed 72px row, matched by the sidebar's logo row (sidebar.blade.php). --}}
-    <div class="px-2 py-[11px] sm:px-3 lg:px-4 lg:ps-3 md:py-0 md:h-18 md:flex md:items-center">
-        <div class="w-full flex items-center justify-end gap-1.5 sm:gap-3 md:pe-0 sm:pe-4">
+    <div class="px-2 py-[11px] sm:px-3 lg:px-4 lg:ps-3">
+        <div class="flex items-center justify-end gap-1.5 sm:gap-3 md:pe-0 sm:pe-4">
             <button wire:click="$dispatch('sidebar.toggle')" type="button"
                 class="grid size-11 place-items-center md:size-auto sm:p-2 shrink-0 transition bg-transparent border border-transparent cursor-pointer md:hidden me-auto text-heading text-ink-2 hover:text-ink rounded-base">
                 <span class="sr-only">{{ __('general.a11y.open-sidebar') }}</span>
@@ -36,13 +35,13 @@
                     <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10" />
                 </svg>
             </button>
-            {{-- C2: search pages and people, and (md+) start a task. Phones start
-                 one from the bottom bar's + instead (partials/new-menu). --}}
+            {{-- C2: search pages and people, and start a task. --}}
             <livewire:layout.global-search />
             @include('livewire.layout.partials.new-menu', ['actions' => \App\Support\Navigation::newActions($user)])
 
             {{-- Island 1: language segmented (EN | AR). On phones only the other
-                 language is shown (C2): the row has to fit 320px. --}}
+                 language is shown (C2): with search and New in the row, two
+                 buttons here pushed the menu button off the screen. --}}
             <div class="flex items-center shrink-0 rounded-[18px] bg-soft p-0.5 sm:p-1">
                 <a href="{{ $enUrl }}"
                     class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-card text-ink shadow-e1 max-sm:hidden' : 'text-ink-2 font-semibold hover:text-ink' }}"
@@ -148,25 +147,6 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 10V7a4 4 0 0 1 8 0v3" />
                                 </svg>
                                 <span>@lang('general.my-account')</span>
-                            </a>
-
-                            {{-- "Install the app" (pwa-install.js): hidden when this already is the installed app. --}}
-                            <a href="{{ route('settings.app') }}" wire:navigate data-install-app-link
-                                x-data="pwaInstall" x-show="!installed"
-                                class="flex items-center gap-3 px-3 py-2 text-body font-medium text-ink transition rounded-surface hover:bg-hover hover:shadow-e1">
-                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
-                                    <path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3" />
-                                </svg>
-                                <span>@lang('pwa.menu')</span>
-                            </a>
-
-                            {{-- Notification preferences, devices and push (docs/notifications/architecture.md). --}}
-                            <a href="{{ route('settings.notifications') }}" wire:navigate data-notification-settings-link
-                                class="flex items-center gap-3 px-3 py-2 text-body font-medium text-ink transition rounded-surface hover:bg-hover hover:shadow-e1">
-                                <x-ic name="bell" class="size-4" />
-                                <span>@lang('notification-settings.menu')</span>
                             </a>
 
                             {{-- D3, phones only: the header's help button does not fit there. Same panel, no request. --}}

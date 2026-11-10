@@ -10,6 +10,7 @@ use App\Livewire\Recruitment\Requests\RequestTable;
 use App\Models\City;
 use App\Models\RecruitmentRequest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesHrFixtures;
@@ -41,7 +42,8 @@ class RecruitmentRequestScreensTest extends TestCase
         Livewire::actingAs($user)->test(RequestTable::class)
             ->assertSee('RR-LOCAL')->assertDontSee('RR-OUTSIDE');
         Livewire::test(Details::class, ['requestId' => $allowed->id])->assertSee('RR-LOCAL');
-        Livewire::test(Details::class, ['requestId' => $outside->id])->assertNotFound();
+        $this->expectException(ModelNotFoundException::class);
+        Livewire::test(Details::class, ['requestId' => $outside->id]);
     }
 
     public function test_assigned_governorate_is_visible_to_hr_latakia(): void
@@ -65,7 +67,8 @@ class RecruitmentRequestScreensTest extends TestCase
 
         $request->update(['scope_city_id' => $otherCity->id]);
 
-        $screen->call('$refresh')->assertNotFound();
+        $this->expectException(ModelNotFoundException::class);
+        $screen->call('$refresh');
     }
 
     public function test_details_escape_comments_and_display_the_recorded_timeline(): void
@@ -124,7 +127,8 @@ class RecruitmentRequestScreensTest extends TestCase
             ->assertSee('Latest title')->assertDontSee('Earlier title')
             ->set('versionId', $first->id)->assertSee('Earlier title')->assertDontSee('Latest title');
         $this->assertSame('Earlier title', $first->positionDetail->fresh()->role_title_en);
-        $screen->set('versionId', $foreign->id)->assertNotFound();
+        $this->expectException(ModelNotFoundException::class);
+        $screen->set('versionId', $foreign->id);
     }
 
     private function request(City $city, User $user, string $number): RecruitmentRequest

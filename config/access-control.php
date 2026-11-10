@@ -103,7 +103,7 @@ return [
             'recruitment-job-posts.view', 'recruitment-forms.view',
             'recruitment-links.view',
             // General managers endorse applicants for their campaigns.
-            'recruitment-applicants.view', 'recruitment-applicants.endorse', 'recruitment-applicants.tag',
+            'recruitment-applicants.view', 'recruitment-applicants.endorse',
             // Read-only, across every city like HR-SYR: see Badge::scopeVisibleTo().
             'badges.view',
         ],
@@ -128,7 +128,7 @@ return [
             'recruitment-requests.request-changes', 'recruitment-requests.export',
             // Managers see and endorse applicants for their campaigns.
             'recruitment-vacancies.view', 'recruitment-campaigns.view',
-            'recruitment-applicants.view', 'recruitment-applicants.endorse', 'recruitment-applicants.tag',
+            'recruitment-applicants.view', 'recruitment-applicants.endorse',
         ],
         'employee' => [
             'programs.view', 'centers.view', 'positions.view', 'leaves.view-own',
@@ -142,7 +142,7 @@ return [
         'access-management' => ['view', 'manage-employees', 'manage-roles', 'manage-permissions'],
         'statistics' => ['view'],
         'employees' => ['view', 'create', 'update', 'delete', 'export'],
-        'contracts' => ['view', 'create', 'update', 'delete', 'export', 'amend'],
+        'contracts' => ['view', 'create', 'update', 'delete', 'export'],
         'programs' => ['view', 'create', 'update', 'delete'],
         'centers' => ['view', 'create', 'update', 'delete', 'export'],
         'positions' => ['view', 'create', 'update', 'delete', 'export'],
@@ -366,21 +366,6 @@ return [
             'leavePreview' => 'contracts.create',
             'draftContractFor' => 'contracts.create',
         ],
-        // The amendment page and the amendments card on a contract. Every one of
-        // these re-runs ContractPolicy (amend / decideAmendment /
-        // attachSignedAmendment) on the record, which is the HR-only and
-        // city-scope control; the permission here is the coarse gate.
-        'contract.contract-amend' => [
-            'submit' => 'contracts.amend',
-            'leavePreview' => 'contracts.amend', // returns null, reads nothing
-        ],
-        'contract.contract-amendments' => [
-            'askApprove' => 'contracts.amend',
-            'approve' => 'contracts.amend',
-            'askDiscard' => 'contracts.amend',
-            'discard' => 'contracts.amend',
-            'updatedSignedFiles' => 'contracts.amend',
-        ],
         'contract.contract-edit' => [
             'submit' => 'contracts.update',
             'locationOptions' => 'contracts.update',
@@ -481,15 +466,7 @@ return [
         // request() asks the update policy (manage + scope + ownership) on
         // every call, save included.
         'recruitment.requests.edit' => ['save' => 'recruitment-requests.manage'],
-        // Lifecycle actions: each re-loads the record, re-runs NewsAccess::canManage
-        // and re-checks the item's derived state before writing.
-        'news.news-table' => [
-            'delete' => 'news.delete',
-            'publishNow' => 'news.update',
-            'unpublish' => 'news.update',
-            'archive' => 'news.update',
-            'restore' => 'news.update',
-        ],
+        'news.news-table' => ['delete' => 'news.delete'],
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
             'openDecision' => 'leaves.decide', 'submitDecision' => 'leaves.decide',
@@ -607,27 +584,6 @@ return [
             'confirmDelete' => 'recruitment-applicants.delete-notes',
             'deleteNote' => 'recruitment-applicants.delete-notes',
         ],
-        'recruitment.applicants.applicant-profile-access' => [
-            'addParticipant' => 'recruitment-applicants.manage',
-            'removeParticipant' => 'recruitment-applicants.manage',
-        ],
-        'recruitment.applicants.application-review-panel' => [
-            'addParticipant' => 'recruitment-applicants.manage',
-            'removeParticipant' => 'recruitment-applicants.manage',
-        ],
-        'recruitment.applicants.bulk-review-participants' => [
-            'open' => 'recruitment-applicants.manage',
-            'apply' => 'recruitment-applicants.manage',
-        ],
-        'recruitment.applicants.application-flags' => [
-            'create' => 'recruitment-applicants.tag',
-            'discardFlag' => 'recruitment-applicants.tag',
-        ],
-        'recruitment.applicants.index' => ['finalizeSingleCandidate' => 'recruitment-applicants.change-status'],
-        'recruitment.interviews.calendar' => [
-            'startScheduling' => 'recruitment-applicants.schedule-interviews',
-            'continueScheduling' => 'recruitment-applicants.schedule-interviews',
-        ],
         // Phase 2 Task 7. Each method re-resolves the interview through
         // RecruitmentInterview::visibleTo() and asks the policy (manage /
         // schedule, scope included) again; the service authorizes a third time.
@@ -637,8 +593,6 @@ return [
             'cancelInterview' => 'recruitment-applicants.schedule-interviews',
             'beginOutcome' => 'recruitment-applicants.schedule-interviews',
             'recordOutcome' => 'recruitment-applicants.schedule-interviews',
-            'uploadAttachment' => 'recruitment-applicants.schedule-interviews',
-            'discardAttachment' => 'recruitment-applicants.schedule-interviews',
         ],
         // Phase 2 Task 8. Each method re-resolves the interview and the
         // evaluation through the scoped query and asks the policy again; the
@@ -649,8 +603,6 @@ return [
             'beginWithdraw' => 'recruitment-applicants.correct-evaluations',
             'withdraw' => 'recruitment-applicants.correct-evaluations',
             'closeEvaluations' => 'recruitment-applicants.schedule-interviews',
-            'beginNote' => 'recruitment-applicants.add-notes',
-            'addNote' => 'recruitment-applicants.add-notes',
         ],
         // Phase 2 Task 9. Each method re-resolves the offer through the scoped
         // query and asks the policy (manage: permission + scope +
@@ -664,8 +616,6 @@ return [
             'recordResponse' => 'recruitment-applicants.manage-offers',
             'beginCancel' => 'recruitment-applicants.manage-offers',
             'cancelOffer' => 'recruitment-applicants.manage-offers',
-            'uploadResponseEvidence' => 'recruitment-applicants.manage-offers',
-            'discardResponseEvidence' => 'recruitment-applicants.manage-offers',
         ],
         // Phase 2 Task 10. save() re-resolves the offer through the scoped
         // query and asks the policy (convert) again; the service authorizes a
@@ -700,8 +650,6 @@ return [
     */
 
     'livewire_exempt' => [
-        // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
-        'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
         'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
         // The same resets, inherited from Create (Edit pins the type back to
@@ -732,14 +680,9 @@ return [
         ],
         // Close an open panel; they clear component state and touch no record.
         'recruitment.applicants.show' => ['cancelStatusChange', 'cancelArchive'],
-        // Reviewer access is checked by policy and the review service for each saved assessment.
-        'recruitment.applicants.application-review-panel' => ['saveReview', 'reloadReview'],
-        'recruitment.applicants.bulk-review-participants' => ['cancel'],
-        'recruitment.applicants.application-flags' => ['updatedCategory'],
         // Filter clicks on the status / endorsement counters; render() asks
         // viewAny and counts through visibleTo().
-        'recruitment.applicants.index' => ['filterByStatus', 'filterByEndorsementGroup', 'filterByEvaluationRecommendation'],
-        'recruitment.campaigns.index' => ['filterByStatus'],
+        'recruitment.applicants.index' => ['filterByStatus', 'filterByEndorsementGroup'],
         // cancelRename clears the rename form (component state only).
         'recruitment.applicants.tag-manager' => ['cancelRename'],
         // refreshTags re-renders through the same scoped lookup.
@@ -752,10 +695,10 @@ return [
         // selectTable() reads ids through the same scoped, filtered query.
         // executeAction/executeItemAction authorize their action code by policy.
         'recruitment.applicants.application-table' => [
-            'refreshDecisions', 'refreshFlags', 'refreshReviewAccess', 'selectTable', 'executeAction', 'executeItemAction',
+            'refreshDecisions', 'selectTable', 'executeAction', 'executeItemAction',
             // Filter changes and the tag refresh: they clear the selection and
             // reset the page; rows still come from query() -> visibleTo().
-            'refreshTags', 'filterByStatus', 'updatedStageStatus', 'updatedCampaignFilter', 'updatedEvaluationRecommendation',
+            'refreshTags', 'filterByStatus', 'updatedStageStatus', 'updatedCampaignFilter',
         ],
         'recruitment.applicants.bulk-reject' => ['cancel'],
         // Phase 2 Task 7. Form-only state: the participant list is validated
@@ -777,7 +720,7 @@ return [
         // expiry field to the campaign's own end date (form state only).
         'recruitment.public-links.manager' => ['refreshCampaign', 'refreshCampaignStatus', 'useCampaignExpiry'],
         // Month navigation; re-renders through the same visibleTo() query.
-        'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth', 'cancelScheduling', 'updatedCampaignId'],
+        'recruitment.interviews.calendar' => ['previousMonth', 'nextMonth', 'thisMonth'],
         // Phase 2 Task 8. save() writes the caller's OWN evaluation, which
         // needs no permission — the grant is being a current participant in a
         // reviewer role, checked by the evaluate policy in the component and
@@ -809,12 +752,6 @@ return [
         // is already assigned to this user; it grants nothing new.
         'auth.role-switcher' => ['switchTo', 'refreshRoles'],
         'settings.password' => ['updatePassword'],
-        // The caller's own notification preferences and devices: every device
-        // action goes through auth()->user()->pushSubscriptions(), so another
-        // user's id is a 404; sendTest is throttled per user.
-        'settings.notification-settings' => ['devices', 'removeDevice', 'renameDevice', 'sendTest', 'setDeviceEnabled', 'setDeviceUrgentOnly', 'testDevice',
-            // Livewire's own updated* hooks for the nested prefs / matrix / working days; each validates and saves only this user's row.
-            'updatedMatrix', 'updatedPrefs', 'updatedWorkingDays'],
 
         // --- Confirmation dialogs -------------------------------------------
         // These only render a "are you sure?" prompt. The action it confirms
@@ -855,14 +792,7 @@ return [
         ],
         // Closing the read-only drawer only clears its own locked id.
         'contract.contract-drawer' => ['close'],
-        // confirm* only open the confirm dialog (each still 403s an item the caller may not
-        // manage); setStateFilter / clearAllFilters change the caller's own view state and only
-        // narrow query(); renderEmptyState / stateAnnouncement / cardView render text;
-        // retryLoad re-renders. No writes.
-        'news.news-table' => [
-            'confirmDelete', 'confirmPublishNow', 'confirmUnpublish', 'confirmArchive',
-            'setStateFilter', 'clearAllFilters', 'renderEmptyState', 'stateAnnouncement', 'cardView', 'retryLoad',
-        ],
+        'news.news-table' => ['confirmDelete'],
         'position.position-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.center.centers-table' => ['confirmDelete', 'confirmToggleItemStatus'],
         'program-management.default-deliverable.default-deliverables-table' => ['confirmDelete'],
@@ -919,20 +849,11 @@ return [
         // reportLost belongs to the card's owner, who holds no HR permission,
         // and manage is city-scoped HR, which a permission cannot express.
         'employee-cards.manage-digital-id' => ['reissue', 'disable', 'enable', 'reportLost'],
-        // saveDraft() and publish() authorize before writing (NewsAccess::canCreate
-        // for a new item, canManage for the edited one). openPreview() runs the same
-        // check, then only validates and renders: it never writes; closePreview()
-        // only hides it. The updatedForm* hooks only clear dependent form
-        // selections; they neither read a record nor persist data. Tags are added
-        // and removed in the browser only (an entangled array), no server method.
-        'news.news-create' => ['saveDraft', 'publish', 'openPreview', 'closePreview',
-            'updatedFormAudienceType', 'updatedFormType', 'updatedFormPublishMode',
+        // updatedFormNewsableType() only clears dependent form selections;
+        // it does not read a record or persist data. save() authorizes before writing.
+        'news.news-create' => ['save', 'updatedFormNewsableType',
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
-        // The details page / preview is read-only. updatedLocale() is UI-only:
-        // it clamps the article language to en|ar for the preview switch; the
-        // item was authorized in mount() (NewsAccess) and is #[Locked].
-        'news.news-show' => ['updatedLocale'],
         // Also runs assertCityIsAuthorized() and a Gate check on the city.
         'program-management.center.centers-module' => ['save', ...$closeGuard],
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
@@ -950,11 +871,6 @@ return [
             // Read-only, self-scoped: prices the typed window against a balance
             // of the signed-in employee's own active contract; writes nothing.
             'leaveImpact',
-            // Guided form: read-only and self-scoped. leaveChoices/activeCategory list
-            // LeaveEligibility::requestableBalances() for the signed-in employee;
-            // requestPeriod formats the typed dates; updatedLeaveCategory only sets
-            // form.leave_balance_id to one of those balances (the save validates it again).
-            'leaveChoices', 'activeCategory', 'requestPeriod', 'updatedLeaveCategory',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
@@ -1065,9 +981,8 @@ return [
         'dashboard.department-employee-statistics' => ['retryLoad', 'placeholder'],
         // saveLayout/resetLayout (HasDashboardLayout) are self-scoped: only the caller's
         // own row for the active role, cleaned so a tile the role may not have is dropped.
-        // addTile is saveLayout followed by a render (the tile being added was never drawn);
-        // applyPreset writes one of DashboardLayout::presets() into that same row.
-        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile', 'applyPreset'],
+        // addTile is saveLayout followed by a render (the tile being added was never drawn).
+        'dashboard.index' => ['retryLoad', 'saveLayout', 'resetLayout', 'addTile'],
         'dashboard.job-level-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.salary-per-employee-statistics' => ['retryLoad', 'placeholder'],
         'dashboard.upcoming-leaves-card' => ['retryLoad', 'placeholder'],
@@ -1090,9 +1005,11 @@ return [
         // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.
         'dashboard.clock-card' => ['retryLoad', 'placeholder'],
         // The late band and decision cards read the caller's own WorkInbox::shared
-        // snapshot and Contract::visibleTo().
+        // snapshot and Contract::visibleTo(); a big shortcut's card re-checks its key
+        // against DashboardLayout::allowed() on every render and keeps its page's scope.
         'dashboard.late-card' => ['retryLoad', 'placeholder'],
         'dashboard.decisions-card' => ['retryLoad', 'placeholder'],
+        'dashboard.app-card' => ['retryLoad', 'placeholder'],
         // skipDraft is pure navigation (a redirect, no data read or write) and
         // updatedDraftCityId/updatedDraftProgramId only reset the draft
         // cascade's own in-memory selections — the same class as
@@ -1127,9 +1044,12 @@ return [
         // type (leave, news, employee, contract...), which re-checks the caller's
         // permission and re-validates it exactly as that record's create screen
         // does. cancelDraft() only marks that draft discarded. placeholder() is the lazy panel's loading markup.
+        // relayStep()/relayFailed() continue a question send() handed to the
+        // browser (Puter.js): only the relay id held in the session is
+        // accepted, and the tools the model calls still run as this user.
         // openConversation()/deleteConversation() act only on the signed-in user's own
         // saved conversations (AssistantConversation::ownedBy).
-        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'openConversation', 'deleteConversation'],
+        'assistant.chat' => ['send', 'clear', 'confirmDraft', 'cancelDraft', 'placeholder', 'relayStep', 'relayFailed', 'openConversation', 'deleteConversation'],
         // C2 header search: a lifecycle hook (Livewire refuses direct calls to updated*) that only
         // trims the term and counts it against the per-user search limit. Results come from
         // DirectoryAccess::constrain() and the active role's menu on every render.

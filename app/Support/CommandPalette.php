@@ -59,7 +59,7 @@ final class CommandPalette
             $command = match ($id) {
                 'theme' => self::make($id, 'theme'),
                 'locale' => $otherLocaleUrl ? self::make($id, 'locale', $otherLocaleUrl) : null,
-                // ?customise=1 opens the dashboard with its Customize sheet open.
+                // Prompt 4 opens the dashboard straight into its customise mode on ?customise=1.
                 'customise' => self::make($id, 'open', route('dashboard', ['customise' => 1])),
                 'shortcuts' => self::make($id, 'shortcuts'),
             };

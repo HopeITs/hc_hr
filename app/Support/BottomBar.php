@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\View;
  * them before the raised + (the New sheet) and the rest after it, then More
  * (the whole menu in a sheet); see Livewire\Layout\BottomNav.
  *
- * What may sit on it: Home, My profile and the role's shortcuts
+ * What may sit on it: Home, My profile and the dashboard's shortcuts
  * (DashboardLayout::apps(): the pages of the active role's menu and what its
- * New menu may start), keyed "app.<id>" (app.nav.hr.employees, app.new.leave).
- * A person may choose their four in the dashboard's Customize sheet
- * (My panels) on a phone (<livewire:layout.bottom-bar-picker>, NavigationMemory). A
+ * New menu may start), keyed like the dashboard's tiles (app.nav.hr.employees,
+ * app.new.leave). A person may choose their four in the dashboard's customise
+ * mode on a phone (<livewire:layout.bottom-bar-picker>, NavigationMemory). A
  * place whose page the role cannot open is filled from the default bar, the
  * one D2 has always shown: Home, My leaves, Work inbox, Team calendar, My
  * profile, the first four the role has.
@@ -116,7 +116,7 @@ final class BottomBar
 
     private static function home(): array
     {
-        return self::entry(self::HOME, __('general.dashboard'), 'dashboard', 'home', ['dashboard']);
+        return self::entry(self::HOME, __('general.dashboard'), 'dashboard', 'home', ['dashboard', 'employee.dashboard']);
     }
 
     private static function profile(): array

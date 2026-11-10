@@ -31,11 +31,11 @@ class EmployeeTableB4Test extends TestCase
         $regional = $this->makeUser($city, 'HR-DMS', ['employees.view']);
 
         Livewire::actingAs($nationwide)->test(EmployeeTable::class)
-            ->assertSet('columns', fn (array $c) => array_slice($c, 0, 5) === ['employee', 'direct_manager', 'work_email', 'is_active', 'city']
+            ->assertSet('columns', fn (array $c) => array_slice($c, 0, 5) === ['employee', 'direct_manager', 'work_email', 'is_active', 'city_name_en']
                 && ! array_intersect(['id', 'account', 'years_of_service_formatted', 'joined_at', 'photo'], $c));
 
         Livewire::actingAs($regional)->test(EmployeeTable::class)
-            ->assertSet('columns', fn (array $c) => ! in_array('city', $c, true) && in_array('employee', $c, true));
+            ->assertSet('columns', fn (array $c) => ! in_array('city_name_en', $c, true) && in_array('employee', $c, true));
     }
 
     public function test_identity_cell_shows_name_position_and_the_internal_avatar_url(): void
@@ -160,7 +160,7 @@ class EmployeeTableB4Test extends TestCase
             ->call('close')->assertSet('employeeId', null);
 
         // Same table again (return to the list): everything is where it was.
-        $again = Livewire::actingAs($user)->withHeaders(['Referer' => route('employees.index')])->test(EmployeeTable::class);
+        $again = Livewire::actingAs($user)->test(EmployeeTable::class);
         $this->assertSame($state, [$again->get('globalSearch'), $again->get('sortColumn'), $again->get('sortDirection'), $again->get('paginators.page')]);
     }
 
@@ -172,14 +172,14 @@ class EmployeeTableB4Test extends TestCase
         $user = $this->assignInactiveRole($user, 'HR-LAT', ['employees.view']);
 
         Livewire::actingAs($user)->test(EmployeeTable::class)->set('globalSearch', 'secret-name');
-        Livewire::actingAs($user)->withHeaders(['Referer' => route('employees.index')])->test(EmployeeTable::class)->assertSet('globalSearch', 'secret-name');
+        Livewire::actingAs($user)->test(EmployeeTable::class)->assertSet('globalSearch', 'secret-name');
 
         foreach ($user->roles()->get() as $role) {
             $user->roles()->updateExistingPivot($role->id, ['is_active' => $role->name === 'HR-LAT']);
         }
         $user = $user->unsetRelation('roles')->fresh();
 
-        Livewire::actingAs($user)->withHeaders(['Referer' => route('employees.index')])->test(EmployeeTable::class)->assertSet('globalSearch', '');
+        Livewire::actingAs($user)->test(EmployeeTable::class)->assertSet('globalSearch', '');
     }
 
     // ------------------------------------------------------------ drawer

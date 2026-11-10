@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
-use App\Models\ContractAmendment;
 use App\Services\ContractPdfRenderer;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -58,46 +57,6 @@ class ContractExportController extends Controller
         abort_unless(auth()->user()->canAccessCity($contract->employee?->city_id), 403);
 
         return $this->renderer->view($contract);
-    }
-
-    /**
-     * The amendment sheet, to print and sign. Held to the contract export's
-     * gates (ContractPolicy::exportAmendment): the sheet carries the pay
-     * clause whenever pay changed. Same 503 contract as pdf() on failure.
-     */
-    public function amendmentPdf(Contract $contract, ContractAmendment $amendment)
-    {
-        Gate::authorize('exportAmendment', $amendment);
-
-        abort_unless(auth()->user()->canAccessCity($contract->employee?->city_id), 403);
-
-        try {
-            $pdf = $this->renderer->renderAmendment($amendment);
-        } catch (Throwable $exception) {
-            return $this->exportFailed($contract, $exception);
-        }
-
-        if (! str_starts_with($pdf, '%PDF-')) {
-            return $this->exportFailed($contract);
-        }
-
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            // Downloaded straight away: the sheet is printed and signed, not read here.
-            'Content-Disposition' => 'attachment; filename="'.$this->renderer->amendmentFileName($amendment).'"',
-        ]);
-    }
-
-    // Local-only, as preview(): the amendment sheet as plain HTML.
-    public function amendmentPreview(Contract $contract, ContractAmendment $amendment)
-    {
-        abort_unless(app()->isLocal(), 404);
-
-        Gate::authorize('exportAmendment', $amendment);
-
-        abort_unless(auth()->user()->canAccessCity($contract->employee?->city_id), 403);
-
-        return $this->renderer->amendmentView($amendment);
     }
 
     private function exportFailed(Contract $contract, ?Throwable $exception = null): Response

@@ -28,8 +28,10 @@ use Throwable;
  * inactive…) is listed before anything is typed; the service checks it again
  * on the locked rows when HR confirms.
  *
- * The hire is confirmed through the shared dialog first (confirmHire), then
- * the result appears on this page with links to the employee and contract.
+ * Like the Leaves page, the hire is confirmed in the shared confirm dialog
+ * first (confirmHire), and its result is a second dialog that stays on this
+ * page and points to what comes next: the employee page, where HR gives
+ * them a login account.
  */
 class Convert extends Component
 {
@@ -92,14 +94,13 @@ class Convert extends Component
             : null;
         $position = (string) $conversion->jobOffer?->position?->title;
 
-        $this->confirm(
-            then: 'save',
+        $this->confirm('save',
             title: __('recruitment-applicant.conversions.confirm_title', ['name' => (string) $conversion->jobOffer?->application?->applicant?->full_name]),
             message: $linked
                 ? __('recruitment-applicant.conversions.confirm_text_link', ['employee' => $linked['employee']->name, 'position' => $position])
                 : __('recruitment-applicant.conversions.confirm_text_create', ['position' => $position]),
             confirmLabel: __('recruitment-applicant.conversions.confirm'),
-            cancelLabel: __('recruitment-applicant.cancel'),
+            danger: false,
         );
     }
 
@@ -138,16 +139,22 @@ class Convert extends Component
         // a login account is made on the employee page (PersonalInfoForm).
         $conversion = $this->resolveConversion()->load(['employee.account']);
 
-        $this->toast(__('recruitment-applicant.conversions.converted').'. '
-            .__('recruitment-applicant.conversions.converted_next', ['name' => (string) $conversion->employee?->name, 'contract' => $conversion->contract_id])
+        // The dialog has one action, so it offers the usual next step (the login
+        // account); the contract is linked from the "converted" panel below.
+        $this->confirm('openEmployee',
+            title: __('recruitment-applicant.conversions.converted'),
+            message: __('recruitment-applicant.conversions.converted_next', ['name' => (string) $conversion->employee?->name, 'contract' => $conversion->contract_id])
                 .' '.($conversion->employee?->account
                     ? __('recruitment-applicant.conversions.has_account')
-                    : __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')])));
+                    : __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')])),
+            confirmLabel: __('recruitment-applicant.conversions.open_employee_edit'),
+            danger: false,
+        );
 
         return null;
     }
 
-    /** The post-hire message's buttons. Navigation only: those pages check their own permissions. */
+    /** Where the post-hire dialog leads. Navigation only: those pages check their own permissions. */
     public function openEmployee()
     {
         $conversion = $this->resolveConversion();

@@ -3,14 +3,12 @@
 namespace App\Services;
 
 use App\Enums\RecruitmentApplicationStatus;
-use App\Enums\RecruitmentEvaluationRecommendation;
 use App\Enums\RecruitmentFileScanStatus;
 use App\Models\City;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
 use App\Models\RecruitmentApplication;
-use App\Models\RecruitmentApplicationFlag;
 use App\Models\RecruitmentRequest;
 use App\Models\RecruitmentTag;
 use App\Models\User;
@@ -46,8 +44,7 @@ class RecruitmentApplicationFilters
 
     /**
      * @param  array<string, mixed>  $filters  campaign, status, city, tag, source, cv,
-     *                                         previous, endorsement_group, evaluation,
-     *                                         submitted_from, submitted_to, search
+     *                                         previous, submitted_from, submitted_to, search
      */
     public function query(User $user, array $filters = []): Builder
     {
@@ -57,13 +54,9 @@ class RecruitmentApplicationFilters
         $this->status($query, $filters['status'] ?? null);
         $this->city($query, $filters['city'] ?? null);
         $this->tag($query, $filters['tag'] ?? null);
-        $this->flagType($query, $filters['flag_type'] ?? null);
-        $this->flagCategory($query, $filters['flag_category'] ?? null);
         $this->source($query, $filters['source'] ?? null);
         $this->cv($query, $filters['cv'] ?? null);
         $this->previousApplicant($query, $filters['previous'] ?? null);
-        $this->endorsementGroup($query, $filters['endorsement_group'] ?? null);
-        $this->evaluationRecommendation($query, $filters['evaluation'] ?? null);
         $this->submittedBetween($query, $filters['submitted_from'] ?? null, $filters['submitted_to'] ?? null);
         $this->search($query, $filters['search'] ?? null);
 
@@ -123,30 +116,6 @@ class RecruitmentApplicationFilters
             ->select('recruitment_application_tags.application_id'));
     }
 
-    public function flagType(Builder $query, mixed $value): Builder
-    {
-        if (! is_string($value) || ! in_array($value, RecruitmentApplicationFlag::types(), true)) {
-            return $query;
-        }
-
-        return $query->whereExists(RecruitmentApplicationFlag::query()
-            ->select('id')
-            ->whereColumn('application_id', $query->qualifyColumn('id'))
-            ->where('type', $value));
-    }
-
-    public function flagCategory(Builder $query, mixed $value): Builder
-    {
-        if (! is_string($value) || ! array_key_exists($value, RecruitmentApplicationFlag::reasons())) {
-            return $query;
-        }
-
-        return $query->whereExists(RecruitmentApplicationFlag::query()
-            ->select('id')
-            ->whereColumn('application_id', $query->qualifyColumn('id'))
-            ->where('category', $value));
-    }
-
     public function source(Builder $query, mixed $value): Builder
     {
         $sources = array_values(array_filter(
@@ -194,28 +163,6 @@ class RecruitmentApplicationFilters
         };
     }
 
-    /**
-     * Applications with at least one active reviewer recommendation of the
-     * selected value, or with no active evaluation at all. Conflicting
-     * reviewers remain visible under each recommendation they submitted.
-     */
-    public function evaluationRecommendation(Builder $query, mixed $value): Builder
-    {
-        $allowed = [...RecruitmentEvaluationRecommendation::values(), 'none'];
-
-        if (! is_string($value) || ! in_array($value, $allowed, true)) {
-            return $query;
-        }
-
-        $evaluations = $this->activeEvaluations($query);
-
-        if ($value === 'none') {
-            return $query->whereNotExists($evaluations);
-        }
-
-        return $query->whereExists($evaluations->where('evaluations.recommendation', $value));
-    }
-
     public function submittedBetween(Builder $query, mixed $from, mixed $to): Builder
     {
         if (($start = $this->date($from)) !== null) {
@@ -257,9 +204,7 @@ class RecruitmentApplicationFilters
     public function campaignOptions(User $user): array
     {
         return HiringCampaign::query()
-            ->whereIn('id', RecruitmentApplication::query()
-                ->profileVisibleTo($user)
-                ->select('campaign_id'))
+            ->visibleTo($user)
             ->with('vacancy.position')
             ->latest('id')
             ->get()
@@ -312,22 +257,6 @@ class RecruitmentApplicationFilters
     }
 
     /** @return array<string, string> */
-    public function flagTypeOptions(): array
-    {
-        return collect(RecruitmentApplicationFlag::types())
-            ->mapWithKeys(fn (string $type): array => [$type => __('recruitment-applicant.flags.types.'.$type)])
-            ->all();
-    }
-
-    /** @return array<string, string> */
-    public function flagCategoryOptions(): array
-    {
-        return collect(array_keys(RecruitmentApplicationFlag::reasons()))
-            ->mapWithKeys(fn (string $category): array => [$category => __('recruitment-applicant.flags.categories.'.$category)])
-            ->all();
-    }
-
-    /** @return array<string, string> */
     public function cvOptions(): array
     {
         return [
@@ -343,27 +272,6 @@ class RecruitmentApplicationFilters
             '1' => __('recruitment-applicant.filters.previous_yes'),
             '0' => __('recruitment-applicant.filters.previous_no'),
         ];
-    }
-
-    /** @return array<string, string> */
-    public function endorsementGroupOptions(): array
-    {
-        return [
-            'preferred' => __('recruitment-applicant.endorsement.group_preferred'),
-            'alternative' => __('recruitment-applicant.endorsement.group_alternative'),
-            'unvoted' => __('recruitment-applicant.endorsement.group_unvoted'),
-        ];
-    }
-
-    /** @return array<string, string> */
-    public function evaluationRecommendationOptions(): array
-    {
-        return collect(RecruitmentEvaluationRecommendation::values())
-            ->mapWithKeys(fn (string $recommendation): array => [
-                $recommendation => __('recruitment-applicant.evaluations.recommendations.'.$recommendation),
-            ])
-            ->put('none', __('recruitment-applicant.dashboard.not_evaluated'))
-            ->all();
     }
 
     // --------------------------------------------
@@ -419,15 +327,6 @@ class RecruitmentApplicationFilters
             ->selectRaw('1')
             ->whereColumn('recruitment_applicant_files.application_id', $query->qualifyColumn('id'))
             ->where('recruitment_applicant_files.file_type', RecruitmentApplicantFile::TYPE_CV);
-    }
-
-    private function activeEvaluations(Builder $query): QueryBuilder
-    {
-        return DB::table('recruitment_interview_evaluations as evaluations')
-            ->join('recruitment_interviews as evaluation_interviews', 'evaluation_interviews.id', '=', 'evaluations.interview_id')
-            ->selectRaw('1')
-            ->whereColumn('evaluation_interviews.application_id', $query->qualifyColumn('id'))
-            ->whereNull('evaluations.withdrawn_at');
     }
 
     /** @return array<int, int> positive integer ids, de-duplicated and capped */

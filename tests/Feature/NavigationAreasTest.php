@@ -21,8 +21,11 @@ class NavigationAreasTest extends TestCase
 {
     use RefreshDatabase;
 
-    // The nine reference pages are tabs of one page (Basic Settings).
-    private const BASICS = ['basic-settings.index'];
+    private const BASICS = [
+        'cities.index', 'contract-types.index', 'leave-types.index', 'annual-leave-rules.index',
+        'termination-reasons.index', 'basic-checklist-items.index', 'job-levels.index',
+        'departments.index', 'course-categories.index',
+    ];
 
     // C5 added the team calendar to everyone's My space.
     private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'checklist-items.index', 'my-folders.index', 'shared-folders.index'];
@@ -52,9 +55,9 @@ class NavigationAreasTest extends TestCase
             'manager' => [...self::MY_SPACE, 'org.chart', 'centers.index', 'programs.index', 'leaves.all', 'contracts.index', 'news.index', 'inbox', ...$recruiting],
             'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'inbox', ...$recruiting],
             'HR-ALP' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'inbox', ...$hrRecruiting],
-            'HR-SYR' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$hrRecruiting, 'recruitment.indicator-rules'],
+            'HR-SYR' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$hrRecruiting, 'recruitment.indicator-rules'],
             // The D3 feedback list follows an IT contract, not a role (InAppFeedbackTest).
-            'super-admin' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
+            'super-admin' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
         ];
 
         foreach ($expected as $role => $routes) {
@@ -90,7 +93,7 @@ class NavigationAreasTest extends TestCase
         $this->assertStringNotContainsString('data-nav="nav.inbox"', $employee);
         // C0-Q4 (answer 2): an employee keeps the org chart only.
         $this->assertStringContainsString('data-nav="nav.org.chart"', $employee);
-        $this->assertStringNotContainsString('data-nav="nav.basics"', $employee);
+        $this->assertStringNotContainsString('data-nav="nav.basics.cities"', $employee);
         $this->assertStringNotContainsString('data-nav="nav.centers"', $employee);
 
         $manager = $this->sidebarHtml($this->userWithRole('manager'));
@@ -102,14 +105,14 @@ class NavigationAreasTest extends TestCase
         $this->assertStringContainsString('data-nav="nav.centers"', $manager);
         $this->assertStringContainsString('data-nav="nav.programs"', $manager);
         $this->assertStringNotContainsString('data-nav="nav.positions"', $manager);
-        $this->assertStringNotContainsString('data-nav="nav.basics"', $manager);
+        $this->assertStringNotContainsString('data-nav="nav.basics.cities"', $manager);
 
         $hr = $this->sidebarHtml($this->userWithRole('HR-ALP'));
         $this->assertStringContainsString('data-nav="nav.hr.contracts"', $hr);
         $this->assertStringContainsString('data-nav="nav.hr.leaves"', $hr);
         $this->assertStringNotContainsString('data-nav-area="my-team"', $hr);
         // HR edits the basics, so they sit in Settings, not under Organisation.
-        $this->assertMatchesRegularExpression('/data-nav-area="settings".*data-nav="nav\.basics"/s', $hr);
+        $this->assertMatchesRegularExpression('/data-nav-area="settings".*data-nav="nav\.basics\.cities"/s', $hr);
         $this->assertStringNotContainsString('data-nav="nav.settings.access"', $hr);
 
         $admin = $this->sidebarHtml($this->userWithRole('super-admin'));

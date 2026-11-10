@@ -12,17 +12,11 @@ return [
         'help' => 'Pick a question below or write your own.',
     ],
 
-    // Example prompts on the empty chat; the last one is meant for HR users
-    // but any employee may ask it (the assistant explains what it can see).
     'suggestions' => [
         'How much leave do I have left?',
-        'Who is on leave this week?',
-        'When is the next holiday?',
-        'What waits on me?',
         'What is the complaints policy?',
-        'Open the page to add a leave',
-        'When does my contract end?',
-        'Which contracts end in the next 60 days?',
+        'Which files are shared with me?',
+        'How do I request sick leave?',
     ],
 
     'question' => 'Your question',
@@ -45,6 +39,15 @@ return [
         'busy' => 'The assistant is busy right now. Please try again in a minute.',
         'failed' => 'The assistant could not answer just now. Please try again in a moment.',
         'submit' => 'The request could not be sent just now. Please try again in a moment.',
+        'puter-signin' => 'You did not sign in to Puter, so the question was not sent. Try again and sign in.',
+        'puter-funds' => 'Your free Puter credit for this month is used up. Try again later or contact HR.',
+    ],
+
+    // Puter: a model asked from the employee's browser under their own Puter account.
+    'puter' => [
+        'signin-help' => 'To answer now the assistant needs you to sign in with a Puter account (free). What the assistant reads for you is sent to Puter.',
+        'signin' => 'Sign in to Puter',
+        'credit' => 'Powered by Puter',
     ],
 
     // The floating button and small chat panel on every page.

@@ -80,7 +80,7 @@ class LeaveTypeExport implements FromCollection, ShouldAutoSize, WithHeadings, W
         return $mappedRow;
     }
 
-    public function styles(Worksheet $sheet): ?array
+    public function styles(Worksheet $sheet)
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

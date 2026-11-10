@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\LeaveRequestStatus;
 use App\Services\DigitalIdManager;
-use App\Services\LeaveEligibility;
 use App\Services\LeaveRequestPricing;
 use App\Traits\HasTranslation;
 use App\Traits\RedactsSensitiveActivityLog;
@@ -620,15 +619,16 @@ class Employee extends Model implements HasMedia
         return $this->yearsOfServiceOn();
     }
 
-    /**
-     * True once this employee has taken a leave of $leaveType: an Accepted
-     * request on any contract (LeaveEligibility::hasTaken). Despite the name,
-     * true means "already taken", which is how LeaveBalanceService reads it
-     * (a maternity type already taken gets no new balance).
-     */
-    public function abilityToTakeLeave($leaveType): bool
+    public function abilityToTakeLeave($leaveType)
     {
-        return app(LeaveEligibility::class)->hasTaken($this, (int) $leaveType);
+        return $this->contracts()
+            ->whereHas('leaveBalances.leaveRequests', function ($q) use ($leaveType) {
+                $q->whereHas('leaveBalance', function ($b) use ($leaveType) {
+                    $b->where('type_id', $leaveType);
+                })->where('status', 'approved');
+            })
+            ->exists();
+
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -1,29 +1,26 @@
 <?php
 
-use App\Livewire\Basics\BasicSettings;
+use App\Livewire\Basics\AnnualLeaveRuleModule;
+use App\Livewire\Basics\ChecklistItemModule;
+use App\Livewire\Basics\CityModule;
+use App\Livewire\Basics\ContractTypeModule;
+use App\Livewire\Basics\DepartmentModule;
 use App\Livewire\Basics\HolidayModule;
+use App\Livewire\Basics\JobLevelModule;
+use App\Livewire\Basics\LeaveTypeModule;
+use App\Livewire\Basics\TerminationReasonModule;
 use App\Livewire\Position\OrgChart;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('reference_page:project-basics')->group(function () {
-    // The one entry point (?tab=cities|contract-types|...).
-    Route::get('basic-settings', BasicSettings::class)->name('basic-settings.index');
-
-    // The old pages stay, under their old names, and open the matching tab.
-    $legacy = [
-        'cities' => ['cities.index', 'cities'],
-        'contract-types' => ['contract-types.index', 'contract-types'],
-        'checklist-items' => ['basic-checklist-items.index', 'checklist-items'],
-        'leave-types' => ['leave-types.index', 'leave-types'],
-        'job-levels' => ['job-levels.index', 'job-levels'],
-        'departments' => ['departments.index', 'departments'],
-        'annual-leave-rules' => ['annual-leave-rules.index', 'annual-leave-rules'],
-        'termination-reasons' => ['termination-reasons.index', 'termination-reasons'],
-    ];
-
-    foreach ($legacy as $uri => [$name, $tab]) {
-        Route::get($uri, fn () => redirect()->route('basic-settings.index', ['tab' => $tab]))->name($name);
-    }
+    Route::get('cities', CityModule::class)->name('cities.index');
+    Route::get('contract-types', ContractTypeModule::class)->name('contract-types.index');
+    Route::get('checklist-items', ChecklistItemModule::class)->name('basic-checklist-items.index');
+    Route::get('leave-types', LeaveTypeModule::class)->name('leave-types.index');
+    Route::get('job-levels', JobLevelModule::class)->name('job-levels.index');
+    Route::get('departments', DepartmentModule::class)->name('departments.index');
+    Route::get('annual-leave-rules', AnnualLeaveRuleModule::class)->name('annual-leave-rules.index');
+    Route::get('termination-reasons', TerminationReasonModule::class)->name('termination-reasons.index');
 });
 
 // National HR and program managers (team-coverage-contract §6.1); the

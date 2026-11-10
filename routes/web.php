@@ -4,12 +4,14 @@ use App\Http\Controllers\ArchiveFileController;
 use App\Http\Controllers\EmployeeAvatarController;
 use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\PublicCareerController;
+use App\Http\Controllers\RecruitmentSystemController;
 use App\Http\Controllers\UiSheetController;
 use App\Http\Middleware\ActiveLivewirePermissionMiddleware;
 use App\Livewire\AccessManagement\Index as AccessManagementIndex;
 use App\Livewire\ActivityLog\ActivityLogModule;
 use App\Livewire\Archives\ArchivedFilesModule;
 use App\Livewire\Badges\BadgesModule;
+use App\Livewire\Basics\CourseCategoryModule;
 use App\Livewire\ChecklistItems\AllItems;
 use App\Livewire\ChecklistItems\DoneRequests;
 use App\Livewire\ChecklistItems\PendingItems;
@@ -24,10 +26,7 @@ use App\Livewire\EmployeeCards\ShowDigitalId;
 use App\Livewire\Feedback\FeedbackIndex;
 use App\Livewire\News\NewsCreate;
 use App\Livewire\News\NewsModule;
-use App\Livewire\News\NewsShow;
 use App\Livewire\Notifications\Index;
-use App\Livewire\Settings\InstallApp;
-use App\Livewire\Settings\NotificationSettings;
 use App\Livewire\Settings\Password;
 use App\Livewire\Statistics\ContractStatistics;
 use App\Livewire\Statistics\GeneralStatistics;
@@ -70,11 +69,6 @@ Route::get('/ID/{employee}/photo', [EmployeeAvatarController::class, 'digitalId'
     ->middleware(['signed', 'throttle:60,1'])
     ->name('digital-id.avatar');
 
-// The service worker renews a push subscription the browser rotated, with no
-// page and no session (pushsubscriptionchange); outside the locale group so
-// the worker can use one fixed URL.
-require __DIR__.'/push-public.php';
-
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
@@ -97,11 +91,6 @@ Route::group(
 
             Route::redirect('settings', 'settings/password');
             Route::get('settings/password', Password::class)->name('settings.password');
-            // "Install the app": steps for this device, and Chromium's prompt when it is offered.
-            Route::get('settings/app', InstallApp::class)->name('settings.app');
-            // Notification preferences, devices and push (docs/notifications/architecture.md).
-            Route::get('settings/notifications', NotificationSettings::class)->name('settings.notifications');
-            require __DIR__.'/notifications.php';
             Route::get('my-profile', EmployeeProfile::class)->name('my-profile');
             // C3: the work inbox. No permission of its own: every row comes from a
             // source's scoped query and every action re-checks its domain policy.
@@ -171,14 +160,8 @@ Route::group(
 
             Route::get('/news/create', NewsCreate::class)->name('news.create')->middleware('active_permission:news.create');
             Route::get('/news/{news}/edit', NewsCreate::class)->name('news.edit')->middleware('active_permission:news.update');
-            // The published details page: any signed-in user, but NewsShow
-            // refuses an item that is not released to them (audience, draft,
-            // schedule) unless they manage it. The preview is the same page for
-            // a manager of the item, in any state, and never publishes.
-            Route::get('/news/{news}/preview', NewsShow::class)->name('news.preview')->middleware('active_permission:news.view');
-            Route::get('/news/{news}', NewsShow::class)->name('news.show')->whereNumber('news');
 
-            Route::get('/course-categories', fn () => redirect()->route('basic-settings.index', ['tab' => 'course-categories']))->middleware('reference_page:project-basics')->name('course-categories.index');
+            Route::get('/course-categories', CourseCategoryModule::class)->middleware('reference_page:project-basics')->name('course-categories.index');
             Route::get('/activity-log', ActivityLogModule::class)
                 ->name('activity-log.index')
                 ->middleware('active_permission:activity-log.view');
@@ -198,6 +181,11 @@ Route::group(
             Route::get('/_ui', UiSheetController::class)->name('ui-sheet');
 
         });
+
+        // Public presentation of the recruitment module; no sign-in needed.
+        Route::get('/recruitment-system', RecruitmentSystemController::class)
+            ->middleware('throttle:60,1')
+            ->name('recruitment-system');
 
         require __DIR__.'/auth.php';
     },

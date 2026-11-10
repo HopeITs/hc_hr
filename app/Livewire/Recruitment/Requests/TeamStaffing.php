@@ -55,55 +55,11 @@ class TeamStaffing extends Component
     #[Url(as: 'view', except: 'staff')]
     public string $view = 'staff';
 
-    public string $density = 'compact';
+    public string $density = 'comfortable';
 
     public function boot(): void
     {
         Gate::authorize('create', RecruitmentRequest::class);
-    }
-
-    /**
-     * Open on the root and its direct reports, with every deeper team folded.
-     *
-     * A large organisation drawn in full is a wall of cards; the first look is
-     * "who reports to me", and each branch opens on demand. Presentation only:
-     * the walk follows the same active reporting lines the chart draws.
-     */
-    public function mount(): void
-    {
-        $root = app(RecruitmentScopeResolver::class)->position(auth()->user());
-
-        if ($root === null || $this->collapsed !== []) {
-            return;
-        }
-
-        $seen = [(int) $root->getKey() => true];
-        $frontier = [(int) $root->getKey()];
-
-        for ($depth = 0; $frontier !== []; $depth++) {
-            $children = Position::query()
-                ->where('is_active', true)
-                ->whereIn('direct_manager_id', $frontier)
-                ->get(['id', 'direct_manager_id']);
-
-            $next = [];
-            foreach ($children as $child) {
-                $id = (int) $child->getKey();
-
-                if (isset($seen[$id])) {
-                    continue;
-                }
-
-                $seen[$id] = true;
-                $next[] = $id;
-
-                if ($depth >= 2) {
-                    $this->collapsed[(int) $child->direct_manager_id] = true;
-                }
-            }
-
-            $frontier = $next;
-        }
     }
 
     public function toggle(int $positionId): void
@@ -139,6 +95,11 @@ class TeamStaffing extends Component
         }
 
         $this->view = $view;
+    }
+
+    public function toggleDensity(): void
+    {
+        $this->density = $this->density === 'compact' ? 'comfortable' : 'compact';
     }
 
     public function render(): View
@@ -186,10 +147,7 @@ class TeamStaffing extends Component
         $positionIds = $positions->keys()->map(fn ($id): int => (int) $id)->values();
         $activeRequests = RecruitmentRequest::query()
             ->whereIn('target_position_id', $positionIds)
-            ->where(fn (\Illuminate\Database\Eloquent\Builder $query) => $query
-                ->whereIn('status', RecruitmentPositionActionService::ACTIVE_REQUEST_STATUSES)
-                ->orWhere(fn (\Illuminate\Database\Eloquent\Builder $fill) => $fill->blockingFill()))
-            ->with('vacancy')
+            ->whereIn('status', RecruitmentPositionActionService::ACTIVE_REQUEST_STATUSES)
             ->get()
             ->groupBy('target_position_id');
         $visibleRequests = RecruitmentRequest::query()

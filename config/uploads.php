@@ -97,7 +97,6 @@ return [
         // Conversion invokes a large native parser. Keep it disabled on the
         // web node unless it is moved to an isolated, low-privilege worker.
         'conversion_enabled' => env('OFFICE_PREVIEW_CONVERSION_ENABLED', false),
-        'soffice_path' => env('OFFICE_PREVIEW_SOFFICE_PATH'),
         'max_entries' => 1000,
         'max_total_uncompressed_bytes' => 100 * 1024 * 1024,
         'max_entry_uncompressed_bytes' => 20 * 1024 * 1024,

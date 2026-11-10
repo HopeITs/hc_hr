@@ -3,8 +3,6 @@
         <flux:navlist>
             <flux:navlist.item :href="route('settings.profile')" wire:navigate>{{ __('general.profile.profile') }}</flux:navlist.item>
             <flux:navlist.item :href="route('settings.password')" wire:navigate>{{ __('general.profile.Password') }}</flux:navlist.item>
-            <flux:navlist.item :href="route('settings.app')" wire:navigate>{{ __('pwa.menu') }}</flux:navlist.item>
-            <flux:navlist.item :href="route('settings.notifications')" wire:navigate>{{ __('notification-settings.menu') }}</flux:navlist.item>
 {{--            <flux:navlist.item :href="route('settings.appearance')" wire:navigate>{{ __('Appearance') }}</flux:navlist.item>--}}
         </flux:navlist>
     </div>

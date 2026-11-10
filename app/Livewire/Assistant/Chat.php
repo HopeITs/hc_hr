@@ -56,8 +56,13 @@ class Chat extends Component
         $this->mode = $mode === 'panel' ? 'panel' : 'page';
     }
 
-    /** Answers the question and adds both to the conversation. */
-    public function send(Assistant $assistant): void
+    /**
+     * Answers the question here, or, when no provider here can, starts a
+     * relay: the browser then asks Puter and reports back (relayStep).
+     *
+     * @return array{relay: array<string, mixed>}|null
+     */
+    public function send(Assistant $assistant): ?array
     {
         abort_unless($assistant->isAvailable(), 404);
 
@@ -77,23 +82,96 @@ class Chat extends Component
                 'minutes' => max(1, (int) ceil(RateLimiter::availableIn($key) / 60)),
             ]);
 
-            return;
+            return null;
         }
 
         RateLimiter::hit($key, 3600);
 
         $question = $this->question;
+        $history = $this->history($this->messages());
+
+        if ($assistant->hasServerModel()) {
+            try {
+                $this->record($question, $assistant->reply(auth()->user(), $history, $question));
+
+                return null;
+            } catch (Throwable $e) {
+                report($e);
+
+                if (! $assistant->usesBrowser()) {
+                    $this->notice = $e instanceof GeminiException && $e->isRateLimited()
+                        ? __('assistant.errors.busy')
+                        : __('assistant.errors.failed');
+
+                    // The question stays in the box so it can be sent again.
+                    return null;
+                }
+            }
+        }
+
+        // No provider here could answer: the browser asks Puter instead.
+        [$state, $request] = $assistant->begin(auth()->user(), $history, $question);
+
+        return $this->relay($state, $request, Str::random(20));
+    }
+
+    /**
+     * The browser's model answered one round of a relayed question (see
+     * Assistant::begin). Only the relay id held in the session is accepted.
+     *
+     * @param  array<string, mixed>  $message  a chat-completions message
+     * @return array{relay: array<string, mixed>}|null the next request, or null when answered
+     */
+    public function relayStep(string $id, array $message, Assistant $assistant): ?array
+    {
+        abort_unless($assistant->isAvailable() && $assistant->usesBrowser(), 404);
+
+        $relay = session(self::relayKey());
+
+        if (! is_array($relay) || ($relay['id'] ?? null) !== $id) {
+            return null;
+        }
 
         try {
-            $this->record($question, $assistant->reply(auth()->user(), $this->history($this->messages()), $question));
+            [$state, $request, $reply] = $assistant->advance(auth()->user(), $relay['state'], self::cleanMessage($message));
         } catch (Throwable $e) {
             report($e);
+            session()->forget(self::relayKey());
+            $this->notice = __('assistant.errors.failed');
 
-            // The question stays in the box so it can be sent again.
-            $this->notice = $e instanceof GeminiException && $e->isRateLimited()
-                ? __('assistant.errors.busy')
-                : __('assistant.errors.failed');
+            return null;
         }
+
+        if ($reply !== null) {
+            session()->forget(self::relayKey());
+            $this->record($state['question'], $reply);
+
+            return null;
+        }
+
+        return $this->relay($state, $request, $id);
+    }
+
+    /** The browser could not ask Puter: `signin` (refused or closed), `funds` (out of credit) or anything else. */
+    public function relayFailed(string $id, string $reason = ''): void
+    {
+        if ((session(self::relayKey())['id'] ?? null) !== $id) {
+            return;
+        }
+
+        session()->forget(self::relayKey());
+
+        $this->notice = match ($reason) {
+            'signin' => __('assistant.errors.puter-signin'),
+            'funds' => __('assistant.errors.puter-funds'),
+            default => __('assistant.errors.failed'),
+        };
+    }
+
+    /** The session key of the signed-in user's relayed question. */
+    public static function relayKey(): string
+    {
+        return 'assistant.relay.'.auth()->id();
     }
 
     /**
@@ -177,7 +255,7 @@ class Chat extends Component
     /** Starts a new conversation; the current one stays in the history. */
     public function clear(): void
     {
-        session()->forget(self::sessionKey());
+        session()->forget([self::sessionKey(), self::relayKey()]);
         $this->reset('question', 'notice');
         $this->resetValidation();
     }
@@ -190,6 +268,7 @@ class Chat extends Component
         }
 
         session()->put(self::sessionKey(), $id);
+        session()->forget(self::relayKey());
         $this->reset('question', 'notice');
         $this->resetValidation();
     }
@@ -222,6 +301,7 @@ class Chat extends Component
                 ->get(['id', 'title', 'updated_at']),
             'currentId' => self::current()?->id,
             'suggestions' => array_values((array) __('assistant.suggestions')),
+            'usesPuter' => app(Assistant::class)->usesBrowser(),
         ])->title(__('assistant.title'));
     }
 
@@ -260,6 +340,49 @@ class Chat extends Component
         $this->store($messages);
 
         $this->question = '';
+    }
+
+    /**
+     * Keeps a relay's state in the session and gives the browser what it
+     * needs for the next round: the id, the model and the request.
+     *
+     * @return array{relay: array<string, mixed>}
+     */
+    protected function relay(array $state, array $request, string $id): array
+    {
+        session()->put(self::relayKey(), ['id' => $id, 'state' => $state]);
+
+        return ['relay' => ['id' => $id, 'model' => config('assistant.puter.model')] + $request];
+    }
+
+    /**
+     * Only what a chat-completions answer carries, bounded: text and at most
+     * five tool calls (name and JSON arguments).
+     *
+     * @return array{content: string, tool_calls: list<array<string, mixed>>}
+     */
+    protected static function cleanMessage(array $message): array
+    {
+        $calls = [];
+
+        foreach (array_slice(array_values((array) ($message['tool_calls'] ?? [])), 0, 5) as $call) {
+            $name = $call['function']['name'] ?? null;
+            $arguments = $call['function']['arguments'] ?? '{}';
+
+            if (! is_string($name) || $name === '') {
+                continue;
+            }
+
+            $calls[] = ['function' => [
+                'name' => Str::limit($name, 64, ''),
+                'arguments' => is_string($arguments) ? Str::limit($arguments, 4000, '') : json_encode($arguments),
+            ]];
+        }
+
+        return [
+            'content' => is_string($message['content'] ?? null) ? Str::limit($message['content'], 20000, '') : '',
+            'tool_calls' => $calls,
+        ];
     }
 
     /**
