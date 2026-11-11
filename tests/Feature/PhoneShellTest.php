@@ -87,7 +87,8 @@ class PhoneShellTest extends TestCase
         }
 
         // Desktop and tablet keep the capped, centred, rounded dialog, now under the complementary variant.
-        foreach (['dialog:max-w-2xl', 'dialog:items-center', 'dialog:p-6', 'dialog:rounded-surface', 'dialog:overflow-hidden'] as $class) {
+        // overflow-clip, not -hidden: a hidden box can still be scrolled by focus, which pushed the header out of view.
+        foreach (['dialog:max-w-2xl', 'dialog:items-center', 'dialog:p-6', 'dialog:rounded-surface', 'dialog:overflow-clip'] as $class) {
             $this->assertStringContainsString($class, $html);
         }
 

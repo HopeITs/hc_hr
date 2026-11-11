@@ -184,6 +184,8 @@ return [
         'left' => ':amount left',
         'unavailable' => 'Not available yet',
         'none-available' => 'There is no leave you can request right now.',
+        'pick-employee-first' => 'Choose the employee first to see their leave types.',
+        'none-for-employee' => 'This employee has no leave that can be requested right now.',
         'own-balance' => 'The leave type of this request',
         'duration' => 'Duration',
         'duration-pending' => 'Fill in the dates to see the duration.',

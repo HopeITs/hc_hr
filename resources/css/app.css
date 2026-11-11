@@ -665,11 +665,12 @@ select.public-career-select option:checked {
         --clock-timepicker-cursor: pointer;
     }
 
+    /* Sized and lettered like .hc-field, so a time sits level with the date beside it. */
     clock-timepicker > input {
         width: 100%;
-        padding: 0.5rem 2.5rem 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        line-height: 1.25rem;
+        min-height: 46px;
+        padding: 9px 2.5rem 9px 12px;
+        font-size: var(--text-body);
         color: var(--color-ink);
         background-color: var(--color-field);
         border: 1.5px solid var(--color-line);
@@ -695,12 +696,12 @@ select.public-career-select option:checked {
 
     clock-timepicker > input:disabled {
         cursor: not-allowed;
-        opacity: 0.6;
-        background-color: var(--color-neutral-50);
+        background-color: var(--color-soft);
+        color: var(--color-ink-2);
     }
 
     [dir="rtl"] clock-timepicker > input {
-        padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+        padding: 9px 12px 9px 2.5rem;
     }
 
     .time-input-native {
@@ -1316,8 +1317,11 @@ select.public-career-select option:checked {
 }
 
 /* Sidebar scrolling: a thin native bar in the open sidebar, none at all in the
-   80px icon rail (a track there sat on top of the icons). */
-.sidebar-scroll {
+   80px icon rail (a track there sat on top of the icons). `thin-scroll` gives
+   any other scroll area (a dialog's form panel) the same bar; pair it with
+   data-csb-exclude so the overlay scrollbar leaves it alone. */
+.sidebar-scroll,
+.thin-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--color-line) transparent;
 }
