@@ -31,6 +31,7 @@ Custom artisan commands (in `app/Console/Commands`):
 - Livewire 4 tests: a `ModelNotFoundException` inside a component call becomes a 404 response instead of being thrown. Assert it with `->assertNotFound()`, not `expectException`.
 - Vite 8 bundles with Rolldown: `manualChunks` must be a function, not an object.
 - Tests run on sqlite `:memory:` (see `phpunit.xml`); dev/prod use MySQL.
+- **`public/.htaccess` is not tracked** (template: `public/.htaccess.example`). The host keeps its WebGuard IP whitelist (`SetEnvIf … WHITELISTED_IP`) in the server's copy; a tracked copy overwrote it on every `git pull`, and the office IP was then challenged (412/429). Changes to the rules go into the example and are applied on the server by hand.
 
 ## Architecture
 
