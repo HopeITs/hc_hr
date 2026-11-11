@@ -1466,6 +1466,22 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertSame(["leave:{$leave->id}:review"], $inbox->rows($other)->pluck('key')->all());
     }
 
+    public function test_hr_does_not_review_its_own_request(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now(), 'hr_approved' => false]);
+        $other = $this->createHrUserForLeave($leave, 'second.hr@example.test');
+        $other->givePermissionTo(['leaves.review', 'leaves.view-all']);
+        $hr->forceFill(['employee_id' => $leave->leaveBalance->contract->employee_id])->save();
+        $hr = $hr->fresh();
+        $inbox = app(\App\Services\WorkInbox::class);
+
+        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('review', $leave->fresh()));
+        $this->assertSame(0, $inbox->snapshot($hr)['counts']['review']);
+        // Another HR person still sees it.
+        $this->assertSame(["leave:{$leave->id}:review"], $inbox->rows($other)->pluck('key')->all());
+    }
+
     public function test_n09_arabic_agrees_with_one_female_manager(): void
     {
         [, $leave] = $this->createPendingDecisionFixture();
@@ -1826,7 +1842,7 @@ class LeaveRequestWorkflowTest extends TestCase
 
         Livewire::actingAs($manager->fresh())
             ->test(\App\Livewire\Layout\Sidebar::class)
-            ->assertSeeHtml('data-testid="nav-badge">0<');
+            ->assertDontSeeHtml('data-testid="nav-badge"');
     }
 
     /** A manager who holds the position the requester's position reports to, with the real manager permissions. */

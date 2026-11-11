@@ -24,12 +24,13 @@ class Center extends Model
 
     public function getOpenAtFormattedAttribute(): string
     {
-        return Carbon::createFromFormat('H:i:s', $this->open_at)->format('H:i');
+        // A center may have no hours yet, or hours stored without seconds.
+        return $this->open_at ? Carbon::parse($this->open_at)->format('H:i') : '—';
     }
 
     public function getCloseAtFormattedAttribute(): string
     {
-        return Carbon::createFromFormat('H:i:s', $this->close_at)->format('H:i');
+        return $this->close_at ? Carbon::parse($this->close_at)->format('H:i') : '—';
     }
 
     public function city(): BelongsTo

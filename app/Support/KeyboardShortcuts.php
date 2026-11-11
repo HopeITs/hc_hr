@@ -28,7 +28,6 @@ final class KeyboardShortcuts
         'e' => ['nav.hr.employees'],
         'l' => ['nav.hr.leaves', 'nav.my-team.leaves', 'nav.my-space.leaves'],
         'c' => ['nav.hr.contracts', 'nav.my-team.contracts'],
-        'i' => ['nav.inbox'],
         'r' => ['nav.recruitment.requests', 'nav.recruitment.campaigns', 'nav.recruitment.applicants', 'nav.recruitment.approvals'],
     ];
 

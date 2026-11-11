@@ -1,10 +1,11 @@
 {{--
     Phone bottom navigation (D2), app style (the media-request bar, 5814c31):
 
-      [ place 1 ][ place 2 ]( + )[ place 3 ][ place 4 ][ More ]
+      [ place 1 ][ place 2 ]( + )[ place 3 ][ More ]
 
-    The four places are the person's shortcuts (App\Support\BottomBar), two on
-    each side of the raised +. + opens the New sheet (Navigation::newActions:
+    Five equal columns, so the + is always in the exact middle, even for a role
+    with fewer places or nothing to start. The three places are the person's
+    shortcuts (App\Support\BottomBar). + opens the New sheet (Navigation::newActions:
     only what the role may start); More opens the More sheet (the role's whole
     menu). Both sheets are dialogs: aria-modal, focus trapped and given back
     (x-trap), Escape, backdrop, swipe down on the handle. Red only for its jobs:
@@ -49,8 +50,12 @@
      x-bind:data-typing="typing"
      class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-base/95 backdrop-blur md:hidden"
      style="padding-bottom: env(safe-area-inset-bottom, 0px)">
-    <ul class="mx-auto flex max-w-lg items-stretch justify-around">
+    <ul class="mx-auto grid max-w-lg grid-cols-5 items-stretch">
         @foreach ([$before, $after] as $side => $places)
+            {{-- An empty place keeps the columns where they are when a role has fewer. --}}
+            @for ($gap = count($places); $side === 0 && $gap < \App\Support\BottomBar::BEFORE_NEW; $gap++)
+                <li aria-hidden="true"></li>
+            @endfor
             @foreach ($places as $item)
                 @php($active = in_array($currentRoute, $item['active'], true))
                 <li class="min-w-0 flex-1" wire:key="bottom-{{ $item['key'] }}">
@@ -72,7 +77,7 @@
                                 </span>
                             @endif
                         </span>
-                        <span class="max-w-full truncate">{{ $item['label'] }}</span>
+                        <span class="line-clamp-2 max-w-full text-center">{{ $item['label'] }}</span>
                         @if (($item['count'] ?? 0) > 0)
                             <span class="sr-only">{{ __('general.nav.work-inbox-count', ['count' => $item['count']]) }}</span>
                         @endif
@@ -81,6 +86,12 @@
             @endforeach
 
             {{-- The raised + sits between the two halves (only when the role may start something). --}}
+            @if ($side === 0 && $actions === [])
+                <li aria-hidden="true"></li>
+            @endif
+            @if ($side === 1 && $places === [])
+                <li aria-hidden="true"></li>
+            @endif
             @if ($side === 0 && $actions !== [])
                 <li class="flex shrink-0 items-start justify-center px-1" wire:key="bottom-new">
                     <button type="button" data-testid="bottom-nav-new"
@@ -195,7 +206,7 @@
                                     <li @class(['ps-4' => isset($row['group'])])>
                                         <a href="{{ $row['href'] }}" wire:navigate x-on:click="close()" data-testid="bottom-more-{{ $row['id'] }}"
                                            @if ($row['current']) aria-current="page" @endif
-                                           @class([$tile, 'relative bg-soft text-ink before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-primary' => $row['current'], 'text-ink hover:bg-hover' => ! $row['current']])>
+                                           @class([$tile, 'relative bg-soft font-semibold text-ink' => $row['current'], 'text-ink hover:bg-hover' => ! $row['current']])>
                                             <x-dynamic-component :component="'icons.'.$row['icon']" class="size-5 shrink-0 text-ink-2" aria-hidden="true" />
                                             <span class="min-w-0 flex-1 truncate">
                                                 @isset($row['group'])<span class="sr-only">{{ $row['group'] }}: </span>@endisset{{ $row['label'] }}

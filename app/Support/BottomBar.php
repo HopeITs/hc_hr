@@ -3,14 +3,14 @@
 namespace App\Support;
 
 use App\Models\User;
-use App\Services\WorkInbox;
 use App\Support\Dashboard\DashboardLayout;
 use Illuminate\Support\Facades\View;
 
 /**
- * The phone bar (D2, prompt 10), app style: four shortcuts, BEFORE_NEW of
- * them before the raised + (the New sheet) and the rest after it, then More
- * (the whole menu in a sheet); see Livewire\Layout\BottomNav.
+ * The phone bar (D2, prompt 10), app style: three shortcuts, BEFORE_NEW of
+ * them before the raised + (the New sheet) and the third after it, then More
+ * (the whole menu in a sheet), so the + is always in the middle; see
+ * Livewire\Layout\BottomNav.
  *
  * What may sit on it: Home, My profile and the dashboard's shortcuts
  * (DashboardLayout::apps(): the pages of the active role's menu and what its
@@ -18,15 +18,15 @@ use Illuminate\Support\Facades\View;
  * app.new.leave). A person may choose their four in the dashboard's customise
  * mode on a phone (<livewire:layout.bottom-bar-picker>, NavigationMemory). A
  * place whose page the role cannot open is filled from the default bar, the
- * one D2 has always shown: Home, My leaves, Work inbox, Team calendar, My
- * profile, the first four the role has.
+ * one D2 has always shown: Home, My leaves, Team calendar, My profile, the
+ * first three the role has.
  *
  * A shortcut, never the permission: every page keeps its own server check.
  */
 final class BottomBar
 {
     /** Places a person chooses; + and More are always there besides them. */
-    public const SLOTS = 4;
+    public const SLOTS = 3;
 
     /** How many of the places sit before the raised + (the rest sit after it). */
     public const BEFORE_NEW = 2;
@@ -108,7 +108,6 @@ final class BottomBar
         return array_filter([
             self::HOME => self::home(),
             $p.'nav.my-space.leaves' => $leaves ? self::entry($p.'nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', 'my-leaves') : null,
-            $p.'nav.inbox' => app(WorkInbox::class)->hasSources($user) ? self::entry($p.'nav.inbox', __('general.nav.work-inbox'), 'inbox', 'inbox') : null,
             $p.'nav.my-space.team-calendar' => $leaves ? self::entry($p.'nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', 'calendar') : null,
             self::PROFILE => $user->profile ? self::profile() : null,
         ]);

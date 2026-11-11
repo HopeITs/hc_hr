@@ -88,6 +88,11 @@ function clock(config) {
     const time = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     const weekday = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, weekday: 'long' });
     const date = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, day: 'numeric', month: 'long', year: 'numeric' });
+    // The glance card's date tile and twelve-hour time ("MAR" / "06", "10:08" / "AM").
+    const month = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, month: 'short' });
+    const dayOfMonth = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, day: '2-digit' });
+    const twelve = new Intl.DateTimeFormat(config.locale, { timeZone: ZONE, hour: 'numeric', minute: '2-digit', hour12: true });
+    const twelveParts = (now) => twelve.formatToParts(now);
     let timer = null;
     let onVisibility = null;
 
@@ -123,6 +128,19 @@ function clock(config) {
         },
         d() {
             return date.format(this.now);
+        },
+        mon() {
+            return month.format(this.now);
+        },
+        dom() {
+            return dayOfMonth.format(this.now);
+        },
+        // "10:08" without the day period, which period() gives on its own.
+        t12() {
+            return twelveParts(this.now).filter((p) => p.type !== 'dayPeriod').map((p) => p.value).join('').trim();
+        },
+        period() {
+            return twelveParts(this.now).find((p) => p.type === 'dayPeriod')?.value ?? '';
         },
         hand(name) {
             return 'rotate(' + angles(damascus(this.now))[name] + ' 50 50)';

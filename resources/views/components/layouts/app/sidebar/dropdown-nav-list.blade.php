@@ -17,15 +17,14 @@
         aria-expanded="{{ $ariaExpanded }}"
         title="{{ $title }}"
 
-        class="nav-press cursor-pointer
-            group flex items-center w-full min-h-11 px-3 py-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
+        class="nav-press nav-link cursor-pointer
+            group flex items-center w-full min-h-11 px-3 py-2 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
             font-medium
 
             {{ $active
                 ? 'text-ink font-semibold'
                 : 'text-ink-2 hover:text-ink hover:bg-hover' }}
         "
-        :class="sidebarCollapsed && !open ? 'md:justify-center md:size-11 md:px-0 md:mx-auto' : ''"
     >
         {{-- Icon --}}
         <span class="flex items-center justify-center size-5 shrink-0 text-inherit group-hover:text-inherit [&_svg]:text-inherit">
@@ -34,16 +33,14 @@
 
         {{-- Label --}}
         <span
-            class="flex-1 text-body text-start ms-2 whitespace-nowrap text-inherit group-hover:text-inherit"
-            x-show="!sidebarCollapsed || open"
+            class="nav-fade flex-1 text-body text-start ms-2 whitespace-nowrap text-inherit group-hover:text-inherit"
         >
             {{ $title }}
         </span>
 
         {{-- Chevron --}}
         <svg
-            class="nav-chevron size-3 shrink-0 text-inherit group-hover:text-inherit"
-            x-show="!sidebarCollapsed || open"
+            class="nav-chevron nav-fade size-3 shrink-0 text-inherit group-hover:text-inherit"
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             fill="none" viewBox="0 0 24 24"

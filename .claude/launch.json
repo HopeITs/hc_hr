@@ -2,6 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "hc-hr (local php 8.5 serve)",
+      "runtimeExecutable": "C:/Users/ASUS/tools/php-8.5/php.exe",
+      "runtimeArgs": [
+        "artisan",
+        "serve",
+        "--port=8000"
+      ],
+      "port": 8000,
+      "autoPort": false
+    },
+    {
       "name": "hc-hr (composer dev)",
       "runtimeExecutable": "composer",
       "runtimeArgs": [

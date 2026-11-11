@@ -1,8 +1,9 @@
 {{--
     Header search (C2): one box for pages, people and (prompt 10) commands, also
     opened with Ctrl/Cmd+K. A WAI-ARIA combobox: arrows move through the results,
-    Enter opens the highlighted one, Escape closes. Below xl (1280px) the box hides
-    behind a search button and opens as a panel under the header (full width on phones).
+    Enter opens the highlighted one, Escape closes. From xl (1280px) a small box that
+    widens while in use; below it the box hides behind a search button and opens as a
+    panel under the header (full width on phones).
     A command carries data-action; resources/js/commands.js runs it.
 --}}
 @php
@@ -12,7 +13,12 @@
         ->merge(collect($commands)->map(fn ($command) => ['href' => $command['href'], 'type' => 'command']))
         ->values();
 @endphp
-<div class="relative shrink-0 xl:min-w-44 xl:shrink xl:flex-1 xl:max-w-md"
+{{-- From xl up the search is a bar in the very centre of the top bar (centred on the
+     screen). At rest it is 70% of its full width (31.5% of the screen, at most 40.6rem);
+     while focus is in it (the field or its list) it widens back to the full 45%, at most
+     58rem, growing evenly on both sides; only the width changes. Below xl it is an icon
+     that opens the same field in a panel. --}}
+<div class="relative shrink-0 xl:absolute xl:left-1/2 xl:top-1/2 xl:-translate-x-1/2 xl:-translate-y-1/2 xl:w-[calc(min(31.5vw,40.6rem)_-_5px)] xl:focus-within:w-[min(45vw,58rem)] xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
      x-data="{
          open: false,
          mobile: false,
@@ -55,8 +61,8 @@
     <div class="max-xl:fixed max-sm:inset-x-2 sm:max-xl:end-4 sm:max-xl:w-[28rem] max-xl:top-[4.25rem] max-xl:z-50 max-xl:rounded-surface max-xl:bg-card max-xl:p-2 max-xl:shadow-e3"
          :class="mobile ? '' : 'max-xl:hidden'">
         <label for="global-search-input" class="sr-only">{{ __('general.global-search.label') }}</label>
-        <div class="relative">
-            <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-ink-3" aria-hidden="true">
+        <div class="group relative">
+            <span class="pointer-events-none absolute inset-y-0 start-4 flex items-center text-ink-3" aria-hidden="true">
                 <x-icons.search class="size-4" />
             </span>
             {{-- wire:ignore.self: every attribute here is static, so a re-render
@@ -67,19 +73,24 @@
                    role="combobox" aria-autocomplete="list" aria-controls="global-search-list"
                    :aria-expanded="open.toString()"
                    :aria-activedescendant="active >= 0 ? 'global-search-option-' + active : null"
-                   placeholder="{{ __('general.global-search.placeholder') }}"
-                   class="h-11 w-full rounded-[14px] border border-line bg-soft ps-9 pe-3 xl:pe-14 text-body text-ink placeholder:text-ink-3 focus:bg-card sm:h-10"
+                   {{-- No word at rest (the icon says it); the hint shows once the box is clicked.
+                        The name stays for screen readers. --}}
+                   placeholder=""
+                   aria-label="{{ __('general.global-search.short') }}"
+                   class="peer h-[35px] w-full rounded-full border border-line bg-soft ps-10 pe-4 xl:pe-20 text-body text-ink placeholder:text-ink-3 focus:bg-card sm:h-[29px] xl:h-[35px]"
+                   x-on:focusin="$el.placeholder = @js(__('general.global-search.placeholder'))"
+                   x-on:focusout="$el.placeholder = ''"
                    x-on:focus="open = true; recent()"
                    x-on:input="open = true; active = -1"
                    x-on:keydown.arrow-down.prevent="move(1)"
                    x-on:keydown.arrow-up.prevent="move(-1)"
                    x-on:keydown.enter.prevent="active < 0 ? move(1) : null; choose()"
                    x-on:keydown.escape.prevent="$wire.q ? $wire.set('q', '') : close()" />
-            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded border border-line px-1.5 text-caption text-ink-2 xl:flex" aria-hidden="true">Ctrl K</kbd>
+            <kbd class="pointer-events-none absolute inset-y-0 end-3 my-auto hidden h-6 items-center rounded-full border border-line px-2 text-caption text-ink-2 xl:flex" aria-hidden="true">Ctrl K</kbd>
         </div>
 
         <div x-show="open && ($wire.q.trim().length > 0 || $wire.recents)" x-cloak
-             class="absolute start-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] max-xl:w-auto overflow-y-auto rounded-surface border border-line-soft bg-card p-1.5 shadow-e3 max-xl:static max-xl:mt-2 max-xl:shadow-none">
+             class="absolute start-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-2rem))] xl:w-full max-h-[min(70vh,28rem)] max-xl:w-auto overflow-y-auto rounded-surface border border-line-soft bg-card p-1.5 shadow-e3 max-xl:static max-xl:mt-2 max-xl:shadow-none">
 
             {{-- Polite status for screen readers and the visible state line. --}}
             <p class="px-3 py-2 text-small text-ink-2" role="status" aria-live="polite">
@@ -135,6 +146,7 @@
                             class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-3 py-2">
                             <span class="min-w-0">
                                 <span class="block font-semibold text-ink">
+                                    <x-presence :status="$presence[$person->id] ?? null" class="me-1" />
                                     <bdi>{{ $person->name }}</bdi>
                                     @if (! $person->is_active && $person->was_employed)
                                         <span class="ms-1 text-caption font-normal text-ink-2">({{ __('general.global-search.former') }})</span>

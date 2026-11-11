@@ -107,6 +107,36 @@ class LeaveBalance extends Model
         return (int) $days;
     }
 
+    /**
+     * What may be requested today, in hours: for annual leave only the share of
+     * the entitlement earned so far (eligibleAnnualLeaveHours), for every other
+     * type the whole of it. The one figure the leave form, its validation and
+     * the balance cards all show. Pending requests are not taken off here; they
+     * are listed beside it.
+     */
+    public function availableHours(): float
+    {
+        $base = (int) $this->type_id === LeaveTypeCases::Annual
+            ? (float) $this->eligibleAnnualLeaveHours()
+            : (float) ($this->deserved ?? 0);
+
+        return round($base - (float) ($this->used ?? 0), 2);
+    }
+
+    public function getIntAvailableAttribute(): int
+    {
+        [$days] = $this->splitIntoDays(max(0, $this->availableHours()));
+
+        return (int) $days;
+    }
+
+    public function getAvailableFormattedAttribute(): string
+    {
+        [$days, $remaining] = $this->splitIntoDays(max(0, $this->availableHours()));
+
+        return $this->getFormattedLabel($days, $remaining);
+    }
+
     public function getRemainingAttribute(): string
     {
         [$days, $remaining] = $this->splitIntoDays(($this->deserved ?? 0) - ($this->used ?? 0));

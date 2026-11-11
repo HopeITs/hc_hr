@@ -19,7 +19,12 @@ class SecurityHeaders
         $response = $next($request);
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        // Pages may be framed by this site itself, and by nobody else (2026-11-09): the
+        // dashboard's workspace (dashboard/workspace.js) opens the site's own pages in a
+        // frame, and a card taken out of the browser floats in one (Document
+        // Picture-in-Picture). The browser enforces both headers: another site framing a
+        // page is refused exactly as with DENY (no clickjacking from elsewhere).
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');

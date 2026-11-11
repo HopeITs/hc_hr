@@ -38,19 +38,14 @@ class DashboardHomeScreenTest extends TestCase
     {
         $html = Livewire::actingAs($this->employee())->test(Index::class)->html();
 
-        // Today's order. "My leaves" is left out, as it always was, for someone without a balance.
-        $this->assertSame(
-            ['notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice($this->drawnKeys($html), 0, 10),
-        );
-        $this->assertContains('app.nav.my-space.leaves', $this->drawnKeys($html));
+        // A short first dashboard. "My leaves" is left out, as it always was, for someone without a balance.
+        // The hub above the grid reaches every page, so no shortcut is drawn by default.
+        $this->assertSame(['glance', 'attention', 'news', 'next-holiday'], $this->drawnKeys($html));
         $this->assertNotContains('my-leaves', $this->drawnKeys($html));
-        // The employee family's own defaults (prompt 8) follow today's cards.
-        $this->assertSame(['next-holiday', 'birthdays'], array_slice($this->drawnKeys($html), 10, 2));
 
         // Every card waits behind its placeholder, named, so the page never waits for one.
-        $this->assertSame(12, substr_count($html, 'data-state="loading"'));
-        $this->assertStringContainsString(e(__('dashboard.tiles.today-events')), $html);
+        $this->assertSame(4, substr_count($html, 'data-state="loading"'));
+        $this->assertStringContainsString(e(__('dashboard.tiles.news')), $html);
     }
 
     public function test_a_hidden_tile_is_not_drawn_and_its_card_never_loads(): void
@@ -91,7 +86,10 @@ class DashboardHomeScreenTest extends TestCase
 
         $html = Livewire::actingAs($hr)->test(Index::class)->html();
 
-        foreach (['stats-department', 'stats-job-level', 'stats-contract-type', 'stats-no-leaves', 'soon-ending-contracts'] as $key) {
+        // Contracts running out are HR's daily question, so that tile is on its first dashboard.
+        $this->assertContains('soon-ending-contracts', $this->drawnKeys($html));
+
+        foreach (['stats-department', 'stats-job-level', 'stats-contract-type', 'stats-no-leaves'] as $key) {
             $this->assertNotContains($key, $this->drawnKeys($html), $key);
             $this->assertStringContainsString("add('{$key}')", $html, $key);
         }
@@ -110,7 +108,8 @@ class DashboardHomeScreenTest extends TestCase
         $page->call('addTile', [$this->item('team', hidden: false)])->assertHasNoErrors();
 
         $this->assertArrayHasKey('html', $page->effects, 'addTile renders, so the new tile arrives');
-        $this->assertSame('team', $this->drawnKeys($page->html())[0]);
+        // Drawn where it was saved: right after the glance card, which leads every page.
+        $this->assertSame(['glance', 'team'], array_slice($this->drawnKeys($page->html()), 0, 2));
         $this->assertFalse(collect(SavedDashboardLayout::query()->sole()->layout)->firstWhere('key', 'team')['hidden']);
     }
 
@@ -147,7 +146,7 @@ class DashboardHomeScreenTest extends TestCase
 
         $this->assertStringContainsString('href="'.route('leaves.index').'" wire:navigate', $html);
         // On the tile itself, so the tour finds a card before it has loaded.
-        foreach (['notes', 'team', 'news', 'upcoming-leaves', 'pending-requests'] as $key) {
+        foreach (['news', 'next-holiday'] as $key) {
             $this->assertMatchesRegularExpression('/data-key="'.preg_quote($key, '/').'"\s+data-tour="dashboard\.'.preg_quote($key, '/').'"/', $html, $key);
         }
         // The page's own script, on this page only.
@@ -177,7 +176,7 @@ class DashboardHomeScreenTest extends TestCase
 
         // The tile stays, saying it failed; every other tile is drawn as usual.
         $this->assertContains('my-leaves', $this->drawnKeys($html));
-        $this->assertContains('notes', $this->drawnKeys($html));
+        $this->assertContains('news', $this->drawnKeys($html));
         $this->assertSame(1, substr_count($html, 'role="alert"'));
     }
 

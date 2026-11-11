@@ -327,3 +327,16 @@
     --color-taupe-900: var(--color-neutral-900);
     --color-taupe-950: var(--color-neutral-950);
 }
+
+/* ------------------------------------------------------------------
+   The one exception: the presence dot's green (DESIGN.md "Presence
+   dot"). A single colour for a single job, "this person is at work
+   now", and nothing else. It is declared here, outside @theme, on
+   purpose: no `bg-*` / `text-*` utility is generated for it, so the
+   only way to paint it is `.presence-dot--online` in components.css.
+   IdentityComponentsTest fails if it is read anywhere else.
+   3.4:1 on a light card and 4.5:1 on a dark one (WCAG 1.4.11).
+   ------------------------------------------------------------------ */
+:root {
+    --presence-online: #1F9D55;
+}

@@ -212,6 +212,12 @@ class DashboardCardStatesTest extends TestCase
     {
         $hr = $this->hr();
 
+        // These two are not on a first dashboard: put them there.
+        $this->live($hr)->test(Index::class)->call('saveLayout', [
+            ['key' => 'checklist', 'size' => '4x3', 'pinned' => false, 'hidden' => false],
+            ['key' => 'pending-requests', 'size' => '4x3', 'pinned' => false, 'hidden' => false],
+        ]);
+
         $this->breakQueriesOn(Checklist::class);
         // Prompt 4: each card is its own tile (rendered in place here, not lazily),
         // so the failure stays inside the two tiles that read checklists.

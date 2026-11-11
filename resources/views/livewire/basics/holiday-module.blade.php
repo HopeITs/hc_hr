@@ -8,7 +8,9 @@
             ['label' => __('holidays.title'), 'route' => 'holidays.index'],
         ]" :showButton="true" />
 
-        <div>
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="next-holiday" />
             <x-primary-button wire:click="create" :showSpinner="false">
                 @lang('general.add-new')
             </x-primary-button>

@@ -13,6 +13,7 @@ use App\Models\Program;
 use App\Models\User;
 use App\Services\WorkInbox;
 use App\Support\Dashboard\DashboardLayout;
+use App\Support\Dashboard\WaitingOnYou;
 use Carbon\Carbon;
 use Livewire\Component;
 use Throwable;
@@ -231,6 +232,10 @@ class Index extends Component
             $absent[] = 'my-leaves';
         }
 
+        // Decided here, not after the cards load: an alert that appears and then
+        // closes would move the whole page under someone about to click.
+        $absent = [...$absent, ...$this->quietAlerts($user)];
+
         // The unused todayEvents list (36 queries for 100 employees: N+1 per
         // birthday) used to be computed here and never rendered; the
         // news.today-events-card component loads its own data.
@@ -243,6 +248,10 @@ class Index extends Component
             'pages' => array_filter(array_combine($shown, array_map(fn (string $key): ?string => $tiles->page($user, $key), $shown))),
             'inboxCount' => in_array(DashboardLayout::APP_PREFIX.'nav.inbox', $shown, true) ? $this->inboxCount($user) : 0,
             'customise' => $this->customise,
+            'presets' => $presets = $tiles->presets($user),
+            // The preset the page shows right now, when it is exactly one of them.
+            'activePreset' => collect($presets)->search(fn (array $keys): bool => array_diff($keys, $shown) === []
+                && array_diff(array_filter($shown, $tiles->isWidget(...)), $keys) === []) ?: null,
             'failedSections' => $this->failedSections,
         ]);
     }
@@ -268,6 +277,24 @@ class Index extends Component
         $this->loadFailed = $this->failedSections !== [];
 
         return $this->memo[$key] = $result;
+    }
+
+    /** @return list<string> the alert tiles with nothing to say right now */
+    private function quietAlerts(User $user): array
+    {
+        try {
+            $waiting = app(WaitingOnYou::class);
+
+            return array_values(array_filter([
+                $waiting->late($user) === null ? 'late' : null,
+                $waiting->inbox($user)['counts']['all'] === 0 ? 'decide' : null,
+            ]));
+        } catch (Throwable $e) {
+            // Let the tiles load and show their own failure.
+            report($e);
+
+            return [];
+        }
     }
 
     /** The inbox shortcut's badge: the same scoped count as the sidebar's (WorkInbox). */

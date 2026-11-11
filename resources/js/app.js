@@ -56,6 +56,8 @@ import './help-panel.js';
 
 // Prompt 10: Ctrl+K commands, "g then a letter" and the "?" list of shortcuts.
 import './commands.js';
+// "Add to dashboard" flies into the sidebar's dashboard icon (window.hcFlyToDashboard).
+import './fly-to-dashboard.js';
 
 import '../css/app.css';
 import { initFlowbite } from 'flowbite';
@@ -124,6 +126,7 @@ import './typewriter.js';
 import './assistant-puter.js';
 
 import './password-toggle.js';
+import './person-link.js';
 import './password-strength.js';
 import './scatter-chart.js';
 import { initClockTimepickers } from './clock-timepicker.js';
@@ -133,6 +136,14 @@ import { initClockTimepickers } from './clock-timepicker.js';
 import registerLazyCharts from './charts/lazy-charts.js';
 
 registerLazyCharts();
+
+// Swiper is only for the today's-events dashboard tile, so it stays out of the
+// shared bundle; the tile asks for it when it is drawn.
+window.loadSwiper = async () => {
+    const [{ default: Swiper }] = await Promise.all([import('swiper/bundle'), import('swiper/css/bundle')]);
+
+    return Swiper;
+};
 
 document.addEventListener('DOMContentLoaded', () => initClockTimepickers());
 

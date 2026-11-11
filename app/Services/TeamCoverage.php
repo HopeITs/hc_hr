@@ -384,6 +384,23 @@ final class TeamCoverage
         return ['dates' => $dates, 'members' => $members];
     }
 
+    /**
+     * May $viewer see the absences of $contract's holder on the team calendar,
+     * at any level? The same rule the calendar applies per person (§4.1),
+     * plus the permission its route asks for (leaves.view-own). The presence
+     * dot (WorkPresence) uses it to decide who is told *why* someone is
+     * offline. $contract needs its employee and position (with center,
+     * jobLevel and department) loaded, as activeContracts() loads them.
+     */
+    public function canSeeAbsencesOf(User $viewer, Contract $contract): bool
+    {
+        if (! $viewer->hasActivePermission('leaves.view-own')) {
+            return false;
+        }
+
+        return $this->levelFor($viewer, $this->context($viewer), $contract) !== null;
+    }
+
     // ── Who is visible ───────────────────────────────────────────────────
 
     /**

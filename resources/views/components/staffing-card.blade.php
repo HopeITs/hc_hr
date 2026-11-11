@@ -167,17 +167,8 @@
          a disabled control that will not say why is worse than no control. --}}
     @if ($available->isNotEmpty())
         <button type="button" x-on:click="menu = ! menu" :aria-expanded="menu" data-no-pan
-                class="mt-2 flex w-full items-center justify-between gap-1 rounded-control bg-primary px-2 py-1.5 text-caption font-bold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
-            <span class="flex min-w-0 items-center gap-1">
-                <svg class="size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
-                </svg>
-                <span class="truncate">{{ __('recruitment.team_staffing.open_request') }}</span>
-            </span>
-            <svg class="size-3 shrink-0 transition-transform duration-200" :class="menu ? 'rotate-180' : ''"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
+                class="hc-btn hc-btn--add hc-btn--reveal hc-btn--sm mt-2">
+            <x-ic name="plus" /><span class="hc-reveal-label">{{ __('recruitment.team_staffing.open_request') }}</span>
         </button>
 
         <ul x-show="menu" x-cloak x-collapse data-no-pan

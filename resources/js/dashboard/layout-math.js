@@ -67,7 +67,6 @@ export const stepCells = (raw, cur) => (raw > cur + 0.6 ? Math.floor(raw + 0.4) 
  * side panel from its icon (media-request 30ca296).
  */
 export function iconish(key, size, bounds, cols) {
-    if (isApp(key)) return true;
     const card = (bounds[key] || {}).card;
     if (! card) return false;
     const [w, h] = parse(size);
@@ -134,6 +133,8 @@ export function pack(shown, cols, bounds, closed = new Set()) {
     const shut = visible.filter((i) => closed.has(i.key));
     const icon = (i) => iconish(i.key, i.size, bounds, cols);
     const own = packOrder([...full, ...shut], cols, bounds, closed);
+    // Shortcuts followed by cards are a strip the person relies on: they stay where they are.
+    if (full.some((i, n) => icon(i) && full[n + 1] && ! icon(full[n + 1]))) return own.out;
     const gaps = packOrder([...full.filter((i) => ! icon(i)), ...full.filter(icon), ...shut], cols, bounds, closed);
 
     return gaps.holes < own.holes ? gaps.out : own.out;
@@ -158,11 +159,26 @@ export function packOrder(list, cols, bounds, flat = new Set()) {
     const icons = new Set(list.filter((it) => ! flat.has(it.key) && iconish(it.key, it.size, bounds, cols)).map((it) => it.key));
     const fixed = new Set(list.filter((it) => it.fixed).map((it) => it.key));
 
+    // Pinned tiles (`at`: the cell they were pinned at) are put there first, at their own
+    // size, and never grown; the rest flow around them. One that does not fit this grid
+    // (narrower than when it was pinned) or overlaps an earlier pin flows like any other.
+    const anchored = new Set();
+    for (const it of list) {
+        if (! Array.isArray(it.at) || flat.has(it.key)) continue;
+        const [w, h] = parse(it.size);
+        const [x, y] = it.at;
+        if (x < 0 || y < 0 || x + w > cols || ! free(x, y, w, h)) continue;
+        take(x, y, w, h);
+        out[it.key] = { x, y, w, h };
+        anchored.add(it.key);
+        fixed.add(it.key);
+    }
+
     // A one-row card followed by shortcuts takes the rest of that row, so the
     // cards after it start on a clean row instead of squeezing in beside it.
     const fillRow = {};
     list.forEach((it, i) => {
-        if (icons.has(it.key) || fixed.has(it.key) || flat.has(it.key)) return;
+        if (icons.has(it.key) || fixed.has(it.key) || flat.has(it.key) || anchored.has(it.key)) return;
         const [w, h] = parse(it.size);
         if (h !== 1) return;
         let n = 0;
@@ -172,12 +188,16 @@ export function packOrder(list, cols, bounds, flat = new Set()) {
         if (n) fillRow[it.key] = Math.min(max, w + n <= cols ? Math.max(w, cols - n) : cols);
     });
 
+    let lastIconRow = null;
     let floor = null; // the closed tiles start below everything else, not in a gap above
     for (const it of list) {
+        if (anchored.has(it.key)) continue;
         let [w, h] = parse(it.size);
         w = Math.min(fillRow[it.key] || w, cols);
         if (flat.has(it.key) && floor === null) floor = used.length;
         let y = flat.has(it.key) ? floor : 0;
+        // A tall card never sits beside shortcuts: that leaves a hole under them.
+        if (h > 1 && lastIconRow !== null) y = Math.max(y, lastIconRow + 1);
         let x = 0;
         for (;; y++) {
             x = 0;
@@ -186,6 +206,7 @@ export function packOrder(list, cols, bounds, flat = new Set()) {
         }
         take(x, y, w, h);
         out[it.key] = { x, y, w, h };
+        if (icons.has(it.key)) lastIconRow = y;
     }
 
     const rows = used.length;

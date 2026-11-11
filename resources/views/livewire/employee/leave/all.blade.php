@@ -15,13 +15,15 @@ use App\Enums\LeaveRequestStatus;
             ]"
             :showButton="true"
         />
-        @activerole('HR','super-admin')
-        <div>
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="upcoming-leaves" />
+            @activerole('HR','super-admin')
             <x-primary-button wire:click="create">
                 @lang('general.add-new')
             </x-primary-button>
+            @endactiverole
         </div>
-        @endactiverole
 
     </div>
 

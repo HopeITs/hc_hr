@@ -110,6 +110,9 @@ return [
     'minute' => 'Minute|Minutes',
     'used-leave' => 'USED: :attr',
     'remaining-leave' => 'REMAINING: :attr',
+    'available-leave' => 'AVAILABLE NOW: :attr',
+    'no-active-contract' => 'You have no running contract yet, so there is no leave balance. Please contact the HR team in your city.',
+    'new-contract' => 'New contract',
     'pending-leave' => 'PENDING: :attr',
     'pending-leave2' => 'PENDING:',
     'total-leave' => 'TOTAL: :attr',
@@ -436,7 +439,7 @@ return [
     'add-item' => 'Add Item',
     'items' => 'Items',
     'dashboard' => 'Dashboard',
-    'general-statistics' => 'Employees',
+    'general-statistics' => 'Employee statistics',
     'manager-dashboard' => 'Manager Dashboard',
     'general-admin-dashboard' => 'General Admin Dashboard',
     'dashboards' => 'Dashboards',
@@ -959,6 +962,7 @@ return [
     // A4: sidebar group headings.
     // C2: header search and the New button (docs/ux/interaction-contract.md §6).
     'global-search' => [
+        'short' => 'Search',
         'label' => 'Search people, pages and commands',
         'placeholder' => 'Search people, pages and commands',
         'loading' => 'Searching…',
@@ -989,7 +993,8 @@ return [
             'settings' => 'Settings',
         ],
         'organisation' => 'Organization',
-        'work-inbox' => 'Work inbox',
+        'work-inbox' => 'Needs you',
+        'programs-centers' => 'Programs & centers',
         'bottom' => 'Quick navigation',
         'work-inbox-count' => ':count items waiting for you',
         'team-leaves' => 'Team leaves',

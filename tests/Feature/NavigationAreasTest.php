@@ -52,12 +52,13 @@ class NavigationAreasTest extends TestCase
         $expected = [
             // C0-Q4 (answer 2): an employee keeps only the org chart; a manager also centers and programs.
             'employee' => [...self::MY_SPACE, 'org.chart'],
-            'manager' => [...self::MY_SPACE, 'org.chart', 'centers.index', 'programs.index', 'leaves.all', 'contracts.index', 'news.index', 'inbox', ...$recruiting],
-            'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'inbox', ...$recruiting],
-            'HR-ALP' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', 'inbox', ...$hrRecruiting],
-            'HR-SYR' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$hrRecruiting, 'recruitment.indicator-rules'],
+            // The inbox is part of the dashboard now: no role has a menu link to it.
+            'manager' => [...self::MY_SPACE, 'org.chart', 'centers.index', 'programs.index', 'leaves.all', 'contracts.index', 'news.index', ...$recruiting],
+            'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, ...$recruiting],
+            'HR-ALP' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, 'leaves.balance', ...$hrRecruiting],
+            'HR-SYR' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', ...$hrRecruiting, 'recruitment.indicator-rules'],
             // The D3 feedback list follows an IT contract, not a role (InAppFeedbackTest).
-            'super-admin' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', 'inbox', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
+            'super-admin' => [...self::MY_SPACE, ...$reference, ...self::BASICS, 'holidays.index', ...$hrWork, 'leaves.balance', 'access-management.index', 'activity-log.index', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
         ];
 
         foreach ($expected as $role => $routes) {
@@ -100,7 +101,7 @@ class NavigationAreasTest extends TestCase
         $this->assertStringContainsString('data-nav="nav.my-team.leaves"', $manager);
         $this->assertStringContainsString('data-nav="nav.my-team.contracts"', $manager);
         $this->assertStringNotContainsString('data-nav-area="hr"', $manager);
-        $this->assertStringContainsString('data-nav="nav.inbox"', $manager);
+        $this->assertStringNotContainsString('data-nav="nav.inbox"', $manager);
         // A manager keeps centers and programs for the team; positions and basics leave the menu.
         $this->assertStringContainsString('data-nav="nav.centers"', $manager);
         $this->assertStringContainsString('data-nav="nav.programs"', $manager);
@@ -171,13 +172,11 @@ class NavigationAreasTest extends TestCase
         $this->assertStringContainsString(e(role_label('HR-ALP')), $after);
     }
 
-    /** The inbox shows a count for roles that decide or review, from the scoped leave query. */
-    public function test_the_inbox_shows_a_count_only_for_roles_with_a_source(): void
+    /** The count of what waits sits on the dashboard's link, and a zero is not shown at all. */
+    public function test_nothing_waiting_shows_no_count(): void
     {
         $this->assertStringNotContainsString('data-testid="nav-badge"', $this->sidebarHtml($this->userWithRole('employee')));
-
-        $html = $this->sidebarHtml($this->userWithRole('manager'));
-        $this->assertMatchesRegularExpression('/data-testid="nav-badge">0</', $html);
+        $this->assertStringNotContainsString('data-testid="nav-badge"', $this->sidebarHtml($this->userWithRole('manager')));
     }
 
     /** The first crumb is the page's area for the active role. */

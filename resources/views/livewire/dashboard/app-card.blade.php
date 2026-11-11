@@ -26,6 +26,10 @@
             </ul>
         @elseif (! empty($data['empty']))
             <p class="hc-acempty">{{ $data['empty'] }}</p>
+        @elseif ($href)
+            {{-- No summary of its own: the page itself, live, in the card (the workspace's embedded
+                 mode, data-ws-frame: without the site's sidebar and header). Loaded once on screen. --}}
+            <iframe data-ws-frame class="hc-acframe" src="{{ $href }}" loading="lazy" title="{{ $title ?? '' }}"></iframe>
         @elseif ($counter)
             <div class="hc-acnum">@livewire($counter, key('ac-cnt-'.$this->getId()))</div>
         @endif

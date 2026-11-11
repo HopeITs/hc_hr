@@ -111,14 +111,15 @@ test('a tile with nothing in it goes last, as one line, below everything else', 
     assert.ok(placed.notes.y >= bottom, 'the closed tile starts below the others');
 });
 
-test('a widget below its card size is an icon; a shortcut always is', async () => {
+test('a card below its card size is an icon, a menu page included', async () => {
     const { iconish } = await import('../../resources/js/dashboard/layout-math.js');
-    const b = { notes: { min: [1, 1], max: [12, 8], card: [2, 2] } };
+    const b = { notes: { min: [1, 1], max: [12, 8], card: [2, 2] }, 'app.nav.inbox': { min: [1, 1], max: [12, 8], card: [3, 3] } };
 
     assert.equal(iconish('notes', '1x1', b, 8), true);
     assert.equal(iconish('notes', '2x1', b, 8), true);
     assert.equal(iconish('notes', '2x2', b, 8), false);
-    assert.equal(iconish('app.nav.inbox', '3x3', b, 8), true);
+    assert.equal(iconish('app.nav.inbox', '2x2', b, 8), true);
+    assert.equal(iconish('app.nav.inbox', '3x3', b, 8), false);
 });
 
 test('a size set by hand is shown exactly; the others grow into the gaps', () => {
@@ -165,4 +166,32 @@ test('customising on a phone or a narrow grid never takes a size the grid cut do
     // A computer that shows the tile at its own width: what is seen is what is kept.
     assert.equal(bakedSize('4x2', { w: 6, h: 2 }, 8), '6x2');
     assert.equal(bakedSize('4x2', undefined, 8), '4x2');
+});
+
+test('a pinned card keeps its own cell and size; the others flow around it (2026-11-04)', () => {
+    const shown = [
+        { key: 'notes', size: '5x3' },
+        { key: 'team', size: '3x4', fixed: true, at: [4, 2] },
+        { key: 'news', size: '4x3' },
+    ];
+    const placed = pack(shown, 8, bounds);
+
+    // Exactly where and as large as it was pinned, never grown.
+    assert.deepEqual(placed.team, { x: 4, y: 2, w: 3, h: 4 });
+    // Nothing overlaps it.
+    for (const [key, p] of Object.entries(placed)) {
+        if (key === 'team') continue;
+        const apart = p.x + p.w <= 4 || p.x >= 7 || p.y + p.h <= 2 || p.y >= 6;
+        assert.ok(apart, key + ' overlaps the pinned card');
+    }
+    // Moving the others (their order) never moves it.
+    assert.deepEqual(pack([shown[2], shown[1], shown[0]], 8, bounds).team, { x: 4, y: 2, w: 3, h: 4 });
+});
+
+test('a pin that does not fit this grid flows with the others', () => {
+    // Pinned at column 10 on the wide grid; a computer has 8 columns.
+    const placed = pack([{ key: 'notes', size: '3x3', fixed: true, at: [10, 0] }, { key: 'team', size: '3x2' }], 8, bounds);
+
+    assert.ok(placed.notes.x + placed.notes.w <= 8);
+    assert.equal(placed.notes.w, 3);
 });

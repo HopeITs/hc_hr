@@ -3,6 +3,7 @@
 namespace App\Livewire\Layout;
 
 use App\Models\Employee;
+use App\Services\WorkPresence;
 use App\Support\CommandPalette;
 use App\Support\DirectoryAccess;
 use App\Support\Navigation;
@@ -115,10 +116,22 @@ class GlobalSearch extends Component
             }
         }
 
+        // A nicety: a failure here leaves the results standing, without dots.
+        $presence = [];
+
+        if ($people->isNotEmpty()) {
+            try {
+                $presence = app(WorkPresence::class)->for(auth()->user(), $people->pluck('id'));
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
         return view('livewire.layout.global-search', [
             'term' => $term,
             'pages' => $pages,
             'people' => $people,
+            'presence' => $presence,
             'commands' => $commands,
             'failed' => $failed,
             'showingRecents' => $showingRecents,

@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Services\WorkPresence;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -172,9 +173,13 @@ class TeamCard extends Component
         // avatar endpoint enforces). The card then renders an <img> only for
         // those people: a forbidden photo is never requested, so it neither
         // costs a 403 round trip nor puts its URL in the HTML.
-        $team->each(function (Employee $employee) use ($viewer): void {
+        // One read for the whole team (WorkPresence: three queries, whatever the count).
+        $presence = $viewer ? app(WorkPresence::class)->for($viewer, $team->modelKeys()) : [];
+
+        $team->each(function (Employee $employee) use ($viewer, $presence): void {
             $employee->canViewAvatar = $viewer !== null
                 && Gate::forUser($viewer)->allows('viewAvatar', $employee);
+            $employee->presence = $presence[$employee->getKey()] ?? null;
         });
 
         return $team;

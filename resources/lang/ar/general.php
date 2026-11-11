@@ -86,7 +86,7 @@ return [
     'job-level' => 'المستويات الوظيفية|المستوى الوظيفي',
     'programs-management' => 'إدارة البرامج',
     'holidays-and-leaves' => 'العطل والاجازات',
-    'my-leaves' => 'اجازاتي',
+    'my-leaves' => 'إجازاتي',
     'project-manager' => 'مدير المشروع',
 
     'export-pdf' => 'تصدير كملف PDF',
@@ -433,6 +433,9 @@ return [
     'minute' => 'دقيقة|دقائق',
     'used-leave' => 'مستخدم: :attr',
     'remaining-leave' => 'متبقي: :attr',
+    'available-leave' => 'المتاح الآن: :attr',
+    'no-active-contract' => 'ليس لديك عقد ساري حاليًا، لذلك لا يوجد رصيد إجازات بعد. راجع قسم الموارد البشرية في مدينتك.',
+    'new-contract' => 'عقد جديد',
     'pending-leave' => 'قيد الدراسة: :attr',
     'pending-leave2' => 'قيد الدراسة',
     'total-leave' => 'الكلي: :attr',
@@ -961,6 +964,7 @@ return [
     // A4: عناوين مجموعات القائمة الجانبية.
     // C2: البحث في الشريط العلوي وزر «جديد» (docs/ux/interaction-contract.md §6).
     'global-search' => [
+        'short' => 'بحث',
         'label' => 'ابحث عن شخص أو صفحة أو أمر',
         'placeholder' => 'ابحث عن شخص أو صفحة أو أمر',
         'loading' => 'جارٍ البحث…',
@@ -991,7 +995,8 @@ return [
             'settings' => 'الإعدادات',
         ],
         'organisation' => 'المنظمة',
-        'work-inbox' => 'صندوق المهام',
+        'work-inbox' => 'مطلوب منك',
+        'programs-centers' => 'البرامج والمراكز',
         'bottom' => 'التنقل السريع',
         'work-inbox-count' => ':count بانتظارك',
         'team-leaves' => 'إجازات فريقي',

@@ -34,15 +34,15 @@ final class Navigation
         $can = fn (string ...$permissions): bool => collect($permissions)->contains(fn ($p) => $user->hasActivePermission($p));
         $isManager = $user->activeRoleIs('manager');
 
-        // A role that may change reference data finds it with its work
-        // (HR operations / Settings); one that only reads it, under Organisation.
+        // Reference pages sit under Organisation for every role, so HR operations
+        // keeps the daily work; project basics stay in Settings for whoever edits them.
         $editsPrograms = $can('programs.create', 'programs.update');
         $editsPositions = $can('positions.create', 'positions.update');
         $editsCenters = $can('centers.create', 'centers.update');
         $editsBasics = $can('project-basics.create', 'project-basics.update', 'project-basics.delete');
 
         $mySpace = array_values(array_filter([
-            self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'employee.dashboard'], 'dashboard', 'nav.dashboard'),
+            self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'employee.dashboard', 'inbox'], 'dashboard', 'nav.dashboard'),
             $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
             $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
@@ -78,11 +78,7 @@ final class Navigation
             ! $isManager && $can('contracts.view') ? self::item('nav.hr.contracts', trans_choice('general.contracts', 2), 'contracts.index', ['contracts.*'], 'contracts') : null,
             ! $isManager && $can('leaves.view-all') ? self::item('nav.hr.leaves', __('general.all-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $can('leaves.manage-balances') ? self::item('nav.hr.balances', __('general.balance'), 'leaves.balance', ['leaves.balance'], 'calendar') : null,
-            $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
             $isDeliverResponsible && $can('checklists.manage') ? self::item('nav.hr.done-requests', __('general.done_requests'), 'checklist-items.done-requests', ['checklist-items.done-requests'], 'check') : null,
-            $editsPrograms && $can('programs.view') ? $programs : null,
-            $editsPositions && $can('positions.view') ? $positions : null,
-            $editsCenters && $can('centers.view') ? $centers : null,
             $can('badges.view') ? self::item('nav.hr.badges', __('general.all-badges'), 'badges.index', ['badges.*'], 'badges', 'nav.badges') : null,
             $can('statistics.view') ? self::group('nav.hr.statistics', __('general.statistics'), 'statistics', [
                 self::item('nav.hr.statistics.general', __('general.general-statistics'), 'statistics.general', ['statistics.general']),
@@ -104,11 +100,17 @@ final class Navigation
         // both this menu and the pages' own route check.
         $opens = fn (string $page): bool => $user->canOpenReferencePage($page);
 
+        $structure = array_values(array_filter([
+            ($editsCenters && $can('centers.view')) || $opens('centers') ? $centers : null,
+            ($editsPrograms && $can('programs.view')) || $opens('programs') ? $programs : null,
+            ($editsPositions && $can('positions.view')) || $opens('positions') ? $positions : null,
+        ]));
+
+        // The org chart is always one click away; two or more other reference
+        // pages fold into one link (it opens by itself on any page inside it).
         $organisation = array_values(array_filter([
             $can('positions.view') ? self::item('nav.org.chart', __('general.orgn-chart'), 'org.chart', ['org.chart'], 'code-fork', 'nav.org-chart') : null,
-            ! $editsCenters && $opens('centers') ? $centers : null,
-            ! $editsPrograms && $opens('programs') ? $programs : null,
-            ! $editsPositions && $opens('positions') ? $positions : null,
+            count($structure) > 1 ? self::group('nav.org.structure', __('general.nav.programs-centers'), 'center', $structure) : ($structure[0] ?? null),
             ! $editsBasics && $opens('project-basics') ? $basics : null,
             ! $newsInHr && $can('news.view') ? $news : null,
         ]));
@@ -132,13 +134,14 @@ final class Navigation
             app(RecruitmentApproverEligibility::class)->mayReceiveApprovals($user) ? self::item('nav.recruitment.approvals', __('recruitment.navigation_pending_approvals'), 'recruitment.approvals.pending', ['recruitment.approvals.*'], 'check') : null,
             $can('recruitment-campaigns.view') ? self::item('nav.recruitment.campaigns', __('recruitment.navigation_campaigns'), 'recruitment.campaigns.index', ['recruitment.campaigns.*'], 'newspaper') : null,
             $can('recruitment-applicants.view') ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'users') : null,
-            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'check') : null,
             $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'calendar') : null,
             $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'clipboard-list') : null,
         ]));
 
         $settings = array_values(array_filter([
             $editsBasics && $can('project-basics.view') ? $basics : null,
+            $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
+            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'check') : null,
             $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
             $can('activity-log.view') ? self::item('nav.settings.activity', __('general.activity-log'), 'activity-log.index', ['activity-log.*'], 'activity-log', 'nav.activity-log') : null,
             // D3 / DEC-08: the IT team only; not a role permission (User::canReadFeedback()).
@@ -242,11 +245,8 @@ final class Navigation
      */
     public static function shortcutsFrom(array $nav): array
     {
+        // The inbox is part of the dashboard now, so it is no shortcut of its own.
         $pages = [];
-
-        if ($nav['inbox']) {
-            $pages['nav.inbox'] = ['route' => $nav['inbox']['route'], 'label' => __('general.nav.work-inbox'), 'icon' => 'inbox', 'counter' => null];
-        }
 
         foreach ($nav['areas'] as $area) {
             foreach ($area['items'] as $item) {

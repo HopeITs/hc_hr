@@ -51,6 +51,7 @@ class AppCard extends Component
             'data' => $app ? $this->guardedLoad(fn () => $this->data($app['id']), ['rows' => []]) : ['rows' => []],
             'href' => $app ? route($app['route'], $app['params']) : null,
             'counter' => $app['counter'] ?? null,
+            'title' => $app['label'] ?? '',
         ]);
     }
 

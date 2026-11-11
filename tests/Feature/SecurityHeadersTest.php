@@ -18,7 +18,8 @@ class SecurityHeadersTest extends TestCase
         $response
             ->assertOk()
             ->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('X-Frame-Options', 'DENY')
+            // Framed by this site only (the dashboard's workspace), never by another.
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
             ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
             ->assertHeader('Cross-Origin-Opener-Policy', 'same-origin')
@@ -33,7 +34,7 @@ class SecurityHeadersTest extends TestCase
         $this->assertNotNull($policy);
         $this->assertStringContainsString("default-src 'self'", $policy);
         $this->assertStringContainsString("object-src 'none'", $policy);
-        $this->assertStringContainsString("frame-ancestors 'none'", $policy);
+        $this->assertStringContainsString("frame-ancestors 'self'", $policy);
         $this->assertMatchesRegularExpression("/script-src [^;]*'nonce-[^']+'/", $policy);
         $this->assertStringNotContainsString('upgrade-insecure-requests', $policy);
     }

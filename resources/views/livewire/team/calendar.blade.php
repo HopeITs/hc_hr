@@ -36,12 +36,16 @@
             <p class="mt-1 max-w-2xl text-small text-ink-2">{{ __('team_calendar.intro') }}</p>
         </div>
 
-        @if ($canManageHolidays)
-            <x-button icon="plus" :loading="false" data-testid="calendar-add-holiday"
-                      wire:click="$dispatch('openHolidayCreate', { date: '{{ now()->toDateString() }}' })">
-                {{ __('team_calendar.add_holiday') }}
-            </x-button>
-        @endif
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="calendar" />
+            @if ($canManageHolidays)
+                <x-button icon="plus" :loading="false" data-testid="calendar-add-holiday"
+                          wire:click="$dispatch('openHolidayCreate', { date: '{{ now()->toDateString() }}' })">
+                    {{ __('team_calendar.add_holiday') }}
+                </x-button>
+            @endif
+        </div>
     </div>
 
     {{-- Toolbar --}}
@@ -167,7 +171,7 @@
                             $rows = 'auto auto'.($lanes > 0 ? " repeat({$lanes}, auto)" : '').' auto 1fr';
                         @endphp
                         <div wire:key="week-{{ $week['days'][0]['date'] }}"
-                             @class(['grid min-h-32 grid-cols-7 gap-y-1', 'border-t border-line-soft' => ! $loop->first])
+                             @class(['isolate grid min-h-32 grid-cols-7 gap-y-1', 'border-t border-line-soft' => ! $loop->first])
                              style="grid-template-rows: {{ $rows }}">
                             @foreach ($week['days'] as $day)
                                 @php
@@ -189,13 +193,15 @@
                                     ];
                                 @endphp
                                 {{-- The cell's background, under its date, holidays and the bars crossing it.
-                                     From today on, its empty space opens the leave form on that day. --}}
+                                     From today on, its empty space opens the leave form on that day. The link
+                                     is positioned (for its hover pill), so -z-10 inside the row's isolated
+                                     stacking context keeps it under the date and bars instead of over them. --}}
                                 @if ($requestHere)
                                     <a wire:key="cell-{{ $day['date'] }}" href="{{ str_replace('__DATE__', $day['date'], $requestUrl) }}" wire:navigate
                                        data-testid="calendar-request-{{ $day['date'] }}"
                                        aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}"
                                        style="grid-column: {{ $col }}; grid-row: 1 / -1"
-                                       @class([...$cellClasses, 'group/cell relative transition-colors hover:bg-hover focus-visible:-outline-offset-2'])>
+                                       @class([...$cellClasses, 'group/cell relative -z-10 transition-colors hover:bg-hover focus-visible:-outline-offset-2'])>
                                         <span class="pointer-events-none absolute inset-x-0 top-2.5 flex justify-center opacity-0 transition-opacity group-hover/cell:opacity-100 group-focus-visible/cell:opacity-100" aria-hidden="true">
                                             <span class="inline-flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-caption font-semibold text-on-ink shadow-e1">
                                                 <svg class="size-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>

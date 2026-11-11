@@ -9,9 +9,13 @@
 </x-slot:title>
 
 <div>
-    <div class="mb-4">
-        <livewire:layout.breadcrumbs :title="__('general.nav.work-inbox')" :crumbs="[]" />
-        <p class="text-small text-ink-2">{{ __('inbox.intro') }}</p>
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <livewire:layout.breadcrumbs :title="__('general.nav.work-inbox')" :crumbs="[]" />
+            <p class="text-small text-ink-2">{{ __('inbox.intro') }}</p>
+        </div>
+        {{-- The page's live card on the dashboard: decisions first (only for someone who decides). --}}
+        <livewire:dashboard.add-to-dashboard tile="decide" />
     </div>
 
     {{-- Filters with the same counts as the menu badge. --}}
@@ -79,7 +83,8 @@
                         @endif
                         <div class="min-w-0 flex-1">
                             <p class="font-semibold text-ink">
-                                <bdi>{{ $subject?->name ?? __('general.na') }}</bdi>
+                                <x-presence :status="$subject ? ($presence[$subject->id] ?? null) : null" class="me-1" />
+                                <x-person :id="$subject?->id" :name="$subject?->name ?? __('general.na')" />
                                 @if ($row['former'] ?? false)
                                     <x-tag variant="soft" class="ms-1" data-testid="inbox-former">{{ __('inbox.former') }}</x-tag>
                                 @endif

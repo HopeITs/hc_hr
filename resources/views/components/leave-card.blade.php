@@ -32,7 +32,7 @@
 
             </li>
             <li>
-                <span>@lang('general.remaining-leave', ['attr' => $remaining ]) </span>
+                <span>@lang($isAnnual ? 'general.available-leave' : 'general.remaining-leave', ['attr' => $remaining ]) </span>
             </li>
             <li>
                 <span>@lang('general.pending-leave', ['attr' => $pending ]) </span>

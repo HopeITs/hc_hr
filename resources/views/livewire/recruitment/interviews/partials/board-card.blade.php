@@ -67,6 +67,10 @@
         @elseif ($status !== RecruitmentInterviewStatus::Scheduled)
             <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($status)">{{ __('recruitment-applicant.interviews.statuses.'.$status) }}</x-recruitment.pill>
         @endif
+        {{-- This interview on the viewer's dashboard (DashboardLayout::ITEMS, item.interview.<id>); above the stretched link. --}}
+        <div class="relative z-10 ms-auto shrink-0">
+            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('interview', $interview->id)" :compact="true" :key="'atd-interview-'.$interview->id" />
+        </div>
     </div>
 
     <div class="mt-2 flex items-center gap-2.5">

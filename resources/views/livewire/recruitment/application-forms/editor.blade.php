@@ -22,9 +22,8 @@
 
     <div class="sticky top-0 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-secondary-soft bg-white/95 p-3 shadow-e2 backdrop-blur">
         <div class="flex flex-wrap gap-2">
-            <button type="button" x-on:click="addPanel = !addPanel" class="inline-flex cursor-pointer items-center gap-2 rounded-control bg-primary px-4 py-2 text-body font-semibold text-white transition hover:bg-primary-hover">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                {{ __('recruitment.application_form.add_question') }}
+            <button type="button" x-on:click="addPanel = !addPanel" class="hc-btn hc-btn--add hc-btn--reveal">
+                <x-ic name="plus" /><span class="hc-reveal-label">{{ __('recruitment.application_form.add_question') }}</span>
             </button>
             <button type="button" x-on:click="$dispatch('open-recruitment-confirmation', { scope: 'application-form-editor', action: 'applyReferenceTemplate', message: @js(__('recruitment.application_form.template_confirm')), confirmLabel: @js(__('recruitment.application_form.use_pdf_template')) })" class="cursor-pointer rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-semibold text-secondary-dark hover:bg-secondary-soft/30">
                 {{ __('recruitment.application_form.use_pdf_template') }}

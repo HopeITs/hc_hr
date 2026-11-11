@@ -42,9 +42,13 @@
                     @endif
                 </p>
             </div>
-            <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($interview->status)">
-                {{ __('recruitment-applicant.interviews.statuses.'.$interview->status) }}
-            </x-recruitment.pill>
+            <div class="flex shrink-0 items-center gap-2">
+                {{-- This interview on the viewer's dashboard (item.interview.<id>). --}}
+                <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('interview', $interview->id)" :key="'atd-interview-'.$interview->id" />
+                <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($interview->status)">
+                    {{ __('recruitment-applicant.interviews.statuses.'.$interview->status) }}
+                </x-recruitment.pill>
+            </div>
         </div>
 
         <dl class="mt-6 grid grid-cols-1 gap-4 text-sm md:grid-cols-2">

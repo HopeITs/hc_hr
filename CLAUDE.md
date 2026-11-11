@@ -93,3 +93,24 @@ The visual identity is the Hope Center one as implemented in **media-request** (
 
 ### Routes
 `routes/web.php` is the locale-wrapped entry point and `require`s the domain route files: `basic-project.php`, `projects-management.php`, `employees-management.php`, and `auth.php`.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
+
+## Knowledge graph: HopeHR notes
+
+Kept under its own heading on purpose: `graphify claude install` rewrites the `## graphify` section above, but not this one.
+- `graphify` is not on PATH on this machine: call `C:/Users/ASUS/.local/bin/graphify.exe` (installed with pipx, 2026-11-05).
+- Always cap a query: `graphify query "<question>" --budget 1500` (add `--dfs` for "how does A reach B"). An uncapped broad query returned ~2,600 nodes. `explain` was the most useful command in practice; check the cited lines in the source before stating a fact.
+- Never read `graphify-out/graph.json` (19 MB) and avoid reading `GRAPH_REPORT.md` whole (~22k tokens).
+- The graph is local and free (AST, 0 tokens). `.graphifyignore` keeps out `.env`, secrets, `vendor/`, `storage/`, built assets, SQL/data files, `LOCAL-TEST-ACCOUNTS.md`, `.claude/` and `.agents/`; never run the semantic (`/graphify --update` with docs) pass on it, since that sends files to a model.
+- Automatic: `.claude/settings.json` holds graphify's PreToolUse guard (before Bash/Grep/Read/Glob) and two background hooks that run `graphify update .` at session start and after every reply, so the graph follows the code without being asked.
+- For a plain "where is X defined", a text search is cheaper than the graph.

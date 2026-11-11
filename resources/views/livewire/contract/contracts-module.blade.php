@@ -14,6 +14,9 @@
             ]"
             :showButton="true"
         />
+        <div class="flex flex-wrap items-center gap-2">
+        {{-- The page's live card on the dashboard: contracts ending soon, in this page's scope. --}}
+        <livewire:dashboard.add-to-dashboard tile="soon-ending-contracts" />
         @activerole('HR', 'super-admin')
         <div class="flex items-center gap-2">
             {{-- The file follows the columns the table shows (B4D-Q6); the hint says so. --}}
@@ -24,6 +27,7 @@
             </x-primary-button>
         </div>
         @endactiverole
+        </div>
     </div>
 
     {{-- Keeps the employee and position columns pinned while the rest of this

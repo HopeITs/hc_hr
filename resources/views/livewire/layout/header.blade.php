@@ -11,7 +11,6 @@
     $arUrl = LaravelLocalization::getLocalizedURL('ar', null, [], true);
     $guideLabel = $isRtl ? 'دليل الاستخدام' : 'User guide';
     $homepageLabel = $isRtl ? 'الموقع الرئيسي' : 'Main website';
-    $feedbackLabel = $isRtl ? 'إرسال مشكلة أو ملاحظة' : 'Send problem or feedback';
 @endphp
 
 <nav id="app-navbar" dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
@@ -35,56 +34,23 @@
                     <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h10" />
                 </svg>
             </button>
-            {{-- C2: search pages and people, and start a task. --}}
+            {{-- C2: search pages and people, and start a task: its Commands group has the New
+                 actions. The New button was taken off the bar (2026-11-03); the phone's + and
+                 the dashboard's shortcuts still offer them. --}}
             <livewire:layout.global-search />
-            @include('livewire.layout.partials.new-menu', ['actions' => \App\Support\Navigation::newActions($user)])
 
-            {{-- Island 1: language segmented (EN | AR). On phones only the other
-                 language is shown (C2): with search and New in the row, two
-                 buttons here pushed the menu button off the screen. --}}
-            <div class="flex items-center shrink-0 rounded-[18px] bg-soft p-0.5 sm:p-1">
-                <a href="{{ $enUrl }}"
-                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'en' ? 'bg-card text-ink shadow-e1 max-sm:hidden' : 'text-ink-2 font-semibold hover:text-ink' }}"
-                    aria-label="English" @if($curr === 'en') aria-current="true" @endif>EN</a>
-                <a href="{{ $arUrl }}"
-                    class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 px-2.5 sm:px-4 rounded-[14px] text-body font-bold leading-none transition {{ $curr === 'ar' ? 'bg-card text-ink shadow-e1 max-sm:hidden' : 'text-ink-2 font-semibold hover:text-ink' }}"
-                    aria-label="العربية" @if($curr === 'ar') aria-current="true" @endif>AR</a>
-            </div>
+            {{-- Language: only the other one, as a single button. --}}
+            <a href="{{ $curr === 'ar' ? $enUrl : $arUrl }}"
+                class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 sm:min-w-9 px-2 shrink-0 rounded-[14px] text-body font-semibold leading-none text-ink-2 transition hover:bg-hover hover:text-ink"
+                aria-label="{{ $curr === 'ar' ? 'English' : 'العربية' }}">{{ $curr === 'ar' ? 'EN' : 'AR' }}</a>
 
-            {{-- Light / dark, beside the language switch. Not on phones (no room at 375px):
-                 there it is a row in the account menu. --}}
-            <x-theme-toggle class="max-sm:hidden" />
-
-            {{-- Island 2: utility icons grouped in one capsule --}}
+            {{-- Island 2: the few icons used often; the rest are in the account menu. --}}
             <div class="flex items-center shrink-0 gap-0.5 rounded-[18px] bg-soft p-0.5 sm:p-1">
                 {{-- D3. Not on phones: one more 44px button pushed the menu button off the
                      screen at 375px (M1). There it is in the account menu, and the "?"
                      beside each difficult field opens the same panel. --}}
                 <x-help.button/>
                 <x-tour.button/>
-
-                <a href="https://docs.google.com/document/d/1AcrvWNBzoD-bTem3Gy_35EtDgwD-SXST/edit?usp=sharing&ouid=105248334092459549739&rtpof=true&sd=true"
-                    target="_blank" rel="noopener"
-                    class="max-sm:hidden inline-flex items-center justify-center transition rounded-[14px] size-8 sm:size-9 text-ink-2 hover:bg-card hover:text-ink hover:shadow-e1"
-                    title="{{ $guideLabel }}" aria-label="{{ $guideLabel }}">
-                    <svg width="15" height="15" viewBox="0 0 29.93 27.45" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M29.93,5.57v14.8c-.37,2.76-2.35,4.97-5.12,5.48l-7.71,1.4c-1.36.25-2.68.28-4.05.03l-7.81-1.42c-2.8-.46-4.86-2.68-5.23-5.52V5.6C.46,1.94,3.76-.55,7.38.11l4.64.84c1.15.21,2.16.74,2.95,1.64.75-.84,1.7-1.4,2.8-1.6L22.6.1c3.6-.65,6.85,1.88,7.32,5.47ZM13.72,24.86V5.91c0-1.23-.84-2.25-2.04-2.47l-4.73-.87c-2.31-.43-4.45,1.31-4.45,3.69v13.43c0,1.82,1.27,3.37,3.06,3.7l8.16,1.48ZM24.4,23.37c1.8-.33,3.04-1.9,3.04-3.69V6.25c0-2.32-2.07-4.12-4.35-3.7l-4.89.9c-1.18.22-1.98,1.27-1.98,2.46v18.96s8.19-1.49,8.19-1.49Z"/></svg>
-                </a>
-
-                <a href="https://hcsyria.org/home" target="_blank" rel="noopener"
-                    class="max-sm:hidden inline-flex items-center justify-center transition rounded-[14px] size-8 sm:size-9 text-ink-2 hover:bg-card hover:text-ink hover:shadow-e1"
-                    title="{{ $homepageLabel }}" aria-label="{{ $homepageLabel }}">
-                    <svg width="15" height="15" viewBox="0 0 29.95 29.95" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M15.98,29.92l-2.01.03-.2-.05c-7.42-.59-13.25-6.55-13.77-13.87l.03-2.07C.56,6.49,6.49.52,14.03.03c4.07-.27,8.11,1.17,11.14,3.99,3.3,3.08,5.04,7.45,4.75,11.9-.49,7.54-6.46,13.47-13.93,14ZM8.21,8.73c.9-2.13,2.07-3.96,3.48-5.77-3.21.87-5.85,2.94-7.51,5.77h4.02ZM25.75,8.73c-1.67-2.85-4.31-4.89-7.5-5.77,1.43,1.82,2.6,3.69,3.49,5.78h4.01ZM18.98,8.74c-1.07-2.12-2.4-4-4.01-5.72-1.61,1.72-2.94,3.6-4.01,5.72h8.03ZM7.36,18.72c-.66-2.47-.66-5.01,0-7.48H3.07c-.77,2.47-.76,5.07,0,7.49h4.29ZM19.99,18.72c.79-2.47.79-5.08,0-7.49h-10.02c-.79,2.45-.79,5.03,0,7.49h10.03ZM26.87,18.72c.77-2.48.76-5.06,0-7.49h-4.29c.66,2.47.66,5.01,0,7.49h4.29ZM8.2,21.21h-4.01c1.66,2.83,4.29,4.9,7.51,5.78-1.44-1.81-2.59-3.69-3.5-5.78ZM18.98,21.22h-8.02c1.07,2.12,2.4,4,4.01,5.72,1.61-1.73,2.94-3.6,4.01-5.72ZM25.75,21.22h-4.02c-.89,2.12-2.06,3.96-3.48,5.77,3.2-.88,5.85-2.95,7.49-5.77Z"/></svg>
-                </a>
-
-                {{-- D3: in-app feedback dialog (DEC-08) replaces the external Google Form. --}}
-                @auth
-                <button type="button" data-feedback-open
-                    x-data x-on:click="Livewire.dispatch('open-feedback')"
-                    class="max-sm:hidden inline-flex items-center justify-center transition rounded-[14px] size-8 sm:size-9 text-ink-2 hover:bg-card hover:text-ink hover:shadow-e1"
-                    title="{{ $feedbackLabel }}" aria-label="{{ $feedbackLabel }}">
-                    <svg width="15" height="15" viewBox="0 0 29.95 29.95" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M29.92,13.93c-.27-3.41-1.64-6.63-4-9.15C22.84,1.48,18.48-.26,14.03.03,5.69.58-.52,7.79.03,15.97c.51,7.54,6.51,13.46,13.98,13.95l2.01.03c7.41-.53,13.39-6.51,13.92-13.92l-.02-2.1ZM14.97,27.45c-6.89,0-12.47-5.58-12.47-12.47S8.09,2.5,14.97,2.5s12.47,5.58,12.47,12.47-5.58,12.47-12.47,12.47Z"/><path d="M14.98,12.48h-1.24c-.71,0-1.26.57-1.26,1.24,0,.69.55,1.26,1.26,1.26h1.23s0,7.48,0,7.48c0,.72.58,1.25,1.25,1.25.67,0,1.24-.53,1.24-1.28v-7.45c0-1.39-1.12-2.49-2.49-2.5Z"/><path d="M14.98,9.99c1.03,0,1.87-.84,1.87-1.87s-.84-1.87-1.87-1.87-1.87.84-1.87,1.87.84,1.87,1.87,1.87Z"/></svg>
-                </button>
-                @endauth
 
                 <x-layouts.app.notification />
             </div>
@@ -160,8 +126,7 @@
                                 <span>@lang('help.panel.open')</span>
                             </button>
 
-                            {{-- Phones: the header's light / dark button does not fit there. --}}
-                            <x-theme-toggle menu class="sm:hidden" />
+                            <x-theme-toggle menu />
 
                             {{-- D3: opens the feedback dialog over the current page; nothing navigates. --}}
                             <button type="button" role="menuitem" data-feedback-open
@@ -176,8 +141,8 @@
                             </button>
                         </div>
 
-                        {{-- Phones (M1): the secondary links leave the crowded top bar and live here instead. --}}
-                        <div class="px-2 py-2 sm:hidden">
+                        {{-- The secondary links stay out of the top bar. --}}
+                        <div class="px-2 py-2">
                             @foreach ([[$guideLabel, 'https://docs.google.com/document/d/1AcrvWNBzoD-bTem3Gy_35EtDgwD-SXST/edit?usp=sharing&ouid=105248334092459549739&rtpof=true&sd=true'], [$homepageLabel, 'https://hcsyria.org/home']] as [$label, $href])
                                 <a href="{{ $href }}" target="_blank" rel="noopener" role="menuitem"
                                     class="flex min-h-11 items-center gap-3 px-3 py-2 text-body font-medium text-ink transition rounded-surface hover:bg-hover">
@@ -185,8 +150,6 @@
                                 </a>
                             @endforeach
                         </div>
-
-                        <div class="h-px bg-gradient-to-r from-transparent via-line-soft to-transparent sm:hidden"></div>
 
                         <div class="h-px bg-gradient-to-r from-transparent via-line-soft to-transparent"></div>
 

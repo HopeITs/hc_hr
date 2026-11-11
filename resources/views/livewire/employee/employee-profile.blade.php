@@ -31,8 +31,11 @@
                     @if ($canPropose)
                         <div class="mb-2">@include('livewire.employee.partials.proposal-slot', ['section' => 'photo'])</div>
                     @endif
-                    <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}"
-                        class="h-20 w-20 rounded-surface border-2 border-card object-fit shadow-e2 ring-1 ring-line-soft sm:h-40 sm:w-40 sm:rounded-surface sm:border-4 sm:shadow-e3">
+                    <div class="relative inline-block">
+                        <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}"
+                            class="h-20 w-20 rounded-surface border-2 border-card object-fit shadow-e2 ring-1 ring-line-soft sm:h-40 sm:w-40 sm:rounded-surface sm:border-4 sm:shadow-e3">
+                        <x-presence :status="$presence" on-avatar size="lg" class="-translate-x-1 -translate-y-1 rtl:translate-x-1" />
+                    </div>
                 </div>
 
                 <div class="min-w-0 w-full flex-1 min-[900px]:basis-[calc(100%-11.5rem)]">
@@ -120,6 +123,7 @@
                      built on the server for this viewer; a Directory-only viewer gets none. --}}
                 @if ($canViewRecords)
                     <x-profile-section data-section="timeline" :title="__('employees.profile.timeline')" :subtitle="__('employees.profile.timeline-subtitle')" icon="icons.clock">
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('timeline', $employee->id)" :compact="true" :key="'atd-timeline-'.$employee->id" /></x-slot:action>
                         @if ($timeline === [])
                             <p class="text-body text-ink-2">@lang('employees.profile.timeline-empty')</p>
                         @else
@@ -156,6 +160,7 @@
                 @endif
 
                 <x-profile-section data-tour="profile.overview" :title="__('general.employment-overview')" :subtitle="__('general.professional-information')" icon="icons.user">
+                    <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('overview', $employee->id)" :compact="true" :key="'atd-overview-'.$employee->id" /></x-slot:action>
                     <dl class="grid gap-4 sm:grid-cols-2">
                         @foreach ([[__('general.position'), $positionName], [trans_choice('general.job-level', 1), $currentPosition?->jobLevel?->name ?? $notSpecified], [__('general.direct-manager'), $directManagerName ?? $notSpecified], [trans_choice('general.program', 1), $currentPosition?->program?->name ?? $notSpecified], [trans_choice('general.city', 1), $currentPosition?->city?->name ?? $notSpecified]] as [$label, $value])
                             <div class="rounded-surface bg-soft p-4">
@@ -168,6 +173,10 @@
 
                 @if ($canViewRecords)
                     <x-profile-section data-tour="profile.career" :title="__('general.career-history')" :subtitle="__('general.contract-details')" icon="icons.contracts">
+                        {{-- This person's contracts as a card on the viewer's dashboard (DashboardLayout::RECORDS). --}}
+                        <x-slot:action>
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contracts', $employee->id)" :compact="true" :key="'atd-contracts-'.$employee->id" />
+                        </x-slot:action>
                         <div class="space-y-4">
                             @forelse($contracts as $contract)
                                 <article class="relative rounded-surface border border-line-soft p-4 ps-6">
@@ -210,6 +219,7 @@
                 @if ($canViewRecords)
                     <div class="grid gap-4 lg:grid-cols-2">
                         <x-profile-section data-section="education" :title="__('general.education')" icon="icons.education">
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('education', $employee->id)" :compact="true" :key="'atd-education-'.$employee->id" /></x-slot:action>
                         @include('livewire.employee.partials.proposal-slot', ['section' => 'education'])
                             <div class="space-y-4">
                                 @forelse($employee->educations as $education)
@@ -232,6 +242,7 @@
                         </x-profile-section>
 
                         <x-profile-section data-section="experience" :title="__('general.experience')" icon="icons.experience">
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('experience', $employee->id)" :compact="true" :key="'atd-experience-'.$employee->id" /></x-slot:action>
                         @include('livewire.employee.partials.proposal-slot', ['section' => 'experience'])
                             <div class="space-y-4">
                                 @forelse($employee->experiences as $experience)
@@ -254,6 +265,7 @@
 
                 @if ($canViewPrivate)
                     <x-profile-section data-tour="profile.private" :title="__('general.personal-information')" :subtitle="__('general.private-information')" icon="icons.contact" private>
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('personal', $employee->id)" :compact="true" :key="'atd-personal-'.$employee->id" /></x-slot:action>
                         <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             @foreach ([[__('general.national-id'), $employee->national_number ?? $notSpecified], [__('general.birthday'), $formatDate($employee->actual_dob)], [__('general.birth-place'), $employee->{'pob_' . app()->getLocale()} ?? $notSpecified], [__('general.nationality'), $employee->nationality !== null ? \App\Enums\Nationality::getLocalizedName((int) $employee->nationality) : $notSpecified], [__('general.marital-status'), $employee->marital_status !== null ? \App\Enums\MaritalStatus::getLocalizedName((int) $employee->marital_status)['value'] : $notSpecified], [__('general.children'), $employee->children ?? 0], [__('general.civil-registry-office'), $employee->civil_registry_office ?? $notSpecified], [__('general.civil-registry-number'), $employee->civil_registry_number ?? $notSpecified], [__('general.address'), $employee->address ?? $notSpecified]] as [$label, $value])
                                 <div class="rounded-surface bg-soft p-4">
@@ -268,14 +280,18 @@
 
             <aside class="space-y-4">
                 <x-profile-section data-section="work-contact" :title="__('general.work-contact')" icon="icons.contact">
-                    @if (in_array('work-contact', $editable, true))
-                        <x-slot:action>
-                            <x-button variant="outline" size="sm" wire:click="openSection('work-contact')" data-testid="edit-work-contact">
-                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
-                                <span class="sr-only">{{ __('general.work-contact') }}</span>
-                            </x-button>
-                        </x-slot:action>
-                    @endif
+                    <x-slot:action>
+                        <div class="flex items-center gap-2">
+                            {{-- This person's work contact as a card on the viewer's dashboard. --}}
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :compact="true" :key="'atd-contact-'.$employee->id" />
+                            @if (in_array('work-contact', $editable, true))
+                                <x-button variant="outline" size="sm" wire:click="openSection('work-contact')" data-testid="edit-work-contact">
+                                    <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                    <span class="sr-only">{{ __('general.work-contact') }}</span>
+                                </x-button>
+                            @endif
+                        </div>
+                    </x-slot:action>
                     <div class="space-y-3 text-body">
                         @foreach ([[__('general.email'), $workEmail, 'icons.envelope', $workEmail ? 'mailto:' . $workEmail : null], [__('general.work-phone'), $employee->work_phone, 'icons.phone', $employee->work_phone ? 'tel:' . $employee->work_phone : null], ['WhatsApp', $employee->whatsapp_work, 'icons.whatsapp', null], ['Telegram', $employee->telegram_work, 'icons.telegram', null]] as [$label, $value, $icon, $href])
                             @if ($value)
@@ -303,14 +319,17 @@
 
                 @if ($canViewPrivate)
                     <x-profile-section data-section="personal-contact" :title="__('general.personal-contact')" icon="icons.phone" private>
-                        @if (in_array('personal-contact', $editable, true))
                         <x-slot:action>
+                        <div class="flex items-center gap-2">
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('personal-contact', $employee->id)" :compact="true" :key="'atd-personal-contact-'.$employee->id" />
+                            @if (in_array('personal-contact', $editable, true))
                             <x-button variant="outline" size="sm" wire:click="openSection('personal-contact')" data-testid="edit-personal-contact">
                                 <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
                                 <span class="sr-only">{{ __('general.personal-contact') }}</span>
                             </x-button>
+                            @endif
+                        </div>
                         </x-slot:action>
-                    @endif
                         <div class="space-y-3 text-body">
                             @foreach ([[__('general.email'), $employee->personal_email], [__('general.personal-phone'), $employee->personal_phone]] as [$label, $value])
                                 <div class="rounded-surface bg-soft p-3">
@@ -328,14 +347,17 @@
 
                 @if ($canViewRecords)
                     <x-profile-section data-section="skills" :title="__('general.skills-and-interests')" icon="icons.statistics">
-                        @if (in_array('skills', $editable, true))
                         <x-slot:action>
+                        <div class="flex items-center gap-2">
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('skills', $employee->id)" :compact="true" :key="'atd-skills-'.$employee->id" />
+                            @if (in_array('skills', $editable, true))
                             <x-button variant="outline" size="sm" wire:click="openSection('skills')" data-testid="edit-skills">
                                 <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
                                 <span class="sr-only">{{ __('general.skills-and-interests') }}</span>
                             </x-button>
+                            @endif
+                        </div>
                         </x-slot:action>
-                    @endif
                         <div class="mb-4 flex flex-wrap gap-2">
                             @forelse($skills as $skill)
                                 <span
@@ -360,6 +382,7 @@
 
                 @if ($canViewRecords)
                     <x-profile-section data-section="courses" :title="__('general.courses')" icon="icons.courses">
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('courses', $employee->id)" :compact="true" :key="'atd-courses-'.$employee->id" /></x-slot:action>
                         @include('livewire.employee.partials.proposal-slot', ['section' => 'course'])
                         <div class="space-y-4">
                             @forelse($employee->courses->take(5) as $course)
@@ -378,6 +401,7 @@
 
                 @if($canViewBadges || ($isSelf && $badges->isNotEmpty()))
                     <x-profile-section data-section="badges" :title="__('general.badges')" icon="icons.badges">
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('badges', $employee->id)" :compact="true" :key="'atd-badges-'.$employee->id" /></x-slot:action>
                         <div class="space-y-3">
                             @forelse($badges->take(5) as $badge)
                                 <div class="rounded-surface bg-soft p-3">
@@ -399,6 +423,7 @@
 
                 @if ($canViewPrivate && ($employee->relatives->isNotEmpty() || $canPropose))
                     <x-profile-section data-section="family" :title="__('general.family-information')" icon="icons.relatives" private>
+                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('family', $employee->id)" :compact="true" :key="'atd-family-'.$employee->id" /></x-slot:action>
                         @include('livewire.employee.partials.proposal-slot', ['section' => 'relative'])
                         <div class="space-y-3">
                             @foreach ($employee->relatives as $relative)

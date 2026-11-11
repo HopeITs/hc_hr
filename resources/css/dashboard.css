@@ -18,10 +18,10 @@
 
 .hc-grid {
     --cols: 8;
-    --gap: 14px;
+    --gap: 10px;
     --cell: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
-    /* A row is a bit shorter than a column is wide, so cards are not mostly empty. */
-    --row: clamp(88px, calc(var(--cell) * 0.75), 116px);
+    /* A row is much shorter than a column is wide, so cards are not mostly empty. */
+    --row: clamp(72px, calc(var(--cell) * 0.55), 92px);
     display: grid;
     grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
     grid-auto-rows: var(--row);
@@ -213,6 +213,30 @@
 }
 
 /* The gallery's icons: the same shape, smaller. */
+/* Wide enough (a computer): a slim card, icon beside its name, so a row of them reads as one strip. */
+@container tile (min-width: 100px) {
+    .hc-tile.is-app .hc-app {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--color-line-soft);
+        background: var(--color-card);
+    }
+
+    .hc-tile.is-app .hc-appicon {
+        width: 32px;
+    }
+
+    .hc-tile.is-app .hc-appname {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        text-align: start;
+        white-space: normal;
+    }
+}
+
 .hc-galitem .hc-appicon {
     width: 46px;
     border-radius: 13px;
@@ -448,10 +472,40 @@
     z-index: 5;
 }
 
+/* While resizing, the card lifts a little and settles on whole cells under a
+   light frame that follows the pointer pixel by pixel (home-screen.js
+   resizeStart); the frame is the outline, so the card itself has none. */
 .hc-tile.resizing .hc-tile-body {
-    outline: 2px solid var(--color-ink);
-    outline-offset: 3px;
     box-shadow: var(--shadow);
+}
+
+.hc-rsz-frame {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: 4;
+    border: 2px solid var(--color-ink);
+    border-radius: var(--radius-surface);
+    background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+    pointer-events: none;
+}
+
+.hc-tile.resizing > .hc-sizebadge {
+    z-index: 5;
+    animation: hc-badge-in 0.22s cubic-bezier(.22, 1.18, .36, 1);
+}
+
+@keyframes hc-badge-in {
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-tile.resizing > .hc-sizebadge {
+        animation: none;
+    }
 }
 
 /* ---------- Add: a bottom sheet on phones, a panel on larger screens ---------- */
@@ -800,20 +854,21 @@
    the headline. The late band and the decision card below are drawn in
    their tiles now (late-card, decisions-card).
    Red only where something waits on the viewer or is late; never tinted. */
-.hc-dash-header {
-    margin-bottom: 18px;
-}
-
+/* The greeting shares its row with Customise (index.blade.php). */
+.hc-dash-header,
 .hc-hello {
-    margin-bottom: 18px;
+    margin-bottom: 0;
 }
 
+/* The greeting is the page's heading. */
 .hc-hello-greeting {
     display: block;
     margin-bottom: 2px;
-    font-size: 15px;
+    font-size: 31.5px;
+    line-height: 1.15;
     font-weight: 600;
     color: var(--color-ink-2);
+    text-wrap: balance;
 }
 
 /* Late: a red-edged strip with a ringing clock. */
@@ -993,6 +1048,16 @@
 .hc-decide-track:not(.all) .hc-dcard-meta { grid-area: meta; }
 .hc-decide-track:not(.all) .hc-dcard-go { grid-area: go; align-self: center; margin: 0; }
 
+/* The square keeps its own small column; opened on hover it grows over towards the text
+   (justify-self: unsafe end), so nothing beside it moves. */
+.hc-decide-track:not(.all) .hc-dcard {
+    grid-template-columns: minmax(0, 1fr) 38px;
+}
+
+.hc-decide-track:not(.all) .hc-dcard-go.hc-btn--reveal {
+    justify-self: unsafe end;
+}
+
 .hc-decide-track.all {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1103,15 +1168,6 @@
     .hc-late-tile .hc-lateband .hc-btn {
         flex-basis: 100%;
     }
-}
-
-.hc-decide-tile {
-    border-inline-start: 3px solid var(--color-primary);
-}
-
-.hc-decide-tile:has([data-tile-empty]) {
-    border-inline-start-width: 1px;
-    border-inline-start-color: var(--color-line-soft);
 }
 
 /* Work inbox: the decisions, then the rest of the inbox as a short list. */
@@ -1293,6 +1349,24 @@
     font-size: var(--text-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* ---------- one look for every icon a card shrinks to ----------
+   A card made small, a folded card's line and a shortcut draw their icon the
+   same way: the silver of the sidebar's calendar (ink-3, the same in both
+   themes) whatever colour the icon file sets itself, and the calendar's line
+   weight (about 1.8 on a 24 grid) for the icons drawn with strokes. Icons drawn
+   as filled shapes already have that weight; only the colour reaches them. */
+.hc-tile .hc-appicon > svg,
+.hc-tile .hc-tile-line-ico > svg {
+    color: var(--color-ink-3);
+}
+
+.hc-tile .hc-appicon > svg[stroke-width],
+.hc-tile .hc-appicon > svg [stroke-width],
+.hc-tile .hc-tile-line-ico > svg[stroke-width],
+.hc-tile .hc-tile-line-ico > svg [stroke-width] {
+    stroke-width: 1.8;
 }
 
 /* ---------- a tile made small: an icon that opens its card ---------- */
@@ -1625,6 +1699,377 @@
     from {
         translate: 0 40px;
         opacity: 0;
+    }
+}
+
+/* ---------- a card as a window (2026-11-02) ----------
+   At rest a card has two window controls on its top edge, minimise and
+   maximise, and its resize grip in the corner; both appear when the pointer
+   is on the card or focus is in it, so they never sit on the card's own
+   header links. On touch screens (no hover) they stay in Customise, as before.
+   Neutral only: they are none of red's three jobs. */
+.hc-wctl {
+    position: absolute;
+    top: -14px;
+    /* Clear of the top inline-end resize corner. */
+    inset-inline-end: 26px;
+    z-index: 3;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.hc-wctl > button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-inset);
+    background: transparent;
+    color: var(--color-ink-2);
+    cursor: pointer;
+}
+
+.hc-wctl > button:hover {
+    background: var(--color-hover);
+    color: var(--color-ink);
+}
+
+.hc-wctl > button > svg {
+    width: 14px;
+    height: 14px;
+}
+
+.hc-tile:hover > .hc-wctl,
+.hc-tile:focus-within > .hc-wctl {
+    opacity: 1;
+}
+
+/* Pinned (its size and place stay): pressed = ink fill, never red. At rest the pin alone
+   stays on the card's top edge, so a pinned card says so without the pointer on it. */
+.hc-wctl > .hc-w-pin[aria-pressed="true"] {
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+}
+
+.hc-wctl > .hc-w-pin > svg {
+    width: 14px;
+    height: 14px;
+}
+
+.hc-tile.pinned > .hc-wctl {
+    opacity: 1;
+}
+
+.hc-tile.pinned:not(:hover):not(:focus-within) > .hc-wctl > :not(.hc-w-pin) {
+    display: none;
+}
+
+/* The grip, at rest and while customising (2026-11-05: one look in both): a thin silver
+   corner (ink-3, the same in both themes) just inside
+   each of the card's four corners, no fill and no shadow. Each is invisible until the
+   pointer comes near: its catch area reaches out into the gap between cards, so it is
+   found before the card's own controls, and the mark sits in the card's padding, never
+   over a button. Dragging away from that corner grows the card. Keyboard focus shows
+   the bottom inline-end one. */
+.hc-grid .hc-grip {
+    width: 14px;
+    height: 14px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--color-ink-3);
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+/* The catch area grows outward only (into the gap), never further into the card. */
+.hc-grid .hc-grip::before {
+    inset: -2px;
+}
+
+.hc-grid .hc-grip[data-corner^="end"]::before {
+    inset-block-end: -14px;
+}
+
+.hc-grid .hc-grip[data-corner^="start"]::before {
+    inset-block-start: -14px;
+}
+
+.hc-grid .hc-grip[data-corner$="-end"]::before {
+    inset-inline-end: -14px;
+}
+
+.hc-grid .hc-grip[data-corner$="-start"]::before {
+    inset-inline-start: -14px;
+}
+
+.hc-grid .hc-grip svg {
+    width: 14px;
+    height: 14px;
+}
+
+.hc-grid .hc-grip path {
+    stroke-width: 1.6;
+}
+
+/* The corners: end-end is bottom inline-end; the mark is drawn for that corner and turned for the others. */
+.hc-grid .hc-grip[data-corner="end-end"] {
+    bottom: 2px;
+    inset-inline-end: 2px;
+}
+
+.hc-grid .hc-grip[data-corner="end-start"] {
+    bottom: 2px;
+    inset-inline-start: 2px;
+    cursor: nesw-resize;
+}
+
+.hc-grid .hc-grip[data-corner="start-end"] {
+    top: 2px;
+    inset-inline-end: 2px;
+    cursor: nesw-resize;
+}
+
+.hc-grid .hc-grip[data-corner="start-start"] {
+    top: 2px;
+    inset-inline-start: 2px;
+    cursor: nwse-resize;
+}
+
+.hc-grid .hc-grip[data-corner="end-start"] svg {
+    transform: scaleX(-1);
+}
+
+.hc-grid .hc-grip[data-corner="start-end"] svg {
+    transform: scaleY(-1);
+}
+
+.hc-grid .hc-grip[data-corner="start-start"] svg {
+    transform: scale(-1);
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="end-end"] svg {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="end-start"] {
+    cursor: nwse-resize;
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="end-start"] svg {
+    transform: none;
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="start-end"] {
+    cursor: nwse-resize;
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="start-end"] svg {
+    transform: scale(-1);
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="start-start"] {
+    cursor: nesw-resize;
+}
+
+[dir="rtl"] .hc-grid .hc-grip[data-corner="start-start"] svg {
+    transform: scaleY(-1);
+}
+
+/* Near the corner: the mark fades in; while it is held, a shade brighter. */
+.hc-grid .hc-grip:hover,
+.hc-grid .hc-grip:focus-visible,
+.hc-grid:not(.editing) .hc-tile.resizing > .hc-grip:active {
+    opacity: 1;
+}
+
+.hc-grid .hc-grip:active {
+    color: var(--color-ink-2);
+}
+
+/* Customising shows the same thin corners, all four, without waiting for the pointer:
+   that is where cards are resized. On a touch screen each keeps a 44px catch area for the
+   finger, still drawn thin. */
+.hc-grid.editing .hc-grip {
+    opacity: 1;
+}
+
+/* The top corners share their place with Hide (top start) and the pin (top end): those
+   buttons stay on top, so a press on them never starts a resize. */
+.hc-grid.editing .hc-grip[data-corner^="start"] {
+    z-index: 2;
+}
+
+@media (hover: none) {
+    .hc-grid.editing .hc-grip::before {
+        inset: -15px;
+    }
+}
+
+@media (hover: none) {
+    .hc-wctl,
+    .hc-grid:not(.editing) .hc-grip {
+        display: none;
+    }
+}
+
+/* Maximised: the card in the panel, over the page with a margin. */
+.hc-tile-body.is-max:popover-open,
+[dir="rtl"] .hc-tile-body.is-max:popover-open {
+    inset: 24px;
+    width: auto;
+    max-height: none;
+}
+
+.hc-tile-body.is-max:popover-open > :not(.hc-panel-close) {
+    min-height: 0;
+}
+
+@media (max-width: 760px) {
+    .hc-tile-body.is-max:popover-open,
+    [dir="rtl"] .hc-tile-body.is-max:popover-open {
+        inset: 0;
+        width: 100%;
+        height: 100dvh;
+        border-radius: 0;
+    }
+}
+
+/* The strip under the groups, above the grid (2026-11-05): minimised cards and cards made
+   1x1, each as its own icon; one click brings each back in its place. */
+.hc-dock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 42px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line-soft);
+}
+
+/* Always drawn: with nothing minimised it keeps one tab's height, so the grid never jumps. */
+.hc-dock-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hc-dock-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding-inline: 12px 14px;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-round);
+    background: var(--color-card);
+    color: var(--color-ink);
+    font-size: var(--text-small);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.hc-dock-item:hover {
+    border-color: var(--color-line);
+    background: var(--color-hover);
+}
+
+.hc-dock-item > svg {
+    width: 14px;
+    height: 14px;
+    color: var(--color-ink-2);
+}
+
+/* A card's own icon in the strip, in the silver of every card icon (ink-3). */
+.hc-dock-icon {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    color: var(--color-ink-3);
+}
+
+.hc-dock-icon > svg {
+    width: 18px;
+    height: 18px;
+}
+
+.hc-dock-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Customising: the × beside an entry in the strip takes it off the dashboard. */
+.hc-dock-remove {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-round);
+    background: transparent;
+    color: var(--color-ink-2);
+    cursor: pointer;
+}
+
+.hc-dock-remove:hover,
+.hc-dock-remove:focus-visible {
+    background: var(--color-hover);
+    color: var(--color-ink);
+}
+
+.hc-dock-remove > svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* A card in the strip (below its minimum, or a shortcut) takes no room in the grid, customising too, but stays on the page (not
+   display: none) so its body can still open in the side panel. */
+.hc-grid > .hc-tile.parked {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* pointer-events is inherited: the card's panel, open in the top layer, takes clicks again. */
+.hc-grid > .hc-tile.parked > .hc-tile-body:popover-open {
+    pointer-events: auto;
+}
+
+@media (hover: none) {
+    .hc-dock-item {
+        min-height: 44px;
+    }
+
+    .hc-dock-remove {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-wctl,
+    .hc-grid:not(.editing) .hc-grip {
+        transition: none;
     }
 }
 
@@ -2189,3 +2634,1007 @@
     }
 }
 /* end new tiles ===================================================== */
+
+/* ---------- The viewer's own record: Needs your attention, Request leave, Me ---------- */
+.hc-att-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 1rem;
+    padding-block-end: 0.75rem;
+}
+
+.hc-att-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.375rem;
+}
+
+.hc-att-item + .hc-att-item {
+    border-block-start: 1px solid var(--color-line-soft);
+}
+
+/* Red: it waits on the viewer. */
+.hc-att-mark {
+    flex: none;
+    align-self: stretch;
+    width: 3px;
+    border-radius: var(--radius-round);
+    background: var(--color-primary);
+}
+
+.hc-att-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+.hc-att-text b {
+    font-size: var(--text-body);
+    color: var(--color-ink);
+}
+
+/* A wide tile: what and why on one line. */
+@container tile (min-width: 560px) {
+    .hc-att-text {
+        flex-flow: row wrap;
+        align-items: baseline;
+        column-gap: 0.5rem;
+    }
+}
+
+.hc-rl-form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.625rem;
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 1rem;
+    padding-block-end: 0.875rem;
+}
+
+.hc-rl-label {
+    display: block;
+    margin-block-end: 0.25rem;
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: var(--color-ink-2);
+}
+
+.hc-rl-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.375rem;
+}
+
+.hc-rl-types legend {
+    grid-column: 1 / -1;
+}
+
+.hc-rl-type {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+.hc-rl-type b {
+    min-width: 0;
+    color: var(--color-ink);
+}
+
+.hc-rl-type span {
+    flex: none;
+}
+
+.hc-rl-type input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* The chosen type: an ink outline (a choice, not an alert: never red). */
+.hc-rl-type:has(input:checked) {
+    border-color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+}
+
+.hc-rl-type:has(input:focus-visible) {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.hc-rl-dates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.5rem;
+}
+
+.hc-rl-input {
+    width: 100%;
+    min-height: 2.5rem;
+    padding-inline: 0.625rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+    color: var(--color-ink);
+}
+
+.hc-rl-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-block-start: auto;
+}
+
+.hc-me-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 1rem;
+    padding-block-end: 0.875rem;
+}
+
+.hc-me-who {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.hc-me-initial {
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: var(--color-ink-2);
+}
+
+.hc-me-kv {
+    display: grid;
+    grid-template-columns: minmax(6rem, auto) 1fr;
+    gap: 0.375rem 1rem;
+    font-size: var(--text-small);
+}
+
+.hc-me-kv dt {
+    color: var(--color-ink-2);
+}
+
+.hc-me-kv dd {
+    min-width: 0;
+    color: var(--color-ink);
+}
+
+/* ---------- Filtered to a hub group with no card: the way back ---------- */
+.hc-filter-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px dashed var(--color-line);
+    border-radius: var(--radius-surface);
+}
+
+/* ---------- Live versions of pages: one list of rows (my requests, employees, a person's contracts) ---------- */
+.hc-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 0.5rem;
+    padding-block-end: 0.5rem;
+}
+
+.hc-list-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0.5rem;
+    border-radius: var(--radius-control);
+    color: var(--color-ink);
+    font-size: var(--text-body);
+    text-decoration: none;
+}
+
+a.hc-list-row:hover {
+    background: var(--color-hover);
+}
+
+.hc-list > li + li {
+    border-block-start: 1px solid var(--color-line-soft);
+}
+
+/* ---------- A card taken out of the browser (Dashboard\Window) ----------
+   The window is the card: it fills the window and is the "tile" size
+   container, so the card lays itself out for the window's size. */
+.hc-window {
+    position: relative;
+    height: 100dvh;
+    padding: 6px;
+}
+
+.hc-window-card {
+    height: 100%;
+    container: tile / size;
+}
+
+.hc-window-out {
+    position: absolute;
+    inset: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+    text-align: center;
+}
+
+/* The pop-out menu under a card's window controls: on top of everything, or a window of its own. */
+.hc-tile.out > .hc-wctl {
+    opacity: 1;
+}
+
+.hc-wout {
+    position: absolute;
+    top: calc(100% + 6px);
+    inset-inline-end: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    min-width: 13rem;
+    padding: 4px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+    box-shadow: var(--shadow);
+}
+
+.hc-wout > button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.625rem;
+    border: 0;
+    border-radius: var(--radius-inset);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: var(--text-small);
+    font-weight: 700;
+    text-align: start;
+    cursor: pointer;
+}
+
+.hc-wout > button:hover,
+.hc-wout > button:focus-visible {
+    background: var(--color-hover);
+}
+
+.hc-wout > button > span {
+    font-size: var(--text-caption);
+    font-weight: 400;
+    color: var(--color-ink-2);
+}
+
+/* ---------- Today at a glance (GlanceCard): weather, clock, date, time ----------
+   Four card tiles on the soft field. Wide: the weather two rows high on the
+   start side, the clock and the date on top, the time under them. Narrow: the
+   weather across the top. One row high: the weather and the time only. */
+.hc-glance {
+    display: grid;
+    gap: 10px;
+    height: 100%;
+    padding: 10px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "w c d"
+        "w t t";
+}
+
+.hc-glance-tile {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-card);
+}
+
+.hc-glance-weather {
+    grid-area: w;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 14px 16px;
+    /* Its own size container: the temperature follows this tile's height in every layout. */
+    container: wx-tile / size;
+}
+
+.hc-glance-clock {
+    grid-area: c;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.hc-glance-date {
+    grid-area: d;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.hc-glance-time {
+    grid-area: t;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.hc-glance-sky {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: var(--text-body);
+    font-weight: 700;
+    color: var(--color-ink);
+}
+
+.hc-glance-sky > svg {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    color: var(--color-ink-2);
+}
+
+.hc-glance-sky > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The temperature fills the room between the condition and the city: 47% of the weather tile's inner height. */
+.hc-glance-temp {
+    display: flex;
+    align-items: flex-start;
+    font-size: clamp(29px, 47cqh, 108px);
+    /* Medium, and 10px lower than its place, clear of the condition line above. */
+    font-weight: 500;
+    translate: 0 10px;
+    line-height: 1;
+    color: var(--color-ink);
+}
+
+.hc-glance-temp > span[aria-hidden] {
+    font-size: 0.6em;
+    line-height: 1.1;
+}
+
+.hc-glance-city,
+.hc-glance-none {
+    font-size: var(--text-small);
+    color: var(--color-ink-2);
+}
+
+/* The face fills its tile's shorter side, so it grows with the card. */
+.hc-glance-clock {
+    container-type: size;
+}
+
+.hc-glance-face {
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
+}
+
+.hc-glance-face .rim {
+    fill: none;
+    stroke: var(--color-ink);
+    stroke-width: 5;
+}
+
+.hc-glance-face .hand {
+    stroke: var(--color-ink);
+    stroke-linecap: round;
+}
+
+.hc-glance-face .hand.h {
+    stroke-width: 5;
+}
+
+.hc-glance-face .hand.m {
+    stroke-width: 3.5;
+}
+
+/* "Now": the second hand is red, one of red's three jobs. */
+.hc-glance-face .hand.s {
+    stroke: var(--color-primary);
+    stroke-width: 2;
+}
+
+.hc-glance-face .hub {
+    fill: var(--color-ink);
+}
+
+/* Today's month: red ("today"), small capitals; the day large in ink. */
+.hc-glance-mon {
+    font-size: var(--text-small);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+}
+
+.hc-glance-dom,
+.hc-glance-hm {
+    font-size: clamp(26px, 15cqh, 46px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-ink);
+}
+
+.hc-glance-rule {
+    align-self: center;
+    width: 1px;
+    height: 40%;
+    background: var(--color-line);
+}
+
+.hc-glance-period {
+    font-size: var(--text-small);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-ink-2);
+}
+
+@container tile (max-width: 519.98px) {
+    .hc-glance {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "w w"
+            "c d"
+            "t t";
+    }
+}
+
+@container tile (max-height: 159.98px) {
+    .hc-glance {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        grid-template-areas: "w t";
+    }
+
+    .hc-glance-clock,
+    .hc-glance-date,
+    .hc-glance-city {
+        display: none;
+    }
+
+    .hc-glance-weather {
+        flex-direction: row;
+        align-items: center;
+        padding-block: 8px;
+    }
+
+    .hc-glance-temp {
+        font-size: clamp(24px, 40cqh, 40px);
+        /* One row here: on the condition's own line, not dropped below it. */
+        translate: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-glance-face .hand {
+        transition: none;
+    }
+}
+
+/* 18° reads left to right in both languages; in Arabic it still sits on the tile's start (right) side. */
+[dir="rtl"] .hc-glance-temp {
+    justify-content: flex-end;
+}
+
+/* The city line stays one line. */
+.hc-glance-city {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- The weather tile's scene (GlanceCard) ----------
+   Behind the words, in ink at low opacity, never a hue: the sun's rays turn,
+   stars twinkle, clouds drift, fog slides, rain and snow fall, a storm flashes.
+   Only transform and opacity move. Still with prefers-reduced-motion. */
+.hc-glance-weather {
+    position: relative;
+    overflow: hidden;
+}
+
+.hc-glance-weather > :not(.hc-wx) {
+    position: relative;
+    z-index: 1;
+}
+
+.hc-wx {
+    /* One line width for every line of the scene: the sun, the cloud, fog and rain. */
+    --wx-line: 2px;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    container-type: size;
+    color: var(--color-ink);
+    pointer-events: none;
+}
+
+/* In screen pixels (non-scaling strokes), whatever size the sun and the cloud are drawn at. */
+.hc-wx-sun circle,
+.hc-wx-sun line {
+    stroke-width: var(--wx-line);
+}
+
+/* The sun and the clouds are drawn in a solid ink blended into the card (never see-through),
+   and a cloud is filled with the card itself: drawn after the sun, it hides it, so the sun
+   peeks out from behind a cloud instead of showing through it. */
+/* Whatever the weather, the sun's centre is the card's top right corner (right in both
+   languages): translate puts its middle on the corner, so the turn (transform) still spins
+   it in place. */
+.hc-wx-sun {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 101%;
+    max-width: 259px;
+    aspect-ratio: 1;
+    translate: 50% -50%;
+    color: color-mix(in srgb, var(--color-ink) 13%, var(--color-card));
+    animation: hc-wx-turn 40s linear infinite;
+}
+
+/* Partly cloudy: the same corner, a smaller sun, half behind the big cloud. */
+.hc-wx--partly .hc-wx-sun {
+    width: 58%;
+}
+
+.hc-wx-spark {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    color: color-mix(in srgb, var(--color-ink) 40%, var(--color-card));
+    animation: hc-wx-sparkle 3.6s ease-in-out var(--d) infinite;
+}
+
+/* Placed from the left in both languages, like the sun on the right: the clouds stay beside it. */
+.hc-wx-cloud {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: 46%;
+    max-width: 150px;
+    color: color-mix(in srgb, var(--color-ink) 15%, var(--color-card));
+    animation: hc-wx-drift 16s ease-in-out infinite alternate;
+}
+
+.hc-wx-cloud path {
+    fill: var(--color-card);
+    stroke-width: var(--wx-line);
+}
+
+/* An outline that reaches its box's edge is never cut. */
+.hc-wx-cloud {
+    overflow: visible;
+}
+
+/* Partly cloudy and the storm: the cloud 20px lower (margin, so its drift keeps transform). */
+.hc-wx--partly .hc-wx-cloud,
+.hc-wx--storm .hc-wx-cloud {
+    margin-top: 20px;
+}
+
+.hc-wx-fog {
+    position: absolute;
+    inset-inline: -20%;
+    /* Below the cloud (which ends near 42%), never across it. */
+    top: calc(52% + var(--i) * 14%);
+    height: var(--wx-line);
+    border-radius: var(--radius-round);
+    background: currentColor;
+    opacity: 0.1;
+    animation: hc-wx-slide 9s ease-in-out calc(var(--i) * -3s) infinite alternate;
+}
+
+.hc-wx-drop {
+    position: absolute;
+    top: -16px;
+    inset-inline-start: var(--x);
+    width: var(--wx-line);
+    height: 14px;
+    border-radius: var(--radius-round);
+    background: currentColor;
+    opacity: 0;
+    animation: hc-wx-fall 1.3s linear var(--d) infinite;
+}
+
+.hc-wx--drizzle .hc-wx-drop {
+    height: 8px;
+    animation-duration: 1.9s;
+}
+
+.hc-wx-flake {
+    position: absolute;
+    top: -8px;
+    inset-inline-start: var(--x);
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-round);
+    background: currentColor;
+    opacity: 0;
+    animation: hc-wx-snow 6s linear var(--d) infinite;
+}
+
+.hc-wx-flash {
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0;
+    animation: hc-wx-flash 6s ease-out infinite;
+}
+
+@keyframes hc-wx-turn {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes hc-wx-sparkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.6); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes hc-wx-drift {
+    to { transform: translateX(18%); }
+}
+
+@keyframes hc-wx-slide {
+    to { transform: translateX(14%); }
+}
+
+@keyframes hc-wx-fall {
+    0% { opacity: 0; transform: translateY(0) rotate(12deg); }
+    12% { opacity: 0.2; }
+    100% { opacity: 0.2; transform: translateY(calc(100cqh + 32px)) rotate(12deg); }
+}
+
+@keyframes hc-wx-snow {
+    0% { opacity: 0; transform: translate(0, 0); }
+    10% { opacity: 0.22; }
+    50% { transform: translate(10px, 50cqh); }
+    100% { opacity: 0.22; transform: translate(-6px, calc(100cqh + 16px)); }
+}
+
+/* One quick double flash, then a long quiet. */
+@keyframes hc-wx-flash {
+    0%, 86%, 100% { opacity: 0; }
+    88% { opacity: 0.1; }
+    90% { opacity: 0; }
+    92% { opacity: 0.07; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-wx *,
+    .hc-wx-drop,
+    .hc-wx-flake,
+    .hc-wx-flash {
+        animation: none !important;
+    }
+
+    /* Still, the scene keeps its shapes: rain and snow as a few marks in place. */
+    .hc-wx-drop,
+    .hc-wx-flake {
+        opacity: 0.16;
+        transform: translateY(40cqh) rotate(12deg);
+    }
+}
+
+/* Opening the dashboard: the cards wait unseen until their layout is final (home-screen.js reveal()),
+   then come in one after another. Without the script nothing ever hides them. */
+.hc-grid[x-ref]:not(.is-in) > .hc-tile {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-grid[x-ref]:not(.is-in) > .hc-tile {
+        opacity: 1;
+    }
+}
+
+
+/* ---- The workspace (dashboard/workspace.js) -------------------------------------------
+   Pages the dashboard leads to open over it, beside the sidebar and under the header,
+   as tabs; each is the page itself in a frame. */
+.hc-ws {
+    position: fixed;
+    inset-block: var(--ws-top, 70px) 0;
+    inset-inline: var(--ws-start, 0px) 0;
+    z-index: 25;
+    padding: 16px;
+    background: color-mix(in srgb, var(--color-base) 70%, transparent);
+    backdrop-filter: blur(6px);
+}
+
+.hc-ws-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-surface);
+    background: var(--color-base);
+    box-shadow: var(--shadow-e3);
+    outline: none;
+}
+
+.hc-ws-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--color-line-soft);
+    background: var(--color-card);
+}
+
+.hc-ws-tabs {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.hc-ws-tab {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    max-width: 240px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-round);
+    color: var(--color-ink-2);
+}
+
+.hc-ws-tab:hover {
+    background: var(--color-hover);
+}
+
+.hc-ws-tab.is-on {
+    border-color: var(--color-line);
+    background: var(--color-hover);
+    color: var(--color-ink);
+}
+
+.hc-ws-tab-name {
+    min-width: 0;
+    overflow: hidden;
+    padding: 6px 4px 6px 14px;
+    font-size: var(--text-small);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+[dir="rtl"] .hc-ws-tab-name {
+    padding: 6px 14px 6px 4px;
+}
+
+.hc-ws-tab-x,
+.hc-ws-btn {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-round);
+    color: var(--color-ink-2);
+    cursor: pointer;
+}
+
+.hc-ws-tab-x:hover,
+.hc-ws-btn:hover {
+    background: var(--color-hover);
+    color: var(--color-ink);
+}
+
+.hc-ws-tab-x svg {
+    width: 14px;
+    height: 14px;
+}
+
+.hc-ws-btn {
+    width: 32px;
+    height: 32px;
+}
+
+.hc-ws-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.hc-ws-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.hc-ws-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.hc-ws-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--color-base);
+}
+
+/* Opens like a card coming in: from the inline end, a long ease-out. */
+.hc-ws-enter {
+    transition: opacity 320ms cubic-bezier(.16, 1, .3, 1), translate 420ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.hc-ws-leave {
+    transition: opacity 180ms ease-in, translate 180ms ease-in;
+}
+
+.hc-ws-from {
+    opacity: 0;
+    translate: 48px 0;
+}
+
+[dir="rtl"] .hc-ws-from {
+    translate: -48px 0;
+}
+
+.hc-ws-to {
+    opacity: 1;
+    translate: 0 0;
+}
+
+html.ws-open {
+    overflow: hidden;
+}
+
+/* A phone: the whole screen under the header. */
+@media (max-width: 47.99rem) {
+    .hc-ws {
+        inset-inline: 0;
+        padding: 0;
+    }
+
+    .hc-ws-panel {
+        border-radius: 0;
+        border-inline: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-ws-enter,
+    .hc-ws-leave {
+        transition: none;
+    }
+}
+
+/* A page from the menu as a card (AppCard): the page itself, live, filling the card. */
+.hc-acframe {
+    display: block;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--color-base);
+}
+
+/* A menu page dragged over the dashboard: the cards' area says it takes it. */
+.hc-home-screen.hc-drop .hc-home {
+    position: relative;
+    outline: 2px dashed var(--color-ink-3);
+    outline-offset: 8px;
+    border-radius: var(--radius-surface);
+}
+
+.hc-home-screen.hc-drop .hc-home::before {
+    content: attr(data-drop);
+    position: absolute;
+    inset-block-start: -40px;
+    inset-inline-start: 0;
+    z-index: 5;
+    padding: 4px 12px;
+    border-radius: var(--radius-round);
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+    font-size: var(--text-small);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* While a menu page is being dragged: frames (cards showing a page, the workspace) let the drag
+   pass to the dashboard, which takes the drop anywhere on the page. */
+html.hc-page-drag iframe {
+    pointer-events: none;
+}
+
+/* The analogue clock (components/dashboard/wall-clock), drawn like a wall clock: its own
+   fixed colours (a white face in both themes), the second hand red ("now"). */
+.hc-wall .hc-wall-rim {
+    fill: #1d1d1f;
+}
+
+.hc-wall .hc-wall-face {
+    fill: #ffffff;
+}
+
+.hc-wall .hc-wall-tick {
+    stroke: #1d1d1f;
+    stroke-width: 0.6;
+    stroke-linecap: butt;
+}
+
+.hc-wall .hc-wall-tick.is-hour {
+    stroke-width: 1.5;
+}
+
+.hc-wall .hc-wall-num {
+    fill: #111111;
+    font-family: 'SomarSans', sans-serif;
+    font-size: 11.5px;
+    font-weight: 800;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+.hc-wall .hand.h,
+.hc-wall .hand.m {
+    fill: #111111;
+    stroke: none;
+}
+
+.hc-wall .hand.s {
+    stroke: var(--color-primary);
+    stroke-width: 0.9;
+    stroke-linecap: round;
+}
+
+.hc-wall .hc-wall-hub {
+    fill: var(--color-primary);
+    stroke: #111111;
+    stroke-width: 1.4;
+}

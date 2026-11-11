@@ -14,6 +14,31 @@
         apply();
         new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
         document.addEventListener('livewire:navigated', apply);
+        // Switched somewhere else on this device: the dashboard around a page shown in a frame
+        // (a card, the workspace), or another tab. The browser tells every other page of the site
+        // ("storage"); this one follows at once and tells its own parts (the switch, the charts).
+        window.addEventListener('storage', function (e) {
+            if (e.key !== 'hopehr-theme') return;
+            var t = stored();
+            if (! t || root.dataset.theme === t) return;
+            root.dataset.theme = t;
+            window.dispatchEvent(new CustomEvent('hopehr-theme', { detail: t }));
+        });
+    })();
+</script>
+{{-- A page opened in the dashboard's workspace (a frame marked data-ws-frame, on this site):
+     <html class="in-workspace"> before the first paint, so the page shows without the site's
+     own sidebar, header and footer (app.css). Kept across wire:navigate like the theme. --}}
+<script nonce="{{ Vite::cspNonce() }}">
+    (function () {
+        var inside = false;
+        try { inside = window.self !== window.top && !! window.frameElement && window.frameElement.hasAttribute('data-ws-frame'); } catch (e) { inside = false; }
+        if (! inside) return;
+        var root = document.documentElement;
+        var mark = function () { if (! root.classList.contains('in-workspace')) root.classList.add('in-workspace'); };
+        mark();
+        new MutationObserver(mark).observe(root, { attributes: true, attributeFilter: ['class'] });
+        document.addEventListener('livewire:navigated', mark);
     })();
 </script>
 <meta name="description" content="{{ $description ?? __('Secure human resources management for Christian Hope Center teams across Syria.') }}" />
@@ -83,11 +108,6 @@
      Vite::asset() resolves the same fingerprinted URL app.css uses, so the preload is never a wasted second download. --}}
 <link rel="preload" href="{{ Vite::asset('resources/fonts/SomarSans/SomarSans-Regular.woff2') }}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{ Vite::asset('resources/fonts/SomarSans/SomarSans-Medium.woff2') }}" as="font" type="font/woff2" crossorigin>
-
-{{-- Warm the cdnjs connection before the render-blocking Font Awesome stylesheet asks for it --}}
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 @yield('css')
 @livewireStyles

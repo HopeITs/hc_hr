@@ -3,8 +3,11 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Livewire\Dashboard\AppCard;
+use App\Livewire\Dashboard\AttentionCard;
 use App\Livewire\Dashboard\Header;
+use App\Livewire\Dashboard\Hub;
 use App\Livewire\Dashboard\Index;
+use App\Livewire\Dashboard\MeCard;
 use App\Models\SavedDashboardLayout;
 use App\Support\Dashboard\DashboardLayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,9 +33,12 @@ class DashboardHomeBehavioursTest extends TestCase
         $layout = new DashboardLayout;
 
         $this->assertSame(['min' => [1, 1], 'max' => [12, 8], 'card' => [3, 3], 'full' => [5, 3]], $layout->bounds('calendar'));
-        $this->assertSame(['min' => [1, 1], 'max' => [4, 4], 'card' => [2, 2]], $layout->bounds('app.nav.inbox'));
+        // A page from the menu is a card too: from 3x3 it shows the page, up to 12x8.
+        $this->assertSame(['min' => [1, 1], 'max' => [12, 8], 'card' => [3, 3]], $layout->bounds('app.nav.inbox'));
         $this->assertSame('1x1', $layout->size('calendar', '1x1'));
-        $this->assertSame('4x4', $layout->size('app.nav.inbox', '9x9'));
+        $this->assertSame('9x8', $layout->size('app.nav.inbox', '9x9'));
+        $this->assertSame('4x4', $layout->defaultSize('app.nav.inbox'));
+        $this->assertTrue($layout->hasCard('app.nav.inbox'));
     }
 
     public function test_a_widget_opens_only_a_page_the_role_may_open(): void
@@ -71,6 +77,131 @@ class DashboardHomeBehavioursTest extends TestCase
         $this->assertArrayNotHasKey('fixed', $saved['notes']);
     }
 
+    public function test_a_minimised_card_is_kept_for_the_strip_and_only_while_hidden(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $user = $this->makeUser($city, 'employee', ['leaves.view-own']);
+        $layout = (new DashboardLayout)->defaults($user);
+
+        foreach ($layout as &$item) {
+            $item = match ($item['key']) {
+                'news' => ['hidden' => true, 'min' => true] + $item,
+                'my-leaves' => ['hidden' => false, 'min' => true] + $item, // shown: nothing to keep
+                default => $item,
+            };
+        }
+        unset($item);
+
+        Livewire::actingAs($user)->test(Index::class)->call('saveLayout', $layout)->assertHasNoErrors();
+
+        $saved = collect(SavedDashboardLayout::query()->where('user_id', $user->id)->sole()->layout)->keyBy('key');
+        $this->assertSame([true, true], [$saved['news']['hidden'], $saved['news']['min']]);
+        $this->assertArrayNotHasKey('min', $saved['my-leaves']);
+
+        // A minimised card is hidden, so the page does not draw it; the strip offers it back.
+        Livewire::actingAs($user)->test(Index::class)
+            ->assertDontSeeHtml('data-key="news"')
+            ->assertSeeHtml('data-testid="dashboard-dock"');
+    }
+
+    public function test_a_card_has_window_controls_and_its_grip_at_rest(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $user = $this->makeUser($city, 'employee', ['leaves.view-own']);
+
+        Livewire::actingAs($user)->test(Index::class)
+            ->assertSeeHtml('class="hc-wctl"')
+            ->assertSeeHtml('x-on:click="minimise(')
+            ->assertSeeHtml('x-on:click="maximise(')
+            // No resize corner on a pinned card (its size stays), 2026-11-04.
+            ->assertSeeHtml('&& (editing || ! closed(');
+
+        // A resize corner in each of the four corners; only the bottom inline-end one is a control.
+        $html = Livewire::actingAs($user)->test(Index::class)->html();
+        foreach (['end-end', 'end-start', 'start-end', 'start-start'] as $corner) {
+            $this->assertStringContainsString('data-corner="'.$corner.'"', $html);
+        }
+        $this->assertSame(substr_count($html, 'data-corner="end-end"'), substr_count($html, 'class="hc-grip" data-corner="end-end"'));
+        $this->assertStringContainsString('class="hc-grip hc-grip-more" data-corner="start-start" aria-hidden="true"', $html);
+    }
+
+    public function test_the_own_record_cards_are_for_someone_with_a_record_and_draw_it(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $layout = new DashboardLayout;
+        $noRecord = $this->makeUser($city, 'employee', ['leaves.view-own', 'leaves.create']);
+        $noRecord->forceFill(['employee_id' => null])->save();
+        $staff = $this->makeUser($city, 'employee', ['leaves.view-own', 'leaves.create']);
+        $readOnly = $this->makeUser($city, 'viewer', ['leaves.view-own']); // its own role: permissions are per role
+
+        foreach (['attention', 'me', 'request-leave'] as $key) {
+            $this->assertFalse($layout->allowed($noRecord, $key), $key);
+            $this->assertTrue($layout->allowed($staff, $key), $key);
+        }
+        // The form's own rule: no leaves.create, no card.
+        $this->assertFalse($layout->allowed($readOnly, 'request-leave'));
+
+        // Attention is on a staff member's first dashboard; the other two wait in Add.
+        $shown = array_column(array_filter($layout->defaults($staff), fn (array $i): bool => ! $i['hidden']), 'key');
+        $this->assertContains('attention', $shown);
+        $this->assertNotContains('me', $shown);
+
+        // Nothing on the record: one quiet line the grid folds away.
+        Livewire::actingAs($staff)->test(AttentionCard::class)->assertSeeHtml('data-tile-empty');
+        Livewire::actingAs($staff)->test(MeCard::class)->assertSeeHtml('data-testid="me-details"')->assertSee($staff->profile->name);
+        $this->assertSame(route('leaves.index'), $layout->page($staff, 'request-leave'));
+    }
+
+    public function test_a_hub_group_filters_the_grid_to_its_own_cards(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $staff = $this->makeUser($city, 'employee', ['leaves.view-own', 'leaves.create']);
+        $decider = $this->makeUser($city, 'manager', ['leaves.view-own', 'leaves.decide']);
+
+        $groups = (new DashboardLayout)->groupTiles($staff);
+
+        // Its widgets the person may have, and the shortcuts to its own pages.
+        $this->assertContains('my-leaves', $groups['leaves']);
+        $this->assertContains('request-leave', $groups['leaves']);
+        $this->assertContains('app.nav.my-space.leaves', $groups['leaves']);
+        $this->assertContains('me', $groups['people']);
+        $this->assertNotContains('my-leaves', $groups['people']);
+        // Nothing to decide: no alert in any group; a statistics card the role may not have, nowhere.
+        $this->assertNotContains('decide', $groups['leaves']);
+        $this->assertNotContains('stats-department', array_merge(...array_values($groups)));
+
+        // What waits on the viewer is in every group.
+        foreach ((new DashboardLayout)->groupTiles($decider) as $id => $keys) {
+            $this->assertContains('decide', $keys, $id);
+        }
+
+        $html = Livewire::actingAs($staff)->test(Index::class)->html();
+        $this->assertSame($groups, $this->homeConfig($html)['groups']);
+        $this->assertStringContainsString('data-testid="dashboard-filter-empty"', $html);
+
+        // My Layout (pressed while nothing filters), the groups in the Categories menu
+        // (several can be checked at once), and their strip has the way back.
+        Livewire::actingAs($staff)->test(Hub::class)
+            ->assertSeeHtml('data-hub="my-layout"')
+            ->assertSeeHtml(':aria-pressed="(current.length === 0).toString()"')
+            ->assertSeeHtml('data-testid="dashboard-categories"')
+            ->assertSeeHtml('role="menuitemcheckbox"')
+            ->assertSeeHtml(':aria-checked="on(')
+            ->assertSeeHtml('hc-hub-filter')
+            ->assertSeeHtml('data-hub-clear');
+    }
+
+    public function test_every_own_record_string_is_in_both_languages(): void
+    {
+        foreach (['tiles.attention', 'tiles.request-leave', 'tiles.me', 'attention.none', 'attention.contract-hint', 'attention.leave',
+            'request-leave.continue', 'request-leave.hint', 'me.open', 'me.manager', 'me.not-set',
+            'hub.show-all', 'home.filtered-said', 'home.unfiltered-said', 'home.filter-empty'] as $key) {
+            foreach (['en', 'ar'] as $locale) {
+                $this->assertNotSame('dashboard.'.$key, __('dashboard.'.$key, [], $locale), "{$key} {$locale}");
+            }
+        }
+    }
+
     public function test_the_late_and_decision_tiles_are_only_for_someone_something_can_wait_on(): void
     {
         $city = $this->makeCity('ALP', '001');
@@ -86,7 +217,8 @@ class DashboardHomeBehavioursTest extends TestCase
         $this->assertTrue($layout->allowed($decider, 'decide'));
         $this->assertTrue($layout->allowed($decider, 'late'));
         // They were above the grid: first, as before.
-        $this->assertSame(['late', 'decide'], array_slice(array_column($layout->defaults($decider), 'key'), 0, 2));
+        // The glance card leads the page; the alerts come right after it.
+        $this->assertSame(['glance', 'late', 'decide'], array_slice(array_column($layout->defaults($decider), 'key'), 0, 3));
 
         // Ended contracts are late for HR even without a decision of their own.
         $this->assertTrue($layout->allowed($hr, 'late'));
@@ -103,11 +235,11 @@ class DashboardHomeBehavioursTest extends TestCase
 
         $keys = array_column((new DashboardLayout)->clean($decider, $old), 'key');
 
-        // Pinned still first; then the alerts, ahead of everything else.
-        $this->assertSame(['team', 'late', 'decide', 'notes'], array_slice($keys, 0, 4));
+        // Pinned still first; then the glance card and the alerts, ahead of everything else.
+        $this->assertSame(['team', 'glance', 'late', 'decide', 'notes'], array_slice($keys, 0, 5));
     }
 
-    public function test_the_header_keeps_the_headline_and_the_grid_draws_the_alerts_as_tiles(): void
+    public function test_the_header_keeps_the_headline_and_quiet_alerts_are_not_drawn(): void
     {
         $city = $this->makeCity('ALP', '001');
         $decider = $this->makeUser($city, 'manager', ['leaves.decide']);
@@ -118,8 +250,9 @@ class DashboardHomeBehavioursTest extends TestCase
             ->assertDontSeeHtml('data-testid="decision-card"');
 
         $html = Livewire::actingAs($decider)->test(Index::class)->html();
-        $this->assertStringContainsString('data-key="late"', $html);
-        $this->assertStringContainsString('data-key="decide"', $html);
+        // Nothing waits: no tile that would appear and then close, moving the page.
+        $this->assertStringNotContainsString('data-key="late"', $html);
+        $this->assertStringNotContainsString('data-key="decide"', $html);
     }
 
     public function test_tiles_carry_their_icon_panel_and_page_and_a_phone_stays_light(): void
@@ -127,7 +260,12 @@ class DashboardHomeBehavioursTest extends TestCase
         $city = $this->makeCity('ALP', '001');
         $staff = $this->makeUser($city, 'employee', ['leaves.view-own', 'checklists.view-own']);
 
-        $html = Livewire::actingAs($staff)->test(Index::class)->html();
+        Livewire::actingAs($staff)->test(Index::class)->call('saveLayout', [
+            ['key' => 'notes', 'size' => '5x3', 'pinned' => false, 'hidden' => false],
+            ['key' => 'calendar', 'size' => '5x3', 'pinned' => false, 'hidden' => false],
+            ['key' => 'app.nav.my-space.leaves', 'size' => '1x1', 'pinned' => false, 'hidden' => false],
+        ]);
+        $html = Livewire::test(Index::class)->html();
 
         // A widget: its icon (for when it is made small), its card as a popover panel, its closed line.
         $this->assertStringContainsString('class="hc-wmini"', $html);
@@ -137,9 +275,9 @@ class DashboardHomeBehavioursTest extends TestCase
         $this->assertMatchesRegularExpression('/data-key="calendar"[^>]*data-page="'.preg_quote(route('team.calendar'), '/').'"/', $html);
         $this->assertDoesNotMatchRegularExpression('/data-key="notes"[^>]*data-page=/', $html);
 
-        // A shortcut: a card for when it is big or in the panel, its data loaded lazily.
-        $this->assertStringContainsString('class="hc-appcard" id="hc-panel-app-nav-my-space-leaves" popover="manual"', $html);
-        $this->assertStringContainsString('aria-haspopup="dialog"', $html);
+        // A page from the menu has its card (the page itself, live), and its link.
+        $this->assertStringContainsString('class="hc-appcard"', $html);
+        $this->assertStringContainsString('href="'.route('leaves.index').'"', $html);
 
         // The phone does not draw the slideshow or the charts (the saved layout keeps it).
         $config = $this->homeConfig($html);

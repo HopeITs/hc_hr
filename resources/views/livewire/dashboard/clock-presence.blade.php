@@ -20,7 +20,7 @@
             @foreach ($shown as $person)
                 <li wire:key="online-{{ $person['id'] }}">
                     <img src="{{ $person['avatar'] }}" alt="" loading="lazy">
-                    <span dir="auto">{{ $person['name'] }}</span>
+                    <x-person :id="$person['id']" :name="$person['name']" />
                 </li>
             @endforeach
             @if ($count > $shown->count())

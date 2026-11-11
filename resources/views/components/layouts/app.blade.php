@@ -12,10 +12,13 @@
 </head>
 
 <body class="antialiased min-h-screen bg-base"
-      x-data="{ sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
+      {{-- The sidebar starts closed on every load (refresh included) and opens only from its
+           arrow (2026-11-09). Opened, it stays open across in-page visits (wire:navigate keeps the
+           window, so window.hcSidebarOpen survives); a refresh closes it again. Nothing is stored. --}}
+      x-data="{ sidebarCollapsed: ! window.hcSidebarOpen }"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
-          localStorage.setItem('sidebar-collapsed', sidebarCollapsed);
+          window.hcSidebarOpen = ! sidebarCollapsed;
       ">
 
 {{--
@@ -38,8 +41,10 @@
 <livewire:layout.sidebar/>
 
 
-<div class="flex flex-col min-h-screen transition-[margin] duration-[400ms] ease-fluid md:ms-60"
-     :class="sidebarCollapsed ? 'md:!ms-24' : 'md:!ms-60'">
+{{-- The content starts exactly at the sidebar's edge (w-20 collapsed, w-64 open), so the gap
+     between them is the page's own padding, the same whether the sidebar is open or not. --}}
+<div class="app-shell flex flex-col min-h-screen transition-[margin] duration-(--sidebar-duration) ease-sidebar md:ms-20"
+     :class="sidebarCollapsed ? 'md:!ms-20' : 'md:!ms-64'">
 
 
 
@@ -48,10 +53,10 @@
     <main id="main-content"
           tabindex="-1"
           aria-label="{{ __('general.a11y.main-content') }}"
-          class="{{ View::hasSection('greeting') ? '' : 'pt-[120px] ' }} bg-app-surface flex-grow flex flex-col items-center focus:outline-none">
+          class="{{ View::hasSection('greeting') ? '' : 'pt-[84px] md:pt-[115px] ' }} bg-app-surface flex-grow flex flex-col items-center focus:outline-none">
 
 
-        <div class="px-4 pb-18 max-lg:w-full md:w-11/12  min-h-full">
+        <div class="w-full px-4 pb-18 md:px-8 min-h-full">
             @yield('greeting')
             {{ $slot }}
         </div>
@@ -84,6 +89,11 @@
 {{-- Prompt 10: "g" then a letter opens a page; "?" lists the keys. Client-side only. --}}
 @auth
     <x-keyboard-shortcuts/>
+@endauth
+
+{{-- The profile drawer, on every page: any person's name opens it (<x-person>). --}}
+@auth
+    <livewire:position.profile-drawer />
 @endauth
 
 {{-- D3: "Send feedback to the IT team", opened from the user menu. The page's route

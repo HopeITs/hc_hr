@@ -28,6 +28,8 @@
                     <x-page-header class="!mb-0" :title="$center->name"
                         :lead="__('general.located-in').' '.($center->city?->name ?? '—').' · '.__('general.centers-text')">
                         <x-slot:actions>
+                            {{-- This centre on the viewer's dashboard (item.center.<id>). --}}
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('center', $center->id)" :key="'atd-center-'.$center->id" />
                             <x-button variant="outline" :href="route('centers.index')">
                                 @lang('general.back')
                             </x-button>

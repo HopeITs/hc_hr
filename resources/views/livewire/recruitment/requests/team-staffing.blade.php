@@ -142,7 +142,4 @@
         @endif
     </section>
 
-    {{-- The people view uses the organisation chart's own cards, so clicking one
-         opens the same employee profile it opens there. --}}
-    <livewire:position.profile-drawer />
 </div>

@@ -16,7 +16,8 @@
     $items = $decisions['items'] ?? [];
     $n = count($cards);
 @endphp
-<div class="hc-decide-tile flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
+<div class="hc-decide-tile flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm"
+     data-fit-rows="{{ $items === [] ? 3 : 4 }}">
     @if ($loadFailed)
         <x-ui.load-error class="h-full min-h-0 border-0" />
     @elseif (($decisions['all'] ?? 0) === 0)
@@ -38,14 +39,16 @@
             <div class="hc-decide-head">
                 <h2 id="hc-decide-title">
                     <x-ic name="inbox" />{{ __('dashboard.tiles.decide') }}
-                    <span class="num hc-decide-count" data-testid="work-inbox-count">{{ $decisions['all'] }}</span>
+                    {{-- The headline above already says one; a count only helps from two. --}}
+                    <span @class(['num hc-decide-count', 'sr-only' => $decisions['all'] <= 1]) data-testid="work-inbox-count">{{ $decisions['all'] }}</span>
                 </h2>
                 <x-button variant="link" size="sm" :href="$inboxUrl">{{ __('dashboard.decide-tile.open') }}</x-button>
             </div>
 
             @if ($n > 0)
                 <div data-testid="decision-card" aria-roledescription="carousel" aria-label="{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}">
-                    <div class="hc-decide-sub">
+                    {{-- One decision needs no heading of its own: the card says it. --}}
+                    <div @class(['hc-decide-sub', 'sr-only' => $n <= 1])>
                         <h3>{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}</h3>
                         @if ($n > 1)
                             <span class="flex flex-wrap items-center gap-1">
@@ -81,8 +84,9 @@
                                         <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                     @endif
                                 </span>
-                                <x-button size="sm" :href="$card['url']" class="hc-dcard-go">
-                                    <x-ic name="arrow" class="rtl:-scale-x-100" />{{ __('dashboard.header.decide.verb.'.$card['action']) }}
+                                {{-- A red square with an arrow; on hover or focus it opens to say what it does (hc-btn--reveal). --}}
+                                <x-button size="sm" :href="$card['url']" class="hc-dcard-go hc-btn--reveal">
+                                    <x-ic name="arrow" class="rtl:-scale-x-100" /><span class="hc-reveal-label">{{ __('dashboard.header.decide.verb.'.$card['action']) }}</span>
                                 </x-button>
                             </article>
                         @endforeach

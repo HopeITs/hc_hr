@@ -154,8 +154,8 @@
 
                 @if ($canRequestLeave)
                     <div x-show="day !== null && day >= today">
-                        <a x-bind:href="requestUrl.replace('__DATE__', day ?? '')" wire:navigate class="hc-btn hc-btn--primary w-full" data-testid="calendar-request-leave">
-                            <x-ic name="plus" />{{ __('dashboard_calendar.request-leave') }}
+                        <a x-bind:href="requestUrl.replace('__DATE__', day ?? '')" wire:navigate class="hc-btn hc-btn--add hc-btn--reveal" data-testid="calendar-request-leave">
+                            <x-ic name="plus" /><span class="hc-reveal-label">{{ __('dashboard_calendar.request-leave') }}</span>
                         </a>
                     </div>
                 @endif

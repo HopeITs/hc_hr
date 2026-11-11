@@ -44,6 +44,9 @@
                                 </div>
                             </div>
 
+                            {{-- This program on the viewer's dashboard (DashboardLayout::ITEMS, item.program.<id>). --}}
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('program', $program->id)" :compact="true" :key="'atd-program-'.$program->id" />
+
                             <!-- Actions with vertical centering - Checkbox moved to last -->
                             @activerole('HR','super-admin','general-manager')
                             <div class="flex items-center gap-1">

@@ -87,18 +87,16 @@
 </div>
 
 {{-- The card is a lazy dashboard tile: it arrives in a Livewire update, where a
-     plain <script> would not run. @assets loads Swiper once per page (Livewire
-     waits for it), @script then starts the slider. --}}
-@assets
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <script nonce="{{ Vite::cspNonce() }}" src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-@endassets
-
+     plain <script> would not run. @script starts the slider; Swiper itself is
+     fetched from our own build only when this tile is drawn (window.loadSwiper). --}}
 @script
 <script>
-    const init = () => {
+    const init = async () => {
         const el = document.querySelector('.js-today-events .swiper');
-        if (! el || el.swiper || ! window.Swiper) return;
+        if (! el || el.swiper || ! window.loadSwiper) return;
+
+        const Swiper = await window.loadSwiper();
+        if (! el.isConnected || el.swiper) return;
 
         // wire:navigate drops this element without stopping the autoplay timer.
         document.addEventListener('livewire:navigating', () => el.swiper?.destroy(true, true), { once: true });

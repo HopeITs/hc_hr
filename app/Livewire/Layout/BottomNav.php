@@ -65,7 +65,7 @@ class BottomNav extends Component
         $count = $nav['inbox'] ? $this->inboxCount() : 0;
 
         foreach ($items as $i => $item) {
-            if ($item['route'] === 'inbox') {
+            if ($item['route'] === 'dashboard') {
                 $items[$i]['count'] = $count;
             }
         }
@@ -99,7 +99,6 @@ class BottomNav extends Component
 
         $top = array_values(array_filter([
             $hasProfile ? $link('my-profile', 'my-profile', __('general.my-profile'), 'user', ['my-profile']) : null,
-            $nav['inbox'] ? $link('nav.inbox', $nav['inbox']['route'], __('general.nav.work-inbox'), 'notification', [$nav['inbox']['route']], $count) : null,
         ]));
 
         $sections = $top === [] ? [] : [['id' => 'me', 'label' => null, 'rows' => $top]];

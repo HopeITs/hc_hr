@@ -12,7 +12,7 @@ return [
         'more-label' => 'More: every page',
         'more-title' => 'All pages',
         'close' => 'Close',
-        'lead' => 'Choose the four shortcuts at the bottom of your phone screen: two before the + in the middle and two after it. More, at the end, opens every page.',
+        'lead' => 'Choose the three shortcuts at the bottom of your phone screen: two before the + in the middle and one after it, then More, which opens every page.',
         'place-before' => 'Place :number, before the +',
         'place-after' => 'Place :number, after the +',
         'more-place' => 'The + (start something new) and More (every page) are always there.',

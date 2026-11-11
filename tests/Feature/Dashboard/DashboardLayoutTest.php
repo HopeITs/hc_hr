@@ -52,7 +52,8 @@ class DashboardLayoutTest extends TestCase
         $this->assertContains('notes', $keys);
         $this->assertContains('app.nav.my-space.leaves', $keys);
         // What they posted keeps its order at the top.
-        $this->assertSame(['notes', 'app.nav.my-space.leaves'], array_slice($keys, 0, 2));
+        // The glance card leads a layout saved before it existed.
+        $this->assertSame(['glance', 'notes', 'app.nav.my-space.leaves'], array_slice($keys, 0, 3));
     }
 
     public function test_hr_with_statistics_gets_the_statistics_tiles_and_salary_tile(): void
@@ -100,7 +101,7 @@ class DashboardLayoutTest extends TestCase
         $clean = $this->layout()->clean($user, [
             $this->item('calendar', '0x1'),          // below one cell
             $this->item('notes', '99x99'),           // above max 12x8
-            $this->item('app.nav.my-space.leaves', '9x9'),   // a shortcut is at most 4x4 (a card)
+            $this->item('app.nav.my-space.leaves', '99x99'), // a menu page's card is at most 12x8
             $this->item('team', 'huge'),             // unreadable: the default
             $this->item('no-such-tile'),
             $this->item('notes', '2x2'),             // duplicate: the first wins
@@ -113,7 +114,7 @@ class DashboardLayoutTest extends TestCase
         // Any widget goes down to one cell (an icon that opens it in the side panel).
         $this->assertSame('1x1', $sizes['calendar']);
         $this->assertSame('12x8', $sizes['notes']);
-        $this->assertSame('4x4', $sizes['app.nav.my-space.leaves']);
+        $this->assertSame('12x8', $sizes['app.nav.my-space.leaves']);
         $this->assertSame('3x4', $sizes['team']);
         $this->assertNotContains('no-such-tile', $this->keys($clean));
         $this->assertSame(count($clean), count(array_unique($this->keys($clean))));
@@ -135,21 +136,18 @@ class DashboardLayoutTest extends TestCase
         $this->assertSame('analog', collect($clean)->firstWhere('key', 'clock')['style']);
 
         $clean = $this->layout()->clean($user, [['key' => 'clock', 'size' => '2x2', 'pinned' => false, 'hidden' => false, 'style' => 'sundial']]);
-        $this->assertSame('digital', $clean[0]['style']);
+        $this->assertSame('digital', collect($clean)->firstWhere('key', 'clock')['style']);
     }
 
-    public function test_the_default_layout_reproduces_todays_dashboard_order(): void
+    public function test_the_default_layout_is_short(): void
     {
         $city = $this->makeCity('ALP', '001');
         $user = $this->makeUser($city, 'employee', ['leaves.view-own']);
 
         $shown = array_values(array_filter($this->layout()->defaults($user), fn ($item) => ! $item['hidden']));
 
-        $this->assertSame(
-            ['my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice($this->keys($shown), 0, 11),
-        );
-        $this->assertContains('app.nav.my-space.leaves', $this->keys($shown));
+        $widgets = array_values(array_filter($this->keys($shown), fn (string $key) => ! str_starts_with($key, 'app.')));
+        $this->assertSame(['glance', 'attention', 'my-leaves', 'news', 'next-holiday'], $widgets);
     }
 
     public function test_the_payload_shape_is_validated_strictly(): void
@@ -184,7 +182,7 @@ class DashboardLayoutTest extends TestCase
         $this->actingAs($user);
 
         $probe = Livewire::test(DashboardLayoutProbe::class);
-        $this->assertSame('my-leaves', $probe->get('layout')[0]['key'], 'employee sees its default, not the HR layout');
+        $this->assertNotSame('team', $probe->get('layout')[0]['key'], 'employee sees its default, not the HR layout');
 
         $probe->call('saveLayout', [$this->item('badges', pinned: true)]);
 
@@ -205,7 +203,7 @@ class DashboardLayoutTest extends TestCase
         $city = $this->makeCity('ALP', '001');
         $user = $this->makeUser($city, 'employee');
 
-        // Saved before "badges" and "clock" existed.
+        // Saved before "news" and "clock" existed.
         SavedDashboardLayout::query()->create([
             'user_id' => $user->id,
             'role' => 'employee',
@@ -215,8 +213,8 @@ class DashboardLayoutTest extends TestCase
         $this->actingAs($user);
         $layout = collect(Livewire::test(DashboardLayoutProbe::class)->get('layout'))->keyBy('key');
 
-        $this->assertSame(['notes', 'team'], $layout->keys()->take(2)->all());
-        $this->assertFalse($layout['badges']['hidden'], 'shown by default, so it appears');
+        $this->assertSame(['glance', 'notes', 'team'], $layout->keys()->take(3)->all());
+        $this->assertFalse($layout['news']['hidden'], 'shown by default, so it appears');
         $this->assertTrue($layout['clock']['hidden'], 'not shown by default, so it waits in the gallery');
     }
 
@@ -251,7 +249,7 @@ class DashboardLayoutTest extends TestCase
             ->call('resetLayout');
 
         $this->assertNull(SavedDashboardLayout::query()->sole()->layout);
-        $this->assertSame('my-leaves', $probe->get('layout')[0]['key']);
+        $this->assertSame($this->keys($this->layout()->defaults($user)), $this->keys($probe->get('layout')));
     }
 
     public function test_the_dashboard_page_saves_and_resets_the_layout(): void
@@ -279,8 +277,9 @@ class DashboardLayoutTest extends TestCase
         $reset = Livewire::test(Index::class)->call('resetLayout');
         $this->assertArrayHasKey('html', $reset->effects, 'resetLayout re-renders');
         $this->assertNull($row->fresh()->layout);
-        // "My leaves" leads the defaults but the page leaves it out without a balance, so notes is drawn first.
-        $this->assertSame('notes', $this->drawnKeys($reset->html())[0]);
+        // The pinned card is back in its default place: news is drawn, notes is not.
+        $this->assertContains('news', $this->drawnKeys($reset->html()));
+        $this->assertNotContains('notes', $this->drawnKeys($reset->html()));
         $this->assertSame(
             $this->keys($this->layout()->defaults($user)),
             $this->keys($this->homeConfig($reset->html())['layout']),

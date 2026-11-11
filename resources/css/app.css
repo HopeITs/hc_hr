@@ -261,6 +261,15 @@
        overshoot. Used for chrome that resizes (sidebar collapse) so the panel
        and the content it pushes stay locked together. */
     --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* Collapsing / expanding the sidebar (and the content it pushes): a gentle
+       ease-in-out, so the motion is spread over the whole duration instead of
+       done in the first 100ms as ease-fluid does. Tune both here. */
+    --ease-sidebar: cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+:root {
+    --sidebar-duration: 560ms;
 }
 
 /* ------------------------------------------------------------------
@@ -424,6 +433,32 @@
     html {
         background-color: var(--color-soft);
         -webkit-text-size-adjust: 100%;
+        /* The scrollbar's room is kept even when nothing scrolls, so a page whose height
+           changes while it loads (the dashboard's cards) never changes width. */
+        scrollbar-gutter: stable;
+    }
+
+    /* A page inside the dashboard's workspace (partials/head.blade.php marks it): the page
+       alone, without the site's sidebar, header, footer and phone bar, which the dashboard
+       around it already shows. */
+    html.in-workspace [wire\:name="layout.sidebar"],
+    html.in-workspace #app-navbar,
+    html.in-workspace .app-shell > footer,
+    html.in-workspace [wire\:name="layout.bottom-nav"] {
+        display: none !important;
+    }
+
+    html.in-workspace .app-shell {
+        margin-inline-start: 0 !important;
+    }
+
+    html.in-workspace #main-content {
+        padding-top: 24px !important;
+    }
+
+    html.in-workspace #main-content > div {
+        padding-inline: 24px;
+        padding-bottom: 24px;
     }
 
     /* Rendering: real kerning, no faked bold/italic (Somar Sans ships every
@@ -1318,6 +1353,102 @@ li:has(> ul:not(.hidden)) > button > .nav-chevron {
     transform: rotate(180deg);
 }
 
+/* ---------- Collapsing the sidebar into its icon rail (md and up) ----------
+   The aside gets `.sidebar-rail` (sidebar.blade.php) and its width animates
+   over --sidebar-duration. Everything inside moves with it instead of switching at once:
+   - links shrink from full width to a 44px square and the list's side padding
+     grows 12 → 18px, so each icon slides a few pixels to the middle of the
+     80px rail instead of jumping there (justify-center cannot animate);
+   - labels fade (`.nav-fade`): out at once when collapsing, in after the bar
+     has opened enough when expanding, so text is never seen squeezed;
+   - the rail icon fades in where the full logo fades out (`.nav-fade-in`);
+   - headings and the areas the rail leaves out fold (`.nav-fold`): a one-row
+     grid going 1fr → 0fr on the same --sidebar-duration clock as the width, so My space
+     glides up instead of jumping. They are never display:none (x-show did
+     that, and its x-collapse never animated here); `visibility` hides them
+     from the keyboard and screen readers once fully folded, and returns at
+     once when unfolding.
+   On a phone the drawer is always full width: none of this applies. */
+.nav-fade,
+.nav-fade-in {
+    transition: opacity 320ms var(--ease-sidebar) 200ms;
+}
+
+.nav-fade-in {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nav-fold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition:
+        grid-template-rows var(--sidebar-duration) var(--ease-sidebar),
+        opacity 320ms var(--ease-sidebar) 200ms,
+        visibility 0s;
+}
+
+/* Clip what the shrinking row no longer has room for, but keep a margin so
+   focus outlines (2px + 2px offset) are never cut. */
+.nav-fold > * {
+    min-height: 0;
+    overflow: clip;
+    overflow-clip-margin: 6px;
+}
+
+@media (min-width: 48rem) {
+    .nav-scroll {
+        transition: padding-inline var(--sidebar-duration) var(--ease-sidebar);
+    }
+
+    .nav-link {
+        width: 100%;
+        transition:
+            background-color 150ms ease-out,
+            color 150ms ease-out,
+            transform 120ms ease-out,
+            width var(--sidebar-duration) var(--ease-sidebar),
+            min-height var(--sidebar-duration) var(--ease-sidebar);
+    }
+
+    .sidebar-rail .nav-scroll {
+        padding-inline: 18px;
+    }
+
+    .sidebar-rail .nav-link {
+        width: 2.75rem;
+        min-height: 2.75rem;
+        /* A favourite widens its end padding on hover for the star; the rail has no star. */
+        padding-inline: 0.75rem;
+        /* Not clipped: the link is a circle now, and clipping cut the count's corner off.
+           The label is already invisible here (.nav-fade), and .nav-fold clips the row. */
+        overflow: visible;
+    }
+
+    .sidebar-rail .nav-fade {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 240ms var(--ease-sidebar);
+    }
+
+    .sidebar-rail .nav-fade-in {
+        opacity: 1;
+        pointer-events: auto;
+        /* Overlaps the full logo's 240ms fade-out, so there is never a frame with no logo. */
+        transition: opacity 320ms var(--ease-sidebar) 120ms;
+    }
+
+    .sidebar-rail .nav-fold {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+            grid-template-rows var(--sidebar-duration) var(--ease-sidebar),
+            opacity 240ms var(--ease-sidebar),
+            visibility 0s var(--sidebar-duration);
+    }
+}
+
 /* Reduced motion: keep the colour feedback, drop the movement. */
 @media (prefers-reduced-motion: reduce) {
     .nav-press {
@@ -1332,6 +1463,16 @@ li:has(> ul:not(.hidden)) > button > .nav-chevron {
 
     .nav-chevron {
         transition: none;
+    }
+
+    /* The rail still opens and closes, at once. */
+    .nav-fade,
+    .nav-fade-in,
+    .nav-fold,
+    .nav-scroll,
+    .nav-link,
+    .sidebar-material {
+        transition: none !important;
     }
 }
 

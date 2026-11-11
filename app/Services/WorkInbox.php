@@ -174,7 +174,12 @@ final class WorkInbox
             // Not the reviewer's own decision (N-07), as the policy says.
             ->when($user->employee_id !== null, fn (Builder $q) => $q->where(fn (Builder $by) => $by
                 ->whereNull('approved_by')
-                ->orWhere('approved_by', '!=', $user->employee_id)));
+                ->orWhere('approved_by', '!=', $user->employee_id)))
+            // Nor their own request.
+            ->when($user->employee_id !== null, fn (Builder $q) => $q->whereDoesntHave(
+                'leaveBalance.contract',
+                fn (Builder $contract) => $contract->where('employee_id', $user->employee_id),
+            ));
 
         $listed = (clone $query)->limit(self::PER_SOURCE)->get();
         $authority->primeScope($user, $listed->modelKeys());

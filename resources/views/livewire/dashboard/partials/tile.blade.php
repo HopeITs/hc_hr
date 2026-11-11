@@ -7,17 +7,15 @@
     arrives. A shortcut is a link to a page of the role's menu.
 
     Ported from media-request (2026-10-29), see home-screen.js:
-     - nothing in it right now: the tile is one closed line at the bottom
-       (.hc-tile-line); Customise shows it whole;
+     - nothing in it right now: the tile is not shown; Customise shows it whole;
      - made small: an icon (.hc-wmini) that opens the card in a side panel. The
        panel is the tile body itself (popover="manual"), so the card is never
        moved or mounted twice. While the tile is an icon its body is not
        displayed, so its lazy card does not load until the panel opens;
-     - a widget with a page (data-page, only pages the role may open) opens it
-       on double-click;
-     - a shortcut made big shows its data (.hc-appcard, AppCard, lazy and
-       hidden while the tile is an icon); on a computer one click shows that
-       card in the panel, a double-click opens the page.
+     - a shortcut is a link: one click opens its page;
+     - a card is also a window (2026-11-02): minimise sends it to the strip
+       under the grid, maximise opens it large in the panel, and the grip
+       resizes it cell by cell without Customise (shown on hover or focus).
 
     data-tour stays on the tile, so the product tour finds a card before it has
     loaded and wherever it has been moved.
@@ -40,14 +38,14 @@
      role="listitem"
      data-key="{{ $key }}"
      @unless ($isApp) data-tour="dashboard.{{ $key }}" @endunless
-     @if ($page) data-page="{{ $page }}" x-on:dblclick="openPage($event, {{ $k }})" title="{{ __('dashboard.home.page-open') }}" @endif
+     @if ($page) data-page="{{ $page }}" @endif
      style="--c: {{ $cols }}; --r: {{ $rows }};"
      :style="span({{ $k }})"
-     :class="{ pinned: pinned({{ $k }}), resizing: resizing === {{ $k }}, mini: mini({{ $k }}), closed: closed({{ $k }}), peek: peek === {{ $k }} }"
+     :class="{ pinned: pinned({{ $k }}), resizing: resizing === {{ $k }}, out: outKey === {{ $k }}, mini: mini({{ $k }}), closed: closed({{ $k }}), parked: parked({{ $k }}), peek: peek === {{ $k }} }"
      :data-cols="shown({{ $k }})[0]"
      :data-rows="shown({{ $k }})[1]"
      :data-look="styleOf({{ $k }}) || null"
-     x-show="shownHere({{ $k }})"
+     x-show="shownHere({{ $k }}) && ! closed({{ $k }})"
      :tabindex="editing ? 0 : null"
      :aria-label="editing ? tileLabel({{ $k }}) : null"
      :aria-describedby="editing ? 'hc-tile-hint' : null"
@@ -94,20 +92,72 @@
         </div>
     @endunless
 
+{{-- Window controls at rest, on every card (a widget, a record, a page from the menu): pin (its size
+     and place stay), minimise to the strip, maximise in the panel, out of the browser. --}}
+    <div class="hc-wctl" x-show="! editing && ! mini({{ $k }})" x-cloak>
+        <button type="button" class="hc-w-pin" x-on:click="togglePin({{ $k }})" :aria-pressed="pinned({{ $k }}).toString()"
+                aria-label="{{ __('dashboard.home.pin', ['tile' => $label]) }}"
+                :title="pinned({{ $k }}) ? @js(__('dashboard.home.unpin-short')) : @js(__('dashboard.home.pin-short'))">
+            <x-ic name="pin" />
+        </button>
+        <button type="button" class="hc-w-min" x-on:click="minimise({{ $k }})"
+                aria-label="{{ __('dashboard.home.minimise', ['tile' => $label]) }}" title="{{ __('dashboard.home.minimise-short') }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        </button>
+    {{-- Not for the weather, date and time card: it has a fixed size, and nothing more to show large. --}}
+    @unless ($key === 'glance')
+        <button type="button" class="hc-w-max" x-on:click="maximise({{ $k }})"
+                aria-haspopup="dialog" aria-controls="{{ $panelId }}" :aria-expanded="(peek === {{ $k }} && maxKey === {{ $k }}).toString()"
+                aria-label="{{ __('dashboard.home.maximise', ['tile' => $label]) }}" title="{{ __('dashboard.home.maximise-short') }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" /></svg>
+        </button>
+    @endunless
+        {{-- Out of the browser: floating on top of every program (Chrome, Edge), or a window of its own. --}}
+        <button type="button" class="hc-w-out" x-on:click="popOut({{ $k }})"
+                :aria-haspopup="canFloat ? 'menu' : null" :aria-expanded="canFloat ? (outKey === {{ $k }}).toString() : null"
+                aria-label="{{ __('dashboard.window.out', ['tile' => $label]) }}" title="{{ __('dashboard.window.out-short') }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5 8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+        <div class="hc-wout" role="menu" x-show="outKey === {{ $k }}" x-cloak
+             aria-label="{{ __('dashboard.window.out-short') }}"
+             x-on:click.outside="if (outKey === {{ $k }}) outKey = null"
+             x-on:keydown.escape.stop="outKey = null">
+            <button type="button" role="menuitem" x-on:click="floatOnTop({{ $k }})" data-out="float">
+                {{ __('dashboard.window.float') }}<span>{{ __('dashboard.window.float-hint') }}</span>
+            </button>
+            <button type="button" role="menuitem" x-on:click="openWindow({{ $k }})" data-out="window">
+                {{ __('dashboard.window.new') }}<span>{{ __('dashboard.window.new-hint') }}</span>
+            </button>
+        </div>
+    </div>
+
+
     @if ($tiles->canResize($key))
-        <button type="button" class="hc-grip" x-show="editing" x-cloak
-                x-on:pointerdown="resizeStart($event, {{ $k }})"
+        {{-- The bottom inline-end grip is the one control (keyboard). A pointer finds the same
+             thin silver corner inside each of the four corners, at rest (shown as it comes near)
+             and while customising (always shown); dragging away from that corner grows the card. --}}
+        <button type="button" class="hc-grip" data-corner="end-end" x-show="! pinned({{ $k }}) && (editing || ! closed({{ $k }}))" x-cloak
+                x-on:pointerdown="resizeStart($event, {{ $k }}, 'end-end')"
                 x-on:keydown="resizeKey($event, {{ $k }})"
                 :aria-label="resizeLabelFor({{ $k }})"
                 title="{{ __('dashboard.home.resize-hint') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 8.5v9h-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4v6a9 9 0 0 1-9 9H4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
+        @foreach (['start-start', 'start-end', 'end-start'] as $corner)
+            <span class="hc-grip hc-grip-more" data-corner="{{ $corner }}" aria-hidden="true"
+                  x-show="! pinned({{ $k }}) && (editing || ! closed({{ $k }}))" x-cloak
+                  x-on:pointerdown="resizeStart($event, {{ $k }}, @js($corner))"
+                  title="{{ __('dashboard.home.resize-hint') }}">
+                <svg viewBox="0 0 24 24"><path d="M19 4v6a9 9 0 0 1-9 9H4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+        @endforeach
         <span class="hc-sizebadge num" x-show="resizing === {{ $k }}" x-cloak x-text="resizeLabel" aria-hidden="true"></span>
     @endif
 
     {{-- The card. For a widget it is also its side panel (a popover, a dialog only while open). --}}
     <div class="hc-tile-body" :inert="editing"
          @unless ($isApp)
+             :class="{ 'is-max': maxKey === {{ $k }} }"
              id="{{ $panelId }}" popover="manual" tabindex="-1"
              :role="peek === {{ $k }} ? 'dialog' : null"
              :aria-modal="peek === {{ $k }} ? 'false' : null"
@@ -163,7 +213,7 @@
         @elseif ($key === 'my-leaves' && isset($failedSections['leaves']))
             <x-ui.load-error class="h-full min-h-0" />
         @else
-            @livewire($tiles->component($key), ['lazy' => true], key('w-'.$key))
+            @livewire($tiles->component($key), ['lazy' => true] + $tiles->componentParams($key), key('w-'.$key))
         @endif
     </div>
 </div>

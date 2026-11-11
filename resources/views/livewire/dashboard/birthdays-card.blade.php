@@ -26,7 +26,7 @@
                     <li wire:key="bday-{{ $person['id'] }}">
                         <img src="{{ $person['avatar'] }}" alt="" loading="lazy" class="hc-nt-av">
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-small font-bold text-ink">{{ $person['name'] }}</span>
+                            <x-person :id="$person['id']" :name="$person['name']" class="block text-small font-bold text-ink" />
                             <span class="block truncate text-caption text-ink-2">
                                 <time datetime="--{{ $person['date']->format('m-d') }}">{{ $person['date']->locale($locale)->isoFormat('dddd D MMMM') }}</time>
                             </span>

@@ -26,12 +26,12 @@
             });
         },
     }">
-    <span x-show="!sidebarCollapsed || open" id="nav-favourites-title" class="block px-3 py-[3px] text-caption font-semibold uppercase tracking-wider text-ink-3">
+    <div class="nav-fold"><span id="nav-favourites-title" class="block whitespace-nowrap px-3 py-[3px] text-caption font-semibold uppercase tracking-wider text-ink-3">
         {{ __('navigation.favourites.title') }}
-    </span>
+    </span></div>
     <p class="sr-only" role="status" aria-live="polite" x-text="announcement"></p>
 
-    <ul class="space-y-1" aria-labelledby="nav-favourites-title" :class="sidebarCollapsed && !open ? 'md:flex md:flex-col md:items-center' : ''">
+    <ul class="space-y-1" aria-labelledby="nav-favourites-title">
         @foreach ($favourites as $favourite)
             @php($active = $favourite['id'] === $currentPage)
             @php($icon = match (true) {
@@ -51,13 +51,12 @@
                    title="{{ $favourite['label'] }}" aria-label="{{ $favourite['label'] }}"
                    @if ($active) aria-current="page" @endif
                    data-nav-favourite="{{ $favourite['id'] }}"
-                   class="nav-press group relative flex items-center w-full min-h-11 ps-3 pe-3 group-hover/item:pe-24 group-focus-within/item:pe-24 [@media(hover:none)]:pe-24 py-2 rounded-control font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
-                          {{ $active ? 'text-ink font-semibold bg-hover before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-primary' : 'text-ink-2 hover:text-ink hover:bg-hover' }}"
-                   :class="sidebarCollapsed && !open ? 'md:justify-center md:size-11 md:!px-0 md:mx-auto' : ''">
+                   class="nav-press nav-link group relative flex items-center w-full min-h-11 ps-3 pe-3 group-hover/item:pe-24 group-focus-within/item:pe-24 [@media(hover:none)]:pe-24 py-2 rounded-full font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus
+                          {{ $active ? 'text-ink font-semibold bg-hover' : 'text-ink-2 hover:text-ink hover:bg-hover' }}">
                     <span class="flex items-center justify-center size-5 shrink-0" aria-hidden="true">
                         <x-dynamic-component :component="'icons.'.$icon" class="size-4" />
                     </span>
-                    <span class="text-body flex-1 ms-2 text-start whitespace-nowrap overflow-hidden text-ellipsis" x-show="!sidebarCollapsed || open">{{ $favourite['label'] }}</span>
+                    <span class="nav-fade text-body flex-1 ms-2 text-start whitespace-nowrap overflow-hidden text-ellipsis">{{ $favourite['label'] }}</span>
                 </a>
 
                 {{-- Keyboard reorder: up / down arrows move the page one place. --}}

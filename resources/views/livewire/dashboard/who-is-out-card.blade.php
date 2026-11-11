@@ -6,7 +6,8 @@
     CSS shows the one that matches, so it always counts exactly who is not on
     screen.
 --}}
-<div class="hc-out flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
+<div class="hc-out flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm"
+     @unless ($loadFailed) data-fit-rows="{{ max(2, min(5, (int) ceil((48 + 52 * $total) / 82))) }}" @endunless>
     @if ($loadFailed)
         <x-ui.load-error class="h-full min-h-0 border-0" />
     @else
