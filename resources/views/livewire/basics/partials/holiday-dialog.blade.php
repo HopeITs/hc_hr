@@ -15,64 +15,153 @@
                 </div>
             </div>
 
+            @php
+                $kinds = ['official' => 'calendar', 'grant' => 'star'] + ($isNationalHr ? ['birthday' => 'cake'] : []);
+            @endphp
             <div>
-                <x-forms.input-label for="holiday_kind" required>@lang('holidays.kind')</x-forms.input-label>
-                <select id="holiday_kind" wire:model.live="item.kind"
-                    class="w-full rounded-control border border-line bg-card px-3 py-2 text-body shadow-e1">
-                    <option value="official">@lang('holidays.kinds.official')</option>
-                    <option value="grant">@lang('holidays.kinds.grant')</option>
-                    @if ($isNationalHr)
-                        <option value="birthday">@lang('holidays.kinds.birthday')</option>
-                    @endif
-                </select>
-                <p class="mt-1 text-small text-ink-2">@lang('holidays.kind-hints.'.($item['kind'] ?? 'official'))</p>
+                <x-forms.input-label required>@lang('holidays.kind')</x-forms.input-label>
+                <div @class(['grid grid-cols-1 gap-2', 'sm:grid-cols-3' => count($kinds) === 3, 'sm:grid-cols-2' => count($kinds) === 2])
+                    role="radiogroup" aria-label="@lang('holidays.kind')">
+                    @foreach ($kinds as $kind => $icon)
+                        <label class="cursor-pointer" wire:key="kind-{{ $kind }}">
+                            <input type="radio" class="peer sr-only" name="holiday_kind" value="{{ $kind }}" wire:model.live="item.kind">
+                            <span class="hc-choice flex h-full items-start gap-3 p-3">
+                                <span @class([
+                                    'grid size-9 shrink-0 place-items-center rounded-control',
+                                    'bg-ink text-on-ink' => ($item['kind'] ?? null) === $kind,
+                                    'bg-soft text-ink-2' => ($item['kind'] ?? null) !== $kind,
+                                ])>
+                                    <x-ic :name="$icon" class="size-4.5" />
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block font-semibold text-ink">@lang('holidays.kinds.'.$kind)</span>
+                                    <span class="mt-0.5 block text-small leading-snug text-ink-2">@lang('holidays.kind-hints.'.$kind)</span>
+                                </span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
                 <x-error-span>{{ $errors->first('item.kind') }}</x-error-span>
             </div>
 
             @if ($isNationalHr)
                 <div>
                     <x-forms.input-label required>@lang('holidays.applies-to')</x-forms.input-label>
-                    <div class="flex flex-wrap gap-4">
-                        <label class="flex items-center gap-2">
-                            <input type="radio" wire:model.live="item.scope" value="national" class="text-ink">
-                            @lang('holidays.national')
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <input type="radio" wire:model.live="item.scope" value="projects" class="text-ink">
-                            @lang('holidays.selected-projects')
-                        </label>
+                    <div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="@lang('holidays.applies-to')">
+                        @foreach (['national' => ['users', 'holidays.national'], 'projects' => ['folder', 'holidays.selected-projects']] as $scope => [$icon, $label])
+                            <label class="cursor-pointer" wire:key="scope-{{ $scope }}">
+                                <input type="radio" class="peer sr-only" name="holiday_scope" value="{{ $scope }}" wire:model.live="item.scope">
+                                <span class="hc-choice flex min-h-11 items-center justify-center gap-2 px-3 py-2 text-ink">
+                                    <x-ic :name="$icon" class="size-4 text-ink-2" />
+                                    <span class="font-semibold">@lang($label)</span>
+                                </span>
+                            </label>
+                        @endforeach
                     </div>
                     <x-error-span>{{ $errors->first('item.scope') }}</x-error-span>
                 </div>
             @endif
 
             @if (($item['scope'] ?? null) === 'projects')
-                <div>
+                <div wire:key="holiday-projects-{{ $item['id'] ?? 'new' }}">
                     <x-forms.input-label required>@lang('holidays.projects')</x-forms.input-label>
 
-                    @if (count($governorates) > 1)
-                        <div class="mb-2 flex gap-2">
-                            <select wire:model="governorate" aria-label="@lang('holidays.governorate')"
-                                class="flex-1 rounded-control border border-line bg-card px-3 py-2 text-body shadow-e1">
-                                <option value="">@lang('holidays.governorate')</option>
-                                @foreach ($governorates as $id => $name)
-                                    <option value="{{ $id }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
-                            <x-secondary-button type="button" wire:click="selectGovernorate">@lang('holidays.select-governorate')</x-secondary-button>
-                        </div>
-                    @endif
+                    @if (count($projectGroups) > 0)
+                        {{--
+                            Checkboxes per governorate. The city tabs only filter the list,
+                            they never change the selection, so moving from Aleppo to Homs
+                            is: clear Aleppo (its select-all box or "Clear all"), tick Homs.
+                            Each tab counts what is ticked there, so nothing is hidden.
+                        --}}
+                        <div id="holiday_projects"
+                            x-data="{
+                                selected: $wire.entangle('item.projects'),
+                                groups: @js($projectGroups),
+                                city: @js(count($projectGroups) > 1 ? 'all' : $projectGroups[0]['id']),
+                                visible() {
+                                    return this.groups
+                                        .filter(g => this.city === 'all' || g.id === this.city)
+                                        .flatMap(g => g.options.map(o => o.value));
+                                },
+                                count(values) { return values.filter(v => (this.selected ?? []).includes(v)).length },
+                                state(values) {
+                                    const n = this.count(values);
+                                    return n === 0 ? 'none' : (n === values.length ? 'all' : 'some');
+                                },
+                                toggle(values) {
+                                    const rest = (this.selected ?? []).filter(v => ! values.includes(v));
+                                    this.selected = this.state(values) === 'all' ? rest : [...rest, ...values];
+                                },
+                                clear() { this.selected = [] },
+                            }"
+                            @class([
+                                'overflow-hidden rounded-control bg-card',
+                                'border border-line' => ! $errors->has('item.projects') && ! $errors->has('item.projects.*'),
+                                'border-2 border-primary' => $errors->has('item.projects') || $errors->has('item.projects.*'),
+                            ])>
 
-                    <div class="max-h-48 space-y-1 overflow-y-auto rounded-control border border-line-soft p-2">
-                        @forelse ($projectOptions as $key => $label)
-                            <label class="flex items-center gap-2 text-small" wire:key="project-{{ $key }}">
-                                <input type="checkbox" wire:model="item.projects" value="{{ $key }}" class="rounded-inset text-ink">
-                                {{ $label }}
-                            </label>
-                        @empty
-                            <p class="text-small text-ink-2">@lang('holidays.no-projects-to-pick')</p>
-                        @endforelse
-                    </div>
+                            {{-- City tabs: filter only; the count is what is ticked there. --}}
+                            @if (count($projectGroups) > 1)
+                                <div class="flex flex-wrap gap-1.5 border-b border-line-soft p-2" role="tablist" aria-label="@lang('holidays.governorate')">
+                                    <button type="button" role="tab" x-on:click="city = 'all'" x-bind:aria-selected="city === 'all'"
+                                        x-bind:class="city === 'all' ? 'bg-ink text-on-ink border-ink' : 'bg-card text-ink-2 border-line hover:border-ink-2 hover:text-ink'"
+                                        class="inline-flex items-center gap-1.5 rounded-round border px-3 py-1 text-small font-semibold transition">
+                                        @lang('holidays.all-governorates')
+                                        <span dir="ltr" class="num font-normal opacity-80" x-text="(selected ?? []).length"></span>
+                                    </button>
+                                    @foreach ($projectGroups as $group)
+                                        <button type="button" role="tab" wire:key="city-tab-{{ $group['id'] }}"
+                                            x-on:click="city = {{ $group['id'] }}" x-bind:aria-selected="city === {{ $group['id'] }}"
+                                            x-bind:class="city === {{ $group['id'] }} ? 'bg-ink text-on-ink border-ink' : 'bg-card text-ink-2 border-line hover:border-ink-2 hover:text-ink'"
+                                            class="inline-flex items-center gap-1.5 rounded-round border px-3 py-1 text-small font-semibold transition">
+                                            {{ $group['name'] }}
+                                            <span dir="ltr" class="num font-normal opacity-80"
+                                                x-text="count({{ Js::from(array_column($group['options'], 'value')) }}) + '/{{ count($group['options']) }}'"></span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            {{-- Select everything shown, or clear the whole selection. --}}
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-soft px-3 py-2 text-small">
+                                <label class="flex cursor-pointer items-center gap-2 font-semibold text-ink">
+                                    <input type="checkbox" class="rounded-inset text-ink"
+                                        x-bind:checked="state(visible()) === 'all'"
+                                        x-bind:indeterminate="state(visible()) === 'some'"
+                                        x-on:change="toggle(visible())">
+                                    <span x-text="city === 'all'
+                                        ? {{ Js::from(__('holidays.select-all')) }}
+                                        : {{ Js::from(__('holidays.select-all-in')) }} + ' ' + groups.find(g => g.id === city)?.name"></span>
+                                </label>
+                                <span class="flex items-center gap-2">
+                                    <span class="text-ink-2"><span class="num font-semibold text-ink" x-text="(selected ?? []).length"></span> @lang('holidays.selected')</span>
+                                    <button type="button" x-on:click="clear()" x-bind:disabled="! (selected ?? []).length"
+                                        class="inline-flex items-center gap-1 rounded-control px-2 py-1 font-semibold text-ink-2 transition hover:bg-surface hover:text-ink disabled:pointer-events-none disabled:opacity-40">
+                                        <x-ic name="reset" class="size-3.5" />
+                                        @lang('holidays.clear-all')
+                                    </button>
+                                </span>
+                            </div>
+
+                            <div class="max-h-56 overflow-y-auto overscroll-contain">
+                                @foreach ($projectGroups as $group)
+                                    <div x-show="city === 'all' || city === {{ $group['id'] }}" wire:key="city-group-{{ $group['id'] }}">
+                                        @if (count($projectGroups) > 1)
+                                            <p x-show="city === 'all'" class="sticky top-0 border-y border-line-soft bg-card px-3 py-1.5 text-caption font-semibold text-ink-2">{{ $group['name'] }}</p>
+                                        @endif
+                                        @foreach ($group['options'] as $option)
+                                            <label class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-body text-ink transition hover:bg-soft" wire:key="project-{{ $option['value'] }}">
+                                                <input type="checkbox" x-model="selected" value="{{ $option['value'] }}" class="rounded-inset text-ink">
+                                                {{ $option['label'] }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <p class="rounded-control border border-dashed border-line px-3 py-4 text-center text-small text-ink-2">@lang('holidays.no-projects-to-pick')</p>
+                    @endif
                     <x-error-span>{{ $errors->first('item.projects') ?: $errors->first('item.projects.*') }}</x-error-span>
                 </div>
             @endif
