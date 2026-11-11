@@ -137,7 +137,7 @@
         max-width="4xl"
         id="leaveDetailsModal"
         :title="__('general.leave-details')"
-        wire:model.defer="detailsModal"
+        wire:model.live="detailsModal"
         wire:ignore.self>
         @php
             $selectedLeave = $this->selectedLeave;
@@ -256,7 +256,7 @@
             $numberOf = fn (string $step) => array_search($step, $visibleSteps, true) + 1;
         @endphp
         {{-- Phones (M1): the sheet itself scrolls, so there is no nested scroll area; sm and up keeps the capped panel. --}}
-        <div class="w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-10 dialog:md:py-6">
+        <div data-csb-exclude class="thin-scroll w-full sheet:flex-1 sheet:flex sheet:flex-col bg-card rounded-surface px-0 py-0 dialog:max-h-[60dvh] dialog:overflow-y-auto dialog:px-6 dialog:py-4 dialog:md:px-10 dialog:md:py-6">
             {{-- Enter in a field takes the same path as Save (there is no save()). --}}
             <form wire:submit.prevent="confirmSave" class="space-y-8 sheet:flex-1 sheet:flex sheet:flex-col" data-testid="leave-request-form">
                 <x-forms.errors-validation-list/>
@@ -272,7 +272,7 @@
                         <div class="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4" role="radiogroup"
                              aria-labelledby="leave-step-category-title" data-testid="leave-categories">
                             @foreach($choices['categories'] as $category)
-                                <label class="block cursor-pointer" wire:key="leave-category-{{ $category['key'] }}">
+                                <label class="relative block cursor-pointer" wire:key="leave-category-{{ $category['key'] }}">
                                     <input type="radio" class="peer sr-only" name="leave_category" id="leave-category-{{ $category['key'] }}"
                                            value="{{ $category['key'] }}" wire:model.live="leaveCategory"
                                            @checked($activeKey === $category['key'])
@@ -315,7 +315,7 @@
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" role="radiogroup" aria-labelledby="leave-step-subtype-title">
                             @if($activeKey === 'annual')
                                 @foreach(['day' => ['daily', 'calendar'], 'hour' => ['hourly', 'clock']] as $unit => [$labelKey, $icon])
-                                    <label class="block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
+                                    <label class="relative block cursor-pointer" wire:key="leave-unit-{{ $unit }}">
                                         <input type="radio" class="peer sr-only" name="form.type" id="radio-formtype-{{ $unit }}"
                                                value="{{ $unit }}" wire:model.live="form.type" @checked($form->type === $unit)>
                                         <span class="hc-choice flex h-full min-h-16 items-center gap-3 p-3">
@@ -335,7 +335,7 @@
                             @else
                                 @foreach($active['options'] as $option)
                                     @php $selected = (string) $form->leave_balance_id === (string) $option['balance_id']; @endphp
-                                    <label @class(['block', 'cursor-pointer' => ! $option['disabled'], 'cursor-not-allowed' => $option['disabled']])
+                                    <label @class(['relative block', 'cursor-pointer' => ! $option['disabled'], 'cursor-not-allowed' => $option['disabled']])
                                            wire:key="leave-subtype-{{ $option['balance_id'] }}">
                                         <input type="radio" class="peer sr-only" name="form.leave_balance_id" id="leave-subtype-{{ $option['balance_id'] }}"
                                                value="{{ $option['balance_id'] }}" wire:model.live="form.leave_balance_id"
@@ -444,7 +444,7 @@
                                     :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                                 <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                             </div>
-                            <div class="md:col-span-1" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
+                            <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
                                 <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                                 <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
                                     <option

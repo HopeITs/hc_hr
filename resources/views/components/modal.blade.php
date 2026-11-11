@@ -217,7 +217,7 @@
              tabindex="-1"
              @if($labelledby) aria-labelledby="{{ $labelledby }}" @elseif($label) aria-label="{{ $label }}" @endif
              @if($describedby) aria-describedby="{{ $describedby }}" @endif
-             class="pointer-events-auto w-full bg-card shadow-e3 transform sheet:min-h-dvh sheet:rounded-none dialog:overflow-hidden dialog:rounded-surface transition-all focus:outline-none motion-reduce:transition-none motion-reduce:transform-none {{ $maxWidth }}"
+             class="pointer-events-auto w-full bg-card shadow-e3 transform sheet:min-h-dvh sheet:rounded-none dialog:overflow-clip dialog:rounded-surface transition-all focus:outline-none motion-reduce:transition-none motion-reduce:transform-none {{ $maxWidth }}"
              x-transition:enter="ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-4 dialog:translate-y-0 dialog:scale-95"
              x-transition:enter-end="opacity-100 translate-y-0 dialog:scale-100"
