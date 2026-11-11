@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\View;
  */
 final class BottomBar
 {
-    /** Places a person chooses; + and More are always there besides them. */
+    /** Places a person chooses; the raised + is always there besides them. */
     public const SLOTS = 4;
 
     /** How many of the places sit before the raised + (the rest sit after it). */

@@ -37,9 +37,10 @@ class EmployeeAutosaveTest extends TestCase
     public function test_autosave_below_the_draft_minimum_writes_nothing_and_shows_no_errors(): void
     {
         $city = $this->makeCity('ALP', '001');
+        $hr = $this->hr($city); // the fixture's own employee rows are counted before the call
         $before = Employee::query()->count();
 
-        Livewire::actingAs($this->hr($city))->test(EmployeeCreate::class)
+        Livewire::actingAs($hr)->test(EmployeeCreate::class)
             ->set('infoForm.first_name_en', 'Lina')
             ->set('infoForm.national_number', '12345678909')
             ->call('autosaveDraft')

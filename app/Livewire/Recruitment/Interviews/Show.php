@@ -3,6 +3,8 @@
 namespace App\Livewire\Recruitment\Interviews;
 
 use App\Enums\RecruitmentInterviewStatus;
+use App\Livewire\Concerns\GuardsModalClose;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Services\RecruitmentInterviewEvaluationService;
 use App\Services\RecruitmentInterviewSchedulingService;
@@ -30,7 +32,7 @@ use Livewire\WithFileUploads;
  */
 class Show extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use GuardsModalClose, WithAlerts, WithFeedback, WithFileUploads;
 
     #[Locked]
     public int $interviewId;
@@ -228,8 +230,31 @@ class Show extends Component
         $this->panelOpen = true;
         $this->expectedStatus = $interview->status;
         $this->expectedStartsAt = $interview->scheduled_at->toIso8601String();
+        $this->markClean('interviewActionModal');
 
         $this->dispatch('focus-element', id: 'interview-panel-title');
+    }
+
+    /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
+    protected function guardedDialogs(): array
+    {
+        return ['interviewActionModal'];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->panelOpen;
+    }
+
+    /** What the user can change in the popup. */
+    protected function guardedEntries(string $dialog): array
+    {
+        return ['cancelReason' => $this->cancelReason, 'cancelNote' => $this->cancelNote, 'notifyCandidate' => $this->notifyCandidate, 'outcomeNote' => $this->outcomeNote];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->dismissPanel();
     }
 
     private function closePanel(): void

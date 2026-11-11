@@ -123,8 +123,9 @@ class JourneyInboxTest extends TestCase
         $viewers = [
             'employee' => $this->makeUser($this->homs, 'employee', []),
             'manager' => $this->makeUser($this->homs, 'manager', ['employees.view']),
-            // HR for every city, but without the permission the edit page needs.
-            'hr-without-update' => $this->makeUser($this->homs, 'HR-SYR', ['employees.view']),
+            // HR, but without the permission the edit page needs. Not HR-SYR: that role is
+            // in access-control.administrator_roles and holds every permission by design.
+            'hr-without-update' => $this->makeUser($this->homs, 'HR-DMS', ['employees.view']),
             // employees.update outside an HR role: not an HR inbox (as S5 and D1).
             'manager-with-update' => $this->makeUser($this->homs, 'center-manager', ['employees.update']),
         ];

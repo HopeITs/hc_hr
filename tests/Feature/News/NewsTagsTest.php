@@ -148,7 +148,7 @@ class NewsTagsTest extends TestCase
     public function test_editing_a_legacy_item_keeps_its_related_to_columns(): void
     {
         $this->actingAs($this->hr);
-        $news = $this->makeNews(['newsable_type' => City::class, 'newsable_id' => $this->city->id]);
+        $news = $this->makeNews(['newsable_type' => City::class, 'newsable_id' => $this->city->id, 'description_ar' => 'نص']);
 
         Livewire::test(NewsCreate::class, ['news' => $news])
             ->set('form.tags', ['ALP'])

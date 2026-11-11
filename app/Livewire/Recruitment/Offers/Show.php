@@ -4,6 +4,8 @@ namespace App\Livewire\Recruitment\Offers;
 
 use App\Enums\HiringCampaignStatus;
 use App\Enums\RecruitmentJobOfferStatus as Status;
+use App\Livewire\Concerns\GuardsModalClose;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\HiringCampaign;
 use App\Models\RecruitmentJobOffer;
 use App\Models\Vacancy;
@@ -34,7 +36,7 @@ use Livewire\WithFileUploads;
  */
 class Show extends Component
 {
-    use WithAlerts, WithFileUploads;
+    use GuardsModalClose, WithAlerts, WithFeedback, WithFileUploads;
 
     #[Locked]
     public int $offerId;
@@ -80,6 +82,7 @@ class Show extends Component
     {
         $this->openPanel('send');
         $this->expiresOn = today()->addDays((int) config('recruitment.offers.validity_days', 7))->toDateString();
+        $this->markClean('offerActionModal');
     }
 
     public function send(RecruitmentJobOfferService $offers): void
@@ -95,6 +98,7 @@ class Show extends Component
         abort_unless(in_array($response, [Status::Accepted, Status::Rejected], true), 403);
         $this->openPanel('response');
         $this->response = $response;
+        $this->markClean('offerActionModal');
     }
 
     public function recordResponse(RecruitmentJobOfferService $offers): void
@@ -221,6 +225,29 @@ class Show extends Component
         $this->panel = $panel;
         $this->panelOpen = true;
         $this->expectedVersionId = (int) $offer->current_version_id;
+        $this->markClean('offerActionModal');
+    }
+
+    /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
+    protected function guardedDialogs(): array
+    {
+        return ['offerActionModal'];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->panelOpen;
+    }
+
+    /** What the user can change in the popup. */
+    protected function guardedEntries(string $dialog): array
+    {
+        return ['expiresOn' => $this->expiresOn, 'responseNote' => $this->responseNote, 'responseEvidence' => $this->responseEvidence, 'cancelReason' => $this->cancelReason, 'cancelNote' => $this->cancelNote];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->closePanel();
     }
 
     private function attempt(callable $action, string $messageKey): void

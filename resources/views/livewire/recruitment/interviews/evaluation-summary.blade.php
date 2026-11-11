@@ -109,7 +109,7 @@
 
     {{-- HR's separate opinion note never changes the participant's evaluation. --}}
     @php $panelEvaluation = $evaluationId !== null ? $evaluations->firstWhere('id', $evaluationId) : null; @endphp
-    <x-modal.dialog id="evaluationActionModal" max-width="xl" wire:model.defer="panelOpen" wire:ignore.self>
+    <x-modal.dialog id="evaluationActionModal" max-width="xl" wire:model.defer="panelOpen" close-action="requestClose" wire:ignore.self>
         <x-slot:title>
             <span id="evaluation-panel-title" tabindex="-1" class="focus:outline-none">
                 {{ __('recruitment-applicant.evaluations.note_title') }}
@@ -137,7 +137,7 @@
                     <x-primary-button type="button" wire:click="addNote">
                         {{ __('recruitment-applicant.evaluations.note_confirm') }}
                     </x-primary-button>
-                    <x-secondary-button wire:click="dismissPanel">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
+                    <x-secondary-button wire:click="requestClose('evaluationActionModal')">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
                 </div>
             </div>
         @endif

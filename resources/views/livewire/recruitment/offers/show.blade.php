@@ -172,7 +172,7 @@
                     default => ['cancelOffer', __('recruitment-applicant.offers.actions.cancel')],
                 };
             @endphp
-            <x-modal.dialog id="offerActionModal" max-width="xl" :title="$modalTitle" wire:model.defer="panelOpen" wire:ignore.self>
+            <x-modal.dialog id="offerActionModal" max-width="xl" :title="$modalTitle" wire:model.defer="panelOpen" close-action="requestClose" wire:ignore.self>
                 @if ($panel !== null)
                     <div class="space-y-4">
                         @error('offer')
@@ -223,7 +223,7 @@
 
                         <div class="flex flex-wrap gap-2">
                             <x-primary-button type="button" wire:click="{{ $action }}" wire:loading.attr="disabled" wire:target="{{ $action }}" class="!w-auto">{{ $actionLabel }}</x-primary-button>
-                            <x-primary-button type="button" wire:click="closePanel" class="!bg-secondary-light !w-auto">{{ __('recruitment-applicant.cancel') }}</x-primary-button>
+                            <x-primary-button type="button" wire:click="requestClose('offerActionModal')" class="!bg-secondary-light !w-auto">{{ __('recruitment-applicant.cancel') }}</x-primary-button>
                         </div>
                     </div>
                 @endif

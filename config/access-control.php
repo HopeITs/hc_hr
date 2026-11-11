@@ -224,7 +224,12 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
-        'recruitment.requests.create' => ['save' => 'recruitment-requests.manage'],
+        // saveAndSubmit writes the same draft as save(), then submits only when the
+        // request's submit policy allows it.
+        'recruitment.requests.create' => [
+            'save' => 'recruitment-requests.manage',
+            'saveAndSubmit' => 'recruitment-requests.manage',
+        ],
         'recruitment.campaigns.index' => [
             'create' => 'recruitment-campaigns.manage',
             'beginScheduleEdit' => 'recruitment-campaigns.manage',
@@ -480,7 +485,10 @@ return [
         'recruitment.requests.direct-open' => ['save' => 'recruitment-requests.direct-open'],
         // request() asks the update policy (manage + scope + ownership) on
         // every call, save included.
-        'recruitment.requests.edit' => ['save' => 'recruitment-requests.manage'],
+        'recruitment.requests.edit' => [
+            'save' => 'recruitment-requests.manage',
+            'saveAndSubmit' => 'recruitment-requests.manage',
+        ],
         // Lifecycle actions: each re-loads the record, re-runs NewsAccess::canManage
         // and re-checks the item's derived state before writing.
         'news.news-table' => [
@@ -703,10 +711,10 @@ return [
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
-        'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
+        'recruitment.requests.create' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId', 'updatedDataRecruitmentReason'],
         // The same resets, inherited from Create (Edit pins the type back to
         // the stored one). save() re-asks the update policy.
-        'recruitment.requests.edit' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId'],
+        'recruitment.requests.edit' => ['updatedDataRequestType', 'updatedDataPositionId', 'updatedDataCityId', 'updatedDataRecruitmentReason'],
         // Form-only resets of dependent pickers; boot() asks the directOpen
         // policy on every request and the service refuses anything outside
         // the governorate boundary on save.
@@ -764,7 +772,7 @@ return [
         'recruitment.interviews.form' => ['addParticipant', 'removeParticipant'],
         // dismissPanel closes the action popup: component state only.
         // refreshEvaluationDue is an empty listener: it only re-renders.
-        'recruitment.interviews.show' => ['dismissPanel', 'refreshEvaluationDue'],
+        'recruitment.interviews.show' => ['dismissPanel', 'refreshEvaluationDue', ...$closeGuard],
         // Lane paging (capped at 500) and filter reset; every lane is read
         // through RecruitmentInterview::visibleTo().
         'recruitment.interviews.board' => ['showMore', 'clearFilters'],
@@ -787,9 +795,9 @@ return [
         // dismissPanel closes the action popup (component state only);
         // refreshEvaluations re-renders through the same scoped query and
         // writes nothing.
-        'recruitment.interviews.evaluation-summary' => ['dismissPanel', 'refreshEvaluations'],
+        'recruitment.interviews.evaluation-summary' => ['dismissPanel', 'refreshEvaluations', ...$closeGuard],
         // Phase 2 Task 9. Clears panel state only.
-        'recruitment.offers.show' => ['closePanel'],
+        'recruitment.offers.show' => ['closePanel', ...$closeGuard],
         // Phase 2 Task 10. The post-hire message's buttons: redirects only,
         // after re-resolving the offer through the scoped query; the employee
         // and contract edit pages check their own permissions.
@@ -1115,6 +1123,13 @@ return [
         // toggle is self-scoped like saveLayout: only the caller's own row for the active role,
         // and only a card DashboardLayout::allowed() gives them (403 otherwise).
         'dashboard.add-to-dashboard' => ['toggle'],
+        // A big shortcut's data: render() asks DashboardLayout::isApp + allowed for the
+        // locked tile key, and each figure keeps its page's scope (WorkInbox, Contract::visibleTo()).
+        'dashboard.app-card' => ['retryLoad', 'placeholder'],
+        // load() reads one group's figures into the component's own state, only for a
+        // group HubGroups::for() gives the caller; each figure re-asks its page's permission
+        // and scope (contracts.view + visibleTo, positions.view, the request policy). Writes nothing.
+        'dashboard.hub' => ['load'],
         // The late band and decision cards read the caller's own WorkInbox::shared
         // snapshot and Contract::visibleTo().
         'dashboard.late-card' => ['retryLoad', 'placeholder'],

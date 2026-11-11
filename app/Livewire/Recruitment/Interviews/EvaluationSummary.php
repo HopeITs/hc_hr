@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Recruitment\Interviews;
 
+use App\Livewire\Concerns\GuardsModalClose;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentInterviewEvaluation;
 use App\Services\RecruitmentInterviewEvaluationService;
@@ -26,7 +28,7 @@ use Livewire\Component;
  */
 class EvaluationSummary extends Component
 {
-    use WithAlerts;
+    use GuardsModalClose, WithAlerts, WithFeedback;
 
     #[Locked]
     public int $interviewId;
@@ -133,8 +135,31 @@ class EvaluationSummary extends Component
         $this->panel = 'note';
         $this->panelOpen = true;
         $this->evaluationId = $evaluation->getKey();
+        $this->markClean('evaluationActionModal');
 
         $this->dispatch('focus-element', id: 'evaluation-panel-title');
+    }
+
+    /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
+    protected function guardedDialogs(): array
+    {
+        return ['evaluationActionModal'];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->panelOpen;
+    }
+
+    /** What the user can change in the popup. */
+    protected function guardedEntries(string $dialog): array
+    {
+        return ['opinionNote' => $this->opinionNote];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->dismissPanel();
     }
 
     private function cancelPanel(): void

@@ -892,7 +892,7 @@ class ContractRenewalTest extends TestCase
         $this->actingAs($fixtures['hr'])
             ->get(route('contracts.create'))
             ->assertOk()
-            ->assertSee(__('general.add-new'))
+            ->assertSee(__('general.new-contract'))
             ->assertDontSee(__('general.renew-contract'));
     }
 

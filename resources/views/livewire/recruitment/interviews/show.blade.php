@@ -156,7 +156,7 @@
         @endif
 
         {{-- The actions open one popup, like the Leaves decision popup (<x-modal.dialog>). Its title keeps the id focus moves to. --}}
-        <x-modal.dialog id="interviewActionModal" max-width="xl" wire:model.defer="panelOpen" wire:ignore.self>
+        <x-modal.dialog id="interviewActionModal" max-width="xl" wire:model.defer="panelOpen" close-action="requestClose" wire:ignore.self>
             <x-slot:title>
                 <span id="interview-panel-title" tabindex="-1" class="focus:outline-none">
                     @if ($panel !== null)
@@ -201,7 +201,7 @@
                         @endunless
                         <div class="flex flex-wrap gap-3">
                             <x-primary-button type="button" wire:click="cancelInterview" wire:target="cancelInterview">{{ __('recruitment-applicant.interviews.confirm_cancel') }}</x-primary-button>
-                            <x-secondary-button wire:click="dismissPanel">{{ __('recruitment-applicant.interviews.keep') }}</x-secondary-button>
+                            <x-secondary-button wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.keep') }}</x-secondary-button>
                         </div>
                     @else
                         <div>
@@ -212,7 +212,7 @@
                         </div>
                         <div class="flex flex-wrap gap-3">
                             <x-primary-button type="button" wire:click="recordOutcome" wire:target="recordOutcome">{{ __('recruitment-applicant.interviews.confirm_outcome') }}</x-primary-button>
-                            <x-secondary-button wire:click="dismissPanel">{{ __('recruitment-applicant.interviews.back') }}</x-secondary-button>
+                            <x-secondary-button wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.back') }}</x-secondary-button>
                         </div>
                     @endif
                 </div>

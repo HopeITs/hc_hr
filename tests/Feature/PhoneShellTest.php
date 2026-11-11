@@ -29,35 +29,40 @@ class PhoneShellTest extends TestCase
 
         $html = Livewire::actingAs($user)->test(Header::class)->html();
 
-        // The three icon links and the D3 help button leave the top bar below `sm`
-        // (it could not hold them at 375px)...
-        $this->assertSame(4, substr_count($html, 'max-sm:hidden inline-flex'));
+        // Only the D3 help button is in the top bar and leaves it below `sm` (it could not
+        // fit at 375px). Since v3 the guide, website and feedback icons are not in the bar
+        // at any size: they live in the account menu.
+        $this->assertSame(1, substr_count($html, 'max-sm:hidden inline-flex'));
         $this->assertStringContainsString('data-help-button', $html);
 
         // ...help is one tap away in the account menu, phones only, with a 44px target...
         $this->assertMatchesRegularExpression('/data-help-menu-item[^>]*class="[^"]*min-h-11[^"]*sm:hidden/', $html);
 
-        // ...and each of them is still one tap away, with a 44px target, in the account menu.
-        $menu = substr($html, strpos($html, 'sm:hidden">'));
+        // ...and the secondary links are one tap away, with a 44px target, in the account menu
+        // (never in the bar before it).
+        $menuStart = strpos($html, 'role="menu"');
+        $this->assertNotFalse($menuStart);
+        $bar = substr($html, 0, $menuStart);
+        $menu = substr($html, $menuStart);
         foreach (['docs.google.com/document', 'hcsyria.org/home'] as $href) {
-            $this->assertStringContainsString($href, $menu);
+            $this->assertStringNotContainsString($href, $bar);
+            $this->assertMatchesRegularExpression('/href="[^"]*'.preg_quote($href, '/').'[^"]*"[^>]*role="menuitem"[^>]*class="[^"]*min-h-11/', $menu);
         }
-        $this->assertSame(2, substr_count($menu, 'role="menuitem"'));
-        $this->assertStringContainsString('min-h-11', $menu);
 
-        // Feedback no longer leaves the server (DEC-08): both the top-bar icon and the
-        // account-menu item open the in-app dialog instead of the old Google Form.
+        // Feedback no longer leaves the server (DEC-08): the account-menu item opens the
+        // in-app dialog instead of the old Google Form.
         $this->assertStringNotContainsString('docs.google.com/forms', $html);
-        $this->assertSame(2, substr_count($html, 'data-feedback-open'));
+        $this->assertSame(1, substr_count($html, 'data-feedback-open'));
+        $this->assertMatchesRegularExpression('/role="menuitem" data-feedback-open[^>]*class="[^"]*min-h-11/', $menu);
     }
 
     public function test_header_controls_that_stay_on_phones_are_44px_targets(): void
     {
         $html = Livewire::actingAs(User::factory()->create())->test(Header::class)->html();
 
-        // Hamburger, language switch and account button.
+        // Hamburger, language switch (v3: one button, the other language) and account button.
         $this->assertStringContainsString('size-11 place-items-center', $html);
-        $this->assertSame(2, substr_count($html, 'h-11 sm:h-9'));
+        $this->assertSame(1, substr_count($html, 'h-11 sm:h-9 min-w-11'));
         $this->assertStringContainsString('size-11 sm:size-10', $html);
 
         // The bell and the tour button are separate components with the same rule.
