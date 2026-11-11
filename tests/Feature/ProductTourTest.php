@@ -138,7 +138,7 @@ class ProductTourTest extends TestCase
             ->assertSee('productTour(', false)
             ->assertSee(__('tour.dashboard.welcome.title'), false)
             ->assertSee('data-tour="tour.button"', false)
-            ->assertSee('data-tour="dashboard.notes"', false)
+            ->assertSee('data-tour="dashboard.news"', false)
             ->assertSee('data-tour="nav"', false)
             ->assertSee('data-tour="nav.dashboard"', false);
     }

@@ -69,6 +69,8 @@ class LeaveRequestPolicy
             && ! $leaveRequest->hr_approved
             // Nobody marks their own decision as seen (N-07).
             && ! ($user->employee_id !== null && (int) $leaveRequest->approved_by === (int) $user->employee_id)
+            // Nor reviews their own request, as nobody decides it (G-C-2).
+            && ! $this->owns($user, $leaveRequest)
             && $this->isHr($user)
             && $user->hasActivePermission('leaves.review')
             && ($authority ? $authority->isManageableBy($user, $leaveRequest) : $this->canManage($user, $leaveRequest));

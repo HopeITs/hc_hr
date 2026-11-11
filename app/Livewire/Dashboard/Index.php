@@ -4,15 +4,21 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\HasDashboardLayout;
+use App\Models\Contract;
+use App\Models\User;
+use App\Services\WorkInbox;
+use App\Support\Dashboard\DashboardLayout;
+use App\Support\Dashboard\WaitingOnYou;
+use Carbon\Carbon;
 use Livewire\Component;
+use Throwable;
 
 /**
- * The dashboard, a desk of panels like hc-tracking's (DashboardLayout,
- * resources/js/dashboard/home-screen.js): the hello on top (Header), then the
- * panels the person arranged on a twelve-column grid. This component draws the
- * grid and nothing else: each panel is its own lazy Livewire component
+ * The dashboard: a home screen of tiles the person arranges (DashboardLayout,
+ * resources/js/dashboard/home-screen.js). This component draws the grid and
+ * nothing else: each widget tile is its own lazy Livewire component
  * (DashboardLayout::COMPONENTS) that loads its data when it comes into view
- * and shows a failure inside itself. A hidden panel is not drawn at all, so
+ * and shows a failure inside itself. A hidden tile is not drawn at all, so
  * its data is never read.
  */
 class Index extends Component
@@ -21,6 +27,16 @@ class Index extends Component
     use HasDashboardLayout;
 
     public $employee;
+
+    public $contract;
+
+    public $positionTitle;
+
+    public $departmentName;
+
+    public $joinedOn;
+
+    public $workEmail;
 
     /**
      * Sections whose load failed during THIS request (card key => true). Not a
@@ -33,28 +49,52 @@ class Index extends Component
     /** @var array<string, mixed> Per-request memo so a card that reads $this->x after render() does not query twice. */
     protected array $memo = [];
 
-    /** ?customise=1 (the command palette's "Customise dashboard"): the page opens with the Customize sheet. */
+    /** ?customise=1 (the command palette's "Customise dashboard"): the page opens in edit mode. */
     protected bool $customise = false;
 
     public function mount(): void
     {
         $this->customise = request()->boolean('customise');
 
+        $locale = app()->getLocale();
+        $titleCol = $locale === 'ar' ? 'title_ar' : 'title_en';
+        $deptCol = $locale === 'ar' ? 'name_ar' : 'name_en';
+
         $user = auth()->user();
         if (! $user) {
             abort(403, 'Unauthorized');
         }
 
-        $this->employee = $user->profile()->first();
+        $this->employee = $user
+            ->profile()
+            ->with(['media', 'city'])
+            ->first();
+
+        if ($this->employee) {
+            $this->contract = Contract::with(['position.department', 'position.center', 'position.program'])
+                ->where('employee_id', $this->employee->id)
+                ->orderByDesc('start_date')
+                ->first();
+
+            $this->positionTitle = $this->contract?->position?->$titleCol ?? '—';
+            $this->departmentName = $this->contract?->position?->department?->$deptCol ?? '—';
+            $this->joinedOn = $this->contract?->start_date
+                ? Carbon::parse($this->contract->start_date)->locale(app()->getLocale())->translatedFormat('d M Y')
+                : '—';
+            $this->workEmail = $user->email ?? '—';
+        } else {
+            $this->positionTitle = $this->departmentName = $this->joinedOn = $this->workEmail = '—';
+        }
     }
 
     public function render()
     {
+        $user = auth()->user();
         $tiles = $this->dashboardTiles();
         $layout = $this->dashboardLayout($tiles);
         $shown = array_column(array_filter($layout, fn (array $item): bool => ! $item['hidden']), 'key');
 
-        // Kept in the layout but not drawn, nor offered in Customize: a widget that has
+        // Kept in the layout but not drawn, nor offered in Add: a widget that has
         // no component yet, and "my leaves" for someone without a leave balance
         // (its card reads one; today's dashboard left it out the same way).
         $absent = array_values(array_filter(
@@ -70,17 +110,26 @@ class Index extends Component
             $absent[] = 'my-leaves';
         }
 
-        $user = auth()->user();
+        // Decided here, not after the cards load: an alert that appears and then
+        // closes would move the whole page under someone about to click.
+        $absent = [...$absent, ...$this->quietAlerts($user)];
 
+        // The unused todayEvents list (36 queries for 100 employees: N+1 per
+        // birthday) used to be computed here and never rendered; the
+        // news.today-events-card component loads its own data.
         return view('livewire.dashboard.index', [
             'layout' => $layout,
             'tiles' => $tiles,
+            'apps' => $tiles->apps($user),
             'absent' => $absent,
-            // The page each shown panel opens in full (only pages the role's menu has).
+            // The page each shown widget opens on double-click (only pages the role's menu has).
             'pages' => array_filter(array_combine($shown, array_map(fn (string $key): ?string => $tiles->page($user, $key), $shown))),
+            'inboxCount' => in_array(DashboardLayout::APP_PREFIX.'nav.inbox', $shown, true) ? $this->inboxCount($user) : 0,
             'customise' => $this->customise,
-            // "Customize your desk": the ready layouts this person may use, the suggested one first.
-            'presets' => $tiles->presets($user),
+            'presets' => $presets = $tiles->presets($user),
+            // The preset the page shows right now, when it is exactly one of them.
+            'activePreset' => collect($presets)->search(fn (array $keys): bool => array_diff($keys, $shown) === []
+                && array_diff(array_filter($shown, $tiles->isWidget(...)), $keys) === []) ?: null,
             'failedSections' => $this->failedSections,
         ]);
     }
@@ -106,5 +155,36 @@ class Index extends Component
         $this->loadFailed = $this->failedSections !== [];
 
         return $this->memo[$key] = $result;
+    }
+
+    /** @return list<string> the alert tiles with nothing to say right now */
+    private function quietAlerts(User $user): array
+    {
+        try {
+            $waiting = app(WaitingOnYou::class);
+
+            return array_values(array_filter([
+                $waiting->late($user) === null ? 'late' : null,
+                $waiting->inbox($user)['counts']['all'] === 0 ? 'decide' : null,
+            ]));
+        } catch (Throwable $e) {
+            // Let the tiles load and show their own failure.
+            report($e);
+
+            return [];
+        }
+    }
+
+    /** The inbox shortcut's badge: the same scoped count as the sidebar's (WorkInbox). */
+    private function inboxCount(User $user): int
+    {
+        try {
+            return app(WorkInbox::class)->shared($user)['counts']['all'];
+        } catch (Throwable $e) {
+            // A badge must not take the dashboard down with it.
+            report($e);
+
+            return 0;
+        }
     }
 }

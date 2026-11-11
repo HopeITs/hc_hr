@@ -114,6 +114,18 @@ class MyLeaveRequestModule extends Component
     #[Url(as: 'date', except: '')]
     public string $startDate = '';
 
+    /**
+     * With ?date=, the dashboard's "Request leave" card also sends ?to=Y-m-d
+     * (the last day) and ?balance= (the type picked). Client input too: a
+     * last day before the first, or a balance that is not one of the
+     * viewer's own open ones, is ignored.
+     */
+    #[Url(as: 'to', except: '')]
+    public string $endDate = '';
+
+    #[Url(as: 'balance', except: '')]
+    public string $startBalance = '';
+
     public string $statusFilter = 'all';
 
     /**
@@ -158,7 +170,7 @@ class MyLeaveRequestModule extends Component
             $this->prefillStartDate();
         }
 
-        $this->startDate = '';
+        $this->startDate = $this->endDate = $this->startBalance = '';
     }
 
     public function setActiveTab(string $status)
@@ -495,6 +507,40 @@ class MyLeaveRequestModule extends Component
         return $start === $end ? $isolate($start) : $isolate($start).$separator.$isolate($end);
     }
 
+    /**
+     * A changed field answers its own error: "Leave type is required" used to
+     * stay under a type that had just been chosen until the next Submit. Once
+     * the period is complete, the own-overlap check runs straight away, so a
+     * clash with another request shows beside the dates while they are being
+     * picked rather than after Submit. store()/update() still check under a lock.
+     */
+    public function updated(string $property): void
+    {
+        if (! $this->showModal || ! str_starts_with($property, 'form.')) {
+            return;
+        }
+
+        $field = Str::after($property, 'form.');
+        $this->form->resetErrorBag($field);
+
+        if (! in_array($field, ['leave_balance_id', 'type', 'start_at', 'end_at', 'leave_date', 'start_hour', 'end_hour'], true)) {
+            return;
+        }
+
+        // The overlap is reported on the period's first field, whichever
+        // field moved; the check below decides afresh whether it still holds.
+        $overlapField = $this->form->type === 'hour' ? 'leave_date' : 'start_at';
+        if (filled($this->form->{$overlapField})) {
+            $this->form->resetErrorBag($overlapField);
+        }
+
+        // A form whose token already created its request is a retry: its save
+        // returns that request, so the request must not count as a clash with itself.
+        if (filled($this->form->leave_balance_id) && $this->form->consumedRequest() === null) {
+            $this->form->ensureNoOwnOverlap();
+        }
+    }
+
     public function openDetails(int $id): void
     {
         $leaveRequest = $this->ownedLeaveRequests()->findOrFail($id);
@@ -546,7 +592,7 @@ class MyLeaveRequestModule extends Component
 
         $html = $this->confirmationMessage($quote);
 
-        $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: __('general.save'), danger: false);
+        $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: $this->form->id ? __('leaves.modal.save-changes') : __('leaves.modal.submit'), danger: false);
 
     }
 
@@ -775,6 +821,20 @@ class MyLeaveRequestModule extends Component
         }
 
         $this->form->start_at = $this->form->end_at = $this->form->leave_date = $this->startDate;
+
+        $end = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->endDate) === 1 ? Carbon::createFromFormat('!Y-m-d', $this->endDate) : null;
+        if ($end && $end->format('Y-m-d') === $this->endDate && $end->gte($date)) {
+            $this->form->end_at = $this->endDate;
+        }
+
+        $balance = ctype_digit($this->startBalance)
+            ? auth()->user()->profile?->allAvailableLeaves()?->firstWhere('id', (int) $this->startBalance)
+            : null;
+        if ($balance) {
+            $this->form->leave_balance_id = $balance->id;
+            $this->leaveCategory = $this->categoryOfBalance($balance->id);
+        }
+
         // A prefilled date is not an edit: closing the form untouched asks nothing.
         $this->markClean();
     }
@@ -784,6 +844,7 @@ class MyLeaveRequestModule extends Component
         $this->showModal = false;
         $this->leaveCategory = null;
         $this->form->reset();
+        $this->form->resetValidation();
 
         $leaveRequest->refresh();
         $this->submittedLeaveId = $leaveRequest->id;

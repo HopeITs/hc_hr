@@ -15,6 +15,7 @@ use App\Livewire\ChecklistItems\DoneRequests;
 use App\Livewire\ChecklistItems\PendingItems;
 use App\Livewire\ChecklistItems\PendingReturns;
 use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Dashboard\Window as DashboardWindow;
 use App\Livewire\Employee\EmployeeProfile;
 use App\Livewire\Employee\EmployeeStatistics;
 use App\Livewire\Employee\Leave\AllLeaveRequestModule;
@@ -87,6 +88,10 @@ Route::group(
         Route::middleware(['auth'])->group(function () {
             Route::get('/', DashboardIndex::class)
                 ->name('dashboard');
+            // One card taken out of the browser (its own window, or floating on top); Window checks the card.
+            Route::get('dashboard/window/{tile}', DashboardWindow::class)
+                ->where('tile', '[A-Za-z0-9._-]{1,100}')
+                ->name('dashboard.window');
             Route::prefix('statistics')
                 ->name('statistics.')
                 ->middleware('active_permission:statistics.view')
@@ -148,6 +153,11 @@ Route::group(
             // that embeds it.
             Route::get('employee-photo/{employee}', [EmployeeAvatarController::class, 'internal'])
                 ->name('employees.avatar');
+
+            // The card a person's name shows under the pointer; the controller checks the Directory tier.
+            Route::get('people/{employee}/card', App\Http\Controllers\EmployeeCardController::class)
+                ->middleware('throttle:120,1')
+                ->name('employees.card');
 
             Route::prefix('checklist-items')
                 ->name('checklist-items.')

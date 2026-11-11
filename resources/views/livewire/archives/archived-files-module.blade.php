@@ -83,8 +83,13 @@
                     @endif
                 </a>
 
+                {{-- This folder on the viewer's dashboard (DashboardLayout::ITEMS, item.folder.<id>). --}}
+                <div class="absolute top-2 start-2">
+                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('folder', $folder->id)" :compact="true" :key="'atd-folder-'.$folder->id" />
+                </div>
+
                 @if (!$isShared && ($folder->user_id === auth()->id() || auth()->user()->isActiveAdministrator()))
-                <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 right-2">
+                <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 end-2">
                     <button type="button" @click="open = !open" aria-label="{{ __('general.actions') }}" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover">
                         <svg class="w-5 h-5 text-ink-2"
                              viewBox="0 0 16 16"
@@ -96,7 +101,7 @@
 
                     <div x-show="open"
                          x-transition
-                         class="absolute right-0 z-20 w-52 mt-2 overflow-hidden origin-top-right bg-card border border-line-soft rounded-surface shadow-e3"
+                         class="absolute end-0 z-20 w-52 mt-2 overflow-hidden ltr:origin-top-right rtl:origin-top-left bg-card border border-line-soft rounded-surface shadow-e3"
                          style="display: none;"
                          @click="open = false">
 
@@ -134,6 +139,10 @@
 
             @foreach ($files as $file)
             <div class="relative group">
+                {{-- This file on the viewer's dashboard (item.file.<id>). --}}
+                <div class="absolute top-2 start-2 z-10">
+                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('file', $file->id)" :compact="true" :key="'atd-file-'.$file->id" />
+                </div>
                 <button type="button" wire:click="previewFile({{ $file->id }})" class="flex flex-col items-center justify-center w-full h-40 p-4 text-center transition bg-card border border-line-soft rounded-surface shadow-e1 cursor-pointer hover:-translate-y-0.5 hover:border-line hover:shadow-e3">
                     @if (in_array(strtolower($file->extension ?? ''), ['jpg', 'jpeg', 'png'], true))
                     <img src="{{ route('folder-files.preview', ['media' => $file->id]) }}" alt="{{ $file->name }}" class="object-cover w-16 h-16 rounded-surface ring-1 ring-line-soft" />
@@ -146,14 +155,14 @@
                     <span class="mt-1 text-small text-ink-2">{{ strtoupper($file->extension) }} · {{ $file->size >= 1048576 ? number_format($file->size / 1048576, 1).' MB' : number_format($file->size / 1024, 1).' KB' }}</span>
                 </button>
 
-                <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 right-2">
+                <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 end-2">
                     <button type="button" @click="open = !open" aria-label="{{ __('general.actions') }}" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover">
                         <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 8a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                     </button>
 
                     <div x-show="open"
                          x-transition
-                         class="absolute right-0 z-20 w-52 mt-2 overflow-hidden origin-top-right bg-card border border-line-soft rounded-surface shadow-e3"
+                         class="absolute end-0 z-20 w-52 mt-2 overflow-hidden ltr:origin-top-right rtl:origin-top-left bg-card border border-line-soft rounded-surface shadow-e3"
                          style="display: none;"
                          @click="open = false">
 

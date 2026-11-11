@@ -75,10 +75,14 @@
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach($employees as $employee)
                     @php($position = $employee->contracts->first()?->position)
+                    <div class="relative" wire:key="dir-{{ $employee->id }}">
+                    {{-- This person's work contact on the viewer's dashboard (rec.contact.<id>). --}}
+                    <div class="absolute top-2 end-2 z-10">
+                        <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :compact="true" :key="'atd-contact-'.$employee->id" />
+                    </div>
                     <button type="button"
                             wire:click="$dispatch('open-profile', { employeeId: {{ $employee->id }} })"
-                            wire:key="dir-{{ $employee->id }}"
-                            class="group flex items-center gap-3 rounded-surface border border-line-soft bg-card p-3 text-start shadow-e1 transition hover:-translate-y-0.5 hover:border-line hover:shadow-e2">
+                            class="group flex h-full w-full items-center gap-3 rounded-surface border border-line-soft bg-card p-3 pe-12 text-start shadow-e1 transition hover:-translate-y-0.5 hover:border-line hover:shadow-e2">
                         <div class="relative shrink-0">
                             <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}" loading="lazy"
                                  class="size-14 rounded-full object-cover ring-2 ring-card outline outline-1 outline-line-soft group-hover:outline-line">
@@ -95,6 +99,7 @@
                             </div>
                         </div>
                     </button>
+                    </div>
                 @endforeach
             </div>
 

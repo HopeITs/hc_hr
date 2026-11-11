@@ -14,15 +14,18 @@
             :showButton="true"
         />
 
-        {{-- The page's own primary action (also the guided tour's anchor); the bottom nav's "+" reaches the same
-             dialog through ?new=1. Offered only to roles that may create; create() authorizes again on the server. --}}
-        @if(auth()->user()->hasActivePermission('leaves.create'))
-            <div class="shrink-0">
-                <x-primary-button wire:click="create" data-tour="leaves.request">
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="my-requests" />
+            {{-- The page's own primary action (also the guided tour's anchor); the bottom nav's "+" reaches the same
+                 dialog through ?new=1. Offered only to roles that may create; create() authorizes again on the server. --}}
+            @if(auth()->user()->hasActivePermission('leaves.create'))
+                {{-- An "add": a red "+" square that opens on hover to say "Request leave". --}}
+                <x-button icon="plus" wire:click="create" data-tour="leaves.request">
                     @lang('leaves.modal.new-title')
-                </x-primary-button>
-            </div>
-        @endif
+                </x-button>
+            @endif
+        </div>
     </div>
 
     <livewire:employee.leave.birthday-holiday-card />
@@ -42,9 +45,9 @@
                     class="{{ $availableLeave->isAnnual() ? 'col-span-1 sm:col-span-2' : 'col-span-1' }}"
                     :title="$availableLeave->leaveType->name"
                     :total="$availableLeave->deserved_formatted"
-                    :remaining="$availableLeave->remaining"
+                    :remaining="$availableLeave->available_formatted"
                     :total-days="$availableLeave->intTotal"
-                    :remaining-days="$availableLeave->intRemaining"
+                    :remaining-days="$availableLeave->int_available"
                     :is-annual="$availableLeave->isAnnual()"
                     :used="$availableLeave->used_formatted"
                     :pending="formatDuration($availableLeave->pending_days , $availableLeave->pending_hours)"
@@ -53,7 +56,8 @@
         </div>
     @else
         <div class="rounded-surface shadow-e2 mb-6 text-center font-semibold text-ink-2 p-4" role="status">
-            @lang('general.no-available-data')
+            {{-- Someone without a running contract has no balance yet: say why and who can help. --}}
+            {{ auth()->user()->profile?->latestActiveContract() ? __('general.no-available-data') : __('general.no-active-contract') }}
         </div>
 
     @endif

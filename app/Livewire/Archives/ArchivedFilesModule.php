@@ -30,11 +30,12 @@ class ArchivedFilesModule extends Component
 {
     use WithFeedback, WithFileUploads;
 
+    /** Also read by DashboardLayout: a file card is only for a type this page shows. */
+    public const ALLOWED_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx'];
+
     private const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
     private const MAX_IMAGE_PIXELS = 40_000_000;
-
-    private const ALLOWED_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx'];
 
     private const OFFICE_EXTENSIONS = ['docx', 'xlsx', 'pptx'];
 

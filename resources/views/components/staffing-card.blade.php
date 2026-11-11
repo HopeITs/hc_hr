@@ -161,15 +161,8 @@
          clips its own overflow. Nothing is rendered when there is nothing to start. --}}
     @if ($available->isNotEmpty())
         <button type="button" x-on:click="menu = ! menu" :aria-expanded="menu" data-no-pan
-                class="mt-3 flex min-h-9 w-full cursor-pointer items-center justify-between gap-1 rounded-control bg-primary px-2.5 text-caption font-bold text-on-brand transition-colors hover:bg-primary-hover {{ $focus }}">
-            <span class="flex min-w-0 items-center gap-1.5">
-                <x-ic name="plus" class="size-3.5 shrink-0" />
-                <span class="truncate">{{ __('recruitment.team_staffing.open_request') }}</span>
-            </span>
-            <svg class="size-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none" :class="menu ? 'rotate-180' : ''"
-                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
+                class="hc-btn hc-btn--add hc-btn--reveal hc-btn--sm mt-3">
+            <x-ic name="plus" /><span class="hc-reveal-label">{{ __('recruitment.team_staffing.open_request') }}</span>
         </button>
 
         <ul x-show="menu" x-cloak x-collapse data-no-pan

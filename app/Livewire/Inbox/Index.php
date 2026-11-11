@@ -16,6 +16,7 @@ use App\Services\LeaveRequestReview;
 use App\Services\ProfileChangeRequests;
 use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
+use App\Services\WorkPresence;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -300,12 +301,30 @@ class Index extends Component
 
         return view('livewire.inbox.index', [
             'rows' => $visible->values(),
+            'presence' => $this->presenceFor($visible),
             'counts' => $counts,
             // Fewer listed than counted: some source reached its cap.
             'capped' => $counts[$this->filter] > $shown ? ['shown' => $shown, 'total' => $counts[$this->filter]] : null,
             'failed' => $failed,
             'showCity' => auth()->user()->activeCityIds() === null || count(auth()->user()->activeCityIds() ?? []) > 1,
         ]);
+    }
+
+    /**
+     * The presence dot of each row's person, read once for the page. A
+     * nicety: a failure leaves the inbox standing, without dots.
+     *
+     * @return array<int, array{tone: string, label: string}>
+     */
+    private function presenceFor($rows): array
+    {
+        try {
+            return app(WorkPresence::class)->for(auth()->user(), $rows->pluck('subject.id'));
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     private function overlapFor(LeaveRequest $leave): ?array

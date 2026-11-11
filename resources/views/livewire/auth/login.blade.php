@@ -3,11 +3,14 @@
 </x-slot:title>
 
 <section class="flex min-h-[86.7dvh] items-center justify-center bg-surface px-4 py-10 rtl:text-right">
-    <div class="w-full max-w-[26rem]">
+    {{-- 20% wider than the other sign-in pages (the layout reads data-auth-wide); a phone still gets the full width. --}}
+    <div class="w-full" data-auth-wide>
 
-        <x-app-logo class="mx-auto mb-8 w-[200px]" />
+        {{-- 10px higher than its place above the card; the card itself does not move. --}}
+        <x-app-logo class="mx-auto mb-8 w-[200px] -translate-y-[10px]" />
 
-        <x-auth-card class="w-full border border-line-soft p-6 sm:p-9">
+        {{-- Corners 10px rounder than the 12px card radius (22px), on this card only. --}}
+        <x-auth-card class="w-full border border-line-soft p-6 sm:p-9 rounded-[22px]!">
 
             <header class="mb-7 text-center">
                 <h1 class="text-[1.75rem] leading-tight font-extrabold text-balance text-ink">{{ __('auth.sign-in') }}</h1>
@@ -62,6 +65,7 @@
                         type="checkbox"
                         id="remember"
                         wire:model="remember"
+                        class="hc-check--brand"
                         label-class="text-small font-medium text-ink-2"
                     >
                         {{ __('auth.remember-me') }}
@@ -78,7 +82,8 @@
                     @endif
                 </div>
 
-                <x-primary-button full class="justify-center">
+                {{-- Corners 5px rounder than the 8px button radius (13px), on this button only. --}}
+                <x-primary-button full class="justify-center rounded-[13px]!">
                     {{ __('auth.sign-in') }}
                 </x-primary-button>
 

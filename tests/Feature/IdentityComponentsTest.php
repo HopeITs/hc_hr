@@ -54,6 +54,47 @@ class IdentityComponentsTest extends TestCase
         $this->assertSame([], $offenders, 'Status and state are icon + words + fill shape: use <x-status> / <x-tag> and the identity tokens.');
     }
 
+    /**
+     * DESIGN.md "The one exception": the presence dot's green is declared once,
+     * in palette-lock.css (outside @theme, so no utility exists for it), and
+     * read once, by .presence-dot--online in components.css. Nowhere else.
+     */
+    public function test_the_presence_green_is_the_one_exception_and_lives_only_in_its_dot(): void
+    {
+        $declaration = '/--presence-online\s*:\s*#1F9D55\b/i';
+        $anyUse = '/#1F9D55\b|--presence-online|presence-online/i';
+        $offenders = [];
+
+        $finder = Finder::create()->files()->in([resource_path('css'), resource_path('js'), resource_path('views')])
+            ->name(['*.css', '*.js', '*.php', '*.vue', '*.ts']);
+
+        foreach ($finder as $file) {
+            $relative = str_replace('\\', '/', $file->getRelativePathname());
+            $contents = $file->getContents();
+
+            if ($relative === 'palette-lock.css') {
+                $code = preg_replace('#/\*.*?\*/#s', '', $contents);
+                $this->assertMatchesRegularExpression($declaration, $code);
+                $this->assertDoesNotMatchRegularExpression('/@theme[^}]*presence-online/s', $code, 'Inside @theme it would become a bg-/text- utility.');
+                $this->assertDoesNotMatchRegularExpression($anyUse, preg_replace($declaration, '', $code, 1), 'Declared once, used nowhere else in the lock itself.');
+
+                continue;
+            }
+
+            if ($relative === 'components.css') {
+                // Strip the one allowed rule, then nothing may be left.
+                $contents = preg_replace('/\.presence-dot--online\s*\{\s*background-color:\s*var\(--presence-online\);\s*\}/', '', $contents, -1, $allowed);
+                $this->assertSame(1, $allowed, '.presence-dot--online reads the green exactly once.');
+            }
+
+            if (preg_match_all($anyUse, $contents, $m)) {
+                $offenders[$relative] = array_values(array_unique($m[0]));
+            }
+        }
+
+        $this->assertSame([], $offenders, 'The presence green is for the presence dot only (<x-presence>).');
+    }
+
     public function test_every_status_enum_names_a_tone_an_icon_and_words(): void
     {
         foreach ($this->statusCases() as $enum => $cases) {

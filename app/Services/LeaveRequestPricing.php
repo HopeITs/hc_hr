@@ -622,11 +622,7 @@ class LeaveRequestPricing
      */
     private function availableHours(LeaveBalance $balance, bool $isAnnual): float
     {
-        $base = $isAnnual
-            ? (float) $balance->eligibleAnnualLeaveHours()
-            : (float) ($balance->deserved ?? 0);
-
-        return round($base - (float) ($balance->used ?? 0), 2);
+        return $balance->availableHours();
     }
 
     /**

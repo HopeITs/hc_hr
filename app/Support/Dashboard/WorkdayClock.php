@@ -24,6 +24,15 @@ class WorkdayClock
 {
     public const TIMEZONE = 'Asia/Damascus';
 
+    /** English day names as work_days_en writes them, to day-of-week numbers (0 = Sunday). */
+    private const DAY_NAMES = [
+        'sunday' => 0, 'monday' => 1, 'tuesday' => 2, 'wednesday' => 3,
+        'thursday' => 4, 'friday' => 5, 'saturday' => 6,
+    ];
+
+    /** @var array<string, ?object> holiday of the day per program|city|date, for a page of many people */
+    private array $holidays = [];
+
     public function __construct(private LeaveRequestPricing $pricing) {}
 
     /**
@@ -32,9 +41,15 @@ class WorkdayClock
      * working periods as [start, end] minutes of the day, and the name of the
      * official holiday it is, if any. Null when the schedule is unknown.
      *
+     * $readDayText also reads the day range from the contract's text
+     * ("From Monday Till Friday", work_days_en) when the numeric range is
+     * empty, as it is on every Excel-imported contract. The clock tile keeps
+     * it off (it says nothing rather than read prose); the presence dot
+     * (WorkPresence) turns it on.
+     *
      * @return array{date: string, off: bool, periods: list<array{0: int, 1: int}>, holiday: ?string}|null
      */
-    public function today(?Contract $contract, ?CarbonInterface $now = null): ?array
+    public function today(?Contract $contract, ?CarbonInterface $now = null, bool $readDayText = false): ?array
     {
         if (! $contract || (int) $contract->schedule_mode !== ScheduleMode::Fixed) {
             return null;
@@ -42,6 +57,11 @@ class WorkdayClock
 
         $from = $contract->work_day_from;
         $to = $contract->work_day_to;
+
+        if ($readDayText && $from === null && $to === null) {
+            [$from, $to] = self::dayRangeFromText($contract->work_days_en) ?? [null, null];
+        }
+
         $periods = $this->periods($contract);
 
         if ($from === null || $to === null || $from < 0 || $from > 6 || $to < 0 || $to > 6 || $periods === null) {
@@ -60,12 +80,15 @@ class WorkdayClock
         // never the birthday), read with their rows so the day can be named.
         $position = $contract->position;
         $cityId = $position?->center?->city_id ?? $position?->city_id;
-        $holiday = $this->pricing->holidaysOn(
-            $position?->program_id ? (int) $position->program_id : null,
-            $cityId !== null ? (int) $cityId : null,
-            $day,
-            $day,
-        )[$date][0] ?? null;
+        $programId = $position?->program_id ? (int) $position->program_id : null;
+        $cityId = $cityId !== null ? (int) $cityId : null;
+        $key = $programId.'|'.$cityId.'|'.$date;
+
+        if (! array_key_exists($key, $this->holidays)) {
+            $this->holidays[$key] = $this->pricing->holidaysOn($programId, $cityId, $day, $day)[$date][0] ?? null;
+        }
+
+        $holiday = $this->holidays[$key];
 
         return [
             'date' => $date,
@@ -162,6 +185,25 @@ class WorkdayClock
         $time = $line['left'] === null ? '' : intdiv($line['left'], 60).':'.str_pad((string) ($line['left'] % 60), 2, '0', STR_PAD_LEFT);
 
         return __('dashboard.clock.'.$line['key'], ['time' => $time]);
+    }
+
+    /**
+     * "From Monday Till Friday" → [1, 5]; "From Saturday Till Thursday" → [6, 4]
+     * (a range that wraps). Null for anything else, so an unknown phrasing is
+     * no schedule rather than a guess.
+     *
+     * @return array{0: int, 1: int}|null
+     */
+    public static function dayRangeFromText(?string $text): ?array
+    {
+        if (! is_string($text) || ! preg_match('/^\s*from\s+([a-z]+)\s+(?:till|to|until)\s+([a-z]+)\s*$/i', $text, $m)) {
+            return null;
+        }
+
+        $from = self::DAY_NAMES[strtolower($m[1])] ?? null;
+        $to = self::DAY_NAMES[strtolower($m[2])] ?? null;
+
+        return $from === null || $to === null ? null : [$from, $to];
     }
 
     /** @return list<array{0: int, 1: int}>|null */

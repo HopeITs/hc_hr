@@ -29,12 +29,12 @@ class ContractStatsCards
     public function program(int $programId, ?int $cityId): array
     {
         $positions = Position::where('program_id', $programId)
-            ->when($cityId, fn ($q) => $q->where('city_id', $cityId));
+            ->when($cityId, fn ($q) => $q->inCity($cityId));
 
         $contracts = Contract::where('is_active', true)
             ->whereHas('position', fn ($q) => $q
                 ->where('program_id', $programId)
-                ->when($cityId, fn ($q) => $q->where('city_id', $cityId)));
+                ->when($cityId, fn ($q) => $q->inCity($cityId)));
 
         return ['centers' => (clone $positions)->whereNotNull('center_id')->distinct('center_id')->count()]
             + $this->breakdown($contracts);
@@ -51,7 +51,7 @@ class ContractStatsCards
             ->whereHas('position', fn ($q) => $q
                 ->where('center_id', $centerId)
                 ->where('program_id', $programId)
-                ->when($cityId, fn ($q) => $q->where('city_id', $cityId)));
+                ->when($cityId, fn ($q) => $q->inCity($cityId)));
 
         return ['centers' => null] + $this->breakdown($contracts);
     }

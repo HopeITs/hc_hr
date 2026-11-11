@@ -36,7 +36,7 @@
                     <h3 class="text-body font-bold text-ink">{{ $title ?: __('general.annual-leave') }}</h3>
                     <ul class="mt-1 space-y-0.5 text-small leading-relaxed text-ink-2">
                         <li>@lang('general.used-leave', ['attr' => $used])</li>
-                        <li>@lang('general.remaining-leave', ['attr' => $remaining])</li>
+                        <li>@lang('general.available-leave', ['attr' => $remaining])</li>
                         <li>@lang('general.pending-leave', ['attr' => $pending])</li>
                         <li>@lang('general.total-leave', ['attr' => $total])</li>
                     </ul>

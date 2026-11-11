@@ -134,6 +134,39 @@ colour family in terms of the brand: red and rose 50–200 → neutral 50–200,
 `bg-green-600` or a runtime-built `bg-{$color}-100` can therefore only paint an identity colour.
 That is a safety net, not a design tool: choose colour deliberately from the tokens above.
 
+### The one exception: the presence green
+
+There is **exactly one colour outside the identity**: `--presence-online` (`#1F9D55`), the
+green of the presence dot, and it has exactly one job, "this person is at work right now".
+It is declared in `palette-lock.css`, outside `@theme`, so no utility (`bg-*`, `text-*`) exists
+for it; the only rule that reads it is `.presence-dot--online` in `components.css`.
+`IdentityComponentsTest` fails if the hex or the variable appears anywhere else. Not for
+success, not for "active", not for a chart: everywhere else the rule above still holds.
+
+## Presence dot
+
+`<x-presence :status="…">` beside a person, from `App\Services\WorkPresence` (by the
+contract's working hours, not by app use: the clock's "online now" is a different thing).
+The dot is told apart by **fill**, so it still reads in greyscale; the words are the hover
+title and the screen-reader name.
+
+| State | Dot | Words for a viewer who may see this person's absences on the team calendar | Words for everyone else |
+|---|---|---|---|
+| in working hours, no leave | filled green | Online | Online |
+| in working hours, on an accepted leave | hollow (ink-3 outline) | On leave | Offline |
+| outside working hours, weekend, official holiday | hollow | Outside working hours | Offline |
+| flexible schedule | filled silver (ink-3) | Variable working hours | Variable working hours |
+| flexible schedule, on an accepted leave | hollow | On leave | Offline |
+| no running contract, or hours that cannot be read | nothing | — | — |
+
+- Only an **accepted** leave counts; an hourly leave makes the person offline during its hours only.
+- The lunch break between the two periods of a split day stays **online**.
+- Working days come from `work_day_from/to`, else from the contract's text
+  ("From Monday Till Friday"); hours from `work_hours_from/to` (+ the second period).
+- Where: the team tile on the dashboard, the employee profile, the employee list, global search
+  and the work inbox. A list asks `WorkPresence::for()` once for all its people (three queries).
+- `--on-avatar` pins it to a photo's corner with a ring of the card colour; `size="lg"` on the profile.
+
 ## Dark mode
 
 Follows `prefers-color-scheme` unless `<html data-theme="light|dark">` overrides it. The header
@@ -257,10 +290,8 @@ sheet at `/en/_ui` and `/ar/_ui` (local and testing only).
 
 The dashboard is a home screen of tiles the person arranges, per active role
 (`App\Support\Dashboard\DashboardLayout`; browser side `resources/js/dashboard/home-screen.js`,
-its own Vite entry, no drag library; styles `resources/css/dashboard.css`). Like hc-tracking's
-Desk, a tile is handled **directly, at rest**: carry it to move it, pull an edge to resize it,
-× to hide it (with Undo). Customise is only for what has no direct handle: the guide cells,
-Add, pin, look, Reset and the keyboard.
+its own Vite entry, with SortableJS 1.15.7 fetched on the first Customise; styles
+`resources/css/dashboard.css`).
 
 - **Grid**: 12 columns once the grid is 1200px wide (a ~1600px screen with the sidebar open),
   8 on a computer, 4 below 760px (phones, square cells). Row height
@@ -303,6 +334,119 @@ Add, pin, look, Reset and the keyboard.
     text), or `dashboard.home.nothing` when there is none or it runs past 80 characters. Put the marker only
     on a real "nothing here" state, never on loading or a load error. The grid re-reads it on every
     change (lazy load, polling, retry), so a card that fills up unfolds by itself.
+- **A card as a window** (at rest, pointer screens; on touch everything stays in Customise):
+  - *Pin* (2026-11-04), the first window control, and the pin in Customise: the card keeps the
+    size and the cell it is shown at (`fixed` + `at: [column, row]`, kept by `clean()` only on a
+    pinned, shown tile). `pack()` puts pinned cards at their cells first and flows the others
+    around them; one that does not fit a narrower grid flows like the rest. A pinned card has no
+    resize corner, is not dragged or moved by the keyboard, and never folds; at rest its pin alone
+    stays visible on the top edge (ink fill, never red). Unpinned, it takes the turn of the place
+    it is shown at, so nothing moves; hiding it or "Reset the layout" unpins it. Pins stay first
+    in the stored list, so a layout pinned before cells existed keeps its pins at the top.
+  - *Window controls* (`.hc-wctl`) on the card's top edge, shown on hover or focus: **minimise**
+    hides it and keeps it in the **Minimised** strip (`min: true` on a hidden item;
+    one click brings it back in place, not at the end like Add); **maximise** opens the card large
+    in the panel (`.is-max`), Escape or × closes it and focus returns to the button.
+  - *The strip* (`.hc-dock`, 2026-11-05) sits under the groups, above the grid. It holds the
+    minimised cards and every card (not a shortcut, not pinned) made 1×1, each as its own icon
+    and name. A 1×1 card at rest takes no room in the grid (`parked()`: kept on the page, so
+    its panel still opens) and follows the group filter; customising shows it in the grid again
+    to be made bigger. One click brings a 1×1 card back in its place at its card size
+    (`bounds.card`, saved `fixed`); the eye beside it opens it in the side panel without moving
+    it, and closing the panel returns focus to the eye. An empty card brought back folds as usual.
+  - *Resize* without Customise: a thin silver curve following the card's rounded corner (`ink-3`, no fill, no shadow) just
+    inside each of the four corners, shown only as the pointer comes near that corner (its catch
+    area reaches outward into the gap, never further into the card, so it is not over a button).
+    Dragging away from the corner grows the card, towards it shrinks it; cell by cell with the
+    "2×3" label, saved as `fixed`. While dragging, a light ink frame follows the pointer pixel by
+    pixel and the card glides onto each new size (its body's edges move, 300 ms with a soft
+    overshoot; nothing is scaled), the cards around it slide aside, and on release the frame melts
+    onto the final size; `prefers-reduced-motion` keeps only the frame. The bottom inline-end one is the keyboard control (focus shows
+    it); the window controls sit clear of the top inline-end corner. Customise keeps the one
+    dark 44px grip.
+  - A method called from inside an `x-for` that the call itself removes (the strip) must use the
+    page's own `$wire` (`rootWire`): `$wire` finds its component lazily from the element it ran on.
+- **The groups filter the grid** (People, Leaves, Structure… from `HubGroups`): one click shows
+  only that group's cards (`DashboardLayout::groupTiles`: its widgets the person may have, the
+  shortcuts to its pages, and the alerts, which are in every group) and opens a strip under the
+  groups with its figures and pages, pushing the grid down rather than covering it. The same
+  group again, or "Show all cards", shows everything; a group with no card here says so under
+  the grid. Only the view changes (`group` in home-screen.js): nothing is saved, and Customise
+  clears the filter first, so sizes are never baked from a filtered grid.
+- **Add to dashboard** (`Dashboard\AddToDashboard`, 2026-11-03): a button on a page heading
+  (My leaves → `my-requests`, the work inbox → `decide`, Employees → `employees`, Contracts →
+  `soon-ending-contracts`) or a small icon button on a profile section (career history →
+  `rec.contracts.<id>`, work contact → `rec.contact.<id>`). It puts that page's live card first
+  after the pinned ones at its usual size, and pressed again takes it off; pressed = ink fill,
+  never red; the toast has Undo. It is not drawn for a card `allowed()` refuses, and `toggle()`
+  answers 403 for one. Only the caller's own row for the active role is written.
+  - *Record cards* (`DashboardLayout::RECORDS`): one person's section as a card, key
+    `rec.<type>.<employee id>`, mounted with `employeeId`. Never in Add or a default layout; kept
+    by `clean()` only while the section's own `EmployeePolicy` ability (`viewRecords`,
+    `viewDirectory`, `viewPrivate`, `viewProfileBadges`) still allows it, and the component asks
+    again on every render (a refused one says so and shows nothing). They go with People when the
+    groups filter the grid.
+  - *Every card* (2026-11-04): all twelve profile sections have the icon button (contracts and
+    contact keep their own cards; the other ten are one generic `EmployeeSectionCard`, mounted with
+    `section`, which reads only what the profile would show that viewer: pay only for HR in the
+    person's city with salary visibility, private sections through `viewPrivate`). The seven
+    statistics cards carry it in their top inline-end corner (the personnel chart is the widget
+    `stats-personnel`). Page headings: news → `news`, team calendar → `calendar`, my items →
+    `checklist`, badges → `badges`, holidays → `next-holiday`, pending delivers →
+    `pending-requests`, all leaves → `upcoming-leaves`.
+  - *Contract statistics cards*: each program or center card of that page, key
+    `cstat.<program>.<center>.<city>` (0 = none; `DashboardLayout::contractStatKey`), drawn by
+    `ContractStatsCard` with the page's own body (`partials/contract-stat-body`) and figures
+    (`App\Services\Statistics\ContractStatsCards`). Allowed with `statistics.view` for a city the
+    active role may read: a regional HR role only for one of its own cities, never "every city";
+    a center card only inside its city. Like record cards, never in Add; they go with Reports.
+  - *Item cards* (`DashboardLayout::ITEMS`, key `item.<type>.<id>`, drawn by `ItemCard`): a folder
+    (its folders the viewer may open and its files of the types the folders page shows) and a
+    file, from My folders / Shared folders (`archives.view` and the folder shared with the viewer,
+    or an administrator); a program and a centre, from the programs page, a program's page and
+    a centre's page (`canOpenReferencePage`). People cards on the directory and on a program's
+    page add the person's work contact card (`rec.contact.<id>`). The compact button sits in the
+    card's top start corner, beside a card that is itself a link or a button, never inside it.
+    Also an interview (the board's card and the interview page: `RecruitmentInterview::visibleTo`
+    and its policy's `view`; the tile shows what the board's card shows and never the meeting
+    link) and a feedback message (`feedback.read`). The org chart's person cards are many and are
+    exported as an image, so they carry no button: the profile drawer they open offers the
+    person's work contact card instead.
+  - Chart.js tiles: the grid resizes every chart in a tile when its canvas or box changes
+    (`fitCharts()` in home-screen.js); Chart.js's own watcher misses a canvas that arrived lazily.
+- **Out of the browser** (the third window control, `Dashboard\Window`): a card on a page of its
+  own, `dashboard/window/{key}`, with a layout that has no sidebar or bars; the card fills it and
+  is the `tile` size container. Same rule as the grid (`allowed()`, then the component's own
+  checks); a shortcut, an unknown key or a card the person may not have is a 404. Two ways:
+  *Float on top* (Document Picture-in-Picture, Chrome and Edge on a computer: one at a time, above
+  every program, the person drags it to a corner and the browser keeps it there; it closes with
+  the tab that opened it) shows that page in a frame, so it is the one page sent with
+  `X-Frame-Options: SAMEORIGIN` and `frame-ancestors 'self'`, every other page stays `DENY` /
+  `'none'`; *New window* (any browser, as many as wanted) opens it as a pop-up at the card's own
+  size, or as a tab when pop-ups are blocked. Where floating is not available the button opens a
+  window at once. The window asks every card again every minute while it is in view; a 401/419
+  covers it with "signed out" and a link to sign in, never old figures.
+- **Reset to default** beside the groups: a menu of two. *The layout only* puts every card back to
+  its default size and place (sizes and places come in `data-home.defaults`), keeps what is shown,
+  hidden or added, and offers Undo in the toast instead of asking; *everything* is the old Reset,
+  after a confirmation. Every server call of the home screen goes through `rootWire`, since a
+  save can start outside the page (the toast's Undo).
+- **The viewer's own record** (three cards, only for someone with an employee record):
+  - *Needs your attention* (`AttentionCard`, shown by default for staff and managers, right under
+    the alerts): the viewer's current contract ending within 30 days with no later contract, and
+    their own leave still pending after its first day. A red mark per line (it waits on them), one
+    link each; nothing: it folds (`data-tile-empty`).
+  - *Request leave* (`RequestLeaveCard`, in Add; the form's own rule, `leaves.create` +
+    `leaves.view-own`): the open types with the days left, From / To, then **Continue** opens the
+    one leave form with them filled in (`leaves.index?new=1&balance=&date=&to=`). It sends nothing:
+    reason, cover, cost and every check stay in that form, which ignores a last day before the
+    first and a balance that is not the viewer's own open one.
+  - *Me* (`MeCard`, in Add): name, photo (when the avatar ability allows), position · centre,
+    contract type and dates, department, direct manager, work phone, and the profile link. Never
+    pay, ID numbers or personal contact details; a missing value reads "Not set" in `ink-3`.
+- **A card's icon** (made small, a folded line, a shortcut): one look whatever the icon file
+  sets: silver `ink-3` (the sidebar's calendar), and line icons at the calendar's weight, 1.8 on
+  the 24 grid; filled icons already carry that weight.
 - **Lazy loading**: every widget is mounted `lazy`, and a lazy card loads only once it is shown.
   A hidden tile is not rendered at all; an icon's body is `display: none`, so its card loads only
   when its panel opens; a folded tile's body is `display: none` after the one load that found it
@@ -320,28 +464,14 @@ Add, pin, look, Reset and the keyboard.
   waits on the viewer or is late (shortcut counters, the late strip, a decision waiting over a day).
   Pins, grips, size labels, guide cells, icons and folded lines are ink and neutrals, never red,
   and red is never tinted pale.
-- **Moving** (at rest or customising): with a mouse a tile is picked up once the pointer travels
-  6px with the button down (`cursor: grab`, except over its links, buttons and fields); on touch
-  after a 400ms hold. The carried tile gets `.carried` (lifted, above the rest, no transition),
-  the grid `.moving` (handles and tile buttons hidden), `<html>` `.hc-moving-doc` (grabbing
-  cursor, no text selection). The other tiles glide aside; a pinned tile stays put.
-- **Resizing** (computer, ≥ 761px): `.hc-rz` handles on the four edges and the inline-end bottom
-  corner (`data-resize="end|start|top|bottom|corner"`), cell by cell, with a centred "2×3" ink
-  pill (`.hc-sizebadge`). Invisible at rest until the tile is hovered with a fine pointer, always
-  out while customising; ink-3, ink on hover, never red. Not on a phone, nor on an icon or a
-  folded tile at rest. `<html>` `.hc-resizing-doc[data-resize-edge]` holds the cursor.
-- **Hiding**: × outside the top start corner, shown on hover / focus at rest on a computer and
-  always while customising (never on a phone at rest, never mid-move). A hidden tile can come
-  back for 6 seconds from the **Undo** toast (`.hc-undo`: an ink pill at the bottom centre, above
-  the phone's bottom bar), later from Add.
-- **Customising**: "Customise" shows the faint guide cells (`soft` fill, dashed `line`) and a
-  dashed ink edge (30%) on each tile; Add brings a tile back, the pin keeps a tile first
-  (pressed = ink fill, not red), the look button switches a look, Reset (with a confirmation)
-  returns to the role's default. Keyboard: focus a tile and use the arrow keys (they follow the
-  reading direction; Home / End); the grip in the inline-end corner resizes with the arrow keys.
-  Every control is 44px to the finger and labelled. `prefers-reduced-motion` turns off the
-  glides. `?customise=1` opens the page in this mode (the command palette's "Customise
-  dashboard").
+- **Customising**: "Customise" or a long press; tiles wiggle once and faint cells (`soft` fill,
+  dashed `line`) appear. Drag to move, or focus a tile and use the arrow keys (they follow the
+  reading direction; Home / End). The dark grip sits in the inline-end corner: dragging towards
+  the inline end or down grows the tile, cell by cell, with a "2×3" label; arrow keys on the grip
+  do the same. × hides, the pin keeps a card's size and place (see *Pin* above; pressed = ink fill, not red), Add brings a
+  tile back, Reset (with a confirmation) returns to the role's default. Every control is 44px to
+  the finger and labelled. `prefers-reduced-motion` turns off the wiggle and the glides.
+  `?customise=1` opens the page in this mode (the command palette's "Customise dashboard").
 - **Loading**: each widget is its own Livewire component, mounted lazily inside its tile with
   the card placeholder (see Lazy loading above). A card
   shows its own load failure (`<x-ui.load-error>`) inside the tile; a tile whose lazy load fails
@@ -353,7 +483,9 @@ Add, pin, look, Reset and the keyboard.
 1. `DashboardLayout::WIDGETS`: `key => [icon, min [c, r], max [c, r], default [c, r] on the
    8-column grid, shown by default]`; its name in `resources/lang/{en,ar}/dashboard.php`
    (`tiles.<key>`); its permission and scope rule in `DashboardLayout::allowed()` if it is not
-   for everyone.
+   for everyone. A card about one record instead takes a `DashboardLayout::RECORDS` line (icon,
+   sizes, component, the policy ability) and `tiles.rec-<type>` with `:name`, skips step 2, and
+   its component takes `#[Locked] int $employeeId` and checks that ability itself.
 2. `DashboardLayout::COMPONENTS`: `key => YourCard::class` (the one registration point; a key
    without a line is kept in layouts but never drawn nor offered).
 3. The component: `use IsDashboardTile` (its placeholder) and `HandlesLoadFailure` with
@@ -367,6 +499,36 @@ Add, pin, look, Reset and the keyboard.
    `livewire_exempt`.
 
 A card may read the home screen's Alpine state: `editing`, and `styleOf('<key>')` for its look.
+
+**The glance tile** (`Dashboard\GlanceCard`, `glance`): first on everyone's dashboard, one size
+only (4×2: no grip, `DashboardLayout::SIZED`). Four card tiles on the soft
+field: the weather now in the viewer's work city (`App\Services\Dashboard\WeatherFeed`:
+Open-Meteo, and MET Norway when it does not answer, named in the User-Agent its terms ask
+for; asked by the server only, with the city's coordinates only, cached 30 minutes per city;
+both failing is one quiet line; the source that answered is credited as the weather tile's
+hover hint, which both ask for under CC BY 4.0, not as a line on the card), an analogue clock, the date and the twelve-hour time. The
+time is the clock tile's own Damascus time (`hcClock`, `clock.js`, which also gives `mon()`,
+`dom()`, `t12()`, `period()`). Ink line icons, never a hue; red only for the second hand (now)
+and the month over today's date. Wide: the weather two rows high on the start side; under 520px
+it goes across the top; one row high it is the weather and the time only. The temperature reads
+left to right in both languages and fills the room between the condition and the city
+(47% of the weather tile's inner height, Medium, 10px below its place, its own size container `wx-tile`, so every layout keeps it in proportion). Behind the weather's words, a quiet scene (`.hc-wx--<kind>`,
+settled on 2026-11-03 and held by `GlanceCardTest`), in ink blended into the card, never a hue
+and never see-through:
+  - *Sun* (clear by day, partly cloudy): its centre on the tile's top right corner (right in both
+    languages), turning slowly.
+  - *Cloud*: one only, wherever there are clouds, high on the right and whole inside the tile all
+    through its drift; filled with the card, so the sun is hidden behind it. 20px lower when
+    partly cloudy and in a storm.
+  - *Night*: five four-pointed stars twinkling in turn; no moon.
+  - *Fog*: three bands under the cloud, never across it. *Rain*: twelve streaks (drizzle eight,
+    shorter). *Snow*: twelve flakes. *Storm*: rain and a quick double flash.
+  - *One line width* for every line, `--wx-line` (2px): the sun and the cloud are non-scaling
+    strokes, the fog bands and rain streaks that wide; stars and flakes are filled shapes.
+  - Only transform and opacity move; `prefers-reduced-motion` stills it to a few marks in place.
+
+ A local PHP without a certificate bundle (`curl.cainfo`) cannot
+reach the weather service: the card then says the weather is unavailable.
 
 **The calendar tile** (`Dashboard\CalendarCard`, data from `App\Services\Dashboard\CalendarFeed`,
 styles `.hc-cal-*` / `.hc-mark*` in `dashboard.css`):

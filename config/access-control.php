@@ -1089,6 +1089,32 @@ return [
         'dashboard.birthdays-card' => ['retryLoad', 'placeholder'],
         // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.
         'dashboard.clock-card' => ['retryLoad', 'placeholder'],
+        // The glance card reads only the caller's own work city (for the weather, WeatherFeed) and the time.
+        'dashboard.glance-card' => ['retryLoad', 'placeholder'],
+        // The viewer's own record only: their current contract and own leave requests
+        // (attention), their own balances (request leave: a GET form to the leave page,
+        // which writes nothing), their own employee row (me).
+        'dashboard.attention-card' => ['retryLoad', 'placeholder'],
+        'dashboard.request-leave-card' => ['retryLoad', 'placeholder'],
+        'dashboard.me-card' => ['retryLoad', 'placeholder'],
+        // Live versions of pages (Add to dashboard), read-only: my-requests reads the caller's
+        // own requests, employees the employees page's own rows (employees.view, inActiveCities),
+        // and the two record cards ask EmployeePolicy (viewRecords / viewDirectory) on every render.
+        'dashboard.my-requests-card' => ['retryLoad', 'placeholder'],
+        'dashboard.employees-card' => ['retryLoad', 'placeholder'],
+        'dashboard.employee-contracts-card' => ['retryLoad', 'placeholder'],
+        'dashboard.employee-contact-card' => ['retryLoad', 'placeholder'],
+        // Every profile section card asks its section's EmployeePolicy ability on each render.
+        'dashboard.employee-section-card' => ['retryLoad', 'placeholder'],
+        // Reads the statistics.view, city-scoped /employee-statistics endpoint from the browser.
+        'dashboard.employee-chart-statistics' => ['placeholder'],
+        // One contract statistics card; render() asks DashboardLayout::allowed (statistics.view + the role's cities).
+        'dashboard.contract-stats-card' => ['retryLoad', 'placeholder'],
+        // One item of a page's card grid (folder, file, program, centre); render() asks DashboardLayout::allowed.
+        'dashboard.item-card' => ['retryLoad', 'placeholder'],
+        // toggle is self-scoped like saveLayout: only the caller's own row for the active role,
+        // and only a card DashboardLayout::allowed() gives them (403 otherwise).
+        'dashboard.add-to-dashboard' => ['toggle'],
         // The late band and decision cards read the caller's own WorkInbox::shared
         // snapshot and Contract::visibleTo().
         'dashboard.late-card' => ['retryLoad', 'placeholder'],

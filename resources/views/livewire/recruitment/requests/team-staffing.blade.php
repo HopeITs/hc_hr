@@ -84,5 +84,4 @@
         </section>
     @endif
 
-    <livewire:position.profile-drawer />
 </div>

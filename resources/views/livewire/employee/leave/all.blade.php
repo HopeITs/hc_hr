@@ -14,14 +14,16 @@ use App\Enums\LeaveRequestStatus;
             :crumbs="[]"
             :showButton="true"
         />
-        {{-- HR's "request on someone's behalf": not the bottom nav's own-request "+", so it stays on phones too. --}}
-        @activerole('HR','super-admin')
-        <div class="shrink-0">
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="upcoming-leaves" />
+            {{-- HR's "request on someone's behalf": not the bottom nav's own-request "+", so it stays on phones too. --}}
+            @activerole('HR','super-admin')
             <x-primary-button wire:click="create">
                 @lang('general.add-new')
             </x-primary-button>
+            @endactiverole
         </div>
-        @endactiverole
     </div>
 
     <x-tabs-list>

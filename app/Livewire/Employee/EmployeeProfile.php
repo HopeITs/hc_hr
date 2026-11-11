@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\EmployeeTimeline;
 use App\Services\ProfileChangeRequests;
 use App\Services\TaskTelemetry;
+use App\Services\WorkPresence;
 use App\Support\DirectoryAccess;
 use App\Support\NavigationMemory;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -361,6 +362,7 @@ class EmployeeProfile extends Component
             'currentContract' => $currentContract,
             'currentPosition' => $currentPosition,
             'isOnLeave' => $employee->is_active && $employee->isOnLeaveToday(),
+            'presence' => app(WorkPresence::class)->forOne(Auth::user(), $employee),
             'directManager' => $currentPosition?->directManager?->activeContracts?->first()?->employee,
             // Length of service is read off the career history (R).
             'yearsOfService' => $this->canViewRecords ? $employee->years_of_service_formatted : null,
@@ -498,7 +500,9 @@ class EmployeeProfile extends Component
         $isManagement = $user->activeRoleIs('general-manager');
         $isHrInScope = $isHr && $user->canAccessCity($this->employee->city_id);
 
-        $this->canViewPrivate = $this->isSelf || $isHrInScope;
+        // EmployeePolicy::viewPrivate: self, or HR (super-admin counted) in scope; the
+        // dashboard's private section cards ask the same ability.
+        $this->canViewPrivate = $gate->allows('viewPrivate', $this->employee);
 
         // Narrower than $isHrInScope on purpose: $isHr above counts
         // super-admin as HR so a developer can open any profile, and pay is

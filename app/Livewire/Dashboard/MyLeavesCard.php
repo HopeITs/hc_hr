@@ -31,9 +31,9 @@ class MyLeavesCard extends Component
         $leave = $user->profile->availableLeaves()->first();
         $this->title = $leave->leaveType->name;
         $this->total = $leave->deserved_formatted;
-        $this->remaining = $leave->remaining;
+        $this->remaining = $leave->available_formatted;
         $this->totalDays = $leave->int_total;
-        $this->remainingDays = $leave->int_remaining;
+        $this->remainingDays = $leave->int_available;
         $this->used = $leave->used_formatted;
         $this->pending = formatDuration($leave->pending_days, $leave->pending_hours);
         $this->percentage = round($leave->used / $leave->deserved * 100);

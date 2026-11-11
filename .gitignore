@@ -32,3 +32,6 @@ chrome-headless-shell
 
 # B4 browser screenshots (local evidence only)
 /docs/ux/evidence/
+
+# Local-only test accounts list (LocalTestAccountsSeeder)
+LOCAL-TEST-ACCOUNTS.md

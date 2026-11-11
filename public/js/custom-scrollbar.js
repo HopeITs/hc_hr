@@ -97,7 +97,17 @@
     if (h) { var hz = stackLevel(h); if (z < hz) z = Math.max(z, hz - 1); }
     return z;
   }
-  var attached = new WeakSet(), seen = new WeakSet(), instances = [];
+  var attached = new WeakSet(), seen = new WeakSet(), instances = [], boxes = [];
+
+  /* Is `node` or a parent at opacity 0 — a panel in the first frame of its
+     fade-in? Only 0 counts: a permanently dimmed parent (opacity-70 while a
+     list reloads) must keep its bar. */
+  function fullyTransparent(node) {
+    for (var n = node; n && n !== document.body; n = n.parentElement) {
+      if (parseFloat(getComputedStyle(n).opacity) < 0.05) return true;
+    }
+    return false;
+  }
 
   /* ---------- Inject CSS (colours via CSS vars so the host can re-theme in plain CSS) ---------- */
   function injectCSS() {
@@ -115,6 +125,8 @@
       ".has-csb-x::-webkit-scrollbar-thumb:hover{background:var(--csb-hover," + C.hoverColor + ");}" +
       ".csb{position:fixed;width:" + TRACKW + "px;pointer-events:none;opacity:0;transition:opacity .18s;}" +
       ".csb.on{opacity:1;}" +
+      // Held while its container (or a parent) animates: gone at once, no fade.
+      ".csb.csb-hold,.csb.on.csb-hold{opacity:0;transition:none;}" +
       ".csb-track{position:absolute;inset:0;border:" + C.trackBorder + "px solid var(--csb-color," + C.color + ");border-radius:" + C.trackRadius + "px;box-sizing:border-box;pointer-events:auto;}" +
       ".csb-thumb{position:absolute;left:50%;transform:translateX(-50%);width:" + C.thumbWidth + "px;background:var(--csb-color," + C.color + ");border-radius:" + C.thumbRadius + "px;pointer-events:auto;}" +
       ".csb-thumb:hover,.csb-thumb.csb-drag{background:var(--csb-hover," + C.hoverColor + ");}";
@@ -139,9 +151,14 @@
     var thumb = document.createElement("div"); thumb.className = "csb-thumb";
     wrap.appendChild(track); wrap.appendChild(thumb); document.body.appendChild(wrap);
     el.classList.add("has-csb");
+    var box = { el: el, wrap: wrap, running: 0, timer: null };
+    boxes.push(box);
 
     function update() {
       if (!document.body.contains(el)) { wrap.classList.remove("on"); return; }
+      // A panel about to fade in (Alpine's enter-start, opacity 0) is not on
+      // screen yet: its bar waits for the transition (see holdFor).
+      if (fullyTransparent(el)) { wrap.classList.remove("on"); return; }
       // Content wider than the box (a wide table) keeps its native sideways bar.
       // Computed overflow-x can't tell: overflow-y:auto forces it to auto too.
       el.classList.toggle("has-csb-x", el.scrollWidth > el.clientWidth + 1);
@@ -149,9 +166,19 @@
       if (r.width === 0 || r.height === 0 || sh <= ch + 1) { wrap.classList.remove("on"); return; }
       var rtl = getComputedStyle(el).direction === "rtl";
       var left = rtl ? (r.left + OFFSET) : (r.right - OFFSET - TRACKW);
-      var trackH = Math.max(0, ch - PAD - PADB);   // empty PAD at top, PADB at bottom
+      // Per container: data-csb-pad="6" sets the gap at both ends; a sticky
+      // header inside marked data-csb-header pushes the track's start below
+      // it, so the bar runs only along what actually scrolls.
+      var pad = el.dataset.csbPad != null ? (parseFloat(el.dataset.csbPad) || 0) : null;
+      var padTop = pad != null ? pad : PAD, padBottom = pad != null ? pad : PADB;
+      var head = el.querySelector("[data-csb-header]");
+      if (head) {
+        var hb = head.getBoundingClientRect().bottom - (r.top + el.clientTop);
+        if (hb > 0) padTop += Math.min(hb, ch);
+      }
+      var trackH = Math.max(0, ch - padTop - padBottom);
       var innerH = Math.max(0, trackH - 2 * TPAD); // thumb travel band inside the track
-      var overlayTop = r.top + el.clientTop + PAD;
+      var overlayTop = r.top + el.clientTop + padTop;
       wrap.style.zIndex = overlayZ(el);
       wrap.style.left = left + "px";
       wrap.style.top = overlayTop + "px";
@@ -219,6 +246,43 @@
 
   window.addEventListener("resize", schedule, { passive: true });
   window.addEventListener("scroll", schedule, { passive: true, capture: true });
+
+  /* The bar is a fixed overlay on <body>, not a child of its container, so it
+     does not move, scale or fade with it. A dropdown that scales in and fades
+     out (the notification panel) would otherwise show its bar where it was
+     measured mid-animation — ~8px inside the edge, over the content — and,
+     on close, keep it on screen after the panel itself has gone.
+     So while the container or one of its parents runs a transition that moves
+     or fades it, its bar is held (hidden at once); when the last one ends it
+     is measured again and shown where the box really is. A transform changes
+     neither size nor scroll, so neither observer would catch that otherwise.
+     Colour and shadow transitions are ignored: they never move a box. */
+  var MOVES = { opacity: 1, transform: 1, translate: 1, scale: 1, rotate: 1 };
+
+  function holdFor(e, delta) {
+    var target = e.target;
+    if (!MOVES[e.propertyName] || !target || !target.contains) return false;
+    var hit = false;
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (!target.contains(b.el)) continue;   // the container itself, or one of its parents
+      hit = true;
+      b.running = Math.max(0, b.running + delta);
+      b.wrap.classList.toggle("csb-hold", b.running > 0);
+      clearTimeout(b.timer);
+      // A missed end event must never leave a bar hidden for good.
+      if (b.running > 0) b.timer = setTimeout(release.bind(null, b), 1500);
+    }
+    return hit;
+  }
+
+  function release(b) { b.running = 0; b.wrap.classList.remove("csb-hold"); schedule(); }
+
+  document.addEventListener("transitionrun", function (e) { holdFor(e, +1); }, true);
+  document.addEventListener("transitionend", function (e) { if (holdFor(e, -1)) schedule(); }, true);
+  document.addEventListener("transitioncancel", function (e) { if (holdFor(e, -1)) schedule(); }, true);
+  // Keyframe animations (a modal's entrance) settle the same way.
+  document.addEventListener("animationend", schedule, true);
 
   function boot() {
     injectCSS();

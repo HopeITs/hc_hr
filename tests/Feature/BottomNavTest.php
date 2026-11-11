@@ -39,16 +39,14 @@ class BottomNavTest extends TestCase
 
     private const LEAVES = 'app.nav.my-space.leaves';
 
-    private const INBOX = 'app.nav.inbox';
-
     private const CALENDAR = 'app.nav.my-space.team-calendar';
 
     public function test_each_role_gets_the_destinations_its_permissions_open(): void
     {
-        $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($this->userWithRole('employee')));
-        // Four places: with the inbox, My profile stays in the avatar menu.
-        $this->assertSame(['home', self::LEAVES, self::INBOX, self::CALENDAR], $this->keys($this->userWithRole('manager')));
-        $this->assertSame(['home', self::LEAVES, self::INBOX, self::CALENDAR], $this->keys($this->userWithRole('HR-ALP')));
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR], $this->keys($this->userWithRole('employee')));
+        // What waits on the viewer is on Home now, so no role has an inbox place.
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR], $this->keys($this->userWithRole('manager')));
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR], $this->keys($this->userWithRole('HR-ALP')));
 
         // No leave permission, no employee record: only Home.
         $bare = User::query()->create(['email' => 'bare@example.test', 'password' => 'password']);
@@ -181,32 +179,32 @@ class BottomNavTest extends TestCase
     {
         $manager = $this->userWithRole('manager');
 
-        $component = Livewire::actingAs($manager)->test(BottomNav::class)->set('currentRoute', 'inbox');
+        $component = Livewire::actingAs($manager)->test(BottomNav::class)->set('currentRoute', 'dashboard');
         $items = collect($component->viewData('items'))->keyBy('key');
 
-        $this->assertSame(app(WorkInbox::class)->count($manager), $items[self::INBOX]['count']);
-        $component->assertSeeHtml('data-testid="bottom-nav-'.self::INBOX.'"')
+        $this->assertSame(app(WorkInbox::class)->count($manager), $items['home']['count']);
+        $component->assertSeeHtml('data-testid="bottom-nav-home"')
             ->assertSeeHtml('aria-current="page"');
     }
 
     public function test_a_chosen_bar_is_shown_in_its_order_and_every_place_opens(): void
     {
         $hr = $this->userWithRole('HR-ALP');
-        $chosen = ['app.nav.hr.employees', 'app.new.leave', 'profile', 'home'];
+        $chosen = ['app.nav.hr.employees', 'app.new.leave', 'home'];
 
         $this->assertTrue(NavigationMemory::setBottomBar($hr, $chosen, BottomBar::options($hr), BottomBar::SLOTS));
         $this->assertSame($chosen, $this->keys($hr));
 
         $component = Livewire::actingAs($hr)->test(BottomNav::class);
         preg_match_all('/href="([^"]+)" wire:navigate data-testid="bottom-nav-/', $component->html(), $links);
-        $this->assertCount(4, $links[1]);
+        $this->assertCount(3, $links[1]);
         foreach ($links[1] as $href) {
             $this->assertNotContains($this->actingAs($hr)->get(html_entity_decode($href))->getStatusCode(), [403, 404, 500], $href);
         }
 
-        // No inbox on the bar: nothing is counted.
+        // Only Home carries the count of what waits on the viewer.
         foreach ($component->viewData('items') as $place) {
-            $this->assertArrayNotHasKey('count', $place);
+            $place['key'] === 'home' ? $this->assertArrayHasKey('count', $place) : $this->assertArrayNotHasKey('count', $place);
         }
     }
 
@@ -214,19 +212,19 @@ class BottomNavTest extends TestCase
     {
         $city = $this->makeCity('ALP', '001');
         $hr = $this->makeUser($city, 'HR-ALP', ['employees.view', 'leaves.view-own', 'contracts.view']);
-        NavigationMemory::setBottomBar($hr, ['app.nav.hr.employees', 'app.nav.hr.contracts', 'home', 'profile'], BottomBar::options($hr), BottomBar::SLOTS);
+        NavigationMemory::setBottomBar($hr, ['app.nav.hr.employees', 'app.nav.hr.contracts', 'home'], BottomBar::options($hr), BottomBar::SLOTS);
 
         BaseRole::findByName('HR-ALP', 'web')->revokePermissionTo('employees.view');
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Employees is gone; the first default the bar does not already show takes its place.
-        $this->assertSame(['app.nav.hr.contracts', 'home', 'profile', self::LEAVES], $this->keys($hr->fresh()));
+        $this->assertSame(['app.nav.hr.contracts', 'home', self::LEAVES], $this->keys($hr->fresh()));
         // The choice itself is kept, so it comes back with the permission.
         $this->assertContains('app.nav.hr.employees', NavigationPreference::query()->where('user_id', $hr->id)->value('bottom_bar'));
 
         BaseRole::findByName('HR-ALP', 'web')->givePermissionTo('employees.view');
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->assertSame(['app.nav.hr.employees', 'app.nav.hr.contracts', 'home', 'profile'], $this->keys($hr->fresh()));
+        $this->assertSame(['app.nav.hr.employees', 'app.nav.hr.contracts', 'home'], $this->keys($hr->fresh()));
     }
 
     public function test_the_picker_offers_only_what_the_role_may_use(): void
@@ -253,33 +251,33 @@ class BottomNavTest extends TestCase
         $this->assertNull(NavigationPreference::query()->where('user_id', $employee->id)->value('bottom_bar'));
     }
 
-    public function test_picking_keeps_exactly_four_places_and_swaps_a_shortcut_already_on_the_bar(): void
+    public function test_picking_keeps_exactly_three_places_and_swaps_a_shortcut_already_on_the_bar(): void
     {
         $city = $this->makeCity('ALP', '001');
         $employee = $this->makeUser($city, 'employee', ['leaves.view-own', 'leaves.create', 'checklists.view-own']);
-        $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($employee));
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR], $this->keys($employee));
 
         $picker = Livewire::actingAs($employee)->test(BottomBarPicker::class)
             ->call('setSlot', 0, 'app.new.leave')
             ->assertDispatched('bottom-bar-changed')
             ->assertSee(__('navigation.bottom-bar.saved'));
-        $this->assertSame(['app.new.leave', self::LEAVES, self::CALENDAR, 'profile'], $this->stored($employee));
+        $this->assertSame(['app.new.leave', self::LEAVES, self::CALENDAR], $this->stored($employee));
 
-        // Profile is already in place 4: the two swap, nothing is there twice.
-        $picker->call('setSlot', 1, 'profile');
-        $this->assertSame(['app.new.leave', 'profile', self::CALENDAR, self::LEAVES], $this->stored($employee));
+        // The calendar is already in place 3: the two swap, nothing is there twice.
+        $picker->call('setSlot', 1, self::CALENDAR);
+        $this->assertSame(['app.new.leave', self::CALENDAR, self::LEAVES], $this->stored($employee));
 
-        $picker->call('setSlot', 3, 'app.nav.my-space.items');
-        $this->assertSame(['app.new.leave', 'profile', self::CALENDAR, 'app.nav.my-space.items'], $this->stored($employee));
+        $picker->call('setSlot', 2, 'app.nav.my-space.items');
+        $this->assertSame(['app.new.leave', self::CALENDAR, 'app.nav.my-space.items'], $this->stored($employee));
         $this->assertSame($this->stored($employee), $this->keys($employee));
 
-        // NavigationMemory itself refuses anything but four different allowed shortcuts.
+        // NavigationMemory itself refuses anything but three different allowed shortcuts.
         $options = BottomBar::options($employee);
-        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile', self::LEAVES], $options, BottomBar::SLOTS));
-        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'home', 'profile', self::LEAVES], $options, BottomBar::SLOTS));
-        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile', self::LEAVES, 'app.nav.hr.employees'], $options, BottomBar::SLOTS));
-        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile', self::LEAVES, 7], $options, BottomBar::SLOTS));
-        $this->assertSame(['app.new.leave', 'profile', self::CALENDAR, 'app.nav.my-space.items'], $this->stored($employee));
+        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile'], $options, BottomBar::SLOTS));
+        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'home', 'profile'], $options, BottomBar::SLOTS));
+        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile', 'app.nav.hr.employees'], $options, BottomBar::SLOTS));
+        $this->assertFalse(NavigationMemory::setBottomBar($employee, ['home', 'profile', 7], $options, BottomBar::SLOTS));
+        $this->assertSame(['app.new.leave', self::CALENDAR, 'app.nav.my-space.items'], $this->stored($employee));
     }
 
     public function test_reset_brings_the_default_bar_back(): void
@@ -295,7 +293,7 @@ class BottomNavTest extends TestCase
             ->assertSee(__('navigation.bottom-bar.reset-done'))
             ->assertDontSeeHtml('data-testid="bottom-bar-reset"');
         $this->assertNull($this->stored($employee));
-        $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($employee));
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR], $this->keys($employee));
     }
 
     public function test_the_picker_has_a_labelled_select_per_place_and_more_last_in_both_languages(): void
