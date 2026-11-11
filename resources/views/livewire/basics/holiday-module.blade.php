@@ -4,25 +4,27 @@
     {{ __('holidays.title') }}
 </x-slot:title>
 @endunless
-    <div @class(['flex', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-        @unless ($inSettings)
+    @unless ($inSettings)
+    <div class="flex">
         <livewire:layout.breadcrumbs :title="__('holidays.title')" :crumbs="[
             ['label' => __('holidays.title'), 'route' => 'holidays.index'],
         ]" :showButton="true" />
-        @endunless
-
-        <div>
-            <x-primary-button wire:click="create" :showSpinner="false">
-                @lang('general.add-new')
-            </x-primary-button>
-        </div>
     </div>
+    @endunless
 
     @unless ($isNationalHr)
         <p class="mb-3 text-small text-ink-2">@lang('holidays.manager-hint')</p>
     @endunless
 
-    <livewire:basics.holiday-table />
+    <livewire:basics.holiday-table>
+        <livewire:slot name="actions">
+            <div>
+                <x-primary-button wire:click="create" :showSpinner="false">
+                    @lang('general.add-new')
+                </x-primary-button>
+            </div>
+        </livewire:slot>
+    </livewire:basics.holiday-table>
 
     @include('livewire.basics.partials.holiday-dialog')
 </div>

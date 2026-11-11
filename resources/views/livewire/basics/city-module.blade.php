@@ -6,23 +6,24 @@
 </x-slot:title>
 @endunless
     @php($locale = app()->getLocale())
-    <div @class(['flex items-center mb-6', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-
-        @unless ($inSettings)
+    @unless ($inSettings)
+    <div class="flex items-center mb-6">
         <livewire:layout.breadcrumbs :title="trans_choice('general.city', 2)" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => trans_choice('general.city', 2), 'route' => 'cities.index'],
         ]" />
-        @endunless
-
-        @activerole('HR','super-admin')
-            <div class="flex items-center gap-2">
-                <x-excel-export-button wire:click="$dispatchTo('basics.city-table', 'exportExcel')" />
-            </div>
-        @endactiverole
-
     </div>
-    <livewire:basics.city-table />
+    @endunless
+
+    <livewire:basics.city-table>
+        <livewire:slot name="actions">
+            @activerole('HR','super-admin')
+                <div class="flex items-center gap-2">
+                    <x-excel-export-button wire:click="$dispatchTo('basics.city-table', 'exportExcel')" />
+                </div>
+            @endactiverole
+        </livewire:slot>
+    </livewire:basics.city-table>
 
     {{-- Edit: the HR hotline only (see CityModule). --}}
     <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
