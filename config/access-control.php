@@ -963,6 +963,8 @@ return [
             // requestPeriod formats the typed dates; updatedLeaveCategory only sets
             // form.leave_balance_id to one of those balances (the save validates it again).
             'leaveChoices', 'activeCategory', 'requestPeriod', 'updatedLeaveCategory',
+            // Closing the details dialog only runs closeDetails(); writes nothing.
+            'updatedDetailsModal',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
@@ -972,6 +974,9 @@ return [
             'closeDecision', 'closeDetails', 'refreshCounts', 'setActiveTab',
             'resetStatusFilter', // B3: sets the tab to "all"; a view filter only
             'updatedFormEmployeeId',
+            // Closing the details dialog only runs closeDetails(); leaveTypeCards
+            // prices the balances already loaded for the authorized form; no writes.
+            'updatedShowModal', 'leaveTypeCards',
             ...$closeGuard,
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
