@@ -507,6 +507,18 @@ class MyLeaveRequestModule extends Component
         $this->detailsModal = true;
     }
 
+    /**
+     * The header close, Escape and the backdrop close the details dialog in the
+     * browser; its live binding brings that here, so the ?leave= link goes with
+     * it and a reload does not open the dialog again.
+     */
+    public function updatedDetailsModal($open): void
+    {
+        if (! $open) {
+            $this->closeDetails();
+        }
+    }
+
     public function closeDetails(): void
     {
         $this->detailsModal = false;

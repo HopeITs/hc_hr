@@ -133,7 +133,7 @@
         max-width="4xl"
         id="leaveDetailsModal"
         :title="__('general.leave-details')"
-        wire:model.defer="detailsModal"
+        wire:model.live="detailsModal"
         wire:ignore.self>
         @php
             $selectedLeave = $this->selectedLeave;

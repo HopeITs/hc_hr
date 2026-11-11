@@ -861,6 +861,35 @@ class LeaveRequestWorkflowTest extends TestCase
             ->assertSet('linkedLeaveMode', null);
     }
 
+    /** The header close, Escape and the backdrop close the details in the browser, not through closeDetails(). */
+    public function test_closing_all_leaves_details_in_the_browser_clears_its_query_state(): void
+    {
+        [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('show', $leaveRequest->id)
+            ->assertSet('linkedLeaveId', $leaveRequest->id)
+            ->assertSet('linkedLeaveMode', 'details')
+            ->set('showModal', false)
+            ->assertSet('selectedLeave', null)
+            ->assertSet('linkedLeaveId', null)
+            ->assertSet('linkedLeaveMode', null);
+    }
+
+    public function test_closing_my_leave_details_in_the_browser_clears_its_query_state(): void
+    {
+        [$user, $ownLeave] = $this->createRejectedLeaveFixture('Closed by Escape.');
+
+        Livewire::actingAs($user)
+            ->withQueryParams(['leave' => $ownLeave->id])
+            ->test(MyLeaveRequestModule::class)
+            ->assertSet('detailsModal', true)
+            ->set('detailsModal', false)
+            ->assertSet('selectedLeaveId', null)
+            ->assertSet('linkedLeaveId', null);
+    }
+
     public function test_new_request_notifies_all_hr_and_manager_holders_exactly_once(): void
     {
         [$employee, $leaveRequest] = $this->createRejectedLeaveFixture(null);

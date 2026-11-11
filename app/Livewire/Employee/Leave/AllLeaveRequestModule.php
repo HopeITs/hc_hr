@@ -264,6 +264,18 @@ class AllLeaveRequestModule extends Component
         $this->clearLinkedLeave();
     }
 
+    /**
+     * The header close, Escape and the backdrop close the details dialog in the
+     * browser (it has no close guard); its live binding brings that here, so the
+     * ?leave= link goes with it and a reload does not open the dialog again.
+     */
+    public function updatedShowModal($open): void
+    {
+        if (! $open) {
+            $this->closeDetails();
+        }
+    }
+
     public function closeDecision(): void
     {
         $this->finishTaskAttempt('cancelled');

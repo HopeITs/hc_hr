@@ -264,7 +264,7 @@ use App\Enums\LeaveRequestStatus;
         max-width="4xl"
         id="showModal"
         :title="$modalTitle"
-        wire:model.defer="showModal"
+        wire:model.live="showModal"
         wire:ignore.self>
         @if($selectedLeave)
             <div class="space-y-6">
