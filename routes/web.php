@@ -113,8 +113,11 @@ Route::group(
                 });
 
             Route::view('archived-files/{folder?}', 'archives.index')->middleware('active_permission:archives.view')->name('archived-files.index');
-            Route::get('my-folders/{folderId?}', ArchivedFilesModule::class)->defaults('isShared', false)->middleware('active_permission:archives.view')->name('my-folders.index');
-            Route::get('shared-folders/{folderId?}', ArchivedFilesModule::class)->defaults('isShared', true)->middleware('active_permission:archives.view')->name('shared-folders.index');
+            // One folders page; ?scope=shared is "Shared with me". The two old pages
+            // redirect: FolderShared notifications already stored carry their URLs.
+            Route::get('folders/{folderId?}', ArchivedFilesModule::class)->middleware('active_permission:archives.view')->name('folders.index');
+            Route::get('my-folders/{folderId?}', fn ($folderId = null) => redirect(ArchivedFilesModule::folderUrl($folderId)))->middleware('active_permission:archives.view')->name('my-folders.index');
+            Route::get('shared-folders/{folderId?}', fn ($folderId = null) => redirect(ArchivedFilesModule::folderUrl($folderId, true)))->middleware('active_permission:archives.view')->name('shared-folders.index');
             Route::get('folder-files/{media}/preview', [ArchiveFileController::class, 'preview'])->middleware('active_permission:archives.view')->name('folder-files.preview');
             Route::get('folder-files/{media}/download', [ArchiveFileController::class, 'download'])->middleware('active_permission:archives.download')->name('folder-files.download');
             Route::get('folder-files/{media}/office-preview', [ArchiveFileController::class, 'officePreview'])->middleware('active_permission:archives.view')->name('folder-files.office-preview');
