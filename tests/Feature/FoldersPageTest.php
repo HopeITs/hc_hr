@@ -66,19 +66,16 @@ class FoldersPageTest extends TestCase
             ->assertSee(ArchivedFilesModule::folderUrl($theirs->id, true), false);
     }
 
-    public function test_new_folder_is_shown_disabled_with_the_reason_in_shared_with_me(): void
+    public function test_new_folder_is_not_offered_in_shared_with_me_to_a_non_admin(): void
     {
         $user = $this->makeUser($this->aleppo, 'employee', ['archives.view']);
 
         Livewire::withQueryParams(['scope' => 'shared'])->actingAs($user)->test(ArchivedFilesModule::class)
-            ->assertSeeHtml('aria-disabled="true" aria-describedby="new-folder-locked"')
-            ->assertSee(__('general.folders-new-locked'))
-            ->assertDontSeeHtml("\$set('showCreateFolderModal', true)");
+            ->assertDontSee(__('general.new_folder'));
 
         // withQueryParams() outlives the test() call; reset it to the plain page.
         Livewire::withQueryParams([])->actingAs($user)->test(ArchivedFilesModule::class)
-            ->assertSeeHtml("\$set('showCreateFolderModal', true)")
-            ->assertDontSee(__('general.folders-new-locked'));
+            ->assertSeeHtml("\$set('showCreateFolderModal', true)");
     }
 
     public function test_the_mode_cannot_be_changed_from_the_browser(): void

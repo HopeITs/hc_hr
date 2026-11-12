@@ -387,7 +387,6 @@ return [
     'folders-scope' => 'Whose folders',
     'folders-mine' => 'My folders',
     'folders-shared-with-me' => 'Shared with me',
-    'folders-new-locked' => 'Folders here belong to the people who shared them with you. To create a folder, switch to My folders.',
     'folders-new-mine' => 'This will be your own folder, under My folders. Only you see it until you give others access from Permissions.',
     'folders-new-shared' => 'This will be a shared folder, under Shared with me. Everyone you give access to will see it there.',
     'graduation_year' => 'Graduation Year',

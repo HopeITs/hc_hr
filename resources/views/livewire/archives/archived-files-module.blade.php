@@ -14,21 +14,6 @@
                 <x-button icon="plus" :loading="false" wire:click="$set('showCreateFolderModal', true)">
                     {{ __('general.new_folder') }}
                 </x-button>
-            @elseif ($isShared)
-                {{-- Not hidden: a non-admin should learn why, and where folders are made
-                     (userCanManageFolder() refuses every folder in this mode). aria-disabled,
-                     not disabled, so it stays focusable and the reason is reachable by keyboard. --}}
-                <span class="relative group">
-                    <button type="button" class="hc-btn hc-btn--primary" aria-disabled="true" aria-describedby="new-folder-locked">
-                        <x-ic name="plus" />
-                        {{ __('general.new_folder') }}
-                    </button>
-                    <span id="new-folder-locked" role="tooltip"
-                          {{-- Phones: the button opens the row, so the tip hangs from its start; md+: it closes the row. --}}
-                          class="absolute z-30 hidden w-64 max-w-[calc(100vw-2rem)] p-3 mt-2 text-small text-start bg-ink text-on-ink rounded-control shadow-e3 top-full start-0 md:start-auto md:end-0 group-hover:block group-focus-within:block">
-                        {{ __('general.folders-new-locked') }}
-                    </span>
-                </span>
             @endif
 
             @if ($currentFolder && $canManageCurrentFolder)
