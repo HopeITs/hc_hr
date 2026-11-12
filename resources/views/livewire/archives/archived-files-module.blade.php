@@ -3,57 +3,64 @@
 </x-slot:title>
 
 <div>
-    <div class="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
-        <livewire:layout.breadcrumbs
-            :title="__('general.folders')"
-            :crumbs="$finalCrumbs"
-        />
+    <livewire:layout.breadcrumbs
+        :title="__('general.folders')"
+        :crumbs="$finalCrumbs"
+    />
 
-        <div class="flex flex-wrap items-center flex-shrink-0 gap-2">
-            @if ($canManageCurrentFolder)
-                <x-button icon="plus" :loading="false" wire:click="$set('showCreateFolderModal', true)">
-                    {{ __('general.new_folder') }}
-                </x-button>
-            @endif
+    {{-- One toolbar: the mode toggle, and the actions it allows at the end. The toggle
+         sets the row's height, so a mode without actions (Shared with me, for a
+         non-admin) does not move the folders. Phones: the actions are icon-only. --}}
+    <div class="mt-6"
+        @if ($currentFolder && $canManageCurrentFolder)
+        x-data="{ uploading: false, progress: 0 }"
+        x-on:livewire-upload-start="uploading = true"
+        x-on:livewire-upload-finish="uploading = false; progress = 0"
+        x-on:livewire-upload-error="uploading = false; progress = 0"
+        x-on:livewire-upload-progress="progress = $event.detail.progress"
+        @endif
+    >
+        <div class="flex items-center gap-2">
+            {{-- Ownership, not shared/unshared: "Shared with me" also lists other people's
+                 private folders they gave this user access to. Links, so each mode has its
+                 own URL (bookmarks, back/forward); switching starts at that mode's root. --}}
+            <nav aria-label="{{ __('general.folders-scope') }}"
+                 class="grid flex-1 min-w-0 grid-cols-2 gap-1 p-1 rounded-[18px] bg-surface sm:flex-none sm:w-80">
+                @foreach ([false => __('general.folders-mine'), true => __('general.folders-shared-with-me')] as $shared => $label)
+                    <a href="{{ \App\Livewire\Archives\ArchivedFilesModule::folderUrl(null, (bool) $shared) }}" wire:navigate
+                       @if ($isShared === (bool) $shared) aria-current="page" @endif
+                       class="inline-flex items-center justify-center min-h-11 px-1.5 sm:px-4 rounded-[14px] text-small sm:text-body leading-tight whitespace-nowrap text-center transition {{ $isShared === (bool) $shared ? 'bg-card text-ink font-bold shadow-e1' : 'text-ink-2 font-semibold hover:text-ink hover:bg-hover' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </nav>
 
-            @if ($currentFolder && $canManageCurrentFolder)
-                <div
-                    x-data="{ uploading: false, progress: 0 }"
-                    x-on:livewire-upload-start="uploading = true"
-                    x-on:livewire-upload-finish="uploading = false; progress = 0"
-                    x-on:livewire-upload-error="uploading = false; progress = 0"
-                    x-on:livewire-upload-progress="progress = $event.detail.progress"
-                    class="w-full sm:w-auto"
-                >
-                    <label for="file-upload" class="hc-btn hc-btn--outline w-full cursor-pointer">
+            <div class="flex items-center gap-2 ms-auto shrink-0">
+                @if ($canManageCurrentFolder)
+                    <x-button icon="plus" :loading="false" wire:click="$set('showCreateFolderModal', true)" class="max-sm:min-w-11 max-sm:px-3">
+                        <span class="max-sm:sr-only">{{ __('general.new_folder') }}</span>
+                    </x-button>
+                @endif
+
+                @if ($currentFolder && $canManageCurrentFolder)
+                    <label for="file-upload" class="hc-btn hc-btn--outline cursor-pointer max-sm:min-w-11 max-sm:px-3">
                         <x-icons.upload class="size-5" />
-                        {{ __('general.upload_files') }}
+                        <span class="max-sm:sr-only">{{ __('general.upload_files') }}</span>
                         <input x-ref="fileInput" id="file-upload" wire:model.live="filesToUpload" type="file" class="sr-only" multiple accept=".jpg,.jpeg,.png,.svg,.pdf,.docx,.xlsx,.pptx">
                     </label>
-                    <div x-show="uploading" class="mt-2 w-full bg-surface rounded-full h-2.5">
-                        <div class="bg-ink h-2.5 rounded-full" :style="`width: ${progress}%`"></div>
-                    </div>
-                    @error('filesToUpload')
-                        <p class="hc-err mt-2">{{ $message }}</p>
-                    @enderror
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
-    </div>
 
-    {{-- Ownership, not shared/unshared: "Shared with me" also lists other people's
-         private folders they gave this user access to. Links, so each mode has its
-         own URL (bookmarks, back/forward); switching starts at that mode's root. --}}
-    <nav aria-label="{{ __('general.folders-scope') }}"
-         class="grid grid-cols-2 gap-1 p-1 mt-6 rounded-[18px] bg-surface sm:inline-grid sm:min-w-80">
-        @foreach ([false => __('general.folders-mine'), true => __('general.folders-shared-with-me')] as $shared => $label)
-            <a href="{{ \App\Livewire\Archives\ArchivedFilesModule::folderUrl(null, (bool) $shared) }}" wire:navigate
-               @if ($isShared === (bool) $shared) aria-current="page" @endif
-               class="inline-flex items-center justify-center min-h-11 px-4 rounded-[14px] text-body leading-tight text-center transition {{ $isShared === (bool) $shared ? 'bg-card text-ink font-bold shadow-e1' : 'text-ink-2 font-semibold hover:text-ink hover:bg-hover' }}">
-                {{ $label }}
-            </a>
-        @endforeach
-    </nav>
+        @if ($currentFolder && $canManageCurrentFolder)
+            <div x-show="uploading" x-cloak class="mt-3 w-full bg-surface rounded-full h-2.5">
+                <div class="bg-ink h-2.5 rounded-full" :style="`width: ${progress}%`"></div>
+            </div>
+            @error('filesToUpload')
+                <p class="hc-err mt-2">{{ $message }}</p>
+            @enderror
+        @endif
+    </div>
 
     <div
         @if ($currentFolder && $canManageCurrentFolder)
