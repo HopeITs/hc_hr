@@ -190,7 +190,7 @@
                                     $awayCount = $day['away'] + $day['partial'];
                                     $dayBirthdays = $birthdays[$day['date']] ?? [];
                                     $dayEvents = $events[$day['date']] ?? [];
-                                    $requestHere = $requestUrl !== null && $day['date'] >= $today;
+                                    $requestHere = $canRequest && $day['date'] >= $today;
                                     $cellClasses = [
                                         'border-line-soft',
                                         'border-e' => $col !== 7,
@@ -201,9 +201,9 @@
                                     ];
                                 @endphp
                                 {{-- The cell's background, under its date, holidays and the bars crossing it.
-                                     From today on, its empty space opens the leave form on that day. --}}
+                                     From today on, its empty space opens the leave request dialog on that day. --}}
                                 @if ($requestHere)
-                                    <a wire:key="cell-{{ $day['date'] }}" href="{{ str_replace('__DATE__', $day['date'], $requestUrl) }}" wire:navigate
+                                    <button type="button" wire:key="cell-{{ $day['date'] }}" wire:click="$dispatch('openLeaveRequestOn', { date: '{{ $day['date'] }}' })"
                                        data-testid="calendar-request-{{ $day['date'] }}"
                                        aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}"
                                        style="grid-column: {{ $col }}; grid-row: 1 / -1"
@@ -214,14 +214,14 @@
                                                 {{ __('team_calendar.request_leave') }}
                                             </span>
                                         </span>
-                                    </a>
+                                    </button>
                                 @else
                                     <div wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
                                          style="grid-column: {{ $col }}; grid-row: 1 / -1"
                                          @class($cellClasses)></div>
                                 @endif
 
-                                {{-- Clicks pass through to the cell's link; only the buttons take them. --}}
+                                {{-- Clicks pass through to the cell's request button; only the buttons here take them. --}}
                                 <div class="group pointer-events-none flex items-center justify-between gap-1 px-2 pt-2 [&_button]:pointer-events-auto" style="grid-column: {{ $col }}; grid-row: 1">
                                     <span @class([
                                         'inline-flex size-7 items-center justify-center rounded-full text-small',
@@ -362,8 +362,8 @@
                                             @if ($day['pending'] > 0)
                                                 <span>· {{ __('team_calendar.pending_count', ['count' => $day['pending']]) }}</span>
                                             @endif
-                                            @if ($requestUrl !== null && $day['date'] >= $today)
-                                                <x-button variant="outline" size="sm" icon="plus" :href="str_replace('__DATE__', $day['date'], $requestUrl)"
+                                            @if ($canRequest && $day['date'] >= $today)
+                                                <x-button variant="outline" size="sm" icon="plus" wire:click="$dispatch('openLeaveRequestOn', { date: '{{ $day['date'] }}' })"
                                                    aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}">
                                                     {{ __('team_calendar.request_leave') }}
                                                 </x-button>
@@ -451,5 +451,9 @@
 
     @if ($canManageHolidays)
         <livewire:basics.holiday-module :embedded="true" />
+    @endif
+
+    @if ($canRequest)
+        <livewire:employee.leave.leave-request-dialog />
     @endif
 </div>

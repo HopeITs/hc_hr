@@ -99,4 +99,9 @@
 
         @include('livewire.dashboard.partials.desk')
     </div>
+
+    {{-- Outside the grid: a tile clips what overflows it, so the dialog cannot live in the calendar card. --}}
+    @if ($canRequestLeave)
+        <livewire:employee.leave.leave-request-dialog />
+    @endif
 </div>

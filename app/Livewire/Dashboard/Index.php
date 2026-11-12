@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\HasDashboardLayout;
+use App\Services\Dashboard\CalendarFeed;
 use Livewire\Component;
 
 /**
@@ -82,6 +83,8 @@ class Index extends Component
             // "Customize your desk": the ready layouts this person may use, the suggested one first.
             'presets' => $tiles->presets($user),
             'failedSections' => $this->failedSections,
+            // The calendar tile's "Request leave" opens this page's leave dialog (LeaveRequestDialog).
+            'canRequestLeave' => in_array('calendar', $shown, true) && app(CalendarFeed::class)->canRequestLeave($user),
         ]);
     }
 
