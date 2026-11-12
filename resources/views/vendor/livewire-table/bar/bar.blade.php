@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-3">
-    <div class="flex flex-col lg:flex-row gap-3">
+    <div class="flex flex-col lg:flex-row lg:items-start gap-3">
         @includeWhen($this->canSearch(), 'livewire-table::bar.search')
         <div class="justify-center items-center w-full border-y border-transparent" wire:loading.flex>
             <span class="inline-block border border-4 border-primary border-r-transparent motion-safe:animate-spin rounded-full my-2 p-2"></span>
