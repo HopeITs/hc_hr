@@ -177,8 +177,13 @@
                             $moreRow = 3 + $lanes;
                             $rows = 'auto auto'.($lanes > 0 ? " repeat({$lanes}, auto)" : '').' auto 1fr';
                         @endphp
+                        {{-- A day's cell is positioned (its hover pill) and opaque, so it would paint over its date,
+                             holidays and bars: those sit a layer up (grid items take z-index unpositioned). Their empty
+                             space lets clicks through to the cell; their own buttons, links and titled chips (the tooltip) take them. --}}
                         <div wire:key="week-{{ $week['days'][0]['date'] }}"
-                             @class(['grid min-h-32 grid-cols-7 gap-y-1', 'border-t border-line-soft' => ! $loop->first])
+                             @class(['grid min-h-32 grid-cols-7 gap-y-1',
+                                     '[&>:not([data-cell])]:z-[1] [&>:not([data-cell])]:pointer-events-none [&>:not([data-cell])_:is(a,button,[title])]:pointer-events-auto',
+                                     'border-t border-line-soft' => ! $loop->first])
                              style="grid-template-rows: {{ $rows }}">
                             @foreach ($week['days'] as $day)
                                 @php
@@ -203,7 +208,7 @@
                                 {{-- The cell's background, under its date, holidays and the bars crossing it.
                                      From today on, its empty space opens the leave request dialog on that day. --}}
                                 @if ($requestHere)
-                                    <button type="button" wire:key="cell-{{ $day['date'] }}" wire:click="$dispatch('openLeaveRequestOn', { date: '{{ $day['date'] }}' })"
+                                    <button type="button" data-cell wire:key="cell-{{ $day['date'] }}" wire:click="$dispatch('openLeaveRequestOn', { date: '{{ $day['date'] }}' })"
                                        data-testid="calendar-request-{{ $day['date'] }}"
                                        aria-label="{{ __('team_calendar.request_leave_on', ['date' => $date->locale($locale)->translatedFormat('l j F')]) }}"
                                        style="grid-column: {{ $col }}; grid-row: 1 / -1"
@@ -216,7 +221,7 @@
                                         </span>
                                     </button>
                                 @else
-                                    <div wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
+                                    <div data-cell wire:key="cell-{{ $day['date'] }}" aria-hidden="true"
                                          style="grid-column: {{ $col }}; grid-row: 1 / -1"
                                          @class($cellClasses)></div>
                                 @endif
