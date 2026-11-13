@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -32,6 +33,9 @@ class ArchivedFilesModule extends Component
 
     /** Also read by DashboardLayout: a file card is only for a type this page shows. */
     public const ALLOWED_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx'];
+
+    /** The ?scope= value of "Shared with me"; anything else is "My folders". */
+    public const SHARED_SCOPE = 'shared';
 
     private const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -49,6 +53,7 @@ class ArchivedFilesModule extends Component
 
     public User $user; // Store authenticated user once
 
+    #[Locked]
     public bool $isShared;
 
     public ?Folder $currentFolder = null;
@@ -102,9 +107,8 @@ class ArchivedFilesModule extends Component
     public function mount($folderId = null)
     {
         $this->user = auth()->user();
-        // Derive from the route name so it can never be wrong, regardless of how
-        // the component is mounted (full-page route, embedded tag, or AJAX re-render).
-        $this->isShared = request()->routeIs('shared-folders.*');
+        // Read once from the page's ?scope=; locked, so a later update cannot flip it.
+        $this->isShared = request()->query('scope') === self::SHARED_SCOPE;
 
         if ($folderId) {
             $folder = Folder::with('users')->find($folderId);
@@ -566,17 +570,25 @@ class ArchivedFilesModule extends Component
         ]);
     }
 
+    /** A folder (or the root, when null) of the folders page, in the given mode. */
+    public static function folderUrl(int|string|null $folderId = null, bool $shared = false): string
+    {
+        return route('folders.index', array_filter([
+            'folderId' => $folderId,
+            'scope' => $shared ? self::SHARED_SCOPE : null,
+        ]));
+    }
+
     protected function generateBreadcrumbs(): void
     {
-        $baseCrumbUrl = $this->isShared ? route('shared-folders.index') : route('my-folders.index');
-        $crumbs = [['label' => __('general.archived-files'), 'url' => $baseCrumbUrl]];
+        $crumbs = [['label' => __('general.folders'), 'url' => self::folderUrl(null, $this->isShared)]];
         $folderLinks = [];
         $folder = $this->currentFolder;
 
         while ($folder) {
             array_unshift($folderLinks, [
                 'label' => $folder->name,
-                'url' => $this->isShared ? route('shared-folders.index', ['folderId' => $folder->id]) : route('my-folders.index', ['folderId' => $folder->id]),
+                'url' => self::folderUrl($folder->id, $this->isShared),
             ]);
             $folder = $folder->parent;
         }

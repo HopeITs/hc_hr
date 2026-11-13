@@ -33,6 +33,7 @@
         const canvas = document.getElementById("employeeChart");
         const select = document.getElementById("employeeChartRange");
         if (select && window.$ && $.fn && $.fn.select2) {
+            resetSelect2(select);
             $(select).select2({
                 width: '150px',
                 minimumResultsForSearch: Infinity, // only 3 options — no search box

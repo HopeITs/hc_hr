@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
 use App\Livewire\Employee\Leave\AllLeaveRequestModule;
+use App\Livewire\Employee\Leave\LeaveRequestDialog;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Livewire\Inbox\Index as Inbox;
 use App\Livewire\Team\Calendar;
@@ -342,16 +343,33 @@ class TeamCoverageTest extends TestCase
             ->assertSee(__('team_calendar.your_birthday'));
     }
 
-    /** A day from today on opens the leave form on that date; a past day, or someone who cannot request, gets no link. */
-    public function test_a_day_from_today_on_links_to_a_leave_request(): void
+    /** A day from today on opens the leave dialog on that date, on the calendar; a past day, or someone who cannot request, gets no button. */
+    public function test_a_day_from_today_on_opens_a_leave_request_in_place(): void
     {
         $request = fn (string $date) => 'data-testid="calendar-request-'.$date.'"';
 
         Livewire::actingAs($this->user('omar'))
             ->test(Calendar::class)
             ->assertSeeHtml($request('2026-10-27'))
-            ->assertSeeHtml(e(route('leaves.index', ['new' => 1, 'date' => '2026-10-28'])))
+            ->assertSeeHtml("openLeaveRequestOn', { date: '2026-10-28' }")
+            ->assertDontSeeHtml(route('leaves.index', ['new' => 1]))
+            ->assertSeeLivewire(LeaveRequestDialog::class)
             ->assertDontSeeHtml($request('2026-10-26'));
+
+        Livewire::actingAs($this->user('omar'))
+            ->test(LeaveRequestDialog::class)
+            ->dispatch('openLeaveRequestOn', date: '2026-10-28')
+            ->assertSet('showModal', true)
+            ->assertSet('form.start_at', '2026-10-28')
+            ->assertSet('form.end_at', '2026-10-28')
+            ->assertNoRedirect();
+
+        // A past day is not prefilled; the form opens empty.
+        Livewire::actingAs($this->user('omar'))
+            ->test(LeaveRequestDialog::class)
+            ->call('createOn', '2026-10-20')
+            ->assertSet('showModal', true)
+            ->assertSet('form.start_at', '');
 
         Livewire::actingAs($this->p['huda']['user']->fresh())
             ->test(Calendar::class)
