@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  */
 class HolidayProjects
 {
-    /** @var array<string, Collection<string, array{program_id: int, city_id: int, label: string}>> */
+    /** @var array<string, Collection<string, array{program_id: int, city_id: int, program: string, city: string, label: string}>> */
     private array $managed = [];
 
     private ?Collection $all = null;
@@ -52,7 +52,7 @@ class HolidayProjects
     /**
      * Every project, keyed "programId:cityId".
      *
-     * @return Collection<string, array{program_id: int, city_id: int, label: string}>
+     * @return Collection<string, array{program_id: int, city_id: int, program: string, city: string, label: string}>
      */
     public function all(): Collection
     {
@@ -62,7 +62,7 @@ class HolidayProjects
     /**
      * The projects $user may set holidays for: all of them for national HR.
      *
-     * @return Collection<string, array{program_id: int, city_id: int, label: string}>
+     * @return Collection<string, array{program_id: int, city_id: int, program: string, city: string, label: string}>
      */
     public function managedBy(?User $user): Collection
     {
@@ -148,7 +148,7 @@ class HolidayProjects
 
     /**
      * @param  Collection<int, Position>  $positions
-     * @return Collection<string, array{program_id: int, city_id: int, label: string}>
+     * @return Collection<string, array{program_id: int, city_id: int, program: string, city: string, label: string}>
      */
     private function toProjects(Collection $positions): Collection
     {
@@ -159,6 +159,8 @@ class HolidayProjects
                 return $city ? [
                     'program_id' => (int) $p->program_id,
                     'city_id' => (int) $city->id,
+                    'program' => (string) $p->program?->name,
+                    'city' => $city->name,
                     'label' => $p->program?->name.' — '.$city->name,
                 ] : null;
             })

@@ -177,7 +177,8 @@ class DashboardHomeScreenTest extends TestCase
         // The tile stays, saying it failed; every other tile is drawn as usual.
         $this->assertContains('my-leaves', $this->drawnKeys($html));
         $this->assertContains('news', $this->drawnKeys($html));
-        $this->assertSame(1, substr_count($html, 'role="alert"'));
+        // Empty inline-error regions (the leave dialog's fields, x-error-span) are not alerts shown.
+        $this->assertSame(1, preg_match_all('/role="alert"(?!\s*aria-live="polite"\s*data-inline-error)/', $html));
     }
 
     private function employee(): User

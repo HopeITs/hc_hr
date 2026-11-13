@@ -5,9 +5,9 @@ namespace App\Livewire\Basics;
 use App\Livewire\Concerns\EmbedsInSettings;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
-use App\Models\City;
 use App\Models\Holiday;
 use App\Services\HolidayProjects;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -33,8 +33,6 @@ class HolidayModule extends Component
 
     public array $item = [];
 
-    public ?int $governorate = null;
-
     /** The team calendar embeds the dialog alone (no title, table or breadcrumbs). */
     public bool $embedded = false;
 
@@ -54,12 +52,7 @@ class HolidayModule extends Component
 
         return view($this->embedded ? 'livewire.basics.holiday-dialog' : 'livewire.basics.holiday-module', [
             'isNationalHr' => $projects->isNationalHr(auth()->user()),
-            'projectOptions' => $mine->map(fn ($p) => $p['label'])->all(),
-            'governorates' => City::query()
-                ->whereIn('id', $mine->pluck('city_id')->unique()->all() ?: [0])
-                ->get()
-                ->mapWithKeys(fn (City $c) => [$c->id => $c->name])
-                ->all(),
+            'projectGroups' => $this->groupByGovernorate($mine),
         ]);
     }
 
@@ -67,7 +60,6 @@ class HolidayModule extends Component
     {
         $this->authorizeManager();
         $this->item = $this->blank();
-        $this->governorate = null;
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
         $this->markClean();
@@ -104,27 +96,10 @@ class HolidayModule extends Component
             'is_recurring' => (bool) $model->is_recurring,
         ];
 
-        $this->governorate = null;
         $this->modalTitle = __('general.edit');
         $this->resetValidation();
         $this->markClean();
         $this->showModal = true;
-    }
-
-    /**
-     * H-2 shortcut: tick every project of one governorate. It only selects
-     * per-project links; there is no governorate-wide holiday.
-     */
-    public function selectGovernorate(): void
-    {
-        $this->authorizeManager();
-
-        $keys = app(HolidayProjects::class)->managedBy(auth()->user())
-            ->filter(fn ($p) => $p['city_id'] === (int) $this->governorate)
-            ->keys()
-            ->all();
-
-        $this->item['projects'] = array_values(array_unique([...($this->item['projects'] ?? []), ...$keys]));
     }
 
     public function save(): void
@@ -209,6 +184,27 @@ class HolidayModule extends Component
             'item.scope.in' => __('holidays.invalid-scope'),
             'item.kind.in' => __('holidays.invalid-kind'),
         ];
+    }
+
+    /**
+     * The picker's options, one group per governorate (H-2): its header ticks
+     * or clears every project there. It only selects per-project links;
+     * there is no governorate-wide holiday.
+     *
+     * @return list<array{id: int, name: string, options: list<array{value: string, label: string}>}>
+     */
+    private function groupByGovernorate(Collection $projects): array
+    {
+        return $projects
+            ->groupBy('city_id', preserveKeys: true)
+            ->map(fn (Collection $there, int $cityId) => [
+                'id' => $cityId,
+                'name' => $there->first()['city'],
+                'options' => $there->map(fn ($p, $key) => ['value' => $key, 'label' => $p['program']])->values()->all(),
+            ])
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 
     private function blank(): array

@@ -4,24 +4,26 @@
     {{ __('general.termination_reasons') }}
 </x-slot:title>
 @endunless
-    <div @class(['flex', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-        @unless ($inSettings)
+    @unless ($inSettings)
+    <div class="flex">
         <livewire:layout.breadcrumbs :title="__('general.termination_reasons')" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => __('general.termination_reasons'), 'route' => 'termination-reasons.index'],
         ]" :showButton="true" />
-        @endunless
-
-        @activerole('HR', 'super-admin')
-            <div>
-                <x-primary-button wire:click="create" :showSpinner="false">
-                    @lang('general.add-new')
-                </x-primary-button>
-            </div>
-        @endactiverole
     </div>
+    @endunless
 
-    <livewire:basics.termination-reason-table />
+    <livewire:basics.termination-reason-table>
+        <livewire:slot name="actions">
+            @activerole('HR', 'super-admin')
+                <div>
+                    <x-primary-button wire:click="create" :showSpinner="false">
+                        @lang('general.add-new')
+                    </x-primary-button>
+                </div>
+            @endactiverole
+        </livewire:slot>
+    </livewire:basics.termination-reason-table>
 
     <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
         <form class="space-y-4" wire:submit.prevent="save">

@@ -103,17 +103,32 @@ class HolidayManagementTest extends TestCase
         );
     }
 
-    public function test_governorate_shortcut_ticks_every_project_there(): void
+    public function test_the_picker_groups_projects_by_governorate(): void
     {
-        $component = Livewire::actingAs($this->hr)->test(HolidayModule::class)
+        $groups = Livewire::actingAs($this->hr)->test(HolidayModule::class)
             ->call('create')
             ->set('item.scope', 'projects')
-            ->set('governorate', $this->alp->id)
-            ->call('selectGovernorate');
+            ->viewData('projectGroups');
 
+        $alp = collect($groups)->firstWhere('id', $this->alp->id);
+
+        // The governorate header ticks exactly these: every project there, and only those.
         $this->assertEqualsCanonicalizing(
             [$this->key($this->leap, $this->alp), $this->key($this->studyZone, $this->alp)],
-            $component->get('item.projects'),
+            array_column($alp['options'], 'value'),
+        );
+        $this->assertEqualsCanonicalizing(['LEAP', 'Study Zone'], array_column($alp['options'], 'label'));
+    }
+
+    public function test_program_manager_sees_only_their_projects_in_the_picker(): void
+    {
+        $groups = Livewire::actingAs($this->pm)->test(HolidayModule::class)
+            ->call('create')
+            ->viewData('projectGroups');
+
+        $this->assertEqualsCanonicalizing(
+            [$this->key($this->studyZone, $this->alp), $this->key($this->studyZone, $this->hms)],
+            collect($groups)->flatMap(fn ($g) => array_column($g['options'], 'value'))->all(),
         );
     }
 

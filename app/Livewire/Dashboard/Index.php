@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Concerns\HasDashboardLayout;
 use App\Models\Contract;
 use App\Models\User;
+use App\Services\Dashboard\CalendarFeed;
 use App\Services\WorkInbox;
 use App\Support\Dashboard\DashboardLayout;
 use App\Support\Dashboard\WaitingOnYou;
@@ -131,6 +132,8 @@ class Index extends Component
             'activePreset' => collect($presets)->search(fn (array $keys): bool => array_diff($keys, $shown) === []
                 && array_diff(array_filter($shown, $tiles->isWidget(...)), $keys) === []) ?: null,
             'failedSections' => $this->failedSections,
+            // The calendar tile's "Request leave" opens this page's leave dialog (LeaveRequestDialog).
+            'canRequestLeave' => in_array('calendar', $shown, true) && app(CalendarFeed::class)->canRequestLeave($user),
         ]);
     }
 

@@ -51,7 +51,7 @@ class Calendar extends Component
     public bool $showEvents = true;
 
     /** The embedded holiday dialog saved: redraw with the new day names. */
-    protected $listeners = ['holidaysChanged' => '$refresh'];
+    protected $listeners = ['holidaysChanged' => '$refresh', 'leaveRequestSaved' => '$refresh'];
 
     /** Previous (-1) or next (1) month, week or day, by the current view. */
     public function move(int $step): void
@@ -129,8 +129,8 @@ class Calendar extends Component
             'holidays' => $this->holidayLabels($user, $from, $to, $holidayProjects, $canManageHolidays),
             'birthdays' => $birthdays,
             'events' => $events,
-            // A day from today on opens the leave form on that date (the dashboard calendar's link).
-            'requestUrl' => app(CalendarFeed::class)->canRequestLeave($user) ? route('leaves.index', ['new' => 1, 'date' => '__DATE__']) : null,
+            // A day from today on opens the leave request dialog on that date, here on the calendar.
+            'canRequest' => app(CalendarFeed::class)->canRequestLeave($user),
             'today' => CarbonImmutable::today()->toDateString(),
             'canManageHolidays' => $canManageHolidays,
             'days' => $days,

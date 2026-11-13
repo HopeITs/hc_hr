@@ -25,7 +25,7 @@ class NavigationAreasTest extends TestCase
     private const BASICS = ['basic-settings.index'];
 
     // C5 added the team calendar to everyone's My space.
-    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'checklist-items.index', 'my-folders.index', 'shared-folders.index'];
+    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'checklist-items.index', 'folders.index'];
 
     protected function setUp(): void
     {

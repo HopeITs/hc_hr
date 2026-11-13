@@ -17,7 +17,6 @@
         labels: @js($labels),
         withEvents: @js(array_fill_keys(array_keys($days), true)),
         today: @js($today),
-        requestUrl: @js($requestUrl),
         open(date, el) { this.opener = el; this.day = date },
         close() { this.day = null; this.$nextTick(() => this.opener?.isConnected && this.opener.focus()) },
      }">
@@ -168,9 +167,10 @@
 
                 @if ($canRequestLeave)
                     <div x-show="day !== null && day >= today">
-                        <a x-bind:href="requestUrl.replace('__DATE__', day ?? '')" wire:navigate class="hc-btn hc-btn--add hc-btn--reveal" data-testid="calendar-request-leave">
+                        {{-- Opens the leave request dialog (LeaveRequestDialog, mounted by the dashboard) on this day. --}}
+                        <button type="button" x-on:click="const date = day; close(); Livewire.dispatch('openLeaveRequestOn', { date })" class="hc-btn hc-btn--add hc-btn--reveal" data-testid="calendar-request-leave">
                             <x-ic name="plus" /><span class="hc-reveal-label">{{ __('dashboard_calendar.request-leave') }}</span>
-                        </a>
+                        </button>
                     </div>
                 @endif
             </div>

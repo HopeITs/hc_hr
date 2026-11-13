@@ -822,7 +822,7 @@ class MyLeaveRequestModule extends Component
         }
     }
 
-    private function prefillStartDate(): void
+    protected function prefillStartDate(): void
     {
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->startDate) === 1
             ? Carbon::createFromFormat('!Y-m-d', $this->startDate)
@@ -851,7 +851,7 @@ class MyLeaveRequestModule extends Component
         $this->markClean();
     }
 
-    private function finishSave(LeaveRequest $leaveRequest, string $kind): void
+    protected function finishSave(LeaveRequest $leaveRequest, string $kind): void
     {
         $this->showModal = false;
         $this->leaveCategory = null;

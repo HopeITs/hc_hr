@@ -124,7 +124,7 @@ class PhoneShellTest extends TestCase
 
     public function test_the_leave_request_sheet_has_no_nested_scroll_area_and_a_pinned_action_bar(): void
     {
-        $view = file_get_contents(resource_path('views/livewire/employee/leave/index.blade.php'));
+        $view = file_get_contents(resource_path('views/livewire/employee/leave/partials/request-dialog.blade.php'));
 
         // A viewport-height cap on a phone sheet hid the Submit button below a second scroller.
         $this->assertStringNotContainsString('max-h-[60vh]', $view);
@@ -136,7 +136,7 @@ class PhoneShellTest extends TestCase
 
     public function test_every_editable_leave_dialog_uses_the_pinned_action_bar(): void
     {
-        foreach (['index', 'all', 'balance'] as $view) {
+        foreach (['partials/request-dialog', 'all', 'balance'] as $view) {
             $source = file_get_contents(resource_path("views/livewire/employee/leave/{$view}.blade.php"));
 
             $this->assertStringContainsString('<x-modal.actions', $source, "{$view} lost its pinned action bar");

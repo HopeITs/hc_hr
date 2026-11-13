@@ -17,6 +17,21 @@ import select2 from 'select2';
 
 select2();
 
+// Back/forward under wire:navigate restores a saved copy of the page, select2's
+// box included, but not select2's link to it; starting select2 again on that
+// copy adds a second box beside the first (two stacked "15" per-page boxes,
+// stretching the table toolbar). Strip what an earlier start left behind first.
+window.resetSelect2 = (select) => {
+    select = $(select);
+    if (select.data('select2')) {
+        select.select2('destroy');
+    }
+    select.siblings('.select2-container').remove();
+    select.removeClass('select2-hidden-accessible')
+        .removeAttr('data-select2-id aria-hidden tabindex');
+    select.find('[data-select2-id]').removeAttr('data-select2-id');
+};
+
 // select2's own messages ("No results found", "Searching…") in the page's
 // language. The strings come from resources/lang through a meta tag in the
 // head (partials/head.blade.php); without it select2 keeps its English ones.
