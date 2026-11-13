@@ -76,6 +76,9 @@ class LeaveRequestPricing
     /** @var array<string, array<string, list<Holiday>>> */
     private array $holidaysOn = [];
 
+    /** @var array<string, Collection<int, Center>> keyed "city:program" */
+    private array $linkedCenters = [];
+
     /**
      * Price $window against $balance of $contract.
      *
@@ -332,6 +335,14 @@ class LeaveRequestPricing
 
         if ($own !== null) {
             return [$own, 'center'];
+        }
+
+        // No center of its own (Study Zone): the centers HR linked to the
+        // program in the volunteer's city.
+        $linked = $this->sharedWeekend($this->linkedProgramCenters($contract));
+
+        if ($linked !== null) {
+            return [$linked, 'program'];
         }
 
         // D-1: no center (or a center with no weekend set) → the weekend of any
@@ -681,17 +692,124 @@ class LeaveRequestPricing
     /**
      * The existing rule from LeaveRequestForm::rules(): an hourly request must
      * start at or after the center's opening time and end at or before its
-     * closing time (defaults 09:00 / 16:30 when unknown).
+     * closing time. Without a center of its own, the widest hours of the
+     * centers linked to the program in the city (the volunteer may work at
+     * any of them); defaults 09:00 / 16:30 when neither is known.
      */
     private function outsideWorkingHours(Contract $contract, LeaveWindow $window): bool
     {
         $center = $contract->position?->center;
 
-        $open = LeaveWindow::minuteOfDay((string) ($center?->open_at ?? self::DEFAULT_OPEN_AT));
-        $close = LeaveWindow::minuteOfDay((string) ($center?->close_at ?? self::DEFAULT_CLOSE_AT));
+        if ($center !== null) {
+            $open = LeaveWindow::minuteOfDay((string) ($center->open_at ?? self::DEFAULT_OPEN_AT));
+            $close = LeaveWindow::minuteOfDay((string) ($center->close_at ?? self::DEFAULT_CLOSE_AT));
+        } else {
+            [$open, $close] = $this->widestHours($this->linkedProgramCenters($contract))
+                ?? [LeaveWindow::minuteOfDay(self::DEFAULT_OPEN_AT), LeaveWindow::minuteOfDay(self::DEFAULT_CLOSE_AT)];
+        }
 
         return LeaveWindow::minuteOfDay($window->startTime) < $open
             || LeaveWindow::minuteOfDay($window->endTime) > $close;
+    }
+
+    /**
+     * For a position without a center: the active centers HR linked to its
+     * program (center_program) in its city, else in the employee's own city.
+     * Empty when the position has a center, no program, or nothing is linked.
+     *
+     * @return Collection<int, Center>
+     */
+    private function linkedProgramCenters(Contract $contract): Collection
+    {
+        $position = $contract->position;
+
+        if (! $position?->program_id || $position->center_id) {
+            return collect();
+        }
+
+        $cityIds = array_values(array_unique(array_filter([$position->city_id, $contract->employee?->city_id])));
+
+        foreach ($cityIds as $cityId) {
+            $centers = $this->linkedCenters[$cityId.':'.$position->program_id] ??= Center::query()
+                ->where('city_id', $cityId)
+                ->where('is_active', true)
+                ->whereHas('programs', fn ($q) => $q->whereKey($position->program_id))
+                ->orderBy('id')
+                ->get(['id', 'weekends', 'open_at', 'close_at']);
+
+            if ($centers->isNotEmpty()) {
+                return $centers;
+            }
+        }
+
+        return collect();
+    }
+
+    /**
+     * The weekend most of $centers keep. A weekend of four days or more is a
+     * data error and is skipped. On a tie, only the days every tied weekend
+     * shares, so no day someone works is skipped. Null when nothing is usable.
+     *
+     * @param  Collection<int, Center>  $centers
+     * @return array<int, int>|null
+     */
+    private function sharedWeekend(Collection $centers): ?array
+    {
+        $counts = [];
+        $sets = [];
+
+        foreach ($centers as $center) {
+            $weekend = $this->parseWeekend($center->weekends);
+
+            if ($weekend === null || count($weekend) > 3) {
+                continue;
+            }
+
+            $key = implode(',', $weekend);
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+            $sets[$key] = $weekend;
+        }
+
+        if ($counts === []) {
+            return null;
+        }
+
+        $most = max($counts);
+        $tied = array_map(fn (string $key) => $sets[$key], array_keys(array_filter($counts, fn (int $n) => $n === $most)));
+        $shared = array_values(array_intersect(...$tied));
+
+        return $shared === [] ? null : $shared;
+    }
+
+    /**
+     * Earliest opening and latest closing of $centers, in minutes of the day.
+     * Null when none has usable hours.
+     *
+     * @param  Collection<int, Center>  $centers
+     * @return array{0: int, 1: int}|null
+     */
+    private function widestHours(Collection $centers): ?array
+    {
+        $open = null;
+        $close = null;
+
+        foreach ($centers as $center) {
+            if (blank($center->open_at) || blank($center->close_at)) {
+                continue;
+            }
+
+            $from = LeaveWindow::minuteOfDay((string) $center->open_at);
+            $to = LeaveWindow::minuteOfDay((string) $center->close_at);
+
+            if ($to <= $from) {
+                continue;
+            }
+
+            $open = $open === null ? $from : min($open, $from);
+            $close = $close === null ? $to : max($close, $to);
+        }
+
+        return $open === null ? null : [$open, $close];
     }
 
     /**

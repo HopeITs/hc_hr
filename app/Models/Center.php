@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -49,6 +50,17 @@ class Center extends Model
     }
 
     /**
+     * The programs this center serves, as HR set them on the center (a center
+     * may serve several). Read only for positions without a center of their
+     * own: see LeaveRequestPricing::programCenters() and
+     * programManagerContracts().
+     */
+    public function programs(): BelongsToMany
+    {
+        return $this->belongsToMany(Program::class);
+    }
+
+    /**
      * The current contracts of this center's managers: anyone holding an active
      * contract on a Project Manager position located at the center.
      */
@@ -60,6 +72,37 @@ class Center extends Model
                 'positions.job_level_id',
                 JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
             );
+    }
+
+    /**
+     * The current contracts of the project managers of the programs this
+     * center serves, in its city, whose position has no center of its own
+     * (Study Zone: one manager per city runs every center of the program).
+     * Empty for a center that serves no program.
+     */
+    public function programManagerContracts(): Builder
+    {
+        $programIds = $this->programs->modelKeys();
+
+        return Contract::query()
+            ->activeNow()
+            ->whereHas('position', fn (Builder $position): Builder => self::programManagerPositions($position, $programIds, (int) $this->city_id))
+            ->when($programIds === [], fn (Builder $query) => $query->whereRaw('1 = 0'));
+    }
+
+    /**
+     * Constrain $positions to project-manager positions without a center,
+     * optionally of $programIds in $cityId.
+     *
+     * @param  array<int, int>|null  $programIds  null: any program
+     */
+    public static function programManagerPositions(Builder $positions, ?array $programIds = null, ?int $cityId = null): Builder
+    {
+        return $positions
+            ->whereNull($positions->qualifyColumn('center_id'))
+            ->whereIn($positions->qualifyColumn('job_level_id'), JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'))
+            ->when($programIds !== null, fn (Builder $q) => $q->whereIn($positions->qualifyColumn('program_id'), $programIds))
+            ->when($cityId !== null, fn (Builder $q) => $q->where($positions->qualifyColumn('city_id'), $cityId));
     }
 
     /**
@@ -86,7 +129,13 @@ class Center extends Model
      */
     public function managerNames(): string
     {
-        $names = $this->managerContracts
+        $contracts = $this->managerContracts;
+
+        if ($this->programs->isNotEmpty()) {
+            $contracts = $contracts->concat($this->programManagerContracts()->with('employee')->get());
+        }
+
+        $names = $contracts
             ->pluck('employee')
             ->filter()
             ->unique('id')

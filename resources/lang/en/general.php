@@ -606,6 +606,8 @@ return [
         'new-password' => 'New Password',
     ],
     'weekend-days' => 'Weekend Days',
+    'center-programs' => 'Programs at this center',
+    'center-programs-hint' => 'Volunteers of these programs who have no center of their own (Study Zone, for example) take this center\'s weekend and working hours when they request leave.',
     'join-at' => 'Join At',
     'days-of-week' => [
         0 => 'Sunday',
