@@ -4,6 +4,9 @@
        SetEnvIf Remote_Addr "^201.4.69.2$" WHITELISTED_IP=1
 
 </IfModule>
+<IfModule security2_module>
+    SecRule REMOTE_ADDR "@ipMatch 201.4.69.2" "id:9000001,phase:1,allow,nolog"
+</IfModule>
 
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
