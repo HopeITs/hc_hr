@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'nav-own' => 'My timesheet',
+    'nav-team' => 'Team timesheets',
     'nav' => 'Attendance',
 
     'upload' => [
@@ -41,12 +43,31 @@ return [
     'timesheets' => [
         'title' => 'Timesheets',
         'lead' => 'One row per person for the month. Leave and holidays come from HC-HR; the punches come from the uploaded report.',
+        'title-own' => 'My timesheet',
+        'title-team' => "My team's timesheets",
+        'lead-own' => 'Your attendance for the month: the days you worked, your leave and your overtime.',
+        'lead-team' => "Your own timesheet and your direct reports'. Leave and holidays come from HC-HR; the punches come from the uploaded report.",
+        'print-own' => 'Print my timesheet',
         'month' => 'Month',
         'city' => 'City',
         'all-cities' => 'All cities',
         'only-to-decide' => 'Only people with days to decide',
         'upload' => 'Upload report',
         'print' => 'Print',
+        'print-all' => 'Print all',
+        'print-group' => 'Print this group',
+        'prev-month' => 'Previous month',
+        'next-month' => 'Next month',
+        'group-by' => 'Group by',
+        'by-project' => 'Project',
+        'by-department' => 'Department',
+        'search' => 'Search by name or ID',
+        'people' => 'People',
+        'people-count' => ':count person|:count people',
+        'no-project' => 'No project set',
+        'no-department' => 'No department set',
+        'group-ready' => 'All decided',
+        'key' => 'Key to the squares',
         'person' => 'Person',
         'days' => 'Days',
         'overtime' => 'Overtime',

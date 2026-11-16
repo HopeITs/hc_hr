@@ -93,6 +93,7 @@ return [
             'checklists.manage', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            'attendance.view-own', 'attendance.view',
             // Recruitment: the CEO and his deputy hold this role, so they both
             // raise requests and approve their direct reports' requests.
             'recruitment-requests.view', 'recruitment-requests.manage',
@@ -117,6 +118,8 @@ return [
             'checklists.view-own', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            // Their own timesheet and their direct reports' (Roster).
+            'attendance.view-own', 'attendance.view',
             // Recruitment: the same role covers both sides of the first step —
             // a manager raises his own requests and approves his direct
             // reports'. Holding 'approve' is never sufficient on its own; the
@@ -135,6 +138,7 @@ return [
             'leaves.create', 'leaves.update', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download', 'checklists.view-own', 'project-basics.view',
+            'attendance.view-own',
         ],
     ],
 
@@ -154,9 +158,11 @@ return [
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
         'message-templates' => ['manage', 'use'],
-        // Attendance from the device report: `view` reads and prints timesheets (a city HR role sees
-        // its own city), `manage` uploads the report, links device numbers and decides days.
-        'attendance' => ['view', 'manage'],
+        // Attendance from the device report, scoped by the active role like the other pages: `view-own` is
+        // every role's (an employee sees only their own timesheet); `view` lifts it to the people the role
+        // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
+        // the administrators: everyone); `manage` (HR) uploads the report, links numbers and decides days.
+        'attendance' => ['view-own', 'view', 'manage'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -732,7 +738,7 @@ return [
 
     'livewire_exempt' => [
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
-        'attendance.timesheets' => ['closeDay'],
+        'attendance.timesheets' => ['closeDay', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
         'attendance.upload' => ['cancel'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
