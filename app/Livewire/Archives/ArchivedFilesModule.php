@@ -7,6 +7,8 @@ use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
 use App\Models\Folder;
+use App\Models\MailList;
+use App\Models\MailListMember;
 use App\Models\JobLevel;
 use App\Models\Program;
 use App\Models\User;
@@ -128,6 +130,8 @@ class ArchivedFilesModule extends Component
             'program' => trans_choice('general.program', 1),
             'center' => trans_choice('general.center', 1),
             'city' => trans_choice('general.city', 1),
+            // Everyone on one of the organisation's mailing lists (their work email).
+            'mail_list' => __('mail_lists.folder_filter'),
         ];
     }
 
@@ -143,6 +147,7 @@ class ArchivedFilesModule extends Component
                 'job_level' => JobLevel::all(),
                 'center' => Center::all(),
                 'city' => City::all(),
+                'mail_list' => MailList::query()->orderBy('position')->orderBy('name')->get(),
                 default => collect(),
             };
 
@@ -617,6 +622,12 @@ class ArchivedFilesModule extends Component
 
         return $query->where(function ($q) {
             foreach ($this->activeFilters as $filter) {
+                if ($filter['type'] === 'mail_list') {
+                    $q->whereIn($q->qualifyColumn('email'), MailListMember::query()->where('mail_list_id', (int) $filter['value'])->select('email'));
+
+                    continue;
+                }
+
                 $q->whereHas('profile.contracts.position', function ($positionQuery) use ($filter) {
                     match ($filter['type']) {
                         'department' => $positionQuery->where('department_id', $filter['value']),

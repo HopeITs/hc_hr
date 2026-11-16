@@ -158,6 +158,7 @@ return [
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
         'message-templates' => ['manage', 'use'],
+        'mail-lists' => ['manage'],
         // Attendance from the device report, scoped by the active role like the other pages: `view-own` is
         // every role's (an employee sees only their own timesheet); `view` lifts it to the people the role
         // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
@@ -257,6 +258,12 @@ return [
             'removeSigned' => 'attendance.manage',
         ],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
+        'mail-lists.index' => [
+            'import' => 'mail-lists.manage',
+            'addMember' => 'mail-lists.manage',
+            'removeMember' => 'mail-lists.manage',
+            'deleteList' => 'mail-lists.manage',
+        ],
         'messages.template-manager' => [
             'edit' => 'message-templates.manage',
             'save' => 'message-templates.manage',

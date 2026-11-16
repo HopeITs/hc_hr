@@ -51,3 +51,6 @@ Route::prefix('attendance')->name('attendance.')->group(function () {
 // HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.
 Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
     ->middleware('active_permission:message-templates.manage')->name('message-templates.index');
+
+// The organisation mailing lists: every signed-in employee reads and emails them; editing needs mail-lists.manage (checked in the component).
+Route::get("/mail-lists", \App\Livewire\MailLists\Index::class)->name("mail-lists.index");
