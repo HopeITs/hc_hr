@@ -27,6 +27,30 @@ class Index extends Component
     /** @var array<int, string> typed address per list id */
     public array $newEmail = [];
 
+    /** Finds lists by name or address, and lists by who is on them. */
+    public string $search = '';
+
+    /** The group shown: '' for all, or one of MailList::CATEGORIES / 'other'. */
+    public string $category = '';
+
+    /** The list whose members are open in the side panel. */
+    public ?int $openId = null;
+
+    public function setCategory(string $category): void
+    {
+        $this->category = in_array($category, [...MailList::CATEGORIES, 'other'], true) ? $category : '';
+    }
+
+    public function openList(int $listId): void
+    {
+        $this->openId = MailList::query()->whereKey($listId)->exists() ? $listId : null;
+    }
+
+    public function closeList(): void
+    {
+        $this->openId = null;
+    }
+
     public function addMember(int $listId): void
     {
         $this->authorizeActivePermission('mail-lists.manage');
@@ -110,8 +134,34 @@ class Index extends Component
                 ->sortBy(fn (array $member) => Str::lower($member['name'] ?? $member['email']))
                 ->values();
 
-            return ['list' => $list, 'members' => $members];
+            return ['list' => $list, 'members' => $members, 'category' => MailList::categoryOf($list->address)];
         });
+
+        $all = $rows;
+        $total = $rows->flatMap(fn (array $row) => $row['members']->pluck('email'))->unique()->count();
+
+        // Search: the list's name or address, or a person on it (shown as who matched).
+        $term = Str::lower(trim($this->search));
+
+        if ($term !== '') {
+            $rows = $rows->map(function (array $row) use ($term): ?array {
+                $byList = str_contains(Str::lower($row['list']->name.' '.$row['list']->address), $term);
+                $people = $row['members']->filter(fn (array $member) => str_contains(Str::lower(($member['name'] ?? '').' '.$member['email']), $term));
+
+                return ($byList || $people->isNotEmpty()) ? [...$row, 'matches' => $byList ? collect() : $people->take(3)->values()] : null;
+            })->filter()->values();
+        }
+
+        $categories = collect([...MailList::CATEGORIES, 'other'])
+            ->mapWithKeys(fn (string $key) => [$key => $rows->where('category', $key)->count()])
+            ->filter();
+
+        if ($this->category !== '') {
+            $rows = $rows->where('category', $this->category)->values();
+        }
+
+        // The panel keeps its list even when the search or group would hide its card.
+        $open = $this->openId ? $all->firstWhere('list.id', $this->openId) : null;
 
         // The confirmer's queue: one line per person, with the lists to add them to.
         $pending = $canConfirm
@@ -131,6 +181,9 @@ class Index extends Component
             'canManage' => $canManage,
             'canConfirm' => $canConfirm,
             'pending' => $pending,
+            'total' => $total,
+            'categories' => $categories,
+            'open' => $open,
         ]);
     }
 

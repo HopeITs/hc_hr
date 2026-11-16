@@ -765,6 +765,8 @@ return [
         'attendance.upload' => ['cancel'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
+        // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
+        'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
