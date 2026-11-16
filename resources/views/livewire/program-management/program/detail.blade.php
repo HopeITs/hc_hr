@@ -167,8 +167,8 @@
 
                                 <p class="mt-2 text-body text-ink">
                                     @lang('general.manager'): <span class="font-semibold">
-                                        {{-- The same names as the centers table and the center's own page. --}}
-                                        {{ $center->managerNames() }}
+                                        {{-- This program's manager at the center, else the center's head (Center::managerNamesFor). --}}
+                                        {{ $center->managerNamesFor($program) }}
                                     </span>
                                 </p>
 

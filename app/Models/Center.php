@@ -156,6 +156,35 @@ class Center extends Model
         return $names->isEmpty() ? '—' : $names->implode(', ');
     }
 
+    /**
+     * Who manages this center for one program (its page's Center tab): the
+     * program's project managers at the center, or its manager for the
+     * center's city (a position without a center, as in Study Zone). A
+     * program with no manager of its own here falls back to the center's
+     * head, managerNames(): the head office shows the CEO for Hope Center
+     * and Micro Project's own project manager for Micro Project.
+     */
+    public function managerNamesFor(Program $program): string
+    {
+        $names = Contract::query()
+            ->activeNow()
+            ->with('employee')
+            ->whereHas('position', fn (Builder $position): Builder => $position
+                ->where('program_id', $program->id)
+                ->where(fn (Builder $here): Builder => $here
+                    ->where(fn (Builder $own): Builder => $own
+                        ->where('center_id', $this->id)
+                        ->whereIn('job_level_id', JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id')))
+                    ->orWhere(fn (Builder $city): Builder => self::programManagerPositions($city, [$program->id], (int) $this->city_id))))
+            ->get()
+            ->pluck('employee')
+            ->filter()
+            ->unique('id')
+            ->map(fn (Employee $employee): string => $employee->name);
+
+        return $names->isEmpty() ? $this->managerNames() : $names->implode(', ');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

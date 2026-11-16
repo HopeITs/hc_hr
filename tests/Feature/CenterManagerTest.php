@@ -119,6 +119,24 @@ class CenterManagerTest extends TestCase
             ->assertDontSee('Fadi Dabbagh');
     }
 
+    public function test_for_a_program_the_center_shows_that_programs_manager_else_its_head(): void
+    {
+        $headOffice = $this->makeCenter('Head Office');
+        $topLevel = JobLevel::query()->forceCreate(['name_en' => 'Program Manager', 'name_ar' => 'مدير برنامج', 'grade' => 1]);
+        $hopeCenter = Program::query()->forceCreate(['name' => 'Hope Center', 'slug' => 'HC', 'code' => 'HC', 'is_active' => true]);
+
+        $ceo = $this->makePosition($headOffice, $topLevel, attributes: ['program_id' => $hopeCenter->id]);
+        $programManager = $this->makePosition($headOffice, $topLevel, attributes: ['direct_manager_id' => $ceo->id]);
+        $this->makeContract($this->employee('fredy', 'Fredy', 'Youssef'), $ceo);
+        $this->makeContract($this->employee('antoine', 'Antoine', 'Arbaji'), $programManager);
+        $this->makeContract($this->employee('fadi', 'Fadi', 'Dabbagh'), $this->makePosition($headOffice, $this->projectManager, attributes: ['direct_manager_id' => $programManager->id]));
+
+        // Micro Project ($this->program) has its own project manager here; Hope Center has none.
+        $this->assertSame('Fadi Dabbagh', $headOffice->managerNamesFor($this->program));
+        $this->assertSame('Fredy Youssef', $headOffice->managerNamesFor($hopeCenter));
+        $this->assertSame('Fredy Youssef', $headOffice->managerNames());
+    }
+
     public function test_center_without_a_project_manager_shows_a_dash(): void
     {
         $center = $this->makeCenter('Hope Center');
