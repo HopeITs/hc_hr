@@ -31,3 +31,7 @@ Route::middleware('reference_page:project-basics')->group(function () {
 Route::get('holidays', HolidayModule::class)->name('holidays.index');
 
 Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positions.view')->name('org.chart');
+
+// HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.
+Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
+    ->middleware('active_permission:message-templates.manage')->name('message-templates.index');

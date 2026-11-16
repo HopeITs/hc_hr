@@ -153,6 +153,7 @@ return [
         'archives' => ['view', 'create', 'update', 'delete', 'share', 'download'],
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
+        'message-templates' => ['manage', 'use'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -224,6 +225,13 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
+        // HR's email and WhatsApp templates. The component re-checks the permission itself.
+        'messages.template-manager' => [
+            'edit' => 'message-templates.manage',
+            'save' => 'message-templates.manage',
+            'toggleActive' => 'message-templates.manage',
+            'delete' => 'message-templates.manage',
+        ],
         // saveAndSubmit writes the same draft as save(), then submits only when the
         // request's submit policy allows it.
         'recruitment.requests.create' => [
@@ -708,6 +716,8 @@ return [
     */
 
     'livewire_exempt' => [
+        // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
+        'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.

@@ -78,6 +78,7 @@
                                 <x-icons.edit class="h-4 w-4" /> <span class="hidden min-[701px]:inline">@lang('general.edit')</span>
                             </x-button>
                         @endif
+                        <x-message-template-menu :employee="$employee" />
                         @if ($workEmail)
                             <x-button variant="outline" size="sm" :href="$workMailto" :wire:navigate="false" :title="__('general.email')" :aria-label="__('general.email')" class="min-w-0">
                                 <x-icons.envelope class="h-4 w-4 shrink-0" /> <span

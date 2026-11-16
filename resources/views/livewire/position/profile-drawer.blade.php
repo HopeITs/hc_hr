@@ -217,6 +217,9 @@
                 <div class="flex justify-center">
                     <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :key="'atd-drawer-'.$employee->id" />
                 </div>
+                <div class="flex justify-center">
+                    <x-message-template-menu :employee="$employee" />
+                </div>
                 @if($position && auth()->user()?->hasActivePermission('positions.update'))
                     <x-button full variant="outline" :href="route('positions.edit', ['position' => $position->id])">
                         @lang('general.open-position')
