@@ -72,6 +72,17 @@ class CalendarCard extends Component
             $source = $today->gte($from) && $weekEnd->lte($to) ? $days : $feed->forRange($user, $today, $weekEnd);
             $upcoming = array_filter($source, fn (string $date) => $date >= $today->toDateString() && $date <= $weekEnd->toDateString(), ARRAY_FILTER_USE_KEY);
 
+            // One row per event, not per day: a leave of several days reads "16 – 18 Nov".
+            $grouped = [];
+            foreach ($upcoming as $date => $events) {
+                foreach ($events as $event) {
+                    $id = preg_replace('/-\d{4}-\d{2}-\d{2}$/', '', (string) $event['key']);
+                    $grouped[$id] ??= ['event' => $event, 'from' => $date, 'to' => $date];
+                    $grouped[$id]['to'] = $date;
+                }
+            }
+            $upcoming = array_values($grouped);
+
             return [$days, $upcoming, $feed->typesFor($user)];
         }, [[], [], []]);
 
