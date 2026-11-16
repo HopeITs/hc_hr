@@ -17,20 +17,22 @@
                     <div class="min-w-0">
                         <p class="flex items-center gap-2 font-semibold text-ink">
                             <x-ic :name="$step['done'] ? 'check' : 'clock'" class="size-4 shrink-0 text-ink-2" />
-                            {{ __($t.$step['key']) }}
+                            {{ __($t.$step['key'], $step['params']) }}
                             <span class="text-caption font-normal text-ink-2">{{ $step['done'] ? __($t.'done') : __($t.'todo') }}</span>
                         </p>
                         @if ($step['key'] === 'account' && ! $step['done'])
                             <p class="text-small text-ink-2">{{ __($t.'account_hint') }}</p>
+                        @elseif ($step['key'] === 'previous')
+                            <p class="text-small text-ink-2">{{ __($t.'previous_hint') }}</p>
                         @elseif ($step['key'] === 'card')
-                            <p class="text-small text-ink-2">{{ $step['problem'] ?? __($t.'card_ready') }}</p>
-                        @elseif ($step['key'] === 'welcome')
+                            <p class="text-small text-ink-2">{{ $step['note'] ?? $step['problem'] ?? __($t.'card_ready') }}</p>
+                        @elseif (in_array($step['key'], ['welcome', 'announce'], true))
                             <p class="text-small text-ink-2">{{ __($t.'welcome_hint') }}</p>
                         @endif
                     </div>
 
                     <div class="shrink-0">
-                        @if ($step['key'] === 'welcome')
+                        @if (in_array($step['key'], ['welcome', 'announce'], true))
                             <x-message-template-menu :employee="$conversion->employee" />
                         @elseif ($step['url'])
                             <x-button variant="outline" size="sm" :href="$step['url']" :wire:navigate="false">
