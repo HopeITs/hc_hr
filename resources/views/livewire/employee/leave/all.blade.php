@@ -447,6 +447,12 @@ use App\Enums\LeaveRequestStatus;
                     </section>
                 @endif
 
+                @if($decisionAttendance)
+                    <p class="rounded-xl border border-line-soft bg-soft px-4 py-3 text-small text-ink-2" data-testid="decision-attendance">
+                        {{ __('attendance.workflow.leave-context', ['worked' => $decisionAttendance['worked'], 'decide' => $decisionAttendance['decide']]) }}
+                    </p>
+                @endif
+
                 @if($decisionOverlap)
                     @include('livewire.team.partials.overlap-warning', ['overlap' => $decisionOverlap])
                 @endif

@@ -40,6 +40,12 @@ Route::prefix('attendance')->name('attendance.')->group(function () {
         ->middleware('active_permission:attendance.view-own')->name('timesheets');
     Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
         ->middleware('active_permission:attendance.view-own')->name('print');
+    Route::get('/export/pdf', [\App\Http\Controllers\AttendanceExportController::class, 'pdf'])
+        ->middleware('active_permission:attendance.view-own')->name('export.pdf');
+    Route::get('/export/xlsx', [\App\Http\Controllers\AttendanceExportController::class, 'xlsx'])
+        ->middleware('active_permission:attendance.view-own')->name('export.xlsx');
+    Route::get('/signed/{month}', \App\Http\Controllers\AttendanceSignedController::class)
+        ->whereNumber('month')->middleware('active_permission:attendance.view-own')->name('signed');
 });
 
 // HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.

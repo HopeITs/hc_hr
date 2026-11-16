@@ -4,9 +4,12 @@ namespace App\Services\Attendance;
 
 use App\Models\AttendanceDeviceLink;
 use App\Models\AttendanceImport;
+use App\Models\AttendanceMonth;
 use App\Models\AttendancePunch;
 use App\Models\Employee;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,7 +19,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AttendanceImporter
 {
-    public function __construct(private readonly DeviceReportReader $reader) {}
+    public function __construct(
+        private readonly DeviceReportReader $reader,
+        private readonly MonthWorkflow $workflow,
+    ) {}
 
     /**
      * What an upload holds, before anything is stored.
@@ -70,20 +76,42 @@ class AttendanceImporter
                 'device_numbers' => count($numbers),
             ]);
 
-            $now = now();
-            $new = 0;
+            // A locked month does not change: its punches are not taken in.
+            $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
+                ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
 
-            foreach (array_chunk($punches, 500) as $chunk) {
-                $new += AttendancePunch::query()->insertOrIgnore(array_map(fn (array $p) => [
+            $now = now();
+            $rows = [];
+            $skipped = 0;
+
+            foreach ($punches as $p) {
+                $employeeId = ($employees[$p['device_no']] ?? null)?->id;
+
+                if ($employeeId !== null && isset($locked[$employeeId.'|'.$p['at']->format('Y-m')])) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $rows[] = [
                     'import_id' => $import->id,
                     'device_no' => $p['device_no'],
-                    'employee_id' => ($employees[$p['device_no']] ?? null)?->id,
+                    'employee_id' => $employeeId,
                     'punched_at' => $p['at']->format('Y-m-d H:i:s'),
                     'created_at' => $now,
-                ], $chunk));
+                ];
             }
 
-            $import->update(['punches_new' => $new]);
+            $new = 0;
+
+            foreach (array_chunk($rows, 500) as $chunk) {
+                $new += AttendancePunch::query()->insertOrIgnore($chunk);
+            }
+
+            $import->update(['punches_new' => $new, 'punches_locked' => $skipped]);
+
+            // New punches in an approved month: what was approved is no longer what the month holds.
+            $this->withdrawApprovals(AttendancePunch::query()->where('import_id', $import->id)->whereNotNull('employee_id')->get(['employee_id', 'punched_at']));
 
             return $import;
         });
@@ -99,6 +127,8 @@ class AttendanceImporter
             );
 
             AttendancePunch::query()->where('device_no', $deviceNo)->update(['employee_id' => $employee->id]);
+
+            $this->withdrawApprovals(AttendancePunch::query()->where('device_no', $deviceNo)->get(['employee_id', 'punched_at']));
         });
     }
 
@@ -129,5 +159,17 @@ class AttendanceImporter
         }
 
         return $found;
+    }
+
+    /** @param  Collection<int, AttendancePunch>  $punches */
+    private function withdrawApprovals(Collection $punches): void
+    {
+        $punches
+            ->map(fn (AttendancePunch $p) => $p->employee_id.'|'.$p->punched_at->format('Y-m'))
+            ->unique()
+            ->each(function (string $key) {
+                [$employeeId, $month] = explode('|', $key);
+                $this->workflow->withdrawApproval((int) $employeeId, CarbonImmutable::createFromFormat('!Y-m', $month));
+            });
     }
 }

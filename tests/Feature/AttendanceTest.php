@@ -179,11 +179,11 @@ class AttendanceTest extends TestCase
             'employee_id' => $employee->id, 'kind' => 'absent', 'note' => 'no call', 'decided_by' => $hr->id,
         ]);
 
-        // Sat 12 Sep is a weekend: nothing to decide.
+        // Sat 12 Sep is a weekend: nothing to decide, and nothing to open.
         Livewire::actingAs($hr)->test(Timesheets::class)
             ->set('month', '2026-09')
             ->call('openDay', $employee->id, '2026-09-12')
-            ->assertStatus(422);
+            ->assertForbidden();
     }
 
     public function test_the_pages_need_the_permission_and_a_city_hr_role_sees_only_its_city(): void

@@ -241,10 +241,20 @@ return [
             'import' => 'attendance.manage',
             'linkNumber' => 'attendance.manage',
         ],
+        // Each also checks who the person is and what the viewer may do with their month (MonthWorkflow).
         'attendance.timesheets' => [
-            'openDay' => 'attendance.manage',
-            'saveDecision' => 'attendance.manage',
-            'clearDecision' => 'attendance.manage',
+            'openDay' => 'attendance.view',
+            'saveDecision' => 'attendance.view',
+            'clearDecision' => 'attendance.view',
+            'openMonth' => 'attendance.view-own',
+            'confirmMonth' => 'attendance.view-own',
+            'approveMonth' => 'attendance.view',
+            'approveAllReady' => 'attendance.view',
+            'lockMonth' => 'attendance.manage',
+            'lockAllApproved' => 'attendance.manage',
+            'reopenMonth' => 'attendance.manage',
+            'saveSigned' => 'attendance.manage',
+            'removeSigned' => 'attendance.manage',
         ],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
         'messages.template-manager' => [
@@ -738,7 +748,7 @@ return [
 
     'livewire_exempt' => [
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
-        'attendance.timesheets' => ['closeDay', 'shiftMonth', 'toggleGroup'],
+        'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
         'attendance.upload' => ['cancel'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
