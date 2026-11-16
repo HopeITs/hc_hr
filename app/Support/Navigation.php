@@ -49,6 +49,8 @@ final class Navigation
             $can('attendance.view-own') && ! $can('attendance.view') ? self::item('nav.my-space.attendance', __('attendance.nav-own'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             // One page for both: "My folders" / "Shared with me" is a toggle on it (?scope=).
+            // Every employee reads the mailing lists and emails one; no permission to see it.
+            self::item('nav.my-space.mail-lists', __('mail_lists.title'), 'mail-lists.index', ['mail-lists.*'], 'envelope'),
             $can('archives.view') ? self::item('nav.my-space.files', __('general.folders'), 'folders.index', ['folders.*'], 'archived', 'nav.archives') : null,
             // The AI assistant is not a menu item: it opens from the floating
             // button on every page (<x-assistant.widget>).

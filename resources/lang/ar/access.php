@@ -55,6 +55,7 @@ return [
         'archives' => 'الملفات المؤرشفة', 'checklists' => 'عناصر قائمة التسليم',
         'activity-log' => 'سجل النشاط',
         'message-templates' => 'قوالب الرسائل',
+        'mail-lists' => 'القوائم البريدية',
         'attendance' => 'الحضور والدوام',
         'recruitment-requests' => 'طلبات التوظيف',
         'recruitment-vacancies' => 'الشواغر',
