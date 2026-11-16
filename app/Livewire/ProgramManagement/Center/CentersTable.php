@@ -119,7 +119,7 @@ class CentersTable extends LivewireTable
         // filters, and exportExcel() (which builds on appliedQuery()) at once.
         return $this->scopeToAuthorizedCity(
             $this->model()::query()
-                ->with(['city', 'managerContracts.employee', 'programs'])
+                ->with(['city', 'managerContracts.employee', 'managerContracts.position.jobLevel', 'programs'])
                 ->withCount('positions'),
         );
     }

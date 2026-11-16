@@ -89,6 +89,36 @@ class CenterManagerTest extends TestCase
         $this->assertSame('Elsewhere Manager', $otherCenter->managerNames());
     }
 
+    public function test_the_head_of_the_center_is_its_most_senior_person_reporting_to_no_one_there(): void
+    {
+        $headOffice = $this->makeCenter('Head Office');
+        $regional = $this->makeCenter('Regional Center');
+        $topLevel = JobLevel::query()->forceCreate(['name_en' => 'Program Manager', 'name_ar' => 'مدير برنامج', 'grade' => 1]);
+
+        // The CEO reports to no one; a program manager reports to the CEO; a project
+        // manager of one program reports to that program manager: all in the head office.
+        $ceo = $this->makePosition($headOffice, $topLevel);
+        $programManager = $this->makePosition($headOffice, $topLevel, attributes: ['direct_manager_id' => $ceo->id]);
+        $projectManager = $this->makePosition($headOffice, $this->projectManager, attributes: ['direct_manager_id' => $programManager->id]);
+        $this->makeContract($this->employee('fredy', 'Fredy', 'Youssef'), $ceo);
+        $this->makeContract($this->employee('antoine', 'Antoine', 'Arbaji'), $programManager);
+        $this->makeContract($this->employee('fadi', 'Fadi', 'Dabbagh'), $projectManager);
+
+        // A regional center's project manager reports to the head office: still heads their center,
+        // and a senior accountant there (grade 5) reporting elsewhere does not.
+        $this->makeContract($this->employee('toni', 'Toni', 'Azar'), $this->makePosition($regional, $this->projectManager, attributes: ['direct_manager_id' => $programManager->id]));
+        $accountant = JobLevel::query()->forceCreate(['name_en' => 'Department Manager', 'name_ar' => 'مدير قسم', 'grade' => 5]);
+        $this->makeContract($this->employee('basem', 'Basem', 'Ibrahim'), $this->makePosition($regional, $accountant, attributes: ['direct_manager_id' => $ceo->id]));
+
+        $this->assertSame('Fredy Youssef', $headOffice->managerNames());
+        $this->assertSame('Toni Azar', $regional->managerNames());
+
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['centers.view']);
+        Livewire::actingAs($hr)->test(CentersTable::class)
+            ->assertSee('Fredy Youssef')
+            ->assertDontSee('Fadi Dabbagh');
+    }
+
     public function test_center_without_a_project_manager_shows_a_dash(): void
     {
         $center = $this->makeCenter('Hope Center');
@@ -252,9 +282,9 @@ class CenterManagerTest extends TestCase
         ]);
     }
 
-    private function makePosition(?Center $center, JobLevel $jobLevel, ?City $city = null): Position
+    private function makePosition(?Center $center, JobLevel $jobLevel, ?City $city = null, array $attributes = []): Position
     {
-        return Position::query()->forceCreate([
+        return Position::query()->forceCreate([...[
             'center_id' => $center?->id,
             'city_id' => ($city ?? $this->city)->id,
             'department_id' => $this->department->id,
@@ -263,7 +293,7 @@ class CenterManagerTest extends TestCase
             'title_en' => $jobLevel->name_en,
             'title_ar' => $jobLevel->name_ar,
             'is_active' => true,
-        ]);
+        ], ...$attributes]);
     }
 
     private function makeContract(Employee $employee, Position $position, array $attributes = []): Contract

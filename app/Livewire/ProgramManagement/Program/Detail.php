@@ -17,7 +17,7 @@ class Detail extends Component
 
     public function mount(Program $program)
     {
-        $program->load('centers.city');
+        $program->load(['centers.city', 'centers.managerContracts.employee', 'centers.managerContracts.position.jobLevel', 'centers.programs']);
         $this->form->setProgram($program);
     }
 

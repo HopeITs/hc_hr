@@ -61,8 +61,12 @@ class Center extends Model
     }
 
     /**
-     * The current contracts of this center's managers: anyone holding an active
-     * contract on a Project Manager position located at the center.
+     * The current contracts that may head this center: a position located at
+     * the center, at Project Manager level or above (grade 1-3), that reports
+     * to no one in the same center (2026-11-16). The head office's CEO reports
+     * to no one; its program managers report to him, so only he heads it, not
+     * a project manager of one of its programs. managerNames() keeps the most
+     * senior of these.
      */
     public function managerContracts(): HasManyThrough
     {
@@ -70,8 +74,13 @@ class Center extends Model
             ->activeNow()
             ->whereIn(
                 'positions.job_level_id',
-                JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
-            );
+                JobLevel::query()->where('grade', '<=', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
+            )
+            ->whereNotExists(fn ($superior) => $superior
+                ->selectRaw('1')
+                ->from('positions as center_superiors')
+                ->whereColumn('center_superiors.id', 'positions.direct_manager_id')
+                ->whereColumn('center_superiors.center_id', 'positions.center_id'));
     }
 
     /**
@@ -129,7 +138,10 @@ class Center extends Model
      */
     public function managerNames(): string
     {
-        $contracts = $this->managerContracts;
+        // Of the people who may head the center, the most senior (lowest grade).
+        $contracts = $this->managerContracts->loadMissing('position.jobLevel');
+        $top = $contracts->min(fn (Contract $contract) => $contract->position?->jobLevel?->grade);
+        $contracts = $contracts->filter(fn (Contract $contract) => $contract->position?->jobLevel?->grade === $top);
 
         if ($this->programs->isNotEmpty()) {
             $contracts = $contracts->concat($this->programManagerContracts()->with('employee')->get());

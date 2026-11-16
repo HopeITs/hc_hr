@@ -167,7 +167,8 @@
 
                                 <p class="mt-2 text-body text-ink">
                                     @lang('general.manager'): <span class="font-semibold">
-                                        {{ $center->projectManager?->name ?? '—' }}
+                                        {{-- The same names as the centers table and the center's own page. --}}
+                                        {{ $center->managerNames() }}
                                     </span>
                                 </p>
 

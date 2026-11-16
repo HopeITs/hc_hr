@@ -133,6 +133,18 @@ class ProgramEmployeeDirectoryTest extends TestCase
             ->assertViewHas('initialTab', 'employees');
     }
 
+    public function test_the_center_tab_names_each_centers_manager(): void
+    {
+        $f = $this->fixtures();
+        $hr = $this->makeUser($f['city'], 'HR-ALP', ['employees.view']);
+        $pm = JobLevel::query()->forceCreate(['name_en' => 'Project Manager', 'name_ar' => 'مدير مشروع', 'grade' => JobLevel::PROJECT_MANAGER_GRADE]);
+        $manager = $this->makeEmployee($f['city'], 'rami.manager', ['first_name_en' => 'Rami', 'last_name_en' => 'Manager']);
+        $this->makeContract($manager, $this->makePosition($f['center'], $f['department'], $pm, $f['program'], 'Center manager'), $f['type']);
+
+        Livewire::actingAs($hr)->test(Detail::class, ['program' => $f['program']])
+            ->assertSeeInOrder(['Hope Center', __('general.manager'), 'Rami Manager']);
+    }
+
     public function test_the_tab_needs_employees_view(): void
     {
         $f = $this->fixtures();
