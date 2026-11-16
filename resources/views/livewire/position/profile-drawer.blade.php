@@ -173,10 +173,9 @@
                         <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-ink-3">
                             @lang('general.direct-reports')
                             <span class="rounded-full bg-surface px-2 py-1 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
-                            @php($teamEmails = $reports->flatMap(fn ($r) => $r->activeContracts->pluck('employee'))->filter()->map->work_email->filter()->unique()->values())
-                            @if($teamEmails->isNotEmpty())
-                                {{-- New message addressed to the whole team. --}}
-                                <a href="mailto:{{ $teamEmails->map(fn ($e) => rawurlencode($e))->implode(',') }}"
+                            @if(filled(config('app.team_email')))
+                                {{-- New message to the team's shared mailbox, not to each address. --}}
+                                <a href="mailto:{{ config('app.team_email') }}"
                                    class="ms-auto text-small font-semibold normal-case tracking-normal text-ink-2 underline hover:text-ink">@lang('general.email-team')</a>
                             @endif
                         </h3>

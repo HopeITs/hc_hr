@@ -11,6 +11,9 @@ return [
 
     'timezone' => 'Europe/Istanbul',
 
+    // The shared mailbox that reaches the whole team ("Email the team" links).
+    'team_email' => env('TEAM_EMAIL', 'team@hcsyria.org'),
+
     'locale' => env('APP_LOCALE', 'en'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
