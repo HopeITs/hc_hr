@@ -205,7 +205,50 @@ final class TeamCoverage
                 // A colleague-level entry has no status, and is always accepted.
                 || ($entry['status'] === null && $status === 'accepted'))
             ->sortBy([['from', 'asc'], ['name', 'asc']])
-            ->values();
+            ->values()
+            ->pipe(fn (Collection $entries) => $this->withCoverGaps($entries, $members, $from, $to));
+    }
+
+    /**
+     * "Who covers": for each manager-level entry that names a cover, the days
+     * the cover is away as well, so a gap shows before it happens. The cover's
+     * leave counts when it is accepted, or when the cover is someone the
+     * viewer already sees at manager level (pending too); otherwise a pending
+     * request of someone out of reach stays unknown. Advisory only.
+     *
+     * @param  Collection<int, array<string, mixed>>  $entries
+     * @param  array<int, array{level: int, contract: Contract, is_self: bool}>  $members
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function withCoverGaps(Collection $entries, array $members, CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $coverIds = $entries->pluck('substitute_id')->filter()->unique()->values()->all();
+
+        if ($coverIds === []) {
+            return $entries;
+        }
+
+        $awayByCover = [];
+
+        foreach ($this->leavesOf($coverIds, $from, $to) as $leave) {
+            $coverId = $leave->leaveBalance->contract->employee_id;
+            $pending = (int) $leave->status === LeaveRequestStatus::Pending;
+
+            if ($pending && (($members[$coverId]['level'] ?? 0) < self::LEVEL_MANAGER)) {
+                continue;
+            }
+
+            $awayByCover[$coverId] = [...($awayByCover[$coverId] ?? []), ...$this->occupiedDates($leave, $from, $to)];
+        }
+
+        return $entries->map(function (array $entry) use ($awayByCover): array {
+            $away = $awayByCover[$entry['substitute_id']] ?? [];
+            $gap = array_values(array_unique(array_intersect($entry['counted'], $away)));
+            sort($gap);
+            $entry['cover_gap_dates'] = $gap;
+
+            return $entry;
+        });
     }
 
     /**
@@ -684,6 +727,13 @@ final class TeamCoverage
             'type' => $neutral ? __('team_calendar.on_leave') : (string) ($type?->name ?? __('team_calendar.on_leave')),
             'status' => $manager ? ($pending ? 'pending' : 'accepted') : null,
             'substitute' => $manager ? $leave->alternativeEmployee?->name : null,
+            // Who covers: the id (manager level only), whether the viewer is the
+            // cover (any level: it is about themselves), and the days the cover
+            // is away too, filled in by withCoverGaps().
+            'substitute_id' => $manager ? $leave->alternative_employee_id : null,
+            'covers_you' => $viewer->employee_id !== null && $leave->alternative_employee_id !== null
+                && (int) $leave->alternative_employee_id === (int) $viewer->employee_id,
+            'cover_gap_dates' => [],
             'is_self' => $member['is_self'],
             'level' => $level,
         ];
