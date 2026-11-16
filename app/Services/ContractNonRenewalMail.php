@@ -11,7 +11,7 @@ use App\Models\User;
  * "Don't renew": the mailto: link a manager uses to ask HR to cancel the
  * renewal of one of their team's contracts. It opens a new message (nothing is
  * sent from the server), addressed to the HR of the employee's city, with the
- * employee's direct manager on CC, a fixed subject and a message that already
+ * sender's own direct manager on CC, a fixed subject and a message that already
  * says what is needed. HR decides in the renewal journey as before.
  *
  * Reads names, position, city and dates only. Pay is never loaded.
@@ -59,7 +59,10 @@ class ContractNonRenewalMail
             return null;
         }
 
-        $cc = $contract->position?->directManager?->employee()?->account?->email;
+        // CC: the direct manager of whoever presses the button (Judy presses
+        // for Mai: HR is the To, Judy's own manager is the CC), not the
+        // employee's manager, who is the sender.
+        $cc = $sender?->profile ? (Employee::directManagerEmails([$sender->profile])[$sender->profile->id] ?? null) : null;
         $cc = filled($cc) && filter_var($cc, FILTER_VALIDATE_EMAIL) && ! in_array(strtolower($cc), array_map('strtolower', $to), true)
             ? $cc
             : null;
