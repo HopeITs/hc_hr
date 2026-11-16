@@ -732,7 +732,7 @@ return [
 
     'livewire_exempt' => [
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
-        'attendance.timesheets' => ['closeDay'],
+        'attendance.timesheets' => ['closeDay', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
         'attendance.upload' => ['cancel'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).

@@ -66,7 +66,7 @@ class Timesheet
         $last = $month->endOfMonth()->startOfDay();
 
         $contracts = Contract::query()
-            ->with('position.center')
+            ->with('position.center', 'position.program', 'position.department')
             ->where('employee_id', $employee->id)
             ->where('type', '!=', ContractType::Draft)
             ->whereDate('start_date', '<=', $last)
@@ -213,6 +213,7 @@ class Timesheet
 
         return [
             'month' => $first,
+            'placement' => $this->placement($contracts),
             'daily_hours' => $dailyHours,
             'rows' => $rows,
             'totals' => $this->totals($rows, $dailyHours),
@@ -292,6 +293,25 @@ class Timesheet
             })
             ->sortByDesc('start_date')
             ->first();
+    }
+
+    /**
+     * Where the person works this month: the project (program), department and center of their
+     * latest contract running in the month. Timesheets are grouped by it.
+     *
+     * @return array{program_id: ?int, program: ?string, department_id: ?int, department: ?string, center: ?string}
+     */
+    private function placement(Collection $contracts): array
+    {
+        $position = $contracts->sortByDesc('start_date')->first()?->position;
+
+        return [
+            'program_id' => $position?->program_id,
+            'program' => $position?->program?->name,
+            'department_id' => $position?->department_id,
+            'department' => $position?->department?->name,
+            'center' => $position?->center?->name,
+        ];
     }
 
     private function dailyHours(Collection $contracts): float
