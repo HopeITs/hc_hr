@@ -716,6 +716,8 @@ return [
     */
 
     'livewire_exempt' => [
+        // UI-only: clears the employees tab's search and filters; render() rechecks employees.view.
+        'program-management.program.program-employees' => ['resetFilters'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.

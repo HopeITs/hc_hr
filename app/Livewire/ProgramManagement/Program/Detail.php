@@ -38,9 +38,13 @@ class Detail extends Component
     {
         $program = $this->form->program;
 
-        $employees = $program->employees()->paginate(15);
-
-        return view('livewire.program-management.program.detail', compact('program', 'employees'));
+        return view('livewire.program-management.program.detail', [
+            'program' => $program,
+            'totalEmployees' => $program->employees()->count(),
+            'canViewEmployees' => auth()->user()?->hasActivePermission('employees.view') ?? false,
+            // Back on a later page or a filter of the employees tab (refresh, back/forward): open that tab.
+            'initialTab' => request()->hasAny([ProgramEmployees::PAGE_NAME, 'pe_center', 'pe_dept', 'pe_level']) ? 'employees' : 'details',
+        ]);
     }
 
     public function confirmDelete($id)

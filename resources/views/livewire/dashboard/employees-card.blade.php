@@ -31,7 +31,8 @@
                 @foreach ($people as $person)
                     @php($title = $person->contracts->first()?->position?->title)
                     <li wire:key="emp-{{ $person->id }}">
-                        <a href="{{ route('employees.show', $person->username) }}" wire:navigate class="hc-list-row">
+                        {{-- No username (some imports): no profile URL, so the row stays unlinked. --}}
+                        <a @if (filled($person->username)) href="{{ route('employees.show', $person->username) }}" wire:navigate @endif class="hc-list-row">
                             @can('viewAvatar', $person)
                                 <img class="hc-nt-av" src="{{ $person->avatar_url }}" alt="" loading="lazy">
                             @else

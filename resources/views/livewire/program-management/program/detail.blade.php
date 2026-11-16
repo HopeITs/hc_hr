@@ -2,7 +2,7 @@
     {{ $program->name }}
 </x-slot:title>
 
-<div class="relative isolate" x-data="{ activeTab: 'details' }">
+<div class="relative isolate" x-data="{ activeTab: @js($initialTab) }">
 
     <div class="space-y-12">
         <div class="grid gap-6 md:grid-cols-[1fr_auto] items-start">
@@ -58,6 +58,7 @@
                                 {{trans_choice('general.center' , 1)}}
                             </button>
 
+                            @if ($canViewEmployees)
                             <button type="button"
                                 @click="activeTab = 'employees'"
                                 class="ui-tab cursor-pointer px-4 py-2 rounded-surface text-body font-semibold transition-all
@@ -68,6 +69,7 @@
                                     : 'text-ink hover:bg-hover'">
                                 {{trans_choice('general.employee' , 2)}}
                             </button>
+                            @endif
                         </div>
                     </div>
 
@@ -80,7 +82,7 @@
                     <div>
                         <p class="text-body font-semibold text-ink-2">@lang('general.total-employees')</p>
                         <p class="text-h3 font-bold text-ink">
-                            {{ $employees->total() }}
+                            {{ $totalEmployees }}
                         </p>
                     </div>
 
@@ -181,62 +183,11 @@
             </div>
 
 
-            <div x-show="activeTab === 'employees'" x-cloak>
-                @if ($employees && $employees->isNotEmpty())
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-
-                        @foreach ($employees as $employee)
-                            <div class="group relative flex flex-col justify-center items-center text-center
-                            rounded-surface border border-line bg-card py-6
-                            shadow-e1 hover:shadow-e2 transition-all duration-300">
-                                {{-- This person's work contact on the viewer's dashboard (rec.contact.<id>). --}}
-                                <div class="absolute top-3 end-3">
-                                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :compact="true" :key="'atd-contact-'.$employee->id" />
-                                </div>
-
-                                <div class="flex text-h1 items-center justify-center size-26  flex-shrink-0 rounded-full overflow-hidden
-                                    bg-card border-2 border-line text-ink-2 font-medium uppercase ">
-                                    @if($employee->avatar_url)
-                                        <img src="{{ $employee->avatar_url }}"
-                                             alt="{{ $employee->displayName ?? $employee->name }}"
-                                             class="h-full w-full object-cover">
-                                    @else
-                                        {{ collect(explode(' ', $employee->displayName ?? $employee->name))
-                                            ->map(fn($n) => Str::substr($n, 0, 1))
-                                            ->join('') }}
-                                    @endif
-                                </div>
-
-
-                                <h3 class="text-h4 font-bold text-ink mt-3 mb-1">
-                                    {{ $employee->{'name_' . app()->getLocale()} }}
-                                </h3>
-
-                                <div class="space-y-3 text-small text-ink mt-3 w-full">
-                                    @foreach ($employee->contracts as $contract)
-                                        <div class="border-t border-line-soft first:border-none pt-2">
-                                            <p class="font-semibold text-ink-3">
-                                                {{ $contract->position?->{'title_' . app()->getLocale()} }}
-                                            </p>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                            </div>
-                        @endforeach
-
-                    </div>
-
-                    <div class="mt-6">
-                        {{ $employees->onEachSide(1)->links() }}
-                    </div>
-
-                @else
-                    <div class="text-center py-12 text-ink-2">
-                        @lang('general.no-employees')
-                    </div>
-                @endif
-            </div>
+            @if ($canViewEmployees)
+                <div x-show="activeTab === 'employees'" x-cloak>
+                    <livewire:program-management.program.program-employees :program-id="$program->id" :key="'program-employees-'.$program->id" />
+                </div>
+            @endif
 
 
         </div>
