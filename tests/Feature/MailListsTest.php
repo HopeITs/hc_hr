@@ -142,6 +142,64 @@ class MailListsTest extends TestCase
         $this->assertTrue($team->members()->sole()->isPending());
     }
 
+    public function test_search_finds_a_list_by_name_or_by_a_person_on_it_and_groups_narrow_the_page(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $importer = app(MailListImporter::class);
+        $importer->import($importer->parse($this->grid()));
+        $employee = $this->makeUser($aleppo, 'employee', []);
+
+        // A person: only the lists they are on, with who matched.
+        Livewire::actingAs($employee)->test(Index::class)
+            ->set('search', 'sami@')
+            ->assertSee('managers@hcsyria.org')
+            ->assertDontSee('team@hcsyria.org')
+            ->assertSee('sami@hcsyria.org');
+
+        // A list by its name.
+        Livewire::actingAs($employee)->test(Index::class)
+            ->set('search', 'team')
+            ->assertSee('team@hcsyria.org')
+            ->assertDontSee('managers@hcsyria.org');
+
+        // A group: team and managers are organisation-wide, it@ is a function.
+        Livewire::actingAs($employee)->test(Index::class)
+            ->call('setCategory', 'functions')
+            ->assertSee('it@hcsyria.org')
+            ->assertDontSee('managers@hcsyria.org')
+            ->call('setCategory', 'nonsense')
+            ->assertSee('managers@hcsyria.org');
+
+        $this->assertSame('cities', MailList::categoryOf('hope.aleppo@hcsyria.org'));
+        $this->assertSame('projects', MailList::categoryOf('micro.me@hcsyria.org'));
+        $this->assertSame('other', MailList::categoryOf('brand.new@hcsyria.org'));
+    }
+
+    public function test_the_members_panel_opens_one_list_and_hides_external_addresses_from_staff(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $importer = app(MailListImporter::class);
+        $importer->import($importer->parse($this->grid()));
+        MailList::query()->where('address', 'managers@hcsyria.org')->sole()->members()->create(['email' => 'parent@gmail.com']);
+        $managersId = MailList::query()->where('address', 'managers@hcsyria.org')->value('id');
+        $employee = $this->makeUser($aleppo, 'employee', []);
+        $hr = $this->makeUser($aleppo, 'HR-ALP', ['mail-lists.manage']);
+
+        Livewire::actingAs($employee)->test(Index::class)
+            ->assertDontSeeHtml('data-testid="mail-list-panel"')
+            ->call('openList', $managersId)
+            ->assertSeeHtml('data-testid="mail-list-panel"')
+            ->assertSee('sami@hcsyria.org')
+            ->assertDontSee('parent@gmail.com')
+            ->call('closeList')
+            ->assertDontSeeHtml('data-testid="mail-list-panel"')
+            ->call('openList', 999999)
+            ->assertDontSeeHtml('data-testid="mail-list-panel"');
+
+        // HR who manage the lists see the address, to be able to remove it.
+        Livewire::actingAs($hr)->test(Index::class)->call('openList', $managersId)->assertSee('parent@gmail.com');
+    }
+
     public function test_a_list_resolves_to_the_accounts_of_its_members(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

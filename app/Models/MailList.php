@@ -19,7 +19,25 @@ class MailList extends Model
     /** The domain of the organisation's own mailboxes. */
     public const DOMAIN = 'hcsyria.org';
 
+    /** The groups the page offers, in order; 'other' catches anything new. */
+    public const CATEGORIES = ['organisation', 'functions', 'cities', 'projects'];
+
     protected $fillable = ['name', 'address', 'position'];
+
+    /** Which group a list belongs to, from the name of its address. */
+    public static function categoryOf(string $address): string
+    {
+        $name = strtolower(strstr($address, '@', true) ?: $address);
+
+        return match (true) {
+            in_array($name, ['team', 'managers', 'board', 'headoffice'], true) => 'organisation',
+            in_array($name, ['pr', 'meal', 'financial', 'logistics', 'ct', 'design', 'it'], true) => 'functions',
+            in_array($name, ['homs'], true), str_starts_with($name, 'hope.') => 'cities',
+            str_starts_with($name, 'micro.'), str_starts_with($name, 'studyzone.'),
+            in_array($name, ['disc.syria', 'relief.aleppo', 'leap.students'], true) => 'projects',
+            default => 'other',
+        };
+    }
 
     public function members(): HasMany
     {
