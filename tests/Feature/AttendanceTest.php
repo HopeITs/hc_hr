@@ -164,7 +164,7 @@ class AttendanceTest extends TestCase
     public function test_hr_decides_a_day_on_the_page_and_cannot_touch_a_weekend(): void
     {
         $employee = $this->volunteer();
-        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view', 'attendance.manage']);
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
 
         Livewire::actingAs($hr)->test(Timesheets::class)
             ->set('month', '2026-09')
@@ -197,9 +197,9 @@ class AttendanceTest extends TestCase
         ]);
         $this->makeContractFor($other)->position->center->update(['weekends' => '0,6']);
 
-        // A role of its own: users of the same role name share the role's permissions.
-        $nobody = $this->makeUser($mine->city, 'employee', []);
-        $hr = $this->makeUser($mine->city, 'HR-ALP', ['attendance.view']);
+        // A role with no baseline of its own (every real role holds attendance.view-own).
+        $nobody = $this->makeUser($mine->city, 'guest', []);
+        $hr = $this->makeUser($mine->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         $this->actingAs($nobody)->get(route('attendance.timesheets'))->assertForbidden();
         $this->actingAs($nobody)->get(route('attendance.print', ['month' => '2026-09']))->assertForbidden();
@@ -216,7 +216,7 @@ class AttendanceTest extends TestCase
     public function test_a_sheet_with_waiting_days_prints_as_a_draft(): void
     {
         $employee = $this->volunteer();
-        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view']);
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))
             ->assertOk()
@@ -226,7 +226,7 @@ class AttendanceTest extends TestCase
     public function test_the_upload_page_previews_then_imports(): void
     {
         $employee = $this->volunteer();
-        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view', 'attendance.manage']);
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
 
         $csv = "AC-No,Name,Time\n{$employee->id},x,07/09/2026 08:55\n{$employee->id},x,07/09/2026 17:10\n";
         $file = UploadedFile::fake()->createWithContent('report.csv', $csv);
@@ -246,7 +246,7 @@ class AttendanceTest extends TestCase
         $mine = $this->volunteer();
         $damascus = $this->makeCity('DMS', '002');
         $other = $this->makeEmployee($damascus, 'other');
-        $hr = $this->makeUser($mine->city, 'HR-ALP', ['attendance.view', 'attendance.manage']);
+        $hr = $this->makeUser($mine->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
 
         Livewire::actingAs($hr)->test(Upload::class)
             ->set('employeeIds.77', (string) $other->id)

@@ -50,7 +50,7 @@ class Timesheets extends Component
 
     public function mount(): void
     {
-        $this->authorizeActivePermission('attendance.view');
+        $this->authorizeActivePermission('attendance.view-own');
 
         if (! preg_match('/^\d{4}-\d{2}$/', $this->month)) {
             $this->month = now()->subDays(10)->format('Y-m');
@@ -73,7 +73,7 @@ class Timesheets extends Component
     {
         $this->authorizeActivePermission('attendance.manage');
 
-        $employee = $this->scopedEmployee($employeeId);
+        $employee = $this->scopedEmployee($employeeId, $date);
         $row = $this->rowFor($employee, $date);
 
         abort_unless($row !== null && $row['decidable'], 422);
@@ -101,7 +101,7 @@ class Timesheets extends Component
             'dayNote' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $employee = $this->scopedEmployee((int) $this->dayEmployeeId);
+        $employee = $this->scopedEmployee((int) $this->dayEmployeeId, $this->dayDate);
         $row = $this->rowFor($employee, (string) $this->dayDate);
 
         // Only a day that is waiting, or already decided, can be answered; leave, holidays and
@@ -121,7 +121,7 @@ class Timesheets extends Component
     {
         $this->authorizeActivePermission('attendance.manage');
 
-        $employee = $this->scopedEmployee((int) $this->dayEmployeeId);
+        $employee = $this->scopedEmployee((int) $this->dayEmployeeId, $this->dayDate);
 
         AttendanceDayDecision::query()
             ->where('employee_id', $employee->id)
@@ -174,6 +174,7 @@ class Timesheets extends Component
             'by' => $by,
             'days' => $days,
             'cities' => $roster->cities(auth()->user()),
+            'mode' => $roster->mode(auth()->user()),
             'monthDate' => $month,
             'open' => $open,
             'canManage' => auth()->user()->hasActivePermission('attendance.manage'),
@@ -200,11 +201,13 @@ class Timesheets extends Component
         return $parsed instanceof CarbonImmutable ? $parsed : CarbonImmutable::now()->startOfMonth();
     }
 
-    private function scopedEmployee(int $id): Employee
+    private function scopedEmployee(int $id, ?string $date = null): Employee
     {
         $employee = Employee::query()->findOrFail($id);
+        $day = $date ? CarbonImmutable::createFromFormat('!Y-m-d', $date) : null;
+        $month = $day instanceof CarbonImmutable ? $day->startOfMonth() : $this->monthDate();
 
-        abort_unless(app(Roster::class)->covers(auth()->user(), $employee), 403);
+        abort_unless(app(Roster::class)->covers(auth()->user(), $employee, $month), 403);
 
         return $employee;
     }

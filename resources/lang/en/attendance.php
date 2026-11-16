@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'nav-own' => 'My timesheet',
+    'nav-team' => 'Team timesheets',
     'nav' => 'Attendance',
 
     'upload' => [
@@ -41,6 +43,11 @@ return [
     'timesheets' => [
         'title' => 'Timesheets',
         'lead' => 'One row per person for the month. Leave and holidays come from HC-HR; the punches come from the uploaded report.',
+        'title-own' => 'My timesheet',
+        'title-team' => "My team's timesheets",
+        'lead-own' => 'Your attendance for the month: the days you worked, your leave and your overtime.',
+        'lead-team' => "Your own timesheet and your direct reports'. Leave and holidays come from HC-HR; the punches come from the uploaded report.",
+        'print-own' => 'Print my timesheet',
         'month' => 'Month',
         'city' => 'City',
         'all-cities' => 'All cities',

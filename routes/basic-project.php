@@ -37,9 +37,9 @@ Route::prefix('attendance')->name('attendance.')->group(function () {
     Route::get('/upload', \App\Livewire\Attendance\Upload::class)
         ->middleware('active_permission:attendance.manage')->name('upload');
     Route::get('/timesheets', \App\Livewire\Attendance\Timesheets::class)
-        ->middleware('active_permission:attendance.view')->name('timesheets');
+        ->middleware('active_permission:attendance.view-own')->name('timesheets');
     Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
-        ->middleware('active_permission:attendance.view')->name('print');
+        ->middleware('active_permission:attendance.view-own')->name('print');
 });
 
 // HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.

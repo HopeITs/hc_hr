@@ -17,17 +17,21 @@
     $hm = fn (?int $m) => $m === null ? '' : intdiv($m, 60).'h '.str_pad((string) ($m % 60), 2, '0', STR_PAD_LEFT).'m';
     $printBase = array_filter(['month' => $month, 'city_id' => $cityId, 'group_by' => $by]);
     $groupLabel = $by === Grouping::DEPARTMENT ? 'attendance.timesheets.no-department' : 'attendance.timesheets.no-project';
+    // What the active role sees: own (an employee), team (a manager), city (HR of a city) or all.
+    $own = $mode === 'own';
+    $title = match ($mode) { 'own' => __('attendance.timesheets.title-own'), 'team' => __('attendance.timesheets.title-team'), default => __('attendance.timesheets.title') };
+    $lead = match ($mode) { 'own' => __('attendance.timesheets.lead-own'), 'team' => __('attendance.timesheets.lead-team'), default => __('attendance.timesheets.lead') };
 @endphp
 
 <div class="space-y-6">
-    <x-slot:title>{{ __('attendance.timesheets.title') }}</x-slot:title>
+    <x-slot:title>{{ $title }}</x-slot:title>
 
-    <x-page-header :title="__('attendance.timesheets.title')" :lead="__('attendance.timesheets.lead')">
+    <x-page-header :title="$title" :lead="$lead">
         <x-slot:actions>
             @if($canManage)
                 <x-button variant="outline" icon="plus" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
             @endif
-            <x-button icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">@lang('attendance.timesheets.print-all')</x-button>
+            <x-button icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">{{ $own ? __('attendance.timesheets.print-own') : __('attendance.timesheets.print-all') }}</x-button>
         </x-slot:actions>
     </x-page-header>
 
@@ -50,6 +54,7 @@
                 </div>
             </div>
 
+            @if($cities->isNotEmpty())
             <div>
                 <x-forms.input-label for="att-city">@lang('attendance.timesheets.city')</x-forms.input-label>
                 <x-forms.select-input id="att-city" wire:model.live="cityId">
@@ -59,7 +64,9 @@
                     @endforeach
                 </x-forms.select-input>
             </div>
+            @endif
 
+            @unless($own)
             <div>
                 <span class="mb-1 block text-small font-semibold text-ink-2" id="att-group-label">@lang('attendance.timesheets.group-by')</span>
                 <div class="inline-flex overflow-hidden rounded-control border border-line" role="group" aria-labelledby="att-group-label">
@@ -85,6 +92,7 @@
                 <input type="checkbox" wire:model.live="onlyToDecide" class="size-4 rounded border-line">
                 @lang('attendance.timesheets.only-to-decide')
             </label>
+            @endunless
         </div>
     </x-card>
 
@@ -161,10 +169,12 @@
                             @if($group['totals']['overtime_hours'] > 0)
                                 <span class="text-small text-ink-2 num">{{ $group['totals']['overtime_hours'] }} h = +{{ $group['totals']['overtime_days'] }} @lang('attendance.timesheets.free-days')</span>
                             @endif
+                            @unless($own)
                             <x-button variant="outline" size="sm" icon="file" :wire:navigate="false" target="_blank"
                                       :href="route('attendance.print', $printBase + ['city_id' => $block['id'], 'group' => $group['id'] ?? 'none'])">
                                 @lang('attendance.timesheets.print-group')
                             </x-button>
+                            @endunless
                         </div>
                     </div>
 

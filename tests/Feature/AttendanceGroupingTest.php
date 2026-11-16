@@ -150,7 +150,7 @@ class AttendanceGroupingTest extends TestCase
         $this->person('d1', $damascus, 'Education', 'Admin', 'Carla', 'Charlie');
     }
 
-    private function hr(array $permissions = ['attendance.view']): \App\Models\User
+    private function hr(array $permissions = ['attendance.view-own', 'attendance.view']): \App\Models\User
     {
         return $this->makeUser(City::query()->where('slug', 'ALP')->first(), 'HR-SYR', $permissions);
     }
