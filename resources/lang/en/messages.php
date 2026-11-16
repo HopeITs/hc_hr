@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'title' => 'Message templates',
+    'lead' => 'Email and WhatsApp texts with placeholders. Nothing is sent by the system: a template opens as a new message you read and edit first.',
+    'new' => 'New template',
+    'name' => 'Name',
+    'channel' => 'Channel',
+    'email' => 'Email',
+    'language' => 'Language',
+    'subject' => 'Subject',
+    'body' => 'Message',
+    'variables-help' => 'Placeholders you can use:',
+    'cc-manager' => "Copy the person's direct manager",
+    'active' => 'Active',
+    'on' => 'On',
+    'off' => 'Off',
+    'saved' => 'Template saved.',
+    'deleted' => 'Template deleted.',
+    'delete-confirm' => 'Delete this template?',
+    'empty' => 'No templates yet',
+    'empty-help' => 'Create one, for example "Contract ending", and it appears on every person card.',
+    'use-template' => 'Use a template',
+    'no-address' => 'No address',
+];
