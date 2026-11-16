@@ -125,6 +125,10 @@
       ".has-csb-x::-webkit-scrollbar-thumb:hover{background:var(--csb-hover," + C.hoverColor + ");}" +
       ".csb{position:fixed;width:" + TRACKW + "px;pointer-events:none;opacity:0;transition:opacity .18s;}" +
       ".csb.on{opacity:1;}" +
+      // The dashboard's workspace opens pages in a frame over the dashboard, which stays
+      // mounted underneath: the bars of its cards are fixed on <body> and would ride
+      // over the panel. The frame is another document with its own bars, unaffected.
+      "html.ws-open>body>.csb{visibility:hidden;}" +
       // Held while its container (or a parent) animates: gone at once, no fade.
       ".csb.csb-hold,.csb.on.csb-hold{opacity:0;transition:none;}" +
       ".csb-track{position:absolute;inset:0;border:" + C.trackBorder + "px solid var(--csb-color," + C.color + ");border-radius:" + C.trackRadius + "px;box-sizing:border-box;pointer-events:auto;}" +
