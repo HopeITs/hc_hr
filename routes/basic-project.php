@@ -32,6 +32,16 @@ Route::get('holidays', HolidayModule::class)->name('holidays.index');
 
 Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positions.view')->name('org.chart');
 
+// Attendance: the device report becomes a printed monthly timesheet.
+Route::prefix('attendance')->name('attendance.')->group(function () {
+    Route::get('/upload', \App\Livewire\Attendance\Upload::class)
+        ->middleware('active_permission:attendance.manage')->name('upload');
+    Route::get('/timesheets', \App\Livewire\Attendance\Timesheets::class)
+        ->middleware('active_permission:attendance.view')->name('timesheets');
+    Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
+        ->middleware('active_permission:attendance.view')->name('print');
+});
+
 // HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.
 Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
     ->middleware('active_permission:message-templates.manage')->name('message-templates.index');

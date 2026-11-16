@@ -76,6 +76,7 @@ return [
         'checklists' => 'Checklist items',
         'activity-log' => 'Activity log',
         'message-templates' => 'Message templates',
+        'attendance' => 'Attendance',
         'recruitment-requests' => 'Recruitment requests',
         'recruitment-vacancies' => 'Vacancies',
         'recruitment-campaigns' => 'Hiring campaigns',

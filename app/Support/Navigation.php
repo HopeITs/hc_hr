@@ -70,6 +70,7 @@ final class Navigation
             ! $isManager && $can('leaves.view-all') ? self::item('nav.hr.leaves', __('general.all-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $can('leaves.manage-balances') ? self::item('nav.hr.balances', __('general.balance'), 'leaves.balance', ['leaves.balance'], 'calendar') : null,
             $isDeliverResponsible && $can('checklists.manage') ? self::item('nav.hr.done-requests', __('general.done_requests'), 'checklist-items.done-requests', ['checklist-items.done-requests'], 'check') : null,
+            $can('attendance.view') ? self::item('nav.hr.attendance', __('attendance.nav'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $can('message-templates.manage') ? self::item('nav.hr.message-templates', __('messages.title'), 'message-templates.index', ['message-templates.*'], 'clipboard-list') : null,
             $can('badges.view') ? self::item('nav.hr.badges', __('general.all-badges'), 'badges.index', ['badges.*'], 'badges', 'nav.badges') : null,
             $can('statistics.view') ? self::group('nav.hr.statistics', __('general.statistics'), 'statistics', [
