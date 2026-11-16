@@ -15,6 +15,16 @@
 
     </div>
 
+    @if($form->position?->is_active && $form->position?->canAssign() && auth()->user()?->hasActivePermission('recruitment-requests.manage'))
+        {{-- A position with free seats: straight to the hiring request, position pre-filled. --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 mb-4 border rounded-surface border-line-soft bg-soft" data-testid="position-open-seats">
+            <p class="text-body text-ink">{{ __('general.open-seats-notice', ['count' => $form->position->max_emp - $form->position->exist_emp]) }}</p>
+            <x-button variant="outline" size="sm" :href="route('recruitment.requests.create', ['type' => \App\Enums\RecruitmentRequestType::FillVacancy, 'position_id' => $form->position->id])">
+                @lang('general.open-vacancy')
+            </x-button>
+        </div>
+    @endif
+
     <x-forms.form-body wire:submit.prevent="save">
         <x-forms.errors-validation-list/>
         <div class="grid gap-4 md:grid-cols-2">

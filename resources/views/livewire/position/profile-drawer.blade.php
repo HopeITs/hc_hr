@@ -124,15 +124,19 @@
 
                 {{-- Contact --}}
                 @php($contacts = collect([
-                    ['icon' => 'phone', 'value' => $employee->work_phone, 'href' => 'tel:'],
-                    ['icon' => 'mail', 'value' => $employee->work_email, 'href' => 'mailto:'],
+                    ['icon' => 'phone', 'value' => $employee->work_phone, 'url' => filled($employee->work_phone) ? 'tel:'.$employee->work_phone : null],
+                    // New message to the employee with their direct manager on CC.
+                    ['icon' => 'mail', 'value' => $employee->work_email, 'url' => $employee->mailtoUrl($managerEmployee?->work_email), 'cc' => $managerEmployee?->work_email],
                 ])->filter(fn ($c) => filled($c['value'])))
                 @if($contacts->isNotEmpty())
                     <div>
                         <h3 class="mb-2 text-small font-bold tracking-wide uppercase text-ink-3">@lang('general.contact')</h3>
                         <div class="space-y-2">
                             @foreach($contacts as $contact)
-                                <a href="{{ $contact['href'].$contact['value'] }}"
+                                <a href="{{ $contact['url'] }}"
+                                   @if(! empty($contact['cc']) && strcasecmp($contact['cc'], $contact['value']) !== 0)
+                                       title="{{ __('general.email-cc-manager', ['name' => $managerEmployee->name]) }}"
+                                   @endif
                                    class="flex items-center gap-2 rounded-surface border border-line-soft px-3 py-2 text-body font-medium text-ink transition hover:border-line hover:bg-hover">
                                     <span class="flex items-center justify-center rounded-surface size-7 shrink-0 bg-soft text-ink-2">
                                         @if($contact['icon'] === 'mail')
@@ -169,6 +173,11 @@
                         <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-ink-3">
                             @lang('general.direct-reports')
                             <span class="rounded-full bg-surface px-2 py-1 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
+                            @if(filled(config('app.team_email')))
+                                {{-- New message to the team's shared mailbox, not to each address. --}}
+                                <a href="mailto:{{ config('app.team_email') }}"
+                                   class="ms-auto text-small font-semibold normal-case tracking-normal text-ink-2 underline hover:text-ink">@lang('general.email-team')</a>
+                            @endif
                         </h3>
                         <div class="space-y-2">
                             @foreach($reports as $report)
@@ -188,6 +197,10 @@
                                             <div class="text-body font-semibold truncate">@lang('general.vacant-position')</div>
                                             <div class="text-small truncate">{{ $report->title }}</div>
                                         </div>
+                                        @if(auth()->user()?->hasActivePermission('recruitment-requests.manage'))
+                                            <a href="{{ route('recruitment.requests.create', ['type' => \App\Enums\RecruitmentRequestType::FillVacancy, 'position_id' => $report->id]) }}"
+                                               class="ms-auto shrink-0 text-small font-semibold text-ink underline hover:text-primary">@lang('general.request-hire')</a>
+                                        @endif
                                     </div>
                                 @endforelse
                             @endforeach
@@ -204,6 +217,14 @@
                 <div class="flex justify-center">
                     <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :key="'atd-drawer-'.$employee->id" />
                 </div>
+                <div class="flex justify-center">
+                    <x-message-template-menu :employee="$employee" />
+                </div>
+                @if($position && auth()->user()?->hasActivePermission('positions.update'))
+                    <x-button full variant="outline" :href="route('positions.edit', ['position' => $position->id])">
+                        @lang('general.open-position')
+                    </x-button>
+                @endif
                 @if(filled($employee->username))
                     <x-button full :href="route('employees.show', ['employee' => $employee->username])">
                         @lang('general.view-full-profile')

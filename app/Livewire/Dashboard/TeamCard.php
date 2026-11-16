@@ -176,7 +176,11 @@ class TeamCard extends Component
         // One read for the whole team (WorkPresence: three queries, whatever the count).
         $presence = $viewer ? app(WorkPresence::class)->for($viewer, $team->modelKeys()) : [];
 
-        $team->each(function (Employee $employee) use ($viewer, $presence): void {
+        // Each member's direct manager, for the CC on the email link (one batch).
+        $managerEmails = Employee::directManagerEmails($team);
+
+        $team->each(function (Employee $employee) use ($viewer, $presence, $managerEmails): void {
+            $employee->mailto = $employee->mailtoUrl($managerEmails[$employee->getKey()] ?? null);
             $employee->canViewAvatar = $viewer !== null
                 && Gate::forUser($viewer)->allows('viewAvatar', $employee);
             $employee->presence = $presence[$employee->getKey()] ?? null;

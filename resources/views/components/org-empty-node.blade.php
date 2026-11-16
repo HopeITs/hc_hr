@@ -26,6 +26,11 @@
             <span class="text-caption uppercase">{{ $position->program?->name }}</span>
             <span class="text-ink-2 font-semibold text-caption uppercase"
                 @if ($cityName) title="{{ $cityName }}" @endif>{{ $cityName }}</span>
+            @if (auth()->user()?->hasActivePermission('recruitment-requests.manage'))
+                {{-- Straight to the hiring request for this seat, position pre-filled. --}}
+                <a href="{{ route('recruitment.requests.create', ['type' => \App\Enums\RecruitmentRequestType::FillVacancy, 'position_id' => $position->id]) }}"
+                   class="mt-2 text-caption font-semibold underline text-ink hover:text-primary">@lang('general.request-hire')</a>
+            @endif
         </div>
     </div>
 </div>
