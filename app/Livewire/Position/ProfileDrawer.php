@@ -121,7 +121,9 @@ class ProfileDrawer extends Component
             ->where('direct_manager_id', $this->position->id)
             ->with([
                 'activeContracts' => DirectoryAccess::holders(auth()->user()),
-                'activeContracts.employee' => DirectoryAccess::holderEmployee(),
+                // With the work email, for "email the team".
+                'activeContracts.employee' => fn ($employee) => DirectoryAccess::holderEmployee()($employee)
+                    ->with(DirectoryAccess::ACCOUNT_COLUMNS),
                 'jobLevel',
             ])
             ->orderByGrade()

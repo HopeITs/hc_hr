@@ -173,6 +173,12 @@
                         <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-ink-3">
                             @lang('general.direct-reports')
                             <span class="rounded-full bg-surface px-2 py-1 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
+                            @php($teamEmails = $reports->flatMap(fn ($r) => $r->activeContracts->pluck('employee'))->filter()->map->work_email->filter()->unique()->values())
+                            @if($teamEmails->isNotEmpty())
+                                {{-- New message addressed to the whole team. --}}
+                                <a href="mailto:{{ $teamEmails->map(fn ($e) => rawurlencode($e))->implode(',') }}"
+                                   class="ms-auto text-small font-semibold normal-case tracking-normal text-ink-2 underline hover:text-ink">@lang('general.email-team')</a>
+                            @endif
                         </h3>
                         <div class="space-y-2">
                             @foreach($reports as $report)
@@ -192,6 +198,10 @@
                                             <div class="text-body font-semibold truncate">@lang('general.vacant-position')</div>
                                             <div class="text-small truncate">{{ $report->title }}</div>
                                         </div>
+                                        @if(auth()->user()?->hasActivePermission('recruitment-requests.manage'))
+                                            <a href="{{ route('recruitment.requests.create', ['type' => \App\Enums\RecruitmentRequestType::FillVacancy, 'position_id' => $report->id]) }}"
+                                               class="ms-auto shrink-0 text-small font-semibold text-ink underline hover:text-primary">@lang('general.request-hire')</a>
+                                        @endif
                                     </div>
                                 @endforelse
                             @endforeach
@@ -208,6 +218,11 @@
                 <div class="flex justify-center">
                     <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :key="'atd-drawer-'.$employee->id" />
                 </div>
+                @if($position && auth()->user()?->hasActivePermission('positions.update'))
+                    <x-button full variant="outline" :href="route('positions.edit', ['position' => $position->id])">
+                        @lang('general.open-position')
+                    </x-button>
+                @endif
                 @if(filled($employee->username))
                     <x-button full :href="route('employees.show', ['employee' => $employee->username])">
                         @lang('general.view-full-profile')
