@@ -124,15 +124,19 @@
 
                 {{-- Contact --}}
                 @php($contacts = collect([
-                    ['icon' => 'phone', 'value' => $employee->work_phone, 'href' => 'tel:'],
-                    ['icon' => 'mail', 'value' => $employee->work_email, 'href' => 'mailto:'],
+                    ['icon' => 'phone', 'value' => $employee->work_phone, 'url' => filled($employee->work_phone) ? 'tel:'.$employee->work_phone : null],
+                    // New message to the employee with their direct manager on CC.
+                    ['icon' => 'mail', 'value' => $employee->work_email, 'url' => $employee->mailtoUrl($managerEmployee?->work_email), 'cc' => $managerEmployee?->work_email],
                 ])->filter(fn ($c) => filled($c['value'])))
                 @if($contacts->isNotEmpty())
                     <div>
                         <h3 class="mb-2 text-small font-bold tracking-wide uppercase text-ink-3">@lang('general.contact')</h3>
                         <div class="space-y-2">
                             @foreach($contacts as $contact)
-                                <a href="{{ $contact['href'].$contact['value'] }}"
+                                <a href="{{ $contact['url'] }}"
+                                   @if(! empty($contact['cc']) && strcasecmp($contact['cc'], $contact['value']) !== 0)
+                                       title="{{ __('general.email-cc-manager', ['name' => $managerEmployee->name]) }}"
+                                   @endif
                                    class="flex items-center gap-2 rounded-surface border border-line-soft px-3 py-2 text-body font-medium text-ink transition hover:border-line hover:bg-hover">
                                     <span class="flex items-center justify-center rounded-surface size-7 shrink-0 bg-soft text-ink-2">
                                         @if($contact['icon'] === 'mail')

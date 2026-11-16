@@ -17,7 +17,9 @@
             $position = $contract?->position?->title;
             $role = role_label($employee->account?->myRole());
             $email = $employee->account?->email;
-            $titleId = 'employee-drawer-title-'.$employee->id;
+            // New message to the employee with their direct manager on CC.
+            $mailto = $employee->mailtoUrl(\App\Models\Employee::directManagerEmails([$employee])[$employee->id] ?? null);
+            $titleId ='employee-drawer-title-'.$employee->id;
             $fields = [
                 [trans_choice('general.city', 1), $employee->city?->name],
                 [__('general.work_email'), $email, 'ltr'],
@@ -121,7 +123,7 @@
                     @if($email)
                         <div>
                             <h3 class="mb-2 text-small font-bold uppercase text-ink-2">{{ __('general.contact') }}</h3>
-                            <a href="mailto:{{ $email }}"
+                            <a href="{{ $mailto }}"
                                class="flex items-center gap-2 rounded-surface border border-line-soft px-3 py-2 text-body font-medium text-ink transition hover:border-ink-3 hover:bg-surface">
                                 <span class="flex size-7 shrink-0 items-center justify-center rounded-surface bg-surface text-ink-2">
                                     <svg class="size-4" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
