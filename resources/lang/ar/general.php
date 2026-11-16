@@ -612,6 +612,8 @@ return [
     ],
     'weekend-days' => 'العطلة الاسبوعية',
     'center-programs' => 'البرامج في هذا المركز',
+    'shared-positions' => '+ :count مشترك|+ :count مشتركة',
+    'shared-centers' => 'مشترك بين: :centers',
     'center-programs-hint' => 'متطوعو هذه البرامج الذين ليس لهم مركز (مثل ستادي زون) يأخذون العطلة الأسبوعية وساعات العمل من هذا المركز عند طلب الإجازة.',
     'join-at' => 'تاريخ الانضمام',
     'days-of-week' => [

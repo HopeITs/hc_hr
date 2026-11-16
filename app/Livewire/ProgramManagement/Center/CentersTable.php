@@ -8,6 +8,7 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Contract;
+use App\Models\Position;
 use App\Models\User;
 use App\Notifications\CenterClosed;
 use Illuminate\Database\Eloquent\Builder;
@@ -120,7 +121,20 @@ class CentersTable extends LivewireTable
         return $this->scopeToAuthorizedCity(
             $this->model()::query()
                 ->with(['city', 'managerContracts.employee', 'managerContracts.position.jobLevel', 'programs'])
-                ->withCount('positions'),
+                ->withCount('positions')
+                // Positions without a center in its city whose program it serves
+                // (Position::scopeServingCenter): shared with that program's
+                // other centers there, so they are counted apart.
+                ->addSelect(['shared_positions_count' => Position::query()
+                    ->selectRaw('count(*)')
+                    ->whereNull('positions.center_id')
+                    ->whereColumn('positions.city_id', 'centers.city_id')
+                    ->whereExists(fn ($links) => $links
+                        ->selectRaw('1')
+                        ->from('center_program')
+                        ->whereColumn('center_program.center_id', 'centers.id')
+                        ->whereColumn('center_program.program_id', 'positions.program_id')),
+                ]),
         );
     }
 
@@ -248,13 +262,17 @@ class CentersTable extends LivewireTable
                     $classes = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium '.'border shadow-sm transition '.($m->is_active ? 'bg-surface text-ink border-line-soft ' : 'bg-card text-ink border-line-soft hover:bg-hover hover:border-line');
 
                     $count = $m->positions_count ?? 0;
+                    $shared = (int) ($m->shared_positions_count ?? 0);
                     $badge = '<span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-caption bg-current/10">'.$count.'</span>';
+                    $sharedNote = $shared > 0
+                        ? '<span class="text-caption text-ink-2">'.e(trans_choice('general.shared-positions', $shared, ['count' => $shared])).'</span>'
+                        : '';
 
                     return Blade::render(
                         '<a href="'.$url.'" wire:navigate class="'.$classes.'" title="'.e(__('general.positions')).'">
                 <i class="ti ti-briefcase text-base"></i>
                 <span>'.e(trans_choice('general.positions', 2)).'</span>'.
-                            $badge.
+                            $badge.$sharedNote.
                             '</a>',
                     );
                 })->asHtml()->visible($canViewPositions)->clickable(false),

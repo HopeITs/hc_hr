@@ -17,7 +17,7 @@ class Detail extends Component
 
     public function mount(Program $program)
     {
-        $program->load(['centers.city', 'centers.managerContracts.employee', 'centers.managerContracts.position.jobLevel', 'centers.programs']);
+        $program->load(['centers.city', 'linkedCenters.city']);
         $this->form->setProgram($program);
     }
 
@@ -38,8 +38,14 @@ class Detail extends Component
     {
         $program = $this->form->program;
 
+        // Positions' centers and the centers linked to the program (Study Zone's
+        // positions have none), with what each card's manager line reads.
+        $centers = $program->loadMissing(['centers.city', 'linkedCenters.city'])->allCenters()
+            ->load(['programs', 'managerContracts.employee', 'managerContracts.position.jobLevel']);
+
         return view('livewire.program-management.program.detail', [
             'program' => $program,
+            'centers' => $centers,
             'totalEmployees' => $program->employees()->count(),
             'canViewEmployees' => auth()->user()?->hasActivePermission('employees.view') ?? false,
             // Back on a later page or a filter of the employees tab (refresh, back/forward): open that tab.

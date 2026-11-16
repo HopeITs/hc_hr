@@ -89,7 +89,7 @@
                     <div>
                         <p class="text-body font-semibold text-ink-2">{{trans_choice('general.center' , 1)}}</p>
                         <p class="text-h3 font-bold text-ink">
-                            {{ $program->centers->count() }}
+                            {{ $centers->count() }}
                         </p>
                     </div>
                 </div>
@@ -145,9 +145,9 @@
 
 
             <div x-show="activeTab === 'centers'" x-cloak>
-                @if ($program->centers->isNotEmpty())
+                @if ($centers->isNotEmpty())
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        @foreach ($program->centers as $center)
+                        @foreach ($centers as $center)
                             <div class="relative" wire:key="center-card-{{ $center->id }}">
                             {{-- This centre on the viewer's dashboard (item.center.<id>); beside the link, never inside it. --}}
                             <div class="absolute top-3 end-3 z-10">

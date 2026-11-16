@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Position\PositionTable;
 use App\Livewire\ProgramManagement\Center\CenterCreate;
+use App\Livewire\ProgramManagement\Center\CenterDetails;
 use App\Livewire\ProgramManagement\Center\CentersModule;
 use App\Livewire\ProgramManagement\Center\CentersTable;
+use App\Livewire\ProgramManagement\Program\Detail;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Contract;
@@ -135,6 +138,33 @@ class CenterManagerTest extends TestCase
         $this->assertSame('Fadi Dabbagh', $headOffice->managerNamesFor($this->program));
         $this->assertSame('Fredy Youssef', $headOffice->managerNamesFor($hopeCenter));
         $this->assertSame('Fredy Youssef', $headOffice->managerNames());
+    }
+
+    public function test_a_center_serving_a_program_counts_its_shared_volunteers_and_the_card_counts_people(): void
+    {
+        $scienceZone = $this->makeCenter('Science Zone');
+        $scienceZone->programs()->attach($this->program);
+        $unlinked = $this->makeCenter('Hope Center');
+        $otherCity = $this->makeCity('HMS', '002');
+
+        // Study Zone positions have no center: shared by the program's centers of their city.
+        $layla = $this->employee('layla', 'Layla', 'Volunteer');
+        $this->makeContract($layla, $this->makePosition(null, $this->officer));
+        $this->makeContract($layla, $this->makePosition(null, $this->officer));
+        $this->makeContract($this->employee('homs', 'Homs', 'Volunteer'), $this->makePosition(null, $this->officer, $otherCity));
+
+        $this->assertSame([$layla->id], $scienceZone->activeEmployeesQuery()->pluck('id')->all());
+        $this->assertSame(0, $unlinked->activeEmployeesQuery()->count());
+
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['centers.view', 'employees.view']);
+        Livewire::actingAs($hr)->test(CenterDetails::class, ['center' => $scienceZone])
+            ->assertViewHas('totalEmployees', 1)
+            ->assertViewHas('totalAssignments', 2);
+
+        // Layla holds two of the program's positions: one person on its card.
+        $card = Program::query()->withCardCounts()->findOrFail($this->program->id);
+        $this->assertSame(2, (int) $card->employees_count);
+        $this->assertSame(3, (int) $card->contracts_count);
     }
 
     public function test_center_without_a_project_manager_shows_a_dash(): void
@@ -275,6 +305,53 @@ class CenterManagerTest extends TestCase
             ->assertHasErrors('item.programs.0');
 
         $this->assertSame(0, $center->programs()->count());
+    }
+
+    public function test_a_programs_positions_without_a_center_serve_every_linked_center_in_its_city(): void
+    {
+        $studyZone = $this->makeCenter('Study Zone Armenian');
+        $studyZone->programs()->attach($this->program);
+        $own = $this->makePosition($studyZone, $this->officer);
+        $shared = $this->makePosition(null, $this->officer);
+        // Another program's position without a center, and another city's.
+        $other = Program::query()->forceCreate(['name' => 'Micro', 'slug' => 'micro', 'code' => 'MIC', 'is_active' => true]);
+        $elsewhere = $this->makePosition(null, $this->officer);
+        $elsewhere->update(['program_id' => $other->id]);
+        $this->makePosition(null, $this->officer, $this->makeCity('HMS', '002'));
+        $hope = $this->makeCenter('Hope Center');
+
+        $this->assertEqualsCanonicalizing(
+            [$own->id, $shared->id],
+            Position::query()->servingCenter($studyZone)->pluck('id')->all(),
+        );
+        $this->assertSame([], Position::query()->servingCenter($hope)->pluck('id')->all());
+
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['centers.view', 'positions.view']);
+
+        Livewire::actingAs($hr)
+            ->test(CentersTable::class)
+            ->assertSee(trans_choice('general.shared-positions', 1, ['count' => 1]));
+
+        Livewire::actingAs($hr)
+            ->test(PositionTable::class, ['centerId' => $studyZone->id])
+            ->assertViewHas('paginator', fn ($paginator) => collect($paginator->items())->pluck('id')->sort()->values()->all() === collect([$own->id, $shared->id])->sort()->values()->all());
+    }
+
+    public function test_the_program_page_lists_its_linked_centers_with_their_manager(): void
+    {
+        $studyZone = $this->makeCenter('Study Zone Armenian');
+        $studyZone->programs()->attach($this->program);
+        $this->makeCenter('Hope Center');
+        $this->makeContract($this->employee('waad', 'Waad', 'Ishak'), $this->makePosition(null, $this->projectManager));
+
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['programs.view']);
+
+        Livewire::actingAs($hr)
+            ->test(Detail::class, ['program' => $this->program])
+            ->assertViewHas('centers', fn ($centers) => $centers->pluck('id')->all() === [$studyZone->id])
+            ->assertSee('Study Zone Armenian')
+            ->assertSee('Waad Ishak')
+            ->assertDontSee('No centers associated');
     }
 
     private function employee(string $username, string $first, string $last): Employee

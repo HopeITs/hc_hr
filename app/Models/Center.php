@@ -119,16 +119,16 @@ class Center extends Model
      *
      * Both the center headline and its employee directory use this query so a
      * person holding two positions is displayed and counted exactly once.
+     * Includes the volunteers of a program it serves whose position has no
+     * center (Contract::scopeServingCenter; Study Zone).
      */
     public function activeEmployeesQuery(): Builder
     {
-        $centerId = (int) $this->getKey();
-
         return Employee::query()->whereHas(
             'allContracts',
             fn (Builder $contracts): Builder => $contracts
                 ->activeNow()
-                ->atCenter($centerId),
+                ->servingCenter($this),
         );
     }
 
