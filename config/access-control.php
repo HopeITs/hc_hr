@@ -154,6 +154,9 @@ return [
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
         'message-templates' => ['manage', 'use'],
+        // Attendance from the device report: `view` reads and prints timesheets (a city HR role sees
+        // its own city), `manage` uploads the report, links device numbers and decides days.
+        'attendance' => ['view', 'manage'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -225,6 +228,18 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
+        // Attendance: uploading, linking device numbers and deciding days. Each also checks the
+        // permission and the city scope inside.
+        'attendance.upload' => [
+            'updatedFile' => 'attendance.manage',
+            'import' => 'attendance.manage',
+            'linkNumber' => 'attendance.manage',
+        ],
+        'attendance.timesheets' => [
+            'openDay' => 'attendance.manage',
+            'saveDecision' => 'attendance.manage',
+            'clearDecision' => 'attendance.manage',
+        ],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
         'messages.template-manager' => [
             'edit' => 'message-templates.manage',
@@ -716,6 +731,10 @@ return [
     */
 
     'livewire_exempt' => [
+        // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
+        'attendance.timesheets' => ['closeDay'],
+        // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
+        'attendance.upload' => ['cancel'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
