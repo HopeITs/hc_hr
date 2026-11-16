@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Position;
 
+use App\Enums\RecruitmentRequestType;
 use App\Exports\PositionExport;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
@@ -132,6 +133,7 @@ class PositionTable extends LivewireTable
     {
         $canUpdate = auth()->user()?->hasActivePermission('positions.update') ?? false;
         $canDelete = auth()->user()?->hasActivePermission('positions.delete') ?? false;
+        $canHire = auth()->user()?->hasActivePermission('recruitment-requests.manage') ?? false;
 
         return [
             Column::make(__('general.title').' (EN)', 'title_en')->sortable()->searchable(),
@@ -157,7 +159,7 @@ class PositionTable extends LivewireTable
 
             BooleanColumn::make(__('general.is-active'), 'is_active'),
 
-            Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete): string {
+            Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete, $canHire): string {
                 $isActive = $m->is_active ? 1 : 0;
 
                 $toggleBtn = $canUpdate
@@ -175,8 +177,14 @@ class PositionTable extends LivewireTable
                     ? Blade::render('<x-table.delete-btn :modelId="'.$m->id.'" />')
                     : '';
 
-                return $toggleBtn.$editBtn.$deleteBtn;
-            })->asHtml()->visible($canUpdate || $canDelete)->clickable(false),
+                // A position that has gone empty: straight to the hiring request,
+                // position pre-filled.
+                $vacancyBtn = $canHire && $m->is_active && $m->canAssign()
+                    ? '<a href="'.e(route('recruitment.requests.create', ['type' => RecruitmentRequestType::FillVacancy, 'position_id' => $m->id])).'" class="inline-flex items-center p-2 text-small font-semibold underline text-ink hover:text-primary max-sm:min-h-11">'.e(__('general.open-vacancy')).'</a>'
+                    : '';
+
+                return $toggleBtn.$editBtn.$deleteBtn.$vacancyBtn;
+            })->asHtml()->visible($canUpdate || $canDelete || $canHire)->clickable(false),
         ];
     }
 

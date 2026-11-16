@@ -727,6 +727,8 @@ return [
     'collapse' => 'طي',
     'expand' => 'توسيع',
     'open-position' => 'فتح الوظيفة',
+    'open-vacancy' => 'فتح شاغر',
+    'open-seats-notice' => 'لهذه الوظيفة :count مقعد شاغر.',
     'request-hire' => 'طلب توظيف',
     'email-team' => 'مراسلة الفريق',
     'vacant-position' => 'منصب شاغر',

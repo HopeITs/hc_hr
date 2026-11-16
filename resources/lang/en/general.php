@@ -728,6 +728,8 @@ return [
     'expand' => 'Expand',
     'vacant-position' => 'Vacant position',
     'open-position' => 'Open position',
+    'open-vacancy' => 'Open vacancy',
+    'open-seats-notice' => 'This position has :count open seat(s).',
     'request-hire' => 'Request hire',
     'email-team' => 'Email the team',
     'vacant-seats-count' => ':count open seats in this position',
