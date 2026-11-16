@@ -723,6 +723,7 @@ return [
     'no-org-chart-data' => 'Organization chart is not configured',
     'no-org-chart-data-help' => 'Add a root position and reporting relationships to begin building the chart.',
     'direct-reports' => 'Direct Reports',
+    'email-cc-manager' => 'New email, with :name (direct manager) on CC',
     'collapse' => 'Collapse',
     'expand' => 'Expand',
     'vacant-position' => 'Vacant position',

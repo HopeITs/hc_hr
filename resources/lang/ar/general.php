@@ -723,6 +723,7 @@ return [
     'no-org-chart-data' => 'لم يتم إعداد الهيكلية بعد',
     'no-org-chart-data-help' => 'أضف المنصب الرئيسي وعلاقات الإشراف لبدء بناء الهيكلية.',
     'direct-reports' => 'موظفون مباشرون',
+    'email-cc-manager' => 'رسالة جديدة، مع :name (المدير المباشر) في النسخة',
     'collapse' => 'طي',
     'expand' => 'توسيع',
     'vacant-position' => 'منصب شاغر',

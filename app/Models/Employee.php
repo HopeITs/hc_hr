@@ -691,6 +691,76 @@ class Employee extends Model implements HasMedia
         return Attribute::get(fn (): ?string => $this->account?->email);
     }
 
+    /**
+     * A mailto: link that opens a new message to this employee's work email,
+     * optionally copying another address (e.g. their manager). Null when there
+     * is no work email. A CC equal to the recipient is dropped.
+     */
+    public function mailtoUrl(?string $cc = null): ?string
+    {
+        $to = $this->work_email;
+
+        if (! filled($to)) {
+            return null;
+        }
+
+        $cc = filled($cc) && strcasecmp($cc, $to) !== 0 ? $cc : null;
+
+        return 'mailto:'.rawurlencode($to).($cc ? '?cc='.rawurlencode($cc) : '');
+    }
+
+    /**
+     * The work email of each employee's current direct manager, keyed by
+     * employee id (a missing key means no manager, a vacant post, or a manager
+     * without a work email). Three queries whatever the number of employees, so
+     * lists can use it without an N+1.
+     *
+     * @param  iterable<Employee|int>  $employees
+     * @return array<int, string>
+     */
+    public static function directManagerEmails(iterable $employees): array
+    {
+        $ids = collect($employees)
+            ->map(fn ($employee) => $employee instanceof self ? $employee->getKey() : (int) $employee)
+            ->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        // Oldest first, so the latest running contract wins for someone with several.
+        $positionOf = Contract::query()->activeNow()
+            ->whereIn('employee_id', $ids)
+            ->orderBy('start_date')
+            ->pluck('position_id', 'employee_id');
+
+        $managerPositionOf = Position::query()
+            ->whereIn('id', $positionOf->unique()->values())
+            ->whereNotNull('direct_manager_id')
+            ->pluck('direct_manager_id', 'id');
+
+        $emailAt = Contract::query()->activeNow()
+            ->whereIn('position_id', $managerPositionOf->unique()->values())
+            ->whereHas('employee', fn ($employee) => $employee->where('is_active', true))
+            ->with('employee.account')
+            ->orderBy('start_date')
+            ->get()
+            ->mapWithKeys(fn (Contract $contract) => [$contract->position_id => $contract->employee?->work_email])
+            ->filter();
+
+        $emails = [];
+
+        foreach ($positionOf as $employeeId => $positionId) {
+            $email = $emailAt[$managerPositionOf[$positionId] ?? null] ?? null;
+
+            if ($email) {
+                $emails[$employeeId] = $email;
+            }
+        }
+
+        return $emails;
+    }
+
     protected function firstName(): Attribute
     {
         return Attribute::make(
