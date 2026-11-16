@@ -193,4 +193,14 @@ return [
         'time-range' => ':date، من :from إلى :to',
     ],
 
+    // The balance behind a request, shown to whoever decides it.
+    'decision_balance' => [
+        'title' => 'رصيد الموظف من هذا النوع',
+        'available' => 'المتاح الآن',
+        'requested' => 'هذا الطلب',
+        'pending_others' => 'طلبات أخرى قيد الانتظار',
+        'after' => 'المتبقي عند القبول',
+        'short' => 'عجز قدره :amount',
+    ],
+
 ];

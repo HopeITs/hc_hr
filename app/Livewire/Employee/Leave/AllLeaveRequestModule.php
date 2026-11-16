@@ -334,6 +334,7 @@ class AllLeaveRequestModule extends Component
         return view('livewire.employee.leave.all', [
             ...compact('employees', 'allAvailableLeaves', 'alternativeEmployees'),
             'decisionOverlap' => $this->decisionOverlap(),
+            'decisionBalance' => $this->decisionBalance(),
             // The same two checks delete() meets: the permission (route rule) and the policy.
             'canDeleteSelected' => $this->selectedLeave
                 && auth()->user()->hasActivePermission('leaves.delete')
@@ -573,6 +574,56 @@ class AllLeaveRequestModule extends Component
         return $this->form->type === 'day'
             ? Carbon::parse($this->form->end_at)->format('d-m-Y')
             : $this->form->end_hour;
+    }
+
+    /**
+     * The balance this request draws on, for whoever decides it: what is
+     * available, what this request takes, what other pending requests on the
+     * same balance would take, and what is left if it is accepted. Hours and
+     * days only, never pay. Advisory: it never blocks the decision. Null when
+     * no decision is open or it cannot be read.
+     *
+     * @return array{available: string, requested: string, pending_others: string|null, after: string, short: bool}|null
+     */
+    private function decisionBalance(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave || (int) $this->decisionLeave->status !== LeaveRequestStatus::Pending) {
+            return null;
+        }
+
+        try {
+            $leave = $this->decisionLeave;
+            $balance = $leave->leaveBalance()->with('contract')->first();
+
+            if (! $balance) {
+                return null;
+            }
+
+            $perDay = $balance->contract ? app(LeaveRequestPricing::class)->hoursPerDayFor($balance->contract) : null;
+            $amount = fn (float $hours): string => $this->formatLeaveSplit(abs($hours), $perDay);
+
+            $available = $balance->availableHours();
+            $requested = $leave->deductionHours();
+            $others = (float) LeaveRequest::query()
+                ->where('leave_balance_id', $balance->id)
+                ->where('status', LeaveRequestStatus::Pending)
+                ->whereKeyNot($leave->id)
+                ->get()
+                ->sum(fn (LeaveRequest $other) => $other->deductionHours());
+            $after = round($available - $requested, 2);
+
+            return [
+                'available' => ($available < 0 ? '−' : '').$amount($available),
+                'requested' => $amount($requested),
+                'pending_others' => $others > 0 ? $amount($others) : null,
+                'after' => ($after < 0 ? '−' : '').$amount($after),
+                'short' => $after < -0.005,
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /** C5: who else in the requester's team is away, for the open decision (advisory). */

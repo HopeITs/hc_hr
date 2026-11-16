@@ -419,6 +419,34 @@ use App\Enums\LeaveRequestStatus;
                     </div>
                 </dl>
 
+                @if($decisionBalance)
+                    <section class="space-y-2 rounded-xl border border-line-soft bg-soft p-4" data-testid="decision-balance" aria-labelledby="decision-balance-title">
+                        <h3 id="decision-balance-title" class="text-small font-bold text-ink">@lang('leaves.decision_balance.title')</h3>
+                        <dl class="grid grid-cols-2 gap-2 {{ $decisionBalance['pending_others'] ? 'sm:grid-cols-4' : 'sm:grid-cols-3' }}">
+                            <div class="rounded-control bg-card p-2 ring-1 ring-line-soft">
+                                <dt class="text-caption text-ink-2">@lang('leaves.decision_balance.available')</dt>
+                                <dd class="mt-0.5 text-small font-semibold text-ink"><bdi>{{ $decisionBalance['available'] }}</bdi></dd>
+                            </div>
+                            <div class="rounded-control bg-card p-2 ring-1 ring-line-soft">
+                                <dt class="text-caption text-ink-2">@lang('leaves.decision_balance.requested')</dt>
+                                <dd class="mt-0.5 text-small font-semibold text-ink"><bdi>{{ $decisionBalance['requested'] }}</bdi></dd>
+                            </div>
+                            @if($decisionBalance['pending_others'])
+                                <div class="rounded-control bg-card p-2 ring-1 ring-line-soft">
+                                    <dt class="text-caption text-ink-2">@lang('leaves.decision_balance.pending_others')</dt>
+                                    <dd class="mt-0.5 text-small font-semibold text-ink"><bdi>{{ $decisionBalance['pending_others'] }}</bdi></dd>
+                                </div>
+                            @endif
+                            <div @class(['rounded-control bg-card p-2 ring-1', 'ring-line-soft' => ! $decisionBalance['short'], 'ring-primary' => $decisionBalance['short']])>
+                                <dt class="text-caption text-ink-2">@lang('leaves.decision_balance.after')</dt>
+                                <dd @class(['mt-0.5 text-small font-semibold', 'text-ink' => ! $decisionBalance['short'], 'text-primary' => $decisionBalance['short']])>
+                                    <bdi>{{ $decisionBalance['short'] ? __('leaves.decision_balance.short', ['amount' => ltrim($decisionBalance['after'], '−')]) : $decisionBalance['after'] }}</bdi>
+                                </dd>
+                            </div>
+                        </dl>
+                    </section>
+                @endif
+
                 @if($decisionOverlap)
                     @include('livewire.team.partials.overlap-warning', ['overlap' => $decisionOverlap])
                 @endif
