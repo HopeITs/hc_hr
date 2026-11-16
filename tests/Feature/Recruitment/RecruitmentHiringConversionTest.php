@@ -188,6 +188,11 @@ class RecruitmentHiringConversionTest extends TestCase
         // Point 4: the message says what is next — a login account on the
         // employee page, or the contract — and its buttons open them.
         $page->assertDispatched('toast');
+        // The guided flow after the hire: login account, ID card and welcome message are listed.
+        $page->assertSee(__('recruitment-applicant.conversions.onboarding.title'))
+            ->assertSeeHtml('data-step="account" data-done="0"')
+            ->assertSeeHtml('data-step="card"')
+            ->assertSeeHtml('data-step="welcome"');
         $page->assertSee(route('employees.edit', $employee->id))
             ->assertSee(__('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]))
             ->call('openEmployee')
