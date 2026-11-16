@@ -51,6 +51,9 @@
                 <p>{{ __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]) }}</p>
             @endif
         </section>
+
+        {{-- The guided flow: what is left around the new employee. --}}
+        @include('livewire.recruitment.offers.partials.onboarding', ['steps' => $onboarding, 'conversion' => $conversion])
     @else
         <p class="text-sm text-secondary-medium">{{ __('recruitment-applicant.conversions.hint') }}</p>
 
