@@ -3,18 +3,33 @@
 
     <x-page-header :title="__('mail_lists.title')" :lead="__('mail_lists.lead')" />
 
-    @if($canManage)
-        <x-card class="mb-6">
-            <form wire:submit.prevent="import" class="flex flex-wrap items-end gap-3" data-testid="mail-lists-import">
-                <div class="min-w-0 flex-1">
-                    <x-forms.input-label for="ml-file">@lang('mail_lists.import_label')</x-forms.input-label>
-                    <input id="ml-file" type="file" wire:model="file" accept=".csv,text/csv"
-                           class="block w-full text-body text-ink">
-                    @error('file') <x-error-span>{{ $message }}</x-error-span> @enderror
-                    <p class="mt-1 text-small text-ink-2">@lang('mail_lists.import_help')</p>
+    {{-- Only the person who holds the control panel sees this: who was added here and still has to be added there. --}}
+    @if($canConfirm)
+        <x-card class="mb-6 space-y-3" data-testid="mail-lists-pending">
+            <div>
+                <h2 class="text-h4 font-bold text-ink">@lang('mail_lists.pending_title')</h2>
+                <p class="text-small text-ink-2">@lang('mail_lists.pending_help')</p>
+            </div>
+
+            @forelse($pending as $person)
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-3" wire:key="pending-{{ $person['email'] }}">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-ink"><bdi>{{ $person['name'] ?? $person['email'] }}</bdi></p>
+                        @if($person['name'])
+                            <p class="text-small text-ink-2" dir="ltr">{{ $person['email'] }}</p>
+                        @endif
+                        <p class="text-small text-ink-2">
+                            @lang('mail_lists.pending_lists'):
+                            @foreach($person['lists'] as $address)
+                                <code class="mx-0.5 rounded bg-soft px-1" dir="ltr">{{ $address }}</code>
+                            @endforeach
+                        </p>
+                    </div>
+                    <x-button size="sm" variant="outline" wire:click="confirmEmail('{{ $person['email'] }}')">@lang('mail_lists.pending_done')</x-button>
                 </div>
-                <x-button type="submit" variant="outline">@lang('mail_lists.import')</x-button>
-            </form>
+            @empty
+                <p class="text-body text-ink-2">@lang('mail_lists.pending_none')</p>
+            @endforelse
         </x-card>
     @endif
 
@@ -50,9 +65,12 @@
                             @foreach($row['members'] as $member)
                                 <li class="flex items-center justify-between gap-2 py-1.5" wire:key="member-{{ $member['id'] }}">
                                     <span class="min-w-0">
-                                        <span class="block truncate font-medium text-ink"><bdi>{{ $member['name'] ?? $member['email'] }}</bdi></span>
+                                        <span class="block truncate font-medium text-ink"><bdi>{{ ($member['external'] && ! $canManage) ? __('mail_lists.external') : ($member['name'] ?? $member['email']) }}</bdi></span>
                                         @if($member['name'])
                                             <span class="block truncate text-caption text-ink-2" dir="ltr">{{ $member['email'] }}</span>
+                                        @endif
+                                        @if($canConfirm && $member['pending'])
+                                            <span class="text-caption font-semibold text-ink">@lang('mail_lists.pending_tag')</span>
                                         @endif
                                         @if($canManage && $member['former'])
                                             <span class="text-caption text-ink-2">@lang('mail_lists.former')</span>
@@ -60,6 +78,10 @@
                                             <span class="text-caption text-ink-2">@lang('mail_lists.no_account')</span>
                                         @endif
                                     </span>
+                                    @if($canConfirm && $member['pending'])
+                                        <button type="button" wire:click="confirmMember({{ $member['id'] }})"
+                                                class="shrink-0 text-small underline text-ink hover:text-primary">@lang('mail_lists.pending_done_short')</button>
+                                    @endif
                                     @if($canManage)
                                         <button type="button" wire:click="removeMember({{ $member['id'] }})"
                                                 class="shrink-0 text-small underline text-ink-2 hover:text-primary">@lang('mail_lists.remove')</button>
