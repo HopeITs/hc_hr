@@ -26,6 +26,13 @@ return [
      * of `block_minutes`, rounded down. Work on a weekend or a holiday counts in full when
      * `weekend_counts_fully` is on.
      */
+    /*
+     * The month: the employee may confirm it, the manager approves it (which approves the
+     * overtime), HR locks it (which gives the overtime back as free days). Turn this on to make
+     * the employee's confirmation a step the manager must wait for.
+     */
+    'require_employee_confirmation' => false,
+
     'overtime' => [
         'threshold_minutes' => 60,
         'block_minutes' => 30,

@@ -14,6 +14,8 @@
         Sheet::HOLIDAY => ['bg-soft text-ink-3', null],
         Sheet::OUTSIDE => ['border border-dashed border-line-soft text-ink-3', null],
     ];
+    $stateTone = ['open' => 'wait', 'confirmed' => 'attn', 'approved' => 'work', 'locked' => 'done'];
+    $stateIcon = ['open' => 'clock', 'confirmed' => 'check', 'approved' => 'check', 'locked' => 'shield'];
     $hm = fn (?int $m) => $m === null ? '' : intdiv($m, 60).'h '.str_pad((string) ($m % 60), 2, '0', STR_PAD_LEFT).'m';
     $printBase = array_filter(['month' => $month, 'city_id' => $cityId, 'group_by' => $by]);
     $groupLabel = $by === Grouping::DEPARTMENT ? 'attendance.timesheets.no-department' : 'attendance.timesheets.no-project';
@@ -29,9 +31,11 @@
     <x-page-header :title="$title" :lead="$lead">
         <x-slot:actions>
             @if($canManage)
-                <x-button variant="outline" icon="plus" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
+                <x-button variant="outline" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
             @endif
             <x-button icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">{{ $own ? __('attendance.timesheets.print-own') : __('attendance.timesheets.print-all') }}</x-button>
+            <x-button variant="outline" :href="route('attendance.export.pdf', $printBase)" :wire:navigate="false" target="_blank" data-testid="pdf-link">@lang('attendance.export.pdf')</x-button>
+            <x-button variant="outline" :href="route('attendance.export.xlsx', $printBase)" :wire:navigate="false" data-testid="xlsx-link">@lang('attendance.export.xlsx')</x-button>
         </x-slot:actions>
     </x-page-header>
 
@@ -118,6 +122,22 @@
         </x-card>
     </div>
 
+    {{-- Month-end: approve what is ready, lock what is approved --}}
+    @if($summary['ready_to_approve'] > 0 || $summary['ready_to_lock'] > 0)
+        <x-card class="flex flex-wrap items-center gap-3" data-testid="attendance-bulk">
+            @if($summary['ready_to_approve'] > 0)
+                <x-button wire:click="approveAllReady" wire:confirm="{{ __('attendance.workflow.approve-all', ['count' => $summary['ready_to_approve']]) }}?">
+                    {{ __('attendance.workflow.approve-all', ['count' => $summary['ready_to_approve']]) }}
+                </x-button>
+            @endif
+            @if($summary['ready_to_lock'] > 0)
+                <x-button variant="outline" icon="shield" wire:click="lockAllApproved" wire:confirm="{{ __('attendance.workflow.lock-all', ['count' => $summary['ready_to_lock']]) }}?">
+                    {{ __('attendance.workflow.lock-all', ['count' => $summary['ready_to_lock']]) }}
+                </x-button>
+            @endif
+        </x-card>
+    @endif
+
     {{-- Key to the squares --}}
     <div class="flex flex-wrap gap-x-5 gap-y-2 text-small text-ink-2" aria-label="{{ __('attendance.timesheets.key') }}">
         @foreach([
@@ -170,10 +190,18 @@
                                 <span class="text-small text-ink-2 num">{{ $group['totals']['overtime_hours'] }} h = +{{ $group['totals']['overtime_days'] }} @lang('attendance.timesheets.free-days')</span>
                             @endif
                             @unless($own)
-                            <x-button variant="outline" size="sm" icon="file" :wire:navigate="false" target="_blank"
-                                      :href="route('attendance.print', $printBase + ['city_id' => $block['id'], 'group' => $group['id'] ?? 'none'])">
-                                @lang('attendance.timesheets.print-group')
-                            </x-button>
+                                @php($groupParams = $printBase + ['city_id' => $block['id'], 'group' => $group['id'] ?? 'none'])
+                                <details class="relative" data-testid="group-export">
+                                    <summary class="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-control border border-line bg-card px-3 text-small font-semibold text-ink hover:bg-hover">
+                                        <x-ic name="file" class="size-4" /> @lang('attendance.timesheets.print-group')
+                                        <x-ic name="chevron" class="size-3 rotate-90" />
+                                    </summary>
+                                    <div class="absolute end-0 z-20 mt-1 w-40 overflow-hidden rounded-surface border border-line-soft bg-card py-1 shadow-e3">
+                                        <a class="block px-4 py-2 text-small font-semibold text-ink hover:bg-hover" target="_blank" href="{{ route('attendance.print', $groupParams) }}">@lang('attendance.export.print')</a>
+                                        <a class="block px-4 py-2 text-small font-semibold text-ink hover:bg-hover" target="_blank" href="{{ route('attendance.export.pdf', $groupParams) }}">@lang('attendance.export.pdf')</a>
+                                        <a class="block px-4 py-2 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.export.xlsx', $groupParams) }}">@lang('attendance.export.xlsx')</a>
+                                    </div>
+                                </details>
                             @endunless
                         </div>
                     </div>
@@ -187,6 +215,7 @@
                                         <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.timesheets.days')</th>
                                         <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.timesheets.overtime')</th>
                                         <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.timesheets.decide')</th>
+                                        <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.workflow.state')</th>
                                         @foreach($days as $day)
                                             <th scope="col" class="px-px py-2 text-center font-semibold num">
                                                 <span class="block leading-tight">{{ $day['n'] }}</span>
@@ -201,8 +230,11 @@
                                         @php($sheet = $item['sheet'])
                                         <tr class="border-t border-line-soft hover:bg-hover" wire:key="sheet-{{ $employee->id }}">
                                             <th scope="row" class="sticky start-0 z-10 bg-card px-4 py-2 text-start font-normal">
-                                                <div class="font-semibold text-ink"><bdi>{{ $employee->name }}</bdi></div>
-                                                <div class="text-caption text-ink-3"><span class="num">ID {{ $employee->id }}</span>@if($sheet['placement']['center']) · <bdi>{{ $sheet['placement']['center'] }}</bdi>@endif</div>
+                                                <button type="button" wire:click="openMonth({{ $employee->id }})" class="block min-h-11 text-start"
+                                                        aria-label="{{ __('attendance.timesheets.open-month', ['name' => $employee->name]) }}">
+                                                    <span class="block font-semibold text-ink"><bdi>{{ $employee->name }}</bdi></span>
+                                                    <span class="block text-caption text-ink-3"><span class="num">ID {{ $employee->id }}</span>@if($sheet['placement']['center']) · <bdi>{{ $sheet['placement']['center'] }}</bdi>@endif</span>
+                                                </button>
                                             </th>
                                             <td class="px-3 text-center font-semibold num">{{ $sheet['totals']['working_days'] }}</td>
                                             <td class="px-3 text-center text-small num whitespace-nowrap">
@@ -219,11 +251,14 @@
                                                     <span class="text-ink-3">–</span>
                                                 @endif
                                             </td>
+                                            <td class="px-3 text-center">
+                                                <x-status :tone="$stateTone[$item['state']]" :icon="$stateIcon[$item['state']]" :label="__('attendance.workflow.states.'.$item['state'])" />
+                                            </td>
                                             @foreach($sheet['rows'] as $row)
                                                 @php([$classes, $icon] = $cell[$row['kind']])
                                                 @php($label = __('attendance.timesheets.status.'.$row['kind']).' · '.$row['date']->format('d/m').($row['worked_minutes'] ? ' · '.$hm($row['worked_minutes']) : ''))
                                                 <td class="px-px py-1">
-                                                    @if($row['decidable'] && $canManage)
+                                                    @if($row['decidable'] && $item['can']['decide'])
                                                         <button type="button" wire:click="openDay({{ $employee->id }}, '{{ $row['date']->toDateString() }}')"
                                                                 title="{{ $label }}" aria-label="{{ $employee->name }}: {{ $label }}"
                                                                 class="grid size-7 place-items-center rounded-control transition hover:scale-110 {{ $classes }}">
@@ -251,6 +286,86 @@
             <p class="py-8 text-center text-body text-ink-2" data-testid="attendance-empty">@lang('attendance.timesheets.nothing')</p>
         </x-card>
     @endforelse
+
+    {{-- One person's month: where it stands, what the viewer may do, the signed paper, the exports --}}
+    @if($panel)
+        @php($pEmployee = $panel['employee'])
+        @php($pRecord = $panel['record'])
+        @php($pCan = $panel['can'])
+        @php($pTotals = $panel['sheet']['totals'])
+        @php($pSigned = $pRecord->exists ? $pRecord->getFirstMedia('signed') : null)
+        @php($pParams = ['month' => $month, 'employees' => [$pEmployee->id]])
+        <div class="fixed inset-0 z-50 flex justify-end bg-backdrop" x-data x-on:keydown.escape.window="$wire.closeMonth()" data-testid="month-panel">
+            <div class="absolute inset-0" wire:click="closeMonth" aria-hidden="true"></div>
+            <aside role="dialog" aria-modal="true" aria-labelledby="month-title" class="relative flex h-full w-full max-w-md flex-col gap-5 overflow-y-auto bg-card p-6 shadow-e3">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 id="month-title" class="text-h4 font-bold text-ink"><bdi>{{ $pEmployee->name }}</bdi></h2>
+                        <p class="text-small text-ink-2"><bdi class="num">{{ $monthDate->format('F Y') }}</bdi> · <span class="num">ID {{ $pEmployee->id }}</span></p>
+                    </div>
+                    <button type="button" wire:click="closeMonth" aria-label="{{ __('attendance.workflow.close') }}" class="grid size-11 place-items-center rounded-control text-ink-2 hover:bg-hover"><x-ic name="x" class="size-5" /></button>
+                </div>
+
+                <div><x-status :tone="$stateTone[$panel['state']]" :icon="$stateIcon[$panel['state']]" :label="__('attendance.workflow.states.'.$panel['state'])" /></div>
+
+                <dl class="grid grid-cols-3 gap-3 text-center">
+                    <div class="rounded-surface bg-soft p-3"><dt class="text-caption text-ink-2">@lang('attendance.timesheets.days')</dt><dd class="text-h4 font-bold text-ink num">{{ $pTotals['working_days'] }}</dd></div>
+                    <div class="rounded-surface bg-soft p-3"><dt class="text-caption text-ink-2">@lang('attendance.timesheets.overtime')</dt><dd class="text-h4 font-bold text-ink num">{{ $pTotals['overtime_hours'] }} h</dd><dd class="text-caption text-ink-2 num">+{{ $pTotals['overtime_days'] }} @lang('attendance.workflow.free-days')</dd></div>
+                    <div class="rounded-surface bg-soft p-3"><dt class="text-caption text-ink-2">@lang('attendance.timesheets.decide')</dt><dd class="text-h4 font-bold num {{ $pTotals['to_decide'] > 0 ? 'text-primary' : 'text-ink' }}">{{ $pTotals['to_decide'] }}</dd></div>
+                </dl>
+
+                <div>
+                    <h3 class="mb-2 text-small font-bold uppercase tracking-wide text-ink-3">@lang('attendance.workflow.timeline')</h3>
+                    <ol class="space-y-2 text-body text-ink">
+                        <li class="flex items-start gap-2"><x-ic :name="$pRecord->employee_confirmed_at ? 'check-circle' : 'dot'" class="mt-1 size-4 shrink-0" />
+                            <span>@if($pRecord->employee_confirmed_at)@lang('attendance.workflow.step-confirmed') <span class="text-small text-ink-3 num">{{ $pRecord->employee_confirmed_at->format('d/m/Y H:i') }}</span>@else<span class="text-ink-3">@lang('attendance.workflow.step-confirmed') · @lang('attendance.workflow.not-yet')</span>@endif</span></li>
+                        <li class="flex items-start gap-2"><x-ic :name="$pRecord->approved_at ? 'check-circle' : 'dot'" class="mt-1 size-4 shrink-0" />
+                            <span>@if($pRecord->approved_at){{ __('attendance.workflow.step-approved', ['name' => $pRecord->approver?->profile?->name ?? '—']) }} <span class="text-small text-ink-3 num">{{ $pRecord->approved_at->format('d/m/Y H:i') }}</span><br><span class="text-small text-ink-2">{{ __('attendance.workflow.overtime-approved', ['hours' => $pRecord->overtime_hours_approved]) }}</span>@else<span class="text-ink-3">@lang('attendance.workflow.approve') · @lang('attendance.workflow.not-yet')</span>@endif</span></li>
+                        <li class="flex items-start gap-2"><x-ic :name="$pRecord->locked_at ? 'shield' : 'dot'" class="mt-1 size-4 shrink-0" />
+                            <span>@if($pRecord->locked_at){{ __('attendance.workflow.step-locked', ['name' => $pRecord->locker?->profile?->name ?? '—']) }} <span class="text-small text-ink-3 num">{{ $pRecord->locked_at->format('d/m/Y H:i') }}</span><br>
+                                <span class="text-small text-ink-2">@if($pRecord->credited_hours > 0){{ __('attendance.workflow.credited', ['days' => round($pRecord->credited_hours / max(1, $panel['sheet']['daily_hours']), 2), 'hours' => $pRecord->credited_hours]) }}@elseif($pRecord->overtime_hours_approved > 0){{ __('attendance.workflow.not-credited') }}@endif</span>@else<span class="text-ink-3">@lang('attendance.workflow.lock') · @lang('attendance.workflow.not-yet')</span>@endif</span></li>
+                    </ol>
+                </div>
+
+                <div class="flex flex-wrap gap-2" data-testid="month-actions">
+                    @if($pCan['confirm'])<x-button wire:click="confirmMonth({{ $pEmployee->id }})">@lang('attendance.workflow.confirm')</x-button>@endif
+                    @if($pCan['approve'])<x-button wire:click="approveMonth({{ $pEmployee->id }})">@lang('attendance.workflow.approve')</x-button>@endif
+                    @if($pCan['lock'])<x-button icon="shield" wire:click="lockMonth({{ $pEmployee->id }})">@lang('attendance.workflow.lock')</x-button>@endif
+                    @if($pCan['reopen'])<x-button variant="outline" wire:click="reopenMonth({{ $pEmployee->id }})" wire:confirm="{{ __('attendance.workflow.reopen') }}?">@lang('attendance.workflow.reopen')</x-button>@endif
+                </div>
+                @if($pTotals['to_decide'] > 0 && ! $pCan['approve'] && ! $pCan['confirm'] && $panel['state'] === 'open')
+                    <p class="text-small text-ink-2">{{ __('attendance.workflow.days-first', ['count' => $pTotals['to_decide']]) }}</p>
+                @endif
+
+                <div class="space-y-2" data-testid="month-signed">
+                    <h3 class="text-small font-bold uppercase tracking-wide text-ink-3">@lang('attendance.workflow.signed')</h3>
+                    @if($pSigned)
+                        <div class="flex flex-wrap items-center gap-3">
+                            <a class="text-body font-semibold text-ink underline" target="_blank" href="{{ route('attendance.signed', $pRecord->id) }}">@lang('attendance.workflow.signed-view')</a>
+                            @if($pCan['signed'])<x-button variant="link" wire:click="removeSigned">@lang('attendance.workflow.signed-remove')</x-button>@endif
+                        </div>
+                    @else
+                        <p class="text-small text-ink-2">@lang('attendance.workflow.signed-none')</p>
+                    @endif
+                    @if($pCan['signed'])
+                        <form wire:submit.prevent="saveSigned" class="space-y-2">
+                            <input type="file" wire:model="signedFile" accept=".pdf,.jpg,.jpeg,.png" aria-label="{{ __('attendance.workflow.signed') }}"
+                                   class="block w-full rounded-control border border-line bg-card px-3 py-2 text-small text-ink">
+                            <p class="text-caption text-ink-3">@lang('attendance.workflow.signed-help')</p>
+                            @error('signedFile') <p class="text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
+                            <x-button type="submit" variant="outline" size="sm">@lang('attendance.workflow.signed-upload')</x-button>
+                        </form>
+                    @endif
+                </div>
+
+                <div class="mt-auto flex flex-wrap gap-2 border-t border-line-soft pt-4">
+                    <x-button variant="outline" size="sm" icon="file" target="_blank" :wire:navigate="false" :href="route('attendance.print', $pParams)">@lang('attendance.export.print')</x-button>
+                    <x-button variant="outline" size="sm" target="_blank" :wire:navigate="false" :href="route('attendance.export.pdf', $pParams)">@lang('attendance.export.pdf')</x-button>
+                    <x-button variant="outline" size="sm" :wire:navigate="false" :href="route('attendance.export.xlsx', $pParams)">@lang('attendance.export.xlsx')</x-button>
+                </div>
+            </aside>
+        </div>
+    @endif
 
     @if($open && $open['row'])
         @php($row = $open['row'])

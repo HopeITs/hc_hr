@@ -11,7 +11,7 @@ class AttendanceImport extends Model
 {
     protected $fillable = [
         'user_id', 'file_name', 'period_start', 'period_end',
-        'punches_total', 'punches_new', 'device_numbers',
+        'punches_total', 'punches_new', 'punches_locked', 'device_numbers',
     ];
 
     protected $casts = [

@@ -11,8 +11,11 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\Employee;
+use App\Models\AttendancePunch;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\Attendance\Roster as AttendanceRoster;
+use App\Services\Attendance\Timesheet as AttendanceTimesheet;
 use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
@@ -22,6 +25,7 @@ use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
 use Blade;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
@@ -335,6 +339,7 @@ class AllLeaveRequestModule extends Component
             ...compact('employees', 'allAvailableLeaves', 'alternativeEmployees'),
             'decisionOverlap' => $this->decisionOverlap(),
             'decisionBalance' => $this->decisionBalance(),
+            'decisionAttendance' => $this->decisionAttendance(),
             // The same two checks delete() meets: the permission (route rule) and the policy.
             'canDeleteSelected' => $this->selectedLeave
                 && auth()->user()->hasActivePermission('leaves.delete')
@@ -619,6 +624,47 @@ class AllLeaveRequestModule extends Component
                 'after' => ($after < 0 ? '−' : '').$amount($after),
                 'short' => $after < -0.005,
             ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * One line of context for whoever decides: how the person's last three months looked on the
+     * attendance timesheets (days worked, days with no record). Shown only when the viewer may see
+     * that person's timesheet and some attendance has been uploaded for them. Advisory.
+     *
+     * @return array{worked: int, decide: int}|null
+     */
+    private function decisionAttendance(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave) {
+            return null;
+        }
+
+        try {
+            $employee = $this->decisionLeave->leaveBalance->contract->employee;
+            $months = collect([1, 2, 3])->map(fn (int $back) => CarbonImmutable::now()->startOfMonth()->subMonthsNoOverflow($back));
+
+            if (! app(AttendanceRoster::class)->covers(auth()->user(), $employee, $months->first())) {
+                return null;
+            }
+
+            $hasPunches = AttendancePunch::query()
+                ->where('employee_id', $employee->id)
+                ->where('punched_at', '>=', $months->last()->startOfDay())
+                ->exists();
+
+            if (! $hasPunches) {
+                return null;
+            }
+
+            $service = app(AttendanceTimesheet::class);
+            $totals = $months->map(fn (CarbonImmutable $m) => $service->forEmployee($employee, $m)['totals']);
+
+            return ['worked' => (int) $totals->sum('worked_days'), 'decide' => (int) $totals->sum('to_decide')];
         } catch (Throwable $e) {
             report($e);
 

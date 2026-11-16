@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Notifications\ActionLeaveBalance;
 use App\Notifications\ActionLeaveRequest;
+use App\Notifications\AttendanceMonthReminder;
 use App\Notifications\CenterClosed;
 use App\Notifications\ChecklistAssigned;
 use App\Notifications\ContractsAutoRenewedSummary;
@@ -48,6 +49,7 @@ enum NotificationCategory: string
         ContractsAutoRenewedSummary::class => self::Contracts,
         ContractsExpiringAutoRenewWarning::class => self::Contracts,
         NewEmployeeWelcome::class => self::Employees,
+        AttendanceMonthReminder::class => self::Employees,
         ProfileChangeDecided::class => self::Employees,
         ChecklistAssigned::class => self::Checklists,
         FolderShared::class => self::Files,

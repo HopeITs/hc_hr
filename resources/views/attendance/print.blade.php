@@ -1,8 +1,11 @@
 @php
-    use App\Services\Attendance\Timesheet as Sheet;
+    use App\Services\Attendance\FormRows;
 
     $t = fn (string $key, array $replace = []) => __('attendance.form.'.$key, $replace, 'ar');
-    $weekdays = trans('attendance.form.weekdays', [], 'ar');
+    // The PDF is drawn by a headless browser that cannot fetch the app's own URLs: fonts go in as data.
+    $font = fn (string $file) => $pdf
+        ? 'data:font/ttf;base64,'.base64_encode((string) file_get_contents(public_path('fonts/SomarSans/'.$file)))
+        : asset('fonts/SomarSans/'.$file);
     $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.') ?: '0';
 @endphp
 <!doctype html>
@@ -11,8 +14,8 @@
     <meta charset="utf-8">
     <title>Monthly TimeSheet {{ $month->format('Y-m') }}</title>
     <style>
-        @font-face { font-family: 'Somar'; font-weight: 400; src: url('{{ asset('fonts/SomarSans/SomarSans-Regular.ttf') }}'); }
-        @font-face { font-family: 'Somar'; font-weight: 700; src: url('{{ asset('fonts/SomarSans/SOMARSANS-BOLD.ttf') }}'); }
+        @font-face { font-family: 'Somar'; font-weight: 400; src: url('{{ $font('SomarSans-Regular.ttf') }}'); }
+        @font-face { font-family: 'Somar'; font-weight: 700; src: url('{{ $font('SOMARSANS-BOLD.ttf') }}'); }
         @page { size: A4 portrait; margin: 10mm; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Somar', 'Noto Sans Arabic', Arial, sans-serif; color: #2b2a2c; background: #e6e7e8; }
@@ -48,10 +51,12 @@
     </style>
 </head>
 <body>
+@unless($pdf)
 <div class="bar">
     <div>{{ $sheets->count() }} · {{ $month->format('Y-m') }}@if($draft) · {{ $t('draft') }}@endif</div>
     <button type="button" onclick="window.print()">{{ __('attendance.timesheets.print') }}</button>
 </div>
+@endunless
 
 @foreach($sheets as $item)
     @php
@@ -86,35 +91,15 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($sheet['rows'] as $row)
-                    @php
-                        $kind = $row['kind'];
-                        $off = in_array($kind, [Sheet::WEEKEND, Sheet::HOLIDAY], true);
-                        $type = match ($kind) {
-                            Sheet::WEEKEND => $t('weekly-holiday'),
-                            Sheet::HOLIDAY => $t('official-holiday'),
-                            Sheet::OUTSIDE => '—',
-                            Sheet::LEAVE, Sheet::DECIDED_ABSENT => $row['leave_type']?->name_ar ?: $row['leave_type']?->name_en,
-                            default => $row['leave_hours'] > 0 ? ($row['leave_type']?->name_ar ?: $row['leave_type']?->name_en) : $t('none'),
-                        };
-                        $note = match ($kind) {
-                            Sheet::WEEKEND => $t('weekly-holiday-note'),
-                            Sheet::HOLIDAY => $row['note'],
-                            Sheet::OUTSIDE => $t('outside'),
-                            Sheet::DECIDED_WORKED => trim($t('confirmed').' '.($row['note'] ?? '')),
-                            Sheet::DECIDED_ABSENT => trim($t('absent').' '.($row['note'] ?? '')),
-                            default => '',
-                        };
-                        $undecided = in_array($kind, [Sheet::ONE_PUNCH, Sheet::NO_RECORD], true);
-                    @endphp
-                    <tr class="{{ $off ? 'off' : '' }} {{ $undecided ? 'todo' : '' }}">
-                        <td>{{ $weekdays[$row['date']->dayOfWeek] }}</td>
-                        <td class="num">{{ $row['date']->format('d/m/Y') }}</td>
-                        <td>{{ $type }}</td>
-                        <td class="num">{{ $fmt($row['leave_hours']) }}</td>
-                        <td class="num">{{ $fmt($row['overtime_minutes'] / 60) }}</td>
-                        <td class="num">{{ $undecided ? '?' : $fmt($row['working_days']) }}</td>
-                        <td class="n">{{ $note }}</td>
+                @foreach(FormRows::for($sheet) as $r)
+                    <tr class="{{ $r['off'] ? 'off' : '' }} {{ $r['undecided'] ? 'todo' : '' }}">
+                        <td>{{ $r['day'] }}</td>
+                        <td class="num">{{ $r['date'] }}</td>
+                        <td>{{ $r['type'] }}</td>
+                        <td class="num">{{ $fmt($r['leave_hours']) }}</td>
+                        <td class="num">{{ $fmt($r['overtime']) }}</td>
+                        <td class="num">{{ $r['working_days'] === null ? '?' : $fmt($r['working_days']) }}</td>
+                        <td class="n">{{ $r['note'] }}</td>
                     </tr>
                 @endforeach
                 <tr class="tot">
