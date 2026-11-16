@@ -62,7 +62,7 @@ class OnboardingChecklist
         }
 
         $steps[] = $this->step('account', $employee->account !== null, $employee->account ? null : $editUrl);
-        $steps[] = $this->cardStep($employee, $conversion, $others->first(), $editUrl);
+        $steps[] = $this->cardStep($employee, $conversion, $this->latestEarlierContract($employee, $conversion), $editUrl);
         // The message itself is chosen with the template menu on the page.
         $steps[] = $this->step($existing ? 'announce' : 'welcome', false, null);
 
@@ -90,6 +90,22 @@ class OnboardingChecklist
             ->with('position.program')
             ->orderByDesc('start_date')
             ->get();
+    }
+
+    /**
+     * The employee's most recent earlier contract, running or already ended
+     * (the usual transfer ends the old one by hand first): the program the old
+     * card was built from.
+     */
+    private function latestEarlierContract(Employee $employee, RecruitmentHiringConversion $conversion): ?Contract
+    {
+        return Contract::query()
+            ->where('employee_id', $employee->id)
+            ->when($conversion->contract_id, fn ($query, $id) => $query->whereKeyNot($id))
+            ->with('position.program')
+            ->orderByDesc('end_date')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /** @return array{key: string, done: bool, url: ?string, problem: ?string, params: array<string, string>, note: ?string} */

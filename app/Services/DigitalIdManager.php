@@ -71,6 +71,7 @@ class DigitalIdManager
                     'position.center.city',
                     'position.department',
                     'position.program',
+                    'position.jobLevel',
                 ])
                 ->latest('start_date')
                 ->latest('id'),
@@ -164,22 +165,31 @@ class DigitalIdManager
     }
 
     /**
-     * The contract whose position the card shows: the employee's current
-     * (active, in-date) contract with the latest start date, the newest one
-     * first on a tie. The card's position, center and program code all come
-     * from this one contract.
+     * The contract whose position the card shows, among the employee's current
+     * (active, in-date) contracts: the one whose position has the highest job
+     * level (lowest grade; no level ranks last); on the same level a fixed
+     * contract before a trial one; then the latest start date, the newest
+     * contract first on a tie. A volunteer promoted to another position, with
+     * the old contract still running beside the new one, shows the higher
+     * post; once the old contract is ended only the new one is current. The
+     * card's position, center and program code all come from this one
+     * contract.
      */
     public function cardContract(Employee $employee): ?Contract
     {
         /** @var Collection<int, Contract> $contracts */
         $contracts = $employee->relationLoaded('contracts')
             ? $employee->contracts
-            : $employee->contracts()->with('position.program')->get();
+            : $employee->contracts()->with(['position.program', 'position.jobLevel'])->get();
 
-        return $contracts
-            ->sort(fn (Contract $a, Contract $b) => [$b->start_date?->getTimestamp(), $b->getKey()]
-                <=> [$a->start_date?->getTimestamp(), $a->getKey()])
-            ->first();
+        $rank = fn (Contract $contract): array => [
+            $contract->position?->jobLevel?->grade ?? PHP_INT_MAX,
+            $contract->isTrial() ? 1 : 0,
+            -($contract->start_date?->getTimestamp() ?? 0),
+            -$contract->getKey(),
+        ];
+
+        return $contracts->sort(fn (Contract $a, Contract $b) => $rank($a) <=> $rank($b))->first();
     }
 
     /** One to three digits, zero-padded to three; anything else is not a card code. */
