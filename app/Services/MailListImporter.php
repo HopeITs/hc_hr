@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Fills the mailing lists from the "Mail Lists" sheet exported as CSV.
+ * Fills the mailing lists from the "Mail Lists" sheet (read once into
+ * database/data/mail-lists.json; parse() is the reader of its layout).
  *
  * The sheet puts each list in a block of three columns: the list's own address
  * on the first row, in the block's first column, then a "#" / "Emails" header
@@ -35,24 +36,36 @@ class MailListImporter
                 continue;
             }
 
-            $emails = [];
+            // A block can hold further lists below the first: an email address
+            // in the block's first column starts a new list, whose members are
+            // the emails that follow in the second column.
+            $current = $address;
 
             foreach (array_slice($rows, 1) as $row) {
+                $nested = $this->email($row[$column] ?? null);
+
+                if ($nested !== null) {
+                    $current = $nested;
+                }
+
+                $lists[$current] ??= [
+                    'address' => $current,
+                    'name' => Str::headline(str_replace(['.', '_', '-'], ' ', Str::before($current, '@'))),
+                    'emails' => [],
+                ];
+
                 $email = $this->email($row[$column + 1] ?? null);
 
                 if ($email !== null) {
-                    $emails[$email] = $email;
+                    $lists[$current]['emails'][$email] = $email;
                 }
             }
-
-            $lists[$address] = [
-                'address' => $address,
-                'name' => Str::headline(str_replace(['.', '_', '-'], ' ', Str::before($address, '@'))),
-                'emails' => array_values($emails),
-            ];
         }
 
-        return array_values($lists);
+        return array_values(array_map(
+            fn (array $list) => [...$list, 'emails' => array_values($list['emails'])],
+            $lists,
+        ));
     }
 
     /**
@@ -85,28 +98,17 @@ class MailListImporter
         return ['lists' => count($parsed), 'members' => $members];
     }
 
-    /** @return array<int, array<int, string|null>> the rows of a CSV file */
-    public function readCsv(string $path): array
+    /**
+     * Load lists from a JSON file ([{address, name, emails: []}, …]), the form
+     * parse() produces. Every member loaded is already in the group.
+     *
+     * @return array{lists: int, members: int}
+     */
+    public function importFile(string $path): array
     {
-        $rows = [];
-        $handle = fopen($path, 'rb');
+        $parsed = json_decode((string) file_get_contents($path), true);
 
-        if ($handle === false) {
-            return [];
-        }
-
-        while (($row = fgetcsv($handle, 0, ',', '"', '')) !== false) {
-            $rows[] = $row;
-        }
-
-        fclose($handle);
-
-        // A byte order mark would hide the first list's address.
-        if (isset($rows[0][0])) {
-            $rows[0][0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $rows[0][0]);
-        }
-
-        return $rows;
+        return $this->import(is_array($parsed) ? $parsed : []);
     }
 
     private function email(mixed $cell): ?string

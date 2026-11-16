@@ -32,6 +32,9 @@ return [
     'never_granted_to_roles' => [
         'recruitment-requests.approve-finance',
         'recruitment-requests.submit-without-manager',
+        // Whoever holds the mail provider's control panel confirms that people were added to the
+        // groups there. Granted to that one person from Access Management, never to a role.
+        'mail-lists.confirm',
         // Not person-identifying, but held back from every bulk grant for the
         // same reason: candidate export and erasure are answerable acts, so a
         // new HR role must not arrive able to do either. They are read with
@@ -158,7 +161,8 @@ return [
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
         'message-templates' => ['manage', 'use'],
-        'mail-lists' => ['manage'],
+        // 'confirm' is one named person's (never a role's): see never_granted_to_roles.
+        'mail-lists' => ['manage', 'confirm'],
         // Attendance from the device report, scoped by the active role like the other pages: `view-own` is
         // every role's (an employee sees only their own timesheet); `view` lifts it to the people the role
         // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
@@ -259,8 +263,9 @@ return [
         ],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
         'mail-lists.index' => [
-            'import' => 'mail-lists.manage',
             'addMember' => 'mail-lists.manage',
+            'confirmMember' => 'mail-lists.confirm',
+            'confirmEmail' => 'mail-lists.confirm',
             'removeMember' => 'mail-lists.manage',
             'deleteList' => 'mail-lists.manage',
         ],

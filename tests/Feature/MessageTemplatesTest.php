@@ -62,7 +62,7 @@ class MessageTemplatesTest extends TestCase
     public function test_the_editor_needs_the_manage_permission(): void
     {
         $aleppo = $this->makeCity('ALP', '001');
-        $nobody = $this->makeUser($aleppo, 'HR-ALP', []);
+        $nobody = $this->makeUser($aleppo, 'employee', []);
         $hr = $this->makeUser($aleppo, 'HR-ALP', ['message-templates.manage']);
 
         $this->actingAs($nobody)->get(route('message-templates.index'))->assertForbidden();

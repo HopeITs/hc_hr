@@ -90,7 +90,7 @@ return [
         'view' => 'View', 'view-own' => 'View own', 'view-all' => 'View all',
         'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete',
         'export' => 'Export', 'decide' => 'Approve / reject', 'review' => 'Review', 'amend' => 'Amend (contract amendment)',
-        'use' => 'Use', 'manage' => 'Manage', 'manage-balances' => 'Manage balances',
+        'use' => 'Use', 'confirm' => 'Confirm', 'manage' => 'Manage', 'manage-balances' => 'Manage balances',
         'manage-employees' => 'Manage employee access', 'manage-roles' => 'Manage roles',
         'manage-permissions' => 'Manage permissions', 'share' => 'Share',
         'download' => 'Download', 'deliver' => 'Confirm delivery', 'receive' => 'Confirm return',

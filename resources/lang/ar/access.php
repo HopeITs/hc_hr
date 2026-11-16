@@ -68,7 +68,7 @@ return [
     'actions' => [
         'view' => 'عرض', 'view-own' => 'عرض الخاص', 'view-all' => 'عرض الكل',
         'create' => 'إنشاء', 'update' => 'تعديل', 'delete' => 'حذف', 'export' => 'تصدير', 'amend' => 'ملحق عقد',
-        'decide' => 'قبول / رفض', 'review' => 'مراجعة', 'use' => 'استخدام', 'manage' => 'إدارة',
+        'decide' => 'قبول / رفض', 'review' => 'مراجعة', 'use' => 'استخدام', 'confirm' => 'تأكيد', 'manage' => 'إدارة',
         'manage-balances' => 'إدارة الأرصدة', 'manage-employees' => 'إدارة وصول الموظفين',
         'manage-roles' => 'إدارة الأدوار', 'manage-permissions' => 'إدارة الصلاحيات',
         'share' => 'مشاركة', 'download' => 'تنزيل', 'deliver' => 'تأكيد التسليم',
