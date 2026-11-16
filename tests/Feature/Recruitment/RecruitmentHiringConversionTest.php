@@ -188,6 +188,11 @@ class RecruitmentHiringConversionTest extends TestCase
         // Point 4: the message says what is next — a login account on the
         // employee page, or the contract — and its buttons open them.
         $page->assertDispatched('toast');
+        // The guided flow after the hire: login account, ID card and welcome message are listed.
+        $page->assertSee(__('recruitment-applicant.conversions.onboarding.title'))
+            ->assertSeeHtml('data-step="account" data-done="0"')
+            ->assertSeeHtml('data-step="card"')
+            ->assertSeeHtml('data-step="welcome"');
         $page->assertSee(route('employees.edit', $employee->id))
             ->assertSee(__('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]))
             ->call('openEmployee')
@@ -392,6 +397,13 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertSame([$existing->id, $existing->id], [$conversion->employee_id, $conversion->contract->employee_id]);
         $this->assertSame(Conversions::MODE_LINK, $conversion->employee_payload_json['mode']);
         $this->assertSame($existing->id, $application->applicant->fresh()->employee_id);
+
+        // The guided flow says so: an existing employee linked, not a new one, and the role is announced rather than welcomed.
+        $this->actingAs($this->hr);
+        Livewire::test(Convert::class, ['offerId' => $offer->id])
+            ->assertSeeHtml('data-step="employee_existing"')
+            ->assertDontSeeHtml('data-step="employee"')
+            ->assertSeeHtml('data-step="announce"');
     }
 
     /** edge: HR confirms the same-name match is someone else, and a new employee is created. */
