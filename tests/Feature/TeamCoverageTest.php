@@ -106,6 +106,31 @@ class TeamCoverageTest extends TestCase
         $this->assertStringNotContainsString('surgery', json_encode($lina));
     }
 
+    /** Who covers: the manager sees the cover's own days away as a gap; the cover is told they cover; no cover is plain. */
+    public function test_who_covers_shows_a_gap_when_the_cover_is_away_too(): void
+    {
+        $lina = $this->leave('lina', LeaveTypeCases::Annual, '2026-11-02', '2026-11-05');
+        $lina->forceFill(['alternative_employee_id' => $this->p['omar']['employee']->id])->save();
+        // Omar, Lina's cover, is away on Tuesday 3 Nov.
+        $this->leave('omar', LeaveTypeCases::Annual, '2026-11-03', '2026-11-03');
+        $this->leave('omar', LeaveTypeCases::FullSick, '2026-11-18', '2026-11-18');
+
+        $entries = $this->coverage()->absences($this->user('sami'), 'reports', $this->d('2026-11-01'), $this->d('2026-11-30'));
+        $linaEntry = $entries->firstWhere('name', 'Lina Haddad');
+        $omarEntry = $entries->firstWhere('name', 'Omar Hamdan');
+
+        $this->assertSame($this->p['omar']['employee']->id, $linaEntry['substitute_id']);
+        $this->assertSame(['2026-11-03'], $linaEntry['cover_gap_dates']);
+        // Omar named nobody, so there is no gap to report and no cover.
+        $this->assertNull($omarEntry['substitute']);
+        $this->assertSame([], $omarEntry['cover_gap_dates']);
+
+        // Omar, as a colleague, sees that he is the cover; the gap itself is the manager's to see.
+        $asOmar = $this->coverage()->absences($this->user('omar'), 'directManager', $this->d('2026-11-01'), $this->d('2026-11-30'));
+        $this->assertTrue($asOmar->firstWhere('name', 'Lina Haddad')['covers_you']);
+        $this->assertNull($asOmar->firstWhere('name', 'Lina Haddad')['substitute_id']);
+    }
+
     /** E3, Q2: pending is hidden from colleagues and shown, marked, to the manager. */
     public function test_e3_pending_is_hidden_from_colleagues_and_marked_for_the_manager(): void
     {
