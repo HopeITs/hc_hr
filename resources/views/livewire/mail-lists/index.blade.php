@@ -220,7 +220,7 @@
                         <x-button size="sm" :href="'mailto:'.$list->address" :wire:navigate="false">
                             <x-icons.envelope class="size-4" /> @lang('mail_lists.email_list')
                         </x-button>
-                        <x-button size="sm" variant="outline" :loading="false" x-on:click="copy(@js($list->address))">{!! $copyIcon !!} @lang('mail_lists.copy_address')</x-button>
+                        <x-button size="sm" variant="outline" :loading="false" x-on:click="copy({{ \Illuminate\Support\Js::from($list->address) }})">{!! $copyIcon !!} @lang('mail_lists.copy_address')</x-button>
                     </div>
 
                     <div class="relative mt-3">
