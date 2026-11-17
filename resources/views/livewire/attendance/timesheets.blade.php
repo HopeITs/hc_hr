@@ -41,9 +41,9 @@
         anyShown() { return this.rowEls().some(r => this.match(r.dataset.s, +r.dataset.d)); },
         groupKeys() { return [...new Set(this.rowEls().map(r => r.dataset.group))]; },
         // Groups start collapsed, so a long page opens as a short list of projects. They open by
-        // themselves when there is only one, or while a search or filter is on (so a match is never
-        // hidden); a choice made by hand always wins.
-        isOpen(key) { this.tick; if (this.open[key] !== undefined) return this.open[key]; return this.q.trim() !== '' || this.undecided || this.groupKeys().length === 1; },
+        // themselves when there is only one. While a search or filter is on they are all open, whatever
+        // was folded by hand, so a match is never hidden; clearing it brings back what was chosen.
+        isOpen(key) { this.tick; if (this.q.trim() !== '' || this.undecided) return true; if (this.open[key] !== undefined) return this.open[key]; return this.groupKeys().length === 1; },
         toggle(key) { this.open[key] = ! this.isOpen(key); },
         foldAll(on) { this.groupKeys().forEach(k => this.open[k] = ! on); },
      }">
@@ -226,11 +226,11 @@
 
             @foreach($block['groups'] as $group)
                 @php($foldKey = $block['id'].':'.$group['key'])
-                <x-card class="!p-0 overflow-hidden" style="contain: paint" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown(@js($foldKey))">
+                <x-card class="!p-0 overflow-hidden" style="contain: paint" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown({{ \Illuminate\Support\Js::from($foldKey) }})">
                     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-soft bg-soft px-4 py-3">
                         <button type="button" x-on:click="toggle(@js($foldKey))" x-bind:aria-expanded="isOpen(@js($foldKey))"
                                 class="flex min-h-11 items-center gap-2 text-start" data-testid="group-fold">
-                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition" x-bind:class="isOpen(@js($foldKey)) ? 'rotate-90' : 'rtl:rotate-180'" />
+                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition" x-bind:class="isOpen({{ \Illuminate\Support\Js::from($foldKey) }}) ? 'rotate-90' : 'rtl:rotate-180'" />
                             <h3 class="text-h4 font-bold text-ink"><bdi>{{ $group['name'] ?? __($groupLabel) }}</bdi></h3>
                             <span class="text-small text-ink-2">{{ trans_choice('attendance.timesheets.people-count', $group['totals']['people']) }}</span>
                         </button>
