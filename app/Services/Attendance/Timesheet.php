@@ -62,28 +62,109 @@ class Timesheet
      */
     public function forEmployee(Employee $employee, CarbonImmutable $month): array
     {
+        return $this->forEmployees(collect([$employee]), $month)[$employee->id];
+    }
+
+    /**
+     * The same sheets for many people at once, in a handful of queries however many there are
+     * (contracts, punches, decisions, leave, balances, holidays), instead of a set per person.
+     * Each sheet is exactly what forEmployee() returns for that person.
+     *
+     * @param  Collection<int, Employee>  $employees
+     * @return array<int, array<string, mixed>> the sheets, by employee id
+     */
+    public function forEmployees(Collection $employees, CarbonImmutable $month): array
+    {
+        $ids = $employees->map(fn (Employee $employee) => $employee->id)->values()->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
         $first = $month->startOfMonth();
         $last = $month->endOfMonth()->startOfDay();
 
         $contracts = Contract::query()
             ->with('position.center', 'position.program', 'position.department')
-            ->where('employee_id', $employee->id)
+            ->whereIn('employee_id', $ids)
             ->where('type', '!=', ContractType::Draft)
             ->whereDate('start_date', '<=', $last)
             ->whereDate('end_date', '>=', $first)
             ->orderBy('start_date')
-            ->get();
+            ->get()
+            ->groupBy('employee_id');
 
-        $punches = $this->punchesByDay($employee, $first, $last);
+        $punches = [];
+
+        AttendancePunch::query()
+            ->whereIn('employee_id', $ids)
+            ->where('punched_at', '>=', $first->startOfDay())
+            ->where('punched_at', '<=', $last->endOfDay())
+            ->orderBy('punched_at')
+            ->get(['employee_id', 'punched_at'])
+            ->each(function (AttendancePunch $punch) use (&$punches) {
+                $at = CarbonImmutable::instance($punch->punched_at);
+                $punches[$punch->employee_id][$at->toDateString()][] = $at;
+            });
+
         $decisions = AttendanceDayDecision::query()
-            ->where('employee_id', $employee->id)
+            ->whereIn('employee_id', $ids)
             ->whereDate('work_date', '>=', $first)
             ->whereDate('work_date', '<=', $last)
             ->get()
-            ->keyBy(fn (AttendanceDayDecision $d) => $d->work_date->toDateString());
-        $leaves = $this->leaveRequests($employee, $first, $last);
+            ->groupBy('employee_id');
+
+        $leaves = LeaveRequest::query()
+            ->with('leaveBalance.leaveType', 'leaveBalance.contract:id,employee_id')
+            ->where('status', LeaveRequestStatus::Accepted)
+            ->whereHas('leaveBalance.contract', fn ($contract) => $contract->whereIn('employee_id', $ids))
+            ->whereDate('start_at', '<=', $last)
+            ->whereDate('end_at', '>=', $first)
+            ->get()
+            ->groupBy(fn (LeaveRequest $leave) => $leave->leaveBalance?->contract?->employee_id);
+
+        // The balances page 2 shows are those of each person's latest contract in the month.
+        $latest = $contracts->map(fn (Collection $all) => $all->sortByDesc('start_date')->first()?->id)->filter();
+        $balances = LeaveBalance::query()
+            ->with('leaveType')
+            ->whereIn('contract_id', $latest->values())
+            ->orderBy('type_id')
+            ->get()
+            ->groupBy('contract_id');
+
         $unpaid = LeaveType::query()->find(LeaveTypeCases::Unpaid);
         $holidayCache = [];
+        $sheets = [];
+
+        foreach ($employees as $employee) {
+            $sheets[$employee->id] = $this->build(
+                $first,
+                $last,
+                $contracts->get($employee->id, collect()),
+                $punches[$employee->id] ?? [],
+                ($decisions->get($employee->id) ?? collect())->keyBy(fn (AttendanceDayDecision $d) => $d->work_date->toDateString()),
+                $leaves->get($employee->id, collect()),
+                $unpaid,
+                $holidayCache,
+                $balances->get($latest->get($employee->id), collect()),
+            );
+        }
+
+        return $sheets;
+    }
+
+    /**
+     * One person's month from what forEmployees() has already read.
+     *
+     * @param  Collection<int, Contract>  $contracts
+     * @param  array<string, list<CarbonImmutable>>  $punches  times by day
+     * @param  Collection<string, AttendanceDayDecision>  $decisions  by date
+     * @param  Collection<int, LeaveRequest>  $leaves
+     * @param  array<string, array<string, string>>  $holidayCache  shared by everyone of the page
+     * @param  Collection<int, LeaveBalance>  $balanceRows
+     */
+    private function build(CarbonImmutable $first, CarbonImmutable $last, Collection $contracts, array $punches, Collection $decisions, Collection $leaves, ?LeaveType $unpaid, array &$holidayCache, Collection $balanceRows): array
+    {
         $overtime = config('attendance.overtime');
 
         $rows = [];
@@ -217,7 +298,7 @@ class Timesheet
             'daily_hours' => $dailyHours,
             'rows' => $rows,
             'totals' => $this->totals($rows, $dailyHours),
-            'balances' => $this->balances($employee, $contracts, $rows, $dailyHours),
+            'balances' => $this->balances($balanceRows, $contracts, $rows, $dailyHours),
         ];
     }
 
@@ -260,25 +341,6 @@ class Timesheet
             'worked_days' => $workedDays,
             'to_decide' => $toDecide,
         ];
-    }
-
-    /** @return array<string, list<CarbonImmutable>> times by day, oldest first */
-    private function punchesByDay(Employee $employee, CarbonImmutable $first, CarbonImmutable $last): array
-    {
-        $byDay = [];
-
-        AttendancePunch::query()
-            ->where('employee_id', $employee->id)
-            ->where('punched_at', '>=', $first->startOfDay())
-            ->where('punched_at', '<=', $last->endOfDay())
-            ->orderBy('punched_at')
-            ->pluck('punched_at')
-            ->each(function ($at) use (&$byDay) {
-                $at = CarbonImmutable::instance($at);
-                $byDay[$at->toDateString()][] = $at;
-            });
-
-        return $byDay;
     }
 
     private function coveringContract(Collection $contracts, CarbonImmutable $day): ?Contract
@@ -332,18 +394,6 @@ class Timesheet
         $block = max(1, (int) $rule['block_minutes']);
 
         return $over >= (int) $rule['threshold_minutes'] ? intdiv($over, $block) * $block : 0;
-    }
-
-    /** @return Collection<int, LeaveRequest> */
-    private function leaveRequests(Employee $employee, CarbonImmutable $first, CarbonImmutable $last): Collection
-    {
-        return LeaveRequest::query()
-            ->with('leaveBalance.leaveType')
-            ->where('status', LeaveRequestStatus::Accepted)
-            ->whereHas('leaveBalance.contract', fn ($contract) => $contract->where('employee_id', $employee->id))
-            ->whereDate('start_at', '<=', $last)
-            ->whereDate('end_at', '>=', $first)
-            ->get();
     }
 
     /**
@@ -419,7 +469,7 @@ class Timesheet
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>
      */
-    private function balances(Employee $employee, Collection $contracts, array $rows, float $dailyHours): array
+    private function balances(Collection $balanceRows, Collection $contracts, array $rows, float $dailyHours): array
     {
         $contract = $contracts->sortByDesc('start_date')->first();
 
@@ -435,11 +485,7 @@ class Timesheet
             }
         }
 
-        return LeaveBalance::query()
-            ->with('leaveType')
-            ->where('contract_id', $contract->id)
-            ->orderBy('type_id')
-            ->get()
+        return $balanceRows
             ->map(function (LeaveBalance $balance) use ($usedThisMonth, $dailyHours) {
                 $entitled = (float) ($balance->deserved ?? 0);
                 $used = (float) ($balance->used ?? 0);
