@@ -1187,6 +1187,20 @@
     .hc-dcard-go {
         flex: 0 0 auto;
     }
+
+    /* One line, always. The button opens on hover to show its words; if the footer could
+       wrap, the opened button would not fit beside the wait, drop to a second line out from
+       under the pointer, close, jump back, open again: it danced. Now the wait gives way
+       (clipped) instead, and nothing moves. */
+    .hc-dcard-foot {
+        flex-wrap: nowrap;
+    }
+
+    .hc-dcard-since {
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
 }
 
 /* Wide tile: info on the start side, the action centred on the end side. */
