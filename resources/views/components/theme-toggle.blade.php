@@ -2,10 +2,12 @@
 
 {{-- Light / dark switch. Remembered on this device (localStorage "hopehr-theme"); until the
      person picks one, the page follows the system. partials/head.blade.php applies the
-     stored choice before first paint. aria-pressed = dark mode is on.
+     stored choice before first paint. The name says what a press does ("Dark mode" while
+     light, "Light mode" while dark), so it carries no aria-pressed: a pressed state on top
+     of a name that flips would read as the opposite twice.
      `menu` renders it as an account-menu row (phones), otherwise as a 44px header button. --}}
 <button type="button"
-    @if ($menu) role="menuitemcheckbox" :aria-checked="dark.toString()" @else :aria-pressed="dark.toString()" @endif
+    @if ($menu) role="menuitem" @endif
     x-data="{
         dark: false,
         init() {
@@ -26,6 +28,7 @@
         {{ $attributes->class('flex w-full min-h-11 items-center gap-3 px-3 py-2 text-start text-body font-medium text-ink transition rounded-surface hover:bg-hover') }}
     @else
         aria-label="{{ __('theme.dark') }}" title="{{ __('theme.dark') }}"
+        :aria-label="dark ? @js(__('theme.light')) : @js(__('theme.dark'))" :title="dark ? @js(__('theme.light')) : @js(__('theme.dark'))"
         {{ $attributes->class('inline-grid size-11 shrink-0 place-items-center rounded-control text-ink-2 transition hover:bg-hover hover:text-ink') }}
     @endif
 >
@@ -38,6 +41,6 @@
         <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
     </svg>
     @if ($menu)
-        <span>{{ __('theme.dark') }}</span>
+        <span x-text="dark ? @js(__('theme.light')) : @js(__('theme.dark'))">{{ __('theme.dark') }}</span>
     @endif
 </button>
