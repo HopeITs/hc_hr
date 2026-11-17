@@ -114,6 +114,15 @@ class Check extends Component
         MailListMember::findOrFail($memberId)->delete();
     }
 
+    /** Someone who left: flag them for removal at the control panel (they stay on the list until it is done). */
+    public function queueRemoval(int $memberId): void
+    {
+        $this->authorizeActivePermission('mail-lists.manage');
+
+        app(MailListSync::class)->queueRemoval(MailListMember::findOrFail($memberId));
+        $this->toast(__('mail_lists.check.removal_queued'));
+    }
+
     public function render()
     {
         $sync = app(MailListSync::class);

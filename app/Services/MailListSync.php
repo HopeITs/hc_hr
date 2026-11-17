@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\Employee;
 use App\Models\MailList;
 use App\Models\MailListMember;
 use App\Models\User;
@@ -64,7 +65,7 @@ class MailListSync
                 continue; // an outside address: nothing in HR data to compare with
             }
 
-            $row = ['id' => $member->id, 'email' => $email, 'name' => (string) $profile->name];
+            $row = ['id' => $member->id, 'email' => $email, 'name' => (string) $profile->name, 'leaving' => $member->isLeaving()];
 
             if (! $profile->is_active) {
                 $left->push($row);
@@ -176,5 +177,81 @@ class MailListSync
             ->orderBy('position')->orderBy('name')
             ->get()
             ->map(fn (MailList $list) => ['list' => $list, 'result' => $this->compare($list)]);
+    }
+
+    /**
+     * A person who joined (a contract, an account): queue them as pending on every list whose rule
+     * they match and that they are not on. People who are already on a list are left as they are.
+     *
+     * @return int how many lists they were queued on
+     */
+    public function queueForPerson(Employee $employee, ?int $byUserId = null): int
+    {
+        $email = Str::lower((string) $employee->account?->email);
+
+        if ($email === '') {
+            return 0;
+        }
+
+        $count = 0;
+
+        $lists = MailList::query()->whereNotNull('rule_type')->where('rule_type', '!=', MailList::RULE_BOARD)->get();
+
+        foreach ($lists as $list) {
+            if (! $this->expected($list)->has($email)) {
+                continue;
+            }
+
+            $member = $list->members()->firstOrCreate(
+                ['email' => $email],
+                ['status' => MailListMember::PENDING, 'added_by_user_id' => $byUserId],
+            );
+
+            $count += $member->wasRecentlyCreated ? 1 : 0;
+        }
+
+        return $count;
+    }
+
+    /**
+     * A person who left: what was only queued here is dropped, and what is in a group at the control
+     * panel is flagged for the holder to remove there.
+     *
+     * @return int how many memberships were affected
+     */
+    public function flagLeaving(Employee $employee): int
+    {
+        $email = Str::lower((string) $employee->account?->email);
+
+        if ($email === '') {
+            return 0;
+        }
+
+        $dropped = MailListMember::query()->pending()->where('email', $email)->delete();
+        $flagged = MailListMember::query()->where('email', $email)->where('status', MailListMember::ACTIVE)
+            ->update(['status' => MailListMember::LEAVING]);
+
+        return $dropped + $flagged;
+    }
+
+    /** They are back: what was flagged for removal and not yet removed stays on the list. */
+    public function unflagLeaving(Employee $employee): int
+    {
+        $email = Str::lower((string) $employee->account?->email);
+
+        return $email === '' ? 0 : MailListMember::query()->leaving()->where('email', $email)
+            ->update(['status' => MailListMember::ACTIVE]);
+    }
+
+    /** Flag one member (found by the check page as having left) for removal at the control panel. */
+    public function queueRemoval(MailListMember $member): void
+    {
+        if ($member->status === MailListMember::PENDING) {
+            $member->delete();
+
+            return;
+        }
+
+        $member->update(['status' => MailListMember::LEAVING]);
     }
 }

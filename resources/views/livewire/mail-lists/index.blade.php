@@ -65,6 +65,48 @@
         </section>
     @endif
 
+    {{-- The same person, the other way round: left the organisation, still in the groups at the control panel. --}}
+    @if($canConfirm && $leaving->isNotEmpty())
+        <section class="mb-6 rounded-surface border border-line bg-card" data-testid="mail-lists-leaving" x-data="{ open: true }">
+            <button type="button" x-on:click="open = ! open" x-bind:aria-expanded="open"
+                    class="flex w-full items-center justify-between gap-3 px-4 py-3 text-start">
+                <span class="flex min-w-0 items-center gap-2">
+                    <x-ic name="user" class="size-5 shrink-0 text-ink" />
+                    <span class="min-w-0">
+                        <span class="block font-bold text-ink">@lang('mail_lists.leaving_title')</span>
+                        <span class="block text-small text-ink-2">@lang('mail_lists.leaving_help')</span>
+                    </span>
+                </span>
+                <span class="flex shrink-0 items-center gap-2">
+                    <span class="rounded-full bg-ink px-2.5 py-0.5 text-small font-bold text-on-ink num">{{ $leaving->count() }}</span>
+                    <x-ic name="chevron" class="size-4 text-ink-2 transition" x-bind:class="open && 'rotate-90'" />
+                </span>
+            </button>
+
+            <div x-show="open" x-cloak class="divide-y divide-line-soft border-t border-line-soft">
+                @foreach($leaving as $person)
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3" wire:key="leaving-{{ $person['email'] }}">
+                        <div class="min-w-0">
+                            <p class="font-semibold text-ink"><bdi>{{ $person['name'] ?? $person['email'] }}</bdi></p>
+                            @if($person['name'])
+                                <p class="text-small text-ink-2" dir="ltr">{{ $person['email'] }}</p>
+                            @endif
+                            <p class="mt-1 flex flex-wrap items-center gap-1 text-small text-ink-2">
+                                @lang('mail_lists.leaving_lists'):
+                                @foreach($person['lists'] as $address)
+                                    <code class="rounded bg-soft px-1.5 py-0.5" dir="ltr">{{ $address }}</code>
+                                @endforeach
+                            </p>
+                        </div>
+                        <x-button size="sm" variant="outline" wire:click="confirmRemovalEmail('{{ $person['email'] }}')">
+                            <x-ic name="check" class="size-4" /> @lang('mail_lists.leaving_done')
+                        </x-button>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     @if($total === 0 && $rows->isEmpty() && $search === '' && $category === '')
         <x-center-empty-state variant="empty" :title="__('mail_lists.empty')" :description="__('mail_lists.empty_help')" />
     @else
@@ -206,6 +248,9 @@
                                         @if($canConfirm && $member['pending'])
                                             <x-tag variant="rush" icon="clock" :label="__('mail_lists.pending_tag')" />
                                         @endif
+                                        @if($canConfirm && $member['leaving'])
+                                            <x-tag variant="soft" icon="user" :label="__('mail_lists.leaving_tag')" />
+                                        @endif
                                         @if($canManage && $member['former'])
                                             <x-tag variant="soft" :label="__('mail_lists.former')" />
                                         @elseif($canManage && ! $member['account'])
@@ -221,6 +266,10 @@
                                     @endunless
                                     @if($canConfirm && $member['pending'])
                                         <button type="button" wire:click="confirmMember({{ $member['id'] }})" title="{{ __('mail_lists.pending_done') }}" aria-label="{{ __('mail_lists.pending_done') }}"
+                                                class="grid size-8 place-items-center rounded-control text-ink transition hover:bg-hover"><x-ic name="check" class="size-4" /></button>
+                                    @endif
+                                    @if($canConfirm && $member['leaving'])
+                                        <button type="button" wire:click="confirmRemoval({{ $member['id'] }})" title="{{ __('mail_lists.leaving_done') }}" aria-label="{{ __('mail_lists.leaving_done') }}"
                                                 class="grid size-8 place-items-center rounded-control text-ink transition hover:bg-hover"><x-ic name="check" class="size-4" /></button>
                                     @endif
                                     @if($canManage)

@@ -101,6 +101,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Livewire\Livewire;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -147,13 +148,39 @@ class AppServiceProvider extends ServiceProvider
     {
         // A new account on the organisation's domain joins the all-staff mail list as
         // pending (MailList::queueNewAccount). It must never stop an account being made.
-        \App\Models\User::created(function (\App\Models\User $user): void {
+        User::created(function (User $user): void {
             try {
                 \App\Models\MailList::queueNewAccount($user);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 report($e);
             }
         });
+
+        // The rest of a person's lists follow the same way, by the rules of the lists (MailListSync):
+        // a hire (an account or a contract) queues them as pending on the lists they belong on, and
+        // leaving (the employee turned inactive) flags them for removal at the control panel.
+        // Nothing here may stop a hire or a departure.
+        $lists = fn (callable $work) => function ($model) use ($work): void {
+            try {
+                $work($model, app(\App\Services\MailListSync::class));
+            } catch (Throwable $e) {
+                report($e);
+            }
+        };
+
+        User::created($lists(fn ($user, $sync) => $user->profile && $sync->queueForPerson($user->profile, auth()->id())));
+
+        // A bulk import or command would queue hundreds at once: the check page does that on demand.
+        Contract::created($lists(fn ($contract, $sync) => ! app()->runningInConsole() && $contract->is_active
+            && $contract->employee && $sync->queueForPerson($contract->employee, auth()->id())));
+
+        Employee::updated($lists(function ($employee, $sync): void {
+            if (! $employee->wasChanged('is_active')) {
+                return;
+            }
+
+            $employee->is_active ? $sync->unflagLeaving($employee) : $sync->flagLeaving($employee);
+        }));
 
         // Spatie forgets its cache key on every grant or revocation; User drops
         // its memoized roles and permissions when the generation moves on.
