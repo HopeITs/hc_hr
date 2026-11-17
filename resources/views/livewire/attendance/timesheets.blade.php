@@ -52,7 +52,8 @@
     <x-page-header :title="$title" :lead="$lead">
         <x-slot:actions>
             @if($canManage)
-                <x-button variant="outline" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
+                <x-button variant="outline" :href="route('attendance.devices')">@lang('attendance.devices.title')</x-button>
+                <x-button variant="quiet" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
             @endif
             <x-button icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">{{ $own ? __('attendance.timesheets.print-own') : __('attendance.timesheets.print-all') }}</x-button>
             <x-button variant="outline" :href="route('attendance.export.pdf', $printBase)" :wire:navigate="false" target="_blank" data-testid="pdf-link">@lang('attendance.export.pdf')</x-button>

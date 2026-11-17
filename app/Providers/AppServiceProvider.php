@@ -190,6 +190,10 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // A device calls about every 30 seconds and posts its log in bursts: generous per device,
+        // and by address when it does not say who it is.
+        RateLimiter::for('iclock', fn (Request $request) => Limit::perMinute(300)
+            ->by((string) ($request->query('SN') ?? $request->query('sn') ?? $request->ip())));
         RateLimiter::for('careers-view', fn (Request $request) => Limit::perMinute(60)
             ->by($request->ip()));
         // Asking "is this address invited?" tells the asker, so it is the one
