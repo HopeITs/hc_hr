@@ -6,6 +6,7 @@ use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
 use App\Models\JobLevel;
+use App\Models\MailList;
 use App\Models\Position;
 use App\Models\Program;
 use App\Support\DirectoryAccess;
@@ -300,7 +301,12 @@ class OrgChart extends Component
             $this->managers->loadMissing(['activeContracts' => DirectoryAccess::holders(auth()->user()), 'jobLevel']);
         }
 
-        return view('livewire.position.org-chart', ['tree' => $this->tree]);
+        // "Email this group": the mailing list for exactly the place / project / department filtered.
+        // Any other filter (a center, a level, a manager) or a search narrows it past what a list holds.
+        $narrowed = $this->center_id || $this->job_level_id || $this->focus_manager_id || trim($this->search) !== '';
+        $filterList = $narrowed ? null : MailList::emailFor($this->city_id, $this->program_id, $this->department_id);
+
+        return view('livewire.position.org-chart', ['tree' => $this->tree, 'filterList' => $filterList]);
     }
 
     // -------------------------------------------------------------------

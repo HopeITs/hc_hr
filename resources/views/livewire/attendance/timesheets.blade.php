@@ -215,6 +215,12 @@
                 @if($block['totals']['to_decide'] > 0)
                     <x-status tone="attn" icon="alert" :label="__('attendance.timesheets.to-decide', ['count' => $block['totals']['to_decide']])" />
                 @endif
+                {{-- The mailing list that stands for this city, when there is one. --}}
+                @if($cityList = \App\Models\MailList::emailFor($block['id'] ? (int) $block['id'] : null, null, null, $mailLists))
+                    <a href="mailto:{{ $cityList->address }}" data-testid="email-city" class="inline-flex min-h-8 items-center gap-1.5 text-small font-semibold text-ink-2 underline hover:text-ink">
+                        <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                    </a>
+                @endif
             </div>
 
             @foreach($block['groups'] as $group)
@@ -236,6 +242,14 @@
                             @endif
                             @if($group['totals']['overtime_hours'] > 0)
                                 <span class="text-small text-ink-2 num">{{ $group['totals']['overtime_hours'] }} h = +{{ $group['totals']['overtime_days'] }} @lang('attendance.timesheets.free-days')</span>
+                            @endif
+                            {{-- The list for this project or department (in this city, else nationwide). --}}
+                            @php($groupList = ($group['id'] ?? null) ? \App\Models\MailList::emailForGroup($block['id'] ? (int) $block['id'] : null, $by === \App\Services\Attendance\Grouping::PROJECT ? (int) $group['id'] : null, $by === \App\Services\Attendance\Grouping::DEPARTMENT ? (int) $group['id'] : null, $mailLists) : null)
+                            @if($groupList)
+                                <a href="mailto:{{ $groupList->address }}" data-testid="email-group"
+                                   class="inline-flex min-h-9 items-center gap-2 rounded-control border border-line bg-card px-3 text-small font-semibold text-ink hover:bg-hover">
+                                    <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                                </a>
                             @endif
                             @unless($own)
                                 @php($groupParams = $printBase + ['city_id' => $block['id'], 'group' => $group['id'] ?? 'none'])

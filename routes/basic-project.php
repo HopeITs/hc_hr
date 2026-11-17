@@ -54,3 +54,6 @@ Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
 
 // The organisation mailing lists: every signed-in employee reads and emails them; editing needs mail-lists.manage (checked in the component).
 Route::get("/mail-lists", \App\Livewire\MailLists\Index::class)->name("mail-lists.index");
+// What each list should hold by HR data, and who is missing or has left: HR only.
+Route::get("/mail-lists/check", \App\Livewire\MailLists\Check::class)
+    ->middleware('active_permission:mail-lists.manage')->name("mail-lists.check");
