@@ -31,7 +31,7 @@
         {{-- Filtering and folding happen here, in the browser, over the rows the server already sent. --}}
         q: '',
         undecided: false,
-        folded: {},
+        open: {},
         tick: 0,
         init() { Livewire.hook('commit', ({ succeed }) => succeed(() => this.$nextTick(() => this.tick++))); },
         rowEls() { return [...this.$root.querySelectorAll('tr[data-group]')]; },
@@ -40,7 +40,12 @@
         hasRows() { this.tick; return this.rowEls().length > 0; },
         anyShown() { return this.rowEls().some(r => this.match(r.dataset.s, +r.dataset.d)); },
         groupKeys() { return [...new Set(this.rowEls().map(r => r.dataset.group))]; },
-        foldAll(on) { this.groupKeys().forEach(k => this.folded[k] = on); },
+        // Groups start collapsed, so a long page opens as a short list of projects. They open by
+        // themselves when there is only one, or while a search or filter is on (so a match is never
+        // hidden); a choice made by hand always wins.
+        isOpen(key) { this.tick; if (this.open[key] !== undefined) return this.open[key]; return this.q.trim() !== '' || this.undecided || this.groupKeys().length === 1; },
+        toggle(key) { this.open[key] = ! this.isOpen(key); },
+        foldAll(on) { this.groupKeys().forEach(k => this.open[k] = ! on); },
      }">
     <x-slot:title>{{ $title }}</x-slot:title>
 
@@ -216,9 +221,9 @@
                 @php($foldKey = $block['id'].':'.$group['key'])
                 <x-card class="!p-0 overflow-hidden" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown(@js($foldKey))">
                     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-soft bg-soft px-4 py-3">
-                        <button type="button" x-on:click="folded[@js($foldKey)] = ! folded[@js($foldKey)]" x-bind:aria-expanded="! folded[@js($foldKey)]"
+                        <button type="button" x-on:click="toggle(@js($foldKey))" x-bind:aria-expanded="isOpen(@js($foldKey))"
                                 class="flex min-h-11 items-center gap-2 text-start" data-testid="group-fold">
-                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition" x-bind:class="folded[@js($foldKey)] ? 'rtl:rotate-180' : 'rotate-90'" />
+                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition" x-bind:class="isOpen(@js($foldKey)) ? 'rotate-90' : 'rtl:rotate-180'" />
                             <h3 class="text-h4 font-bold text-ink"><bdi>{{ $group['name'] ?? __($groupLabel) }}</bdi></h3>
                             <span class="text-small text-ink-2">{{ trans_choice('attendance.timesheets.people-count', $group['totals']['people']) }}</span>
                         </button>
@@ -249,7 +254,7 @@
                         </div>
                     </div>
 
-                    <div x-show="! folded[@js($foldKey)]">
+                    <div x-show="isOpen(@js($foldKey))" x-cloak>
                         <div class="overflow-x-auto">
                             <table class="w-full min-w-max text-start text-body">
                                 <thead>
