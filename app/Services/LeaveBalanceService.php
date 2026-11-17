@@ -163,6 +163,17 @@ class LeaveBalanceService
     }
 
     /**
+     * Whether create() gives this contract no balance at all, so "no balances"
+     * is the expected state rather than a gap (read by the renewal journey).
+     */
+    public function exemptFromLeave(Contract $contract): bool
+    {
+        $contract->loadMissing('contractType');
+
+        return $this->isExemptFromLeave($contract);
+    }
+
+    /**
      * An amendment changed the length of this contract's working day: convert
      * its balances so the employee keeps the same number of days left.
      *

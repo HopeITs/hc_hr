@@ -56,9 +56,9 @@ Review column: "awaiting" = the document's own header says awaiting/pending revi
 | 40 | G-C | [g-c-gate.md](../g-c-gate.md), [evidence/g-c](../g-c) | b883f54b, 119a516f, 99529cf3, a303000e, 8fd4ae0f, 15d35620, 4b07f3e6, affdb274, 350fee96, 66c895b5, ba92ddd7, e7b5e237 (SHA `aa983edc` → re-run `4b07f3e6`) | G-C-01 **Met, with coverage limits** · G-C-02 **"Not met"** in the §5 table (line 88), but §7 (line 119) says **met** on re-run — **table never updated** · G-C-03 Met | **Formal review pending** (lines 96, 119) | Header still says "MATRIX RE-RUN PENDING" (line 7) although §7 records it; G-C-14, G-C-19 (N-06), G-C-20, G-C-21 open (low) |
 | 41 | D2 | [d2-implementation.md](../d2-implementation.md) | 86c70911 | Evidence, no status label; D2-02 "real proof is the browser checks" (line 36) | Review pending | No real device / keyboard / screen reader (§5) |
 | 42 | D2-PWA | [d2-pwa-implementation.md](../d2-pwa-implementation.md) | ade75db6, f56d320c | Evidence (tests + browser + Chrome installability), no status label (lines 23–25) | Review pending | Install not tried on a real phone; inline scripts blocked by CSP (pre-existing) |
-| 43 | D4 | **No deliverable found.** No journey design doc in `docs/`. DEC-09 exists only as a one-line answer ([decisions.md](../decisions.md) line 139–140); [employee-lifecycle.md](../employee-lifecycle.md) is B5-D, not D4 | — | D4-01, D4-02, D4-03: **Not met** (no artifact) | — | Required by G-R dependency list (prompts line 141) |
+| 43 | D4 | [journeys.md](../journeys.md); DEC-09 detail in [decisions.md](../decisions.md) (2026-10-30) | — (not committed) | D4-01, D4-02, D4-03: **delivered, awaiting review** (§8) | Awaiting | Renewal and exit journeys deferred, next increment named (§5); open points §7 (termination seat, recruitment hires get no journey) |
 | 44 | X1-I | [x1i-implementation.md](../x1i-implementation.md), [evidence/x1i](../x1i) | 1b5f4165, e6b2f46c, f7439998 | X1-I-01 Met · X1-I-02 **Met, with the limits in §7** · X1-I-03 Met (lines 165–167) | Awaiting (line 187) | §7 limits (see §4 below) |
-| 45 | D4-I | **No deliverable found** (no doc, no commit tagged D4-I) | — | D4-I-01/02/03: **Not met / not started** | — | Blocked on D4 |
+| 45 | D4-I | [d4-i-implementation.md](../d4-i-implementation.md) | 2798d70 | D4-I-01/02/03: **delivered, awaiting review** (implemented; tests and counts pending, §7) | Awaiting | **Live migration not run**; no inbox/dashboard tile, no employee-list view, browser check not done (§8) |
 | 46 | X2-R | [x2-r-retest.md](../x2-r-retest.md) | 5e9d26b5 | X2-R-01 **Met by disclosure** · X2-R-02 **Not met** · X2-R-03 **Partly met** (lines 118–120) | Awaiting; "Not marked done" (line 6) | No participants; §6 register. Line 16 says no X1-I doc/after-run exists — **stale**: written at `7d340617`, before `f7439998` added it |
 | 47 | G-R | this folder (in progress) | — | Pending | — | — |
 
@@ -94,7 +94,7 @@ Map from prompts lines 4122–4145. "Covered" = every listed task delivered with
 | R-18 | EN/AR localization | A4, A5-M | **Partial** | A4 Arabic content review pending (doc: "not done") |
 | R-19 | Accessibility | A5, B0, A5-M, M1 | **Partial** | Screen-reader pass never run (A5 doc: "not done"); G-C-21 composer radios/comboboxes still misnamed |
 | R-20 | Non-duplicate notifications | B6 | Partial | Tests only; browser pending; not reviewed |
-| R-21 | Lifecycle journeys | D4, D4-I | **Not covered** | No D4 or D4-I deliverable |
+| R-21 | Lifecycle journeys | D4, D4-I | **Delivered, awaiting review** | [journeys.md](../journeys.md), [d4-i-implementation.md](../d4-i-implementation.md); onboarding slice only, renewal/exit deferred |
 | R-22 | Contract/PDF | A6-D, A6 | **Partial** | A6-01 Open; A6-D-02 real path not exercised; owner attestation only |
 | R-23 | Performance/recovery | X1, X1-I | Covered with limits | X1-I-02 Met with §7 limits |
 | R-24 | Access and digital ID | P0, A1, A2-D, A2 | Partial | A2 Met (tests); G-A #4 (13 coarse-permission delete/toggle actions) unresolved; no A2 browser walkthrough |

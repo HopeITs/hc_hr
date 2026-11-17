@@ -66,14 +66,14 @@
     }
     .custom-scrollbar {
         scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+        scrollbar-color: rgba(88, 89, 91, 0.22) transparent;
         scrollbar-gutter: stable;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.22);
+        background-color: rgba(88, 89, 91, 0.22);
         border-radius: 999px;
     }
 </style>

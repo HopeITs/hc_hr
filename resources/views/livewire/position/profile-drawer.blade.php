@@ -198,15 +198,19 @@
                 </div>
             </div>
 
-            {{-- Footer action stays visible while the details scroll. --}}
-            @if(filled($employee->username))
-                <div class="shrink-0 border-t border-line-soft bg-card/95 px-4 py-4 shadow-e2 backdrop-blur sm:px-6">
+            {{-- Footer actions stay visible while the details scroll: this person's work contact on the
+                 viewer's dashboard (rec.contact.<id>; the org chart's cards open this drawer), and the profile. --}}
+            <div class="shrink-0 space-y-2 border-t border-line-soft bg-card/95 px-4 py-4 shadow-e2 backdrop-blur sm:px-6">
+                <div class="flex justify-center">
+                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :key="'atd-drawer-'.$employee->id" />
+                </div>
+                @if(filled($employee->username))
                     <x-button full :href="route('employees.show', ['employee' => $employee->username])">
                         @lang('general.view-full-profile')
                         <svg class="size-4 rtl:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
                     </x-button>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
         @endif
 

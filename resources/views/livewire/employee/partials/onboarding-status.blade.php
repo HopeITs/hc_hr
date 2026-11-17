@@ -28,6 +28,27 @@
         ['national_number', __('general.national_number'), 'information', ['national_number']],
         ['username', __('general.username'), 'contact', ['username']],
     ];
+    // Autosave (phase 2, DEC-04, employee-lifecycle.md §5.6): on the create
+    // page until it has been saved explicitly (the form then makes way for the
+    // draft-position step), and on a draft's edit page. Never on a complete
+    // record, which never goes back to draft.
+    $autosaves = $isCreateMode ? ! ($showDraftPrompt ?? false) : $isDraft;
+    // The draft as saved so far: on the create page, the one an autosave made.
+    $savedDraft = $isCreateMode ? $infoForm->employee : ($isDraft ? $record : null);
+    $savedLine = $savedDraft?->isDraft()
+        ? __('employees.onboarding.saved-at', [
+            'time' => $savedDraft->updated_at?->timezone(config('app.timezone'))->translatedFormat('d M Y, H:i'),
+            'name' => $savedDraft->lastSavedBy?->profile?->nameForLocale($locale) ?? $savedDraft->lastSavedBy?->email ?? __('general.unknown'),
+        ])
+        : __('employees.onboarding.autosave-not-yet');
+    $autosaveConfig = [
+        'required' => [...$names, 'city_id', 'national_number', 'username'],
+        'messages' => [
+            'saving' => __('employees.onboarding.autosave-saving'),
+            'notYet' => __('employees.onboarding.autosave-not-yet'),
+            'failed' => __('employees.onboarding.autosave-failed'),
+        ],
+    ];
     $completeNeeds = [
         ['gender', __('general.gender'), 'information', ['gender']],
         ['marital_status', __('general.marital_status'), 'information', ['marital_status']],
@@ -66,13 +87,27 @@
                 {{ $isDraft ? __('employees.onboarding.state-draft') : __('employees.onboarding.new-record') }}
             </h2>
 
-            @if ($isDraft)
-                <p class="mt-1 text-ink-2" data-testid="draft-saved-at">
-                    {{ __('employees.onboarding.saved-at', [
-                        'time' => $record->updated_at?->timezone(config('app.timezone'))->translatedFormat('d M Y, H:i'),
-                        'name' => $record->lastSavedBy?->profile?->nameForLocale($locale) ?? $record->lastSavedBy?->email ?? __('general.unknown'),
-                    ]) }}
-                </p>
+            @if ($autosaves)
+                {{--
+                    The save status line. The browser asks the server to save
+                    the draft a few seconds after the last change
+                    (resources/js/employee-autosave.js); nothing is kept in
+                    browser storage. Before the draft minimum is filled in it
+                    says so instead of showing errors while someone types.
+                --}}
+                {{-- data-saved-line: the server's own line, re-read after an explicit save. --}}
+                <div x-data="employeeDraftAutosave(@js($autosaveConfig))" class="mt-1" data-testid="draft-autosave"
+                    data-saved-line="{{ $savedLine }}"
+                    data-draft-url="{{ $isCreateMode && $savedDraft ? route('employees.edit', $savedDraft->id) : '' }}">
+                    <p class="text-ink-2" data-testid="draft-saved-at" role="status" aria-live="polite" x-text="message">{{ $savedLine }}</p>
+                    @if ($isCreateMode)
+                        {{-- After the first autosave the draft exists: its own page has every section. --}}
+                        <a x-cloak x-show="draftUrl" x-bind:href="draftUrl" wire:navigate
+                            class="hc-btn hc-btn--link hc-btn--sm mt-1" data-testid="open-saved-draft">
+                            @lang('employees.onboarding.autosave-open-draft')
+                        </a>
+                    @endif
+                </div>
             @endif
 
             <div class="mt-3 grid gap-4 md:grid-cols-2">

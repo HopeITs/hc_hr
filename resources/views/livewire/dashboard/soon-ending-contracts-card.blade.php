@@ -3,10 +3,11 @@
     $titleField = 'title_' . $locale;
 @endphp
 
-<div class="relative flex h-full min-h-64 w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm">
+<div class="relative flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm"
+     @unless ($loadFailed) data-fit-rows="{{ max(2, min(5, (int) ceil((52 + 60 * $contracts->count()) / 82))) }}" @endunless>
 
     <!-- Header (IDENTICAL to No Leaves) -->
-    <div class="flex items-center gap-2 px-6 pt-6 pb-4">
+    <div class="flex items-center gap-2 px-4 pt-3 pb-1">
         <h2 class="text-h4 font-extrabold text-ink">
             @lang('general.soon-ending-contracts')
         </h2>
@@ -18,7 +19,7 @@
     </div>
 
     <!-- Scrollable Content (IDENTICAL to No Leaves) -->
-    <div class="relative px-6 pb-6 pt-2 space-y-3 overflow-y-auto flex-grow
+    <div class="relative px-4 pb-2 overflow-y-auto flex-grow
                 scrollbar-thin scrollbar-thumb-[var(--color-line)]
                 scrollbar-track-transparent
                 hover:scrollbar-thumb-[var(--color-ink-2)]
@@ -28,7 +29,7 @@
             <x-ui.load-error class="min-h-40" />
         @else
         @forelse ($contracts as $contract)
-            <div class="flex items-center justify-between py-4 border-b border-line-soft last:border-0">
+            <div class="flex items-center justify-between py-2 border-b border-line-soft last:border-0">
 
                 <!-- LEFT: Avatar + Name -->
                 <div class="flex items-center gap-3">
@@ -46,7 +47,7 @@
 
                     <div class="min-w-0">
                         <p class="text-body font-semibold text-ink truncate">
-                            {{ $contract->employee_name }}
+                            <x-person :id="$contract->employee_id" :name="$contract->employee_name" />
                         </p>
 
                         <p class="text-small text-ink-2 truncate">

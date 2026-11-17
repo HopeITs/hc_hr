@@ -75,26 +75,27 @@
                 <div class="flex items-center flex-1 min-w-0 gap-3">
 
                     <!-- Avatar -->
-                    <div
-                        class="flex items-center justify-center size-[34px] flex-shrink-0 rounded-full overflow-hidden
-                                bg-surface text-ink font-semibold uppercase shadow-e1">
-                        @if ($member->canViewAvatar ?? false)
-                            {{-- Fixed size reserves the space (no layout shift); lazy + async keep ~190 photos off the critical path. --}}
-                            <img src="{{ $member->avatar_url }}" alt="{{ $memberName }}"
-                                width="34" height="34" loading="lazy" decoding="async"
-                                class="object-cover size-full">
-                        @else
-                            {{-- Not allowed to see this photo: initials, and no request at all. --}}
-                            <span aria-hidden="true" class="text-xs">{{ $memberInitials }}</span>
-                            <span class="sr-only">{{ $memberName }}</span>
-                        @endif
+                    <div class="relative size-[34px] flex-shrink-0">
+                        <div
+                            class="flex items-center justify-center size-full rounded-full overflow-hidden
+                                    bg-surface text-ink font-semibold uppercase shadow-e1">
+                            @if ($member->canViewAvatar ?? false)
+                                {{-- Fixed size reserves the space (no layout shift); lazy + async keep ~190 photos off the critical path. --}}
+                                <img src="{{ $member->avatar_url }}" alt="{{ $memberName }}"
+                                    width="34" height="34" loading="lazy" decoding="async"
+                                    class="object-cover size-full">
+                            @else
+                                {{-- Not allowed to see this photo: initials, and no request at all. --}}
+                                <span aria-hidden="true" class="text-xs">{{ $memberInitials }}</span>
+                                <span class="sr-only">{{ $memberName }}</span>
+                            @endif
+                        </div>
+                        <x-presence :status="$member->presence ?? null" on-avatar />
                     </div>
 
                     <!-- Name + Position -->
                     <div class="min-w-0">
-                        <p class="text-caption font-bold text-ink-2 truncate">
-                            {{ $member->displayName ?? $member->name }}
-                        </p>
+                        <x-person :id="$member->id" :name="$member->displayName ?? $member->name" class="block text-caption font-bold text-ink-2" />
 
                         <p class="text-caption font-light truncate text-ink-3">
                             {{ Str::limit($memberTitle, 40) }}
@@ -104,10 +105,6 @@
 
                 <!-- Actions -->
                 <div class="flex items-center flex-shrink-0 gap-2 ms-4">
-
-                    <a href="{{ route('employees.show', ['employee' => $member?->username]) }}" wire:navigate title="{{ __('general.view-profile') }}" aria-label="{{ __('general.view-profile') }}">
-                        <x-icons.user class="transition text-ink-3 hover:text-ink" />
-                    </a>
 
                     @if ($phone)
                         <a href="tel:{{ $phone }}" title="{{ __('dashboard.call') }}" aria-label="{{ __('dashboard.call') }}">

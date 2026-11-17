@@ -107,7 +107,7 @@ class NavigationFavouritesTest extends TestCase
             'leaves.view-all', 'leaves.manage-balances', 'checklists.manage', 'badges.view', 'positions.view',
         ]);
         $ids = ['nav.my-space.leaves', 'nav.my-space.team-calendar', 'nav.my-space.items', 'nav.my-space.files',
-            'nav.my-space.shared-files', 'nav.hr.employees', 'nav.hr.contracts', 'nav.hr.leaves', 'nav.hr.balances'];
+            'nav.hr.deliverables', 'nav.hr.employees', 'nav.hr.contracts', 'nav.hr.leaves', 'nav.hr.balances'];
 
         $component = Livewire::actingAs($user)->test(Sidebar::class);
         foreach ($ids as $id) {
@@ -135,7 +135,7 @@ class NavigationFavouritesTest extends TestCase
         $this->assertSame(['nav.my-space.files', 'nav.my-space.items', 'nav.my-space.leaves'], $this->stored($user));
 
         // A page that is not a favourite is not inserted by a move.
-        $component->call('moveFavourite', 'nav.my-space.shared-files', 0);
+        $component->call('moveFavourite', 'nav.my-space.team-calendar', 0);
         $this->assertSame(['nav.my-space.files', 'nav.my-space.items', 'nav.my-space.leaves'], $this->stored($user));
     }
 

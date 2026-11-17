@@ -861,6 +861,35 @@ class LeaveRequestWorkflowTest extends TestCase
             ->assertSet('linkedLeaveMode', null);
     }
 
+    /** The header close, Escape and the backdrop close the details in the browser, not through closeDetails(). */
+    public function test_closing_all_leaves_details_in_the_browser_clears_its_query_state(): void
+    {
+        [$decisionMaker, $leaveRequest] = $this->createPendingDecisionFixture();
+
+        Livewire::actingAs($decisionMaker)
+            ->test(AllLeaveRequestModule::class)
+            ->call('show', $leaveRequest->id)
+            ->assertSet('linkedLeaveId', $leaveRequest->id)
+            ->assertSet('linkedLeaveMode', 'details')
+            ->set('showModal', false)
+            ->assertSet('selectedLeave', null)
+            ->assertSet('linkedLeaveId', null)
+            ->assertSet('linkedLeaveMode', null);
+    }
+
+    public function test_closing_my_leave_details_in_the_browser_clears_its_query_state(): void
+    {
+        [$user, $ownLeave] = $this->createRejectedLeaveFixture('Closed by Escape.');
+
+        Livewire::actingAs($user)
+            ->withQueryParams(['leave' => $ownLeave->id])
+            ->test(MyLeaveRequestModule::class)
+            ->assertSet('detailsModal', true)
+            ->set('detailsModal', false)
+            ->assertSet('selectedLeaveId', null)
+            ->assertSet('linkedLeaveId', null);
+    }
+
     public function test_new_request_notifies_all_hr_and_manager_holders_exactly_once(): void
     {
         [$employee, $leaveRequest] = $this->createRejectedLeaveFixture(null);
@@ -1592,6 +1621,22 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertSame(["leave:{$leave->id}:review"], $inbox->rows($other)->pluck('key')->all());
     }
 
+    public function test_hr_does_not_review_its_own_request(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now(), 'hr_approved' => false]);
+        $other = $this->createHrUserForLeave($leave, 'second.hr@example.test');
+        $other->givePermissionTo(['leaves.review', 'leaves.view-all']);
+        $hr->forceFill(['employee_id' => $leave->leaveBalance->contract->employee_id])->save();
+        $hr = $hr->fresh();
+        $inbox = app(\App\Services\WorkInbox::class);
+
+        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($hr)->allows('review', $leave->fresh()));
+        $this->assertSame(0, $inbox->snapshot($hr)['counts']['review']);
+        // Another HR person still sees it.
+        $this->assertSame(["leave:{$leave->id}:review"], $inbox->rows($other)->pluck('key')->all());
+    }
+
     public function test_n09_arabic_agrees_with_one_female_manager(): void
     {
         [, $leave] = $this->createPendingDecisionFixture();
@@ -1952,7 +1997,7 @@ class LeaveRequestWorkflowTest extends TestCase
 
         Livewire::actingAs($manager->fresh())
             ->test(\App\Livewire\Layout\Sidebar::class)
-            ->assertSeeHtml('data-testid="nav-badge">0<');
+            ->assertDontSeeHtml('data-testid="nav-badge"');
     }
 
     /** A manager who holds the position the requester's position reports to, with the real manager permissions. */

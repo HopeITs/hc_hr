@@ -50,8 +50,12 @@
      x-bind:data-typing="typing"
      class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-base/95 backdrop-blur md:hidden"
      style="padding-bottom: env(safe-area-inset-bottom, 0px)">
-    <ul class="mx-auto flex max-w-lg items-stretch justify-around">
+    <ul class="mx-auto grid max-w-lg grid-cols-5 items-stretch">
         @foreach ([$before, $after] as $side => $places)
+            {{-- An empty place keeps the columns where they are when a role has fewer. --}}
+            @for ($gap = count($places); $side === 0 && $gap < \App\Support\BottomBar::BEFORE_NEW; $gap++)
+                <li aria-hidden="true"></li>
+            @endfor
             @foreach ($places as $item)
                 @php($active = in_array($currentRoute, $item['active'], true))
                 <li class="min-w-0 flex-1" wire:key="bottom-{{ $item['key'] }}">
@@ -73,7 +77,7 @@
                                 </span>
                             @endif
                         </span>
-                        <span class="max-w-full truncate">{{ $item['label'] }}</span>
+                        <span class="line-clamp-2 max-w-full text-center">{{ $item['label'] }}</span>
                         @if (($item['count'] ?? 0) > 0)
                             <span class="sr-only">{{ __('general.nav.work-inbox-count', ['count' => $item['count']]) }}</span>
                         @endif
@@ -82,6 +86,12 @@
             @endforeach
 
             {{-- The raised + sits between the two halves (only when the role may start something). --}}
+            @if ($side === 0 && $actions === [])
+                <li aria-hidden="true"></li>
+            @endif
+            @if ($side === 1 && $places === [])
+                <li aria-hidden="true"></li>
+            @endif
             @if ($side === 0 && $actions !== [])
                 <li class="flex shrink-0 items-start justify-center px-1" wire:key="bottom-new">
                     <button type="button" data-testid="bottom-nav-new"

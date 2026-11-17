@@ -21,7 +21,6 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
-use WeakReference;
 
 class User extends Authenticatable implements HasLocalePreference
 {
@@ -32,20 +31,21 @@ class User extends Authenticatable implements HasLocalePreference
     protected $hidden = ['password', 'remember_token'];
 
     /**
-     * Per-instance (so per-request) memo for role and permission answers.
+     * Answers derived from this user's roles and grants, kept for the life of
+     * this instance (one request). A profile page asks the same policy
+     * questions hundreds of times; each used to go back to the database.
      *
-     * One page asks the same question dozens of times (per row, per cell,
-     * per Blade directive). The memo is dropped whenever the user's role or
-     * permission pivots are written (see newMorphToMany), when the roles /
-     * permissions relations are set, unset or reloaded, on refresh(), and
-     * whenever Spatie's permission cache is rebuilt (a role's permissions
-     * changed), so a switched role never serves a stale answer.
+     * Dropped whenever the user's role or permission pivots are written (see
+     * newMorphToMany), when the roles / permissions relations are set, unset
+     * or reloaded, on refresh(), and whenever Spatie's permission cache is
+     * cleared (dropStaleAccess), so a switched role never serves a stale answer.
      *
      * @var array<string, mixed>
      */
-    private array $authMemo = [];
+    private array $requestMemo = [];
 
-    private ?WeakReference $authMemoRegistry = null;
+    /** The registrar generation the memo and loaded roles/permissions belong to. */
+    private ?int $memoGeneration = null;
 
     /**
      * The language mail to this user is rendered in: the interface language
@@ -61,6 +61,32 @@ class User extends Authenticatable implements HasLocalePreference
     public function profile(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    /** @template T @param \Closure(): T $resolve @return T */
+    public function remember(string $key, Closure $resolve): mixed
+    {
+        $this->dropStaleAccess();
+
+        return array_key_exists($key, $this->requestMemo)
+            ? $this->requestMemo[$key]
+            : $this->requestMemo[$key] = $resolve();
+    }
+
+    public function forgetRemembered(): void
+    {
+        $this->requestMemo = [];
+    }
+
+    /**
+     * A role or permission pivot was written: the loaded relations describe
+     * the old state too (activeRole() reads is_active from them), so they go
+     * with the memo.
+     */
+    public function forgetLoadedAccess(): void
+    {
+        $this->unsetRelation('roles');
+        $this->unsetRelation('permissions');
     }
 
     /**
@@ -144,31 +170,24 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function activeRole(): ?Role
     {
-        return $this->remember('activeRole', function () {
-            if ($this->relationLoaded('roles')) {
-                return $this->roles->firstWhere(fn ($r) => (bool) ($r->pivot->is_active ?? false));
-            }
+        // Loaded once; setActiveRole() and Spatie's assign/remove keep the
+        // loaded relation current, so this never outlives a role change.
+        $this->dropStaleAccess();
 
-            return $this->roles()->wherePivot('is_active', true)->first();
-        });
+        return $this->loadMissing('roles')->roles
+            ->firstWhere(fn ($r) => (bool) ($r->pivot->is_active ?? false));
     }
 
     public function myRole(): ?string
     {
-        return $this->remember('myRole', fn () => $this->activeRole()?->name
-            ?? $this->roles()->first()?->name
-            ?? null);
-    }
-
-    public function flushAuthMemo(): void
-    {
-        $this->authMemo = [];
-        $this->authMemoRegistry = null;
+        return $this->activeRole()?->name
+            ?? $this->roles->first()?->name
+            ?? null;
     }
 
     public function refresh()
     {
-        $this->flushAuthMemo();
+        $this->forgetRemembered();
 
         return parent::refresh();
     }
@@ -176,7 +195,7 @@ class User extends Authenticatable implements HasLocalePreference
     public function setRelation($relation, $value)
     {
         if (in_array($relation, ['roles', 'permissions'], true)) {
-            $this->flushAuthMemo();
+            $this->forgetRemembered();
         }
 
         return parent::setRelation($relation, $value);
@@ -185,7 +204,7 @@ class User extends Authenticatable implements HasLocalePreference
     public function unsetRelation($relation)
     {
         if (in_array($relation, ['roles', 'permissions'], true)) {
-            $this->flushAuthMemo();
+            $this->forgetRemembered();
         }
 
         return parent::unsetRelation($relation);
@@ -305,20 +324,28 @@ class User extends Authenticatable implements HasLocalePreference
      */
     public function hasActivePermission(string $permission): bool
     {
-        return $this->remember('perm:'.$permission, function () use ($permission): bool {
-            if ($this->activeRoleIs(...config('access-control.administrator_roles', []))) {
-                return true;
-            }
+        return $this->remember('perm:'.$permission, fn (): bool => $this->activeRoleIs(...config('access-control.administrator_roles', []))
+            || $this->hasExplicitPermission($permission));
+    }
 
-            // The direct grants are read once and checked in memory: one query
-            // per distinct permission was ~30 queries on a city HR's dashboard.
-            // Granting or revoking unsets this relation and forgets the memo.
-            if ($this->permissions->contains('name', $permission)) {
-                return true;
-            }
+    /**
+     * The same check without the administrator bypass: a direct grant or the
+     * active role's own permission, and nothing else.
+     *
+     * For acts that must be granted on purpose to whoever performs them —
+     * exporting candidate data, erasing it — where "administrator" cannot mean
+     * "may do this". Salary is the precedent (canViewSalary refuses
+     * super-admin by name); this generalises it to a permission.
+     */
+    public function hasExplicitPermission(string $permission): bool
+    {
+        $this->dropStaleAccess();
 
-            return $this->activeRole()?->hasPermissionTo($permission) ?? false;
-        });
+        if ($this->loadMissing('permissions')->permissions->contains('name', $permission)) {
+            return true;
+        }
+
+        return $this->activeRole()?->hasPermissionTo($permission) ?? false;
     }
 
     /**
@@ -345,6 +372,25 @@ class User extends Authenticatable implements HasLocalePreference
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all());
+    }
+
+    /**
+     * The role's own city — the one named after "HR-" — or null when the role
+     * sees every city. Recruitment routing needs the single home governorate;
+     * for access checks use activeCityIds() / canAccessCity(), which also
+     * cover the extra cities a regional role administers.
+     */
+    public function activeCityId(): ?int
+    {
+        $roleName = strtoupper(trim($this->myRole() ?? ''));
+
+        if (! Str::startsWith($roleName, 'HR-') || $roleName === 'HR-SYR') {
+            return null;
+        }
+
+        $slug = Str::after($roleName, 'HR-');
+
+        return $this->remember('city-id:'.$slug, fn (): ?int => City::where('slug', $slug)->value('id'));
     }
 
     /** May the active role read and write records belonging to $cityId? */
@@ -387,6 +433,7 @@ class User extends Authenticatable implements HasLocalePreference
             }
 
             $this->roles()->updateExistingPivot($roleId, ['is_active' => true]);
+            $this->forgetRemembered();
 
             if ($this->relationLoaded('roles')) {
                 $this->roles->each(function ($r) use ($roleId) {
@@ -434,7 +481,7 @@ class User extends Authenticatable implements HasLocalePreference
             public function newPivotQuery()
             {
                 if ($this->parent instanceof User) {
-                    $this->parent->flushAuthMemo();
+                    $this->parent->forgetLoadedAccess();
                 }
 
                 return parent::newPivotQuery();
@@ -443,7 +490,7 @@ class User extends Authenticatable implements HasLocalePreference
             public function newPivotStatement()
             {
                 if ($this->parent instanceof User) {
-                    $this->parent->flushAuthMemo();
+                    $this->parent->forgetLoadedAccess();
                 }
 
                 return parent::newPivotStatement();
@@ -459,28 +506,19 @@ class User extends Authenticatable implements HasLocalePreference
         ];
     }
 
-    private function remember(string $key, Closure $resolve): mixed
+    /**
+     * A grant or revocation anywhere clears Spatie's cache; from then on the
+     * memo and the loaded roles and permissions may describe the old state.
+     */
+    private function dropStaleAccess(): void
     {
-        // Spatie keeps one collection per cache build and nulls it whenever
-        // permissions are forgotten, so its identity is the cache stamp.
-        $registrar = app(PermissionRegistrar::class);
-        $read = fn () => $this->permissions;
-        $registry = $read->call($registrar);
+        $generation = \App\Support\Permissions\PermissionCacheGeneration::current();
 
-        if ($registry === null) {
-            $registrar->getPermissions([], true);
-            $registry = $read->call($registrar);
+        if ($this->memoGeneration !== $generation) {
+            $this->memoGeneration = $generation;
+            $this->requestMemo = [];
+            $this->unsetRelation('roles');
+            $this->unsetRelation('permissions');
         }
-
-        if ($this->authMemoRegistry?->get() !== $registry) {
-            $this->authMemo = [];
-            $this->authMemoRegistry = WeakReference::create($registry);
-        }
-
-        if (! array_key_exists($key, $this->authMemo)) {
-            $this->authMemo[$key] = $resolve();
-        }
-
-        return $this->authMemo[$key];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Livewire\Archives\ArchivedFilesModule;
 use App\Models\Folder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -26,10 +27,10 @@ class FolderShared extends Notification
             ],
 
             'body' => [
-                'en' => "{$this->creatorName} shared the folder '{$this->folder->name}' with you. You can now access it in Shared Folders.",
-                'ar' => "شارك {$this->creatorName} المجلد '{$this->folder->name}' معك. يمكنك الوصول إليه الآن من المجلدات المشتركة.",
+                'en' => "{$this->creatorName} shared the folder '{$this->folder->name}' with you. You can now access it in Folders, under Shared with me.",
+                'ar' => "شارك {$this->creatorName} المجلد '{$this->folder->name}' معك. يمكنك الوصول إليه الآن من المجلدات، في «مشاركة معي».",
             ],
-            'url' => route('shared-folders.index', ['folderId' => $this->folder->id]),
+            'url' => ArchivedFilesModule::folderUrl($this->folder->id, true),
         ];
     }
 }

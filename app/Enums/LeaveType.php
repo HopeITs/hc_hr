@@ -20,9 +20,9 @@ class LeaveType
     {
 
         $val = match ($status) {
-            self::GENDER_MALE => ['key' => 'leaves.gender.male', 'color' => 'blue'],
-            self::GENDER_FEMALE => ['key' => 'leaves.gender.female', 'color' => 'yellow'],
-            default => ['key' => 'leaves.gender.any', 'color' => 'green'],
+            self::GENDER_MALE => ['key' => 'leaves.gender.male', 'color' => 'secondary-medium'],
+            self::GENDER_FEMALE => ['key' => 'leaves.gender.female', 'color' => 'secondary-medium'],
+            default => ['key' => 'leaves.gender.any', 'color' => 'secondary-dark'],
         };
         $result = [
             'value' => __($val['key']),
@@ -37,9 +37,9 @@ class LeaveType
     {
 
         $val = match ($status) {
-            self::MARITAL_STATUS_SINGLE => ['key' => 'leaves.marital.single', 'color' => 'yellow'],
-            self::MARITAL_STATUS_MARRIED => ['key' => 'leaves.marital.married', 'color' => 'gray'],
-            default => ['key' => 'leaves.marital.any', 'color' => 'green'],
+            self::MARITAL_STATUS_SINGLE => ['key' => 'leaves.marital.single', 'color' => 'secondary-medium'],
+            self::MARITAL_STATUS_MARRIED => ['key' => 'leaves.marital.married', 'color' => 'secondary-light'],
+            default => ['key' => 'leaves.marital.any', 'color' => 'secondary-dark'],
         };
         $result = [
             'value' => __($val['key']),

@@ -39,15 +39,14 @@ class KeyboardShortcutsTest extends TestCase
             $this->pages($this->userWithRole('employee')),
         );
         $this->assertSame(
-            ['d' => 'dashboard', 'l' => 'nav.my-team.leaves', 'c' => 'nav.my-team.contracts', 'i' => 'nav.inbox'],
+            ['d' => 'dashboard', 'l' => 'nav.my-team.leaves', 'c' => 'nav.my-team.contracts', 'r' => 'nav.recruitment.requests'],
             $this->pages($this->userWithRole('manager')),
         );
         $this->assertSame(
-            ['d' => 'dashboard', 'e' => 'nav.hr.employees', 'l' => 'nav.hr.leaves', 'c' => 'nav.hr.contracts', 'i' => 'nav.inbox'],
+            ['d' => 'dashboard', 'e' => 'nav.hr.employees', 'l' => 'nav.hr.leaves', 'c' => 'nav.hr.contracts', 'r' => 'nav.recruitment.requests'],
             $this->pages($this->userWithRole('HR-ALP')),
         );
-        // No recruitment page in this menu: "g r" is offered to nobody.
-        $this->assertArrayNotHasKey('r', $this->pages($this->userWithRole('super-admin')));
+        $this->assertSame('nav.recruitment.requests', $this->pages($this->userWithRole('super-admin'))['r']);
     }
 
     public function test_a_letter_goes_with_its_permission_and_comes_back_with_it(): void

@@ -39,7 +39,7 @@
 <body>
     @for ($i = 1; $i <= $totalPages; $i++)
         <div class="pdf-page">
-            <div class="text-gray-900 contract-a4">
+            <div class="text-neutral-900 contract-a4">
                 <div class="contract-body">
                     @include("livewire.contract.details.{$category}.pages.page{$i}", [
                         'contract' => $contract,

@@ -3,6 +3,7 @@
 namespace App\Livewire\Employee;
 
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Livewire\Concerns\AutosavesEmployeeDraft;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\AttachmentForm;
 use App\Livewire\Forms\Employee\BadgeForm;
@@ -26,11 +27,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class EmployeeEdit extends Component
 {
+    use AutosavesEmployeeDraft;
     use WithFeedback, WithFileUploads;
 
     public ?Employee $employee = null;
@@ -129,6 +132,27 @@ class EmployeeEdit extends Component
 
         $this->persist('infoForm', fn () => $this->infoForm->saveDraft());
         $this->employee->refresh();
+    }
+
+    /**
+     * Autosave of a draft (phase 2, DEC-04, employee-lifecycle.md §5.6):
+     * re-authorized like saveDraftRecord, always the same row, silent while
+     * the draft minimum does not validate. A record that is no longer a draft
+     * (completed here or in another tab) is left untouched: autosave never
+     * turns it back into one, and never completes or activates anything.
+     *
+     * @return array{status: string, time?: string, message?: string}
+     */
+    #[Renderless]
+    public function autosaveDraft(): array
+    {
+        Gate::authorize('update', $this->employee);
+
+        if (! $this->employee->isDraft()) {
+            return ['status' => 'complete'];
+        }
+
+        return $this->autosaveSilently(fn () => $this->infoForm->saveDraft(withPhoto: false));
     }
 
     /** Ask first: discarding a draft deletes it (B5D-Q7). */

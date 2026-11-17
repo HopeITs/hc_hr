@@ -42,6 +42,10 @@
                             <x-tag variant="soft">@lang('feedback.categories.'.$item->category)</x-tag>
                         @endif
                         <span>{{ $item->user?->profile?->name ?? __('feedback.inbox.deleted-user') }}</span>
+                        {{-- This message on the viewer's dashboard (item.feedback.<id>). --}}
+                        <div class="ms-auto">
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('feedback', $item->id)" :compact="true" :key="'atd-feedback-'.$item->id" />
+                        </div>
                     </div>
 
                     <p dir="auto" class="mt-2 text-start whitespace-pre-line break-words text-body text-ink">{{ $item->message }}</p>

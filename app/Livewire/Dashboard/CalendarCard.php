@@ -26,6 +26,9 @@ class CalendarCard extends Component
     /** The month shown, Y-m. */
     public string $month = '';
 
+    /** A leave requested from this tile (the dashboard's LeaveRequestDialog): redraw with it. */
+    protected $listeners = ['leaveRequestSaved' => '$refresh'];
+
     public function mount(): void
     {
         $this->month = CarbonImmutable::today()->format('Y-m');
@@ -104,7 +107,6 @@ class CalendarCard extends Component
             'upcoming' => $upcoming,
             'types' => $types,
             'canRequestLeave' => $feed->canRequestLeave($user),
-            'requestUrl' => route('leaves.index', ['new' => 1, 'date' => '__DATE__']),
         ]);
     }
 

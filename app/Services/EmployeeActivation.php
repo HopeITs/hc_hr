@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
  * docs/ux/employee-lifecycle.md §5.2 "C → A"):
  *
  *  - a complete volunteer awaiting their first contract becomes active;
+ *  - a first real contract starts their onboarding journey (D4-I);
  *  - an employee without a login account gets one (work email from the
  *    username, role "employee") and a password-setup email. This is also how
  *    existing staff without an account get one: at their next contract, never
@@ -53,6 +54,11 @@ class EmployeeActivation
                 $employee->is_active = true;
                 $employee->digital_id_token ??= Str::random(64);
                 $employee->save();
+
+                // D4-I: a first contract starts the onboarding journey (card,
+                // orientation). Re-hired former staff are activated by hand
+                // before their contract, so they never reach this branch.
+                app(OnboardingJourneys::class)->startForContract($employee, $contract);
             }
 
             return $this->ensureAccount($employee);

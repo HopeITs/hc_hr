@@ -1,6 +1,6 @@
 @include('livewire.contract.details._styles')
 
-<div class="contract-a4 text-gray-900 dark:text-gray-100">
+<div class="contract-a4 text-neutral-900 dark:text-neutral-100">
     <div class="contract-body space-y-">
         <div wire:key="annual-container-{{ $pageNo }}">
             @switch($pageNo)

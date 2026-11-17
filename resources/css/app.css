@@ -249,11 +249,27 @@
     --shadow: 0 6px 24px 0 rgb(65 64 66 / 0.14);
     --shadow-md: 0 2px 8px -2px rgb(65 64 66 / 0.1);
     --shadow-lg: 0 6px 24px 0 rgb(65 64 66 / 0.14);
+    --shadow-xl: 0 20px 25px -5px rgb(65 64 66 / 0.1), 0 8px 10px -6px rgb(65 64 66 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(65 64 66 / 0.25);
+    --shadow-2xs: 0 1px rgb(65 64 66 / 0.05);
+    --shadow-inner: inset 0 2px 4px 0 rgb(65 64 66 / 0.05);
+    --inset-shadow-2xs: inset 0 1px rgb(65 64 66 / 0.05);
+    --inset-shadow-xs: inset 0 1px 1px rgb(65 64 66 / 0.05);
+    --inset-shadow-sm: inset 0 2px 4px rgb(65 64 66 / 0.05);
 
     /* Critically damped easing — reaches the target quickly, settles without
        overshoot. Used for chrome that resizes (sidebar collapse) so the panel
        and the content it pushes stay locked together. */
     --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* Collapsing / expanding the sidebar (and the content it pushes): a gentle
+       ease-in-out, so the motion is spread over the whole duration instead of
+       done in the first 100ms as ease-fluid does. Tune both here. */
+    --ease-sidebar: cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+:root {
+    --sidebar-duration: 560ms;
 }
 
 /* ------------------------------------------------------------------
@@ -417,6 +433,32 @@
     html {
         background-color: var(--color-soft);
         -webkit-text-size-adjust: 100%;
+        /* The scrollbar's room is kept even when nothing scrolls, so a page whose height
+           changes while it loads (the dashboard's cards) never changes width. */
+        scrollbar-gutter: stable;
+    }
+
+    /* A page inside the dashboard's workspace (partials/head.blade.php marks it): the page
+       alone, without the site's sidebar, header, footer and phone bar, which the dashboard
+       around it already shows. */
+    html.in-workspace [wire\:name="layout.sidebar"],
+    html.in-workspace #app-navbar,
+    html.in-workspace .app-shell > footer,
+    html.in-workspace [wire\:name="layout.bottom-nav"] {
+        display: none !important;
+    }
+
+    html.in-workspace .app-shell {
+        margin-inline-start: 0 !important;
+    }
+
+    html.in-workspace #main-content {
+        padding-top: 24px !important;
+    }
+
+    html.in-workspace #main-content > div {
+        padding-inline: 24px;
+        padding-bottom: 24px;
     }
 
     /* Rendering: real kerning, no faked bold/italic (Somar Sans ships every
@@ -583,7 +625,56 @@ select option:checked {
     color: var(--color-on-ink);
 }
 
+/* Public recruitment choices use the Hope Center neutral hover state. */
+select.public-career-select option:hover,
+select.public-career-select option:focus,
+select.public-career-select option:checked {
+    background-color: var(--color-selection);
+    color: var(--color-ink);
+}
+
 @layer components {
+    /* Recruitment labels stay aligned even when their text changes by status
+       or locale. The width is sized for the longest workflow label. */
+    .recruitment-badge {
+        display: inline-flex;
+        min-width: 9rem;
+        min-height: 1.75rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .recruitment-action {
+        display: inline-flex;
+        min-width: 10rem;
+        height: 1.75rem;
+        min-height: 1.75rem;
+        align-items: center;
+        justify-content: center;
+        padding-top: 0;
+        padding-bottom: 0;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .recruitment-applicants-page button:not(:disabled),
+    .recruitment-applicants-page [role='button'],
+    .recruitment-applicants-page summary,
+    .recruitment-applicants-page select:not(:disabled),
+    .recruitment-applicants-page a[href],
+    .recruitment-applicants-page input[type='checkbox']:not(:disabled),
+    .recruitment-applicants-page input[type='radio']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    .recruitment-applicants-page button:disabled,
+    .recruitment-applicants-page select:disabled,
+    .recruitment-applicants-page input:disabled {
+        cursor: not-allowed;
+    }
+
     clock-timepicker {
         display: block;
         width: 100%;
@@ -609,11 +700,12 @@ select option:checked {
         --clock-timepicker-cursor: pointer;
     }
 
+    /* Sized and lettered like .hc-field, so a time sits level with the date beside it. */
     clock-timepicker > input {
         width: 100%;
-        padding: 0.5rem 2.5rem 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        line-height: 1.25rem;
+        min-height: 46px;
+        padding: 9px 2.5rem 9px 12px;
+        font-size: var(--text-body);
         color: var(--color-ink);
         background-color: var(--color-field);
         border: 1.5px solid var(--color-line);
@@ -639,12 +731,12 @@ select option:checked {
 
     clock-timepicker > input:disabled {
         cursor: not-allowed;
-        opacity: 0.6;
-        background-color: var(--color-neutral-50);
+        background-color: var(--color-soft);
+        color: var(--color-ink-2);
     }
 
     [dir="rtl"] clock-timepicker > input {
-        padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+        padding: 9px 12px 9px 2.5rem;
     }
 
     .time-input-native {
@@ -702,6 +794,27 @@ select option:checked {
         width: 100%;
     }
 
+    .request-field--locked .select2-container {
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
+
+    .request-field--locked .select2-container--default .select2-selection--single {
+        color: var(--color-ink) !important;
+        background-color: var(--color-field) !important;
+        border-color: var(--color-line) !important;
+        box-shadow: none !important;
+        cursor: not-allowed !important;
+    }
+
+    .request-field--locked .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--color-ink) !important;
+    }
+
+    .request-field--locked .select2-container--default .select2-selection--single .select2-selection__arrow {
+        opacity: 0.45;
+    }
+
 
     .select2-container--default.select2-container--focus .select2-selection--single,
     .select2-container--default.select2-container--open .select2-selection--single {
@@ -731,12 +844,101 @@ select option:checked {
         color: var(--color-ink) !important;
     }
 
+    /* select2's own stylesheet paints greys, a black focus border and blue
+       highlights of its own. Re-point every one of them at the brand. */
+    .select2-dropdown,
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border-color: var(--color-line) !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__placeholder,
+    .select2-container--default .select2-results__option--disabled {
+        color: var(--color-ink-3) !important;
+    }
+
+    .select2-container--default.select2-container--disabled .select2-selection--single,
+    .select2-container--default.select2-container--disabled .select2-selection--multiple {
+        background-color: var(--color-soft) !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        background-color: var(--color-field) !important;
+        border-color: var(--color-line) !important;
+    }
+
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: var(--color-focus) !important;
+        box-shadow: 0 0 0 3px var(--color-ring) !important;
+        outline: none !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: var(--color-surface) !important;
+        border-color: var(--color-line) !important;
+        color: var(--color-ink) !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: var(--color-ink-2) !important;
+        border-color: var(--color-line) !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
+        color: var(--color-primary) !important;
+        background-color: var(--color-soft) !important;
+    }
+
     /* Only when the results list actually scrolls (flagged with .results--scroll
        from app.js): shrink the hover highlight to 80% width, trimmed from the
        scrollbar (end) side so the grey fill stops before the bar. The left/start
        edge stays put; inline flow + dir handle RTL (scrollbar side flips too). */
     .select2-container--default .select2-results__options.results--scroll .select2-results__option--highlighted {
         width: 95% !important;
+    }
+
+    .public-career-select-wrap .select2-container--default .select2-selection--single {
+        height: 44px !important;
+        border-color: var(--color-line) !important;
+        border-radius: var(--radius-control) !important;
+        box-shadow: var(--shadow-e1) !important;
+        font-size: var(--text-body) !important;
+        cursor: pointer !important;
+    }
+
+    .public-career-select-wrap .select2-container--default.select2-container--focus .select2-selection--single,
+    .public-career-select-wrap .select2-container--default.select2-container--open .select2-selection--single,
+    .public-career-select-wrap .select2-selection--single:focus-visible {
+        border-color: var(--color-focus) !important;
+        outline: 2px solid var(--color-focus) !important;
+        outline-offset: 2px !important;
+    }
+
+    .select2-dropdown.public-career-dropdown {
+        overflow: hidden !important;
+        border: 1px solid var(--color-line) !important;
+        border-radius: var(--radius-control) !important;
+        box-shadow: var(--shadow-e2) !important;
+    }
+
+    .select2-container--default .public-career-dropdown .select2-results__option {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        padding: 0.625rem 0.75rem !important;
+        background-color: var(--color-field) !important;
+        color: var(--color-ink) !important;
+        white-space: normal;
+    }
+
+    .select2-container--default .public-career-dropdown .select2-results__option--highlighted,
+    .select2-container--default .public-career-dropdown .select2-results__option--highlighted.select2-results__option--selectable {
+        background-color: var(--color-selection) !important;
+        color: var(--color-ink) !important;
+    }
+
+    .select2-container--default .public-career-dropdown .select2-results__options.results--scroll .select2-results__option--highlighted {
+        width: 100% !important;
     }
 
     /* Employee-chart range select — match its Select2 box to the original native
@@ -1150,8 +1352,11 @@ select option:checked {
 }
 
 /* Sidebar scrolling: a thin native bar in the open sidebar, none at all in the
-   80px icon rail (a track there sat on top of the icons). */
-.sidebar-scroll {
+   80px icon rail (a track there sat on top of the icons). `thin-scroll` gives
+   any other scroll area (a dialog's form panel) the same bar; pair it with
+   data-csb-exclude so the overlay scrollbar leaves it alone. */
+.sidebar-scroll,
+.thin-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--color-line) transparent;
 }
@@ -1191,6 +1396,102 @@ li:has(> ul:not(.hidden)) > button > .nav-chevron {
     transform: rotate(180deg);
 }
 
+/* ---------- Collapsing the sidebar into its icon rail (md and up) ----------
+   The aside gets `.sidebar-rail` (sidebar.blade.php) and its width animates
+   over --sidebar-duration. Everything inside moves with it instead of switching at once:
+   - links shrink from full width to a 44px square and the list's side padding
+     grows 12 → 18px, so each icon slides a few pixels to the middle of the
+     80px rail instead of jumping there (justify-center cannot animate);
+   - labels fade (`.nav-fade`): out at once when collapsing, in after the bar
+     has opened enough when expanding, so text is never seen squeezed;
+   - the rail icon fades in where the full logo fades out (`.nav-fade-in`);
+   - headings and the areas the rail leaves out fold (`.nav-fold`): a one-row
+     grid going 1fr → 0fr on the same --sidebar-duration clock as the width, so My space
+     glides up instead of jumping. They are never display:none (x-show did
+     that, and its x-collapse never animated here); `visibility` hides them
+     from the keyboard and screen readers once fully folded, and returns at
+     once when unfolding.
+   On a phone the drawer is always full width: none of this applies. */
+.nav-fade,
+.nav-fade-in {
+    transition: opacity 320ms var(--ease-sidebar) 200ms;
+}
+
+.nav-fade-in {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nav-fold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition:
+        grid-template-rows var(--sidebar-duration) var(--ease-sidebar),
+        opacity 320ms var(--ease-sidebar) 200ms,
+        visibility 0s;
+}
+
+/* Clip what the shrinking row no longer has room for, but keep a margin so
+   focus outlines (2px + 2px offset) are never cut. */
+.nav-fold > * {
+    min-height: 0;
+    overflow: clip;
+    overflow-clip-margin: 6px;
+}
+
+@media (min-width: 48rem) {
+    .nav-scroll {
+        transition: padding-inline var(--sidebar-duration) var(--ease-sidebar);
+    }
+
+    .nav-link {
+        width: 100%;
+        transition:
+            background-color 150ms ease-out,
+            color 150ms ease-out,
+            transform 120ms ease-out,
+            width var(--sidebar-duration) var(--ease-sidebar),
+            min-height var(--sidebar-duration) var(--ease-sidebar);
+    }
+
+    .sidebar-rail .nav-scroll {
+        padding-inline: 18px;
+    }
+
+    .sidebar-rail .nav-link {
+        width: 2.75rem;
+        min-height: 2.75rem;
+        /* A favourite widens its end padding on hover for the star; the rail has no star. */
+        padding-inline: 0.75rem;
+        /* Not clipped: the link is a circle now, and clipping cut the count's corner off.
+           The label is already invisible here (.nav-fade), and .nav-fold clips the row. */
+        overflow: visible;
+    }
+
+    .sidebar-rail .nav-fade {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 240ms var(--ease-sidebar);
+    }
+
+    .sidebar-rail .nav-fade-in {
+        opacity: 1;
+        pointer-events: auto;
+        /* Overlaps the full logo's 240ms fade-out, so there is never a frame with no logo. */
+        transition: opacity 320ms var(--ease-sidebar) 120ms;
+    }
+
+    .sidebar-rail .nav-fold {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+            grid-template-rows var(--sidebar-duration) var(--ease-sidebar),
+            opacity 240ms var(--ease-sidebar),
+            visibility 0s var(--sidebar-duration);
+    }
+}
+
 /* Reduced motion: keep the colour feedback, drop the movement. */
 @media (prefers-reduced-motion: reduce) {
     .nav-press {
@@ -1205,6 +1506,16 @@ li:has(> ul:not(.hidden)) > button > .nav-chevron {
 
     .nav-chevron {
         transition: none;
+    }
+
+    /* The rail still opens and closes, at once. */
+    .nav-fade,
+    .nav-fade-in,
+    .nav-fold,
+    .nav-scroll,
+    .nav-link,
+    .sidebar-material {
+        transition: none !important;
     }
 }
 

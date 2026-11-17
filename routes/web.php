@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArchiveFileController;
 use App\Http\Controllers\EmployeeAvatarController;
 use App\Http\Controllers\EmployeeDocumentController;
+use App\Http\Controllers\PublicCareerController;
 use App\Http\Controllers\UiSheetController;
 use App\Http\Middleware\ActiveLivewirePermissionMiddleware;
 use App\Livewire\AccessManagement\Index as AccessManagementIndex;
@@ -14,6 +15,7 @@ use App\Livewire\ChecklistItems\DoneRequests;
 use App\Livewire\ChecklistItems\PendingItems;
 use App\Livewire\ChecklistItems\PendingReturns;
 use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Dashboard\Window as DashboardWindow;
 use App\Livewire\Employee\EmployeeProfile;
 use App\Livewire\Employee\EmployeeStatistics;
 use App\Livewire\Employee\Leave\AllLeaveRequestModule;
@@ -34,6 +36,22 @@ use App\Livewire\Team\Calendar as TeamCalendar;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+
+Route::get('/careers/{token}', [PublicCareerController::class, 'show'])
+    ->middleware('throttle:careers-view')
+    ->name('careers.show');
+Route::get('/careers/{token}/submitted', [PublicCareerController::class, 'submitted'])
+    ->middleware('throttle:careers-view')
+    ->name('careers.submitted');
+Route::get('/careers/{token}/sign-in', [PublicCareerController::class, 'signIn'])
+    ->middleware('throttle:careers-view')
+    ->name('careers.sign-in');
+Route::post('/careers/{token}/invitation', [PublicCareerController::class, 'checkInvitation'])
+    ->middleware('throttle:careers-invitation')
+    ->name('careers.invitation');
+Route::post('/careers/{token}/applications', [PublicCareerController::class, 'store'])
+    ->middleware('throttle:careers-submit')
+    ->name('careers.submit');
 
 // Public ID card: /ID/[city 3 digits][program 3 digits][employee id]-[index]
 // (access-policy.md §9 A2D-Q6). The constraint only bounds the segment; it is
@@ -70,6 +88,10 @@ Route::group(
         Route::middleware(['auth'])->group(function () {
             Route::get('/', DashboardIndex::class)
                 ->name('dashboard');
+            // One card taken out of the browser (its own window, or floating on top); Window checks the card.
+            Route::get('dashboard/window/{tile}', DashboardWindow::class)
+                ->where('tile', '[A-Za-z0-9._-]{1,100}')
+                ->name('dashboard.window');
             Route::prefix('statistics')
                 ->name('statistics.')
                 ->middleware('active_permission:statistics.view')
@@ -101,6 +123,9 @@ Route::group(
 
             require __DIR__.'/employees-management.php';
 
+            require __DIR__.'/recruitment-publishing.php';
+            require __DIR__.'/recruitment.php';
+
             // C5: who is away, for everyone; TeamCoverage limits what each role sees.
             Route::get('/team-calendar', TeamCalendar::class)->name('team.calendar')->middleware('active_permission:leaves.view-own');
 
@@ -113,8 +138,11 @@ Route::group(
                 });
 
             Route::view('archived-files/{folder?}', 'archives.index')->middleware('active_permission:archives.view')->name('archived-files.index');
-            Route::get('my-folders/{folderId?}', ArchivedFilesModule::class)->defaults('isShared', false)->middleware('active_permission:archives.view')->name('my-folders.index');
-            Route::get('shared-folders/{folderId?}', ArchivedFilesModule::class)->defaults('isShared', true)->middleware('active_permission:archives.view')->name('shared-folders.index');
+            // One folders page; ?scope=shared is "Shared with me". The two old pages
+            // redirect: FolderShared notifications already stored carry their URLs.
+            Route::get('folders/{folderId?}', ArchivedFilesModule::class)->middleware('active_permission:archives.view')->name('folders.index');
+            Route::get('my-folders/{folderId?}', fn ($folderId = null) => redirect(ArchivedFilesModule::folderUrl($folderId)))->middleware('active_permission:archives.view')->name('my-folders.index');
+            Route::get('shared-folders/{folderId?}', fn ($folderId = null) => redirect(ArchivedFilesModule::folderUrl($folderId, true)))->middleware('active_permission:archives.view')->name('shared-folders.index');
             Route::get('folder-files/{media}/preview', [ArchiveFileController::class, 'preview'])->middleware('active_permission:archives.view')->name('folder-files.preview');
             Route::get('folder-files/{media}/download', [ArchiveFileController::class, 'download'])->middleware('active_permission:archives.download')->name('folder-files.download');
             Route::get('folder-files/{media}/office-preview', [ArchiveFileController::class, 'officePreview'])->middleware('active_permission:archives.view')->name('folder-files.office-preview');
@@ -128,6 +156,11 @@ Route::group(
             // that embeds it.
             Route::get('employee-photo/{employee}', [EmployeeAvatarController::class, 'internal'])
                 ->name('employees.avatar');
+
+            // The card a person's name shows under the pointer; the controller checks the Directory tier.
+            Route::get('people/{employee}/card', App\Http\Controllers\EmployeeCardController::class)
+                ->middleware('throttle:120,1')
+                ->name('employees.card');
 
             Route::prefix('checklist-items')
                 ->name('checklist-items.')

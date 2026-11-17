@@ -102,7 +102,7 @@ class LivewireMutationCoverageTest extends TestCase
         // action" from "this component uses WithPagination". The defining file
         // can: only methods written in app/Livewire itself are application
         // actions. Vendor traits (WithPagination, WithFileUploads) and shared
-        // app traits (WithAlerts) are reviewed once at their source instead of
+        // app traits (WithFeedback) are reviewed once at their source instead of
         // once per component that uses them.
         $file = $method->getFileName();
 

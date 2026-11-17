@@ -13,6 +13,12 @@ class JobLevel extends Model
 {
     use HasFactory, HasTranslation, LogsActivity;
 
+    /**
+     * Job levels have no slug, so a level is identified by its grade — the same
+     * convention config/recruitment.php uses (3 = Project Manager).
+     */
+    public const PROJECT_MANAGER_GRADE = 3;
+
     protected $fillable = [
         'name_en',
         'name_ar',

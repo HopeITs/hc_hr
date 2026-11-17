@@ -4,6 +4,8 @@ namespace Tests\Feature\Dashboard;
 
 use App\Enums\LeaveRequestStatus;
 use App\Livewire\Dashboard\CalendarCard;
+use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Employee\Leave\LeaveRequestDialog;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Models\City;
 use App\Models\Contract;
@@ -130,12 +132,25 @@ class CalendarTileTest extends TestCase
         $requester = $this->makeUser($this->dms, 'employee', ['leaves.view-own', 'leaves.create']);
         $hr = $this->makeUser($this->dms, 'HR-DMS');
 
+        // It opens the dashboard's leave dialog on the chosen day; it no longer leads to My Leaves.
         Livewire::actingAs($requester)->test(CalendarCard::class)
             ->assertSeeHtml('data-testid="calendar-request-leave"')
-            ->assertViewHas('requestUrl', route('leaves.index', ['new' => 1, 'date' => '__DATE__']));
+            ->assertSeeHtml("Livewire.dispatch('openLeaveRequestOn'")
+            ->assertDontSeeHtml(route('leaves.index', ['new' => 1]));
+
+        // The calendar tile is not on a first dashboard: put it there.
+        Livewire::actingAs($requester)->test(DashboardIndex::class)->call('saveLayout', [
+            ['key' => 'calendar', 'size' => '5x3', 'pinned' => false, 'hidden' => false],
+        ]);
+
+        Livewire::actingAs($requester)->test(DashboardIndex::class)
+            ->assertSeeLivewire(LeaveRequestDialog::class);
 
         Livewire::actingAs($hr)->test(CalendarCard::class)
             ->assertDontSeeHtml('data-testid="calendar-request-leave"');
+
+        Livewire::actingAs($hr)->test(DashboardIndex::class)
+            ->assertDontSeeLivewire(LeaveRequestDialog::class);
     }
 
     public function test_the_next_seven_days_list_reads_from_today(): void

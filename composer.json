@@ -25,6 +25,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/boost": "^2.10",
         "laravel/pail": "^1.2.7",
         "laravel/pint": "^1.32",
         "laravel/sail": "^1.68",
@@ -68,6 +69,7 @@
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
         ],
         "test": [
+            "Composer\\Config::disableProcessTimeout",
             "@php -r \"passthru(escapeshellarg(PHP_BINARY).' artisan config:clear --ansi'); passthru(implode(' ', array_map('escapeshellarg', array_merge([PHP_BINARY, 'artisan', 'test'], array_slice($argv, 1)))), $code); passthru(escapeshellarg(PHP_BINARY).' artisan config:cache --ansi'); exit($code);\" -- @additional_args"
         ]
     },

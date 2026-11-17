@@ -88,7 +88,7 @@ return [
     'job-level' => 'المستويات الوظيفية|المستوى الوظيفي',
     'programs-management' => 'إدارة البرامج',
     'holidays-and-leaves' => 'العطل والاجازات',
-    'my-leaves' => 'اجازاتي',
+    'my-leaves' => 'إجازاتي',
     'project-manager' => 'مدير المشروع',
 
     'export-pdf' => 'تصدير كملف PDF',
@@ -192,6 +192,7 @@ return [
     'deliver-by' => 'التسليم بواسطة',
     'centers' => 'المراكز',
     'center-name' => 'اسم المركز',
+    'center-manager' => 'مدير المركز',
     'center-city' => 'المدينة',
     'logo' => 'الشعار',
     'search' => 'بحث',
@@ -372,6 +373,12 @@ return [
 
     'my-folders' => 'مجلداتي',
     'shared-folders' => 'المجلدات المشتركة',
+    'folders' => 'المجلدات',
+    'folders-scope' => 'مجلدات مَن',
+    'folders-mine' => 'مجلداتي',
+    'folders-shared-with-me' => 'مشاركة معي',
+    'folders-new-mine' => 'سيكون هذا مجلدك الخاص في «مجلداتي»، ولا يراه غيرك حتى تمنح الآخرين الوصول من الصلاحيات.',
+    'folders-new-shared' => 'سيكون هذا مجلداً مشتركاً في «مشاركة معي»، ويراه هناك كل من تمنحه الوصول.',
 
     'ongoing' => 'قيد التنفيذ',
     'no-employees' => 'لا يوجد موظفون مخصصون لهذا المشروع بعد.',
@@ -434,6 +441,9 @@ return [
     'minute' => 'دقيقة|دقائق',
     'used-leave' => 'مستخدم: :attr',
     'remaining-leave' => 'متبقي: :attr',
+    'available-leave' => 'المتاح الآن: :attr',
+    'no-active-contract' => 'ليس لديك عقد ساري حاليًا، لذلك لا يوجد رصيد إجازات بعد. راجع قسم الموارد البشرية في مدينتك.',
+    'new-contract' => 'عقد جديد',
     'pending-leave' => 'قيد الدراسة: :attr',
     'pending-leave2' => 'قيد الدراسة',
     'total-leave' => 'الكلي: :attr',
@@ -716,6 +726,7 @@ return [
     'collapse' => 'طي',
     'expand' => 'توسيع',
     'vacant-position' => 'منصب شاغر',
+    'vacant-seats-count' => 'مقاعد شاغرة في هذا المنصب: :count',
     'not-specified' => 'غير محدد',
     'view-profile-of' => 'عرض ملف :name',
     'collapse-sidebar' => 'طي القائمة الجانبية',
@@ -964,6 +975,7 @@ return [
     // A4: عناوين مجموعات القائمة الجانبية.
     // C2: البحث في الشريط العلوي وزر «جديد» (docs/ux/interaction-contract.md §6).
     'global-search' => [
+        'short' => 'بحث',
         'label' => 'ابحث عن شخص أو صفحة أو أمر',
         'placeholder' => 'ابحث عن شخص أو صفحة أو أمر',
         'loading' => 'جارٍ البحث…',
@@ -994,7 +1006,8 @@ return [
             'settings' => 'الإعدادات',
         ],
         'organisation' => 'المنظمة',
-        'work-inbox' => 'صندوق المهام',
+        'work-inbox' => 'مطلوب منك',
+        'programs-centers' => 'البرامج والمراكز',
         'bottom' => 'التنقل السريع',
         'work-inbox-count' => ':count بانتظارك',
         'team-leaves' => 'إجازات فريقي',

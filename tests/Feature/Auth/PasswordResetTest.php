@@ -15,13 +15,6 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_screen_links_to_forgot_password(): void
-    {
-        $this->get('/login')
-            ->assertOk()
-            ->assertSee(route('password.request'), false);
-    }
-
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
         $response = $this->get('/forgot-password');

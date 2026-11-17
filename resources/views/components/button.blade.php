@@ -9,7 +9,9 @@
     size:    sm | md (default) | lg — 44px minimum on touch screens at every size
     href:    renders a link (wire:navigate by default; pass :wire:navigate="false" to opt out)
     type:    button (default) | submit | reset
-    icon:    optional leading <x-ic> name
+    icon:    optional leading <x-ic> name. icon="plus" is an "add": a red square with "+" only,
+             whatever the variant, that opens on hover or keyboard focus to show its words
+             (hc-btn--reveal); the words stay in the page for screen readers.
     full:    true for full width
     loading: true (default) — while Livewire works on this button's action the
              button is disabled and aria-busy, and a spinner replaces the icon.
@@ -31,7 +33,10 @@
     $variant = in_array($variant, ['primary', 'outline', 'quiet', 'link'], true) ? $variant : 'primary';
     $size = in_array($size, ['sm', 'md', 'lg'], true) ? $size : 'md';
 
-    $classes = collect(['hc-btn', 'hc-btn--'.$variant])
+    // An "add" (icon plus): a red square with "+" that opens on hover to show its words.
+    $isAdd = $icon === 'plus';
+
+    $classes = collect(['hc-btn', $isAdd ? 'hc-btn--add hc-btn--reveal' : 'hc-btn--'.$variant])
         ->when($size !== 'md', fn ($c) => $c->push('hc-btn--'.$size))
         ->when($full, fn ($c) => $c->push('w-full'))
         ->implode(' ');
@@ -43,7 +48,7 @@
 @if ($href)
     <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes, 'wire:navigate' => true]) }}>
         @if ($icon)<x-ic :name="$icon" />@endif
-        {{ $slot }}
+        @if ($isAdd)<span class="hc-reveal-label">{{ $slot }}</span>@else {{ $slot }} @endif
     </a>
 @else
     <button
@@ -61,6 +66,6 @@
         @elseif ($icon)
             <x-ic :name="$icon" />
         @endif
-        {{ $slot }}
+        @if ($isAdd)<span class="hc-reveal-label">{{ $slot }}</span>@else {{ $slot }} @endif
     </button>
 @endif

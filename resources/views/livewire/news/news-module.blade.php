@@ -4,11 +4,13 @@
 
 <div>
     <x-page-header :title="__('news.title')" :lead="__('news.list.lead')">
-        @if ($canCreate)
-            <x-slot:actions>
+        <x-slot:actions>
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="news" />
+            @if ($canCreate)
                 <x-button :href="route('news.create')" icon="plus">{{ __('news.list.new') }}</x-button>
-            </x-slot:actions>
-        @endif
+            @endif
+        </x-slot:actions>
     </x-page-header>
 
     @if ($externalPublishingPending)

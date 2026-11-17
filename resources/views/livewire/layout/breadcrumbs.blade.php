@@ -4,13 +4,14 @@
 
         @if (!empty($items))
             <nav class="flex" aria-label="{{ __('general.a11y.breadcrumb') }}">
-                <ol class="inline-flex items-center space-x-1 md:space-x-2">
+                <ol class="inline-flex flex-wrap items-center gap-1 md:gap-2">
 
                     {{-- Home --}}
                     <li class="inline-flex items-center">
                         <a href="{{ route('dashboard') }}" wire:navigate
                            class="inline-flex items-center text-small text-ink-2 hover:text-ink">
-                            <i class="ti ti-smart-home"></i>
+                            <x-ic name="home" class="size-4" />
+                            <span class="sr-only">{{ __('general.dashboard') }}</span>
                         </a>
                     </li>
 

@@ -29,7 +29,23 @@ class EmployeeObserver
         // A departed volunteer's printed card must show "card is not valid"
         // (DEC-02), so deactivation disables it too, not only the login.
         // Reactivating does not turn it back on; HR enables it.
-        app(DigitalIdManager::class)->disable($employee);
+        //
+        // On a fresh instance: disable() saves, and saving this one again
+        // from inside its own "updated" event would carry is_active as dirty
+        // once more (the original is only synced after this event), so the
+        // observer would run twice and revoke access twice.
+        $fresh = $employee->fresh();
+
+        if ($fresh) {
+            app(DigitalIdManager::class)->disable($fresh);
+
+            // Keep the caller's instance truthful without making it dirty.
+            $employee->setRawAttributes(array_merge($employee->getAttributes(), [
+                'digital_id_enabled' => $fresh->getAttributes()['digital_id_enabled'] ?? false,
+                'digital_id_revoked_at' => $fresh->getAttributes()['digital_id_revoked_at'] ?? null,
+            ]));
+            $employee->syncOriginalAttributes(['digital_id_enabled', 'digital_id_revoked_at']);
+        }
 
         $user = $employee->account;
 

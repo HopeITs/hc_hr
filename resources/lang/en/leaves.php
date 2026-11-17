@@ -51,7 +51,7 @@ return [
         'max-days' => 'The total leave duration (:days) exceeds the allowed maximum (:max).',
         'range-too-long' => 'A single request can cover at most :days days. Split it into shorter requests.',
         'end-before-start' => 'The end date is before the start date. Choose an end date on or after the start date.',
-        'overlap' => 'You already have a :status leave request for :period. Change these dates, or edit that request instead.',
+        'overlap' => 'You already have a leave request for :period (:status). Change these dates, or edit that request instead.',
     ],
 
     // Result of sending or updating a request (A3).
@@ -184,6 +184,8 @@ return [
         'left' => ':amount left',
         'unavailable' => 'Not available yet',
         'none-available' => 'There is no leave you can request right now.',
+        'pick-employee-first' => 'Choose the employee first to see their leave types.',
+        'none-for-employee' => 'This employee has no leave that can be requested right now.',
         'own-balance' => 'The leave type of this request',
         'duration' => 'Duration',
         'duration-pending' => 'Fill in the dates to see the duration.',

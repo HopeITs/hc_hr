@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Livewire\Concerns\AutosavesEmployeeDraft;
 use App\Livewire\Concerns\RemembersReturnTo;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\Employee\DraftContractForm;
@@ -11,14 +12,17 @@ use App\Models\Employee;
 use App\Models\Position;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class EmployeeCreate extends Component
 {
+    use AutosavesEmployeeDraft;
     use RemembersReturnTo;
     use WithFeedback, WithFileUploads;
 
@@ -88,6 +92,34 @@ class EmployeeCreate extends Component
     public function saveDraftRecord()
     {
         $this->saveRecord(complete: false);
+    }
+
+    /**
+     * Autosave (phase 2, DEC-04, employee-lifecycle.md §5.6). The first one
+     * that passes the draft minimum creates the draft through the same path as
+     * "Save draft" — same lock, same submission token — so every later one
+     * updates that row and never creates a second. Unlike "Save draft" it
+     * stays on the page: no draft-position step, no redirect, no toast, and
+     * nothing re-rendered under the person's cursor. The page offers a link to
+     * the saved draft instead (resources/js/employee-autosave.js).
+     *
+     * @return array{status: string, time?: string, message?: string, url?: string}
+     */
+    #[Renderless]
+    public function autosaveDraft(): array
+    {
+        abort_unless(auth()->user()?->hasActivePermission('employees.create'), 403);
+
+        // Saved explicitly already: the form has made way for the draft-position step.
+        if ($this->showDraftPrompt) {
+            return ['status' => 'complete'];
+        }
+
+        // Never waits: an explicit save holding the lock is saving the same form.
+        $result = Cache::lock($this->submissionKey().':lock', 30)
+            ->get(fn () => $this->autosaveOnce($this->submissionKey()));
+
+        return $result === false ? ['status' => 'busy'] : $result;
     }
 
     /** Whether the acting user may point the draft-position cascade at a city other than the employee's own. */
@@ -212,9 +244,47 @@ class EmployeeCreate extends Component
         ]);
     }
 
+    /** Where the record this form created is remembered, per user and opened form. */
+    private function submissionKey(): string
+    {
+        return 'employee-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
+    }
+
+    private function autosaveOnce(string $key): array
+    {
+        // An earlier save of this form, explicit or automatic, created the record: continue on it.
+        if (! $this->infoForm->employee && ($id = Cache::get($key))) {
+            $this->infoForm->employee = Employee::query()->find($id);
+        }
+
+        $employee = $this->infoForm->employee;
+
+        if ($employee) {
+            Gate::authorize('update', $employee);
+
+            if (! $employee->isDraft()) {
+                return ['status' => 'complete'];
+            }
+        } elseif (! auth()->user()->canAccessCity((int) $this->infoForm->city_id)) {
+            // The governorate is part of the draft minimum: out of scope (or
+            // not picked yet) is "not saved yet", not a 403 while typing.
+            // PersonalInfoForm::authorizeScope() still re-checks below.
+            return ['status' => 'incomplete'];
+        }
+
+        $result = $this->autosaveSilently(fn () => $this->infoForm->saveDraft(withPhoto: false));
+
+        if ($result['status'] === 'saved') {
+            Cache::put($key, $this->infoForm->employee->id, now()->addDay());
+            $result['url'] = route('employees.edit', $this->infoForm->employee->id);
+        }
+
+        return $result;
+    }
+
     private function saveRecord(bool $complete): void
     {
-        $key = 'employee-create-submission:'.auth()->id().':'.sha1($this->submissionToken);
+        $key = $this->submissionKey();
 
         try {
             Cache::lock($key.':lock', 30)->block(10, fn () => $this->saveRecordOnce($complete, $key));

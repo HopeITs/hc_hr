@@ -33,6 +33,8 @@
             // could never keep focus.
             let modalRoot = $(this.$el).closest('[data-modal-root]').children('[data-modal-dropdowns]');
 
+            resetSelect2(select);
+
             select.select2({
                 width: '100%',
                 dropdownParent: modalRoot.length ? modalRoot : $(document.body),

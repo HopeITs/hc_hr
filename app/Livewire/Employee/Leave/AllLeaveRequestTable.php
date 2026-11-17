@@ -245,7 +245,10 @@ class AllLeaveRequestTable extends LivewireTable
 
             SelectColumn::make(trans_choice('general.employee', 1), 'leaveBalance.contract.employee_id')
                 ->options($this->employeeFilterOptions())
-                ->displayUsing(fn ($v, Model $m) => '<bdi>'.e($m->leaveBalance?->contract?->employee?->name ?? '—').'</bdi>')
+                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-person :id="$id" :name="$name" />', [
+                    'id' => $m->leaveBalance?->contract?->employee_id,
+                    'name' => $m->leaveBalance?->contract?->employee?->name ?? '—',
+                ]))
                 ->asHtml()
                 ->sortable()
                 ->searchable(),

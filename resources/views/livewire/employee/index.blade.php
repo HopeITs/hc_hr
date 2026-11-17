@@ -21,6 +21,9 @@
         <livewire:layout.breadcrumbs :title="trans_choice('general.employee', 2)" :crumbs="[
             ['label' => trans_choice('general.employee', 2)],
         ]" :showButton="true" />
+        <div class="flex flex-wrap items-center gap-2">
+        {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+        <livewire:dashboard.add-to-dashboard tile="employees" />
         @activerole('HR', 'super-admin')
         <div class="flex items-center gap-2">
             {{-- B4D-Q6: the export follows the columns shown, and says so. --}}
@@ -32,6 +35,7 @@
 
         </div>
         @endactiverole
+        </div>
     </div>
 
     @if($canSeeInactive)

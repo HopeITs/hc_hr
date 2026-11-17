@@ -19,6 +19,7 @@ use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
+use App\Services\ContractAutoRenewalService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -110,7 +111,9 @@ class ContractsTable extends LivewireTable
         // ContractObserver::saving() would force the flag straight back off.
         abort_unless($contract->canAutoRenew(), 403);
 
-        $contract->update(['auto_renew' => ! $contract->auto_renew]);
+        // The shared write path (also the renewal journey's "stop"): it
+        // re-checks manageAutoRenew and writes under a row lock.
+        app(ContractAutoRenewalService::class)->setAutoRenew($contract, ! $contract->auto_renew, auth()->user());
 
         $this->toast(__('general.item-updated'));
 
@@ -419,13 +422,12 @@ class ContractsTable extends LivewireTable
             // Identity: the name with the position as a second line.
             Column::make(trans_choice('general.employee', 1), 'employee')
                 ->displayUsing(fn ($v, Model $m) => Blade::render(
-                    '<div class="min-w-0"><button type="button" x-on:click.stop="{{ $open }}" aria-haspopup="dialog" data-contract-view="{{ $id }}" aria-label="{{ $label }}" class="block max-w-full truncate text-start font-medium hover:underline" dir="auto">{{ $name }}</button><div class="truncate text-small text-ink-2" dir="auto">{{ $position }}</div></div>',
+                    // The name opens the person; the rest of the row opens the contract (rowClickAction).
+                    '<div class="min-w-0"><x-person :id="$id" :name="$name" class="block font-medium" /><div class="truncate text-small text-ink-2" dir="auto">{{ $position }}</div></div>',
                     [
                         'name' => $m->employee?->name ?? '—',
                         'position' => $m->position?->{$title} ?? '',
-                        'open' => $this->openDrawerJs($m->getKey()),
-                        'id' => $m->getKey(),
-                        'label' => __('contracts.view-named', ['name' => $m->employee?->name ?? __('general.na')]),
+                        'id' => $m->employee_id,
                     ],
                 ))->asHtml()
                 // Same order as the displayed name: first name, then last name,
@@ -531,7 +533,7 @@ class ContractsTable extends LivewireTable
                     $per = SalaryPer::getLocalizedName($value);
 
                     return Blade::render('<x-badge :color="$color">{{$text}}</x-badge>', [
-                        'color' => $per['color'] ?? 'gray',
+                        'color' => $per['color'] ?? 'secondary-light',
                         'text' => $per['value'] ?? $value,
                     ]);
                 })

@@ -6,6 +6,7 @@
 /storage/*.key
 /storage/fonts
 /storage/pail
+/storage/media-library
 /storage/framework
 /vendor
 .env
@@ -31,3 +32,6 @@ chrome-headless-shell
 
 # B4 browser screenshots (local evidence only)
 /docs/ux/evidence/
+
+# Local-only test accounts list (LocalTestAccountsSeeder)
+LOCAL-TEST-ACCOUNTS.md

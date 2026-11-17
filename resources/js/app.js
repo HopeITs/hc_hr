@@ -17,6 +17,21 @@ import select2 from 'select2';
 
 select2();
 
+// Back/forward under wire:navigate restores a saved copy of the page, select2's
+// box included, but not select2's link to it; starting select2 again on that
+// copy adds a second box beside the first (two stacked "15" per-page boxes,
+// stretching the table toolbar). Strip what an earlier start left behind first.
+window.resetSelect2 = (select) => {
+    select = $(select);
+    if (select.data('select2')) {
+        select.select2('destroy');
+    }
+    select.siblings('.select2-container').remove();
+    select.removeClass('select2-hidden-accessible')
+        .removeAttr('data-select2-id aria-hidden tabindex');
+    select.find('[data-select2-id]').removeAttr('data-select2-id');
+};
+
 // select2's own messages ("No results found", "Searching…") in the page's
 // language. The strings come from resources/lang through a meta tag in the
 // head (partials/head.blade.php); without it select2 keeps its English ones.
@@ -56,9 +71,14 @@ import './help-panel.js';
 
 // Prompt 10: Ctrl+K commands, "g then a letter" and the "?" list of shortcuts.
 import './commands.js';
+// "Add to dashboard" flies into the sidebar's dashboard icon (window.hcFlyToDashboard).
+import './fly-to-dashboard.js';
 
 // "Install the app": header link, layout banner and settings.app (x-data="pwaInstall").
 import './pwa-install.js';
+
+// Team staffing chart: tidy-tree layout, pan / zoom / find (x-data="staffingTree").
+import './staffing-tree.js';
 
 // Web Push on this device (x-data="pushDevice"), page-load sync and the bell's chime.
 import './push-notifications.js';
@@ -120,10 +140,14 @@ import './feedback.js';
 // Asks before leaving a page with unsaved changes (B2).
 import './unsaved.js';
 
+// Server-side autosave of an employee draft (B5 phase 2); never browser storage.
+import './employee-autosave.js';
+
 // Typed examples in empty fields' placeholders (data-typewriter).
 import './typewriter.js';
 
 import './password-toggle.js';
+import './person-link.js';
 import './password-strength.js';
 import './scatter-chart.js';
 import { initClockTimepickers } from './clock-timepicker.js';
@@ -134,18 +158,36 @@ import registerLazyCharts from './charts/lazy-charts.js';
 
 registerLazyCharts();
 
+// Swiper is only for the today's-events dashboard tile, so it stays out of the
+// shared bundle; the tile asks for it when it is drawn.
+window.loadSwiper = async () => {
+    const [{ default: Swiper }] = await Promise.all([import('swiper/bundle'), import('swiper/css/bundle')]);
+
+    return Swiper;
+};
+
 document.addEventListener('DOMContentLoaded', () => initClockTimepickers());
 
 // Flowbite binds its behaviour on load, but Livewire replaces DOM afterwards,
 // so any swapped-in dropdown/modal/tooltip has to be re-initialised.
-Livewire.hook('commit', ({ succeed }) => {
-    succeed(() => {
-        queueMicrotask(() => {
-            initFlowbite();
-            initClockTimepickers();
+const registerLivewireHooks = () => {
+    if (!window.Livewire) return;
+
+    window.Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => {
+            queueMicrotask(() => {
+                initFlowbite();
+                initClockTimepickers();
+            });
         });
     });
-});
+};
+
+if (window.Livewire) {
+    registerLivewireHooks();
+} else {
+    document.addEventListener('livewire:init', registerLivewireHooks, { once: true });
+}
 
 // Chart.js instances created by the inline dashboard scripts are bound to
 // canvases that wire:navigate is about to remove; destroy them so their
@@ -158,6 +200,25 @@ document.addEventListener('livewire:navigated', () => {
     initFlowbite();
     initClockTimepickers();
     dropReturnParam();
+});
+
+// A Livewire action that opens or closes an inline panel names the element
+// that should hold focus next: `$this->dispatch('focus-element', id: '…')`.
+// Without it, removing the button that had focus drops a keyboard user back
+// to the top of the page. Livewire fires dispatches after the DOM is patched,
+// so the target already exists; scrolling goes through scrollIntoView so the
+// target's scroll-margin clears the fixed top bar.
+window.addEventListener('focus-element', (event) => {
+    const target = document.getElementById(event.detail?.id);
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'nearest' });
+
+    // A target without its own scroll-margin can still land under the bar.
+    const bar = document.querySelector('nav.fixed')?.getBoundingClientRect().bottom ?? 0;
+    const top = target.getBoundingClientRect().top;
+    if (top < bar) window.scrollBy({ top: top - bar - 16 });
 });
 
 // ?from= (set by the header's New menu) is read once by the server when the

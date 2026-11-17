@@ -1,5 +1,5 @@
 @php
-    $heading = $renewalSource ? __('general.renew-contract') : __('general.add-new');
+    $heading = $renewalSource ? __('general.renew-contract') : __('general.new-contract');
 @endphp
 
 <x-slot:title>

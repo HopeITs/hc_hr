@@ -1,0 +1,51 @@
+# What graphify never reads (gitignore syntax). The HopeHR graph is code only.
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+auth.json
+LOCAL-TEST-ACCOUNTS.md
+
+# Dependencies and generated output
+vendor/
+node_modules/
+public/build/
+public/hot
+bootstrap/cache/
+storage/
+public/storage
+
+# Data: database dumps and files that may hold staff records
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.dump
+*.csv
+*.xlsx
+*.xls
+database/backups/
+
+# Uploads, media and binaries
+public/assets/img/
+public/images/
+public/fonts/
+resources/fonts/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.zip
+
+# Logs
+*.log
+
+# AI tooling, not the application's code
+.claude/
+.agents/

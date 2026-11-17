@@ -117,6 +117,34 @@ class LeaveRequestSubmitFlowTest extends TestCase
         $this->assertSame($before, LeaveRequest::query()->count());
     }
 
+    public function test_an_own_overlap_shows_while_the_dates_are_picked_and_clears_when_they_move(): void
+    {
+        $component = $this->openNewRequest()
+            ->set('form.leave_balance_id', (string) $this->sick->id)
+            ->set('form.start_at', $this->pending->start_at->toDateString())
+            ->set('form.end_at', $this->pending->end_at->toDateString())
+            ->assertHasErrors(['form.start_at'])
+            ->assertNotDispatched('confirm-dialog');
+
+        $this->assertStringContainsString(__('leaves.status.pending'), $component->errors()->first('form.start_at'));
+
+        $clear = $this->pending->end_at->copy()->addDays(10)->toDateString();
+        $component->set('form.start_at', $clear)
+            ->set('form.end_at', $clear)
+            ->assertHasNoErrors(['form.start_at', 'form.end_at']);
+    }
+
+    public function test_a_field_error_clears_once_the_field_is_filled(): void
+    {
+        $this->openNewRequest()
+            ->call('confirmSave')
+            ->assertHasErrors(['form.leave_balance_id', 'form.start_at', 'form.end_at'])
+            ->set('form.leave_balance_id', (string) $this->sick->id)
+            ->assertHasNoErrors(['form.leave_balance_id'])
+            // Fields nobody touched keep theirs until they are filled.
+            ->assertHasErrors(['form.start_at', 'form.end_at']);
+    }
+
     public function test_an_hourly_overlap_is_reported_on_the_leave_date_and_rejected_requests_do_not_block(): void
     {
         $day = $this->pending->start_at->toDateString();

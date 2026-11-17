@@ -265,6 +265,25 @@ class LeaveEligibilityTest extends TestCase
         $this->assertSame(0, LeaveRequest::query()->count());
     }
 
+    public function test_reopening_hr_new_request_offers_no_leave_types_until_an_employee_is_chosen(): void
+    {
+        [$employee] = $this->staff(annualUsed: 0);
+
+        $component = Livewire::actingAs($this->hrUser())
+            ->test(AllLeaveRequestModule::class)
+            ->call('create')
+            ->assertDontSeeHtml('data-testid="leave-type-cards"')
+            ->set('form.employee_id', $employee->id)
+            ->assertSeeHtml('data-testid="leave-type-cards"')
+            ->set('formModal', false)
+            ->call('create');
+
+        $this->assertCount(0, $component->get('allAvailableLeaves'));
+        $this->assertCount(0, $component->get('alternativeEmployees'));
+        $component->assertDontSeeHtml('data-testid="leave-type-cards"')
+            ->assertSee(__('leaves.request.pick-employee-first'));
+    }
+
     private function assertRefused(Employee $employee, LeaveBalance $balance, string $reason): void
     {
         $eligibility = app(LeaveEligibility::class);

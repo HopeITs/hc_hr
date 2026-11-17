@@ -39,7 +39,8 @@ return [
             'default-src' => ["'self'"],
             'base-uri' => ["'self'"],
             'object-src' => ["'none'"],
-            'frame-ancestors' => ["'none'"],
+            // Framed by this site only (the dashboard's workspace and its card windows), never by another.
+            'frame-ancestors' => ["'self'"],
             'form-action' => ["'self'"],
             'script-src' => [
                 "'self'",
@@ -48,21 +49,16 @@ return [
                 // runtime. Without this, every Alpine/Livewire directive in
                 // the app throws an EvalError and silently no-ops.
                 "'unsafe-eval'",
-                'https://cdnjs.cloudflare.com',
-                'https://cdn.jsdelivr.net',
                 'https://esm.sh',
                 'https://unpkg.com',
             ],
             'style-src' => [
                 "'self'",
                 "'unsafe-inline'",
-                'https://cdnjs.cloudflare.com',
-                'https://cdn.jsdelivr.net',
             ],
             'font-src' => [
                 "'self'",
                 'data:',
-                'https://cdnjs.cloudflare.com',
             ],
             'img-src' => [
                 "'self'",

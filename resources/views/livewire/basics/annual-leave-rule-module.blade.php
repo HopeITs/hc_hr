@@ -4,27 +4,27 @@
     {{ __('general.annual_leave_rules') }}
 </x-slot:title>
 @endunless
-        <div @class(['flex items-center mb-6', 'justify-between' => ! $inSettings, 'justify-end' => $inSettings])>
-
-        @unless ($inSettings)
+    @unless ($inSettings)
+    <div class="flex items-center mb-6">
         <livewire:layout.breadcrumbs :title="__('general.annual_leave_rules')" :crumbs="[
             ['label' => __('general.project-basics')],
             ['label' => __('general.annual_leave_rules'), 'route' => 'annual-leave-rules.index'],
         ]" :showButton="true" />
-        @endunless
-
-        @activerole('HR', 'super-admin')
-            <div class="flex items-center gap-2">
-                <x-excel-export-button wire:click="$dispatchTo('basics.annual-leave-rule-table', 'exportExcel')" />
-
-                <x-primary-button wire:click="create" :showSpinner="false">
-                    @lang('general.add-new')
-                </x-primary-button>
-            </div>
-        @endactiverole
     </div>
+    @endunless
 
-    <livewire:basics.annual-leave-rule-table />
+    <livewire:basics.annual-leave-rule-table>
+        <livewire:slot name="actions">
+            @activerole('HR', 'super-admin')
+                <div class="flex items-center gap-2">
+                    <x-excel-export-button wire:click="$dispatchTo('basics.annual-leave-rule-table', 'exportExcel')" />
+                    <x-primary-button wire:click="create" :showSpinner="false">
+                        @lang('general.add-new')
+                    </x-primary-button>
+                </div>
+            @endactiverole
+        </livewire:slot>
+    </livewire:basics.annual-leave-rule-table>
 
     <x-modal.dialog id="showModal" :title="$modalTitle" wire:model.defer="showModal" close-action="requestClose" wire:ignore.self>
         <form class="space-y-4" wire:submit.prevent="save">

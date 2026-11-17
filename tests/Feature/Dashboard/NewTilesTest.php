@@ -204,13 +204,13 @@ class NewTilesTest extends TestCase
         $this->assertSame($one, $three);
     }
 
-    public function test_birthdays_is_for_everyone_and_shown_by_default_for_staff_and_managers_only(): void
+    public function test_birthdays_is_for_everyone_and_waits_in_the_gallery(): void
     {
         $layout = new DashboardLayout;
 
-        foreach (['lina' => false, 'sami' => false, 'huda' => true] as $who => $hidden) {
+        foreach (['lina', 'sami', 'huda'] as $who) {
             $this->assertTrue($layout->allowed($this->user($who), 'birthdays'), $who);
-            $this->assertSame($hidden, $this->item($layout->defaults($this->user($who)), 'birthdays')['hidden'], $who);
+            $this->assertTrue($this->item($layout->defaults($this->user($who)), 'birthdays')['hidden'], $who);
         }
     }
 
@@ -296,12 +296,8 @@ class NewTilesTest extends TestCase
         // The late strip and the decisions (tiles now, first) are covered by DashboardHeaderTest.
         $shown = fn (User $u) => array_values(array_diff(array_column(array_filter($layout->defaults($u), fn ($i) => ! $i['hidden'] && $layout->isWidget($i['key'])), 'key'), ['late', 'decide']));
 
-        $this->assertSame(
-            ['my-leaves', 'notes', 'team', 'news', 'calendar', 'upcoming-leaves', 'today-events', 'upcoming-events', 'pending-requests', 'checklist', 'badges'],
-            array_slice(array_values($shown($this->user('lina'))), 0, 11),
-        );
-        $this->assertSame(['next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('lina'))), 11));
-        $this->assertSame(['who-is-out', 'next-holiday', 'birthdays'], array_slice(array_values($shown($this->user('sami'))), 11));
+        $this->assertSame(['glance', 'attention', 'my-leaves', 'news', 'next-holiday'], $shown($this->user('lina')));
+        $this->assertSame(['glance', 'attention', 'my-leaves', 'news', 'team', 'who-is-out', 'next-holiday'], $shown($this->user('sami')));
     }
 
     public function test_each_new_tile_has_bounds_a_component_and_a_name_in_both_languages(): void
@@ -310,10 +306,9 @@ class NewTilesTest extends TestCase
 
         foreach (['who-is-out', 'next-holiday', 'leave-balance', 'birthdays'] as $key) {
             $this->assertNotNull($layout->component($key), $key);
-            // A panel never goes below its own minimum (no icon-sized tiles any more).
-            $bounds = $layout->bounds($key);
-            $this->assertSame(['min', 'max'], array_keys($bounds), $key);
-            $this->assertSame(implode('x', $bounds['min']), $layout->size($key, '1x1'), $key);
+            // Any widget goes down to one cell (an icon); below `card` it shows as one.
+            $this->assertSame('1x1', $layout->size($key, '1x1'), $key);
+            $this->assertNotSame([1, 1], $layout->bounds($key)['card'], $key);
 
             foreach (['en', 'ar'] as $locale) {
                 app()->setLocale($locale);

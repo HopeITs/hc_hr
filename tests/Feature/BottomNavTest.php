@@ -39,16 +39,14 @@ class BottomNavTest extends TestCase
 
     private const LEAVES = 'app.nav.my-space.leaves';
 
-    private const INBOX = 'app.nav.inbox';
-
     private const CALENDAR = 'app.nav.my-space.team-calendar';
 
     public function test_each_role_gets_the_destinations_its_permissions_open(): void
     {
         $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($this->userWithRole('employee')));
-        // Four places: with the inbox, My profile stays in the avatar menu.
-        $this->assertSame(['home', self::LEAVES, self::INBOX, self::CALENDAR], $this->keys($this->userWithRole('manager')));
-        $this->assertSame(['home', self::LEAVES, self::INBOX, self::CALENDAR], $this->keys($this->userWithRole('HR-ALP')));
+        // What waits on the viewer is on Home now, so no role has an inbox place: My profile is the fourth.
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($this->userWithRole('manager')));
+        $this->assertSame(['home', self::LEAVES, self::CALENDAR, 'profile'], $this->keys($this->userWithRole('HR-ALP')));
 
         // No leave permission, no employee record: only Home.
         $bare = User::query()->create(['email' => 'bare@example.test', 'password' => 'password']);
@@ -126,10 +124,10 @@ class BottomNavTest extends TestCase
         // [\s\S]*?, not [^>]*: the bar's x-data holds arrow functions (=>).
         $this->assertMatchesRegularExpression('/<nav[^>]*data-testid="bottom-nav"[\s\S]*?class="app-bottom-nav[^"]*\bmd:hidden\b/', $bar);
 
-        // …and the header's New menu from md up only, so phones never see two red Create buttons.
+        // …and the header has no New button at any width (taken off on 2026-11-03): from md up the
+        // New actions are in search's Commands group, so phones never see two red Create buttons.
         $header = Livewire::actingAs($hr)->test(Header::class)->html();
-        $this->assertSame(1, substr_count($header, 'data-testid="new-menu-button"'));
-        $this->assertMatchesRegularExpression('/<div class="relative shrink-0 max-md:hidden"\s+x-data="\{\s+open: false,/', $header);
+        $this->assertStringNotContainsString('data-testid="new-menu-button"', $header);
     }
 
     public function test_a_role_that_may_start_nothing_has_no_plus(): void
@@ -181,11 +179,11 @@ class BottomNavTest extends TestCase
     {
         $manager = $this->userWithRole('manager');
 
-        $component = Livewire::actingAs($manager)->test(BottomNav::class)->set('currentRoute', 'inbox');
+        $component = Livewire::actingAs($manager)->test(BottomNav::class)->set('currentRoute', 'dashboard');
         $items = collect($component->viewData('items'))->keyBy('key');
 
-        $this->assertSame(app(WorkInbox::class)->count($manager), $items[self::INBOX]['count']);
-        $component->assertSeeHtml('data-testid="bottom-nav-'.self::INBOX.'"')
+        $this->assertSame(app(WorkInbox::class)->count($manager), $items['home']['count']);
+        $component->assertSeeHtml('data-testid="bottom-nav-home"')
             ->assertSeeHtml('aria-current="page"');
     }
 
@@ -204,9 +202,9 @@ class BottomNavTest extends TestCase
             $this->assertNotContains($this->actingAs($hr)->get(html_entity_decode($href))->getStatusCode(), [403, 404, 500], $href);
         }
 
-        // No inbox on the bar: nothing is counted.
+        // Only Home carries the count of what waits on the viewer.
         foreach ($component->viewData('items') as $place) {
-            $this->assertArrayNotHasKey('count', $place);
+            $place['key'] === 'home' ? $this->assertArrayHasKey('count', $place) : $this->assertArrayNotHasKey('count', $place);
         }
     }
 

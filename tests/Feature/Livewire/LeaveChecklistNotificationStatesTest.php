@@ -321,7 +321,7 @@ class LeaveChecklistNotificationStatesTest extends TestCase
         $this->notify($user);
 
         Livewire::actingAs($user)->test(Counter::class)
-            ->assertSeeHtml('wire:poll.10s="updateCount"')
+            ->assertSeeHtml('wire:poll.60s="updateCount"')
             ->assertSet('count', 1);
 
         // The sidebar copy follows events instead of polling a second time.

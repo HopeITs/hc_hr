@@ -146,7 +146,7 @@ document.addEventListener('alpine:init', () => {
 
             this.onViewportChange = () => this.scheduleMeasure();
 
-            if (tour?.autostart && !store.seen) this.autostart();
+            // Never opens on its own: the tour is offered from the header's "Take a tour" button.
         },
 
         destroy() {

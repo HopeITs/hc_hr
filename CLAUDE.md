@@ -31,6 +31,7 @@ Custom artisan commands (in `app/Console/Commands`):
 - Livewire 4 tests: a `ModelNotFoundException` inside a component call becomes a 404 response instead of being thrown. Assert it with `->assertNotFound()`, not `expectException`.
 - Vite 8 bundles with Rolldown: `manualChunks` must be a function, not an object.
 - Tests run on sqlite `:memory:` (see `phpunit.xml`); dev/prod use MySQL.
+- **`public/.htaccess` is not tracked** (template: `public/.htaccess.example`). The host keeps its WebGuard IP whitelist (`SetEnvIf … WHITELISTED_IP`) in the server's copy; a tracked copy overwrote it on every `git pull`, and the office IP was then challenged (412/429). Changes to the rules go into the example and are applied on the server by hand.
 
 ## Architecture
 
@@ -96,8 +97,9 @@ The visual identity is the Hope Center one as implemented in **media-request** (
 - **Type:** Somar Sans 400–800. Body 16px/1.55 (Arabic 17px/1.7 via `html[lang="ar"]`), tables 15px, table headers 13px, hints `text-small` 14px, counters `text-caption` 12px, h1 `clamp(26px,4vw,34px)`/800 balanced. `num` (or `tabular-nums`) for figures.
 - **Focus** is a 2px ink outline with 2px offset, never red; inputs get an ink border + 3px ring. Both are unlayered rules in `app.css`, so they win over old `focus:*-primary` utilities.
 - Fonts: SomarSans (with Lato fallback), Regular and Medium preloaded in `resources/views/partials/head.blade.php`.
+- Required form fields are marked with a red star (plus a screen-reader-only "required" word) via the `required` prop on `<x-forms.input-label>`.
 - **Web fonts live in `resources/fonts/` as WOFF2** and are referenced from `app.css` by relative path, so Vite fingerprints them (cache-busting) and the preload uses `Vite::asset()` to get the same URL. Never point `@font-face` at `/fonts/...` again — that is what produced the "didn't resolve at build time" warnings.
-- `public/fonts/` holds only the `.ttf` files the contract PDF inlines through `public_path()` (`_styles.blade.php`). Those two sets are separate on purpose. Required form fields are marked with a red star via the `required` prop on `<x-forms.input-label>`.
+- `public/fonts/` holds only the `.ttf` files the contract PDF inlines through `public_path()` (`_styles.blade.php`). Those two sets are separate on purpose.
 
 ### Routes
 `routes/web.php` is the locale-wrapped entry point and `require`s the domain route files: `basic-project.php`, `projects-management.php`, `employees-management.php`, and `auth.php`.

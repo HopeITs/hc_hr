@@ -264,6 +264,20 @@
                     velocityY: 0,
                     inertiaId: null,
 
+                    init() {
+                        this.$nextTick(() => requestAnimationFrame(() => this.centerOnTop()));
+                    },
+
+                    // The chart is wider than most screens and starts at its far edge, where
+                    // nobody is: bring the top of the tree to the middle of what is visible.
+                    centerOnTop() {
+                        const top = this.$refs.viewport.querySelector('#org-chart-export > div');
+                        if (! top) return;
+                        const box = this.$refs.viewport.getBoundingClientRect();
+                        const node = top.getBoundingClientRect();
+                        this.translateX += (box.left + box.width / 2) - (node.left + node.width / 2);
+                    },
+
                     transformStyle() {
                         return `transform: translate3d(${this.translateX}px, ${this.translateY}px, 0) scale(${this.scale})`;
                     },
@@ -355,6 +369,7 @@
                         this.stopInertia();
                         this.translateX = 0;
                         this.translateY = 0;
+                        this.$nextTick(() => requestAnimationFrame(() => this.centerOnTop()));
                     },
                 }"
                 @wheel.prevent="onWheel($event)"
@@ -477,9 +492,6 @@
         </div>
         @endif
     </section>
-
-    {{-- Employee profile drawer (shared by chart + directory cards). --}}
-    <livewire:position.profile-drawer />
 
     {{-- ---------- Off-canvas filter drawer ---------- --}}
     <div x-cloak x-show="filtersOpen" class="fixed inset-0 z-40" x-transition.opacity>

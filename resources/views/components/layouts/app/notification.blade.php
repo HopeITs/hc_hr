@@ -47,13 +47,14 @@
         role="menu">
 
         <!-- Livewire component renders its own header + list -->
-        <div class="max-h-[min(22rem,calc(100dvh-10rem))] overflow-y-auto overscroll-contain">
+        {{-- The scrollbar runs between the header's line and the footer's (custom-scrollbar.js, data-csb-header). --}}
+        <div class="max-h-[min(22rem,calc(100dvh-10rem))] overflow-y-auto overscroll-contain" data-csb-pad="6">
             <livewire:notifications.dropdown />
         </div>
 
         <!-- Footer -->
         <a href="{{ route('notifications.index') }}" wire:navigate
-           class="flex items-center justify-center gap-2 border-t border-line-soft bg-soft py-2 text-body font-semibold
+           class="flex items-center justify-center gap-2 border-t border-line-soft bg-soft py-[6.2px] text-small leading-5 font-semibold
                   text-ink transition hover:bg-hover">
             @lang('general.view-all')
         </a>

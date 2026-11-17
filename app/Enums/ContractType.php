@@ -19,11 +19,11 @@ final class ContractType extends Enum
     public static function getLocalizedName(int $value): array
     {
         $val = match ($value) {
-            self::FullTime => ['text' => ['en' => 'Full Time', 'ar' => 'دوام كامل'], 'color' => 'green'],
-            self::PartTime => ['text' => ['en' => 'Part Time', 'ar' => 'دوام جزئي'], 'color' => 'blue'],
-            self::Freelance => ['text' => ['en' => 'Freelance', 'ar' => 'دوام حر'], 'color' => 'yellow'],
-            self::Draft => ['text' => ['en' => 'Draft', 'ar' => 'مسودة'], 'color' => 'gray'],
-            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'gray'],
+            self::FullTime => ['text' => ['en' => 'Full Time', 'ar' => 'دوام كامل'], 'color' => 'secondary-dark'],
+            self::PartTime => ['text' => ['en' => 'Part Time', 'ar' => 'دوام جزئي'], 'color' => 'secondary-medium'],
+            self::Freelance => ['text' => ['en' => 'Freelance', 'ar' => 'دوام حر'], 'color' => 'secondary-medium'],
+            self::Draft => ['text' => ['en' => 'Draft', 'ar' => 'مسودة'], 'color' => 'secondary-light'],
+            default => ['text' => ['en' => 'Unknown', 'ar' => 'غير معروف'], 'color' => 'secondary-light'],
         };
         $result = [
             'value' => $val['text'][app()->getLocale()],

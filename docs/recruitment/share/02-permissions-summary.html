@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملخص الصلاحيات والنطاق — موديول التوظيف</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#fbf9f9;--surface:#fff;--surface2:#f5f1f1;--ink:#1a1416;--ink2:#443a3d;
+--muted:#6d6165;--line:#e6dfe0;--line2:#d3c8ca;--accent:#c2151c;--accent-soft:#fdf0f0;
+--ok:#1f6f4a;--ok-soft:#e8f3ed;--warn:#9a6510;--warn-soft:#fbf1e0;--stop:#8f1015;--stop-soft:#fbeaea}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;padding-inline:20px;padding-block:0 56px;
+font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin-inline:auto}
+code,.mono{font-family:"IBM Plex Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+code{font-size:.84em;background:var(--surface2);color:var(--ink2);padding:.08em .36em;
+border-radius:3px;border:1px solid var(--line);direction:ltr;display:inline-block}
+header{padding-block:40px 22px;border-bottom:3px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.15em;
+text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 12px}
+h1{font-size:clamp(24px,5.5vw,34px);margin:0 0 10px;font-weight:700;letter-spacing:-.015em}
+.sub{color:var(--ink2);margin:0;font-weight:300;max-width:56ch}
+.meta{margin-top:16px;font-size:12.5px;color:var(--muted)}
+section{padding-block:30px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+h2{font-size:19px;margin:0 0 14px;font-weight:600;display:flex;align-items:baseline;gap:10px}
+h2::before{content:attr(data-n);font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);font-weight:600}
+h3{font-size:15.5px;margin:22px 0 8px;font-weight:600}
+p{max-width:62ch;margin:10px 0}
+.tw{overflow-x:auto;margin-block:14px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:440px}
+th{text-align:right;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+font-weight:600;padding:10px 13px;background:var(--surface2);border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink)}
+td.id{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent);white-space:nowrap;font-size:12.5px}
+td.c{text-align:center;width:1%}
+.note{background:var(--surface);border:1px solid var(--line);border-right:3px solid var(--line2);
+padding:13px 17px;margin-block:16px;border-radius:0 7px 7px 0;font-size:14px;color:var(--ink2)}
+.note.alert{border-right-color:var(--accent);background:var(--accent-soft)}
+.note p{margin:0;max-width:none}
+.note p+p{margin-top:8px}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:16px;
+overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.8;
+margin-block:16px;color:var(--ink2)}
+pre.ltr{direction:ltr;text-align:left}
+ul{padding-inline-start:19px;margin-block:10px;max-width:62ch}
+li{margin-bottom:5px;color:var(--ink2)}
+li::marker{color:var(--accent)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;line-height:1.7}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-stop{background:var(--stop-soft);color:var(--stop)}
+footer{padding-top:26px;font-size:12.5px;color:var(--muted);text-align:center}
+@media print{body{background:#fff}.tw,pre{break-inside:avoid}}
+</style>
+</head>
+<body>
+<p dir="rtl"><strong>تحديث 18 أيلول 2026 — D52–D55:</strong> Fill Vacancy يحتاج شاغراً متاحاً قائماً؛ الواحد يختار تلقائياً والمتعدد باختيار المستخدم. أب CreatePosition إداري أو لديه فريق نشط ضمن الشجرة. مدير المشروع/البرنامج مقيّد ببرنامج منصبه ومواقعه ومراكزه، ولا ينشئ Department Manager. تخصص هذه القرارات وصف D49/D51 السابق، ولا تغير نطاق الأدوار الأعلى أو منع HR من Normal Request.</p>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">موديول التوظيف &middot; المرحلة الأولى &middot; المهمة 1</p>
+  <h1>ملخص الصلاحيات والنطاق</h1>
+  <p class="sub">تسع عشرة صلاحية بتسمية مقطعين تتوافق مع <code>config/access-control.php</code> وواجهة Access Management الحالية دون تعديلهما.</p>
+  <p class="meta">15 أيلول 2026 &middot; نسخة 2 &mdash; بعد مطابقة الـ ERD</p>
+</header>
+
+<section>
+  <h2 data-n="01">الفكرة الأساسية &mdash; ثلاث طبقات لا طبقة واحدة</h2>
+  <div class="tw"><table>
+    <thead><tr><th></th><th>المصدر</th><th>السؤال الذي يجيبه</th></tr></thead>
+    <tbody>
+      <tr><td><strong>الصلاحية</strong></td><td>الدور &mdash; Spatie</td><td>هل يملك <code>recruitment-requests.manage</code>؟</td></tr>
+      <tr><td><strong>الأهلية</strong></td><td>المنصب &mdash; الدرجة الوظيفية</td><td>هل درجته 1 أو 3 أو 5، أو هو CEO؟</td></tr>
+      <tr><td><strong>النطاق</strong></td><td>المنصب &mdash; البرنامج والمركز والمدينة</td><td>أي الطلبات يراها ويتصرف بها؟</td></tr>
+    </tbody>
+  </table></div>
+  <p>تُفحص معاً. <strong>امتلاك الصلاحية بلا أهلية لا يكفي لإنشاء طلب.</strong> D50: HR للفتح المباشر فقط، حتى بدرجة مؤهلة. D49: نطاق إنشاء المدير غير HR هو شجرته الإدارية بكل الأعماق، لا المحافظة أو البرنامج. المنصب القائم descendant فقط؛ الأب المقترح هو منصبه أو descendant. D30 يبقى للرؤية بمستوى واحد.</p>
+</section>
+
+<section>
+  <h2 data-n="02">قائمة الصلاحيات</h2>
+<pre class="ltr">'recruitment-requests'  => ['view', 'manage', 'submit', 'cancel',
+                            'approve', 'reject', 'request-changes',
+                            'direct-open', 'export'],
+'recruitment-vacancies' => ['view', 'manage'],
+'recruitment-campaigns' => ['view', 'manage'],
+'recruitment-job-posts' => ['view', 'manage'],
+'recruitment-forms'     => ['view', 'manage'],
+'recruitment-links'     => ['view', 'manage'],</pre>
+
+  <div class="note"><p><strong>القاعدة المعتمدة:</strong> تُفصَل الصلاحية فقط عندما يُتوقَّع منح مستخدم فعلاً ومنعه من آخر. إن كانا دائماً بيد الفئة نفسها، يُدمجان تحت <code>manage</code>.</p></div>
+
+  <h3>لماذا هذه بالذات مستقلة</h3>
+  <div class="tw"><table>
+    <thead><tr><th>الصلاحية</th><th>السبب</th></tr></thead>
+    <tbody>
+      <tr><td><code>view</code> مقابل <code>manage</code></td><td>HR المحافظة يرى طلبات المحافظات الأخرى في التقارير دون أن يديرها</td></tr>
+      <tr><td><code>approve</code> <code>reject</code> <code>request-changes</code></td><td>أفعال المراجعة مستقلة عن الإنشاء. المدير المالي المؤهل يستطيع إنشاء طلب عادي ضمن شجرته؛ صفته كموافق مالي لا توسع نطاق الإنشاء.</td></tr>
+      <tr><td><code>cancel</code></td><td>فعل نهائي لا رجعة فيه، وقد يُمنح لمُقدِّم الطلب وحده</td></tr>
+      <tr><td><code>direct-open</code></td><td><strong>يتجاوز الـ Workflow كله.</strong> أخطر صلاحية في الموديول ولا يجوز أن تأتي ضمناً مع <code>manage</code></td></tr>
+      <tr><td><code>export</code></td><td>إخراج بيانات خارج النظام &mdash; بوابة وتدقيق مستقلان</td></tr>
+    </tbody>
+  </table></div>
+
+  <p><strong>ما دُمج تحت <code>manage</code>:</strong> <code>publish</code> و<code>close</code> للحملات، و<code>publish</code> للإعلانات والنماذج، و<code>delete</code>. من يدير الحملة هو نفسه من ينشرها ويغلقها عملياً.</p>
+  <p><strong>ما أُزيل:</strong> <code>recruitment-audit.view</code> &mdash; الخط الزمني يتبع رؤية الطلب نفسه، فكل من يرى الطلب يرى خطه الزمني كاملاً.</p>
+</section>
+
+<section>
+  <h2 data-n="03">مصدر النطاق</h2>
+<pre class="ltr">user → employee → عقد فعّال → position → (program_id, center_id, city_id, job_level.grade)</pre>
+
+  <div class="note alert"><p><strong>لا جدول نطاقات جديد.</strong> كان مقترحاً <code>recruitment_user_scopes</code> ثم أُلغي بعد تحليل بيانات الاختبار: <code>direct_manager_id</code> معبّأ في <strong>153 من 155</strong> منصباً فعّالاً، وكادر Finance موظفون بمناصب في كل محافظة، وكل مستخدم يحمل دوراً واحداً فقط.</p></div>
+
+  <div class="tw"><table>
+    <thead><tr><th>ما يحدده</th><th>المصدر</th></tr></thead>
+    <tbody>
+      <tr><td><strong>ماذا</strong> يستطيع المستخدم فعله</td><td>دوره &mdash; Spatie</td></tr>
+      <tr><td><strong>أين</strong> يستطيع فعله</td><td>منصبه</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>الأدوار <code>HR-{CITY}</code> تبقى على <code>User::activeCityId()</code> كما هي.</p>
+
+  <div class="note"><p><strong>قاعدة المدينة تمر حصراً عبر <code>Position::scopeInCity</code></strong> &mdash; أي <code>positions.city_id</code> <em>أو</em> <code>center.city_id</code>. الانحراف عنها سبق أن سبّب خطأ &laquo;منصب غير صالح في سوريا&raquo;.</p>
+  <p>وسببها واضح في البيانات: 14 منصباً وطنياً (الرئيس التنفيذي، نائباه، المدير المالي الأول…) تحمل <code>city_id = 1</code> بينما مركزها في حلب. <strong>العمود نطاق تنظيمي لا موقع جغرافي.</strong></p></div>
+</section>
+
+<section>
+  <h2 data-n="04">مصفوفة الدور × النطاق</h2>
+  <div class="tw"><table>
+    <thead><tr><th>الدور</th><th>النطاق</th><th class="c">يُنشئ</th><th>يوافق على</th><th class="c">يدير</th><th class="c">فتح مباشر</th><th>يرى</th></tr></thead>
+    <tbody>
+      <tr><td><code>manager</code></td><td>من منصبه</td><td class="c">&check;<sup>*</sup></td><td><code>ManagerApproval</code> لمرؤوسيه</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>نطاقه</td></tr>
+      <tr><td><code>finance</code></td><td>المنظمة</td><td class="c">&mdash;</td><td><code>FinanceApproval</code></td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>ذات الأثر المالي</td></tr>
+      <tr><td><code>HR-{CITY}</code></td><td>المدينة</td><td class="c">&mdash;</td><td><code>GovernorateHrApproval</code></td><td class="c">&check;</td><td class="c">&check;</td><td>محافظته</td></tr>
+      <tr><td><code>HR-SYR</code></td><td>المنظمة</td><td class="c">&mdash;</td><td>عند شغله دوراً تنظيمياً فقط</td><td class="c">&check;</td><td class="c">&check;</td><td><strong>الكل</strong></td></tr>
+      <tr><td><code>general-manager</code></td><td>المنظمة</td><td class="c">&check;<sup>**</sup></td><td><code>ManagerApproval</code> لمرؤوسيه</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td><strong>الكل</strong></td></tr>
+      <tr><td><code>super-admin</code></td><td>المنظمة</td><td class="c">&check;</td><td>بقيد التحقق</td><td class="c">&check;</td><td class="c">&check;</td><td>الكل</td></tr>
+      <tr><td><code>employee</code></td><td>&mdash;</td><td class="c">&mdash;</td><td>&mdash;</td><td class="c">&mdash;</td><td class="c">&mdash;</td><td>&mdash;</td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:13px;color:var(--muted)"><sup>*</sup> إن كانت درجته الوظيفية 1 أو 3 أو 5 &nbsp;&middot;&nbsp; <sup>**</sup> إن كان يشغل منصب CEO</p>
+
+  <ul>
+    <li><strong>لا دور <code>program-manager</code> جديد.</strong> الأهلية من الدرجة الوظيفية، والصلاحية من دور <code>manager</code> الموجود (28 حاملاً).</li>
+    <li><code>manager</code> يوافق على طلبات مرؤوسيه فقط &mdash; عبر <code>direct_manager_id</code> وحده، لا بنطاق عام. <code>tech_manager_id</code> لا يُستخدم في مسار الموافقات.</li>
+    <li><code>HR-SYR</code> و<code>general-manager</code> يريان كل شيء لكنهما <strong>ليسا خطوة</strong> في الـ Workflow.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 data-n="05">ما يحتاج بناءً فعلياً</h2>
+
+  <h3>دور واحد جديد مطلوب</h3>
+  <p><strong><code>finance</code></strong> &mdash; غير موجود في <code>config/access-control.php</code> ويجب إضافته إلى <code>system_roles</code> و<code>RolesPermissionsSeeder</code>، <strong>بنطاق <code>organization</code> لا <code>city</code></strong> لأن المراجعة المالية مركزية بمنصب واحد.</p>
+  <p>الوظيفة موجودة تنظيمياً وإن غاب الدور التقني: قسم Finance قائم (<code>departments.id = 8</code>) ومنصب <strong>Senior Financial Manager</strong> موجود بنطاق وطني.</p>
+
+  <h3>الطبقات الثلاث التي يجب أن تُطبِّق النطاق</h3>
+  <div class="tw"><table>
+    <thead><tr><th>الطبقة</th><th>الآلية</th><th>النمط المتَّبع في المشروع</th></tr></thead>
+    <tbody>
+      <tr><td>القوائم</td><td>Query Scope &mdash; <code>scopeVisibleTo(User)</code></td><td><code>LeaveRequest::manageableBy()</code></td></tr>
+      <tr><td>التفاصيل</td><td>Policy <code>view()</code></td><td><code>LeaveRequestPolicy::view()</code></td></tr>
+      <tr><td>الأفعال</td><td>Policy + خريطة <code>livewire</code></td><td><code>config/access-control.php</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note alert"><p>كل مكوّن Livewire جديد في التوظيف <strong>يجب</strong> أن تُسجَّل methods الحساسة فيه ضمن <code>config/access-control.php['livewire']</code>، وإلا لن يكون محمياً على الخادم.</p></div>
+
+  <h3>قيد على تجاوز الإداريين</h3>
+  <p><code>User::hasActivePermission()</code> يُرجع <code>true</code> لأي صلاحية لـ <code>super-admin</code> و<code>HR-SYR</code> &mdash; وبيانات الاختبار تؤكد أن <code>HR-SYR</code> يملك <strong>63 صلاحية من 63</strong>، مطابقاً لـ <code>super-admin</code>.</p>
+  <p>التجاوز يشمل <strong>الصلاحية</strong> ولا يشمل <strong>كونك الموافق الحالي</strong>. فحوصات الخطوة والدور والنطاق تُطبَّق على الجميع بلا استثناء &mdash; وإلا استطاع حامل الدور الموافقة على طلبه بنفسه.</p>
+</section>
+
+<section>
+  <h2 data-n="06">حالات الاختبار الأمنية</h2>
+  <div class="tw"><table>
+    <thead><tr><th class="id">#</th><th>السيناريو</th><th>النتيجة المتوقعة</th></tr></thead>
+    <tbody>
+      <tr><td class="id">P1</td><td>مستخدم بلا صلاحية يفتح صفحة التوظيف</td><td>403</td></tr>
+      <tr><td class="id">P2</td><td><code>HR-ALP</code> يفتح طلباً في حمص بتغيير الـ ID</td><td>403 &mdash; لا 404 مضلل</td></tr>
+      <tr><td class="id">P3</td><td><code>HR-ALP</code> يستعرض القائمة</td><td>لا يظهر أي طلب خارج حلب</td></tr>
+      <tr><td class="id">P4</td><td><code>finance</code> يوافق على خطوة HR المحافظة</td><td>مرفوض &mdash; الدور لا يطابق</td></tr>
+      <tr><td class="id">P5</td><td>موافِق مؤهل لكن الخطوة ليست النشطة</td><td>مرفوض</td></tr>
+      <tr><td class="id">P6</td><td>موافِق فقد نطاقه بعد تعيينه</td><td>مرفوض &mdash; النطاق يُقيَّم وقت الفعل</td></tr>
+      <tr><td class="id">P7</td><td>مستخدم بدور بلا أي نطاق</td><td>مرفوض &mdash; <strong>الغياب ليس نطاقاً كاملاً</strong></td></tr>
+      <tr><td class="id">P8</td><td>مستخدم بدرجة 6 (Team) يحاول إنشاء طلب</td><td>مرفوض &mdash; الأهلية، ولو ملك الصلاحية</td></tr>
+      <tr><td class="id">P9</td><td><code>HR-SYR</code> يوافق على خطوة ليس موافقها التنظيمي</td><td>مرفوض</td></tr>
+      <tr><td class="id">P10</td><td>مُقدِّم يفتح مسودة مستخدم آخر</td><td>لا تظهر في القائمة ولا التفاصيل</td></tr>
+      <tr><td class="id">P11</td><td>HR بلا <code>direct-open</code> يحاول الفتح المباشر</td><td>مرفوض من الخادم ولو أُخفي الزر</td></tr>
+      <tr><td class="id">P12</td><td>فتح مباشر بتوثيق ناقص</td><td>مرفوض &mdash; الأسطر الثلاثة إلزامية</td></tr>
+      <tr><td class="id">P13</td><td>طلب في حلب أو طرطوس</td><td>يُسند حسب خريطة الإسناد &mdash; لا يتوقف</td></tr>
+      <tr><td class="id">P14</td><td>مُقدِّم الطلب هو المدير المالي الأول</td><td>تُصعَّد الخطوة لمديره &mdash; لا تُتجاوز</td></tr>
+      <tr><td class="id">P15</td><td>مُقدِّم الطلب هو CEO</td><td>خطوة المدير تُتجاوز بتوثيق؛ المالية و HR إلزاميتان</td></tr>
+      <tr><td class="id">P17</td><td>HR المحافظة يفتح مباشرة</td><td>يُنشأ Instance بخطوة واحدة لـ <code>HR-SYR</code> &mdash; لا <code>approved</code> قبل موافقته</td></tr>
+      <tr><td class="id">P16</td><td>token عام غير صالح</td><td>رد عام موحّد &mdash; لا فرق بين &laquo;غير موجود&raquo; و&laquo;مغلق&raquo;</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><code>P7</code> أخطر حالة: الخطأ الشائع أن يُفسَّر &laquo;لا يوجد نطاق&raquo; كـ &laquo;كل النطاقات&raquo;. <strong>الافتراضي لا شيء.</strong></p></div>
+</section>
+
+<section>
+  <h2 data-n="07">خريطة إسناد HR للمحافظات</h2>
+  <p class="lede">قاعدة تحل ثغرة كانت ستوقف النظام يوم الإطلاق.</p>
+
+  <div class="note alert"><p><code>HR-ALP</code> و<code>HR-TAR</code> معرَّفان في النظام <strong>بلا أي مستخدم يحملهما</strong>، وحلب فيها <strong>46 منصباً</strong> &mdash; ثاني أكبر محافظة. وخطوة HR المحافظة إلزامية في المسار ولا تُتجاوز.</p></div>
+
+  <div class="tw"><table>
+    <thead><tr><th>المحافظة</th><th>تُسند إلى</th></tr></thead>
+    <tbody>
+      <tr><td>حلب</td><td><code>HR-SYR</code></td></tr>
+      <tr><td>طرطوس</td><td><code>HR-LAT</code></td></tr>
+      <tr><td>أي محافظة بلا HR معيَّن</td><td><code>HR-SYR</code> &mdash; احتياط عام</td></tr>
+    </tbody>
+  </table></div>
+
+  <ul>
+    <li><strong>القواعد الخاصة تسبق الاحتياط العام</strong> &mdash; طرطوس تذهب إلى اللاذقية لا إلى سوريا، ولو تغيّر الاحتياط لاحقاً</li>
+    <li><strong>الطلب لا يتوقف بسبب غياب HR للمحافظة إطلاقاً</strong></li>
+    <li>الـ Workflow يقرأ خريطة الإسناد الفعلية، ولا يفترض وجود HR مستقل لكل محافظة</li>
+  </ul>
+
+  <p>الخريطة قابلة للتعديل دون تغيير كود &mdash; تُقرأ من إعدادات أو من عمود إسناد على جدول المحافظات.</p>
+
+  <h3>ملاحظتا جودة بيانات</h3>
+  <ul>
+    <li><strong>22 منصباً</strong> مديرها المباشر ليس في درجة وظيفية أعلى. قد تكون حالات مشروعة وقد تكون أخطاء إدخال &mdash; تستحق مراجعة قبل الاعتماد على التسلسل في التصعيد التلقائي.</li>
+    <li><strong>94 مستخدماً بلا أي دور.</strong> إن كان بينهم من سيقدّم طلبات توظيف، فلن يستطيع.</li>
+  </ul>
+</section>
+
+<footer>المرجع الكامل في <code>docs/recruitment/04-permissions-and-scope.md</code></footer>
+
+</div>
+</body>
+</html>

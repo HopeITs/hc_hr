@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
@@ -264,8 +265,15 @@ class Employee extends Model implements HasMedia
         // Reuse the eager-loaded `contracts` relation when present so callers
         // that iterate many employees don't trigger one query per row.
         $contract = $this->relationLoaded('contracts')
-            ? $this->contracts->sortByDesc('created_at')->first()
-            : $this->contracts()->with(['position.department', 'leaveBalances'])->latest()->first();
+            ? $this->contracts->sortBy([
+                ['start_date', 'desc'],
+                ['id', 'desc'],
+            ])->first()
+            : $this->contracts()
+                ->with(['position.department', 'leaveBalances'])
+                ->orderByDesc('start_date')
+                ->orderByDesc('id')
+                ->first();
 
         $this->latestActiveContractResolved = true;
 
@@ -403,6 +411,24 @@ class Employee extends Model implements HasMedia
     public function account()
     {
         return $this->hasOne(User::class, 'employee_id');
+    }
+
+    /** D4-I: the onboarding journey started by the first real contract, if any. */
+    public function onboardingJourney(): HasOne
+    {
+        return $this->hasOne(OnboardingJourney::class);
+    }
+
+    /** DEC-09 increment 2: one exit journey per departure (employee + last contract). */
+    public function offboardingJourneys(): HasMany
+    {
+        return $this->hasMany(OffboardingJourney::class);
+    }
+
+    /** The most recent departure, which the edit page's exit panel shows. */
+    public function latestOffboardingJourney(): HasOne
+    {
+        return $this->hasOne(OffboardingJourney::class)->latestOfMany();
     }
 
     public function availableLeaves()

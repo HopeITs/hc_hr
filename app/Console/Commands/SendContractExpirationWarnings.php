@@ -14,6 +14,9 @@ use Throwable;
 
 class SendContractExpirationWarnings extends Command
 {
+    /** Read by the renewal journey (R1) as the record of a warning sent. */
+    public const LEDGER_KIND = 'contract-expiry-warning';
+
     /**
      * Exact reminder anchors, in days before the contract ends.
      *
@@ -23,8 +26,6 @@ class SendContractExpirationWarnings extends Command
      * @var array<int, int>
      */
     private const REMINDER_DAYS = [30, 21, 14, 7];
-
-    private const LEDGER_KIND = 'contract-expiry-warning';
 
     protected $signature = 'contracts:send-expiration-warnings';
 

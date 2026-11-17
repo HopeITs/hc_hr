@@ -29,35 +29,40 @@ class PhoneShellTest extends TestCase
 
         $html = Livewire::actingAs($user)->test(Header::class)->html();
 
-        // The three icon links and the D3 help button leave the top bar below `sm`
-        // (it could not hold them at 375px)...
-        $this->assertSame(4, substr_count($html, 'max-sm:hidden inline-flex'));
+        // Only the D3 help button is in the top bar and leaves it below `sm` (it could not
+        // fit at 375px). Since v3 the guide, website and feedback icons are not in the bar
+        // at any size: they live in the account menu.
+        $this->assertSame(1, substr_count($html, 'max-sm:hidden inline-flex'));
         $this->assertStringContainsString('data-help-button', $html);
 
         // ...help is one tap away in the account menu, phones only, with a 44px target...
         $this->assertMatchesRegularExpression('/data-help-menu-item[^>]*class="[^"]*min-h-11[^"]*sm:hidden/', $html);
 
-        // ...and each of them is still one tap away, with a 44px target, in the account menu.
-        $menu = substr($html, strpos($html, 'sm:hidden">'));
+        // ...and the secondary links are one tap away, with a 44px target, in the account menu
+        // (never in the bar before it).
+        $menuStart = strpos($html, 'role="menu"');
+        $this->assertNotFalse($menuStart);
+        $bar = substr($html, 0, $menuStart);
+        $menu = substr($html, $menuStart);
         foreach (['docs.google.com/document', 'hcsyria.org/home'] as $href) {
-            $this->assertStringContainsString($href, $menu);
+            $this->assertStringNotContainsString($href, $bar);
+            $this->assertMatchesRegularExpression('/href="[^"]*'.preg_quote($href, '/').'[^"]*"[^>]*role="menuitem"[^>]*class="[^"]*min-h-11/', $menu);
         }
-        $this->assertSame(2, substr_count($menu, 'role="menuitem"'));
-        $this->assertStringContainsString('min-h-11', $menu);
 
-        // Feedback no longer leaves the server (DEC-08): both the top-bar icon and the
-        // account-menu item open the in-app dialog instead of the old Google Form.
+        // Feedback no longer leaves the server (DEC-08): the account-menu item opens the
+        // in-app dialog instead of the old Google Form.
         $this->assertStringNotContainsString('docs.google.com/forms', $html);
-        $this->assertSame(2, substr_count($html, 'data-feedback-open'));
+        $this->assertSame(1, substr_count($html, 'data-feedback-open'));
+        $this->assertMatchesRegularExpression('/role="menuitem" data-feedback-open[^>]*class="[^"]*min-h-11/', $menu);
     }
 
     public function test_header_controls_that_stay_on_phones_are_44px_targets(): void
     {
         $html = Livewire::actingAs(User::factory()->create())->test(Header::class)->html();
 
-        // Hamburger, language switch and account button.
+        // Hamburger, language switch (v3: one button, the other language) and account button.
         $this->assertStringContainsString('size-11 place-items-center', $html);
-        $this->assertSame(2, substr_count($html, 'h-11 sm:h-9'));
+        $this->assertSame(1, substr_count($html, 'h-11 sm:h-9 min-w-11'));
         $this->assertStringContainsString('size-11 sm:size-10', $html);
 
         // The bell and the tour button are separate components with the same rule.
@@ -87,7 +92,8 @@ class PhoneShellTest extends TestCase
         }
 
         // Desktop and tablet keep the capped, centred, rounded dialog, now under the complementary variant.
-        foreach (['dialog:max-w-2xl', 'dialog:items-center', 'dialog:p-6', 'dialog:rounded-surface', 'dialog:overflow-hidden'] as $class) {
+        // overflow-clip, not -hidden: a hidden box can still be scrolled by focus, which pushed the header out of view.
+        foreach (['dialog:max-w-2xl', 'dialog:items-center', 'dialog:p-6', 'dialog:rounded-surface', 'dialog:overflow-clip'] as $class) {
             $this->assertStringContainsString($class, $html);
         }
 
@@ -118,7 +124,7 @@ class PhoneShellTest extends TestCase
 
     public function test_the_leave_request_sheet_has_no_nested_scroll_area_and_a_pinned_action_bar(): void
     {
-        $view = file_get_contents(resource_path('views/livewire/employee/leave/index.blade.php'));
+        $view = file_get_contents(resource_path('views/livewire/employee/leave/partials/request-dialog.blade.php'));
 
         // A viewport-height cap on a phone sheet hid the Submit button below a second scroller.
         $this->assertStringNotContainsString('max-h-[60vh]', $view);
@@ -130,7 +136,7 @@ class PhoneShellTest extends TestCase
 
     public function test_every_editable_leave_dialog_uses_the_pinned_action_bar(): void
     {
-        foreach (['index', 'all', 'balance'] as $view) {
+        foreach (['partials/request-dialog', 'all', 'balance'] as $view) {
             $source = file_get_contents(resource_path("views/livewire/employee/leave/{$view}.blade.php"));
 
             $this->assertStringContainsString('<x-modal.actions', $source, "{$view} lost its pinned action bar");

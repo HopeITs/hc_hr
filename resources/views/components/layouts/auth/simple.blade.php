@@ -7,7 +7,9 @@
 
 <main class=" flex items-center justify-center px-4">
 
-    <div class="flex w-full max-w-sm flex-col gap-6">
+    {{-- max-w-sm for every sign-in page; the login page asks for 20% more (data-auth-wide):
+         a 422px card instead of 352px, with the page's 16px sides. --}}
+    <div class="flex w-full max-w-sm flex-col gap-6 has-[[data-auth-wide]]:max-w-[28.4rem]">
         <header>
             <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
                 <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>

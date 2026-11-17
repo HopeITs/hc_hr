@@ -1,16 +1,16 @@
-// The dashboard desk's arithmetic (resources/js/dashboard/layout-math.js).
+// Prompt 4: the dashboard home screen's arithmetic (resources/js/dashboard/layout-math.js).
 // Node's built-in runner, no dependency: `npm run test:js`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bakedSize, clampSize, dropsAfter, edgeGrowth, inlineDelta, pack, phoneView, rawCells, reorder, stepCells } from '../../resources/js/dashboard/layout-math.js';
+import { clampSize, inlineDelta, moveStep, pack, resizeStep, stepCells } from '../../resources/js/dashboard/layout-math.js';
 
 const bounds = {
     notes: { min: [2, 2], max: [12, 8] },
     team: { min: [3, 2], max: [12, 8] },
     news: { min: [3, 3], max: [12, 8] },
     'my-leaves': { min: [3, 1], max: [12, 2] },
-    clock: { min: [1, 1], max: [3, 3] },
-    calendar: { min: [1, 1], max: [3, 3] },
+    'app.nav.inbox': { min: [1, 1], max: [3, 3] },
+    'app.nav.hr.employees': { min: [1, 1], max: [3, 3] },
 };
 
 const cellsUsed = (placed) => Object.values(placed).reduce((n, p) => n + p.w * p.h, 0);
@@ -23,46 +23,24 @@ test('the resize grip grows towards the inline end: right in English, left in Ar
     assert.equal(inlineDelta(-40, true), 40);
 });
 
-test('each resize edge grows the tile its own way', () => {
-    assert.deepEqual(edgeGrowth('end'), [1, 0]);
-    assert.deepEqual(edgeGrowth('start'), [-1, 0]);
-    assert.deepEqual(edgeGrowth('bottom'), [0, 1]);
-    assert.deepEqual(edgeGrowth('top'), [0, -1]);
-    assert.deepEqual(edgeGrowth('corner'), [1, 1]);
-    assert.deepEqual(edgeGrowth('nowhere'), [0, 0]);
-    // The start edge pulled 40px towards the inline start (left in English, right in Arabic) grows the tile.
-    assert.equal(edgeGrowth('start')[0] * inlineDelta(-40, false), 40);
-    assert.equal(edgeGrowth('start')[0] * inlineDelta(40, true), 40);
+test('arrow keys on the grip add a column towards the inline end, in both directions', () => {
+    assert.deepEqual(resizeStep('ArrowRight', false), [1, 0]);
+    assert.deepEqual(resizeStep('ArrowLeft', false), [-1, 0]);
+    assert.deepEqual(resizeStep('ArrowLeft', true), [1, 0]);
+    assert.deepEqual(resizeStep('ArrowRight', true), [-1, 0]);
+    assert.deepEqual(resizeStep('ArrowDown', true), [0, 1]);
+    assert.deepEqual(resizeStep('ArrowUp', false), [0, -1]);
+    assert.equal(resizeStep('Enter', false), null);
 });
 
-test('a width in pixels counts one gap per extra cell', () => {
-    // Cells 100px wide with 10px gaps: 3 cells are 320px.
-    assert.equal(rawCells(320, 100, 10), 3);
-    assert.equal(rawCells(100, 100, 10), 1);
-    assert.equal(stepCells(rawCells(320 + 30, 100, 10), 3), 3); // not clearly into the next cell yet
-    assert.equal(stepCells(rawCells(320 + 90, 100, 10), 3), 4);
-});
-
-test('a carried tile lands after the tile under it once past its middle, in the reading direction', () => {
-    const box = { left: 100, right: 300, width: 200 };
-    assert.equal(dropsAfter(box, 150, false), false);
-    assert.equal(dropsAfter(box, 250, false), true);
-    // In Arabic the middle is crossed from the right.
-    assert.equal(dropsAfter(box, 250, true), false);
-    assert.equal(dropsAfter(box, 150, true), true);
-    assert.equal(dropsAfter({ left: 0, right: 0, width: 0 }, 0, false), false);
-});
-
-test('moving a tile before or after another gives the new order, or null when nothing changes', () => {
-    const keys = ['a', 'b', 'c', 'd'];
-    assert.deepEqual(reorder(keys, 'a', 'c', false), ['b', 'a', 'c', 'd']);
-    assert.deepEqual(reorder(keys, 'a', 'c', true), ['b', 'c', 'a', 'd']);
-    assert.deepEqual(reorder(keys, 'd', 'a', false), ['d', 'a', 'b', 'c']);
-    // Already there.
-    assert.equal(reorder(keys, 'a', 'b', false), null);
-    assert.equal(reorder(keys, 'b', 'a', true), null);
-    assert.equal(reorder(keys, 'a', 'a', true), null);
-    assert.equal(reorder(keys, 'a', 'zz', true), null);
+test('arrow keys on a tile move it along the reading direction', () => {
+    assert.equal(moveStep('ArrowRight', false), 1);
+    assert.equal(moveStep('ArrowLeft', false), -1);
+    // In Arabic the next tile is to the left.
+    assert.equal(moveStep('ArrowLeft', true), 1);
+    assert.equal(moveStep('ArrowRight', true), -1);
+    assert.equal(moveStep('ArrowDown', true), 1);
+    assert.equal(moveStep('Tab', false), null);
 });
 
 test('a size stays inside its bounds and never wider than the grid', () => {
@@ -87,8 +65,8 @@ test('packing places every tile inside the grid without overlap, filling gaps', 
             { key: 'notes', size: '5x3' },
             { key: 'team', size: '3x4' },
             { key: 'news', size: '3x6' },
-            { key: 'clock', size: '1x1' },
-            { key: 'calendar', size: '1x1' },
+            { key: 'app.nav.inbox', size: '1x1' },
+            { key: 'app.nav.hr.employees', size: '1x1' },
         ];
         const placed = pack(shown, cols, bounds);
         const seen = new Set();
@@ -118,6 +96,32 @@ test('a card beside empty cells grows into them', () => {
     assert.equal(placed.notes.x, 0);
 });
 
+// Ported from media-request (2026-10-29): closed tiles, icons, sizes set by hand.
+test('a tile with nothing in it goes last, as one line, below everything else', async () => {
+    const { pack } = await import('../../resources/js/dashboard/layout-math.js');
+    const shown = [
+        { key: 'notes', size: '5x3' },
+        { key: 'team', size: '3x4' },
+        { key: 'news', size: '3x6' },
+    ];
+    const placed = pack(shown, 8, bounds, new Set(['notes']));
+    const bottom = Math.max(placed.team.y + placed.team.h, placed.news.y + placed.news.h);
+
+    assert.equal(placed.notes.h, 1);
+    assert.ok(placed.notes.y >= bottom, 'the closed tile starts below the others');
+});
+
+test('a card below its card size is an icon, a menu page included', async () => {
+    const { iconish } = await import('../../resources/js/dashboard/layout-math.js');
+    const b = { notes: { min: [1, 1], max: [12, 8], card: [2, 2] }, 'app.nav.inbox': { min: [1, 1], max: [12, 8], card: [3, 3] } };
+
+    assert.equal(iconish('notes', '1x1', b, 8), true);
+    assert.equal(iconish('notes', '2x1', b, 8), true);
+    assert.equal(iconish('notes', '2x2', b, 8), false);
+    assert.equal(iconish('app.nav.inbox', '2x2', b, 8), true);
+    assert.equal(iconish('app.nav.inbox', '3x3', b, 8), false);
+});
+
 test('a size set by hand is shown exactly; the others grow into the gaps', () => {
     const shown = [
         { key: 'notes', size: '3x2', fixed: true },
@@ -129,7 +133,8 @@ test('a size set by hand is shown exactly; the others grow into the gaps', () =>
     assert.ok(placed.team.w > 3, 'the other card grew into the gap');
 });
 
-test('a phone packs the clock one row high, so the tiles below close up under it', () => {
+test('a phone packs the clock one row high, so the tiles below close up under it', async () => {
+    const { phoneView } = await import('../../resources/js/dashboard/layout-math.js');
     const b = { ...bounds, clock: { min: [1, 1], max: [12, 6], card: [2, 1] } };
     const shown = [
         { key: 'clock', size: '4x3' },
@@ -143,23 +148,30 @@ test('a phone packs the clock one row high, so the tiles below close up under it
     const alone = phoneView([{ key: 'clock', size: '2x2' }], b, 4);
     assert.equal(pack(alone.shown, 4, alone.bounds).clock.h, 1);
 
-    // A wider grid keeps the real size; the saved list is untouched.
+    // A wider grid, or customising, keeps the real size; the saved list is untouched.
     assert.equal(phoneView(shown, b, 8).shown, shown);
+    assert.equal(phoneView(shown, b, 4, true).shown, shown);
     assert.equal(shown[0].size, '4x3');
 });
 
-test('a phone shows every other panel at least two rows high, without changing the saved size', () => {
+test('a phone shows every other card at least two rows high, without changing the saved size', async () => {
+    const { phoneView } = await import('../../resources/js/dashboard/layout-math.js');
     const late = { late: { min: [3, 1], max: [12, 3] }, notes: bounds.notes };
     const shown = [{ key: 'late', size: '12x1' }, { key: 'notes', size: '4x3' }];
     const view = phoneView(shown, late, 4);
     const placed = pack(view.shown, 4, view.bounds);
     assert.deepEqual([placed.late.h, placed.notes.y], [2, 2]);
     assert.equal(shown[0].size, '12x1');
-    // A computer keeps the one-row strip.
+    // A computer keeps the one-row strip, and so does customising.
     assert.equal(phoneView(shown, late, 8).shown, shown);
+    assert.equal(phoneView(shown, late, 4, true).shown, shown);
+    // An icon (a card made smaller than its card size) stays an icon.
+    const icon = { notes: { min: [1, 1], max: [12, 8], card: [2, 2] } };
+    assert.equal(phoneView([{ key: 'notes', size: '1x1' }], icon, 4).shown[0].size, '1x1');
 });
 
-test('a move or resize on a phone or a narrow grid never takes a size the grid cut down', () => {
+test('customising on a phone or a narrow grid never takes a size the grid cut down', async () => {
+    const { bakedSize } = await import('../../resources/js/dashboard/layout-math.js');
     // A phone shows the calendar 8x3 as 4x3 and news 8x7 as 4x7: the saved sizes stay.
     assert.equal(bakedSize('8x3', { w: 4, h: 3 }, 4), '8x3');
     assert.equal(bakedSize('8x7', { w: 4, h: 7 }, 4), '8x7');
@@ -170,4 +182,32 @@ test('a move or resize on a phone or a narrow grid never takes a size the grid c
     // A computer that shows the tile at its own width: what is seen is what is kept.
     assert.equal(bakedSize('4x2', { w: 6, h: 2 }, 8), '6x2');
     assert.equal(bakedSize('4x2', undefined, 8), '4x2');
+});
+
+test('a pinned card keeps its own cell and size; the others flow around it (2026-11-04)', () => {
+    const shown = [
+        { key: 'notes', size: '5x3' },
+        { key: 'team', size: '3x4', fixed: true, at: [4, 2] },
+        { key: 'news', size: '4x3' },
+    ];
+    const placed = pack(shown, 8, bounds);
+
+    // Exactly where and as large as it was pinned, never grown.
+    assert.deepEqual(placed.team, { x: 4, y: 2, w: 3, h: 4 });
+    // Nothing overlaps it.
+    for (const [key, p] of Object.entries(placed)) {
+        if (key === 'team') continue;
+        const apart = p.x + p.w <= 4 || p.x >= 7 || p.y + p.h <= 2 || p.y >= 6;
+        assert.ok(apart, key + ' overlaps the pinned card');
+    }
+    // Moving the others (their order) never moves it.
+    assert.deepEqual(pack([shown[2], shown[1], shown[0]], 8, bounds).team, { x: 4, y: 2, w: 3, h: 4 });
+});
+
+test('a pin that does not fit this grid flows with the others', () => {
+    // Pinned at column 10 on the wide grid; a computer has 8 columns.
+    const placed = pack([{ key: 'notes', size: '3x3', fixed: true, at: [10, 0] }, { key: 'team', size: '3x2' }], 8, bounds);
+
+    assert.ok(placed.notes.x + placed.notes.w <= 8);
+    assert.equal(placed.notes.w, 3);
 });

@@ -3,12 +3,48 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Throwable;
 
 class ContractAutoRenewalService
 {
+    public function __construct(private LeaveBalanceService $leaveBalances) {}
+
+    /**
+     * Switch a contract's auto-renew on or off: the one write path behind the
+     * contracts list toggle and the renewal journey's "stop" decision
+     * (ContractPolicy::manageAutoRenew, i.e. HR active role + contracts.update
+     * + the contract visible in the actor's city, is re-checked here).
+     *
+     * The write goes through Eloquent so ContractObserver still runs: saving()
+     * keeps a trial or terminated contract off, and updated() starts the
+     * equipment-return cycles when the flag goes from on to off.
+     *
+     * Returns false when nothing changed: the flag was already $on, or $on is
+     * true for a contract that may never auto-renew.
+     */
+    public function setAutoRenew(Contract $contract, bool $on, User $actor): bool
+    {
+        Gate::forUser($actor)->authorize('manageAutoRenew', $contract);
+
+        return DB::transaction(function () use ($contract, $on): bool {
+            $locked = Contract::query()->whereKey($contract->getKey())->lockForUpdate()->first();
+
+            if (! $locked || $locked->auto_renew === $on || ($on && ! $locked->canAutoRenew())) {
+                return false;
+            }
+
+            $locked->update(['auto_renew' => $on]);
+            $contract->setRawAttributes($locked->getAttributes(), true);
+
+            return true;
+        });
+    }
+
     /**
      * @return Collection<int, Contract>
      */
@@ -91,8 +127,28 @@ class ContractAutoRenewalService
                 ]));
             }
 
+            $this->createLeaveBalances($renewal);
+
             return $renewal->refresh();
         });
+    }
+
+    /**
+     * The renewal is a new contract, so it gets its own leave balances, the
+     * same LeaveBalanceService::create() ContractCreate and the renew modal
+     * call (renewal journey, journeys.md §3.2: before this, an auto-renewed
+     * contract had none). Inside a savepoint: a balance that cannot be priced
+     * (no annual-leave rule on file) is reported and leaves the renewal
+     * standing, so one bad row never blocks the whole night's run;
+     * `leaves:backfill` fills it in later.
+     */
+    private function createLeaveBalances(Contract $renewal): void
+    {
+        try {
+            DB::transaction(fn () => $this->leaveBalances->create($renewal));
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private function successorExists(Contract $source, string $startDate): bool

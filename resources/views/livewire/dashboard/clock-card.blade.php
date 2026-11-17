@@ -28,20 +28,7 @@
                 </div>
 
                 <div class="hc-clock-analog" aria-hidden="true">
-                    <svg class="hc-clock-face" viewBox="0 0 100 100" focusable="false">
-                        <circle class="rim" cx="50" cy="50" r="47" />
-                        @for ($i = 0; $i < 60; $i++)
-                            @if ($i % 5 === 0)
-                                <line class="tick major" x1="50" y1="7" x2="50" y2="14" transform="rotate({{ $i * 6 }} 50 50)" />
-                            @else
-                                <line class="tick" x1="50" y1="7" x2="50" y2="10" transform="rotate({{ $i * 6 }} 50 50)" />
-                            @endif
-                        @endfor
-                        <line class="hand h" x1="50" y1="54" x2="50" y2="28" transform="rotate({{ $angles['h'] }} 50 50)" :transform="hand('h')" />
-                        <line class="hand m" x1="50" y1="56" x2="50" y2="15" transform="rotate({{ $angles['m'] }} 50 50)" :transform="hand('m')" />
-                        <line class="hand s" x1="50" y1="60" x2="50" y2="12" transform="rotate({{ $angles['s'] }} 50 50)" :transform="hand('s')" />
-                        <circle class="hub" cx="50" cy="50" r="2.6" />
-                    </svg>
+                    <x-dashboard.wall-clock class="hc-clock-face" :angles="$angles" />
 
                     <span class="hc-clock-aside">
                         <span class="hc-clock-wd" x-text="wd()">{{ $weekday }}</span>

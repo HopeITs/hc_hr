@@ -25,31 +25,31 @@ final class MaritalStatus extends Enum
         $val = match ($value) {
             self::Single => [
                 'text' => ['en' => 'Single', 'ar' => 'أعزب'],
-                'color' => 'green',
+                'color' => 'secondary-dark',
             ],
             self::Engaged => [
                 'text' => ['en' => 'Engaged', 'ar' => 'خاطب'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
             self::Married => [
                 'text' => ['en' => 'Married', 'ar' => 'متزوج'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
             self::Divorced => [
                 'text' => ['en' => 'Divorced', 'ar' => 'مطلق'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
             self::Widowed => [
                 'text' => ['en' => 'Widowed', 'ar' => 'أرمل'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
             self::Separated => [
                 'text' => ['en' => 'Separated', 'ar' => 'منفصل'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
             default => [
                 'text' => ['en' => 'Unknown', 'ar' => 'غير معروف'],
-                'color' => 'blue',
+                'color' => 'secondary-medium',
             ],
         };
 

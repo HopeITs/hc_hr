@@ -180,6 +180,108 @@
         font-size: 1.0625rem;
     }
 
+    /* Every "add" in the site (2026-11-09): a red square with "+" that opens on hover or
+       keyboard focus to show its words, like hc-btn--reveal below (the same motion, so it
+       always comes with that class). <x-button icon="plus"> draws it; hand-written ones use
+       the same classes. Square at rest at each size: 44, 38 (44 on touch) and 52px. */
+    .hc-btn--add {
+        border-color: transparent;
+        background: var(--color-primary);
+        color: var(--color-on-brand);
+    }
+
+    .hc-btn--add:hover {
+        opacity: 0.9;
+    }
+
+    /* One size for every square button in the site (2026-11-09), the size of "Add to dashboard":
+       38px at rest whatever the button's own size, small text when it opens; 44px on touch
+       screens, the site's finger target. */
+    .hc-btn--add.hc-btn--reveal {
+        min-width: 38px;
+        min-height: 38px;
+        padding-inline: 9px;
+        font-size: var(--text-small);
+    }
+
+    .hc-btn--add.hc-btn--reveal > svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .hc-btn--add.hc-btn--reveal:hover,
+    .hc-btn--add.hc-btn--reveal:focus-visible {
+        padding-inline: 14px;
+    }
+
+    @media (pointer: coarse) {
+        .hc-btn--add.hc-btn--reveal {
+            min-width: 44px;
+            min-height: 44px;
+            padding-inline: 12px;
+        }
+    }
+
+    /* A button that is a square with its icon at rest and opens on hover or keyboard focus to
+       show its words (2026-11-09), e.g. a decision card's "→ Review the change". The words stay
+       in the page for screen readers; on touch screens (no hover) it is always open. */
+    .hc-btn--reveal {
+        position: relative;
+        z-index: 1;
+        gap: 0;
+        padding-inline: 11px;
+        overflow: hidden;
+        transition: padding 0.84s cubic-bezier(.16, 1, .3, 1), gap 0.84s cubic-bezier(.16, 1, .3, 1),
+            opacity 0.15s, transform 0.1s;
+    }
+
+    .hc-btn--reveal > svg {
+        flex: none;
+        width: 16px;
+        height: 16px;
+    }
+
+    .hc-btn--reveal .hc-reveal-label {
+        display: inline-block;
+        max-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 0;
+        transition: max-width 0.84s cubic-bezier(.16, 1, .3, 1), opacity 0.4s ease-out;
+    }
+
+    .hc-btn--reveal:hover,
+    .hc-btn--reveal:focus-visible {
+        gap: 8px;
+        padding-inline: 14px;
+    }
+
+    .hc-btn--reveal:hover .hc-reveal-label,
+    .hc-btn--reveal:focus-visible .hc-reveal-label {
+        max-width: 16rem;
+        opacity: 1;
+        transition: max-width 0.84s cubic-bezier(.16, 1, .3, 1), opacity 0.5s ease-out 0.16s;
+    }
+
+    @media (hover: none) {
+        .hc-btn--reveal {
+            gap: 8px;
+            padding-inline: 14px;
+        }
+
+        .hc-btn--reveal .hc-reveal-label {
+            max-width: 16rem;
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hc-btn--reveal,
+        .hc-btn--reveal .hc-reveal-label {
+            transition: none;
+        }
+    }
+
     .hc-btn:disabled,
     .hc-btn[aria-disabled="true"] {
         opacity: 0.45;
@@ -278,6 +380,7 @@
         border-color: var(--color-ink-2);
     }
 
+
     /* Choice card (checkbox card, segmented control): line border, ink + surface when chosen. */
     .hc-choice {
         border: 1.5px solid var(--color-line);
@@ -326,6 +429,83 @@
     /* error-span stays in the DOM while empty (a live region); no icon then. */
     .hc-err:empty::before {
         content: none;
+    }
+
+    /* ---------- presence dot: <x-presence> (DESIGN.md "Presence dot") ----------
+       Told apart by fill, not only by colour: filled green = online, hollow =
+       offline, filled silver = variable hours. `--on-avatar` pins it to the
+       corner of a photo with a ring of the card colour. */
+    .presence-dot {
+        display: inline-block;
+        flex: none;
+        box-sizing: border-box;
+        width: 10px;
+        height: 10px;
+        border-radius: 9999px;
+        vertical-align: middle;
+    }
+
+    .presence-dot--online {
+        background-color: var(--presence-online);
+    }
+
+    .presence-dot--away {
+        border: 1.5px solid var(--color-ink-3);
+        background-color: var(--color-card);
+    }
+
+    .presence-dot--flexible {
+        background-color: var(--color-ink-3);
+    }
+
+    .presence-dot--on-avatar {
+        position: absolute;
+        inset-block-end: 0;
+        inset-inline-end: 0;
+        box-shadow: 0 0 0 2px var(--color-card);
+    }
+
+    .presence-dot--lg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .presence-dot--lg.presence-dot--away {
+        border-width: 2px;
+    }
+}
+
+/* ---------- tables: livewire-tables dark mode ----------
+   The package ships its own dark: pairs (rows dark:bg-gray-800, text
+   dark:text-gray-300, ...) written for a ramp that stays put in dark mode.
+   Ours inverts instead, so each pair flipped twice and painted light rows
+   under light text. Inside the table the ramp is turned back the right way
+   round: the light steps the package uses for text (50-400) mirror onto our
+   light neutrals, and the dark steps it uses for surfaces (600-950) land on
+   our dark surfaces, one step apart so rows, odd rows and hover stay distinct.
+   Blue is mapped onto the neutrals by palette-lock, so it gets the same. */
+[x-data="LivewireTable"] {
+    @variant dark {
+        --color-gray-50: var(--color-neutral-950);
+        --color-gray-100: var(--color-neutral-900);
+        --color-gray-200: var(--color-neutral-800);
+        --color-gray-300: var(--color-neutral-700);
+        --color-gray-400: var(--color-neutral-600);
+        --color-gray-600: var(--color-neutral-300);
+        --color-gray-700: var(--color-neutral-200);
+        --color-gray-800: var(--color-neutral-100);
+        --color-gray-900: var(--color-neutral-50);
+        --color-gray-950: var(--color-neutral-50);
+        --color-blue-50: var(--color-neutral-950);
+        --color-blue-100: var(--color-neutral-900);
+        --color-blue-200: var(--color-neutral-800);
+        --color-blue-300: var(--color-neutral-700);
+        --color-blue-400: var(--color-neutral-600);
+        --color-blue-600: var(--color-neutral-300);
+        --color-blue-700: var(--color-neutral-200);
+        --color-blue-800: var(--color-neutral-100);
+        --color-blue-900: var(--color-neutral-50);
+        --color-blue-950: var(--color-neutral-50);
     }
 }
 
@@ -418,4 +598,74 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* The sign-in page's "Remember me" (hc-check--brand): unchecked, an empty outline in the
+   label's colour (ink-2); checked, a solid brand-red square with a tick in that same
+   colour. The tick is an image, so its colour comes per theme from --hc-mark-ink-2. Unlayered on purpose: Flowbite's
+   checkbox rules are unlayered too, and a layered rule always loses to them. */
+:root {
+    --hc-mark-ink-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.75 8.25l2.75 2.75 5.75-5.75' fill='none' stroke='%236D6E71' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] {
+    --hc-mark-ink-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.75 8.25l2.75 2.75 5.75-5.75' fill='none' stroke='%23BCBEC0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --hc-mark-ink-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.75 8.25l2.75 2.75 5.75-5.75' fill='none' stroke='%23BCBEC0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
+}
+
+.hc-check.hc-check--brand {
+    /* 15% smaller than the 20px checkbox (17px); the label row stays the 44px target. */
+    width: 1.0625rem;
+    height: 1.0625rem;
+    border-color: var(--color-ink-2);
+    background-color: transparent;
+}
+
+/* Lined up with the words, not with their line box: Latin capitals sit 1.5px above the line
+   box's middle (the space under it is for descenders), so the box rises to meet them. Arabic
+   letters reach below the line and already meet the box's middle, so it stays there. */
+html:not([lang="ar"]) .hc-check.hc-check--brand {
+    translate: 0 -1.5px;
+}
+
+/* The edge stays exactly as it is on hover and while pressed: nothing makes it look thicker. */
+.hc-check.hc-check--brand:hover:not(:disabled),
+.hc-check.hc-check--brand:focus,
+.hc-check.hc-check--brand:active {
+    border-color: var(--color-ink-2);
+}
+
+.hc-check.hc-check--brand:checked,
+.hc-check.hc-check--brand:checked:hover,
+.hc-check.hc-check--brand:checked:focus {
+    /* Flowbite fills a checked box with currentColor (!important): the red comes through color. */
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+    background-image: var(--hc-mark-ink-2);
+    /* The tick at 85% of the box (15% smaller than filling it), centred. */
+    background-size: 85% 85%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* No focus frame on the box, checked or not: pressing it must not make its edge look
+   thicker, and a frame round the red square read as a white border. Keyboard focus shows on
+   the label instead (its words are underlined), so it is never lost. */
+.hc-check.hc-check--brand:focus,
+.hc-check.hc-check--brand:focus-visible,
+.hc-check.hc-check--brand:active {
+    outline: none;
+    box-shadow: none;
+}
+
+label:has(> .hc-check--brand:focus-visible) {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
 }

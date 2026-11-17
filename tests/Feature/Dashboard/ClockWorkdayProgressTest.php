@@ -123,7 +123,7 @@ class ClockWorkdayProgressTest extends TestCase
         // One row, digital, on a phone (the saved size and look are untouched): in
         // dashboard.css beside the grid, and the packer knows the row (layout-math.js phoneView)...
         $css = preg_replace('/\s+/', ' ', file_get_contents(resource_path('css/dashboard.css')));
-        $this->assertStringContainsString('.hc-grid > .hc-tile[data-key="clock"] { grid-row: span 1; }', $css);
+        $this->assertStringContainsString('.hc-grid:not(.editing) > .hc-tile[data-key="clock"] { grid-row: span 1; }', $css);
         $this->assertStringContainsString('.hc-grid .hc-tile[data-look="analog"] .hc-clock-digital { display: flex; }', $css);
         $this->assertStringNotContainsString('data-key="clock"', $view);
         // ...and the bar only moves smoothly for those who have not asked for less motion.

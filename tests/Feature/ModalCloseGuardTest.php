@@ -37,6 +37,8 @@ class ModalCloseGuardTest extends TestCase
         'livewire/badges/badges-module.blade.php' => ['badgeDetails'],
         'livewire/employee/leave/all.blade.php' => ['showModal'],
         'livewire/employee/leave/index.blade.php' => ['leaveDetailsModal'],
+        // Shows the news form's entries back; the form itself keeps them.
+        'livewire/news/form/preview.blade.php' => ['news-preview'],
         // Rendered only by UpdateLeaveRequest, which no route or view mounts.
         'livewire/employee/leave/form.blade.php' => ['showModal'],
         // No component renders this view.

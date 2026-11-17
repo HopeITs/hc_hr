@@ -1,0 +1,226 @@
+<div class="flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card p-6 shadow-sm" data-personnel-chart>
+
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2 pe-10">
+        <h2 class="text-h4 font-extrabold text-ink">
+            @lang('general.employees-statistics')
+        </h2>
+
+        <div class="range-select-box">
+            <select
+                id="employeeChartRange-{{ $this->getId() }}" aria-label="{{ __('general.employees-statistics') }}"
+                class="text-small border border-line rounded-surface ps-3 pe-8 py-1.5 bg-card shadow-e1 text-ink">
+                <option value="monthly">@lang('general.monthly')</option>
+                <option value="quarterly">@lang('general.quarterly')</option>
+                <option value="yearly">@lang('general.yearly')</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="relative min-h-[125px] flex-1">
+        <canvas id="employeeChart-{{ $this->getId() }}"></canvas>
+    </div>
+
+    <div id="chartLegend-{{ $this->getId() }}" class="flex items-center gap-6 mt-6 text-body font-medium ms-3 text-ink-2"></div>
+
+</div>
+
+{{-- @script, not an inline <script>: on the dashboard this card is a lazy tile. --}}
+@script
+<script>
+    // Runs on a normal load and again when wire:navigate swaps this page in,
+    // where DOMContentLoaded has already fired and would never call back.
+    (() => {
+    const init = async () => {
+
+        const canvas = document.getElementById(@js('employeeChart-'.$this->getId()));
+        const select = document.getElementById(@js('employeeChartRange-'.$this->getId()));
+        if (select && window.$ && $.fn && $.fn.select2) {
+            $(select).select2({
+                width: '150px',
+                minimumResultsForSearch: Infinity, // only 3 options — no search box
+                dir: document.documentElement.dir || 'ltr',
+            });
+        }
+        if (!canvas) return;
+        if (typeof Chart === "undefined") return console.error("Chart.js not loaded.");
+
+        const ctx = canvas.getContext("2d");
+
+        const styles = getComputedStyle(document.documentElement);
+        const primary   = styles.getPropertyValue("--color-primary").trim();
+        const secondary = styles.getPropertyValue("--color-ink-2").trim();
+        const neutral   = styles.getPropertyValue("--color-line").trim();
+        const ink       = styles.getPropertyValue("--color-ink").trim();
+        const ink2      = styles.getPropertyValue("--color-ink-2").trim();
+        const lineSoft  = styles.getPropertyValue("--color-line-soft").trim();
+        const card      = styles.getPropertyValue("--color-card").trim();
+
+        async function fetchData(mode = "monthly") {
+            // Locale-prefixed, so the endpoint answers in the page's language.
+            const res = await fetch(`${@js(LaravelLocalization::localizeUrl('/employee-statistics'))}/${mode}`);
+            if (!res.ok) return { labels: [], new: [], ended: [], terminated: [] };
+            return res.json();
+        }
+
+        let data = await fetchData("monthly");
+
+        const chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: @js(__('dashboard.employee-chart.new')),
+                        data: data.new,
+                        borderColor: primary,
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 0.7,
+                        pointBackgroundColor: primary,
+                        pointRadius: 2.1,
+                        pointHoverRadius: 4.2
+                    },
+                    {
+                        label: @js(__('dashboard.employee-chart.ended')),
+                        data: data.ended,
+                        borderColor: secondary,
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 0.7,
+                        pointBackgroundColor: secondary,
+                        pointRadius: 2.1,
+                        pointHoverRadius: 4.2
+                    },
+                    {
+                        label: @js(__('dashboard.employee-chart.terminated')),
+                        data: data.terminated,
+                        borderColor: neutral,
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 0.7,
+                        pointBackgroundColor: neutral,
+                        pointRadius: 2.1,
+                        pointHoverRadius: 4.2
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        mode: "index",
+                        intersect: false,
+                        backgroundColor: card,
+                        titleColor: ink,
+                        bodyColor: ink2,
+                        borderColor: lineSoft,
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 6,
+                        displayColors: true
+                    }
+
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: lineSoft,
+                            drawBorder: false,
+                            drawOnChartArea: true
+                        },
+                        ticks: {
+                            color: ink2,
+                            font: {
+                                size: 12,
+                                family: "SomarSans",
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: lineSoft,
+                            drawBorder: false,
+                            drawOnChartArea: true
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            color: ink2,
+                            font: {
+                                size: 12,
+                                family: "SomarSans",
+                            },
+                            callback: value => Number.isInteger(value) ? value : ""
+                        }
+                    }
+                }
+            }
+        });
+
+        function renderLegend(chartInstance) {
+            const legendBox = document.getElementById(@js('chartLegend-'.$this->getId()));
+            legendBox.innerHTML = "";
+
+            chartInstance.data.datasets.forEach((ds, index) => {
+                const item = document.createElement("div");
+                item.className = "flex items-center gap-1 cursor-pointer select-none";
+
+                const isHidden = chartInstance.isDatasetVisible(index) === false;
+
+                const dot = document.createElement("span");
+                dot.className = "size-2 rounded-full inline-block";
+                dot.style.backgroundColor = isHidden ? "transparent" : ds.borderColor;
+                dot.style.border = `1.5px solid ${ds.borderColor}`;
+
+                const label = document.createElement("span");
+                label.textContent = ds.label;
+                label.className = "text-caption";
+                label.style.opacity = isHidden ? 0.4 : 1;
+
+                item.appendChild(dot);
+                item.appendChild(label);
+
+                item.addEventListener("click", () => {
+                    const meta = chartInstance.getDatasetMeta(index);
+
+                    meta.hidden = meta.hidden === null ? !chartInstance.data.datasets[index].hidden : null;
+
+                    chartInstance.update();
+                    renderLegend(chartInstance);
+                });
+
+                legendBox.appendChild(item);
+            });
+        }
+
+
+        renderLegend(chart);
+
+        const onRange = async function () {
+            const mode = select.value;
+            const newData = await fetchData(mode);
+
+            chart.data.labels = newData.labels;
+            chart.data.datasets[0].data = newData.new;
+            chart.data.datasets[1].data = newData.ended;
+            chart.data.datasets[2].data = newData.terminated;
+
+            chart.update();
+            renderLegend(chart);
+        };
+        // select2 fires jQuery's change, which a native listener never hears.
+        if (select && window.$ && $.fn && $.fn.select2) {
+            $(select).on("change", onRange);
+        } else if (select) {
+            select.addEventListener("change", onRange);
+        }
+    };
+
+    // On the dashboard this runs just before the tile's markup replaces its placeholder: wait a frame.
+    requestAnimationFrame(() => init());
+    })();
+</script>
+@endscript

@@ -5,11 +5,15 @@
 <div class="space-y-8">
     <div class="flex items-center justify-between">
         <x-heading-label>{{ __('general.checklist_items') }}</x-heading-label>
-        @unless($loadFailed)
-            <span class="text-body text-ink-2" role="status" aria-live="polite">
-                {{ trans_choice('states.items-count', $items->count()) }}
-            </span>
-        @endunless
+        <div class="flex flex-wrap items-center gap-3">
+            @unless($loadFailed)
+                <span class="text-body text-ink-2" role="status" aria-live="polite">
+                    {{ trans_choice('states.items-count', $items->count()) }}
+                </span>
+            @endunless
+            {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+            <livewire:dashboard.add-to-dashboard tile="checklist" />
+        </div>
     </div>
 
     @if($loadFailed)
@@ -44,7 +48,7 @@
                     @foreach ($items as $item)
                         <tr class="hover:bg-hover transition">
                             <td class="px-6 py-4 text-body text-ink">
-                                {{ $item->employee->name }}
+                                <x-person :id="$item->employee->id" :name="$item->employee->name" />
                             </td>
                             <td class="px-6 py-4 text-body text-ink">
                                 {{ $item->item->name }}

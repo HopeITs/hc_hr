@@ -2,10 +2,12 @@
 
 namespace App\Policies;
 
+use App\Models\Badge;
 use App\Models\Employee;
 use App\Models\User;
 use App\Support\DirectoryAccess;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Gate;
 
 class EmployeePolicy
 {
@@ -55,6 +57,32 @@ class EmployeePolicy
     public function viewAvatar(User $user, Employee $employee): Response
     {
         return $this->viewDirectory($user, $employee);
+    }
+
+    /**
+     * The profile's private sections (personal information, personal contact,
+     * family): the person themself, or HR (super-admin counted as HR, as the
+     * profile always has) in the person's city. Never wider than the directory.
+     */
+    public function viewPrivate(User $user, Employee $employee): bool
+    {
+        if (! DirectoryAccess::canSeeDirectory($user, $employee)) {
+            return false;
+        }
+
+        return $this->isSelf($user, $employee)
+            || ($user->activeRoleIs('HR', 'super-admin') && $this->isInActiveCity($user, $employee));
+    }
+
+    /**
+     * The profile's badges section: the Badges page's own rule
+     * (BadgePolicy::viewForEmployee), or the owner, who sees their own rewards
+     * and warnings without pay or notes (EmployeeTimeline::ownBadges).
+     */
+    public function viewProfileBadges(User $user, Employee $employee): bool
+    {
+        return $this->isSelf($user, $employee)
+            || Gate::forUser($user)->allows('viewForEmployee', [Badge::class, $employee]);
     }
 
     public function create(User $user, int $cityId): bool

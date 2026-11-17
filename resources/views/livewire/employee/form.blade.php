@@ -46,10 +46,22 @@
 
     @include('livewire.employee.partials.onboarding-status')
 
+    @unless ($isCreateMode)
+        <livewire:employee.onboarding-journey-panel :employee="$employee" :key="'journey-'.$employee->id" />
+        {{-- Renewal journeys: only for HR who may decide renewals (manageAutoRenew); the panel filters per contract. --}}
+        @if (auth()->user()?->activeRoleIs('HR') && auth()->user()?->hasActivePermission('contracts.update'))
+            <livewire:employee.renewal-journey-panel :employee="$employee" :key="'renewal-journey-'.$employee->id" />
+        @endif
+        <livewire:employee.offboarding-journey-panel :employee="$employee" :key="'exit-journey-'.$employee->id" />
+    @endunless
+
     @php
         // One definition feeds the desktop list and the phone selector, so the
         // two can never disagree about which sections exist or are unlocked.
-        $hasEmployee = isset($infoForm->id);
+        // Never on the create page, even once an autosave has created the
+        // draft: those sections' forms live on EmployeeEdit, so they open on
+        // the draft's own page (the status line links to it).
+        $hasEmployee = ! $isCreateMode && isset($infoForm->id);
         $sections = array_values(array_filter([
             ['key' => 'information', 'title' => __('general.information'), 'icon' => 'user', 'locked' => false],
             ['key' => 'contact', 'title' => __('general.contact'), 'icon' => 'contact', 'locked' => false],

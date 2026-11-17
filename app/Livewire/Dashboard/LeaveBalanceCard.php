@@ -48,9 +48,9 @@ class LeaveBalanceCard extends Component
         $deserved = (float) ($balance->deserved ?? 0);
 
         return [
-            'remaining' => max(0, $balance->int_remaining),
+            'remaining' => $balance->int_available,
             'total' => $balance->int_total,
-            'share' => $deserved > 0 ? max(0.0, min(1.0, ($deserved - (float) ($balance->used ?? 0)) / $deserved)) : 0.0,
+            'share' => $deserved > 0 ? max(0.0, min(1.0, $balance->availableHours() / $deserved)) : 0.0,
         ];
     }
 }

@@ -24,7 +24,10 @@
         </x-layouts.app.sidebar.dropdown-nav-list>
     @else
         <x-layouts.app.sidebar.single-item :href="route($item['route'])" :active="str((string) $currentRoute)->is($item['active'])"
-            :favourite="$star($item['id'])" data-nav="{{ $item['id'] }}" data-tour="{{ $item['tour'] ?? '' }}">
+            :favourite="$star($item['id'])" data-nav="{{ $item['id'] }}" data-tour="{{ $item['tour'] ?? '' }}"
+            {{-- What waits on the viewer is on the dashboard, so its count sits on the dashboard's link. --}}
+            :badge="$item['id'] === 'nav.my-space.home' ? (($nav['inbox']['count'] ?? 0) ?: null) : null"
+            :badge-label="$item['id'] === 'nav.my-space.home' ? __('general.nav.work-inbox-count', ['count' => $nav['inbox']['count'] ?? 0]) : null">
             <x-slot name="icon">
                 <x-dynamic-component :component="'icons.'.$item['icon']" class="size-4" />
             </x-slot>

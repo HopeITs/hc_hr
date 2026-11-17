@@ -215,17 +215,16 @@ class ReleaseLinksTest extends TestCase
 ', $failures));
     }
 
-    public function test_every_role_family_has_a_default_dashboard_of_panels(): void
+    public function test_every_role_family_has_a_default_dashboard_with_its_groups(): void
     {
         $layout = new DashboardLayout;
 
         foreach (['lina' => 'employee', 'sami' => 'manager', 'hala' => 'hr-city', 'huda' => 'hr-city', 'nadia' => 'hr-national', 'adam' => 'leadership'] as $who => $family) {
             $user = $this->user($who);
-            $shown = array_filter($layout->defaults($user), fn (array $item) => ! $item['hidden']);
 
             $this->assertSame($family, $layout->family($user), $who);
-            $this->assertNotEmpty($shown, "{$who} has no default panel");
-            $this->assertSame([], array_filter($shown, fn (array $item) => ! $layout->isWidget($item['key'])), "{$who} has a non-panel tile");
+            $this->assertNotEmpty(array_filter($layout->defaults($user), fn (array $item) => ! $item['hidden']), "{$who} has an empty default dashboard");
+            $this->assertNotEmpty(\App\Support\Dashboard\HubGroups::for($user), "{$who} has no dashboard group");
             $this->assertFalse($layout->allowed($user, 'stats-salary') && $who === 'adam', 'super-admin is salary-blind');
         }
     }

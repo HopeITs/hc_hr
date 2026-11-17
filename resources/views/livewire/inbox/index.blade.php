@@ -9,14 +9,18 @@
 </x-slot:title>
 
 <div>
-    <div class="mb-4">
-        <livewire:layout.breadcrumbs :title="__('general.nav.work-inbox')" :crumbs="[]" />
-        <p class="text-small text-ink-2">{{ __('inbox.intro') }}</p>
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <livewire:layout.breadcrumbs :title="__('general.nav.work-inbox')" :crumbs="[]" />
+            <p class="text-small text-ink-2">{{ __('inbox.intro') }}</p>
+        </div>
+        {{-- The page's live card on the dashboard: decisions first (only for someone who decides). --}}
+        <livewire:dashboard.add-to-dashboard tile="decide" />
     </div>
 
     {{-- Filters with the same counts as the menu badge. --}}
     <div role="group" aria-label="{{ __('inbox.filter.label') }}" class="mb-4 flex flex-wrap gap-2">
-        @foreach (['all', 'decide', 'review', 'checklist', 'profile'] as $key)
+        @foreach (['all', 'decide', 'review', 'checklist', 'profile', 'journey'] as $key)
             @if ($key === 'all' || $counts[$key] > 0 || $filter === $key)
                 <button type="button" wire:click="setFilter('{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
                         data-testid="inbox-filter-{{ $key }}"
@@ -25,7 +29,7 @@
                             'border-ink bg-surface text-ink' => $filter === $key,
                             'border-line bg-card text-ink hover:bg-hover' => $filter !== $key,
                         ])>
-                    {{ __("inbox.filter.{$key}") }}
+                    {{ $key === 'journey' ? __('journey_inbox.filter') : __("inbox.filter.{$key}") }}
                     <span @class(['rounded-full px-2 text-caption', 'bg-card' => $filter === $key, 'bg-surface' => $filter !== $key])>{{ $counts[$key] }}</span>
                 </button>
             @endif
@@ -79,7 +83,8 @@
                         @endif
                         <div class="min-w-0 flex-1">
                             <p class="font-semibold text-ink">
-                                <bdi>{{ $subject?->name ?? __('general.na') }}</bdi>
+                                <x-presence :status="$subject ? ($presence[$subject->id] ?? null) : null" class="me-1" />
+                                <x-person :id="$subject?->id" :name="$subject?->name ?? __('general.na')" />
                                 @if ($row['former'] ?? false)
                                     <x-tag variant="soft" class="ms-1" data-testid="inbox-former">{{ __('inbox.former') }}</x-tag>
                                 @endif
@@ -88,12 +93,12 @@
                                 @endif
                             </p>
                             <p class="text-small text-ink-2">
-                                <span class="font-semibold text-ink">{{ __("inbox.action.{$row['action']}") }}</span>
+                                <span class="font-semibold text-ink">{{ $row['label'] ?? __("inbox.action.{$row['action']}") }}</span>
                                 @if ($row['source'] === 'leave')
                                     · <bdi>{{ $row['leave_type'] }}</bdi>
                                     · <bdi dir="ltr">{{ $row['type'] === 'hour' ? $row['start_at']?->format('d-m-Y H:i').'–'.$row['end_at']?->format('H:i') : $row['start_at']?->format('d-m-Y').($row['end_at'] && ! $row['start_at']->isSameDay($row['end_at']) ? ' – '.$row['end_at']->format('d-m-Y') : '') }}</bdi>
                                     · <bdi>{{ $row['duration'] }}</bdi>
-                                @else
+                                @elseif ($row['action'] !== 'journey')
                                     · <bdi>{{ $row['item'] }}</bdi>
                                 @endif
                             </p>
@@ -170,6 +175,9 @@
                         @elseif ($row['source'] === 'profile')
                             {{-- D1: what the employee proposed, so HR approves what it has seen. --}}
                             @include('livewire.inbox.partials.profile-change', ['row' => $row, 'slug' => $slug])
+                        @elseif ($row['action'] === 'journey')
+                            {{-- DEC-09 increment 2: listed only; the journey acts on the employee page. --}}
+                            @include('livewire.inbox.partials.journey', ['row' => $row])
                         @elseif ($row['action'] === 'finalize')
                             <x-button wire:click="finalizeItem({{ \Illuminate\Support\Js::from($row['key']) }})">{{ __('inbox.checklist.finalize') }}</x-button>
                         @else

@@ -1,11 +1,11 @@
 <div class="flex flex-col gap-3">
-    <div class="flex flex-col lg:flex-row gap-3">
+    <div class="flex flex-col lg:flex-row lg:items-start gap-3">
         @includeWhen($this->canSearch(), 'livewire-table::bar.search')
         <div class="justify-center items-center w-full border-y border-transparent" wire:loading.flex>
             <span class="inline-block border border-4 border-primary border-r-transparent motion-safe:animate-spin rounded-full my-2 p-2"></span>
         </div>
         @include('livewire-table::bar.selection')
-        <div class="flex flex-wrap gap-3 ml-auto">
+        <div class="flex flex-wrap items-center gap-2 ms-auto sm:gap-3">
     @if(method_exists($this, 'savedViews'))
         {{-- HasSavedViews: personal views (table state only), owner + active role only. --}}
         @php($savedViews = $this->savedViews())
@@ -64,6 +64,18 @@
                     @endforeach
                 </x-forms.select2-input>
             </div>
+            {{-- The page's own actions (Add New, Export), passed as <livewire:slot name="actions">:
+                 a Livewire slot renders in the parent's scope, so wire:click still reaches the page component.
+                 When only the table re-renders (sort, search, the back button) the slot is a PlaceholderSlot with
+                 no content and the browser keeps what it has: so the wrapper is always rendered, its visibility is
+                 decided on the full render, and wire:ignore.self keeps that class through the later ones. --}}
+            @if(isset($slots) && $slots->has('actions'))
+                @php($actions = $slots['actions'])
+                <div wire:ignore.self @class([
+                    'ms-auto flex flex-wrap items-center gap-2 sm:gap-3',
+                    'hidden' => $actions instanceof \Livewire\Features\SupportSlots\Slot && trim($actions->content) === '',
+                ])>{{ $actions }}</div>
+            @endif
         </div>
     </div>
 </div>

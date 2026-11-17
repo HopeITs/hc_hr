@@ -40,6 +40,9 @@ class ContractsAutoRenewedSummary extends Notification
             })
             ->values()
             ->all();
+
+        // The email is written in Arabic: frame it right-to-left, in Arabic.
+        $this->locale = 'ar';
     }
 
     public function via(object $notifiable): array

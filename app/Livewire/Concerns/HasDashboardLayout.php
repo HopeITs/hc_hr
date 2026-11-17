@@ -28,7 +28,7 @@ trait HasDashboardLayout
     /**
      * The whole layout as the browser now shows it.
      *
-     * @param  array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>  $items
+     * @param  array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool, min?: bool, at?: array{0: int, 1: int}}>  $items
      */
     #[Renderless]
     public function saveLayout(array $items): void
@@ -37,13 +37,19 @@ trait HasDashboardLayout
 
         $valid = Validator::make(['items' => $items], [
             'items' => ['present', 'array', 'list', 'max:'.DashboardLayout::MAX_ITEMS],
-            'items.*' => ['required', 'array:key,size,hidden,style,fixed'],
+            'items.*' => ['required', 'array:key,size,pinned,hidden,style,fixed,min,at'],
             'items.*.key' => ['required', 'string', 'max:100'],
             'items.*.size' => ['required', 'string', 'regex:/^\d{1,2}x\d{1,2}$/'],
+            'items.*.pinned' => ['required', 'boolean:strict'],
             'items.*.hidden' => ['required', 'boolean:strict'],
             'items.*.style' => ['sometimes', 'string', 'max:20'],
             // Sized by hand: kept at exactly that size (DashboardLayout::clean).
             'items.*.fixed' => ['sometimes', 'boolean:strict'],
+            // Minimised: hidden, and waiting in the strip under the grid rather than in Add.
+            'items.*.min' => ['sometimes', 'boolean:strict'],
+            // Pinned: the cell [column, row] its size and place are kept at (DashboardLayout::clean).
+            'items.*.at' => ['sometimes', 'array', 'list', 'size:2'],
+            'items.*.at.*' => ['integer', 'min:0', 'max:199'],
         ])->validate();
 
         SavedDashboardLayout::query()->updateOrCreate(
@@ -58,33 +64,11 @@ trait HasDashboardLayout
      * does and, unlike it, renders, so the new tile arrives (lazily, like the
      * others). Tiles already on the page are left as they are.
      *
-     * @param  array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>  $items
+     * @param  array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool, min?: bool}>  $items
      */
     public function addTile(array $items): void
     {
         $this->saveLayout($items);
-    }
-
-    /**
-     * "Customize your desk" → a ready layout (DashboardLayout::PRESETS): its
-     * cards shown at its sizes, the other cards hidden.
-     * Re-renders, so the page shows it. A layout this person may not use is
-     * refused without touching what they have.
-     */
-    public function applyPreset(string $preset): void
-    {
-        $user = auth()->user();
-        $tiles = $this->dashboardTiles();
-        $layout = $tiles->applyPreset($user, $preset, $this->dashboardLayout($tiles));
-
-        if ($layout === null) {
-            return;
-        }
-
-        SavedDashboardLayout::query()->updateOrCreate(
-            ['user_id' => $user->getKey(), 'role' => DashboardLayout::roleKey($user)],
-            ['layout' => $layout],
-        );
     }
 
     /** Back to the role's default layout. Re-renders, so the page shows it. */
@@ -98,6 +82,24 @@ trait HasDashboardLayout
             ->update(['layout' => null]);
     }
 
+    /** A ready-made layout (DashboardLayout::PRESETS). Re-renders, so its tiles arrive. */
+    public function applyPreset(string $id): void
+    {
+        $user = auth()->user();
+        $tiles = $this->dashboardTiles();
+        $layout = $tiles->presetLayout($user, $id);
+
+        // Client input: a preset this role is not offered changes nothing.
+        if ($layout === null) {
+            return;
+        }
+
+        SavedDashboardLayout::query()->updateOrCreate(
+            ['user_id' => $user->getKey(), 'role' => DashboardLayout::roleKey($user)],
+            ['layout' => $tiles->clean($user, $layout)],
+        );
+    }
+
     protected function dashboardTiles(): DashboardLayout
     {
         return $this->dashboardTiles ??= app(DashboardLayout::class);
@@ -105,9 +107,9 @@ trait HasDashboardLayout
 
     /**
      * The caller's cleaned layout for the active role: what the page renders.
-     * Pass the page's own DashboardLayout so the role's menu is read once.
+     * Pass the page's own DashboardLayout so the role's shortcuts are read once.
      *
-     * @return array<int, array{key: string, size: string, hidden: bool, style?: string, fixed?: bool}>
+     * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool, style?: string, fixed?: bool, min?: bool}>
      */
     protected function dashboardLayout(?DashboardLayout $tiles = null): array
     {

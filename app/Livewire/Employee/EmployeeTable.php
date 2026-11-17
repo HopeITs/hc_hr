@@ -11,6 +11,8 @@ use App\Models\City;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Services\TaskTelemetry;
+use App\Services\WorkPresence;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -23,10 +25,15 @@ use RamonRietdijk\LivewireTables\Columns\SelectColumn;
 use RamonRietdijk\LivewireTables\Enums\SearchScope;
 use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class EmployeeTable extends LivewireTable
 {
-    use HasListStates;
+    use HasListStates {
+        // Kept under its own name: paginate() below adds the presence dots on
+        // top of it, and must not lose its load-failure guard.
+        paginate as protected guardedPaginate;
+    }
     use HasSavedViews;
     use RemembersTableState;
     use WithFeedback;
@@ -199,6 +206,29 @@ class EmployeeTable extends LivewireTable
         return Employee::query()
             ->inActiveCities(auth()->user())
             ->findOrFail($id);
+    }
+
+    /**
+     * The page of rows (through HasListStates' guarded load), each with its
+     * presence dot (WorkPresence), read once for the whole page rather than
+     * per row in the identity cell. The dots are a nicety: a failure there
+     * leaves the list standing, without them.
+     */
+    protected function paginate(): LengthAwarePaginator
+    {
+        $page = $this->guardedPaginate();
+        $people = $page->getCollection();
+
+        if ($people->isNotEmpty() && ($viewer = auth()->user())) {
+            try {
+                $presence = app(WorkPresence::class)->for($viewer, $people->modelKeys());
+                $people->each(fn (Employee $employee) => $employee->presence = $presence[$employee->getKey()] ?? null);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $page;
     }
 
     protected function query(): Builder

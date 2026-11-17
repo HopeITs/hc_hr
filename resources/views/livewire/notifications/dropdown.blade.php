@@ -1,6 +1,6 @@
 <div>
     {{-- Header --}}
-    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-line-soft bg-soft/90 px-4 py-3 backdrop-blur">
+    <div data-csb-header class="sticky top-0 z-10 flex items-center justify-between border-b border-line-soft bg-soft/90 px-4 py-3 backdrop-blur">
         <span class="text-body font-semibold text-ink">
             @lang('general.notifications')
         </span>
@@ -92,8 +92,8 @@
                 </p>
             </div>
 
-            {{-- Unread dot (fades + shrinks out on read) --}}
-            <span class="mt-2 size-2 shrink-0 rounded-full bg-primary transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
+            {{-- Unread dot (fades + shrinks out on read); 5px in from the edge, clear of the scrollbar. --}}
+            <span class="mt-2 me-[5px] size-2 shrink-0 rounded-full bg-primary transition-all duration-300 {{ $isUnread ? 'opacity-100 scale-100' : 'opacity-0 scale-0' }}"
                   x-bind:style="clicked ? 'opacity: 0; transform: scale(0)' : ''"></span>
         </a>
     @empty

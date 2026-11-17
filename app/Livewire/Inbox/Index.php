@@ -16,6 +16,7 @@ use App\Services\LeaveRequestReview;
 use App\Services\ProfileChangeRequests;
 use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
+use App\Services\WorkPresence;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -41,7 +42,7 @@ class Index extends Component
 
     public LeaveRequestForm $form;
 
-    /** all | decide | review | checklist */
+    /** all | decide | review | checklist | profile | journey */
     #[Url(as: 'show', except: 'all')]
     public string $filter = 'all';
 
@@ -62,7 +63,7 @@ class Index extends Component
 
     public function setFilter(string $filter): void
     {
-        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist', 'profile'], true) ? $filter : 'all';
+        $this->filter = in_array($filter, ['all', 'decide', 'review', 'checklist', 'profile', 'journey'], true) ? $filter : 'all';
     }
 
     // --- S1 leave decision ------------------------------------------------
@@ -259,7 +260,7 @@ class Index extends Component
         } catch (Throwable $e) {
             report($e);
             $rows = collect();
-            $counts = ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0];
+            $counts = ['all' => 0, 'decide' => 0, 'review' => 0, 'checklist' => 0, 'profile' => 0, 'journey' => 0];
             $failed = true;
         }
 
@@ -268,6 +269,8 @@ class Index extends Component
             'review' => $rows->where('action', 'review'),
             'checklist' => $rows->where('source', 'checklist'),
             'profile' => $rows->where('source', 'profile'),
+            // Employee journeys (onboarding, renewal, exit): listed, opened on the employee page.
+            'journey' => $rows->where('action', 'journey'),
             default => $rows,
         };
 
@@ -298,12 +301,30 @@ class Index extends Component
 
         return view('livewire.inbox.index', [
             'rows' => $visible->values(),
+            'presence' => $this->presenceFor($visible),
             'counts' => $counts,
             // Fewer listed than counted: some source reached its cap.
             'capped' => $counts[$this->filter] > $shown ? ['shown' => $shown, 'total' => $counts[$this->filter]] : null,
             'failed' => $failed,
             'showCity' => auth()->user()->activeCityIds() === null || count(auth()->user()->activeCityIds() ?? []) > 1,
         ]);
+    }
+
+    /**
+     * The presence dot of each row's person, read once for the page. A
+     * nicety: a failure leaves the inbox standing, without dots.
+     *
+     * @return array<int, array{tone: string, label: string}>
+     */
+    private function presenceFor($rows): array
+    {
+        try {
+            return app(WorkPresence::class)->for(auth()->user(), $rows->pluck('subject.id'));
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     private function overlapFor(LeaveRequest $leave): ?array

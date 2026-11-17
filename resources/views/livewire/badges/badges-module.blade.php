@@ -5,6 +5,8 @@
 <div x-data @open-badge-modal.window="$wire.openBadgeModal($event.detail.id)">
     <div class="flex items-center justify-between mb-6">
         <livewire:layout.breadcrumbs :title="__('general.all-badges')" :crumbs="[['label' => __('general.all-badges')]]" />
+        {{-- The page's live card on the dashboard (Dashboard\AddToDashboard). --}}
+        <livewire:dashboard.add-to-dashboard tile="badges" />
     </div>
 
     <livewire:badges.badges-table />

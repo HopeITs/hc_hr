@@ -6,15 +6,9 @@ document.addEventListener("click", function (event) {
 
     const inputId = button.getAttribute("data-password-toggle");
     const input = document.getElementById(inputId);
-    const icon = document.getElementById(inputId + "_icon");
 
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
-    } else {
-        input.type = "password";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
-    }
+    input.type = input.type === "password" ? "text" : "password";
+
+    button.querySelector('[data-password-icon="hidden"]').classList.toggle("hidden", input.type === "text");
+    button.querySelector('[data-password-icon="shown"]').classList.toggle("hidden", input.type === "password");
 });

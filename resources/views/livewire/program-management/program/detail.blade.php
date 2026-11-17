@@ -15,6 +15,8 @@
 
                     <x-page-header class="!mb-0" :title="$program->name" :lead="$program->{'description_' . app()->getLocale()}">
                         <x-slot:actions>
+                            {{-- This program on the viewer's dashboard (item.program.<id>). --}}
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('program', $program->id)" :key="'atd-program-'.$program->id" />
                             <x-forms.toggle-input
                                 class="!me-2 text-h4 p-2"
                                 :active="$program->is_active"
@@ -144,8 +146,13 @@
                 @if ($program->centers->isNotEmpty())
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         @foreach ($program->centers as $center)
+                            <div class="relative" wire:key="center-card-{{ $center->id }}">
+                            {{-- This centre on the viewer's dashboard (item.center.<id>); beside the link, never inside it. --}}
+                            <div class="absolute top-3 end-3 z-10">
+                                <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('center', $center->id)" :compact="true" :key="'atd-center-'.$center->id" />
+                            </div>
                             <a href="{{ route('centers.show', $center->id) }}" wire:navigate
-                               class="group relative rounded-surface border border-line-soft bg-card backdrop-blur-xl p-9 shadow hover:-translate-y-1 hover:shadow-e3 transition">
+                               class="group relative block h-full rounded-surface border border-line-soft bg-card backdrop-blur-xl p-9 pe-14 shadow hover:-translate-y-1 hover:shadow-e3 transition">
 
                                 <h3 class="text-h4 font-bold text-ink">
                                     {{ $center->name }}
@@ -163,6 +170,7 @@
                                 </p>
 
                             </a>
+                            </div>
                         @endforeach
                     </div>
                 @else
@@ -181,6 +189,10 @@
                             <div class="group relative flex flex-col justify-center items-center text-center
                             rounded-surface border border-line bg-card py-6
                             shadow-e1 hover:shadow-e2 transition-all duration-300">
+                                {{-- This person's work contact on the viewer's dashboard (rec.contact.<id>). --}}
+                                <div class="absolute top-3 end-3">
+                                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :compact="true" :key="'atd-contact-'.$employee->id" />
+                                </div>
 
                                 <div class="flex text-h1 items-center justify-center size-26  flex-shrink-0 rounded-full overflow-hidden
                                     bg-card border-2 border-line text-ink-2 font-medium uppercase ">

@@ -63,7 +63,7 @@ class BottomNav extends Component
         $count = $nav['inbox'] ? $this->inboxCount() : 0;
 
         foreach ($items as $i => $item) {
-            if ($item['route'] === 'inbox') {
+            if ($item['route'] === 'dashboard') {
                 $items[$i]['count'] = $count;
             }
         }
