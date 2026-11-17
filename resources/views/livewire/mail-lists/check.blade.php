@@ -104,9 +104,9 @@
                 @endif
 
                 @if($result && ! $result['in_sync'])
-                    <div class="mt-4 grid gap-4 lg:grid-cols-3">
+                    <div class="mt-4 grid gap-6 xl:grid-cols-3">
                         {{-- On HR data, not on the list. --}}
-                        <div data-testid="check-missing">
+                        <div data-testid="check-missing" x-data="{ all: false }">
                             <div class="flex items-center justify-between gap-2">
                                 <h3 class="font-bold text-ink">@lang('mail_lists.check.missing') <span class="num text-ink-2">{{ $result['missing']->count() }}</span></h3>
                                 @if($canManage && $result['missing']->isNotEmpty())
@@ -116,8 +116,8 @@
                                 @endif
                             </div>
                             <ul class="mt-2 divide-y divide-line-soft">
-                                @foreach($result['missing'] as $person)
-                                    <li class="flex items-center justify-between gap-2 py-2" wire:key="m-{{ $list->id }}-{{ $person['email'] }}">
+                                @foreach($result['missing'] as $i => $person)
+                                    <li class="flex items-center justify-between gap-2 py-2" x-show="all || {{ $i }} < 8" wire:key="m-{{ $list->id }}-{{ $person['email'] }}">
                                         <span class="min-w-0"><bdi class="block truncate font-semibold text-ink">{{ $person['name'] }}</bdi><span class="block truncate text-caption text-ink-2" dir="ltr">{{ $person['email'] }}</span></span>
                                         @if($canManage)
                                             <button type="button" wire:click="queueOne({{ $list->id }}, '{{ $person['email'] }}')" title="{{ __('mail_lists.check.queue_one') }}" aria-label="{{ __('mail_lists.check.queue_one') }}"
@@ -126,15 +126,18 @@
                                     </li>
                                 @endforeach
                             </ul>
+                            @if(count($result['missing']) > 8)
+                                <button type="button" x-on:click="all = ! all" class="mt-1 text-small font-semibold underline text-ink-2 hover:text-ink" x-text="all ? @js(__('mail_lists.check.show_less')) : @js(__('mail_lists.check.show_all', ['count' => count($result['missing'])]))"></button>
+                            @endif
                         </div>
 
                         {{-- On the list, not matching its rule. --}}
-                        <div data-testid="check-not-matching">
+                        <div data-testid="check-not-matching" x-data="{ all: false }">
                             <h3 class="font-bold text-ink">@lang('mail_lists.check.not_matching') <span class="num text-ink-2">{{ $result['not_matching']->count() }}</span></h3>
                             <p class="text-caption text-ink-2">@lang('mail_lists.check.not_matching_help')</p>
                             <ul class="mt-2 divide-y divide-line-soft">
-                                @foreach($result['not_matching'] as $person)
-                                    <li class="flex items-center justify-between gap-2 py-2" wire:key="n-{{ $list->id }}-{{ $person['id'] }}">
+                                @foreach($result['not_matching'] as $i => $person)
+                                    <li class="flex items-center justify-between gap-2 py-2" x-show="all || {{ $i }} < 8" wire:key="n-{{ $list->id }}-{{ $person['id'] }}">
                                         <span class="min-w-0"><bdi class="block truncate font-semibold text-ink">{{ $person['name'] }}</bdi><span class="block truncate text-caption text-ink-2" dir="ltr">{{ $person['email'] }}</span></span>
                                         @if($canManage)
                                             <button type="button" wire:click="removeMember({{ $person['id'] }})" wire:confirm="{{ __('mail_lists.remove_confirm') }}" title="{{ __('mail_lists.remove') }}" aria-label="{{ __('mail_lists.remove') }}"
@@ -143,15 +146,18 @@
                                     </li>
                                 @endforeach
                             </ul>
+                            @if(count($result['not_matching']) > 8)
+                                <button type="button" x-on:click="all = ! all" class="mt-1 text-small font-semibold underline text-ink-2 hover:text-ink" x-text="all ? @js(__('mail_lists.check.show_less')) : @js(__('mail_lists.check.show_all', ['count' => count($result['not_matching'])]))"></button>
+                            @endif
                         </div>
 
                         {{-- Left the organisation, still on the list. --}}
-                        <div data-testid="check-left">
+                        <div data-testid="check-left" x-data="{ all: false }">
                             <h3 class="font-bold text-ink">@lang('mail_lists.check.left') <span class="num text-ink-2">{{ $result['left']->count() }}</span></h3>
                             <p class="text-caption text-ink-2">@lang('mail_lists.check.left_help')</p>
                             <ul class="mt-2 divide-y divide-line-soft">
-                                @foreach($result['left'] as $person)
-                                    <li class="flex items-center justify-between gap-2 py-2" wire:key="l-{{ $list->id }}-{{ $person['id'] }}">
+                                @foreach($result['left'] as $i => $person)
+                                    <li class="flex items-center justify-between gap-2 py-2" x-show="all || {{ $i }} < 8" wire:key="l-{{ $list->id }}-{{ $person['id'] }}">
                                         <span class="min-w-0"><bdi class="block truncate font-semibold text-ink">{{ $person['name'] }}</bdi><span class="block truncate text-caption text-ink-2" dir="ltr">{{ $person['email'] }}</span></span>
                                         <span class="flex shrink-0 items-center gap-1">
                                             <button type="button" x-on:click="copy(@js($person['email']))" title="{{ __('mail_lists.copy_email') }}" aria-label="{{ __('mail_lists.copy_email') }}"
@@ -164,6 +170,9 @@
                                     </li>
                                 @endforeach
                             </ul>
+                            @if(count($result['left']) > 8)
+                                <button type="button" x-on:click="all = ! all" class="mt-1 text-small font-semibold underline text-ink-2 hover:text-ink" x-text="all ? @js(__('mail_lists.check.show_less')) : @js(__('mail_lists.check.show_all', ['count' => count($result['left'])]))"></button>
+                            @endif
                         </div>
                     </div>
                 @endif

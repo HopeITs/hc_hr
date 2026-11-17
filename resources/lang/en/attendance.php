@@ -81,6 +81,7 @@ return [
         'days' => 'Days',
         'overtime' => 'Overtime',
         'decide' => 'Decide',
+        'hours-unit' => 'h',
         'free-days' => 'free days',
         'nothing' => 'No one has a contract in this month for this selection.',
         'to-decide' => ':count days to decide',

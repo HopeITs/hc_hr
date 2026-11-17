@@ -82,6 +82,8 @@ return [
         'queue_all' => 'Add all',
         'queue_one' => 'Add to the queue',
         'queued' => '{0} Nobody to add.|{1} :count person queued for the control panel.|[2,*] :count people queued for the control panel.',
+        'show_all' => 'Show all :count',
+        'show_less' => 'Show fewer',
         'not_expected' => 'This person does not belong on this list.',
     ],
 ];
