@@ -241,6 +241,15 @@ return [
     'livewire' => [
         // Attendance: uploading, linking device numbers and deciding days. Each also checks the
         // permission and the city scope inside.
+        // The device list. The component re-checks the permission and, for a city HR, the center's city.
+        'attendance.devices' => [
+            'register' => 'attendance.manage',
+            'forgetSighting' => 'attendance.manage',
+            'edit' => 'attendance.manage',
+            'saveDevice' => 'attendance.manage',
+            'toggleBlock' => 'attendance.manage',
+            'removeDevice' => 'attendance.manage',
+        ],
         'attendance.upload' => [
             'updatedFile' => 'attendance.manage',
             'import' => 'attendance.manage',
@@ -777,6 +786,8 @@ return [
         'program-management.program.program-employees' => ['resetFilters'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
+        // Closes the device edit row; writes nothing.
+        'attendance.devices' => ['cancelEdit'],
         // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
         'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
         'mail-lists.check' => ['cancelRule'],

@@ -10,7 +10,7 @@ class AttendancePunch extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['import_id', 'device_no', 'employee_id', 'punched_at'];
+    protected $fillable = ['import_id', 'device_id', 'device_no', 'employee_id', 'punched_at'];
 
     protected $casts = [
         'punched_at' => 'datetime',

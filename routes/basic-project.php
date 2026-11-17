@@ -36,6 +36,9 @@ Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positio
 Route::prefix('attendance')->name('attendance.')->group(function () {
     Route::get('/upload', \App\Livewire\Attendance\Upload::class)
         ->middleware('active_permission:attendance.manage')->name('upload');
+    // The devices that push their punches by themselves, and the centers they hang in.
+    Route::get('/devices', \App\Livewire\Attendance\Devices::class)
+        ->middleware('active_permission:attendance.manage')->name('devices');
     Route::get('/timesheets', \App\Livewire\Attendance\Timesheets::class)
         ->middleware('active_permission:attendance.view-own')->name('timesheets');
     Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
