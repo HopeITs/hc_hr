@@ -8,9 +8,11 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Program;
 use App\Services\Attendance\Grouping;
+use App\Services\Attendance\Roster;
 use App\Services\Attendance\Timesheet;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
@@ -54,6 +56,7 @@ class AttendanceGroupingTest extends TestCase
 
         Livewire::actingAs($this->hr())->test(Timesheets::class)
             ->set('month', '2026-09')
+            ->set('cityId', null)
             ->assertSee('Education')
             ->assertSee('Health')
             ->assertSee('Anna Alpha')
@@ -75,17 +78,15 @@ class AttendanceGroupingTest extends TestCase
             ->assertSee('Carla Charlie')
             ->assertDontSee('Anna Alpha')
             ->set('cityId', null)
-            ->set('search', 'bravo')
-            ->assertSee('Basil Bravo')
-            ->assertDontSee('Anna Alpha');
+            // The search runs in the browser, over a text kept on each row (names in both languages and the id).
+            ->assertSee('Anna Alpha')
+            ->assertSeeHtml('data-s="basil bravo')
+            ->assertSeeHtml('data-testid="att-search"');
     }
 
     public function test_the_month_buttons_move_by_one_month_and_a_group_can_be_folded(): void
     {
         $this->world();
-        $aleppo = City::query()->where('slug', 'ALP')->value('id');
-        $education = Program::query()->where('code', 'EDUCATION')->value('id');
-
         Livewire::actingAs($this->hr())->test(Timesheets::class)
             ->set('month', '2026-12')
             ->call('shiftMonth', 1)
@@ -94,10 +95,66 @@ class AttendanceGroupingTest extends TestCase
             ->call('shiftMonth', -1)
             ->assertSet('month', '2026-11')
             ->set('month', '2026-09')
+            ->set('cityId', null)
             ->assertSee('Anna Alpha')
-            ->call('toggleGroup', "$aleppo:program-$education")
-            ->assertDontSee('Anna Alpha')
+            // Folding is done by the browser: every group has its fold control, and its rows stay on the page.
+            ->assertSeeHtml('data-testid="group-fold"')
             ->assertSee('Basil Bravo');
+    }
+
+    public function test_a_role_that_sees_every_city_starts_on_one_and_the_rest_start_on_their_own_people(): void
+    {
+        $this->world();
+        $hr = $this->hr();
+        $expected = app(Roster::class)->defaultCityId($hr);
+
+        $this->assertNotNull($expected);
+
+        $page = Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-09')
+            ->assertSet('cityId', $expected)
+            ->assertSeeHtml('data-testid="att-scope"');
+
+        // Only that city's people are on the page until "All cities" is chosen.
+        $other = Employee::query()->where('city_id', '!=', $expected)->first();
+        $page->assertDontSee($other->name);
+        $page->set('cityId', null)->assertSee($other->name);
+
+        // An explicit city in the link wins over the default.
+        $damascus = City::query()->where('slug', 'DMS')->value('id');
+        Livewire::actingAs($hr)->withQueryParams(['city' => $damascus])->test(Timesheets::class)->assertSet('cityId', $damascus);
+
+        // Anyone who is not national keeps what their role already limits them to: no default city.
+        $employee = $this->makeUser(City::query()->where('slug', 'ALP')->first(), 'employee', ['attendance.view-own']);
+        $this->assertNull(app(Roster::class)->defaultCityId($employee));
+    }
+
+    public function test_many_people_cost_about_as_many_queries_as_one(): void
+    {
+        $this->world();
+        $month = CarbonImmutable::create(2026, 9, 1);
+        $service = app(Timesheet::class);
+        $everyone = Employee::query()->get();
+
+        $queries = function ($employees) use ($service, $month): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $service->forEmployees($employees, $month);
+
+            return count(DB::getQueryLog());
+        };
+
+        $one = $queries($everyone->take(1));
+
+        // Three people on three project and city pairs: only the holiday lookup grows with the pairs,
+        // never the reads of contracts, punches, decisions, leave or balances.
+        $this->assertLessThanOrEqual($one + 2, $queries($everyone));
+
+        // The batch gives each person exactly the sheet forEmployee() does.
+        $sheets = $service->forEmployees($everyone, $month);
+        foreach ($everyone as $employee) {
+            $this->assertEquals($service->forEmployee($employee, $month)['totals'], $sheets[$employee->id]['totals']);
+        }
     }
 
     public function test_one_group_prints_on_its_own_in_the_order_of_the_page(): void

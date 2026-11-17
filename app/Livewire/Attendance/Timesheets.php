@@ -40,14 +40,6 @@ class Timesheets extends Component
     #[Url(as: 'by', history: false)]
     public string $groupBy = Grouping::PROJECT;
 
-    #[Url(as: 'search', history: false)]
-    public string $search = '';
-
-    public bool $onlyToDecide = false;
-
-    /** Group keys the viewer folded away ("<city>:<group>"). @var array<string, bool> */
-    public array $collapsed = [];
-
     public ?int $dayEmployeeId = null;
 
     public ?string $dayDate = null;
@@ -70,17 +62,20 @@ class Timesheets extends Component
         }
 
         $this->groupBy = Grouping::normalize($this->groupBy);
+
+        // Who loads what by default: an employee, a manager and the HR of a city are already
+        // limited to their own people or place. Someone who sees every city starts on one (their
+        // own, else the first) rather than on the whole organisation: the page is quick and useful
+        // at once, and "All cities" is one choice away. An explicit ?city= in the link wins.
+        if ($this->cityId === null && ! request()->has('city')) {
+            $this->cityId = app(Roster::class)->defaultCityId(auth()->user());
+        }
     }
 
     public function shiftMonth(int $delta): void
     {
         $this->month = $this->monthDate()->addMonths($delta > 0 ? 1 : -1)->format('Y-m');
         $this->closeMonth();
-    }
-
-    public function toggleGroup(string $key): void
-    {
-        $this->collapsed[$key] = ! ($this->collapsed[$key] ?? false);
     }
 
     // ---- Deciding a day -------------------------------------------------------------------
@@ -237,9 +232,11 @@ class Timesheets extends Component
         $by = Grouping::normalize($this->groupBy);
         $roster = app(Roster::class);
 
+        // Read once per request: the page, the summary and the open panel all use this.
         $items = $this->items($month);
 
-        // The figures above the groups describe the whole selection, not just what is unfolded.
+        // The figures above the groups describe the whole selection (the month and city), not
+        // what the browser's search or filter happens to hide.
         $summary = [
             'people' => $items->count(),
             'to_decide' => (int) $items->sum(fn (array $i) => $i['sheet']['totals']['to_decide']),
@@ -248,10 +245,6 @@ class Timesheets extends Component
             'ready_to_approve' => $items->filter(fn (array $i) => $i['can']['approve'])->count(),
             'ready_to_lock' => $items->filter(fn (array $i) => $i['can']['lock'])->count(),
         ];
-
-        if ($this->onlyToDecide) {
-            $items = $items->filter(fn (array $i) => $i['sheet']['totals']['to_decide'] > 0)->values();
-        }
 
         $open = null;
 
@@ -263,7 +256,7 @@ class Timesheets extends Component
         $panel = null;
 
         if ($this->monthEmployeeId !== null) {
-            $panel = $this->items($month)->first(fn (array $i) => $i['employee']->id === $this->monthEmployeeId);
+            $panel = $items->first(fn (array $i) => $i['employee']->id === $this->monthEmployeeId);
         }
 
         $days = collect(range(1, $month->daysInMonth))->map(fn (int $d) => [
@@ -277,6 +270,7 @@ class Timesheets extends Component
             'by' => $by,
             'days' => $days,
             'cities' => $roster->cities(auth()->user()),
+            'cityName' => $this->cityId ? $roster->cities(auth()->user())->firstWhere('id', $this->cityId)?->name : null,
             'mode' => $roster->mode(auth()->user()),
             'monthDate' => $month,
             'open' => $open,
@@ -293,10 +287,9 @@ class Timesheets extends Component
      */
     private function items(CarbonImmutable $month): Collection
     {
-        $service = app(Timesheet::class);
         $workflow = app(MonthWorkflow::class);
-        $employees = app(Roster::class)->employees(auth()->user(), $month, $this->cityId)
-            ->when(trim($this->search) !== '', fn ($all) => $all->filter(fn (Employee $e) => $this->matchesSearch($e)));
+        $employees = app(Roster::class)->employees(auth()->user(), $month, $this->cityId);
+        $sheets = app(Timesheet::class)->forEmployees($employees, $month);
 
         $records = AttendanceMonth::query()
             ->with('media')
@@ -305,9 +298,10 @@ class Timesheets extends Component
             ->get()
             ->keyBy('employee_id');
 
-        return $employees->map(function (Employee $employee) use ($service, $workflow, $records, $month) {
-            $sheet = $service->forEmployee($employee, $month);
-            $record = $records[$employee->id] ?? AttendanceMonth::for($employee, $month);
+        return $employees->map(function (Employee $employee) use ($sheets, $workflow, $records, $month) {
+            $sheet = $sheets[$employee->id];
+            // No record yet is a blank one, not a query per person.
+            $record = $records[$employee->id] ?? new AttendanceMonth(['employee_id' => $employee->id, 'month' => $month->toDateString()]);
 
             return [
                 'employee' => $employee,
@@ -368,19 +362,6 @@ class Timesheets extends Component
 
         return app(MonthWorkflow::class)
             ->abilities(auth()->user(), $employee, $month, AttendanceMonth::for($employee, $month), 1)['decide'];
-    }
-
-    private function matchesSearch(Employee $employee): bool
-    {
-        $needle = mb_strtolower(trim($this->search));
-
-        foreach (['en', 'ar'] as $locale) {
-            if (str_contains(mb_strtolower((string) $employee->nameForLocale($locale)), $needle)) {
-                return true;
-            }
-        }
-
-        return $needle === (string) $employee->id;
     }
 
     private function monthDate(): CarbonImmutable

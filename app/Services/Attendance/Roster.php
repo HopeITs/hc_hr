@@ -118,6 +118,23 @@ class Roster
             ->get();
     }
 
+    /**
+     * The city the page starts on. Only for those who see every city (HR Syria, the general
+     * manager, the administrators): their own city, else the first. Everyone else is already
+     * limited by role (own, team or their cities), so the page loads that and nothing is chosen.
+     */
+    public function defaultCityId(User $user): ?int
+    {
+        if ($this->mode($user) !== self::ALL) {
+            return null;
+        }
+
+        $cities = $this->cities($user);
+        $own = $user->profile?->city_id;
+
+        return (int) ($cities->contains('id', $own) ? $own : $cities->first()?->id) ?: null;
+    }
+
     private function overlapping(Builder|\Illuminate\Database\Eloquent\Relations\Relation $contract, CarbonImmutable $month): Builder|\Illuminate\Database\Eloquent\Relations\Relation
     {
         return $contract
