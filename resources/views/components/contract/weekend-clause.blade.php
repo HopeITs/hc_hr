@@ -5,23 +5,16 @@
 
 @php
     use App\Support\ArabicText as AR;
-    use App\Services\LeaveRequestPricing;
+    use App\Services\ContractWeekendClause;
 
     /*
      * Study Zone's "Friday is considered a day off…" sentence, printed only
-     * when HR ticked it in the composer. A Study Zone position usually has no
-     * center of its own, so the day is the weekend its centers in the city
-     * keep — the same weekendFor() leave pricing uses, so the contract never
-     * names a day off that leave requests then charge for. With no center
-     * weekend known at all (the code default), nothing is printed: the
-     * sentence would state a day nobody set.
+     * when HR ticked it (in the composer or an amendment). The day(s) come
+     * from ContractWeekendClause: the weekend of the centers the position is
+     * shared by in its city. Nothing outside Study Zone, nor when no center
+     * weekend is set.
      */
-    $days = [];
-
-    if ($contract->show_weekend_clause) {
-        [$weekend, $source] = app(LeaveRequestPricing::class)->weekendFor($contract);
-        $days = $source === 'default' ? [] : $weekend;
-    }
+    $days = $contract->show_weekend_clause ? (app(ContractWeekendClause::class)->days($contract) ?? []) : [];
 
     // Sunday(0)..Saturday(6), Carbon's numbering — as in schedule-clause.
     $dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

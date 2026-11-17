@@ -46,6 +46,7 @@ class ContractAmendment extends Model implements HasMedia
         'show_hours_per_week',
         'show_hours_per_day',
         'show_day_range',
+        'show_weekend_clause',
         'flex_days_per_week',
         'flex_hours_per_week',
         'flex_hours_per_month',
@@ -280,7 +281,12 @@ class ContractAmendment extends Model implements HasMedia
     public function followsOn(ContractAmendment $previous): bool
     {
         foreach (self::AMENDABLE_FIELDS as $field) {
-            if (self::normalise($this->terms_before[$field] ?? null) !== self::normalise($previous->terms_after[$field] ?? null)) {
+            // Recorded on one side only: the term was added to AMENDABLE_FIELDS in between.
+            if (! array_key_exists($field, $this->terms_before ?? []) || ! array_key_exists($field, $previous->terms_after ?? [])) {
+                continue;
+            }
+
+            if (self::normalise($this->terms_before[$field]) !== self::normalise($previous->terms_after[$field])) {
                 return false;
             }
         }
@@ -313,7 +319,13 @@ class ContractAmendment extends Model implements HasMedia
         $terms = ($side === 'before' ? $this->terms_before : $this->terms_after) ?? [];
 
         foreach (ContractAmendment::snapshotOf($contract) as $field => $value) {
-            if (self::normalise($value) !== self::normalise($terms[$field] ?? null)) {
+            // A term added to AMENDABLE_FIELDS after this amendment was
+            // drafted (show_weekend_clause) is not part of it.
+            if (! array_key_exists($field, $terms)) {
+                continue;
+            }
+
+            if (self::normalise($value) !== self::normalise($terms[$field])) {
                 return false;
             }
         }

@@ -6,11 +6,15 @@ use App\Livewire\Contract\ContractCreate;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Contract;
+use App\Models\ContractAmendment;
 use App\Models\ContractType;
 use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
+use App\Services\ContractAmendmentDescriber;
+use App\Services\ContractAmendmentService;
+use App\Services\ContractPdfRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesHrFixtures;
@@ -112,6 +116,49 @@ class ContractWeekendClauseTest extends TestCase
             });
     }
 
+    public function test_an_amendment_can_add_the_clause_and_its_sheet_states_it(): void
+    {
+        $this->linkCenter('Study Zone Ziraa 1', '5');
+        $contract = $this->makeContract(false, inForce: true)->fresh();
+
+        $amendment = app(ContractAmendmentService::class)
+            ->draft($contract, ['show_weekend_clause' => true], today()->toDateString(), null, null);
+
+        $this->assertSame(['show_weekend_clause'], $amendment->changedFields());
+        $this->assertSame(
+            [[__('contracts.amendment.weekend-clause'), __('contracts.amendment.weekend-clause-off'), __('contracts.amendment.weekend-clause-on')]],
+            app(ContractAmendmentDescriber::class)->lines($amendment, withPay: false),
+        );
+        $this->assertStringContainsString(
+            'Friday is considered a day off',
+            app(ContractPdfRenderer::class)->amendmentView($amendment)->render(),
+        );
+
+        app(ContractAmendmentService::class)->approve($amendment);
+
+        $this->assertTrue($contract->fresh()->show_weekend_clause);
+    }
+
+    /** Drafted before the clause was amendable: its snapshots hold no such key. */
+    public function test_an_amendment_recorded_before_the_clause_existed_still_matches_its_contract(): void
+    {
+        $contract = $this->makeContract(true, inForce: true)->fresh();
+        $snapshot = ContractAmendment::snapshotOf($contract);
+        unset($snapshot['show_weekend_clause']);
+
+        $amendment = ContractAmendment::query()->create([
+            'contract_id' => $contract->id,
+            'number' => 1,
+            'status' => 1,
+            'effective_from' => today()->toDateString(),
+            'terms_before' => $snapshot,
+            'terms_after' => [...$snapshot, 'weekly_hours' => 30],
+        ]);
+
+        $this->assertTrue($amendment->matchesContract($contract));
+        $this->assertSame(['weekly_hours'], $amendment->changedFields());
+    }
+
     private function linkCenter(string $name, string $weekends, bool $link = true): Center
     {
         $center = Center::query()->create([
@@ -125,7 +172,7 @@ class ContractWeekendClauseTest extends TestCase
         return $center;
     }
 
-    private function makeContract(bool $showWeekendClause): Contract
+    private function makeContract(bool $showWeekendClause, bool $inForce = false): Contract
     {
         return Contract::query()->forceCreate([
             'employee_id' => $this->makeEmployee($this->city, 'weekend-clause-'.uniqid())->id,
@@ -134,8 +181,8 @@ class ContractWeekendClauseTest extends TestCase
             'type' => 1,
             'place' => 1,
             'is_active' => true,
-            'start_date' => '2026-12-01',
-            'end_date' => '2026-12-31',
+            'start_date' => $inForce ? today()->subMonth()->toDateString() : '2026-12-01',
+            'end_date' => $inForce ? today()->addMonths(2)->toDateString() : '2026-12-31',
             'pay_mode' => 1,
             'currency' => 1,
             'salary_per' => 1,

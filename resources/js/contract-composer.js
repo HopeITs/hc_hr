@@ -1607,7 +1607,10 @@ document.addEventListener('alpine:init', () => {
          * Study Zone, or when no center weekend is set.
          */
         get weekendDays() {
-            return (this.selectedPosition?.weekend ?? []).map(Number);
+            // The amendment page has no position picker: the server seeds them.
+            const days = this.amending ? config.seed?.weekendDays : this.selectedPosition?.weekend;
+
+            return (days ?? []).map(Number);
         },
 
         /** Mirrors resources/views/components/contract/weekend-clause.blade.php. */
@@ -1649,7 +1652,7 @@ document.addEventListener('alpine:init', () => {
         schedulePreviewWithWeekend(lang) {
             const body = this.schedulePreview(lang);
 
-            return !this.amending && this.showWeekendClause && this.weekendDays.length
+            return this.showWeekendClause && this.weekendDays.length
                 ? `${body} ${this.weekendClause(lang)}`
                 : body;
         },

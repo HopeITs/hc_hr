@@ -15,6 +15,7 @@ use App\Models\Contract;
 use App\Models\ContractAmendment;
 use App\Services\ContractAmendmentDescriber;
 use App\Services\ContractAmendmentService;
+use App\Services\ContractWeekendClause;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -143,7 +144,12 @@ class ContractAmend extends Component
                 'startDate' => $this->contract->start_date?->toDateString(),
                 'endDate' => $this->contract->end_date?->toDateString(),
             ]]),
-            'seed' => [...$this->composerSeed(), ...$this->draftSeed()],
+            'seed' => [
+                ...$this->composerSeed(),
+                ...$this->draftSeed(),
+                // No position picker here to carry them (locationOptions()).
+                'weekendDays' => app(ContractWeekendClause::class)->days($this->contract),
+            ],
             'editingNumber' => $this->draft()?->number,
             'nowCard' => $this->nowCard(),
             'previous' => $this->previousAmendment(),
