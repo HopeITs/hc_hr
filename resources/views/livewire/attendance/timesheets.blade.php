@@ -153,8 +153,8 @@
         </x-card>
         <x-card>
             <div class="text-small text-ink-2">@lang('attendance.timesheets.overtime')</div>
-            <div class="mt-1 text-h2 font-extrabold text-ink num">{{ $summary['overtime_hours'] }} <span class="text-body font-semibold text-ink-2">h</span></div>
-            <p class="mt-1 text-small text-ink-2 num">= +{{ $summary['overtime_days'] }} @lang('attendance.timesheets.free-days')</p>
+            <div class="mt-1 text-h2 font-extrabold text-ink num">{{ $summary['overtime_hours'] }} <span class="text-body font-semibold text-ink-2">@lang('attendance.timesheets.hours-unit')</span></div>
+            <p class="mt-1 text-small text-ink-2 num"><bdi>= +{{ $summary['overtime_days'] }}</bdi> @lang('attendance.timesheets.free-days')</p>
         </x-card>
     </div>
 
@@ -225,7 +225,7 @@
 
             @foreach($block['groups'] as $group)
                 @php($foldKey = $block['id'].':'.$group['key'])
-                <x-card class="!p-0 overflow-hidden" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown(@js($foldKey))">
+                <x-card class="!p-0 overflow-hidden" style="contain: paint" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown(@js($foldKey))">
                     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-soft bg-soft px-4 py-3">
                         <button type="button" x-on:click="toggle(@js($foldKey))" x-bind:aria-expanded="isOpen(@js($foldKey))"
                                 class="flex min-h-11 items-center gap-2 text-start" data-testid="group-fold">
@@ -241,7 +241,7 @@
                                 <x-status tone="done" icon="check" :label="__('attendance.timesheets.group-ready')" />
                             @endif
                             @if($group['totals']['overtime_hours'] > 0)
-                                <span class="text-small text-ink-2 num">{{ $group['totals']['overtime_hours'] }} h = +{{ $group['totals']['overtime_days'] }} @lang('attendance.timesheets.free-days')</span>
+                                <span class="text-small text-ink-2 num"><bdi>{{ $group['totals']['overtime_hours'] }} @lang('attendance.timesheets.hours-unit') = +{{ $group['totals']['overtime_days'] }}</bdi> @lang('attendance.timesheets.free-days')</span>
                             @endif
                             {{-- The list for this project or department (in this city, else nationwide). --}}
                             @php($groupList = ($group['id'] ?? null) ? \App\Models\MailList::emailForGroup($block['id'] ? (int) $block['id'] : null, $by === \App\Services\Attendance\Grouping::PROJECT ? (int) $group['id'] : null, $by === \App\Services\Attendance\Grouping::DEPARTMENT ? (int) $group['id'] : null, $mailLists) : null)
@@ -305,7 +305,7 @@
                                             <td class="px-3 text-center font-semibold num">{{ $sheet['totals']['working_days'] }}</td>
                                             <td class="px-3 text-center text-small num whitespace-nowrap">
                                                 @if($sheet['totals']['overtime_hours'] > 0)
-                                                    {{ $sheet['totals']['overtime_hours'] }} h = +{{ $sheet['totals']['overtime_days'] }}
+                                                    <bdi>{{ $sheet['totals']['overtime_hours'] }} @lang('attendance.timesheets.hours-unit') = +{{ $sheet['totals']['overtime_days'] }}</bdi>
                                                 @else
                                                     <span class="text-ink-3">–</span>
                                                 @endif
