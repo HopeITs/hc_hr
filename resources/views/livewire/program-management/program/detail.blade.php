@@ -15,6 +15,12 @@
 
                     <x-page-header class="!mb-0" :title="$program->name" :lead="$program->{'description_' . app()->getLocale()}">
                         <x-slot:actions>
+                            {{-- The mailing list that stands for this project, when there is one. --}}
+                            @if($groupList = \App\Models\MailList::emailFor(null, (int) $program->id, null))
+                                <x-button variant="outline" :href="'mailto:'.$groupList->address" :wire:navigate="false" data-testid="email-group">
+                                    <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                                </x-button>
+                            @endif
                             {{-- This program on the viewer's dashboard (item.program.<id>). --}}
                             <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('program', $program->id)" :key="'atd-program-'.$program->id" />
                             <x-forms.toggle-input

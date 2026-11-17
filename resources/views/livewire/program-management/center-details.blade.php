@@ -34,6 +34,12 @@
                                 @lang('general.back')
                             </x-button>
 
+                            {{-- The mailing list that stands for this centre's city, when there is one. --}}
+                            @if($groupList = \App\Models\MailList::emailFor($center->city_id ? (int) $center->city_id : null, null, null))
+                                <x-button variant="outline" :href="'mailto:'.$groupList->address" :wire:navigate="false" data-testid="email-group">
+                                    <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                                </x-button>
+                            @endif
                             @if(auth()->user()->canOpenReferencePage('positions'))
                             <x-button :href="route('positions.index', ['center' => $center->id])">
                                 @lang('general.view-positions')
