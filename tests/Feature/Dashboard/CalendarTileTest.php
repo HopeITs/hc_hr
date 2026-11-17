@@ -163,11 +163,11 @@ class CalendarTileTest extends TestCase
 
         $component = Livewire::actingAs($user)->test(CalendarCard::class);
 
-        $this->assertSame(['2026-11-05'], array_keys($component->viewData('upcoming')));
+        $this->assertSame(['2026-11-05'], array_column($component->viewData('upcoming'), 'from'));
 
         // Browsing another month keeps the list on the coming week.
         $component->call('next');
-        $this->assertSame(['2026-11-05'], array_keys($component->viewData('upcoming')));
+        $this->assertSame(['2026-11-05'], array_column($component->viewData('upcoming'), 'from'));
     }
 
     public function test_the_legend_lists_only_the_types_the_viewer_may_see(): void

@@ -79,6 +79,12 @@
                             </x-button>
                         @endif
                         <x-message-template-menu :employee="$employee" />
+                        {{-- Their attendance timesheet, for whoever may see it (their own, their team's, their city's). --}}
+                        @if (auth()->user()->hasActivePermission('attendance.view-own') && app(\App\Services\Attendance\Roster::class)->covers(auth()->user(), $employee))
+                            <x-button variant="outline" size="sm" icon="calendar" :href="route('attendance.timesheets', ['search' => $employee->id])" data-testid="profile-attendance-link">
+                                <span class="hidden min-[701px]:inline">@lang('attendance.nav')</span>
+                            </x-button>
+                        @endif
                         @if ($workEmail)
                             <x-button variant="outline" size="sm" :href="$workMailto" :wire:navigate="false" :title="__('general.email')" :aria-label="__('general.email')" class="min-w-0">
                                 <x-icons.envelope class="h-4 w-4 shrink-0" /> <span

@@ -45,8 +45,12 @@ final class Navigation
             self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'inbox'], 'dashboard', 'nav.dashboard'),
             $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
             $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
+            // An employee's own timesheet; managers and HR open theirs from the team / HR menus.
+            $can('attendance.view-own') && ! $can('attendance.view') ? self::item('nav.my-space.attendance', __('attendance.nav-own'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             // One page for both: "My folders" / "Shared with me" is a toggle on it (?scope=).
+            // Every employee reads the mailing lists and emails one; no permission to see it.
+            self::item('nav.my-space.mail-lists', __('mail_lists.title'), 'mail-lists.index', ['mail-lists.*'], 'envelope'),
             $can('archives.view') ? self::item('nav.my-space.files', __('general.folders'), 'folders.index', ['folders.*'], 'archived', 'nav.archives') : null,
             // The AI assistant is not a menu item: it opens from the floating
             // button on every page (<x-assistant.widget>).
@@ -70,6 +74,7 @@ final class Navigation
             ! $isManager && $can('leaves.view-all') ? self::item('nav.hr.leaves', __('general.all-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $can('leaves.manage-balances') ? self::item('nav.hr.balances', __('general.balance'), 'leaves.balance', ['leaves.balance'], 'calendar') : null,
             $isDeliverResponsible && $can('checklists.manage') ? self::item('nav.hr.done-requests', __('general.done_requests'), 'checklist-items.done-requests', ['checklist-items.done-requests'], 'check') : null,
+            ! $isManager && $can('attendance.view') ? self::item('nav.hr.attendance', __('attendance.nav'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $can('message-templates.manage') ? self::item('nav.hr.message-templates', __('messages.title'), 'message-templates.index', ['message-templates.*'], 'clipboard-list') : null,
             $can('badges.view') ? self::item('nav.hr.badges', __('general.all-badges'), 'badges.index', ['badges.*'], 'badges', 'nav.badges') : null,
             $can('statistics.view') ? self::group('nav.hr.statistics', __('general.statistics'), 'statistics', [
@@ -114,6 +119,7 @@ final class Navigation
         $myTeam = array_values(array_filter([
             $holidaysForProjects ? self::item('nav.my-team.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'], 'calendar') : null,
             $isManager && $can('leaves.view-all') ? self::item('nav.my-team.leaves', __('general.nav.team-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
+            $isManager && $can('attendance.view') ? self::item('nav.my-team.attendance', __('attendance.nav-team'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $isManager && $can('contracts.view') ? self::item('nav.my-team.contracts', __('general.nav.team-contracts'), 'contracts.index', ['contracts.*'], 'contracts') : null,
             $isDeliverResponsible && $can('checklists.deliver') ? self::item('nav.my-team.hand-out', __('general.pending-delivers'), 'checklist-items.pending-delivers', ['checklist-items.pending-delivers'], 'items', 'nav.checklists', 'checklist-items.pending-delivers-counter') : null,
             $isDeliverResponsible && $can('checklists.receive') ? self::item('nav.my-team.take-back', __('general.pending_returns'), 'checklist-items.pending-returns', ['checklist-items.pending-returns'], 'items', null, 'checklist-items.pending-returns-counter') : null,
