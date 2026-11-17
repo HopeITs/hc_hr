@@ -9,6 +9,8 @@ use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Models\Program;
+use App\Services\LeaveRequestPricing;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Renderless;
 
@@ -59,7 +61,7 @@ trait ResolvesContractLocationOptions
             ->inCity($cityId)
             ->with([
                 'program:id,name,slug',
-                'center' => fn ($query) => $query->select('id', 'city_id', $centerNameColumn),
+                'center' => fn ($query) => $query->select('id', 'city_id', 'weekends', $centerNameColumn),
             ])
             ->select('id', 'program_id', 'center_id', 'city_id', 'max_emp', 'exist_emp', $positionTitleColumn)
             ->orderBy($positionTitleColumn)
@@ -81,6 +83,7 @@ trait ResolvesContractLocationOptions
             ]));
 
         $employees = $this->employeeOptionsForCity($city, $locale);
+        $pricing = app(LeaveRequestPricing::class);
 
         if ($ensureEmployeeId && ! collect($employees)->contains('value', $ensureEmployeeId)) {
             $currentEmployee = Employee::query()
@@ -145,6 +148,7 @@ trait ResolvesContractLocationOptions
                     // Additive: contract-location-picker.js ignores both keys.
                     'maxEmp' => (int) $position->max_emp,
                     'existEmp' => (int) $position->exist_emp,
+                    'weekend' => $this->printableWeekend($position, $pricing),
                 ])
                 ->values()
                 ->all(),
@@ -255,6 +259,27 @@ trait ResolvesContractLocationOptions
     protected function locationOptionsEmployeeId(): ?int
     {
         return null;
+    }
+
+    /**
+     * The day(s) off a Study Zone contract on $position may state (its
+     * center's weekend, else that of the centers it is shared by in the city),
+     * exactly as <x-contract.weekend-clause> will print them. Null for other
+     * programs and when no center weekend is set: the composer then offers no
+     * checkbox, since the print would state nothing.
+     *
+     * @return array<int, int>|null
+     */
+    private function printableWeekend(Position $position, LeaveRequestPricing $pricing): ?array
+    {
+        if ((int) $position->program_id !== Program::STUDY_ZONE_ID) {
+            return null;
+        }
+
+        $contract = (new Contract)->setRelation('position', $position)->setRelation('employee', null);
+        [$weekend, $source] = $pricing->weekendFor($contract);
+
+        return $source === 'default' ? null : $weekend;
     }
 
     private function getCities(string $col): Collection

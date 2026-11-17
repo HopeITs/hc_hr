@@ -110,6 +110,7 @@
             'dayRange' => __('general.composer.day-range'),
             'flexible' => __('general.composer.schedule-flexible'),
             'scheduleHintDayRange' => __('general.composer.schedule-hint-day-range'),
+            'showWeekendClause' => __('general.composer.show-weekend-clause', ['days' => ':days']),
             'scheduleHintSecondShift' => __('general.composer.schedule-hint-second-shift'),
             'scheduleHintWeeklyHours' => __('general.composer.schedule-hint-weekly-hours'),
             'payHintSalaryRequired' => __('general.composer.pay-hint-salary-required'),

@@ -95,6 +95,9 @@ class ContractForm extends Form
 
     public bool $show_day_range = false;
 
+    /** Study Zone only: whether the printed contract states the centers' weekend day as a day off. Either mode. */
+    public bool $show_weekend_clause = false;
+
     // -- Flexible mode
     public ?int $flex_days_per_week = null;
 
@@ -203,6 +206,7 @@ class ContractForm extends Form
         $this->show_hours_per_week = true;
         $this->show_hours_per_day = true;
         $this->show_day_range = true;
+        $this->show_weekend_clause = false;
         $this->flex_days_per_week = null;
         $this->flex_hours_per_week = null;
         $this->flex_hours_per_month = null;
@@ -297,6 +301,7 @@ class ContractForm extends Form
         $this->show_hours_per_week = (bool) $contract->show_hours_per_week;
         $this->show_hours_per_day = (bool) $contract->show_hours_per_day;
         $this->show_day_range = (bool) $contract->show_day_range;
+        $this->show_weekend_clause = (bool) $contract->show_weekend_clause;
         $this->flex_days_per_week = $contract->flex_days_per_week;
         $this->flex_hours_per_week = $contract->flex_hours_per_week;
         $this->flex_hours_per_month = $contract->flex_hours_per_month;
@@ -750,6 +755,7 @@ class ContractForm extends Form
             'show_hours_per_week' => $isFixed && $this->show_hours_per_week,
             'show_hours_per_day' => $isFixed && $this->show_hours_per_day,
             'show_day_range' => $isFixed && $this->show_day_range,
+            'show_weekend_clause' => $this->show_weekend_clause,
 
             'flex_days_per_week' => $isFixed ? null : $this->flex_days_per_week,
             'flex_hours_per_week' => $isFixed ? null : $this->flex_hours_per_week,

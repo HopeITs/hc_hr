@@ -17,6 +17,9 @@ class Program extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, LogsActivity;
 
+    /** Study Zone (slug SZ): its contracts print their own working-week wording. */
+    public const STUDY_ZONE_ID = 8;
+
     protected $fillable = [
         'name', 'description_en', 'description_ar', 'code', 'slug',
         'start_date', 'end_date', 'is_active',

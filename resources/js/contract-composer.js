@@ -302,6 +302,9 @@ document.addEventListener('alpine:init', () => {
         showHoursPerWeek: config.seed ? Boolean(config.seed.showHoursPerWeek) : true,
         showHoursPerDay: config.seed ? Boolean(config.seed.showHoursPerDay) : true,
         showDayRange: config.seed ? Boolean(config.seed.showDayRange) : true,
+        // Study Zone only, either mode: "Friday is considered a day off…".
+        // Optional, so off until HR ticks it.
+        showWeekendClause: Boolean(config.seed?.showWeekendClause),
 
         // -- flexible mode — up to 5 independent, combinable boxes plus one
         // free-text fallback in both languages.
@@ -1598,12 +1601,65 @@ document.addEventListener('alpine:init', () => {
             return joined.charAt(0).toUpperCase() + joined.slice(1) + '.';
         },
 
+        /**
+         * The selected position's day(s) off, as the print will name them —
+         * ResolvesContractLocationOptions::printableWeekend(). Empty outside
+         * Study Zone, or when no center weekend is set.
+         */
+        get weekendDays() {
+            return (this.selectedPosition?.weekend ?? []).map(Number);
+        },
+
+        /** Mirrors resources/views/components/contract/weekend-clause.blade.php. */
+        weekendClause(lang) {
+            const days = this.weekendDays;
+
+            if (!days.length) {
+                return '';
+            }
+
+            if (lang === 'ar') {
+                const names = days.map((day) => DAY_NAMES_AR[day]);
+                const tail = 'إلا في حال رأت الإدارة الحاجة لذلك، ولا يعتبر دوام إضافي.';
+
+                if (names.length === 1) {
+                    return `يعتبر يوم ${names[0]} يوم عطلة، ${tail}`;
+                }
+
+                return names.length === 2
+                    ? `يعتبر يوما ${names[0]} و${names[1]} يومي عطلة، ${tail}`
+                    : `تعتبر أيام ${names.join(' و')} أيام عطلة، ${tail}`;
+            }
+
+            const names = days.map((day) => DAY_NAMES_EN[day]);
+
+            if (names.length === 1) {
+                return `${names[0]} is considered a day off, unless management deems it necessary, and is not considered overtime.`;
+            }
+
+            return `${names.slice(0, -1).join(', ')} and ${names.at(-1)} are considered days off, unless management deems it necessary, and are not considered overtime.`;
+        },
+
+        get weekendClauseLabel() {
+            const days = this.weekendDays.map((day) => (this.locale === 'ar' ? DAY_NAMES_AR : DAY_NAMES_EN)[day]);
+
+            return this.labels.showWeekendClause.replace(':days', days.join(this.locale === 'ar' ? ' و' : ' & '));
+        },
+
+        schedulePreviewWithWeekend(lang) {
+            const body = this.schedulePreview(lang);
+
+            return !this.amending && this.showWeekendClause && this.weekendDays.length
+                ? `${body} ${this.weekendClause(lang)}`
+                : body;
+        },
+
         get schedulePreviewEn() {
-            return this.schedulePreview('en');
+            return this.schedulePreviewWithWeekend('en');
         },
 
         get schedulePreviewAr() {
-            return this.schedulePreview('ar');
+            return this.schedulePreviewWithWeekend('ar');
         },
 
         get scheduleSummary() {
@@ -1802,6 +1858,7 @@ document.addEventListener('alpine:init', () => {
                 showHoursPerWeek: this.showHoursPerWeek,
                 showHoursPerDay: this.showHoursPerDay,
                 showDayRange: this.showDayRange,
+                showWeekendClause: this.showWeekendClause,
                 flexDaysPerWeek: this.flexDaysPerWeek,
                 flexHoursPerWeek: this.flexHoursPerWeek,
                 flexHoursPerMonth: this.flexHoursPerMonth,

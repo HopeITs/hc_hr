@@ -247,6 +247,17 @@
     </div>
 
     {{--
+        Study Zone only, either mode: names the day(s) its centers close, so
+        it only appears once a position whose centers set a weekend is chosen.
+        Never on the amendment page: a print toggle is no term to amend.
+    --}}
+    <div x-cloak x-show="!amending && weekendDays.length" class="mt-4">
+        <x-forms.checkbox-card id="composer_show_weekend_clause" model="showWeekendClause">
+            <span x-text="weekendClauseLabel"></span>
+        </x-forms.checkbox-card>
+    </div>
+
+    {{--
         How the printed clause will actually read, in both languages at once
         — built live from whichever fields/checkboxes are set, in either
         mode, so "what will this print?" never requires creating the

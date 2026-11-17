@@ -827,6 +827,7 @@ return [
         'hours-per-week' => 'Include ":count hours/week" in the printed contract',
         'hours-per-day' => 'Include ":count hours/day" in the printed contract',
         'show-day-range' => 'Include the day range in the printed contract',
+        'show-weekend-clause' => 'Include ":days is considered a day off" in the printed contract',
         'weekly-hours-value' => ':count h/week',
         'schedule-flexible' => 'Flexible',
         'schedule-flexible-hint' => 'Tick whichever of the following apply. They can be combined.',

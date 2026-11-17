@@ -827,6 +827,7 @@ return [
         'hours-per-week' => 'تضمين ":count ساعة أسبوعيًا" في العقد المطبوع',
         'hours-per-day' => 'تضمين ":count ساعة/يوم" في العقد المطبوع',
         'show-day-range' => 'تضمين نطاق الأيام في العقد المطبوع',
+        'show-weekend-clause' => 'تضمين «يعتبر يوم :days يوم عطلة» في العقد المطبوع',
         'weekly-hours-value' => ':count ساعة/أسبوعيًا',
         'schedule-flexible' => 'مرن',
         'schedule-flexible-hint' => 'حدّد ما ينطبق مما يلي. يمكن الجمع بين أكثر من خيار.',

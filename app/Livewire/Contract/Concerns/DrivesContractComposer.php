@@ -176,6 +176,7 @@ trait DrivesContractComposer
             'showHoursPerWeek' => $this->form->show_hours_per_week,
             'showHoursPerDay' => $this->form->show_hours_per_day,
             'showDayRange' => $this->form->show_day_range,
+            'showWeekendClause' => $this->form->show_weekend_clause,
             'flexDaysPerWeek' => $this->form->flex_days_per_week,
             'flexHoursPerWeek' => $this->form->flex_hours_per_week,
             'flexHoursPerMonth' => $this->form->flex_hours_per_month,
@@ -222,6 +223,9 @@ trait DrivesContractComposer
         $this->form->end_date = $this->dateOrNull($payload['endDate'] ?? null);
 
         $this->applyComposerSchedule($payload);
+        // Not part of applyComposerSchedule(): the amendment page shares that
+        // one, and a print toggle is no term of the contract to amend.
+        $this->form->show_weekend_clause = (bool) ($payload['showWeekendClause'] ?? false);
         $this->applyComposerPay($payload);
 
         $this->applyComposerTermination($payload);
