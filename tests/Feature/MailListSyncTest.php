@@ -4,16 +4,19 @@ namespace Tests\Feature;
 
 use App\Livewire\Attendance\Timesheets;
 use App\Livewire\MailLists\Check;
+use App\Livewire\MailLists\Index;
 use App\Models\City;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\MailList;
 use App\Models\MailListMember;
+use App\Models\Permission;
 use App\Models\Program;
 use App\Models\User;
 use App\Services\MailListSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
@@ -176,6 +179,63 @@ class MailListSyncTest extends TestCase
             ->assertDontSeeHtml('href="mailto:education@hcsyria.org"');
 
         $this->assertInstanceOf(Employee::class, Employee::query()->first());
+    }
+
+    public function test_a_new_account_is_queued_on_every_list_its_rule_matches(): void
+    {
+        $team = $this->list('team@hcsyria.org', ['rule_type' => 'all_staff']);
+        $aleppo = $this->list('hope.aleppo@hcsyria.org', ['rule_type' => 'custom', 'rule_city_id' => $this->aleppo->id]);
+        $damascus = $this->list('hope.damascus@hcsyria.org', ['rule_type' => 'custom', 'rule_city_id' => $this->damascus->id]);
+
+        $this->person('anna', $this->aleppo);
+
+        $this->assertSame(['anna@hcsyria.org'], $team->members()->pluck('email')->all());
+        $this->assertSame(['anna@hcsyria.org'], $aleppo->members()->pluck('email')->all());
+        $this->assertSame(MailListMember::PENDING, $aleppo->members()->first()->status);
+        $this->assertSame(0, $damascus->members()->count());
+
+        // Doing it again adds nobody twice.
+        $this->assertSame(0, app(MailListSync::class)->queueForPerson(Employee::query()->first()));
+    }
+
+    public function test_someone_who_leaves_is_flagged_for_removal_and_comes_back_when_reactivated(): void
+    {
+        $user = $this->person('anna', $this->aleppo);
+        $team = $this->list('team@hcsyria.org', ['rule_type' => 'all_staff'], ['anna@hcsyria.org' => 'active']);
+        $other = $this->list('misc@hcsyria.org', [], ['anna@hcsyria.org' => 'pending']);
+
+        $user->profile->update(['is_active' => false]);
+
+        // In the group at the control panel: flagged. Only queued here: dropped.
+        $this->assertSame(MailListMember::LEAVING, $team->members()->first()->status);
+        $this->assertSame(0, $other->members()->count());
+
+        $user->profile->update(['is_active' => true]);
+
+        $this->assertSame(MailListMember::ACTIVE, $team->members()->first()->status);
+    }
+
+    public function test_the_confirmer_clears_a_removal_and_hr_can_queue_one_from_the_check_page(): void
+    {
+        $user = $this->person('carla', $this->damascus, active: false);
+        $team = $this->list('team@hcsyria.org', ['rule_type' => 'all_staff'], ['carla@hcsyria.org' => 'active']);
+        $hr = $this->makeUser($this->aleppo, 'HR-ALP', ['mail-lists.manage']);
+        $mai = $this->makeUser($this->aleppo, 'employee', []);
+        $mai->givePermissionTo(Permission::findOrCreate('mail-lists.confirm', 'web'));
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $member = $team->members()->first();
+
+        Livewire::actingAs($hr)->test(Check::class)->call('queueRemoval', $member->id);
+        $this->assertSame(MailListMember::LEAVING, $member->fresh()->status);
+
+        // HR cannot confirm the removal; the holder of the control panel can, and sees the queue.
+        Livewire::actingAs($hr)->test(Index::class)->call('confirmRemoval', $member->id)->assertForbidden();
+        Livewire::actingAs($mai)->test(Index::class)
+            ->assertSeeHtml('data-testid="mail-lists-leaving"')
+            ->call('confirmRemovalEmail', 'carla@hcsyria.org');
+
+        $this->assertSame(0, $team->members()->count());
+        $this->assertInstanceOf(User::class, $user);
     }
 
     /** An employee with a contract running today and an account on the organisation's domain. */

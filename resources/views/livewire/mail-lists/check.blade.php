@@ -162,6 +162,12 @@
                                         <span class="flex shrink-0 items-center gap-1">
                                             <button type="button" x-on:click="copy(@js($person['email']))" title="{{ __('mail_lists.copy_email') }}" aria-label="{{ __('mail_lists.copy_email') }}"
                                                     class="grid size-8 place-items-center rounded-control text-ink-3 transition hover:bg-hover hover:text-ink">{!! $copyIcon !!}</button>
+                                            @if($canManage && ! $person['leaving'])
+                                                <button type="button" wire:click="queueRemoval({{ $person['id'] }})" title="{{ __('mail_lists.check.queue_removal') }}" aria-label="{{ __('mail_lists.check.queue_removal') }}"
+                                                        class="grid size-8 place-items-center rounded-control text-ink transition hover:bg-hover"><x-ic name="user" class="size-4" /></button>
+                                            @elseif($person['leaving'])
+                                                <x-tag variant="soft" :label="__('mail_lists.leaving_tag')" />
+                                            @endif
                                             @if($canManage)
                                                 <button type="button" wire:click="removeMember({{ $person['id'] }})" wire:confirm="{{ __('mail_lists.remove_confirm') }}" title="{{ __('mail_lists.remove') }}" aria-label="{{ __('mail_lists.remove') }}"
                                                         class="grid size-8 place-items-center rounded-control text-ink-3 transition hover:bg-hover hover:text-primary"><x-ic name="trash" class="size-4" /></button>

@@ -104,6 +104,22 @@ class Index extends Component
         $this->markActive(MailListMember::query()->pending()->where('email', Str::lower($email)));
     }
 
+    /** "Removed in the control panel": the person who left is no longer in the group, here either. */
+    public function confirmRemoval(int $memberId): void
+    {
+        $this->authorizeConfirmer();
+
+        MailListMember::query()->leaving()->whereKey($memberId)->delete();
+    }
+
+    /** Every removal of one person, across lists, at once. */
+    public function confirmRemovalEmail(string $email): void
+    {
+        $this->authorizeConfirmer();
+
+        MailListMember::query()->leaving()->where('email', Str::lower($email))->delete();
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -129,6 +145,7 @@ class Index extends Component
                     'account' => $profile !== null,
                     'external' => ! str_ends_with($member->email, '@'.MailList::DOMAIN) && $profile === null,
                     'pending' => $member->isPending(),
+                    'leaving' => $member->isLeaving(),
                 ];
             })->filter(fn (array $member) => $canManage || ! $member['former'])
                 ->sortBy(fn (array $member) => Str::lower($member['name'] ?? $member['email']))
@@ -176,7 +193,19 @@ class Index extends Component
                 ])->values()
             : collect();
 
+        // And who left and must be taken out of the groups there.
+        $leaving = $canConfirm
+            ? MailListMember::query()->leaving()->with('mailList')->orderBy('updated_at')->get()
+                ->groupBy('email')
+                ->map(fn ($members, $email) => [
+                    'email' => $email,
+                    'name' => ($accounts->get($email) ?? User::query()->where('email', $email)->with('profile')->first())?->profile?->name,
+                    'lists' => $members->pluck('mailList.address')->all(),
+                ])->values()
+            : collect();
+
         return view('livewire.mail-lists.index', [
+            'leaving' => $leaving,
             'rows' => $rows,
             'canManage' => $canManage,
             'canConfirm' => $canConfirm,
