@@ -120,6 +120,20 @@ class AddToDashboardTest extends TestCase
         $this->assertNotContains($key, array_column($this->saved($user), 'key'));
     }
 
+    public function test_a_record_card_of_a_person_without_a_username_has_no_page_and_does_not_break_the_dashboard(): void
+    {
+        $hr = $this->makeUser($this->alp, 'HR-ALP', ['employees.view']);
+        // Some imported people have no username, and the profile route is addressed by it.
+        $colleague = $this->makeEmployee($this->alp, 'no-username');
+        $colleague->forceFill(['username' => ''])->saveQuietly();
+        $key = DashboardLayout::recordKey('contact', $colleague->id);
+
+        Livewire::actingAs($hr)->test(AddToDashboard::class, ['tile' => $key, 'compact' => true])->call('toggle');
+
+        $this->assertNull((new DashboardLayout)->page($hr, $key));
+        $this->assertStringContainsString('data-key="'.$key.'"', Livewire::actingAs($hr)->test(Index::class)->html());
+    }
+
     public function test_a_card_the_person_may_not_have_is_neither_offered_nor_stored(): void
     {
         $user = $this->makeUser($this->alp, 'employee', ['leaves.view-own']);

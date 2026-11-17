@@ -132,6 +132,16 @@ class Contract extends Model
             ->whereDate($query->qualifyColumn('end_date'), '>=', now());
     }
 
+    /**
+     * Contracts working at $center: on a position placed at it, or on a
+     * position without a center in its city whose program it serves
+     * (Position::scopeServingCenter; Study Zone's volunteers).
+     */
+    public function scopeServingCenter(Builder $query, Center $center): Builder
+    {
+        return $query->whereHas('position', fn (Builder $position): Builder => $position->servingCenter($center));
+    }
+
     /** Restrict contracts to assignments belonging to one center. */
     public function scopeAtCenter(Builder $query, int $centerId): Builder
     {

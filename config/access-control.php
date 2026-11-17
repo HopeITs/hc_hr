@@ -763,6 +763,8 @@ return [
         'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
         'attendance.upload' => ['cancel'],
+        // UI-only: clears the employees tab's search and filters; render() rechecks employees.view.
+        'program-management.program.program-employees' => ['resetFilters'],
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.

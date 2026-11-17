@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -49,8 +50,23 @@ class Center extends Model
     }
 
     /**
-     * The current contracts of this center's managers: anyone holding an active
-     * contract on a Project Manager position located at the center.
+     * The programs this center serves, as HR set them on the center (a center
+     * may serve several). Read only for positions without a center of their
+     * own: see LeaveRequestPricing::programCenters() and
+     * programManagerContracts().
+     */
+    public function programs(): BelongsToMany
+    {
+        return $this->belongsToMany(Program::class);
+    }
+
+    /**
+     * The current contracts that may head this center: a position located at
+     * the center, at Project Manager level or above (grade 1-3), that reports
+     * to no one in the same center (2026-11-16). The head office's CEO reports
+     * to no one; its program managers report to him, so only he heads it, not
+     * a project manager of one of its programs. managerNames() keeps the most
+     * senior of these.
      */
     public function managerContracts(): HasManyThrough
     {
@@ -58,8 +74,44 @@ class Center extends Model
             ->activeNow()
             ->whereIn(
                 'positions.job_level_id',
-                JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
-            );
+                JobLevel::query()->where('grade', '<=', JobLevel::PROJECT_MANAGER_GRADE)->select('id'),
+            )
+            ->whereNotExists(fn ($superior) => $superior
+                ->selectRaw('1')
+                ->from('positions as center_superiors')
+                ->whereColumn('center_superiors.id', 'positions.direct_manager_id')
+                ->whereColumn('center_superiors.center_id', 'positions.center_id'));
+    }
+
+    /**
+     * The current contracts of the project managers of the programs this
+     * center serves, in its city, whose position has no center of its own
+     * (Study Zone: one manager per city runs every center of the program).
+     * Empty for a center that serves no program.
+     */
+    public function programManagerContracts(): Builder
+    {
+        $programIds = $this->programs->modelKeys();
+
+        return Contract::query()
+            ->activeNow()
+            ->whereHas('position', fn (Builder $position): Builder => self::programManagerPositions($position, $programIds, (int) $this->city_id))
+            ->when($programIds === [], fn (Builder $query) => $query->whereRaw('1 = 0'));
+    }
+
+    /**
+     * Constrain $positions to project-manager positions without a center,
+     * optionally of $programIds in $cityId.
+     *
+     * @param  array<int, int>|null  $programIds  null: any program
+     */
+    public static function programManagerPositions(Builder $positions, ?array $programIds = null, ?int $cityId = null): Builder
+    {
+        return $positions
+            ->whereNull($positions->qualifyColumn('center_id'))
+            ->whereIn($positions->qualifyColumn('job_level_id'), JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id'))
+            ->when($programIds !== null, fn (Builder $q) => $q->whereIn($positions->qualifyColumn('program_id'), $programIds))
+            ->when($cityId !== null, fn (Builder $q) => $q->where($positions->qualifyColumn('city_id'), $cityId));
     }
 
     /**
@@ -67,16 +119,16 @@ class Center extends Model
      *
      * Both the center headline and its employee directory use this query so a
      * person holding two positions is displayed and counted exactly once.
+     * Includes the volunteers of a program it serves whose position has no
+     * center (Contract::scopeServingCenter; Study Zone).
      */
     public function activeEmployeesQuery(): Builder
     {
-        $centerId = (int) $this->getKey();
-
         return Employee::query()->whereHas(
             'allContracts',
             fn (Builder $contracts): Builder => $contracts
                 ->activeNow()
-                ->atCenter($centerId),
+                ->servingCenter($this),
         );
     }
 
@@ -86,13 +138,51 @@ class Center extends Model
      */
     public function managerNames(): string
     {
-        $names = $this->managerContracts
+        // Of the people who may head the center, the most senior (lowest grade).
+        $contracts = $this->managerContracts->loadMissing('position.jobLevel');
+        $top = $contracts->min(fn (Contract $contract) => $contract->position?->jobLevel?->grade);
+        $contracts = $contracts->filter(fn (Contract $contract) => $contract->position?->jobLevel?->grade === $top);
+
+        if ($this->programs->isNotEmpty()) {
+            $contracts = $contracts->concat($this->programManagerContracts()->with('employee')->get());
+        }
+
+        $names = $contracts
             ->pluck('employee')
             ->filter()
             ->unique('id')
             ->map(fn (Employee $employee): string => $employee->name);
 
         return $names->isEmpty() ? '—' : $names->implode(', ');
+    }
+
+    /**
+     * Who manages this center for one program (its page's Center tab): the
+     * program's project managers at the center, or its manager for the
+     * center's city (a position without a center, as in Study Zone). A
+     * program with no manager of its own here falls back to the center's
+     * head, managerNames(): the head office shows the CEO for Hope Center
+     * and Micro Project's own project manager for Micro Project.
+     */
+    public function managerNamesFor(Program $program): string
+    {
+        $names = Contract::query()
+            ->activeNow()
+            ->with('employee')
+            ->whereHas('position', fn (Builder $position): Builder => $position
+                ->where('program_id', $program->id)
+                ->where(fn (Builder $here): Builder => $here
+                    ->where(fn (Builder $own): Builder => $own
+                        ->where('center_id', $this->id)
+                        ->whereIn('job_level_id', JobLevel::query()->where('grade', JobLevel::PROJECT_MANAGER_GRADE)->select('id')))
+                    ->orWhere(fn (Builder $city): Builder => self::programManagerPositions($city, [$program->id], (int) $this->city_id))))
+            ->get()
+            ->pluck('employee')
+            ->filter()
+            ->unique('id')
+            ->map(fn (Employee $employee): string => $employee->name);
+
+        return $names->isEmpty() ? $this->managerNames() : $names->implode(', ');
     }
 
     public function getActivitylogOptions(): LogOptions

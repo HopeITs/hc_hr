@@ -120,7 +120,11 @@ class PositionTable extends LivewireTable
         );
 
         if ($this->centerId) {
-            $query->where('positions.center_id', $this->centerId);
+            $center = Center::query()->find($this->centerId);
+
+            $center
+                ? $query->servingCenter($center)
+                : $query->whereRaw('1 = 0');
         }
         if ($this->cityId) {
             $query->where('positions.city_id', $this->cityId);

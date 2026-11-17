@@ -794,7 +794,10 @@ class DashboardLayout
         }
 
         if ($this->isRecord($key)) {
-            return route('employees.show', $this->recordEmployee($key)->username);
+            // The profile is addressed by username; a person imported without one has no page to open.
+            $username = $this->recordEmployee($key)?->username;
+
+            return filled($username) ? route('employees.show', $username) : null;
         }
 
         if ($this->isContractStat($key)) {

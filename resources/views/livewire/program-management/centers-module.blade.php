@@ -84,6 +84,20 @@
                 <x-error-span>{{ $errors->first('item.weekends') }}</x-error-span>
             </div>
 
+            <div class="col-span-full">
+                <x-forms.input-label for="programs">@lang('general.center-programs')</x-forms.input-label>
+                <p class="text-small text-ink-2 mb-2">@lang('general.center-programs-hint')</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    @foreach ($programs as $program)
+                        <x-forms.checkbox-input id="programs-{{ $program->id }}" type="checkbox" :value="$program->id"
+                            wire:model="item.programs">
+                            {{ $program->name }}
+                        </x-forms.checkbox-input>
+                    @endforeach
+                </div>
+                <x-error-span>{{ $errors->first('item.programs') ?: $errors->first('item.programs.*') }}</x-error-span>
+            </div>
+
             <div class="md:col-span-full flex justify-end gap-2">
                 <x-primary-button type="submit" class="!w-auto">@lang('general.save')</x-primary-button>
                 <x-modal.cancel-btn />

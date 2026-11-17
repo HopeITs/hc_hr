@@ -51,6 +51,21 @@ class ProgramCityCountTest extends TestCase
         $this->assertCardCountWorksWithTablePrefix($program);
     }
 
+    public function test_centers_linked_to_the_program_count_their_cities(): void
+    {
+        $aleppo = $this->createCity('Aleppo', 'ALP', '001');
+        $homs = $this->createCity('Homs', 'HMS', '002');
+        $program = Program::query()->create(['name' => 'Study Zone', 'code' => '006', 'slug' => 'SZ']);
+
+        // No position has a center: only the links say where the program is.
+        $this->createCenter('Study Zone Armenian', $homs)->programs()->attach($program);
+        $this->createCenter('Science Zone', $homs)->programs()->attach($program);
+        $this->createCenter('Science Zone Aleppo', $aleppo)->programs()->attach($program);
+        $this->createCenter('Hope Center', $aleppo);
+
+        $this->assertSame(2, Program::query()->withCardCounts()->findOrFail($program->id)->cities_count);
+    }
+
     private function createCity(string $name, string $slug, string $code): City
     {
         return City::query()->forceCreate([
@@ -91,7 +106,7 @@ class ProgramCityCountTest extends TestCase
 
     private function assertCardCountWorksWithTablePrefix(Program $program): void
     {
-        foreach (['programs', 'centers', 'positions', 'contracts'] as $table) {
+        foreach (['programs', 'centers', 'positions', 'contracts', 'center_program'] as $table) {
             DB::statement("create temporary view hchr_{$table} as select * from {$table}");
         }
 
