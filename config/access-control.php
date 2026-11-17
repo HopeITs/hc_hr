@@ -262,6 +262,13 @@ return [
             'removeSigned' => 'attendance.manage',
         ],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
+        'mail-lists.check' => [
+            'editRule' => 'mail-lists.manage',
+            'saveRule' => 'mail-lists.manage',
+            'queueMissing' => 'mail-lists.manage',
+            'queueOne' => 'mail-lists.manage',
+            'removeMember' => 'mail-lists.manage',
+        ],
         'mail-lists.index' => [
             'addMember' => 'mail-lists.manage',
             'confirmMember' => 'mail-lists.confirm',
@@ -769,6 +776,7 @@ return [
         'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
         'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
+        'mail-lists.check' => ['cancelRule'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.

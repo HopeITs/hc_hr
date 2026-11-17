@@ -11,7 +11,15 @@
      x-on:keydown.escape.window="$wire.closeList()">
     <x-slot:title>{{ __('mail_lists.title') }}</x-slot:title>
 
-    <x-page-header :title="__('mail_lists.title')" :lead="__('mail_lists.lead')" />
+    <x-page-header :title="__('mail_lists.title')" :lead="__('mail_lists.lead')">
+        @if($canManage)
+            <x-slot:actions>
+                <x-button variant="outline" size="sm" :href="route('mail-lists.check')">
+                    <x-ic name="check-circle" class="size-4" /> @lang('mail_lists.check.open')
+                </x-button>
+            </x-slot:actions>
+        @endif
+    </x-page-header>
 
     {{-- Only the person who holds the control panel sees this: who was added here and still has to be added there. --}}
     @if($canConfirm)

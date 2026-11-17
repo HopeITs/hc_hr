@@ -7,6 +7,7 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Models\AttendanceDayDecision;
 use App\Models\AttendanceMonth;
 use App\Models\Employee;
+use App\Models\MailList;
 use App\Services\Attendance\Grouping;
 use App\Services\Attendance\MonthWorkflow;
 use App\Services\Attendance\Roster;
@@ -274,6 +275,8 @@ class Timesheets extends Component
         return view('livewire.attendance.timesheets', [
             'blocks' => app(Grouping::class)->group($items, $by),
             'summary' => $summary,
+            // The mailing lists that stand for a city, project or department: "Email this group".
+            'mailLists' => MailList::customRuled(),
             'by' => $by,
             'days' => $days,
             'cities' => $roster->cities(auth()->user()),
