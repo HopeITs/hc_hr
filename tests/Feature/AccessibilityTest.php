@@ -272,15 +272,19 @@ class AccessibilityTest extends TestCase
             app()->setLocale($locale);
             $html = Blade::render('<x-theme-toggle />');
 
-            $this->assertStringContainsString(':aria-pressed="dark.toString()"', $html);
+            // No pressed state: the name itself flips ("Dark mode" <-> "Light mode").
+            $this->assertStringNotContainsString('aria-pressed', $html);
             $this->assertStringContainsString('aria-label="'.$name.'"', $html);
+            $this->assertStringContainsString(':aria-label="dark ?', $html);
             $this->assertStringContainsString('size-11', $html, '44px target');
         }
 
-        // In the account menu it is a checkbox menu item, a full-width 44px row.
+        // In the account menu it is a menu item whose text flips with the theme, a full-width 44px row.
+        app()->setLocale('en');
         $menu = Blade::render('<x-theme-toggle :menu="true" />');
-        $this->assertStringContainsString('role="menuitemcheckbox"', $menu);
-        $this->assertStringContainsString(':aria-checked="dark.toString()"', $menu);
+        $this->assertStringContainsString('role="menuitem"', $menu);
+        $this->assertStringContainsString('x-text="dark ? ', $menu);
+        $this->assertStringContainsString('Light mode', $menu);
         $this->assertStringContainsString('min-h-11', $menu);
     }
 

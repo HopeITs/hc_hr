@@ -195,4 +195,14 @@ return [
         'time-range' => ':date, :from to :to',
     ],
 
+    // The balance behind a request, shown to whoever decides it.
+    'decision_balance' => [
+        'title' => 'Leave balance of this type',
+        'available' => 'Available now',
+        'requested' => 'This request',
+        'pending_others' => 'Other pending requests',
+        'after' => 'Left if accepted',
+        'short' => 'Short by :amount',
+    ],
+
 ];

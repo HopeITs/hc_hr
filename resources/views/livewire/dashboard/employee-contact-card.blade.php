@@ -30,8 +30,10 @@
             </div>
 
             @php
+                // The email opens a new message with their direct manager on CC.
+                $mailto = $employee->mailtoUrl(\App\Models\Employee::directManagerEmails([$employee])[$employee->id] ?? null);
                 $lines = array_filter([
-                    __('general.email') => $email ? ['mailto:'.$email, $email] : null,
+                    __('general.email') => $email ? [$mailto ?? 'mailto:'.$email, $email] : null,
                     __('general.work-phone') => $employee->work_phone ? ['tel:'.$employee->work_phone, $employee->work_phone] : null,
                     'WhatsApp' => $employee->whatsapp_work ? [null, $employee->whatsapp_work] : null,
                     'Telegram' => $employee->telegram_work ? [null, $employee->telegram_work] : null,

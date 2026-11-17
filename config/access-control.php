@@ -32,6 +32,9 @@ return [
     'never_granted_to_roles' => [
         'recruitment-requests.approve-finance',
         'recruitment-requests.submit-without-manager',
+        // Whoever holds the mail provider's control panel confirms that people were added to the
+        // groups there. Granted to that one person from Access Management, never to a role.
+        'mail-lists.confirm',
         // Not person-identifying, but held back from every bulk grant for the
         // same reason: candidate export and erasure are answerable acts, so a
         // new HR role must not arrive able to do either. They are read with
@@ -93,6 +96,7 @@ return [
             'checklists.manage', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            'attendance.view-own', 'attendance.view',
             // Recruitment: the CEO and his deputy hold this role, so they both
             // raise requests and approve their direct reports' requests.
             'recruitment-requests.view', 'recruitment-requests.manage',
@@ -117,6 +121,8 @@ return [
             'checklists.view-own', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            // Their own timesheet and their direct reports' (Roster).
+            'attendance.view-own', 'attendance.view',
             // Recruitment: the same role covers both sides of the first step —
             // a manager raises his own requests and approves his direct
             // reports'. Holding 'approve' is never sufficient on its own; the
@@ -135,6 +141,7 @@ return [
             'leaves.create', 'leaves.update', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download', 'checklists.view-own', 'project-basics.view',
+            'attendance.view-own',
         ],
     ],
 
@@ -153,6 +160,14 @@ return [
         'archives' => ['view', 'create', 'update', 'delete', 'share', 'download'],
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
+        'message-templates' => ['manage', 'use'],
+        // 'confirm' is one named person's (never a role's): see never_granted_to_roles.
+        'mail-lists' => ['manage', 'confirm'],
+        // Attendance from the device report, scoped by the active role like the other pages: `view-own` is
+        // every role's (an employee sees only their own timesheet); `view` lifts it to the people the role
+        // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
+        // the administrators: everyone); `manage` (HR) uploads the report, links numbers and decides days.
+        'attendance' => ['view-own', 'view', 'manage'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -224,6 +239,42 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
+        // Attendance: uploading, linking device numbers and deciding days. Each also checks the
+        // permission and the city scope inside.
+        'attendance.upload' => [
+            'updatedFile' => 'attendance.manage',
+            'import' => 'attendance.manage',
+            'linkNumber' => 'attendance.manage',
+        ],
+        // Each also checks who the person is and what the viewer may do with their month (MonthWorkflow).
+        'attendance.timesheets' => [
+            'openDay' => 'attendance.view',
+            'saveDecision' => 'attendance.view',
+            'clearDecision' => 'attendance.view',
+            'openMonth' => 'attendance.view-own',
+            'confirmMonth' => 'attendance.view-own',
+            'approveMonth' => 'attendance.view',
+            'approveAllReady' => 'attendance.view',
+            'lockMonth' => 'attendance.manage',
+            'lockAllApproved' => 'attendance.manage',
+            'reopenMonth' => 'attendance.manage',
+            'saveSigned' => 'attendance.manage',
+            'removeSigned' => 'attendance.manage',
+        ],
+        // HR's email and WhatsApp templates. The component re-checks the permission itself.
+        'mail-lists.index' => [
+            'addMember' => 'mail-lists.manage',
+            'confirmMember' => 'mail-lists.confirm',
+            'confirmEmail' => 'mail-lists.confirm',
+            'removeMember' => 'mail-lists.manage',
+            'deleteList' => 'mail-lists.manage',
+        ],
+        'messages.template-manager' => [
+            'edit' => 'message-templates.manage',
+            'save' => 'message-templates.manage',
+            'toggleActive' => 'message-templates.manage',
+            'delete' => 'message-templates.manage',
+        ],
         // saveAndSubmit writes the same draft as save(), then submits only when the
         // request's submit policy allows it.
         'recruitment.requests.create' => [
@@ -708,6 +759,16 @@ return [
     */
 
     'livewire_exempt' => [
+        // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
+        'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
+        // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
+        'attendance.upload' => ['cancel'],
+        // UI-only: clears the employees tab's search and filters; render() rechecks employees.view.
+        'program-management.program.program-employees' => ['resetFilters'],
+        // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
+        'messages.template-manager' => ['newTemplate', 'resetForm'],
+        // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
+        'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.

@@ -437,6 +437,19 @@
                                                         <p class="truncate text-caption text-ink-2">{{ $entry['position'] }}</p>
                                                         @if ($entry['substitute'])
                                                             <p class="truncate text-caption text-ink-2">{{ __('team_calendar.substitute', ['name' => $entry['substitute']]) }}</p>
+                                                            {{-- The cover is away on some of the same days: a gap, shown before it happens. --}}
+                                                            @if ($entry['cover_gap_dates'] !== [])
+                                                                <p class="flex items-center gap-1 text-caption font-semibold text-ink" data-testid="cover-gap">
+                                                                    <x-ic name="warning" class="size-3.5 shrink-0" />
+                                                                    {{ __('team_calendar.cover_also_away', ['dates' => collect($entry['cover_gap_dates'])->map(fn (string $d) => \Carbon\Carbon::parse($d)->format('d-m'))->implode('، ')]) }}
+                                                                </p>
+                                                            @endif
+                                                        @elseif ($entry['status'] !== null)
+                                                            {{-- Manager level only (a colleague entry has no status): nobody named to cover. --}}
+                                                            <p class="truncate text-caption text-ink-2" data-testid="no-cover">{{ __('team_calendar.no_cover') }}</p>
+                                                        @endif
+                                                        @if ($entry['covers_you'])
+                                                            <p class="truncate text-caption font-semibold text-ink" data-testid="you-cover">{{ __('team_calendar.you_cover') }}</p>
                                                         @endif
                                                     </div>
                                                     <div class="shrink-0 text-end">

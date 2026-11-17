@@ -7,6 +7,8 @@ use App\Livewire\Concerns\ScopesToAuthorizedCity;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Contract;
+use App\Models\Position;
 use App\Models\User;
 use App\Notifications\CenterClosed;
 use Illuminate\Database\Eloquent\Builder;
@@ -118,8 +120,21 @@ class CentersTable extends LivewireTable
         // filters, and exportExcel() (which builds on appliedQuery()) at once.
         return $this->scopeToAuthorizedCity(
             $this->model()::query()
-                ->with(['city', 'managerContracts.employee'])
-                ->withCount('positions'),
+                ->with(['city', 'managerContracts.employee', 'managerContracts.position.jobLevel', 'programs'])
+                ->withCount('positions')
+                // Positions without a center in its city whose program it serves
+                // (Position::scopeServingCenter): shared with that program's
+                // other centers there, so they are counted apart.
+                ->addSelect(['shared_positions_count' => Position::query()
+                    ->selectRaw('count(*)')
+                    ->whereNull('positions.center_id')
+                    ->whereColumn('positions.city_id', 'centers.city_id')
+                    ->whereExists(fn ($links) => $links
+                        ->selectRaw('1')
+                        ->from('center_program')
+                        ->whereColumn('center_program.center_id', 'centers.id')
+                        ->whereColumn('center_program.program_id', 'positions.program_id')),
+                ]),
         );
     }
 
@@ -171,9 +186,30 @@ class CentersTable extends LivewireTable
                 ->sortable()->searchable(),
             Column::make(__('general.center-manager'), fn (Model $m): string => $m->managerNames(), 'center_manager')
                 ->searchable(function (Builder $query, $value): void {
-                    $query->whereHas('managerContracts.employee', fn (Builder $employee) => $employee->whereLikeAny([
+                    $named = fn (Builder $employee) => $employee->whereLikeAny([
                         'first_name_en', 'last_name_en', 'first_name_ar', 'last_name_ar',
-                    ], (string) $value));
+                    ], (string) $value);
+
+                    // A program's project manager without a center of their own
+                    // manages the centers serving that program in their city.
+                    $programManagers = Contract::query()
+                        ->activeNow()
+                        ->whereHas('employee', $named)
+                        ->whereHas('position', fn (Builder $position) => Center::programManagerPositions($position))
+                        ->with('position:id,program_id,city_id')
+                        ->get()
+                        ->map(fn (Contract $contract) => [$contract->position->program_id, $contract->position->city_id])
+                        ->unique(fn (array $pair) => implode(':', $pair));
+
+                    $query->where(function (Builder $query) use ($named, $programManagers): void {
+                        $query->whereHas('managerContracts.employee', $named);
+
+                        foreach ($programManagers as [$programId, $cityId]) {
+                            $query->orWhere(fn (Builder $center) => $center
+                                ->where('city_id', $cityId)
+                                ->whereHas('programs', fn (Builder $program) => $program->whereKey($programId)));
+                        }
+                    });
                 }),
 
             Column::make(__('general.working-hours'), 'open_at')
@@ -226,13 +262,17 @@ class CentersTable extends LivewireTable
                     $classes = 'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium '.'border shadow-sm transition '.($m->is_active ? 'bg-surface text-ink border-line-soft ' : 'bg-card text-ink border-line-soft hover:bg-hover hover:border-line');
 
                     $count = $m->positions_count ?? 0;
+                    $shared = (int) ($m->shared_positions_count ?? 0);
                     $badge = '<span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-caption bg-current/10">'.$count.'</span>';
+                    $sharedNote = $shared > 0
+                        ? '<span class="text-caption text-ink-2">'.e(trans_choice('general.shared-positions', $shared, ['count' => $shared])).'</span>'
+                        : '';
 
                     return Blade::render(
                         '<a href="'.$url.'" wire:navigate class="'.$classes.'" title="'.e(__('general.positions')).'">
                 <i class="ti ti-briefcase text-base"></i>
                 <span>'.e(trans_choice('general.positions', 2)).'</span>'.
-                            $badge.
+                            $badge.$sharedNote.
                             '</a>',
                     );
                 })->asHtml()->visible($canViewPositions)->clickable(false),

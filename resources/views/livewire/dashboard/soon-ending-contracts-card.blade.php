@@ -61,6 +61,10 @@
                     <p class="text-body font-semibold text-primary whitespace-nowrap">
                         <bdi>{{ \Carbon\Carbon::parse($contract->end_date)->format('d/m/Y') }}</bdi>
                     </p>
+                    @if ($contract->dont_renew_url)
+                        <a href="{{ $contract->dont_renew_url }}" title="{{ __('renewal.dont_renew.hint') }}"
+                           class="mt-1 text-small font-semibold underline text-ink hover:text-primary">@lang('renewal.dont_renew.action')</a>
+                    @endif
                 </div>
 
             </div>

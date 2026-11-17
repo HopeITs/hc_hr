@@ -5,6 +5,7 @@ namespace App\Livewire\Dashboard;
 use App\Livewire\Concerns\HandlesLoadFailure;
 use App\Livewire\Contract\ContractsTable;
 use App\Models\Contract;
+use App\Services\ContractNonRenewalMail;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Lazy;
@@ -62,6 +63,13 @@ class SoonEndingContractsCard extends Component
             // dashboard render.
             $contract->employee_photo = $employee?->avatar_url ?? asset('images/default-avatar.png');
             $contract->view_route = route('contracts.show', ['contract' => $contract->id]);
+
+            // A manager seeing one of their team's contracts: "Don't renew"
+            // opens an email to the city's HR, direct manager on CC.
+            $mail = app(ContractNonRenewalMail::class);
+            $contract->dont_renew_url = $mail->isManagerOf($contract, auth()->user())
+                ? $mail->url($contract, auth()->user())
+                : null;
         });
 
         return $contracts;

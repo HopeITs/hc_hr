@@ -6,6 +6,7 @@ use App\Livewire\Concerns\ScopesToAuthorizedCity;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Program;
 use App\Models\User;
 use App\Notifications\NewCenterCreated;
 use Illuminate\Support\Facades\Gate;
@@ -26,6 +27,7 @@ class CenterCreate extends Component
         'weekends' => [],
         'open_at' => null,
         'close_at' => null,
+        'programs' => [],
     ];
 
     protected $rules = [
@@ -37,6 +39,8 @@ class CenterCreate extends Component
         'item.weekends' => 'required|array',
         'item.open_at' => 'required',
         'item.close_at' => 'required',
+        'item.programs' => 'array',
+        'item.programs.*' => 'integer|exists:programs,id',
     ];
 
     public function save()
@@ -50,6 +54,7 @@ class CenterCreate extends Component
 
         $this->item['weekends'] = implode(',', $this->item['weekends']);
         $center = Center::create($this->item);
+        $center->programs()->sync($this->item['programs']);
         $center->load('city');
 
         User::sendBroadcast(new NewCenterCreated($center), $center->city_id);
@@ -66,6 +71,8 @@ class CenterCreate extends Component
         $cities = ($cityIds === null ? City::query() : City::query()->whereKey($cityIds))
             ->get(['id', transColumn('name')]);
 
-        return view('livewire.program-management.center.center-create', compact('cities'));
+        $programs = Program::query()->orderBy('name')->get(['id', 'name']);
+
+        return view('livewire.program-management.center.center-create', compact('cities', 'programs'));
     }
 }

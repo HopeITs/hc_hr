@@ -145,6 +145,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // A new account on the organisation's domain joins the all-staff mail list as
+        // pending (MailList::queueNewAccount). It must never stop an account being made.
+        \App\Models\User::created(function (\App\Models\User $user): void {
+            try {
+                \App\Models\MailList::queueNewAccount($user);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
         // Spatie forgets its cache key on every grant or revocation; User drops
         // its memoized roles and permissions when the generation moves on.
         Event::listen(function (KeyForgotten $event): void {

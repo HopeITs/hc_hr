@@ -120,7 +120,7 @@
                     @endif
 
                     @if ($email)
-                        <a href="mailto:{{ $email }}"
+                        <a href="{{ $member->mailto ?? 'mailto:'.$email }}"
                             class="transition text-ink-3 hover:text-ink" title="{{ __('dashboard.send-email') }}" aria-label="{{ __('dashboard.send-email') }}">
                             <x-icons.envelope class="transition text-ink-3 ms-1 hover:text-ink" />
                         </a>

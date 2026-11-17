@@ -16,6 +16,8 @@
     ];
     $positionName = $currentPosition?->title ?? $notSpecified;
     $workEmail = $employee->account?->email;
+    // New message to the employee with their direct manager on CC.
+    $workMailto = $employee->mailtoUrl(\App\Models\Employee::directManagerEmails([$employee])[$employee->id] ?? null);
     $directManagerName = $directManager?->name;
 @endphp
 
@@ -76,8 +78,15 @@
                                 <x-icons.edit class="h-4 w-4" /> <span class="hidden min-[701px]:inline">@lang('general.edit')</span>
                             </x-button>
                         @endif
+                        <x-message-template-menu :employee="$employee" />
+                        {{-- Their attendance timesheet, for whoever may see it (their own, their team's, their city's). --}}
+                        @if (auth()->user()->hasActivePermission('attendance.view-own') && app(\App\Services\Attendance\Roster::class)->covers(auth()->user(), $employee))
+                            <x-button variant="outline" size="sm" icon="calendar" :href="route('attendance.timesheets', ['search' => $employee->id])" data-testid="profile-attendance-link">
+                                <span class="hidden min-[701px]:inline">@lang('attendance.nav')</span>
+                            </x-button>
+                        @endif
                         @if ($workEmail)
-                            <x-button variant="outline" size="sm" :href="'mailto:'.$workEmail" :wire:navigate="false" :title="__('general.email')" :aria-label="__('general.email')" class="min-w-0">
+                            <x-button variant="outline" size="sm" :href="$workMailto" :wire:navigate="false" :title="__('general.email')" :aria-label="__('general.email')" class="min-w-0">
                                 <x-icons.envelope class="h-4 w-4 shrink-0" /> <span
                                     class="hidden min-w-0 truncate min-[701px]:inline">@lang('general.email')</span>
                             </x-button>
@@ -308,7 +317,7 @@
                         </div>
                     </x-slot:action>
                     <div class="space-y-3 text-body">
-                        @foreach ([[__('general.email'), $workEmail, 'icons.envelope', $workEmail ? 'mailto:' . $workEmail : null], [__('general.work-phone'), $employee->work_phone, 'icons.phone', $employee->work_phone ? 'tel:' . $employee->work_phone : null], ['WhatsApp', $employee->whatsapp_work, 'icons.whatsapp', null], ['Telegram', $employee->telegram_work, 'icons.telegram', null]] as [$label, $value, $icon, $href])
+                        @foreach ([[__('general.email'), $workEmail, 'icons.envelope', $workMailto], [__('general.work-phone'), $employee->work_phone, 'icons.phone', $employee->work_phone ? 'tel:' . $employee->work_phone : null], ['WhatsApp', $employee->whatsapp_work, 'icons.whatsapp', null], ['Telegram', $employee->telegram_work, 'icons.telegram', null]] as [$label, $value, $icon, $href])
                             @if ($value)
                                 <div class="flex min-w-0 items-center gap-3 rounded-surface bg-soft p-3">
                                     <x-dynamic-component :component="$icon"

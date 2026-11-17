@@ -30,6 +30,21 @@ class WorkContactOnlyTest extends TestCase
         $this->assertSame('rami@hopecenter.org', $employee->fresh()->work_email);
     }
 
+    public function test_mailto_url_copies_the_manager_and_never_the_recipient_twice(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $employee = $this->makeEmployee($aleppo, 'rami');
+
+        $this->assertNull($employee->mailtoUrl('boss@hopecenter.org'), 'no work email, no link');
+
+        User::factory()->create(['employee_id' => $employee->id, 'email' => 'rami@hopecenter.org']);
+        $employee = $employee->fresh();
+
+        $this->assertSame('mailto:rami%40hopecenter.org', $employee->mailtoUrl());
+        $this->assertSame('mailto:rami%40hopecenter.org?cc=boss%40hopecenter.org', $employee->mailtoUrl('boss@hopecenter.org'));
+        $this->assertSame('mailto:rami%40hopecenter.org', $employee->mailtoUrl('RAMI@hopecenter.org'));
+    }
+
     public function test_the_profile_drawer_shows_only_work_contact(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

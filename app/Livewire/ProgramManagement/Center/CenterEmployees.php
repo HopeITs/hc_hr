@@ -42,7 +42,7 @@ class CenterEmployees extends Component
                 'media',
                 'allContracts' => fn ($contracts) => $contracts
                     ->activeNow()
-                    ->atCenter($this->centerId)
+                    ->servingCenter($center)
                     ->with('position.program')
                     ->orderByDesc('start_date')
                     ->orderByDesc('id'),
@@ -71,20 +71,20 @@ class CenterEmployees extends Component
         $parts = preg_split('/\s+/u', trim($this->search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         return $center->activeEmployeesQuery()
-            ->when($parts !== [], function (Builder $employees) use ($parts): void {
+            ->when($parts !== [], function (Builder $employees) use ($parts, $center): void {
                 foreach ($parts as $part) {
                     $term = "%{$part}%";
 
-                    $employees->where(function (Builder $match) use ($term): void {
+                    $employees->where(function (Builder $match) use ($term, $center): void {
                         $match->where('first_name_en', 'like', $term)
                             ->orWhere('first_name_ar', 'like', $term)
                             ->orWhere('last_name_en', 'like', $term)
                             ->orWhere('last_name_ar', 'like', $term)
                             ->orWhere('username', 'like', $term)
-                            ->orWhereHas('allContracts', function (Builder $contracts) use ($term): void {
+                            ->orWhereHas('allContracts', function (Builder $contracts) use ($term, $center): void {
                                 $contracts
                                     ->activeNow()
-                                    ->atCenter($this->centerId)
+                                    ->servingCenter($center)
                                     ->where(function (Builder $assignment) use ($term): void {
                                         $assignment
                                             ->whereHas('position', fn (Builder $position): Builder => $position

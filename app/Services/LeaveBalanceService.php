@@ -210,6 +210,8 @@ class LeaveBalanceService
             $balance->update([
                 'deserved' => (int) round($used + $left * $ratio),
                 'amendment_offset' => round($used * (1 - $ratio) + (float) $balance->amendment_offset * $ratio, 2),
+                // Free days from overtime keep their number of days when the working day changes.
+                'overtime_credit' => round((float) $balance->overtime_credit * $ratio, 2),
             ]);
         }
     }
