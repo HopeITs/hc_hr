@@ -62,6 +62,7 @@
                             <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.device')</th>
                             <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.center')</th>
                             <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.state')</th>
+                            <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.key-title')</th>
                             <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.last-seen')</th>
                             <th scope="col" class="px-4 py-2 text-start font-semibold">@lang('attendance.devices.last-punch')</th>
                             <th scope="col" class="px-4 py-2"></th>
@@ -72,7 +73,7 @@
                             @php($health = $device->health())
                             <tr class="border-t border-line-soft align-top" wire:key="device-{{ $device->id }}" data-health="{{ $health }}">
                                 @if($editingId === $device->id)
-                                    <td class="px-4 py-3" colspan="5">
+                                    <td class="px-4 py-3" colspan="6">
                                         <form wire:submit.prevent="saveDevice" class="flex flex-wrap items-start gap-3">
                                             <x-forms.input wire:model="editName" aria-label="{{ __('attendance.devices.name') }}" class="w-56" />
                                             <div>
@@ -101,6 +102,23 @@
                                             <x-status :tone="$tone[$health][0]" :icon="$tone[$health][1]" :label="__('attendance.devices.health.'.$health)" />
                                         @endif
                                     </td>
+                                    <td class="px-4 py-3 text-small">
+                                        @if($device->hasAgentKey())
+                                            <span class="block font-semibold text-ink num" dir="ltr">zk_••••{{ $device->agent_key_hint }}</span>
+                                            <span class="block text-caption text-ink-2">
+                                                @if($device->agent_last_sync_at)
+                                                    @lang('attendance.devices.agent-last'): <bdi class="num">{{ $device->agent_last_sync_at->diffForHumans() }}</bdi>
+                                                @else
+                                                    @lang('attendance.devices.agent-never')
+                                                @endif
+                                            </span>
+                                            <button type="button" wire:click="createKey({{ $device->id }})" wire:confirm="{{ __('attendance.devices.key-regenerate-confirm') }}" class="text-small underline text-ink hover:text-primary">@lang('attendance.devices.key-regenerate')</button>
+                                            <button type="button" wire:click="revokeKey({{ $device->id }})" wire:confirm="{{ __('attendance.devices.key-revoke-confirm') }}" class="ms-2 text-small underline text-ink-2 hover:text-primary">@lang('attendance.devices.key-revoke')</button>
+                                        @else
+                                            <span class="block text-ink-2">@lang('attendance.devices.key-none')</span>
+                                            <button type="button" wire:click="createKey({{ $device->id }})" class="text-small underline text-ink hover:text-primary">@lang('attendance.devices.key-create')</button>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-small text-ink-2 num whitespace-nowrap">{{ $device->last_seen_at?->diffForHumans() ?? '—' }}</td>
                                     <td class="px-4 py-3 text-small text-ink-2 num whitespace-nowrap"><bdi>{{ $device->last_punch_at?->format('d/m/Y H:i') ?? '—' }}</bdi></td>
                                     <td class="px-4 py-3 text-end whitespace-nowrap">
@@ -110,6 +128,20 @@
                                     </td>
                                 @endif
                             </tr>
+                            {{-- A key just made: shown once, here, and never again. --}}
+                            @if($newKey && $keyForId === $device->id)
+                                <tr wire:key="device-key-{{ $device->id }}" class="bg-soft" data-testid="new-key">
+                                    <td colspan="7" class="px-4 py-3">
+                                        <p class="font-semibold text-ink">@lang('attendance.devices.key-shown-once')</p>
+                                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                                            <code class="select-all rounded bg-card px-3 py-2 text-body font-semibold text-ink" dir="ltr">{{ $newKey }}</code>
+                                            <x-button size="sm" variant="outline" :loading="false" x-data="{}" x-on:click="navigator.clipboard.writeText($el.dataset.key)" data-key="{{ $newKey }}">@lang('attendance.devices.key-copy')</x-button>
+                                            <x-button size="sm" variant="quiet" wire:click="hideKey">@lang('attendance.devices.key-hide')</x-button>
+                                        </div>
+                                        <p class="mt-2 text-small text-ink-2">@lang('attendance.devices.key-use')</p>
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>

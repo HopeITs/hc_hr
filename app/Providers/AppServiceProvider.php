@@ -194,6 +194,9 @@ class AppServiceProvider extends ServiceProvider
         // and by address when it does not say who it is.
         RateLimiter::for('iclock', fn (Request $request) => Limit::perMinute(300)
             ->by((string) ($request->query('SN') ?? $request->query('sn') ?? $request->ip())));
+        // The agent calls every ten minutes, in a few batches. Per key (or per address when it sends none).
+        RateLimiter::for('attendance-agent', fn (Request $request) => Limit::perMinute(60)
+            ->by(sha1((string) ($request->bearerToken() ?: $request->ip()))));
         RateLimiter::for('careers-view', fn (Request $request) => Limit::perMinute(60)
             ->by($request->ip()));
         // Asking "is this address invited?" tells the asker, so it is the one

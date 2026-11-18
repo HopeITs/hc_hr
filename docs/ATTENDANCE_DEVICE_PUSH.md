@@ -66,6 +66,15 @@ Allow port 8081 through the computer's firewall, then on the device set Server A
 address (e.g. `192.168.1.67`), Port `8081`, HTTPS **OFF**, Enable Domain Name OFF. The device appears on the
 Devices page. Change the device back when done.
 
+## The LAN agent (when the device cannot push)
+
+A device that never calls the cloud server (or a center whose network blocks it) is read by a small program on a
+computer in the same network: `tools/attendance-agent` (see its README). On **Attendance → Devices** make a sync key
+for the device (shown once), put it in the agent's `config.json`, and schedule `node agent.cjs` every 10 minutes.
+The agent calls `GET /api/attendance/agent/state` (where the website's punches reach) and
+`POST /api/attendance/agent/punches` (batches of up to 2000), with `Authorization: Bearer zk_…`. The same rules
+apply as for a push: once per device number + minute, locked months skipped, approvals withdrawn.
+
 ## Not here
 
 - Names of the people on the device are not read yet (they would let the system suggest who each number is).

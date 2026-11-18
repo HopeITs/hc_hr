@@ -104,18 +104,34 @@ class DevicePush
             }
         }
 
-        DB::transaction(function () use ($device, $punches, $stamp) {
+        $this->ingestPunches($device, $punches, $stamp);
+
+        return $lines;
+    }
+
+    /**
+     * Take in punches that are already read: from the device's own push (above) or from an agent that read the
+     * device on its local network. Returns how many were new and how many fell in a locked month.
+     *
+     * @param  list<array{device_no: string, at: CarbonImmutable}>  $punches
+     * @return array{new: int, locked: int}
+     */
+    public function ingestPunches(AttendanceDevice $device, array $punches, ?string $stamp = null, string $source = 'device'): array
+    {
+        $result = ['new' => 0, 'locked' => 0];
+
+        DB::transaction(function () use ($device, $punches, $stamp, $source, &$result) {
             if ($punches !== []) {
-                $import = $this->dayImport($device);
-                $stored = $this->importer->store($punches, $import, $device->id);
+                $import = $this->dayImport($device, $source);
+                $result = $this->importer->store($punches, $import, $device->id);
                 $times = array_column($punches, 'at');
                 $first = min($times)->toDateString();
                 $last = max($times)->toDateString();
 
                 $import->update([
                     'punches_total' => $import->punches_total + count($punches),
-                    'punches_new' => $import->punches_new + $stored['new'],
-                    'punches_locked' => $import->punches_locked + $stored['locked'],
+                    'punches_new' => $import->punches_new + $result['new'],
+                    'punches_locked' => $import->punches_locked + $result['locked'],
                     'device_numbers' => max($import->device_numbers, count(array_unique(array_column($punches, 'device_no')))),
                     'period_start' => $import->period_start === null || $import->period_start->toDateString() > $first ? $first : $import->period_start,
                     'period_end' => $import->period_end === null || $import->period_end->toDateString() < $last ? $last : $import->period_end,
@@ -130,14 +146,14 @@ class DevicePush
             ])->save();
         });
 
-        return $lines;
+        return $result;
     }
 
     /** One import row per device per day, so the history reads "Hope Center · 2026-11-17" and not a row per push. */
-    private function dayImport(AttendanceDevice $device): AttendanceImport
+    private function dayImport(AttendanceDevice $device, string $source = 'device'): AttendanceImport
     {
         return AttendanceImport::query()->firstOrCreate([
-            'source' => 'device',
+            'source' => $source,
             'device_id' => $device->id,
             'file_name' => ($device->name ?: $device->serial).' · '.now()->toDateString(),
         ]);

@@ -249,6 +249,8 @@ return [
             'saveDevice' => 'attendance.manage',
             'toggleBlock' => 'attendance.manage',
             'removeDevice' => 'attendance.manage',
+            'createKey' => 'attendance.manage',
+            'revokeKey' => 'attendance.manage',
         ],
         'attendance.upload' => [
             'updatedFile' => 'attendance.manage',
@@ -789,7 +791,7 @@ return [
         // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
         'messages.template-manager' => ['newTemplate', 'resetForm'],
         // Closes the device edit row; writes nothing.
-        'attendance.devices' => ['cancelEdit'],
+        'attendance.devices' => ['cancelEdit', 'hideKey'],
         // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
         'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
         'mail-lists.check' => ['cancelRule'],
