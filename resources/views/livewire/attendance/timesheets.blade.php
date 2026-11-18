@@ -218,7 +218,7 @@
                 @endif
                 {{-- The mailing list that stands for this city, when there is one. --}}
                 @if($cityList = \App\Models\MailList::emailFor($block['id'] ? (int) $block['id'] : null, null, null, $mailLists))
-                    <a href="mailto:{{ $cityList->address }}" data-testid="email-city" class="inline-flex min-h-8 items-center gap-1.5 text-small font-semibold text-ink-2 underline hover:text-ink">
+                    <a href="{{ $cityList->mailto() }}" data-testid="email-city" class="inline-flex min-h-8 items-center gap-1.5 text-small font-semibold text-ink-2 underline hover:text-ink">
                         <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
                     </a>
                 @endif
@@ -247,7 +247,7 @@
                             {{-- The list for this project or department (in this city, else nationwide). --}}
                             @php($groupList = ($group['id'] ?? null) ? \App\Models\MailList::emailForGroup($block['id'] ? (int) $block['id'] : null, $by === \App\Services\Attendance\Grouping::PROJECT ? (int) $group['id'] : null, $by === \App\Services\Attendance\Grouping::DEPARTMENT ? (int) $group['id'] : null, $mailLists) : null)
                             @if($groupList)
-                                <a href="mailto:{{ $groupList->address }}" data-testid="email-group"
+                                <a href="{{ $groupList->mailto() }}" data-testid="email-group"
                                    class="inline-flex min-h-9 items-center gap-2 rounded-control border border-line bg-card px-3 text-small font-semibold text-ink hover:bg-hover">
                                     <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
                                 </a>

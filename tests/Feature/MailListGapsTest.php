@@ -62,6 +62,35 @@ class MailListGapsTest extends TestCase
         $this->assertInstanceOf(User::class, $recent);
     }
 
+    public function test_a_list_opens_a_message_to_the_list_with_the_viewers_manager_in_cc(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $list = MailList::query()->create(['name' => 'Team', 'address' => 'team@hcsyria.org', 'position' => 1]);
+
+        $managerPosition = $this->makePosition($city);
+        $manager = $this->staffOn($city, 'boss', $managerPosition);
+        $mine = $this->makePosition($city, ['direct_manager_id' => $managerPosition->id]);
+        $me = $this->staffOn($city, 'me', $mine);
+        $lone = $this->staffOn($city, 'lone', $this->makePosition($city));
+
+        // To the list, Cc the manager; the '@' is left as it is.
+        $this->actingAs($me);
+        $this->assertSame('mailto:team@hcsyria.org?cc=boss@hcsyria.org', $list->mailto());
+
+        // No manager: no Cc. A manager who is the list itself is not copied twice.
+        $this->actingAs($lone);
+        $this->assertSame('mailto:team@hcsyria.org', $list->mailto());
+        $this->assertInstanceOf(User::class, $manager);
+    }
+
+    private function staffOn($city, string $key, $position): User
+    {
+        $employee = $this->makeEmployee($city, $key, ['first_name_en' => ucfirst($key)]);
+        $this->makeContractFor($employee, ['position_id' => $position->id]);
+
+        return User::factory()->create(['employee_id' => $employee->id, 'email' => $key.'@hcsyria.org']);
+    }
+
     private function staff($city, string $key, CarbonImmutable $start): User
     {
         $employee = $this->makeEmployee($city, $key, ['first_name_en' => ucfirst($key)]);
