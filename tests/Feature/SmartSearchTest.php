@@ -165,6 +165,20 @@ class SmartSearchTest extends TestCase
             ->assertDontSee('Mohammad Haddad');
     }
 
+    public function test_a_mail_list_opens_to_the_list_with_the_viewers_manager_on_cc(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $judy = $this->person($aleppo, 'judy', 'Judy', 'Manager', [], [], 'judy@hcsyria.org');
+        $judyPosition = \App\Models\Contract::query()->where('employee_id', $judy->id)->value('position_id');
+        $team = $this->makePosition($aleppo, ['direct_manager_id' => $judyPosition, 'title_en' => 'Specialist']);
+        $viewer = $this->person($aleppo, 'viewer', 'Vera', 'Viewer', [], ['position_id' => $team->id], 'vera@hcsyria.org');
+        MailList::query()->create(['name' => 'Team', 'address' => 'team@hcsyria.org', 'position' => 0]);
+
+        Livewire::actingAs(User::query()->where('email', 'vera@hcsyria.org')->first())->test(GlobalSearch::class)
+            ->set('q', 'team')
+            ->assertSeeHtml('href="mailto:team@hcsyria.org?cc=judy@hcsyria.org"');
+    }
+
     public function test_a_person_carries_email_with_the_manager_on_cc_whatsapp_and_templates(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

@@ -46,7 +46,7 @@ final class MailListsProvider implements SearchProvider
                 $list->address,
                 route('mail-lists.index'),
                 [
-                    ['kind' => 'mail', 'label' => __('mail_lists.email_list'), 'href' => 'mailto:'.$list->address],
+                    ['kind' => 'mail', 'label' => __('mail_lists.email_list'), 'href' => $list->mailto()],
                     ['kind' => 'copy', 'label' => __('mail_lists.copy_address'), 'text' => $list->address],
                 ],
             ))
