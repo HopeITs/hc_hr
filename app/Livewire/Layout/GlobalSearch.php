@@ -3,11 +3,16 @@
 namespace App\Livewire\Layout;
 
 use App\Models\Employee;
+use App\Models\MessageTemplate;
+use App\Services\Assistant\Assistant;
+use App\Services\MessageTemplateRenderer;
 use App\Services\WorkPresence;
 use App\Support\CommandPalette;
 use App\Support\DirectoryAccess;
 use App\Support\Navigation;
 use App\Support\NavigationMemory;
+use App\Support\Search\NameMatch;
+use App\Support\Search\SmartSearch;
 use App\Support\SearchText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -22,6 +27,15 @@ use Throwable;
  * by name, in Arabic or English whatever the interface language, and (prompt
  * 10) commands: what the role's New menu may start, plus a few for the page
  * itself (CommandPalette).
+ *
+ * Smart search adds, beside those:
+ *  - more kinds of result (SmartSearch: positions, contracts, leave requests, hiring requests,
+ *    applicants, mailing lists, folders, news), each through the scope of the page that lists it;
+ *  - people by employee number, phone or email as well as by name, the best match first, and
+ *    a near match when the typing has a slip («mohamad» finds «Mohammad»);
+ *  - quick actions on a person: email (with their direct manager on CC), WhatsApp, a message
+ *    template;
+ *  - a type filter (chips), and an "Ask the assistant" line when the text reads as a question.
  *
  * People are the Directory tier and nothing more (DirectoryAccess, A2):
  * the same row set the directory list shows (constrain(): former employees
@@ -44,7 +58,13 @@ class GlobalSearch extends Component
     /** Searches per user per minute before the box asks them to wait. */
     public const PER_MINUTE = 60;
 
+    /** How alike a name must be to count as a near match when nothing matched exactly. */
+    public const NEAR_MATCH = 0.74;
+
     public string $q = '';
+
+    /** 'all', or one kind of result (see chips()): the box then searches only that. */
+    public string $type = 'all';
 
     /**
      * This page in the other language, for the "Switch language" command. Kept
@@ -74,6 +94,39 @@ class GlobalSearch extends Component
         $this->recents = true;
     }
 
+    /** Narrow the search to one kind of result, or back to all. A self-scoped read. */
+    public function setType(string $type): void
+    {
+        $this->type = in_array($type, $this->typeKeys(), true) ? $type : 'all';
+    }
+
+    /**
+     * The message templates, each already filled in for this person, when "Template" is clicked
+     * on a result. Only for who may use templates, and only a person the directory shows them.
+     *
+     * @return list<array{name: string, channel: string, url: string}>
+     */
+    public function templatesFor(int $employeeId): array
+    {
+        $user = auth()->user();
+
+        abort_unless($user?->hasActivePermission('message-templates.use'), 403);
+
+        $employee = DirectoryAccess::constrain($this->directoryQuery(), $user)->whereKey($employeeId)->first();
+
+        if (! $employee) {
+            return [];
+        }
+
+        $renderer = app(MessageTemplateRenderer::class);
+
+        return MessageTemplate::query()->active()->orderBy('channel')->orderBy('name')->get()
+            ->map(fn (MessageTemplate $template) => ['name' => $template->name, 'channel' => $template->channel, 'url' => $renderer->url($template, $employee, $user)])
+            ->filter(fn (array $row) => $row['url'] !== null)
+            ->values()
+            ->all();
+    }
+
     /** Each new term counts towards the per-user limit. Livewire refuses direct calls to updated*. */
     public function updatedQ(): void
     {
@@ -91,9 +144,13 @@ class GlobalSearch extends Component
     public function render()
     {
         $term = trim($this->q);
+        $user = auth()->user();
+        $type = in_array($this->type, $this->typeKeys(), true) ? $this->type : 'all';
+        $single = $type !== 'all';
         $pages = [];
         $people = collect();
         $commands = [];
+        $groups = [];
         $failed = false;
         $showingRecents = false;
 
@@ -107,9 +164,23 @@ class GlobalSearch extends Component
             }
         } elseif (mb_strlen($term) >= self::MIN_LENGTH && ! $this->throttled) {
             try {
-                $pages = $this->pages($term);
-                $people = $this->people($term);
-                $commands = CommandPalette::search(auth()->user(), $term, $this->otherLocaleUrl ?: null);
+                if (! $single || $type === 'pages') {
+                    $pages = $this->pages($term);
+                }
+
+                if (! $single || $type === 'people') {
+                    $people = $this->people($term);
+                }
+
+                if (! $single || $type === 'commands') {
+                    $commands = CommandPalette::search($user, $term, $this->otherLocaleUrl ?: null);
+                }
+
+                if (! in_array($type, ['pages', 'people', 'commands'], true)) {
+                    $found = SmartSearch::run($user, $term, $type, $single ? 8 : 4);
+                    $groups = $found['groups'];
+                    $failed = $found['failed'];
+                }
             } catch (Throwable $e) {
                 report($e);
                 $failed = true;
@@ -133,6 +204,10 @@ class GlobalSearch extends Component
             'people' => $people,
             'presence' => $presence,
             'commands' => $commands,
+            'groups' => $groups,
+            'type' => $type,
+            'chips' => mb_strlen($term) >= self::MIN_LENGTH ? $this->chips() : [],
+            'ask' => $this->assistantRow($term, $type),
             'failed' => $failed,
             'showingRecents' => $showingRecents,
             'tooShort' => $term !== '' && mb_strlen($term) < self::MIN_LENGTH,
@@ -176,47 +251,216 @@ class GlobalSearch extends Component
     }
 
     /**
-     * SQL for a stored Arabic name with SearchText's letters folded (diacritics
-     * are left: REPLACE cannot match a range). Works on MySQL and SQLite.
+     * People found by what was typed:
+     *  - an email (has an @): the work email;
+     *  - only digits, spaces, + and dashes (three or more digits): the employee number, or a phone;
+     *  - otherwise the name, every word, Arabic or English.
+     * Name matches come best first (a name that starts with the word before one that only
+     * contains it); when fewer than three matched, near matches are added.
      */
-    private static function foldedColumn(string $column): string
+    private function people(string $term): Collection
     {
-        $sql = $column;
+        $user = auth()->user();
+        $words = SearchText::words($term);
 
-        foreach (SearchText::FOLD as $from => $to) {
-            $sql = "REPLACE({$sql}, '{$from}', '{$to}')";
-        }
-
-        return $sql;
-    }
-
-    /** People whose Arabic or English names contain every word typed. */
-    private function people(string $term)
-    {
-        // LIKE wildcards typed by the user are not wildcards; names never contain them.
-        $words = collect(preg_split('/\s+/u', str_replace(['%', '_', '\\'], '', SearchText::normalize($term))))
-            ->filter(fn ($word) => $word !== '')
-            ->take(4);
-
-        if ($words->isEmpty()) {
+        if ($words === []) {
             return collect();
         }
 
-        return DirectoryAccess::constrain($this->directoryQuery(), auth()->user())
-            // The directory's row set: people who hold a visible position.
-            ->whereHas('contracts.position', fn (Builder $position) => $position->visible())
-            ->where(function (Builder $names) use ($words): void {
-                foreach ($words as $word) {
-                    $names->where(fn (Builder $any) => $any
-                        ->where('first_name_en', 'like', "%{$word}%")
-                        ->orWhere('last_name_en', 'like', "%{$word}%")
-                        ->orWhereRaw(self::foldedColumn('first_name_ar').' like ?', ["%{$word}%"])
-                        ->orWhereRaw(self::foldedColumn('last_name_ar').' like ?', ["%{$word}%"]));
+        $raw = trim($term);
+        $digits = (string) preg_replace('/\D+/', '', $raw);
+        $isEmail = str_contains($raw, '@');
+        $isNumber = ! $isEmail && strlen($digits) >= 3 && preg_match('/^[\d\s+\-()]+$/', $raw) === 1;
+
+        // The directory's row set: people who hold a visible position.
+        $query = DirectoryAccess::constrain($this->directoryQuery(), $user)
+            ->whereHas('contracts.position', fn (Builder $position) => $position->visible());
+
+        if ($isEmail) {
+            $query->whereHas('account', fn (Builder $account) => $account->where('email', 'like', NameMatch::like($raw)));
+        } elseif ($isNumber) {
+            // The last digits, so +963 944…, 0944… and 944… are the same number.
+            $tail = substr($digits, -min(9, strlen($digits)));
+
+            $query->where(function (Builder $any) use ($digits, $tail): void {
+                if (strlen($digits) <= 6) {
+                    $any->orWhere('employees.id', (int) $digits);
                 }
-            })
-            ->orderBy(transColumn('first_name'))
-            ->limit(self::MAX_PEOPLE)
+
+                foreach (['work_phone', 'whatsapp_work'] as $column) {
+                    $any->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE({$column}, ' ', ''), '-', ''), '+', ''), '(', '') like ?", ['%'.$tail.'%']);
+                }
+            });
+        } else {
+            NameMatch::employees($query, $term);
+        }
+
+        $found = $query->limit(30)->get();
+
+        if (! $isEmail && ! $isNumber) {
+            $found = $found->sortBy(fn (Employee $employee) => [$this->rank($employee, $words), mb_strtolower((string) $employee->name)])->values();
+
+            if ($found->count() < 3 && mb_strlen(SearchText::normalize($term)) >= 4) {
+                $found = $found->concat($this->nearMatches($term, $found->pluck('id')->all()));
+            }
+        }
+
+        return $this->withActions($found->take(self::MAX_PEOPLE)->values());
+    }
+
+    /** 0 when every word starts a name, higher the more words only appear inside one. */
+    private function rank(Employee $employee, array $words): int
+    {
+        $names = array_map(fn (?string $name) => SearchText::normalize((string) $name), [
+            $employee->first_name_en, $employee->last_name_en, $employee->first_name_ar, $employee->last_name_ar,
+        ]);
+        $score = 0;
+
+        foreach ($words as $word) {
+            $starts = collect($names)->contains(fn (string $name) => $name !== '' && str_starts_with($name, $word));
+            $score += $starts ? 0 : 1;
+        }
+
+        return $score;
+    }
+
+    /**
+     * Directory people whose name is close to what was typed, for a slip in the typing. The pool is
+     * read as bare Directory columns; only the few chosen are loaded in full.
+     *
+     * @param  list<int>  $skip
+     */
+    private function nearMatches(string $term, array $skip): Collection
+    {
+        $user = auth()->user();
+        $needle = SearchText::normalize($term);
+
+        $pool = DirectoryAccess::constrain(Employee::query()->select(DirectoryAccess::COLUMNS), $user)
+            ->whereHas('contracts.position', fn (Builder $position) => $position->visible())
+            ->whereNotIn('employees.id', $skip)
+            ->limit(600)
             ->get();
+
+        $scores = [];
+
+        foreach ($pool as $employee) {
+            $best = 0.0;
+
+            foreach ([
+                $employee->first_name_en.' '.$employee->last_name_en, $employee->first_name_ar.' '.$employee->last_name_ar,
+                $employee->first_name_en, $employee->last_name_en, $employee->first_name_ar, $employee->last_name_ar,
+            ] as $name) {
+                $best = max($best, SearchText::similarity($needle, (string) $name));
+            }
+
+            if ($best >= self::NEAR_MATCH) {
+                $scores[$employee->id] = $best;
+            }
+        }
+
+        if ($scores === []) {
+            return collect();
+        }
+
+        arsort($scores);
+        $ids = array_slice(array_keys($scores), 0, self::MAX_PEOPLE);
+
+        return DirectoryAccess::constrain($this->directoryQuery(), $user)->whereIn('employees.id', $ids)->get()
+            ->sortByDesc(fn (Employee $employee) => $scores[$employee->id])
+            ->each(fn (Employee $employee) => $employee->setAttribute('near_match', true))
+            ->values();
+    }
+
+    /**
+     * Quick actions on each person: email with their direct manager on CC, WhatsApp, and (to who
+     * may use them) a message template. Work contact only; the managers' emails come in one batch.
+     */
+    private function withActions(Collection $people): Collection
+    {
+        if ($people->isEmpty()) {
+            return $people;
+        }
+
+        $user = auth()->user();
+        $cc = Employee::directManagerEmails($people->all());
+        $renderer = app(MessageTemplateRenderer::class);
+        $templates = $user->hasActivePermission('message-templates.use') && MessageTemplate::query()->active()->exists();
+
+        return $people->each(function (Employee $employee) use ($cc, $renderer, $templates): void {
+            $actions = [];
+            $mail = $employee->mailtoUrl($cc[$employee->id] ?? null);
+            $number = $renderer->whatsappNumber($employee);
+
+            if ($mail) {
+                $actions[] = ['kind' => 'mail', 'label' => __('smart_search.actions.email'), 'href' => $mail];
+            }
+
+            if ($number) {
+                $actions[] = ['kind' => 'external', 'label' => 'WhatsApp', 'href' => 'https://wa.me/'.$number];
+            }
+
+            if ($templates && ($mail || $number)) {
+                $actions[] = ['kind' => 'templates', 'label' => __('smart_search.actions.template'), 'id' => $employee->id];
+            }
+
+            $employee->setAttribute('search_actions', $actions);
+        });
+    }
+
+    /** @return list<string> every type the box accepts for the active role */
+    private function typeKeys(): array
+    {
+        return ['all', 'people', 'pages', 'commands', ...SmartSearch::types(auth()->user())];
+    }
+
+    /** @return list<array{key: string, label: string}> */
+    private function chips(): array
+    {
+        return array_map(fn (string $key) => ['key' => $key, 'label' => __('smart_search.types.'.$key)], $this->typeKeys());
+    }
+
+    /**
+     * "Ask the assistant" when the text reads as a question and the assistant is on. It only
+     * opens the assistant page with the question in its box: nothing is sent to the model until
+     * the person presses Send there.
+     *
+     * @return array{href: string}|null
+     */
+    private function assistantRow(string $term, string $type): ?array
+    {
+        if ($type !== 'all' || mb_strlen($term) < 6 || ! self::looksLikeQuestion($term)) {
+            return null;
+        }
+
+        try {
+            if (! app(Assistant::class)->isAvailable()) {
+                return null;
+            }
+        } catch (Throwable) {
+            return null;
+        }
+
+        return ['href' => route('assistant', ['q' => $term])];
+    }
+
+    /** A question mark (either script), a question word to start, or a sentence of four words or more. */
+    public static function looksLikeQuestion(string $term): bool
+    {
+        if (preg_match('/[?؟]/u', $term) === 1) {
+            return true;
+        }
+
+        $words = array_values(array_filter(explode(' ', SearchText::normalize($term)), fn (string $word) => $word !== ''));
+
+        if (count($words) >= 4) {
+            return true;
+        }
+
+        // Question words and verbs that ask for a list, in both languages (folded: متى = متي, أين = اين).
+        return in_array($words[0] ?? '', [
+            'who', 'what', 'when', 'where', 'which', 'how', 'why', 'list', 'show', 'count', 'find', 'tell',
+            'من', 'ما', 'ماذا', 'كم', 'هل', 'متي', 'اين', 'كيف', 'لماذا', 'اعرض', 'اظهر', 'اذكر', 'ابحث',
+        ], true);
     }
 
     /** Directory columns and what a result line shows; the caller adds the scope. */
@@ -228,6 +472,8 @@ class GlobalSearch extends Component
             ->withExists(['realContracts as was_employed'])
             ->with([
                 'city:id,name_en,name_ar',
+                // The work email, for "email" on a result.
+                DirectoryAccess::ACCOUNT_COLUMNS,
                 // The current position tells two people with the same name apart.
                 'contracts' => fn ($contracts) => $contracts
                     ->select(['id', 'employee_id', 'position_id', 'start_date'])

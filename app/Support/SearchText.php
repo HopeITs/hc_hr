@@ -40,6 +40,64 @@ final class SearchText
     }
 
     /**
+     * SQL for a stored Arabic column with FOLD's letters folded (diacritics are
+     * left: REPLACE cannot match a range). Works on MySQL and SQLite.
+     */
+    public static function foldedColumn(string $column): string
+    {
+        $sql = $column;
+
+        foreach (self::FOLD as $from => $to) {
+            $sql = "REPLACE({$sql}, '{$from}', '{$to}')";
+        }
+
+        return $sql;
+    }
+
+    /**
+     * The words of a typed term, ready for LIKE: folded, at most $max, and with the
+     * characters LIKE treats as wildcards removed (names never contain them).
+     *
+     * @return list<string>
+     */
+    public static function words(string $term, int $max = 4): array
+    {
+        $words = preg_split('/\s+/u', str_replace(['%', '_', '\\'], '', self::normalize($term))) ?: [];
+
+        return array_slice(array_values(array_filter($words, fn ($word) => $word !== '')), 0, $max);
+    }
+
+    /**
+     * How alike two texts are, from 0 to 1, after folding (1 = the same). A letter more or
+     * less, or swapped, still scores high: «mohamad» and «mohammad», «عبدالمسيح» and «عبد المسيح».
+     */
+    public static function similarity(string $a, string $b): float
+    {
+        $a = preg_split('//u', self::normalize($a), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $b = preg_split('//u', self::normalize($b), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $la = count($a);
+        $lb = count($b);
+
+        if ($la === 0 || $lb === 0) {
+            return 0.0;
+        }
+
+        $previous = range(0, $lb);
+
+        for ($i = 1; $i <= $la; $i++) {
+            $row = [$i];
+
+            for ($j = 1; $j <= $lb; $j++) {
+                $row[$j] = min($previous[$j] + 1, $row[$j - 1] + 1, $previous[$j - 1] + ($a[$i - 1] === $b[$j - 1] ? 0 : 1));
+            }
+
+            $previous = $row;
+        }
+
+        return 1 - $previous[$lb] / max($la, $lb);
+    }
+
+    /**
      * Every word of $term appears somewhere in $haystacks (any order, any
      * language): «new leave», «leave new» and «اجازة» all find «New leave request».
      */
