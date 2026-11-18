@@ -611,6 +611,14 @@
     }
 }
 
+/* A phone-height tile: the total is already the "/7" beside the big number, so its own
+   line goes and the other three keep their room. */
+@container tile (max-height: 199.98px) {
+    .hc-leaves-total {
+        display: none;
+    }
+}
+
 @container tile (min-width: 560px) and (min-height: 230px) {
     .hc-leaves-gauge {
         display: block;
@@ -1187,6 +1195,76 @@
     .hc-dcard-go {
         flex: 0 0 auto;
     }
+}
+
+/* Narrow tile (a phone): the card fits its tile instead of scrolling inside it. The
+   summary line repeats the count beside the title, so it is read out but not shown;
+   "View all" keeps its 44px target without adding to the header's height; the action
+   and its tag share one line, the action ending in "…" rather than running under the
+   tag (as it did in Arabic). */
+@container tile (max-width: 519.98px) {
+    .hc-decide {
+        padding: 10px 12px 12px;
+    }
+
+    .hc-decide-head {
+        margin-bottom: 2px;
+    }
+
+    .hc-decide-open {
+        margin-block: -9px;
+    }
+
+    .hc-decide-sub {
+        margin-bottom: 8px;
+    }
+
+    .hc-decide-sub h3 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .hc-decide-nav {
+        margin-inline-start: 0;
+    }
+
+    .hc-dcard {
+        gap: 6px;
+        padding: 10px 12px;
+    }
+
+    .hc-dcard-top {
+        flex-wrap: nowrap;
+    }
+
+    .hc-dcard-top > :not(.hc-dcard-what) {
+        flex: none;
+    }
+
+    .hc-dcard-what {
+        min-width: 0;
+    }
+
+    /* The words carry the meaning; their icon gives its room back to them. */
+    .hc-dcard-what > svg {
+        display: none;
+    }
+
+    .hc-dcard-foot {
+        margin-top: 0;
+        padding-top: 8px;
+    }
+}
+
+.hc-dcard-what-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Wide tile: info on the start side, the action centred on the end side. */
@@ -2039,6 +2117,14 @@
     margin-bottom: 42px;
     padding-top: 12px;
     border-top: 1px solid var(--color-line-soft);
+}
+
+/* On a phone an empty strip cost about 100px of the first screen and looked like a loading
+   gap: there it folds away until something is minimised or the layout is being edited. */
+@media (max-width: 767.98px) {
+    .hc-dock.hc-dock-empty {
+        display: none;
+    }
 }
 
 /* Always drawn: with nothing minimised it keeps one tab's height, so the grid never jumps. */
@@ -3196,14 +3282,45 @@ a.hc-list-row:hover {
     color: var(--color-ink-2);
 }
 
+/* Narrow (a phone): two rows of equal height. Three rows left the weather about 55px for
+   about 130px of content, so the temperature and the city were cut off. The weather reads
+   across its row instead: the condition over the city on the start side, the temperature
+   on the end side. */
 @container tile (max-width: 519.98px) {
     .hc-glance {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1.3fr);
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
         grid-template-areas:
-            "w w"
-            "c d"
-            "t t";
+            "w w w"
+            "c d t";
+    }
+
+    .hc-glance-weather {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "sky temp"
+            "city temp";
+        align-content: center;
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 2px;
+        padding-block: 8px;
+    }
+
+    .hc-glance-sky {
+        grid-area: sky;
+    }
+
+    .hc-glance-temp {
+        grid-area: temp;
+        font-size: clamp(26px, 60cqh, 44px);
+        translate: none;
+    }
+
+    .hc-glance-city,
+    .hc-glance-none {
+        grid-area: city;
     }
 }
 
@@ -3230,6 +3347,28 @@ a.hc-list-row:hover {
         font-size: clamp(24px, 40cqh, 40px);
         /* One row here: on the condition's own line, not dropped below it. */
         translate: none;
+    }
+}
+
+/* Narrow and short (a small phone): weather and time side by side leave the weather
+   about 150px wide, too little for the condition and the temperature on one line (the
+   condition shrank to "P."). Stack them: the condition, on up to two lines, over the
+   temperature. */
+@container tile (max-width: 519.98px) and (max-height: 159.98px) {
+    .hc-glance-weather {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .hc-glance-sky > span {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        white-space: normal;
+        line-height: 1.25;
     }
 }
 

@@ -81,7 +81,7 @@
                                      :class="{ off: ! (all || i === {{ $loop->index }}) }" @unless ($loop->first) style="display:none" x-init="$el.style.removeProperty('display')" @endunless
                                      aria-roledescription="slide" aria-label="{{ $loop->iteration }} / {{ $n }}">
                                 <div class="hc-dcard-top">
-                                    <span class="hc-dcard-what"><x-ic :name="$card['action'] === 'approve' ? 'user' : 'calendar'" aria-hidden="true" />{{ __('inbox.action.'.$card['action']) }}</span>
+                                    <span class="hc-dcard-what"><x-ic :name="$card['action'] === 'approve' ? 'user' : 'calendar'" aria-hidden="true" /><span class="hc-dcard-what-label">{{ __('inbox.action.'.$card['action']) }}</span></span>
                                     @if ($card['start_flag'])
                                         <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
                                     @endif

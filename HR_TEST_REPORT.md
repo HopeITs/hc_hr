@@ -100,6 +100,25 @@ Access was checked for every route by direct URL (`fetch`), not only through the
 - Dashboard, all roles, edit mode: "Add" and "Done" are both solid red. The brand rule allows one primary action per view.
 - Suggested fix: make "Done" primary and "Add" outline.
 
+### Fix status (2026-11-18)
+| ID | Status | Change | Verified |
+|---|---|---|---|
+| HR-001 | **Fixed** | `resources/css/dashboard.css`: narrow glance = two equal rows (weather across, condition + city on one side and temperature on the other; clock, date and time below). Narrow + short = weather stacked (condition up to 2 lines, then temperature) | 390px: "Overcast · Latakia · 21°" all visible. 360px: "Overcast" + "21°". AR mirrored ✔ |
+| HR-002 | **Fixed** | `my-leaves-card.blade.php`: type label under the number, columns side by side with lines wrapping in place, `leading-snug`. The "Total" line is hidden on tiles under 200px (it's the "/7" already shown) | 390px 173/173, 360px 157/157, AR 173/173 ✔ |
+| HR-003 | **Fixed** | `bottom-nav.blade.php`: icons aligned from the top, `px-0.5`, 11px labels under 380px | 360px "Dashboard" 61/61. All icons at the same top in EN and AR ✔ |
+| HR-004 | **Fixed** | Empty dock folds away on phones (`.hc-dock-empty`) unless editing or something is minimised. Desktop unchanged | Strip gone at 390/360 ✔ |
+| HR-005 | **Fixed** | `sidebar.blade.php`: backdrop `z-[35]` (above bottom bar z-30, below drawer z-40) | Element at the bottom-nav position with the menu open = backdrop ✔ |
+| HR-010 | **Fixed** | `HandlesNotificationActions::withLocale()`: a stored path without a locale gets the viewer's locale, unless it already has one or matches a route outside the locale group (`/ID`, `/careers`). External hosts still refused | `/employees/x/show` and the absolute URL → `/en/employees/x/show`; `/ID/…`, `/careers/…`, `/en/…` unchanged; `evil.example` → null ✔ |
+| HR-011 | **Fixed** | `PrintSelection::fromRequest()`: no `month` → the Timesheets page's default month (10 days ago) | `/attendance/print` 200 (12 sheets), `/export/xlsx` → `timesheets-2026-11.xlsx`. New test `test_a_print_link_without_a_month_opens_the_pages_default_month` ✔ |
+
+| HR-006 | **Fixed** | `dashboard.css` (`@container tile (max-width: 519.98px)`), `decisions-card.blade.php`: on narrow tiles the card fits instead of scrolling inside. The summary line (it repeats the count beside the title) is read out but not shown. "View all" keeps its 44px target without adding header height. The action label sits in its own span, ellipsised, on one line with the tag, and its small icon is hidden. Wide tiles unchanged | 390px EN and AR: `.hc-decide` 265/265 (was 265/366), no inner scroll. EN "Leave request to decide" in full. AR "طلب إجازة بانتظار قرارك" in full, no overlap with the tag ✔ |
+| HR-012 | **Fixed** | `dashboard/index.blade.php`: edit-mode "Add" uses `icon="layout"`. `<x-button>` turns `icon="plus"` into the red add-square whatever the variant, which caused two red buttons | Reset = quiet, Add = outline (white / ink), Done = the only primary ✔ |
+
+Tests: notifications, bottom nav, dashboard, attendance (315 tests) pass except `BottomNavTest::test_each_role_gets_the_destinations_its_permissions_open`, which **fails without these changes too** (expects no "mail lists" shortcut; checked with `git stash`).
+
+**New finding while fixing HR-010:**
+**HR-047 — Low — Logic — The welcome notification has no name in it.** "Welcome !" / "Let's welcome  to the team…": `App\Notifications\NewEmployeeWelcome` uses `$emp->name_en` / `$emp->name_ar`, which don't exist on `Employee` (it has `first_name_en`/`last_name_en`, and `name` resolves to the current locale). Seen in stored notifications for mirelle.issa, issa.george and carla.hanna. Suggested fix: build the EN and AR strings from `first_name_*` + `last_name_*`. **Not changed** (not in the requested list).
+
 ### 5. What works well (leave alone)
 - **Route protection is consistent:** every page hidden from a role's menu also refused its direct URL (403 or 404) for that role. Guest access redirects to login everywhere.
 - **City scoping for HR-LAT:** checked on employee edit and on contract view, edit, amend and PDF preview.
