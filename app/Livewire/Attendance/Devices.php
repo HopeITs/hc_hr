@@ -41,9 +41,50 @@ class Devices extends Component
     #[Locked]
     public ?int $keyForId = null;
 
+    /** Add a device by its serial (Menu → System Info on the device), for one that is read by the LAN agent and never calls. */
+    public string $addSerial = '';
+
+    public string $addCenter = '';
+
+    public string $addName = '';
+
     public function mount(): void
     {
         $this->authorizeActivePermission('attendance.manage');
+    }
+
+    public function addBySerial(): void
+    {
+        $this->authorizeActivePermission('attendance.manage');
+
+        $serial = strtoupper(trim($this->addSerial));
+
+        if (! preg_match('/^[A-Z0-9]{5,32}$/', $serial)) {
+            $this->addError('addSerial', __('attendance.devices.serial-invalid'));
+
+            return;
+        }
+
+        $centerId = $this->validCenter($this->addCenter);
+
+        if ($centerId === null) {
+            $this->addError('addCenter', __('attendance.devices.choose-center'));
+
+            return;
+        }
+
+        $name = trim($this->addName);
+
+        AttendanceDevice::query()->firstOrCreate(['serial' => $serial], [
+            'name' => $name !== '' ? mb_substr($name, 0, 120) : Center::query()->find($centerId)?->name,
+            'center_id' => $centerId,
+            'created_by' => auth()->id(),
+        ]);
+        AttendanceDeviceSighting::query()->where('serial', $serial)->delete();
+
+        $this->reset('addSerial', 'addCenter', 'addName');
+        $this->resetErrorBag();
+        $this->toast(__('attendance.devices.added'));
     }
 
     /** Register a device that called, with the center it hangs in. */
