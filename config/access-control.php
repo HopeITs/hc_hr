@@ -288,6 +288,8 @@ return [
             'removeMember' => 'mail-lists.manage',
             'deleteList' => 'mail-lists.manage',
         ],
+        // A message template filled in for a person found by the header search (checked again inside).
+        'layout.global-search' => ['templatesFor' => 'message-templates.use'],
         'messages.template-manager' => [
             'edit' => 'message-templates.manage',
             'save' => 'message-templates.manage',
@@ -1264,7 +1266,9 @@ return [
         // DirectoryAccess::constrain() and the active role's menu on every render.
         // showRecents (prompt 9) only flags the empty box open; the caller's own recents are
         // read and filtered the same way (NavigationMemory) on render.
-        'layout.global-search' => ['updatedQ', 'showRecents'],
+        // setType only narrows the search to one kind of result (every kind is searched through the
+        // scope of the page that lists it, SmartSearch); templatesFor is mapped to message-templates.use.
+        'layout.global-search' => ['updatedQ', 'showRecents', 'setType'],
         // The add*/openInitiateReturnModal methods stage rows in the in-memory
         // form object; nothing is written until the mapped save* action runs,
         // and mount() has already authorized 'update' on this employee.
