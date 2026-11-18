@@ -21,5 +21,6 @@ return [
     // :first, :last and :total arrive already wrapped in markup by the view.
     'showing' => 'عرض :first إلى :last من أصل :total',
     'go_to_page' => 'الانتقال إلى الصفحة :page',
+    'page_of' => 'الصفحة :current من :last',
 
 ];
