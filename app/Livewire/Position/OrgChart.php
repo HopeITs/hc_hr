@@ -301,10 +301,11 @@ class OrgChart extends Component
             $this->managers->loadMissing(['activeContracts' => DirectoryAccess::holders(auth()->user()), 'jobLevel']);
         }
 
-        // "Email this group": the mailing list for exactly the place / project / department filtered.
-        // Any other filter (a center, a level, a manager) or a search narrows it past what a list holds.
+        // "Email a list": every list can be chosen; the ones for the place / project / department
+        // filtered come first. Any other filter (a center, a level, a manager) or a search narrows
+        // the chart past what such a list holds, so then nothing is suggested.
         $narrowed = $this->center_id || $this->job_level_id || $this->focus_manager_id || trim($this->search) !== '';
-        $filterList = $narrowed ? null : MailList::emailFor($this->city_id, $this->program_id, $this->department_id);
+        $filterList = $narrowed ? collect() : MailList::suggestionsFor($this->city_id, $this->program_id, $this->department_id);
 
         return view('livewire.position.org-chart', ['tree' => $this->tree, 'filterList' => $filterList]);
     }

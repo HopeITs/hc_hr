@@ -54,6 +54,11 @@ return [
     'leaving_lists' => 'أزل من',
     'leaving_done' => 'أُزيل في لوحة التحكم',
     'leaving_tag' => 'بانتظار الإزالة',
+    'email_a_list' => 'راسل قائمة',
+    'menu_search' => 'ابحث في القوائم',
+    'menu_suggested' => 'لهذا المكان أو المشروع',
+    'menu_people' => 'هؤلاء الأشخاص مباشرة',
+    'menu_people_count' => '{1} :count عنوان|[0,*] :count عناوين',
     'email_group' => 'راسل هذه المجموعة',
     'email_group_count' => 'راسل هذه المجموعة (:count)',
 

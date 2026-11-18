@@ -30,13 +30,17 @@ class MailListGapsTest extends TestCase
             'rule_type' => 'custom', 'rule_city_id' => $aleppo->id,
         ]);
 
+        // Any list can be chosen; the one for the filtered city is put first.
         $chart = Livewire::actingAs($hr)->test(OrgChart::class)
-            ->assertDontSeeHtml('data-testid="email-filter-group"')
+            ->assertSeeHtml('data-testid="mail-list-menu"')
+            ->assertSeeHtml('href="mailto:hope.aleppo@hcsyria.org"')
+            ->assertDontSeeHtml('data-testid="mail-list-suggested"')
             ->set('city_id', $aleppo->id)
-            ->assertSeeHtml('href="mailto:hope.aleppo@hcsyria.org"');
+            ->assertSeeHtml('data-testid="mail-list-suggested"');
 
-        // A search narrows past what a list holds, so the button goes.
-        $chart->set('search', 'anything')->assertDontSeeHtml('data-testid="email-filter-group"');
+        // A search narrows past what a list holds, so nothing is suggested (the menu stays).
+        $chart->set('search', 'anything')->assertDontSeeHtml('data-testid="mail-list-suggested"')
+            ->assertSeeHtml('data-testid="mail-list-menu"');
     }
 
     public function test_the_daily_command_queues_people_whose_contract_just_started_and_nobody_twice(): void

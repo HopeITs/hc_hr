@@ -739,6 +739,7 @@ return [
     'open-vacancy' => 'فتح شاغر',
     'open-seats-notice' => 'لهذه الوظيفة :count مقعد شاغر.',
     'request-hire' => 'طلب توظيف',
+    'email-team-directly' => 'مراسلة الفريق مباشرة',
     'email-team' => 'مراسلة الفريق',
     'vacant-position' => 'منصب شاغر',
     'vacant-seats-count' => 'مقاعد شاغرة في هذا المنصب: :count',

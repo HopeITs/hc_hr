@@ -133,6 +133,24 @@ class OrgChartDirectReportsTest extends TestCase
             ->assertDontSee('Retired Role');
     }
 
+    public function test_the_team_email_is_a_menu_of_lists_for_the_manager_to_choose_from(): void
+    {
+        \App\Models\MailList::query()->create([
+            'name' => 'Aleppo', 'address' => 'hope.aleppo@hcsyria.org', 'position' => 1,
+            'rule_type' => 'custom', 'rule_city_id' => $this->city->id,
+        ]);
+        \App\Models\MailList::query()->create(['name' => 'Team', 'address' => 'team@hcsyria.org', 'position' => 2, 'rule_type' => 'all_staff']);
+
+        Livewire::actingAs($this->hr)
+            ->test(ProfileDrawer::class)
+            ->call('openProfile', $this->managerHolder->id)
+            ->assertSeeHtml('data-testid="mail-list-menu"')
+            ->assertSeeHtml('href="mailto:team@hcsyria.org"')
+            ->assertSeeHtml('href="mailto:hope.aleppo@hcsyria.org"')
+            // The list of the team's own city is put first.
+            ->assertSeeHtml('data-testid="mail-list-suggested"');
+    }
+
     private function position(string $title, int $grade, ?Position $manager, int $maxEmp = 1, bool $active = true): Position
     {
         $jobLevel = JobLevel::query()->firstOrCreate(
