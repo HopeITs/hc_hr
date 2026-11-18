@@ -127,11 +127,7 @@
                     @endif
                 </x-button>
 
-                @if($filterList)
-                    <x-button variant="outline" size="sm" :href="'mailto:'.$filterList->address" :wire:navigate="false" data-testid="email-filter-group">
-                        <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
-                    </x-button>
-                @endif
+                <x-mail-list-menu :suggested="$filterList" />
 
                 <x-button variant="outline" size="sm" wire:click="toggleDensity">
                     <x-icons.code-fork class="size-3.5" />

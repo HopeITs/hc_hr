@@ -72,6 +72,39 @@ class MailList extends Model
             ?? self::emailFor(null, $programId, $departmentId, $lists);
     }
 
+    /**
+     * Every list, grouped by category in the page's order, for a menu to choose from.
+     *
+     * @return Collection<string, Collection<int, MailList>>
+     */
+    public static function menuGroups(): Collection
+    {
+        $lists = self::query()->orderBy('position')->orderBy('name')->get()
+            ->groupBy(fn (self $list) => self::categoryOf($list->address));
+
+        return collect([...self::CATEGORIES, 'other'])
+            ->filter(fn (string $key) => $lists->has($key))
+            ->mapWithKeys(fn (string $key) => [$key => $lists->get($key)]);
+    }
+
+    /**
+     * The lists worth putting first for a place, project or department: the one for exactly this
+     * combination, then the one for each part on its own. Empty when nothing matches.
+     *
+     * @return Collection<int, MailList>
+     */
+    public static function suggestionsFor(?int $cityId, ?int $programId, ?int $departmentId): Collection
+    {
+        $lists = self::customRuled();
+
+        return collect([
+            self::emailFor($cityId, $programId, $departmentId, $lists),
+            self::emailFor($cityId, null, null, $lists),
+            self::emailFor(null, $programId, null, $lists),
+            self::emailFor(null, null, $departmentId, $lists),
+        ])->filter()->unique('id')->values();
+    }
+
     /** @return Collection<int, MailList> the lists with a place/project/department rule */
     public static function customRuled(): Collection
     {

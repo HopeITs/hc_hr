@@ -54,6 +54,11 @@ return [
     'leaving_lists' => 'Remove from',
     'leaving_done' => 'Removed in the control panel',
     'leaving_tag' => 'Waiting to be removed',
+    'email_a_list' => 'Email a list',
+    'menu_search' => 'Search the lists',
+    'menu_suggested' => 'For this place or project',
+    'menu_people' => 'These people, directly',
+    'menu_people_count' => '{1} :count address|[0,*] :count addresses',
     'email_group' => 'Email this group',
     'email_group_count' => 'Email this group (:count)',
 
