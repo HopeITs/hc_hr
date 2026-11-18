@@ -12,6 +12,31 @@
         </x-slot:actions>
     </x-page-header>
 
+    {{-- A device read by the LAN agent never calls, so it is added by its serial. --}}
+    <x-card class="space-y-3" data-testid="device-add">
+        <div>
+            <h2 class="text-h4 font-bold text-ink">@lang('attendance.devices.add-title')</h2>
+            <p class="text-small text-ink-2">@lang('attendance.devices.add-help')</p>
+        </div>
+        <form wire:submit.prevent="addBySerial" class="flex flex-wrap items-start gap-3">
+            <div>
+                <x-forms.input wire:model="addSerial" placeholder="{{ __('attendance.devices.serial') }}" aria-label="{{ __('attendance.devices.serial') }}" dir="ltr" class="w-52" />
+                @error('addSerial') <p class="mt-1 text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <x-forms.select-input wire:model="addCenter" aria-label="{{ __('attendance.devices.center') }}">
+                    <option value="">@lang('attendance.devices.choose-center')</option>
+                    @foreach($centers as $center)
+                        <option value="{{ $center->id }}">{{ $center->name }} · {{ $center->city?->name }}</option>
+                    @endforeach
+                </x-forms.select-input>
+                @error('addCenter') <p class="mt-1 text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
+            </div>
+            <x-forms.input wire:model="addName" placeholder="{{ __('attendance.devices.name') }}" aria-label="{{ __('attendance.devices.name') }}" class="w-48" />
+            <x-button type="submit" size="sm">@lang('attendance.devices.add')</x-button>
+        </form>
+    </x-card>
+
     {{-- A device that called but is not registered: one click to add it. --}}
     @if($sightings->isNotEmpty())
         <x-card class="space-y-3" data-testid="device-sightings">

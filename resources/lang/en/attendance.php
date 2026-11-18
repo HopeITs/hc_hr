@@ -263,6 +263,10 @@ return [
         'key-use' => 'Put it in the agent\'s config.json on the computer that is on the same network as this device. See tools/attendance-agent/README.md.',
         'agent-last' => 'Last sync',
         'agent-never' => 'No sync yet',
+        'add-title' => 'Add a device by its serial',
+        'add-help' => 'For a device read by the LAN agent, which never calls the website. The serial is on the device: Menu → System Info → Device Info → Serial Number.',
+        'serial' => 'Serial number',
+        'serial-invalid' => 'The serial is letters and digits only, 5 to 32 characters.',
         'health' => [
             'online' => 'Talking',
             'late' => 'Late',

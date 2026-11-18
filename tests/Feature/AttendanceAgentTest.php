@@ -141,6 +141,22 @@ class AttendanceAgentTest extends TestCase
         $this->assertFalse($device->fresh()->hasAgentKey());
     }
 
+    public function test_a_device_that_never_calls_is_added_by_its_serial(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $center = Center::query()->create(['name_en' => 'Aleppo Center', 'name_ar' => 'x', 'city_id' => $aleppo->id, 'is_active' => true, 'weekends' => '5,6', 'open_at' => '08:00:00', 'close_at' => '16:00:00']);
+        $hr = $this->makeUser($aleppo, 'HR-SYR', ['attendance.manage']);
+
+        Livewire::actingAs($hr)->test(Devices::class)
+            ->set('addSerial', 'bad serial!')->set('addCenter', (string) $center->id)->call('addBySerial')->assertHasErrors('addSerial')
+            ->set('addSerial', ' sfaa254800375 ')->set('addCenter', '')->call('addBySerial')->assertHasErrors('addCenter')
+            ->set('addCenter', (string) $center->id)->call('addBySerial')->assertHasNoErrors();
+
+        $device = AttendanceDevice::query()->where('serial', 'SFAA254800375')->first();
+        $this->assertSame($center->id, $device->center_id);
+        $this->assertSame(1, AttendanceDevice::query()->count());
+    }
+
     private function device(array $attributes = []): array
     {
         $device = AttendanceDevice::query()->create($attributes + ['serial' => 'SFAA254800375', 'name' => 'Science Zone']);

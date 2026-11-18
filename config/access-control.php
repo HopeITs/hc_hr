@@ -245,6 +245,7 @@ return [
         'attendance.devices' => [
             'register' => 'attendance.manage',
             'forgetSighting' => 'attendance.manage',
+            'addBySerial' => 'attendance.manage',
             'edit' => 'attendance.manage',
             'saveDevice' => 'attendance.manage',
             'toggleBlock' => 'attendance.manage',
