@@ -8,6 +8,7 @@ use App\Models\AttendanceDevice;
 use App\Models\AttendanceDeviceSighting;
 use App\Models\Center;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -32,6 +33,13 @@ class Devices extends Component
     public string $editName = '';
 
     public string $editCenter = '';
+
+    /** A sync key just made, shown once for that device and then gone (only its hash is kept). */
+    #[Locked]
+    public ?string $newKey = null;
+
+    #[Locked]
+    public ?int $keyForId = null;
 
     public function mount(): void
     {
@@ -117,6 +125,35 @@ class Devices extends Component
 
         $device = $this->deviceInScope($id);
         $device->update(['status' => $device->isBlocked() ? AttendanceDevice::ACTIVE : AttendanceDevice::BLOCKED]);
+    }
+
+    /** Make (or replace) the key the agent on a computer next to this device sends its punches with. */
+    public function createKey(int $id): void
+    {
+        $this->authorizeActivePermission('attendance.manage');
+
+        $device = $this->deviceInScope($id);
+        $this->newKey = $device->issueAgentKey();
+        $this->keyForId = $device->id;
+    }
+
+    public function revokeKey(int $id): void
+    {
+        $this->authorizeActivePermission('attendance.manage');
+
+        $this->deviceInScope($id)->revokeAgentKey();
+
+        if ($this->keyForId === $id) {
+            $this->hideKey();
+        }
+
+        $this->toast(__('attendance.devices.key-revoked'));
+    }
+
+    public function hideKey(): void
+    {
+        $this->newKey = null;
+        $this->keyForId = null;
     }
 
     /** Take a device off the list. Its punches stay; it can be added again. */
