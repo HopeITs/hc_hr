@@ -35,6 +35,26 @@ class MailList extends Model
         'rule_type', 'rule_city_id', 'rule_program_id', 'rule_department_id', 'rule_managers_only',
     ];
 
+    /**
+     * The link that opens a new message in the viewer's mail program: To the list, Cc the
+     * viewer's direct manager (as every other "email" link of the app does). The sender is the
+     * account the mail program is signed in with: a mailto: link cannot choose it.
+     */
+    public function mailto(): string
+    {
+        $user = auth()->user();
+        $cc = $user?->profile
+            ? $user->remember('mail-list-cc', fn () => Employee::directManagerEmails([$user->profile])[$user->profile->id] ?? '')
+            : '';
+
+        $cc = filled($cc) && strcasecmp($cc, $this->address) !== 0 ? $cc : null;
+
+        // '@' stays as it is: it is legal in a mailto: and some mail programs choke on %40.
+        $plain = fn (string $address): string => str_replace('%40', '@', rawurlencode($address));
+
+        return 'mailto:'.$plain($this->address).($cc ? '?cc='.$plain($cc) : '');
+    }
+
     public function hasRule(): bool
     {
         return $this->rule_type !== null;
