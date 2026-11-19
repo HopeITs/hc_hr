@@ -19,7 +19,7 @@
         OffboardingJourneys::STATE_PROBLEM => ['stop', 'warning'],
     ];
 
-    $required = collect($steps ?? [])->whereIn('key', OffboardingJourneys::REQUIRED_STEPS);
+    $required = collect($steps ?? [])->whereIn('key', OffboardingJourneys::requiredKeys($steps ?? []));
     $doneCount = $required->where('state', OffboardingJourneys::STATE_DONE)->count();
 @endphp
 
@@ -110,6 +110,12 @@
                                         @endif
                                         @break
 
+                                    @case('entitlements')
+                                        @if (! $isDone)
+                                            <p class="mt-1 text-small text-ink-2">{{ trans_choice('offboarding.entitlements-outstanding', $step['data']['outstanding'], ['count' => $step['data']['outstanding'], 'names' => implode($locale === 'ar' ? '، ' : ', ', $step['data']['names'])]) }}</p>
+                                        @endif
+                                        @break
+
                                     @case('interview')
                                         @if ($isDone)
                                             <p class="mt-1 text-small text-ink-2">{{ __('offboarding.interview-done-by', ['date' => $date($step['data']['held_at']), 'name' => $by($step['data']['held_by'])]) }}</p>
@@ -124,6 +130,8 @@
                             <div class="flex flex-wrap items-start gap-2 sm:justify-end">
                                 @if ($key === 'contract' && $step['data']['contract_id'] && $canViewContracts)
                                     <x-button variant="link" size="sm" :href="route('contracts.show', $step['data']['contract_id'])">@lang('offboarding.open-contract')</x-button>
+                                @elseif ($key === 'entitlements' && ! $isDone && filled($step['data']['username']))
+                                    <x-button variant="link" size="sm" :href="route('employees.show', $step['data']['username'])">@lang('offboarding.entitlements-open')</x-button>
                                 @elseif ($key === 'interview')
                                     @if ($isDone)
                                         <x-button variant="quiet" size="sm" wire:click="confirmReopen('interview')">@lang('offboarding.reopen')</x-button>

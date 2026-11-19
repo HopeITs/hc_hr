@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\User;
 use App\Services\ChecklistWorkflow;
 use App\Services\ContractAmendmentService;
+use App\Services\Entitlements;
 use App\Services\OffboardingJourneys;
 use App\Support\StatisticsCache;
 use Illuminate\Support\Facades\DB;
@@ -91,6 +92,9 @@ class ContractObserver
         if ($pos) {
             $pos->inc();
         }
+
+        // Track 5: the position's Permissions Library defaults, recorded as required.
+        app(Entitlements::class)->syncForContract($contract, fresh: true);
     }
 
     /**
@@ -157,6 +161,13 @@ class ContractObserver
         // draft upgraded, a move to another position — comes down to the
         // seat it held before and the seat it holds now.
         ['release' => $releaseId, 'claim' => $claimId] = $this->seatMove($contract);
+
+        // Track 5: a seat claimed (a draft made real, a contract switched back on, a move to
+        // another position) brings that position's Permissions Library defaults; a move also
+        // marks the old position's for review. Fresh unless the contract already held a seat.
+        if ($claimId !== null) {
+            app(Entitlements::class)->syncForContract($contract, fresh: $releaseId === null && ! $this->holdsSeat($contract->getOriginal('type'), $contract->getOriginal('is_active')));
+        }
 
         if ($releaseId === null && $claimId === null) {
             return;

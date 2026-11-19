@@ -138,6 +138,7 @@ final class Navigation
 
         $settings = array_values(array_filter([
             $editsBasics && $can('project-basics.view') ? $basics : null,
+            $can('entitlements.manage-library') && $user->activeRoleIs('HR', ...config('access-control.administrator_roles', [])) ? self::item('nav.settings.entitlements', __('entitlements.title'), 'entitlements.index', ['entitlements.*'], 'check-plus') : null,
             $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
             $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
             $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
