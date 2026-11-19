@@ -96,6 +96,10 @@ final class WorkInbox
         [$probation, $probationTotal] = $this->probationRequests($user);
         $journey = $journey->merge($probation);
         $journeyTotal += $probationTotal;
+        // Track 7: onboarding work that waits on the direct manager (their session) or on a deliverer (electronics, the Mug).
+        [$owned, $ownedTotal] = app(Inbox\OnboardingOwnerInbox::class)->collect($user, self::PER_SOURCE);
+        $journey = $journey->merge($owned);
+        $journeyTotal += $ownedTotal;
 
         return [
             'rows' => collect()

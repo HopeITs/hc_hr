@@ -403,6 +403,14 @@ return [
             'markCardHandedOver' => 'employees.update',
             'confirmReopen' => 'employees.update',
             'reopen' => 'employees.update',
+            'scheduleManagerOrientation' => 'employees.update',
+            'completeManagerOrientation' => 'employees.update',
+            'chooseElectronicsDeliverer' => 'employees.update',
+        ],
+        // Track 7: HR picks the policy documents a new volunteer must agree to; re-checked as HR on every call.
+        'onboarding.required-policies' => [
+            'setRequired' => 'employees.update',
+            'setKind' => 'employees.update',
         ],
         // Renewal journey (DEC-09 increment 2): HR's renew/stop decision and
         // its undo. contracts.update is the coarse gate; each method re-runs
@@ -785,6 +793,10 @@ return [
     'livewire_exempt' => [
         // The probation review is gated by ProbationReviewPolicy (the direct manager, city HR when nobody runs the position), on mount, on send() and again in ProbationReviews::request(); there is no permission to name.
         'probation.review' => ['send'],
+        // Track 7: the manager's session is gated by OnboardingJourneys::canRunManagerOrientation (direct manager, city HR as fallback) on mount and on every action, and again inside the service.
+        'onboarding.manager-session' => ['schedule', 'complete'],
+        // Track 7: the volunteer acknowledges only for their own employee (never an id from the browser); the document must be one HR marked as required.
+        'onboarding.policies' => ['acknowledge'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
         'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).

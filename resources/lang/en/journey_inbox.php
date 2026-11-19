@@ -21,9 +21,17 @@ return [
     ],
     'onboarding' => [
         'title' => 'Onboarding step waiting on you',
+        'open-manager' => 'Open the session',
         'step' => [
             'account' => 'Login account missing',
             'card' => 'Hand over the printed ID card',
+            'manager-schedule' => 'Schedule your orientation session with the new volunteer',
+            'manager-record' => 'Record your orientation session with the new volunteer',
+            'electronics' => 'Hand over the electronics',
+            'other_items' => 'Hand over the remaining items',
+            'mug' => 'Hand over the mug (the trial is over)',
+            'policies' => 'Read the policies and agree to them',
+            'guideline' => 'Review the Media guideline',
             'orientation-schedule' => 'Schedule the orientation session',
             'orientation-record' => 'Record the orientation session',
         ],
