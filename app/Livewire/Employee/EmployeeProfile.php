@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Enums\MaritalStatus;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Badge;
@@ -10,6 +11,7 @@ use App\Models\ProfileChangeRequest;
 use App\Models\User;
 use App\Services\EmployeeTimeline;
 use App\Services\ProfileChangeRequests;
+use App\Services\ProfileEditNotifier;
 use App\Services\TaskTelemetry;
 use App\Services\WorkPresence;
 use App\Support\DirectoryAccess;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
@@ -46,22 +49,29 @@ use Throwable;
  * D1 (profile-contract.md): a timeline of career events and badges
  * (EmployeeTimeline, Q1 = B); the owner sees their own rewards and warnings
  * (Q2 = C); and the small sections are edited in place, one at a time
- * (section 5): personal contact and skills by HR in scope or by the employee
- * themself (Q5), work contact by HR in scope. A save writes only that
- * section's columns, and is refused as stale when the section changed since
- * the dialog opened. The list sections (education, courses, experience,
- * family) are still edited on the edit page; the employee's own changes to
- * them wait for the HR approval flow (section 5.1), not built yet.
+ * (section 5) by HR in scope or by the employee themself. A save writes only
+ * that section's columns, and is refused as stale when the section changed
+ * since the dialog opened.
+ *
+ * Meeting 19/11 (track 2): the employee edits everything but contracts and
+ * identity directly, with no approval, and HR of their city is told what
+ * changed (ProfileEditNotifier). That covers personal contact, skills, work
+ * contact, marital status and children (the last three widened on the
+ * product owner's word, 2026-11-19), and new education, course, experience,
+ * family entries and the photo (ProfileChangeRequests::add). Identity (name,
+ * national ID, birth, nationality, civil registry), contracts and pay stay
+ * with HR on the edit page.
  */
 class EmployeeProfile extends Component
 {
     use GuardsModalClose, WithFeedback, WithFileUploads;
 
-    /** The sections edited in place, and their columns. */
+    /** The sections edited in place, and their columns. Never an identity, contract or pay column. */
     public const SECTIONS = [
         'personal-contact' => ['personal_phone', 'personal_email', 'address_ar', 'address_en'],
         'skills' => ['skills', 'interests'],
         'work-contact' => ['work_phone', 'whatsapp_work', 'telegram_work'],
+        'family-status' => ['marital_status', 'children'],
     ];
 
     public Employee $employee;
@@ -79,16 +89,16 @@ class EmployeeProfile extends Component
     #[Locked]
     public string $sectionVersion = '';
 
-    /** The owner's proposal waiting for HR (section 5.1): which section, and its entries. */
-    public bool $proposalModal = false;
+    /** The owner adding a new entry (or the photo): which section, and its entries. */
+    public bool $entryModal = false;
 
-    public string $proposing = '';
+    public string $adding = '';
 
     /** @var array<string, mixed> */
-    public array $proposal = [];
+    public array $entry = [];
 
     /** A certificate, or the new photo. */
-    public $proposalFile = null;
+    public $entryFile = null;
 
     #[Locked]
     public bool $isSelf = false;
@@ -166,7 +176,7 @@ class EmployeeProfile extends Component
             $entries[$column] = $value === '' ? null : $value;
         }
 
-        foreach (['personal_phone', 'work_phone'] as $phone) {
+        foreach (['personal_phone', 'work_phone', 'children'] as $phone) {
             if (array_key_exists($phone, $entries) && $entries[$phone] !== null) {
                 $entries[$phone] = en_digits((string) $entries[$phone]);
             }
@@ -201,8 +211,17 @@ class EmployeeProfile extends Component
 
             // Only this section's columns; LogsActivity records the change and its author.
             $current->forceFill($entries);
-            $wrote = $current->isDirty();
+            $changes = [];
+
+            foreach (array_keys($current->getDirty()) as $column) {
+                $changes[$column] = [$current->getOriginal($column), $current->getAttribute($column)];
+            }
+
+            $wrote = $changes !== [];
             $current->save();
+
+            // The employee's own edit is reported to HR of their city, once per save, after the commit.
+            app(ProfileEditNotifier::class)->fieldsChanged(Auth::user(), $current, $changes);
         });
 
         if ($stale) {
@@ -217,44 +236,41 @@ class EmployeeProfile extends Component
         $wrote ? $this->toast(__('employees.profile.section-saved')) : $this->toast(__('general.no-changes-message'), type: 'info');
     }
 
-    // -- Proposals waiting for HR (D1, profile-contract.md section 5.1) -----
+    // -- New entries added by the owner (meeting 19/11, track 2) ------------
 
-    public function openProposal(string $section): void
+    public function openEntry(string $section): void
     {
-        abort_unless($this->canPropose() && in_array($section, ProfileChangeRequest::SECTIONS, true), 404);
+        abort_unless($this->canAdd() && in_array($section, ProfileChangeRequest::SECTIONS, true), 404);
 
         $this->resetValidation();
-        $this->proposing = $section;
-        $this->proposal = array_fill_keys(array_keys(app(ProfileChangeRequests::class)->rules($section)), null);
-        $this->proposalFile = null;
-        $this->markClean('proposalModal');
-        $this->proposalModal = true;
+        $this->adding = $section;
+        $this->entry = array_fill_keys(array_keys(app(ProfileChangeRequests::class)->rules($section)), null);
+        $this->entryFile = null;
+        $this->markClean('entryModal');
+        $this->entryModal = true;
     }
 
-    public function submitProposal(): void
+    public function saveEntry(): void
     {
-        abort_unless($this->canPropose() && in_array($this->proposing, ProfileChangeRequest::SECTIONS, true), 404);
-
-        $service = app(ProfileChangeRequests::class);
-        $hadOpen = ProfileChangeRequest::query()->pending()
-            ->where('employee_id', $this->employee->id)->where('section', $this->proposing)->exists();
+        abort_unless($this->canAdd() && in_array($this->adding, ProfileChangeRequest::SECTIONS, true), 404);
 
         try {
-            $service->submit(Auth::user(), $this->proposing, $this->proposal, $this->proposalFile);
+            app(ProfileChangeRequests::class)->add(Auth::user(), $this->adding, $this->entry, $this->entryFile);
         } catch (AuthorizationException) {
             abort(404);
         } catch (ValidationException $e) {
             // On the dialog's own fields; the entries stay as typed.
             foreach ($e->errors() as $field => $messages) {
-                $this->addError($field === 'file' ? 'proposalFile' : 'proposal.'.$field, $messages[0]);
+                $this->addError($field === 'file' ? 'entryFile' : 'entry.'.$field, $messages[0]);
             }
 
             return;
         }
 
-        $this->closeGuardedDialog('proposalModal');
-        unset($this->closeBaselines['proposalModal']);
-        $this->toast(__($hadOpen ? 'employees.profile.change.replaced' : 'employees.profile.change.sent'));
+        $this->employee->refresh();
+        $this->closeGuardedDialog('entryModal');
+        unset($this->closeBaselines['entryModal']);
+        $this->toast(__('employees.profile.change.added'));
     }
 
     /** After a stale refusal: load what is saved now, discarding the entries. */
@@ -355,8 +371,8 @@ class EmployeeProfile extends Component
                 ? app(EmployeeTimeline::class)->events($contracts, $badges, $this->canViewFinancial)
                 : [],
             'editable' => array_values(array_filter(array_keys(self::SECTIONS), fn (string $s) => $this->canEditSection($s))),
-            // Section 5.1: the owner sees their own waiting proposals and the last refusal; nobody else does.
-            'canPropose' => $this->canPropose(),
+            // The owner adds entries; proposals sent before 19/11 still show their state to the owner alone.
+            'canAdd' => $this->canAdd(),
             'proposals' => $this->isSelf ? $this->ownProposals() : [],
             'contracts' => $contracts,
             'currentContract' => $currentContract,
@@ -378,23 +394,23 @@ class EmployeeProfile extends Component
 
     protected function guardedDialogs(): array
     {
-        return ['sectionModal', 'proposalModal'];
+        return ['sectionModal', 'entryModal'];
     }
 
     protected function guardedEntries(string $dialog): array
     {
-        return $dialog === 'proposalModal'
-            ? [...$this->proposal, 'file' => $this->proposalFile ? 'chosen' : null]
+        return $dialog === 'entryModal'
+            ? [...$this->entry, 'file' => $this->entryFile ? 'chosen' : null]
             : $this->sectionFields;
     }
 
     protected function closeGuardedDialog(string $dialog): void
     {
-        if ($dialog === 'proposalModal') {
-            $this->proposalModal = false;
-            $this->proposing = '';
-            $this->proposal = [];
-            $this->proposalFile = null;
+        if ($dialog === 'entryModal') {
+            $this->entryModal = false;
+            $this->adding = '';
+            $this->entry = [];
+            $this->entryFile = null;
             $this->resetValidation();
 
             return;
@@ -407,13 +423,16 @@ class EmployeeProfile extends Component
         $this->resetValidation();
     }
 
-    /** Only the active owner proposes, and only for themself. */
-    private function canPropose(): bool
+    /** Only the active owner adds entries, and only to their own profile. */
+    private function canAdd(): bool
     {
-        return $this->isSelf && app(ProfileChangeRequests::class)->canPropose(Auth::user());
+        return $this->isSelf && app(ProfileChangeRequests::class)->canAdd(Auth::user());
     }
 
-    /** Who may edit $section of this profile (Q5: the owner edits their contact and skills directly). */
+    /**
+     * Who may edit $section of this profile: HR in scope, or the active owner
+     * (meeting 19/11: every section here, none of them identity, contract or pay).
+     */
     private function canEditSection(string $section): bool
     {
         if (! array_key_exists($section, self::SECTIONS)) {
@@ -421,13 +440,9 @@ class EmployeeProfile extends Component
         }
 
         $user = Auth::user();
-        $hr = $user !== null && Gate::forUser($user)->allows('update', $this->employee);
-        $self = $this->isSelf && $this->employee->is_active;
 
-        return match ($section) {
-            'personal-contact', 'skills' => $hr || $self,
-            'work-contact' => $hr,
-        };
+        return ($this->isSelf && $this->employee->is_active)
+            || ($user !== null && Gate::forUser($user)->allows('update', $this->employee));
     }
 
     /** @return array<string, mixed> */
@@ -461,6 +476,9 @@ class EmployeeProfile extends Component
             'interests' => ['nullable', 'string', 'max:2000'],
             'whatsapp_work' => ['nullable', 'string', 'max:255'],
             'telegram_work' => ['nullable', 'string', 'max:255'],
+            // PersonalInfoForm: marital status is required, children a count.
+            'marital_status' => ['required', Rule::in(MaritalStatus::getValues())],
+            'children' => ['nullable', 'integer', 'min:0', 'max:30'],
         ];
     }
 
@@ -476,6 +494,8 @@ class EmployeeProfile extends Component
             'interests' => __('general.interests'),
             'whatsapp_work' => 'WhatsApp',
             'telegram_work' => 'Telegram',
+            'marital_status' => __('general.marital-status'),
+            'children' => trim(__('general.children')),
         ];
     }
 

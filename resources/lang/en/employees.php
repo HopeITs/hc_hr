@@ -168,6 +168,15 @@ return [
         'address-ar' => 'Address (Arabic)',
         'address-en' => 'Address (English)',
         'comma-hint' => 'Separate several with commas.',
+        'family-status' => 'Marital status and children',
+        // Meeting 19/11: what HR reads when an employee changes their own profile.
+        'notify' => [
+            'value-line' => ':field: :before → :after',
+            'changed-line' => ':field: changed',
+            'added-line' => 'Added :section: :entry',
+            'added-line-bare' => 'Updated :section',
+            'empty' => '(empty)',
+        ],
         'change' => [
             'sections' => [
                 'education' => 'education',
@@ -178,11 +187,9 @@ return [
             ],
             'propose' => 'Add',
             'propose-photo' => 'Change photo',
-            'title' => 'Propose a new :section',
-            'help' => 'HR checks this before it appears on your profile.',
-            'submit' => 'Send to HR',
-            'sent' => 'Sent to HR for approval.',
-            'replaced' => 'Sent to HR. It replaces your earlier proposal for this section.',
+            'title' => 'Add :section',
+            'help' => 'It is saved on your profile at once, and HR is told what you added.',
+            'added' => 'Added to your profile. HR has been told.',
             'pending' => 'Waiting for HR approval: :what',
             'file' => 'Certificate or file (optional)',
             'photo-file' => 'New photo',

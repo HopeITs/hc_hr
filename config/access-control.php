@@ -1309,12 +1309,12 @@ return [
         // D1 profile section editing. Not a single permission: openSection and
         // saveSection check EmployeeProfile::canEditSection() on every call
         // (EmployeePolicy::update for HR in scope, or the active owner for
-        // their own contact and skills, profile-contract.md Q5), write only
-        // that section's columns, and refuse a stale save. reloadSection
-        // re-opens through the same check; the close guard writes nothing.
-        // openProposal/submitProposal: the active owner only, for their own record
-        // (ProfileChangeRequests::canPropose); nothing reaches the profile until
-        // HR of the employee's city approves it in the inbox (section 5.1).
-        'employee.employee-profile' => ['openSection', 'saveSection', 'reloadSection', 'openProposal', 'submitProposal', ...$closeGuard],
+        // their own record, meeting 19/11; never identity, contract or pay),
+        // write only that section's columns, and refuse a stale save.
+        // reloadSection re-opens through the same check; the close guard
+        // writes nothing. openEntry/saveEntry: the active owner only, for their
+        // own record (ProfileChangeRequests::canAdd); written at once and
+        // reported to HR of the employee's city (ProfileEditNotifier).
+        'employee.employee-profile' => ['openSection', 'saveSection', 'reloadSection', 'openEntry', 'saveEntry', ...$closeGuard],
     ],
 ];

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Notifications\ProfileChangeDecided;
 use App\Rules\SafeImage;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -22,19 +23,24 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /**
- * The one writer of profile change requests (D1, profile-contract.md §5.1;
- * table approved by the technical lead 2026-10-27).
+ * Profile entries the employee adds to their own record (D1,
+ * profile-contract.md §5.1; meeting 19/11, track 2).
  *
- * An active employee proposes one new entry to their own education, courses,
- * experience or family, or a new photo. Nothing reaches the profile until HR
- * of the employee's city (EmployeePolicy::update) approves it, which writes
- * the entry to its own table in the same transaction. A rejection needs a
- * reason, which the employee reads. One open proposal per section: a newer
- * one replaces it. Pay and identity never pass through here.
+ * Since the 19/11 decision an active employee adds a new education, course,
+ * experience or family entry, or a new photo, directly: it is written to its
+ * own table at once and HR of the employee's city is told what was added
+ * (ProfileEditNotifier). There is no approval any more.
+ *
+ * Proposals sent before that decision stay in profile_change_requests and HR
+ * still approves or rejects them from the Inbox, through the same writer, so
+ * nothing in flight is lost or converted behind anyone's back. No new
+ * proposal is created. Pay and identity never pass through here.
  */
 final class ProfileChangeRequests
 {
     public const ALREADY_HANDLED = 'already_handled';
+
+    public function __construct(private readonly ProfileEditNotifier $notifier) {}
 
     /** The fields each section accepts, with the edit page's own rules. */
     public function rules(string $section): array
@@ -73,20 +79,24 @@ final class ProfileChangeRequests
         };
     }
 
-    /** May $user propose changes to their own profile? Only an active employee, for themself. */
-    public function canPropose(User $user): bool
+    /** May $user add entries to their own profile? Only an active employee, for themself. */
+    public function canAdd(User $user): bool
     {
         return $user->employee_id !== null && (bool) $user->profile?->is_active;
     }
 
     /**
+     * Write one new entry (or the new photo) to the user's own profile at
+     * once, and tell HR of their city what was added.
+     *
      * @param  array<string, mixed>  $data
      *
+     * @throws AuthorizationException when $user may not add to a profile
      * @throws ValidationException
      */
-    public function submit(User $user, string $section, array $data, ?UploadedFile $file = null): ProfileChangeRequest
+    public function add(User $user, string $section, array $data, ?UploadedFile $file = null): void
     {
-        if (! in_array($section, ProfileChangeRequest::SECTIONS, true) || ! $this->canPropose($user)) {
+        if (! in_array($section, ProfileChangeRequest::SECTIONS, true) || ! $this->canAdd($user)) {
             throw new AuthorizationException;
         }
 
@@ -101,35 +111,20 @@ final class ProfileChangeRequests
 
         $employee = $user->profile;
 
-        return DB::transaction(function () use ($user, $employee, $section, $validated, $file) {
-            // One open proposal per section: the newer one replaces it.
-            ProfileChangeRequest::query()->pending()
-                ->where('employee_id', $employee->id)->where('section', $section)
-                ->lockForUpdate()->get()
-                ->each(function (ProfileChangeRequest $old): void {
-                    $old->clearMediaCollection('file');
-                    $old->clearMediaCollection('photo');
-                    $old->update(['status' => ProfileChangeRequest::REPLACED]);
-                });
-
-            $change = ProfileChangeRequest::query()->create([
-                'employee_id' => $employee->id,
-                'section' => $section,
-                'proposed' => $validated,
-                'status' => ProfileChangeRequest::PENDING,
-                'requested_by' => $user->id,
-            ]);
+        DB::transaction(function () use ($user, $employee, $section, $validated, $file): void {
+            $row = $this->writeEntry($employee, $section, $validated);
 
             if ($file && $section === 'photo') {
-                // Re-encoded once, here, exactly as an HR upload is; approval copies it as is.
-                app(SecureImageUploadService::class)->attachTo($change, $file, 'photo', 'avatar', 'local');
-            } elseif ($file) {
-                $change->addMedia($file->getRealPath())
+                // Re-encoded once, here, exactly as an HR upload is; the stored original is never touched again.
+                app(SecureImageUploadService::class)->attachTo($employee, $file, 'avatar', 'avatar', 'local');
+            } elseif ($file && $row) {
+                $row->addMedia($file->getRealPath())
                     ->usingFileName($section.'-file.'.$file->getClientOriginalExtension())
                     ->toMediaCollection('file', 'local');
             }
 
-            return $change;
+            // Sent after the commit, so a rolled-back write reports nothing.
+            $this->notifier->entryAdded($user, $employee, $section, $validated);
         });
     }
 
@@ -200,15 +195,7 @@ final class ProfileChangeRequests
     private function apply(ProfileChangeRequest $change): void
     {
         $employee = $change->employee;
-        $data = $change->proposed;
-
-        $row = match ($change->section) {
-            'education' => $employee->educations()->create($data),
-            'course' => $employee->courses()->create([...$data, 'has_certificate' => (bool) ($data['has_certificate'] ?? false)]),
-            'experience' => $employee->experiences()->create($data),
-            'relative' => $employee->relatives()->create($data),
-            'photo' => null,
-        };
+        $row = $this->writeEntry($employee, $change->section, $change->proposed);
 
         if ($change->section === 'photo') {
             $change->getFirstMedia('photo')?->copy($employee, 'avatar', 'local');
@@ -221,5 +208,22 @@ final class ProfileChangeRequests
             $file->copy($row, 'file', 'local');
             $change->clearMediaCollection('file');
         }
+    }
+
+    /**
+     * The one place an entry reaches its table, for a direct addition and for
+     * an approved proposal alike. The photo has no row of its own.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function writeEntry(Employee $employee, string $section, array $data): ?Model
+    {
+        return match ($section) {
+            'education' => $employee->educations()->create($data),
+            'course' => $employee->courses()->create([...$data, 'has_certificate' => (bool) ($data['has_certificate'] ?? false)]),
+            'experience' => $employee->experiences()->create($data),
+            'relative' => $employee->relatives()->create($data),
+            'photo' => null,
+        };
     }
 }
