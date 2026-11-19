@@ -1034,7 +1034,7 @@ return [
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
         // Each calls authorizeActivePermission() plus a LeaveRequestPolicy
         // check on the specific record, which is the stronger control.
-        'employee.leave.my-leave-request-module' => [
+        'employee.leave.my-leave-request-module' => $ownLeaveRequestActions = [
             'create', 'edit', 'processSave', 'confirmSave', 'openDetails',
             'reconcileOperation', // X1-I: lookup by the form's token; authorizes leaves.create in the method
             'closeDetails', 'selectedLeave', 'submittedLeave', 'refreshCounts', 'setActiveTab',
@@ -1057,6 +1057,11 @@ return [
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
+        // The new-request dialog of the team calendar and the dashboard tile
+        // extends MyLeaveRequestModule: the same actions with the same checks.
+        // createOn() only runs create() and prefills the start date; the save
+        // validates the dates again.
+        'employee.leave.leave-request-dialog' => [...$ownLeaveRequestActions, 'createOn'],
         'employee.leave.all-leave-request-module' => [
             'edit', 'show', 'processSave', 'confirmSave', 'confirmDelete',
             'closeDecision', 'closeDetails', 'refreshCounts', 'setActiveTab',
