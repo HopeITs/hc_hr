@@ -10,8 +10,8 @@ use App\Livewire\Concerns\TracksTaskAttempt;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Livewire\Forms\LeaveRequestForm;
-use App\Models\Employee;
 use App\Models\AttendancePunch;
+use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Services\Attendance\Roster as AttendanceRoster;
@@ -135,11 +135,11 @@ class AllLeaveRequestModule extends Component
 
         // hydrate dependent lists
         $this->allAvailableLeaves = $this->leavesFor($employee, (int) $id->leave_balance_id);
-        $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
 
         // hydrate form values
         $this->form->employee_id = $employee->id;
         $this->form->leave_balance_id = (int) $id->leave_balance_id;
+        $this->alternativeEmployees = $this->form->alternativeChoices();
 
         $this->modalTitle = __('general.edit');
         $this->markClean('formModal');
@@ -159,11 +159,27 @@ class AllLeaveRequestModule extends Component
         $employee = Employee::with('city')->find($employeeId);
 
         $this->allAvailableLeaves = $this->leavesFor($employee);
-        $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
-
         // Reset dependent dropdowns
         $this->form->leave_balance_id = null;
         $this->form->alternative_employee = null;
+        $this->alternativeEmployees = $employee ? $this->form->alternativeChoices() : [];
+    }
+
+    /**
+     * The alternatives follow the period typed (wire:model.live on the
+     * dates): a colleague busy in the new period leaves the list, and the
+     * choice with them. submit validates against the same list.
+     */
+    public function updatedForm($value, $key): void
+    {
+        if (! $this->formModal
+            || ! in_array($key, ['type', 'start_at', 'end_at', 'leave_date', 'start_hour', 'end_hour'], true)
+            || (! $this->form->employee_id && ! $this->form->leaveRequest)) {
+            return;
+        }
+
+        $this->alternativeEmployees = $this->form->alternativeChoices();
+        $this->form->dropUnavailableAlternative();
     }
 
     public function openDecision(LeaveRequest $id)
@@ -201,6 +217,7 @@ class AllLeaveRequestModule extends Component
     {
         try {
             $leaveRequest = $this->form->submitDecision();
+            $alternativeChange = $this->form->alternativeChange();
         } catch (LeaveDecisionAlreadyMade $e) {
             // Nothing was written, and no notification goes out.
             $this->finishTaskAttempt('cancelled');
@@ -217,6 +234,16 @@ class AllLeaveRequestModule extends Component
             $leaveRequest,
             auth()->user(),
         );
+
+        // After the commit: the decision's transaction has returned.
+        if ($alternativeChange !== null) {
+            app(LeaveNotificationService::class)->sendAlternativeChanged(
+                $leaveRequest,
+                $alternativeChange['from'],
+                $alternativeChange['to'],
+                auth()->user(),
+            );
+        }
         $this->dispatch('notification-created');
 
         $this->refreshCounts();
@@ -340,6 +367,7 @@ class AllLeaveRequestModule extends Component
             'decisionOverlap' => $this->decisionOverlap(),
             'decisionBalance' => $this->decisionBalance(),
             'decisionAttendance' => $this->decisionAttendance(),
+            'decisionAlternatives' => $this->decisionAlternatives(),
             // The same two checks delete() meets: the permission (route rule) and the policy.
             'canDeleteSelected' => $this->selectedLeave
                 && auth()->user()->hasActivePermission('leaves.delete')
@@ -458,7 +486,7 @@ class AllLeaveRequestModule extends Component
     protected function guardedEntries(string $dialog): array
     {
         return $dialog === 'decisionModal'
-            ? $this->form->only(['status', 'reject_reason'])
+            ? $this->form->only(['status', 'reject_reason', 'decision_alternative'])
             : $this->form->entries() + ['employee_id' => $this->form->employee_id];
     }
 
@@ -562,11 +590,6 @@ class AllLeaveRequestModule extends Component
         return $balances;
     }
 
-    protected function alternativeEmployeesFor(?Employee $employee): Collection
-    {
-        return $employee ? app(LeaveAlternativeEmployees::class)->for($employee) : collect();
-    }
-
     protected function resolveStart()
     {
         return $this->form->type === 'day'
@@ -579,6 +602,40 @@ class AllLeaveRequestModule extends Component
         return $this->form->type === 'day'
             ? Carbon::parse($this->form->end_at)->format('d-m-Y')
             : $this->form->end_hour;
+    }
+
+    /**
+     * The decision dialog's alternative select: the rule and the "available"
+     * filter for the request's period, plus the one it already names.
+     *
+     * @return array{choices: Collection, current_unavailable: bool}|null
+     */
+    /**
+     * The rule alone, with no period: the assistant's screen lists through it
+     * (LeaveForEmployeeScreen) before any date is known; the form narrows the
+     * list to the period once dates are typed and validates against that.
+     */
+    protected function alternativeEmployeesFor(?Employee $employee): Collection
+    {
+        return $employee ? app(LeaveAlternativeEmployees::class)->for($employee) : collect();
+    }
+
+    private function decisionAlternatives(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave || (int) $this->decisionLeave->status !== LeaveRequestStatus::Pending) {
+            return null;
+        }
+
+        try {
+            return [
+                'choices' => $this->form->decisionAlternativeChoices(),
+                'current_unavailable' => $this->form->decisionAlternativeUnavailable(),
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Notifications\ContractsExpiringAutoRenewWarning;
 use App\Notifications\DigitalIdReportedLost;
 use App\Notifications\FolderShared;
 use App\Notifications\HRSawLeaveRequest;
+use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveDecisionReminder;
 use App\Notifications\LeaveRequestObjected;
 use App\Notifications\NewCenterCreated;
@@ -45,6 +46,7 @@ enum NotificationCategory: string
         ActionLeaveRequest::class => self::LeaveUpdates,
         HRSawLeaveRequest::class => self::LeaveUpdates,
         LeaveRequestObjected::class => self::LeaveUpdates,
+        LeaveAlternativeChanged::class => self::LeaveUpdates,
         ActionLeaveBalance::class => self::LeaveUpdates,
         ContractsAutoRenewedSummary::class => self::Contracts,
         ContractsExpiringAutoRenewWarning::class => self::Contracts,
