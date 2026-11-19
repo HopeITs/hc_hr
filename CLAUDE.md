@@ -23,6 +23,7 @@ php artisan storage:link             # REQUIRED — public/storage must be a sym
 
 Custom artisan commands (in `app/Console/Commands`):
 - `php artisan leaves:backfill` — generate deserved leave balances for Excel-imported contracts
+- `php artisan db:seed --class=EntitlementLibrarySeeder` then `php artisan entitlements:backfill` — load the Permissions Library catalog (`database/data/entitlement-library.php`, matched on the real positions' titles, departments, programs and cities) and give its defaults to people already in post
 - `php artisan employees:import-images <path> [--force]` — import avatars into the Spatie `avatar` media collection
 - contract / employee deactivation commands
 

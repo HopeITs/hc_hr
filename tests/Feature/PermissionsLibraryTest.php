@@ -359,6 +359,73 @@ class PermissionsLibraryTest extends TestCase
         $this->assertSame(OffboardingJourneys::STEPS, $keys);
     }
 
+    // ── The catalog and the backfill ─────────────────────────────────
+
+    public function test_the_catalog_is_built_from_the_positions_departments_programs_and_cities(): void
+    {
+        $finance = Department::query()->forceCreate(['name' => 'Finance', 'code' => 'Fin']);
+        $micro = Program::query()->forceCreate(['name' => 'Micro Project', 'slug' => 'micro', 'code' => '002', 'is_active' => true]);
+        $pmLevel = JobLevel::query()->forceCreate(['name_en' => 'Project Manager', 'name_ar' => 'مدير المشروع', 'grade' => 3]);
+        $list = \App\Models\MailList::query()->forceCreate(['name' => 'Financial', 'address' => 'financial@hcsyria.org']);
+        $accountant = $this->position('Accountant', ['department_id' => $finance->id]);
+        $microOfficer = $this->position('Project Officer', ['program_id' => $micro->id]);
+        $homs = $this->makeCity('HMS', '002');
+        $microHoms = $this->position('Project Officer', ['program_id' => $micro->id, 'city_id' => $homs->id, 'center_id' => null]);
+
+        $this->seed(\Database\Seeders\EntitlementLibrarySeeder::class);
+
+        $item = fn (string $en) => Entitlement::query()->where('name_en', $en)->firstOrFail();
+        $defaultOf = fn (Entitlement $e, Position $p) => PositionEntitlement::query()->where('entitlement_id', $e->id)->where('position_id', $p->id)->exists();
+
+        $financial = $item('financial@ mail list');
+        $this->assertSame($list->id, $financial->mail_list_id);
+        $this->assertTrue($defaultOf($financial, $accountant));
+        $this->assertTrue($defaultOf($item('Cash box and safe'), $accountant));
+        $this->assertFalse($defaultOf($financial, $microOfficer));
+
+        // A city list goes only to that city's positions of the program.
+        $this->assertTrue($defaultOf($item('micro.aleppo@ mail list'), $microOfficer));
+        $this->assertFalse($defaultOf($item('micro.aleppo@ mail list'), $microHoms));
+        $this->assertTrue($defaultOf($item('micro.homs@ mail list'), $microHoms));
+
+        // Managers by job level; IT by department or title; one staff group per city.
+        $this->assertTrue(PositionEntitlement::query()->where('entitlement_id', $item("Center's cameras")->id)->where('job_level_id', $pmLevel->id)->exists());
+        $this->assertTrue($defaultOf($item('IT team Telegram group'), $this->f['position']));
+        $this->assertFalse($defaultOf($item('IT team Telegram group'), $accountant));
+        $this->assertTrue($defaultOf($item('Staff Telegram group: HMS'), $microHoms));
+        $this->assertFalse($defaultOf($item('Staff Telegram group: HMS'), $accountant));
+
+        // Running it again adds nothing and leaves an item HR stopped stopped.
+        $financial->update(['is_active' => false, 'name_ar' => 'قائمة المالية']);
+        $counts = [Entitlement::query()->count(), PositionEntitlement::query()->count()];
+        $this->seed(\Database\Seeders\EntitlementLibrarySeeder::class);
+        $this->assertSame($counts, [Entitlement::query()->count(), PositionEntitlement::query()->count()]);
+        $this->assertFalse($financial->fresh()->is_active);
+        $this->assertSame('قائمة المالية', $financial->fresh()->name_ar);
+    }
+
+    public function test_the_backfill_gives_people_in_post_their_defaults_and_keeps_what_was_revoked(): void
+    {
+        $contract = $this->contract('already.here');
+        $kept = $this->entitlement('IT database', 'database', position: $this->f['position']);
+        $revoked = $this->entitlement('Old group', 'telegram', position: $this->f['position']);
+        EmployeeEntitlement::query()->create([
+            'employee_id' => $contract->employee_id, 'entitlement_id' => $revoked->id,
+            'source' => EmployeeEntitlement::SOURCE_DEFAULT, 'state' => EmployeeEntitlement::STATE_REVOKED,
+        ]);
+
+        $this->artisan('entitlements:backfill', ['--dry-run' => true])->assertSuccessful();
+        $this->assertFalse(EmployeeEntitlement::query()->where('entitlement_id', $kept->id)->exists());
+
+        $this->artisan('entitlements:backfill')->assertSuccessful();
+        $this->artisan('entitlements:backfill')->assertSuccessful();
+
+        $rows = EmployeeEntitlement::query()->where('employee_id', $contract->employee_id)->get()->keyBy('entitlement_id');
+        $this->assertSame(EmployeeEntitlement::STATE_REQUIRED, $rows[$kept->id]->state);
+        $this->assertSame(EmployeeEntitlement::STATE_REVOKED, $rows[$revoked->id]->state);
+        $this->assertSame(1, EmployeeEntitlement::query()->where('employee_id', $contract->employee_id)->where('entitlement_id', $kept->id)->count());
+    }
+
     // ── Fixtures ─────────────────────────────────────────────────────
 
     private function entitlement(string $name, string $category, ?Position $position = null, ?JobLevel $jobLevel = null): Entitlement

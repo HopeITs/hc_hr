@@ -45,8 +45,12 @@ return [
         'database' => 'قاعدة بيانات',
         'telegram' => 'مجموعة تيليغرام',
         'mail_list' => 'قائمة بريد',
+        'shared_drive' => 'مجلد مشترك',
+        'social_media' => 'التواصل الاجتماعي والموقع',
         'camera' => 'كاميرات',
         'it_maintenance' => 'صيانة IT',
+        'equipment' => 'معدات',
+        'physical_access' => 'مفاتيح ومرافق',
         'other' => 'أخرى',
     ],
 

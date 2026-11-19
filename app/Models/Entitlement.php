@@ -18,7 +18,7 @@ class Entitlement extends Model
 {
     use HasTranslation;
 
-    public const CATEGORIES = ['database', 'telegram', 'mail_list', 'camera', 'it_maintenance', 'other'];
+    public const CATEGORIES = ['database', 'telegram', 'mail_list', 'shared_drive', 'social_media', 'camera', 'it_maintenance', 'equipment', 'physical_access', 'other'];
 
     protected $fillable = ['name_en', 'name_ar', 'category', 'reference', 'mail_list_id', 'description', 'is_active'];
 
