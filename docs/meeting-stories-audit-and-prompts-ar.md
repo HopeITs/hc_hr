@@ -13,6 +13,7 @@
 | العقد التجريبي | التمديد = تعديل تاريخ النهاية عبر ملحق العقد؛ التثبيت = عقد جديد دائم؛ الإلغاء = إنهاء بسبب |
 | Permissions Library | سجل استحقاقات (entitlements) مرتبط بالمنصب + قائمة تحقق للتنفيذ |
 | اقتراح البدلاء | يُحسم في Prompt 6 (انظر "أسئلة مفتوحة") |
+| مسيرة المتطوع (Onboarding) | السجل ← العقد، ثم **كل الخطوات بالتوازي**: إيميل العمل (حساب الدخول)، البطاقة، التسليم (إلكترونيات + Assets)، جلسة الـ HR، جلسة المدير، إقرار السياسات. المهل من بداية العقد: **البطاقة والإلكترونيات (لابتوب، ماوس، إيميل العمل، توقيع الإيميل...) خلال يومين**، والجلستان **خلال 14 يوماً**؛ المسيرة لا تكتمل إلا بها كلها. **الـ Mug** خارج المسيرة: يُسلَّم بعد انتهاء العقد التجريبي وبدء عقد حقيقي |
 
 ---
 
@@ -75,6 +76,18 @@
 | اقتراح بدلاء: CVs قديمة | ❌ المكان فقط الآن. أساس: `RecruitmentApplicant`/`RecruitmentApplication` + `RecruitmentFinalistService` (وصلوا المراحل الأخيرة) |
 | اقتراح من داخل المؤسسة بالـ AI | ❌ أساس: `Evaluation` model + `MatchingIndicator` + `config/assistant.php` (مزوّدون خارجيون: Groq/Gemini/...) |
 
+### 7. مسيرة المتطوع (Onboarding)
+
+المسيرة الحالية (`OnboardingJourneys`، جدول `onboarding_journeys`): `record → contract → account → card → orientation`، تبدأ مع أول عقد حقيقي.
+
+| المطلوب | الحالة |
+|---|---|
+| Orientation من الـ HR | ✅ جلسة واحدة: يحدد HR موعدها ويسجّلها بعد حدوثها، مهلة 14 يوماً، تذكير `OrientationOverdue`، تظهر في الـ Inbox |
+| Orientation من المدير (البرامج، آلية العمل) | ❌ الجلسة الوحيدة مالكها HR |
+| تسليم الإلكترونيات (إيميل، لابتوب، ماوس) | 🟡 `Checklist`/`ChecklistItem`/`DefaultDeliverable`/`ChecklistWorkflow` (Email، Laptop، Mobile، SIM)؛ **لا بند Mouse**، و**القائمة غير مربوطة بالمسيرة**. الإيميل = إيميل حساب الدخول (خطوة account) |
+| تسليم Assets (ID، Mug، Signature) | 🟡 بنود في نفس القائمة (ID Cartoon/Plastic، Mug، Email Signature، Web photo) + تسليم البطاقة المطبوعة في المسيرة؛ غير محسوبة في اكتمال المسيرة |
+| إقرار قراءة Policies + Media guideline | ❌ `PolicyDocument` (مزامنة من Drive عبر `policies:sync`) يقرؤه المساعد الذكي فقط؛ لا صفحة قراءة ولا إقرار |
+
 ---
 
 ## 2) أسئلة مفتوحة (تؤثر على Prompt 6 وبعض التفاصيل)
@@ -88,10 +101,11 @@
 
 ## 3) ترتيب التنفيذ وتجنّب التعارض بين المطوّرين
 
-ستة مسارات مستقلة تقريباً. نقاط التماس:
-- المسارات 1 و3 و4 تُضيف **Notification classes** جديدة وتسجّلها في `app/Enums/NotificationCategory.php` → **ملف مشترك**: كل مطوّر يضيف سطره فقط، والدمج يدوي بسيط.
+سبعة مسارات مستقلة تقريباً. نقاط التماس:
+- المسارات 1 و3 و4 و7 تُضيف **Notification classes** جديدة وتسجّلها في `app/Enums/NotificationCategory.php` → **ملف مشترك**: كل مطوّر يضيف سطره فقط، والدمج يدوي بسيط.
 - المسار 4 يستعمل `ContractAmendmentService` (لا يعدّله).
 - المسار 5 و6 يضيفان عموداً/جدولاً جديداً على `positions`: **استخدموا ملفات migration بأسماء مختلفة وتواريخ مختلفة**.
+- المسار 7 يعدّل `OnboardingJourneys` وجدول `onboarding_journeys` (بـ migration جديدة)، والمسار 5 يربط بـ `Onboarding*` فقط: **من يُدمج ثانياً يراجع `steps()` و`settleCompletion()`**.
 - كل مسار على فرع خاص: `feature/<name>`، ويُدمج في `main` بعد `composer test` و`./vendor/bin/pint`.
 
 | # | المسار | الفرع المقترح | يلمس |
@@ -102,6 +116,7 @@
 | 4 | العقد التجريبي: ثلث أخير + قرار | `feature/probation-review` | command جديد, service جديد, Livewire جديد |
 | 5 | Permissions Library | `feature/permissions-library` | جداول جديدة, Livewire جديد, `Onboarding*` (ربط فقط) |
 | 6 | Critical Positions + اقتراح بدلاء | `feature/critical-positions` | `positions` (عمود), org chart, service جديد |
+| 7 | مسيرة المتطوع: جلسة المدير + التسليم + إقرار السياسات | `feature/onboarding-journey-extended` | `OnboardingJourneys`, `onboarding_journeys` (أعمدة), `ChecklistWorkflow` (قراءة), `PolicyDocument`, جدول إقرارات جديد, Inbox, Notification جديد |
 
 ---
 
@@ -227,6 +242,41 @@
 4) من يرى اللوحة: HR (نطاق مدينته) وHR Syria والمدير العام وsuper-admin فقط؛ لا يراها المدير المباشر ولا المرشّح نفسه.
 5) لا تُنشئ ترقية/عقد تلقائياً؛ المخرج اقتراح فقط، مع زر "فتح ملف المرشح".
 اختبارات: الوسم والصلاحية، شروط "يحتاج بديلاً"، ترتيب المرشحين الداخليين وتفسيره، حالة فارغة للـ CVs، عدم ظهور اللوحة لأدوار غير مخوّلة، وعدم استدعاء أي HTTP خارجي (Http::fake مع assertNothingSent).
+```
+
+### Prompt 7 — مسيرة المتطوع: جلسة المدير والتسليم وإقرار السياسات
+
+```
+[الصق السياق المشترك]
+
+المهمة: إكمال مسيرة المتطوع الجديد (Onboarding). الفرع: feature/onboarding-journey-extended.
+
+المخطط المعتمد:
+  السجل → العقد
+  ثم بعد العقد، كل الخطوات بالتوازي (لا تنتظر أيٌّ منها الأخرى)، والمهلة من بداية العقد:
+    إيميل العمل = حساب الدخول (موجود، النظام)          خلال يومين
+    | الإلكترونيات: لابتوب، ماوس، توقيع الإيميل... (المسلِّم)  خلال يومين
+    | البطاقة رقمية + مطبوعة (موجودة، HR)                خلال يومين
+    | جلسة الـ HR (موجودة)                               خلال 14 يوماً
+    | جلسة المدير (جديدة)                                خلال 14 يوماً
+    | إقرار السياسات (جديد، المتطوع)                     بلا مهلة محددة
+  → اكتمال المسيرة (لا تكتمل إلا بكل الخطوات).
+  الـ Mug خارج المسيرة: يصبح مستحقاً عند بدء أول عقد غير تجريبي بعد عقد تجريبي
+  (أي بعد تثبيت المسار 4)، ولا يؤخر اكتمال المسيرة.
+  في steps(): لا تجعل أي خطوة بعد العقد blocked_by خطوة أخرى غير العقد.
+
+الموجود: app/Services/OnboardingJourneys.php (STEPS، steps()، scheduleOrientation/completeOrientation/markCardHandedOver/reopen، change() بقفل ومعاملة وسجل activity "onboarding"، settleCompletion())، App\Models\OnboardingJourney، جدول onboarding_journeys، OrientationOverdue، App\Services\Inbox\OnboardingInboxSource وJourneyInbox، قائمة التسليم: Checklist وChecklistItem وDefaultDeliverable (مسلِّم لكل بند لكل مدينة) وChecklistWorkflow (الانتقالات الوحيدة المسموحة)، PolicyDocument (source drive|panel، content، source_url، source_modified_at) وpolicies:sync، علاقة المدير المباشر كما في Contract::scopeVisibleTo (المنصب الذي يتبع له منصب المتطوع).
+
+المطلوب:
+1) جلسة المدير: أعمدة جديدة على onboarding_journeys (migration جديدة): manager_orientation_scheduled_for/by وmanager_orientation_completed_at/by. نفس قواعد جلسة الـ HR: الموعد ثم التسجيل بعد حدوثها فقط، idempotent تحت نفس change()، مستحقة بنفس orientation_due_on (14 يوماً). يملكها المدير المباشر (ومن يحمل EmployeePolicy::update لـ HR المدينة كاحتياط). بنود الجلسة (البرامج، آلية العمل) تُعرض كنص إرشادي. تذكير عند التأخير على نمط OrientationOverdue (Notification جديد ManagerOrientationOverdue، سجّله في NotificationCategory بسطرك فقط)، وصف في Inbox المدير. reopen() يشمل الخطوة.
+2) التسليم: صنّف بنود ChecklistItem بعمود جديد onboarding_group (electronics | card | after_probation | other | exit) عبر migration بيانات idempotent بحسب الاسم: Email وEmail Signature وLaptop وMouse وMobile وSIM = electronics؛ ID Cartoon وID Plastic = card؛ Mug = after_probation؛ بنود الإرجاع (order 3) = exit؛ الباقي other. أضف بند "Mouse" (نفس الـ migration + config/samples/sampleData.php) دون المساس بالبنود الموجودة. خطوتا electronics وcard في steps() تُقرآن ولا تُخزَّنان: مكتملة عندما تكون بنود مجموعتها في DefaultDeliverable لمدينة المتطوع مسلَّمة له (delivered_status = delivered)، وخطوة card تتطلب أيضاً card_handed_over_at كما الآن. بنود other تُعرض ضمن التسليم بلا مهلة. لا تغيّر ChecklistWorkflow. اعرض البنود الناقصة ومن يسلّمها.
+2ب) المهل: ثابت ACCOUNT_DAYS = ELECTRONICS_DAYS = CARD_DAYS = 2 (من بداية العقد) بجانب ORIENTATION_DAYS = 14، تُحسب من contract.start_date ولا تُخزَّن. خطوة متأخرة تظهر late في المسيرة وفي الـ Inbox لصاحبها (النظام/HR للحساب، المسلِّم للإلكترونيات، HR للبطاقة)، وتذكير واحد عند التأخير (عبر NotificationDeliveryLedger).
+2ج) الـ Mug: ليس خطوة في المسيرة ولا يدخل في اكتمالها. يصبح مستحقاً عند بدء أول عقد غير تجريبي (Contract::isTrial() = false) للمتطوع بعد عقد تجريبي؛ عندها يظهر في Inbox مسلِّمه وفي صفحة المتطوع. المتطوع الذي لم يكن له عقد تجريبي أصلاً: يُستحق مع أول عقد (اذكر هذا الافتراض في التقرير).
+3) إقرار السياسات: عمود policy_documents.required_for_onboarding (افتراضي false) وجدول policy_acknowledgements (employee_id، policy_document_id، acknowledged_at، document_modified_at لقطة النسخة، فريد على الزوج). صفحة للمتطوع من حسابه تعرض الوثائق المطلوبة (المحتوى + رابط المصدر) وزر "قرأت وأوافق" لكل وثيقة؛ HR يرى الحالة في المسيرة. واجهة لـ HR لتحديد الوثائق المطلوبة (منها Media guideline). الخطوة مكتملة عند إقرار كل الوثائق المطلوبة؛ إن لم توجد وثائق مطلوبة فالخطوة "مشكلة" توضّح ذلك لا "منجزة".
+4) settleCompletion(): الاكتمال = الحساب + الإلكترونيات + البطاقة + جلسة HR + جلسة المدير + الإقرار (+ بنود other المسلَّمة؛ الـ Mug مستثنى). لأن خطوتي التسليم والإقرار تُقرآن من جداولهما، أعد حساب الاكتمال أيضاً بعد markDelivered وبعد الإقرار (دون أن يكتب ChecklistWorkflow في المسيرة مباشرة: نادِ خدمة المسيرة).
+5) واجهة المسيرة الحالية في صفحة المتطوع: أضف الخطوات الثلاث بنفس المكوّنات (<x-status> للحالة، لا ألوان) ومع المالك والمهلة.
+6) المسيرات القائمة: المكتملة تبقى مكتملة (لا تُعاد فتحها)؛ الجارية تكتسب الخطوات الجديدة. الموظفون بلا مسيرة لا يتأثرون.
+اختبارات: كل خطوة جديدة (تحديد، تسجيل قبل الموعد مرفوض، idempotent، reopen)، مدير غير مباشر أو HR مدينة أخرى مرفوض، التسليم يكتمل فقط بكل بنود المدينة، مهلة اليومين (الحساب/الإلكترونيات/البطاقة) و14 يوماً للجلستين تظهر late في موعدها، الـ Mug لا يظهر أثناء العقد التجريبي ويظهر مع أول عقد غير تجريبي ولا يؤخر الاكتمال، الإقرار يخص المتطوع نفسه فقط، الاكتمال يتبع كل الخطوات وينعكس عند reopen، المسيرة المكتملة سابقاً لا تُفتح، وعدم تكرار تذكير التأخير. (OnboardingJourneysTest وما يتعلق بالـ Inbox كنمط.)
 ```
 
 </div>
