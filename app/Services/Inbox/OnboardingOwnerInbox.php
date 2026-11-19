@@ -3,8 +3,10 @@
 namespace App\Services\Inbox;
 
 use App\Models\ChecklistItem;
+use App\Models\Contract;
 use App\Models\DefaultDeliverable;
 use App\Models\OnboardingJourney;
+use App\Models\PolicyDocument;
 use App\Models\User;
 use App\Services\OnboardingDeliveries;
 use App\Services\OnboardingJourneys;
@@ -75,12 +77,17 @@ class OnboardingOwnerInbox
     /** @return Collection<int, array<string, mixed>> */
     private function delivererRows(User $user): Collection
     {
-        $mine = DefaultDeliverable::query()
+        // Cities where this person may be a deliverer: the ones the delivery list names them for,
+        // and their own city (IT of a city hands its electronics over).
+        $cityIds = DefaultDeliverable::query()
             ->where('employee_id', $user->employee_id)
-            ->with('item')
-            ->get();
+            ->pluck('city_id')
+            ->push($this->isIt($user) ? $user->profile?->city_id : null)
+            ->filter()
+            ->unique()
+            ->values();
 
-        if ($mine->isEmpty()) {
+        if ($cityIds->isEmpty()) {
             return collect();
         }
 
@@ -90,7 +97,7 @@ class OnboardingOwnerInbox
         OnboardingJourney::query()
             ->whereHas('employee', fn (Builder $employee) => $employee
                 ->where('is_active', true)
-                ->whereIn('city_id', $mine->pluck('city_id')->unique()))
+                ->whereIn('city_id', $cityIds))
             ->with(['employee.city', 'contract'])
             ->latest('started_at')
             ->limit(self::SCAN)
@@ -129,11 +136,29 @@ class OnboardingOwnerInbox
             ->with(['employee.city', 'contract'])
             ->first();
 
-        if ($journey === null || app(PolicyAcknowledgements::class)->status($journey->employee)['pending']->isEmpty()) {
+        if ($journey === null) {
             return collect();
         }
 
-        return collect([$this->row($journey, 'policies', null, false, route('onboarding.policies'), 'volunteer')]);
+        $acknowledgements = app(PolicyAcknowledgements::class);
+
+        return collect([
+            'policies' => PolicyDocument::KIND_POLICY,
+            'guideline' => PolicyDocument::KIND_REVIEW,
+        ])
+            ->filter(fn (string $kind) => $acknowledgements->status($journey->employee, $kind)['pending']->isNotEmpty())
+            ->map(fn (string $kind, string $step) => $this->row($journey, $step, null, false, route('onboarding.policies'), 'volunteer'))
+            ->values();
+    }
+
+    /** Whether the person is IT now (a running contract on a position of the IT department): only then do they hand electronics over. */
+    private function isIt(User $user): bool
+    {
+        return Contract::query()
+            ->activeNow()
+            ->where('employee_id', $user->employee_id)
+            ->whereHas('position.department', fn (Builder $department) => $department->where('code', OnboardingDeliveries::IT_DEPARTMENT_CODE))
+            ->exists();
     }
 
     private function mineMissing(User $user, $employee, string $group): bool

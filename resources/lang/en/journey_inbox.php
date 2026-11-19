@@ -31,6 +31,7 @@ return [
             'other_items' => 'Hand over the remaining items',
             'mug' => 'Hand over the mug (the trial is over)',
             'policies' => 'Read the policies and agree to them',
+            'guideline' => 'Review the Media guideline',
             'orientation-schedule' => 'Schedule the orientation session',
             'orientation-record' => 'Record the orientation session',
         ],

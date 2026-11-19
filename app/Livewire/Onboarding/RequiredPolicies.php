@@ -30,6 +30,16 @@ class RequiredPolicies extends Component
         $this->toast(__('onboarding.required-policies.saved'), 'success');
     }
 
+    /** policy (read and agreed) or review (made by another team, only reviewed). */
+    public function setKind(int $documentId, string $kind, PolicyAcknowledgements $policies): void
+    {
+        $this->authorizeHr();
+
+        $policies->setKind(PolicyDocument::query()->findOrFail($documentId), $kind);
+
+        $this->toast(__('onboarding.required-policies.saved'), 'success');
+    }
+
     public function render(): View
     {
         $this->authorizeHr();

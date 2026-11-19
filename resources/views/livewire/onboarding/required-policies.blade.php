@@ -7,6 +7,12 @@
             @forelse ($documents as $document)
                 <li class="flex flex-wrap items-center justify-between gap-3 py-3" wire:key="doc-{{ $document->id }}">
                     <span class="font-medium text-ink">{{ $document->title }}</span>
+                    <select class="rounded-control border border-line bg-card px-2 py-1 text-small text-ink" aria-label="@lang('onboarding.required-policies.kind')"
+                        wire:change="setKind({{ $document->id }}, $event.target.value)" data-testid="kind-{{ $document->id }}">
+                        @foreach (\App\Models\PolicyDocument::KINDS as $kind)
+                            <option value="{{ $kind }}" @selected($document->onboarding_kind === $kind)>@lang('onboarding.required-policies.kind-'.$kind)</option>
+                        @endforeach
+                    </select>
                     <label class="flex items-center gap-2 text-small text-ink-2">
                         <input type="checkbox" class="rounded border-line" @checked($document->required_for_onboarding)
                             wire:change="setRequired({{ $document->id }}, $event.target.checked)"

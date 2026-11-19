@@ -93,6 +93,9 @@
 
                                 @case('electronics')
                                 @case('other_items')
+                                    @if ($key === 'electronics' && $step['data']['deliverer'] && ! $isDone)
+                                        <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.electronics-deliverer', ['name' => $step['data']['deliverer']->name]) }}</p>
+                                    @endif
                                     @if ($step['note'])
                                         <p class="mt-1 text-small text-ink-2">@lang('employees.journey.'.$step['note'])</p>
                                     @endif
@@ -119,6 +122,14 @@
                                         @if ($step['data']['scheduled_for'])
                                             <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.orientation-on', ['date' => $date($step['data']['scheduled_for'])]) }}</p>
                                         @endif
+                                    @endif
+                                    @break
+
+                                @case('guideline')
+                                    @if ($step['note'])
+                                        <p class="mt-1 text-small text-ink-2">@lang('employees.journey.'.$step['note'])</p>
+                                    @elseif (! $isDone)
+                                        <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.guideline-pending', ['count' => $step['data']['pending']->count(), 'total' => $step['data']['required']]) }}</p>
                                     @endif
                                     @break
 
@@ -173,7 +184,20 @@
                                     </form>
                                     <p class="w-full text-small text-primary" role="alert">@error('managerDate'){{ $message }}@enderror</p>
                                 @endif
-                            @elseif ($key === 'policies' && $journey && $step['state'] === OnboardingJourneys::STATE_PROBLEM)
+                            @elseif ($key === 'electronics' && $journey && ! $isDone && $step['data']['candidates']->count() > 1)
+                                <div class="flex flex-wrap items-end gap-2">
+                                    <div>
+                                        <label for="electronics-deliverer" class="block text-small text-ink-2">@lang('employees.journey.deliverer-choose')</label>
+                                        <select id="electronics-deliverer" class="rounded-control border border-line bg-card px-2 py-1 text-small text-ink"
+                                            wire:change="chooseElectronicsDeliverer($event.target.value)" data-testid="electronics-deliverer">
+                                            <option value="">—</option>
+                                            @foreach ($step['data']['candidates'] as $candidate)
+                                                <option value="{{ $candidate->id }}" @selected($step['data']['deliverer']?->id === $candidate->id)>{{ $candidate->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @elseif (in_array($key, ['policies', 'guideline'], true) && $journey && $step['state'] === OnboardingJourneys::STATE_PROBLEM)
                                 <x-button variant="outline" size="sm" :href="route('onboarding.required-policies')">@lang('employees.journey.open-policies-admin')</x-button>
                             @elseif ($key === 'orientation' && $journey)
                                 @if ($isDone)

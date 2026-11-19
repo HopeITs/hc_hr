@@ -8,10 +8,15 @@ use App\Models\PolicyDocument;
 use Illuminate\Support\Collection;
 
 /**
- * The policies a new volunteer must read and agree to (track 7). HR marks the
- * required documents (PolicyDocument::required_for_onboarding); the volunteer
- * agrees to each from their own account. The journey's step is done when every
- * required document has an acknowledgement; with no required document it is a
+ * The documents a new volunteer must go through (track 7). HR marks which ones
+ * are required (PolicyDocument::required_for_onboarding) and of which kind:
+ *
+ *  - policy: read and agreed;
+ *  - review: made by another team (the Media guideline, by the Media Team) and
+ *    only reviewed, not agreed to.
+ *
+ * Each kind is its own journey step. A step is done when every required
+ * document of its kind has an acknowledgement; with none required it is a
  * problem (HR has to say which), never "done".
  *
  * The caller authorizes: acknowledge() only ever writes for the employee it is
@@ -20,17 +25,21 @@ use Illuminate\Support\Collection;
 class PolicyAcknowledgements
 {
     /** @return Collection<int, PolicyDocument> */
-    public function required(): Collection
+    public function required(string $kind = PolicyDocument::KIND_POLICY): Collection
     {
-        return PolicyDocument::query()->where('required_for_onboarding', true)->orderBy('title')->get();
+        return PolicyDocument::query()
+            ->where('required_for_onboarding', true)
+            ->where('onboarding_kind', $kind)
+            ->orderBy('title')
+            ->get();
     }
 
     /**
      * @return array{required: Collection<int, PolicyDocument>, acknowledged: Collection<int, int>, pending: Collection<int, PolicyDocument>, complete: bool}
      */
-    public function status(Employee $employee): array
+    public function status(Employee $employee, string $kind = PolicyDocument::KIND_POLICY): array
     {
-        $required = $this->required();
+        $required = $this->required($kind);
         $acknowledged = PolicyAcknowledgement::query()
             ->where('employee_id', $employee->id)
             ->whereIn('policy_document_id', $required->pluck('id'))
@@ -74,5 +83,14 @@ class PolicyAcknowledgements
         }
 
         $document->forceFill(['required_for_onboarding' => $required])->save();
+    }
+
+    public function setKind(PolicyDocument $document, string $kind): void
+    {
+        if (! in_array($kind, PolicyDocument::KINDS, true) || $document->onboarding_kind === $kind) {
+            return;
+        }
+
+        $document->forceFill(['onboarding_kind' => $kind])->save();
     }
 }

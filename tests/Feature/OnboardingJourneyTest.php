@@ -11,7 +11,6 @@ use App\Models\ChecklistItem;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractType;
-use App\Models\DefaultDeliverable;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobLevel;
@@ -47,12 +46,12 @@ class OnboardingJourneyTest extends TestCase
 
     private const STEPS_FOR_A_DRAFT = [
         'record' => 'todo', 'contract' => 'waiting', 'account' => 'waiting', 'electronics' => 'waiting', 'card' => 'waiting',
-        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting',
+        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting', 'guideline' => 'waiting',
     ];
 
     private const STEPS_FOR_AN_AWAITING_VOLUNTEER = [
         'record' => 'done', 'contract' => 'todo', 'account' => 'waiting', 'electronics' => 'waiting', 'card' => 'waiting',
-        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting',
+        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting', 'guideline' => 'waiting',
     ];
 
     protected function setUp(): void
@@ -132,7 +131,7 @@ class OnboardingJourneyTest extends TestCase
             ->assertViewHas('steps', fn ($steps) => $this->states($steps) === [
                 'record' => 'done', 'contract' => 'done', 'account' => 'done',
                 // No deliverer is named for the electronics in this city, and no policy is required yet: both say so instead of passing.
-                'electronics' => 'problem', 'card' => 'todo', 'orientation' => 'todo', 'manager_orientation' => 'todo', 'policies' => 'problem',
+                'electronics' => 'problem', 'card' => 'todo', 'orientation' => 'todo', 'manager_orientation' => 'todo', 'policies' => 'problem', 'guideline' => 'problem',
             ])
             ->assertViewHas('steps', fn ($steps) => collect($steps)->whereNotNull('blocked_by')->isEmpty())
             ->assertViewHas('steps', fn ($steps) => $this->byKey($steps)['orientation']['due']->toDateString() === now()->addDays(14)->toDateString())
@@ -497,12 +496,16 @@ class OnboardingJourneyTest extends TestCase
     private function satisfyTheOtherSteps(array $fixtures, Employee $volunteer): void
     {
         $deliverer = $this->makeEmployee($fixtures['city'], 'deliverer.'.uniqid());
-        $item = ChecklistItem::query()->create(['name' => 'Laptop', 'order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
-        DefaultDeliverable::query()->create(['employee_id' => $deliverer->id, 'city_id' => $fixtures['city']->id, 'item_id' => $item->id]);
-        Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $volunteer->id, 'delivered_id' => $deliverer->id, 'receiver_id' => $volunteer->id, 'delivered_status' => 'delivered']);
+        ChecklistItem::query()->firstOrCreate(['name' => 'Laptop'], ['order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
+        // Every electronics item (the migration adds a Mouse too).
+        ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->get()->each(
+            fn (ChecklistItem $item) => Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $volunteer->id, 'delivered_id' => $deliverer->id, 'receiver_id' => $volunteer->id, 'delivered_status' => 'delivered']),
+        );
 
-        $policy = PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => 'Media guideline', 'required_for_onboarding' => true]);
+        $policy = PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => 'Code of conduct', 'required_for_onboarding' => true]);
         app(PolicyAcknowledgements::class)->acknowledge($volunteer, $policy);
+        $guide = PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => 'Media guideline', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_REVIEW]);
+        app(PolicyAcknowledgements::class)->acknowledge($volunteer, $guide);
 
         $journeys = app(OnboardingJourneys::class);
         $journeys->scheduleManagerOrientation($volunteer, now(), $fixtures['hr']);

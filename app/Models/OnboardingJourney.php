@@ -49,6 +49,12 @@ class OnboardingJourney extends Model
         return $this->belongsTo(User::class, 'card_handed_over_by');
     }
 
+    /** The IT person HR picked to hand the electronics over (only needed when the city has several). */
+    public function electronicsDeliverer(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'electronics_deliverer_id');
+    }
+
     public function managerOrientationScheduledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'manager_orientation_scheduled_by');

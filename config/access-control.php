@@ -405,10 +405,12 @@ return [
             'reopen' => 'employees.update',
             'scheduleManagerOrientation' => 'employees.update',
             'completeManagerOrientation' => 'employees.update',
+            'chooseElectronicsDeliverer' => 'employees.update',
         ],
         // Track 7: HR picks the policy documents a new volunteer must agree to; re-checked as HR on every call.
         'onboarding.required-policies' => [
             'setRequired' => 'employees.update',
+            'setKind' => 'employees.update',
         ],
         // Renewal journey (DEC-09 increment 2): HR's renew/stop decision and
         // its undo. contracts.update is the coarse gate; each method re-runs

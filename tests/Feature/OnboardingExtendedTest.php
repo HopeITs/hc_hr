@@ -60,6 +60,18 @@ class OnboardingExtendedTest extends TestCase
 
     private ContractType $trial;
 
+    private Employee $it;
+
+    private User $itUser;
+
+    private Department $itDepartment;
+
+    private Center $center;
+
+    private Program $program;
+
+    private JobLevel $level;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -77,6 +89,10 @@ class OnboardingExtendedTest extends TestCase
         $department = Department::query()->forceCreate(['name' => 'Programs', 'code' => 'PRG']);
         $level = JobLevel::query()->forceCreate(['name_en' => 'Officer', 'name_ar' => 'مسؤول', 'grade' => 2]);
         $program = Program::query()->forceCreate(['name' => 'Core Program', 'slug' => 'core-program', 'code' => '010', 'is_active' => true]);
+        $this->center = $center;
+        $this->program = $program;
+        $this->level = $level;
+        $this->itDepartment = Department::query()->forceCreate(['name' => 'Information Technology', 'code' => 'IT']);
         $this->annual = ContractType::query()->forceCreate(['id' => 1, 'name_en' => 'Volunteer Contract', 'name_ar' => 'عقد تطوّع']);
         $this->trial = ContractType::query()->forceCreate(['id' => 3, 'name_en' => 'Trial', 'name_ar' => 'تجريبي']);
 
@@ -86,6 +102,8 @@ class OnboardingExtendedTest extends TestCase
         $this->managerEmployee = $this->makeEmployee($this->city, 'manager.employee');
         $this->contract($this->managerEmployee, $managerPosition, now()->subMonths(2));
         $this->managerUser = $this->makeUser($this->city, 'manager', [], $this->managerEmployee);
+        $this->it = $this->itPerson('it.one');
+        $this->itUser = $this->it->account;
         $this->hr = $this->makeUser($this->city, 'HR-ALP', ['employees.update', 'employees.view']);
     }
 
@@ -192,7 +210,7 @@ class OnboardingExtendedTest extends TestCase
     public function test_electronics_finish_only_with_every_item_the_city_names_delivered(): void
     {
         $volunteer = $this->volunteer();
-        $deliverer = $this->makeEmployee($this->city, 'deliverer.one');
+        $deliverer = $this->it;
         $laptop = $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
         $mouse = $this->item('Mouse', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
 
@@ -208,25 +226,71 @@ class OnboardingExtendedTest extends TestCase
         $this->assertSame('done', $this->stepState($volunteer, 'electronics'));
     }
 
-    public function test_a_pending_delivery_does_not_count_and_a_city_without_a_deliverer_is_a_problem(): void
+    public function test_a_pending_delivery_does_not_count_and_no_items_or_no_it_is_a_problem(): void
     {
         $volunteer = $this->volunteer();
+        ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->delete();
 
-        $this->assertSame('problem', $this->stepState($volunteer, 'electronics'), 'Nobody is named for the electronics.');
+        $this->assertSame('problem', $this->stepState($volunteer, 'electronics'), 'No electronics item is defined.');
 
-        $deliverer = $this->makeEmployee($this->city, 'deliverer.two');
-        $laptop = $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
-        $this->deliver($volunteer, $laptop, $deliverer, 'pending');
-
+        $laptop = $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $this->it);
+        $this->deliver($volunteer, $laptop, $this->it, 'pending');
         $this->assertSame('todo', $this->stepState($volunteer, 'electronics'));
 
-        // Another city's deliverer for another item changes nothing here.
-        $elsewhere = $this->makeCity('HMS', '002');
-        $item = ChecklistItem::query()->create(['name' => 'Mobile', 'order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
-        DefaultDeliverable::query()->create(['employee_id' => $deliverer->id, 'city_id' => $elsewhere->id, 'item_id' => $item->id]);
+        // IT of another city does not count: this city loses its only IT person.
+        $this->it->forceFill(['city_id' => $this->makeCity('HMS', '002')->id])->save();
+        $step = collect(app(OnboardingJourneys::class)->steps($volunteer->fresh()))->firstWhere('key', 'electronics');
 
-        $missing = collect(app(OnboardingJourneys::class)->steps($volunteer->fresh()))->firstWhere('key', 'electronics')['data']['missing'];
-        $this->assertSame(['Laptop'], $missing->pluck('name')->all());
+        $this->assertSame('problem', $step['state']);
+        $this->assertSame('electronics-no-it', $step['note']);
+    }
+
+    public function test_one_it_person_hands_the_electronics_over_and_several_wait_for_hr_to_choose(): void
+    {
+        $volunteer = $this->volunteer();
+        $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $this->it);
+        $journeys = app(OnboardingJourneys::class);
+        $electronics = fn () => collect($journeys->steps($volunteer->fresh()))->firstWhere('key', 'electronics');
+
+        // One IT person: automatic.
+        $this->assertSame($this->it->id, $electronics()['data']['deliverer']->id);
+        $this->assertSame('deliverer', $electronics()['owner']);
+        $this->assertNull($electronics()['note']);
+
+        // A second one: nobody is chosen until HR picks.
+        $second = $this->itPerson('it.two');
+        $this->assertNull($electronics()['data']['deliverer']);
+        $this->assertSame('hr', $electronics()['owner']);
+        $this->assertSame('electronics-choose-it', $electronics()['note']);
+        $this->assertEqualsCanonicalizing([$this->it->id, $second->id], $electronics()['data']['candidates']->pluck('id')->all());
+
+        // Somebody who is not IT of the city cannot be chosen.
+        $this->assertFalse($journeys->chooseElectronicsDeliverer($volunteer, $this->managerEmployee->id, $this->hr));
+        $this->assertNull($electronics()['data']['deliverer']);
+
+        $this->assertTrue($journeys->chooseElectronicsDeliverer($volunteer, $second->id, $this->hr));
+        $this->assertFalse($journeys->chooseElectronicsDeliverer($volunteer, $second->id, $this->hr), 'Same pick again changes nothing.');
+        $this->assertSame($second->id, $electronics()['data']['deliverer']->id);
+        $this->assertSame('deliverer', $electronics()['owner']);
+
+        // The pick shows in the picked person's inbox and not in the other's.
+        $this->assertSame(1, app(OnboardingOwnerInbox::class)->collect($second->account, 50)[1]);
+        $this->assertSame(0, app(OnboardingOwnerInbox::class)->collect($this->itUser, 50)[1]);
+    }
+
+    public function test_hr_chooses_the_it_person_from_the_panel_and_other_cities_hr_cannot(): void
+    {
+        $volunteer = $this->volunteer();
+        $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $this->it);
+        $second = $this->itPerson('it.two');
+        $otherCityHr = $this->makeUser($this->makeCity('HMS', '002'), 'HR-HMS', ['employees.update']);
+
+        Livewire::actingAs($otherCityHr)->test(\App\Livewire\Employee\OnboardingJourneyPanel::class, ['employee' => $volunteer])->assertForbidden();
+
+        Livewire::actingAs($this->hr)->test(\App\Livewire\Employee\OnboardingJourneyPanel::class, ['employee' => $volunteer])
+            ->call('chooseElectronicsDeliverer', $second->id);
+
+        $this->assertSame($second->id, OnboardingJourney::query()->sole()->electronics_deliverer_id);
     }
 
     public function test_the_card_step_needs_the_printed_card_and_its_items(): void
@@ -273,9 +337,8 @@ class OnboardingExtendedTest extends TestCase
     public function test_the_overdue_steps_remind_their_owner_every_week_until_done(): void
     {
         $volunteer = $this->volunteer(accountless: true);
-        $deliverer = $this->makeEmployee($this->city, 'deliverer.late');
-        $delivererUser = $this->makeUser($this->city, 'employee', [], $deliverer);
-        $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
+        $delivererUser = $this->itUser;
+        $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $this->it);
 
         $this->artisan('onboarding:send-step-reminders')->assertSuccessful();
         Notification::assertNothingSent();
@@ -415,6 +478,69 @@ class OnboardingExtendedTest extends TestCase
         $this->assertTrue($doc->fresh()->required_for_onboarding);
     }
 
+    // ── The Media guideline: reviewed, made by another team ──────────
+
+    public function test_the_media_guideline_is_its_own_review_step_apart_from_the_policies(): void
+    {
+        $volunteer = $this->volunteer();
+        $policy = $this->policy('Code of conduct', true);
+        $this->policy('Media guideline', true, PolicyDocument::KIND_REVIEW);
+        $step = fn (string $key) => collect(app(OnboardingJourneys::class)->steps($volunteer->fresh()))->firstWhere('key', $key);
+
+        $this->assertSame('todo', $step('policies')['state']);
+        $this->assertSame('todo', $step('guideline')['state']);
+
+        app(PolicyAcknowledgements::class)->acknowledge($volunteer, $policy);
+        $this->assertSame('done', $step('policies')['state']);
+        $this->assertSame('todo', $step('guideline')['state'], 'Agreeing to a policy is not reviewing the guideline.');
+
+        $volunteerUser = $volunteer->account;
+        $page = Livewire::actingAs($volunteerUser)->test(Policies::class)
+            ->assertSee(__('onboarding.policies.section-review'))
+            ->assertSee(__('onboarding.policies.acknowledge-review'));
+
+        $guide = PolicyDocument::query()->where('title', 'Media guideline')->sole();
+        $page->call('acknowledge', $guide->id);
+
+        $this->assertSame('done', $step('guideline')['state']);
+    }
+
+    public function test_without_a_guideline_marked_for_review_the_step_is_a_problem(): void
+    {
+        $volunteer = $this->volunteer();
+        $this->policy('Media guideline', true);   // a policy, not a review document
+
+        $step = collect(app(OnboardingJourneys::class)->steps($volunteer->fresh()))->firstWhere('key', 'guideline');
+
+        $this->assertSame('problem', $step['state']);
+        $this->assertSame('guideline-none-required', $step['note']);
+    }
+
+    public function test_the_journey_is_not_complete_until_the_guideline_is_reviewed(): void
+    {
+        $volunteer = $this->volunteer();
+
+        $this->completeEverything($volunteer, except: 'guideline');
+        $this->assertNull(OnboardingJourney::query()->sole()->completed_at);
+
+        app(PolicyAcknowledgements::class)->acknowledge($volunteer, PolicyDocument::query()->where('title', 'Media guideline')->sole());
+        $this->assertNotNull(OnboardingJourney::query()->sole()->completed_at);
+    }
+
+    public function test_hr_sets_a_document_as_a_policy_or_a_guideline_to_review(): void
+    {
+        $doc = $this->policy('Media guideline', true);
+
+        Livewire::actingAs($this->managerUser)->test(RequiredPolicies::class)->assertForbidden();
+        $this->assertSame('policy', $doc->fresh()->onboarding_kind);
+
+        Livewire::actingAs($this->hr)->test(RequiredPolicies::class)
+            ->call('setKind', $doc->id, 'review')
+            ->call('setKind', $doc->id, 'nonsense');
+
+        $this->assertSame('review', $doc->fresh()->onboarding_kind);
+    }
+
     // ── Completion ───────────────────────────────────────────────────
 
     public function test_completion_follows_every_step_and_unwinds_when_one_is_undone(): void
@@ -425,7 +551,7 @@ class OnboardingExtendedTest extends TestCase
         $this->completeEverything($volunteer, except: 'policies');
         $this->assertNull(OnboardingJourney::query()->sole()->completed_at, 'The policies are still open.');
 
-        $media = PolicyDocument::query()->where('required_for_onboarding', true)->sole();
+        $media = PolicyDocument::query()->where('title', 'Code of conduct')->sole();
         app(PolicyAcknowledgements::class)->acknowledge($volunteer, $media);
         $this->assertNotNull(OnboardingJourney::query()->sole()->completed_at, 'The acknowledgement settles the journey.');
     }
@@ -438,6 +564,8 @@ class OnboardingExtendedTest extends TestCase
 
         $deliverer = Employee::query()->where('username', 'like', 'deliverer.%')->firstOrFail();
         $item = ChecklistItem::query()->where('name', 'Laptop')->firstOrFail();
+        ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->whereKeyNot($item->id)->get()
+            ->each(fn (ChecklistItem $other) => $this->deliver($volunteer, $other, $deliverer));
         $checklist = Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $volunteer->id, 'delivered_id' => $deliverer->id, 'receiver_id' => $volunteer->id, 'delivered_status' => 'pending']);
 
         app(\App\Services\ChecklistWorkflow::class)->markDelivered($checklist->id, $deliverer->id, null);
@@ -511,8 +639,12 @@ class OnboardingExtendedTest extends TestCase
 
     private function item(string $name, string $group, Employee $deliverer): ChecklistItem
     {
-        $item = ChecklistItem::query()->create(['name' => $name, 'order' => 1, 'onboarding_group' => $group]);
-        DefaultDeliverable::query()->create(['employee_id' => $deliverer->id, 'city_id' => $this->city->id, 'item_id' => $item->id]);
+        $item = ChecklistItem::query()->firstOrCreate(['name' => $name], ['order' => 1, 'onboarding_group' => $group]);
+
+        // The electronics are IT's (no default deliverer needed); the other groups name theirs per city.
+        if ($group !== ChecklistItem::GROUP_ELECTRONICS) {
+            DefaultDeliverable::query()->create(['employee_id' => $deliverer->id, 'city_id' => $this->city->id, 'item_id' => $item->id]);
+        }
 
         return $item;
     }
@@ -525,9 +657,25 @@ class OnboardingExtendedTest extends TestCase
         ]);
     }
 
-    private function policy(string $title, bool $required): PolicyDocument
+    private function policy(string $title, bool $required, string $kind = PolicyDocument::KIND_POLICY): PolicyDocument
     {
-        return PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => $title, 'required_for_onboarding' => $required]);
+        return PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => $title, 'required_for_onboarding' => $required, 'onboarding_kind' => $kind]);
+    }
+
+    /** An active IT volunteer of the city: a running contract on a position of the IT department, with a login account. */
+    private function itPerson(string $username): Employee
+    {
+        $position = Position::query()->forceCreate([
+            'center_id' => $this->center->id, 'city_id' => $this->city->id, 'department_id' => $this->itDepartment->id,
+            'job_level_id' => $this->level->id, 'program_id' => $this->program->id,
+            'title_en' => 'IT Specialist', 'title_ar' => 'متخصص IT',
+            'max_emp' => 9, 'exist_emp' => 0, 'is_active' => true,
+        ]);
+        $person = $this->makeEmployee($this->city, $username);
+        $this->contract($person, $position, now()->subMonths(2));
+        User::factory()->create(['employee_id' => $person->id]);
+
+        return $person->fresh();
     }
 
     /** Every step done, except the one named (which is left open, and for the policies, never agreed). */
@@ -536,14 +684,21 @@ class OnboardingExtendedTest extends TestCase
         $journeys = app(OnboardingJourneys::class);
         $deliverer = Employee::query()->where('username', 'deliverer.all')->first() ?? $this->makeEmployee($this->city, 'deliverer.all');
 
-        $laptop = ChecklistItem::query()->where('name', 'Laptop')->first() ?? $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
+        $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $deliverer);
         if ($except !== 'electronics') {
-            $this->deliver($volunteer, $laptop, $deliverer);
+            // Every electronics item (the migration adds a Mouse too).
+            ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->get()
+                ->each(fn (ChecklistItem $item) => $this->deliver($volunteer, $item, $deliverer));
         }
 
-        $policy = PolicyDocument::query()->where('title', 'Media guideline')->first() ?? $this->policy('Media guideline', true);
+        $policy = PolicyDocument::query()->where('title', 'Code of conduct')->first() ?? $this->policy('Code of conduct', true);
         if ($except !== 'policies') {
             app(PolicyAcknowledgements::class)->acknowledge($volunteer, $policy);
+        }
+
+        $guide = PolicyDocument::query()->where('title', 'Media guideline')->first() ?? $this->policy('Media guideline', true, PolicyDocument::KIND_REVIEW);
+        if ($except !== 'guideline') {
+            app(PolicyAcknowledgements::class)->acknowledge($volunteer, $guide);
         }
 
         $journeys->scheduleManagerOrientation($volunteer, now(), $this->managerUser);

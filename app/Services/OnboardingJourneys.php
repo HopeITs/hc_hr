@@ -7,6 +7,7 @@ use App\Models\ChecklistItem;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\OnboardingJourney;
+use App\Models\PolicyDocument;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ use Spatie\Activitylog\Facades\Activity;
  *
  *     record → contract → then, side by side and none waiting on another:
  *       login account · electronics · ID card · HR's session · the direct
- *       manager's session · policies read and agreed
+ *       manager's session · policies agreed · Media guideline reviewed
  *
  * Each step has one authoritative record, and this class never copies one
  * into another:
@@ -48,7 +49,7 @@ class OnboardingJourneys
 
     public const CARD_DAYS = 2;
 
-    public const STEPS = ['record', 'contract', 'account', 'electronics', 'card', 'orientation', 'manager_orientation', 'policies'];
+    public const STEPS = ['record', 'contract', 'account', 'electronics', 'card', 'orientation', 'manager_orientation', 'policies', 'guideline'];
 
     /** A step is in exactly one of these. */
     public const STATE_DONE = 'done';
@@ -244,6 +245,29 @@ class OnboardingJourneys
         });
     }
 
+    /**
+     * HR picks which IT person of the volunteer's city hands the electronics
+     * over (needed when the city has several). Only someone who is IT of that
+     * city now can be picked.
+     */
+    public function chooseElectronicsDeliverer(Employee $employee, int $deliverer, User $actor): bool
+    {
+        if (! $this->deliveries->itStaff($employee)->contains('id', $deliverer)) {
+            return false;
+        }
+
+        return $this->change($employee, $actor, 'electronics_deliverer_chosen', function (OnboardingJourney $journey) use ($deliverer): ?array {
+            if ((int) $journey->electronics_deliverer_id === $deliverer) {
+                return null;
+            }
+
+            $from = $journey->electronics_deliverer_id;
+            $journey->forceFill(['electronics_deliverer_id' => $deliverer]);
+
+            return ['from' => $from, 'to' => $deliverer];
+        });
+    }
+
     /** Only once the digital card works: the printed card carries its link. */
     public function markCardHandedOver(Employee $employee, User $actor): bool
     {
@@ -336,15 +360,24 @@ class OnboardingJourneys
         }, 'system', due: $accountDue, late: $lateAfter($accountDue, $hasAccount), blockedBy: $hasContract ? null : 'contract', note: ! $hasAccount && $hasContract ? 'account-missing' : null);
 
         $electronics = $this->deliveries->group($employee, ChecklistItem::GROUP_ELECTRONICS);
+        $itStaff = $this->deliveries->itStaff($employee);
+        $itDeliverer = $this->deliveries->electronicsDeliverer($employee);
         $electronicsDue = $journey?->dueAfterStart(self::ELECTRONICS_DAYS);
+        // IT of the city hands them over: one person is automatic, several wait for HR's pick, none is a problem.
         $steps[] = $this->step('electronics', match (true) {
             ! $journey => self::STATE_WAITING,
             $electronics['complete'] => self::STATE_DONE,
-            ! $electronics['configured'] => self::STATE_PROBLEM,
+            ! $electronics['configured'], $itStaff->isEmpty() => self::STATE_PROBLEM,
             default => self::STATE_TODO,
-        }, 'deliverer', due: $electronicsDue, late: $lateAfter($electronicsDue, $electronics['complete']), blockedBy: $afterContract,
-            note: $journey && ! $electronics['configured'] ? 'electronics-no-deliverer' : null,
-            data: ['items' => $electronics['items'], 'missing' => $electronics['missing']]);
+        }, $journey && $itStaff->count() > 1 && $itDeliverer === null ? 'hr' : 'deliverer', due: $electronicsDue, late: $lateAfter($electronicsDue, $electronics['complete']), blockedBy: $afterContract,
+            note: match (true) {
+                ! $journey || $electronics['complete'] => null,
+                ! $electronics['configured'] => 'electronics-no-items',
+                $itStaff->isEmpty() => 'electronics-no-it',
+                $itDeliverer === null => 'electronics-choose-it',
+                default => null,
+            },
+            data: ['items' => $electronics['items'], 'missing' => $electronics['missing'], 'candidates' => $itStaff, 'deliverer' => $itDeliverer]);
 
         $card = $this->deliveries->group($employee, ChecklistItem::GROUP_CARD);
         $cardItemsDone = ! $card['configured'] || $card['complete'];
@@ -404,6 +437,17 @@ class OnboardingJourneys
         }, 'volunteer', blockedBy: $afterContract, note: $journey && $policies['required']->isEmpty() ? 'policies-none-required' : null, data: [
             'required' => $policies['required']->count(),
             'pending' => $policies['pending'],
+        ]);
+
+        $guidelines = $this->policies->status($employee, PolicyDocument::KIND_REVIEW);
+        $steps[] = $this->step('guideline', match (true) {
+            ! $journey => self::STATE_WAITING,
+            $guidelines['complete'] => self::STATE_DONE,
+            $guidelines['required']->isEmpty() => self::STATE_PROBLEM,
+            default => self::STATE_TODO,
+        }, 'volunteer', blockedBy: $afterContract, note: $journey && $guidelines['required']->isEmpty() ? 'guideline-none-required' : null, data: [
+            'required' => $guidelines['required']->count(),
+            'pending' => $guidelines['pending'],
         ]);
 
         $others = $this->deliveries->group($employee, ChecklistItem::GROUP_OTHER);
@@ -489,6 +533,7 @@ class OnboardingJourneys
             && (! $card['configured'] || $card['complete'])
             && $journey->manager_orientation_completed_at !== null
             && $this->policies->status($employee)['complete']
+            && $this->policies->status($employee, PolicyDocument::KIND_REVIEW)['complete']
             && (! $others['configured'] || $others['complete']);
 
         $wasComplete = $journey->completed_at !== null;

@@ -39,7 +39,10 @@ class Policies extends Component
         abort_unless($employee !== null, 403);
 
         return view('livewire.onboarding.policies', [
-            'status' => $policies->status($employee),
+            'sections' => [
+                PolicyDocument::KIND_POLICY => $policies->status($employee, PolicyDocument::KIND_POLICY),
+                PolicyDocument::KIND_REVIEW => $policies->status($employee, PolicyDocument::KIND_REVIEW),
+            ],
         ])->title(__('onboarding.policies.title'));
     }
 }

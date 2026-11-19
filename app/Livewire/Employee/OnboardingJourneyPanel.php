@@ -81,6 +81,14 @@ class OnboardingJourneyPanel extends Component
         $this->toast($changed ? __('employees.journey.manager-orientation-done') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
     }
 
+    /** HR picks which IT person of the city hands the electronics over. */
+    public function chooseElectronicsDeliverer(int $deliverer, OnboardingJourneys $journeys): void
+    {
+        $changed = $journeys->chooseElectronicsDeliverer($this->authorizedEmployee(), $deliverer, auth()->user());
+
+        $this->toast($changed ? __('employees.journey.deliverer-chosen') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
+    }
+
     public function markCardHandedOver(OnboardingJourneys $journeys): void
     {
         $changed = $journeys->markCardHandedOver($this->authorizedEmployee(), auth()->user());

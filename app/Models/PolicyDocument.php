@@ -11,6 +11,14 @@ class PolicyDocument extends Model
 
     public const SOURCE_PANEL = 'panel';
 
+    /** Read and agreed. */
+    public const KIND_POLICY = 'policy';
+
+    /** Made by another team (the Media guideline) and only reviewed. */
+    public const KIND_REVIEW = 'review';
+
+    public const KINDS = [self::KIND_POLICY, self::KIND_REVIEW];
+
     protected $fillable = [
         'source',
         'external_id',
@@ -21,6 +29,7 @@ class PolicyDocument extends Model
         'source_modified_at',
         'synced_at',
         'required_for_onboarding',
+        'onboarding_kind',
     ];
 
     protected $casts = [
