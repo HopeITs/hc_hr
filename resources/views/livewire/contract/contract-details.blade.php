@@ -91,6 +91,27 @@
         </x-badge>
     </div>
 
+    @if($contract->isTrial() && ($probation = $contract->probationReview))
+        {{-- Last-third review of the trial (meeting 19/11, track 4): where it stands, never pay. --}}
+        <x-card data-testid="contract-probation">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-1">
+                    <h2 class="text-h3 font-bold text-ink">@lang('probation.card.title')</h2>
+                    @if($probation->isDecided())
+                        <x-status tone="done" icon="check-circle" :label="__('probation.decision.'.$probation->decision)" />
+                    @else
+                        <x-status tone="wait" icon="clock" :label="__('probation.status.waiting')" />
+                    @endif
+                </div>
+                @can('view', $probation)
+                    <x-button variant="outline" size="sm" :href="route('probation.show', $probation)">
+                        @lang('probation.card.open')
+                    </x-button>
+                @endcan
+            </div>
+        </x-card>
+    @endif
+
     <livewire:contract.contract-amendments :contract="$contract" :key="'amendments-'.$contract->id" />
 
     @php($signed = $contract->asSigned())

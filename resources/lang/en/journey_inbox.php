@@ -10,6 +10,14 @@ return [
     'state' => [
         'todo' => 'Needs HR',
         'problem' => 'Blocked',
+        'manager' => 'Needs you',
+    ],
+    'probation' => [
+        'title' => 'Trial review waiting on you',
+        'open' => 'Open the review',
+        'step' => [
+            'request' => 'Tell HR: extend, confirm or cancel the trial',
+        ],
     ],
     'onboarding' => [
         'title' => 'Onboarding step waiting on you',
