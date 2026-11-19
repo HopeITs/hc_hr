@@ -48,7 +48,7 @@
                             <p class="flex flex-wrap items-center gap-2 font-medium text-ink">
                                 <span class="num text-ink-3" aria-hidden="true">{{ $index + 1 }}.</span>
                                 <span>@lang("employees.journey.step.{$key}")</span>
-                                <x-status :tone="$tone" :icon="$icon" :label="__('employees.journey.state.'.$step['state'])" />
+                                <x-status :tone="$tone" :icon="$icon" :label="$step['state'] === OnboardingJourneys::STATE_TODO && $step['owner'] !== 'hr' ? __('employees.journey.state.todo-'.$step['owner']) : __('employees.journey.state.'.$step['state'])" />
                                 @if ($step['late'])
                                     <x-tag variant="late" :label="__('employees.journey.late')" />
                                 @endif
@@ -91,6 +91,45 @@
                                     @endif
                                     @break
 
+                                @case('electronics')
+                                @case('other_items')
+                                    @if ($step['note'])
+                                        <p class="mt-1 text-small text-ink-2">@lang('employees.journey.'.$step['note'])</p>
+                                    @endif
+                                    @if (! $isDone && $step['data']['missing']->isNotEmpty())
+                                        <p class="mt-1 text-small text-ink-2">
+                                            {{ __('employees.journey.missing-items') }}:
+                                            {{ $step['data']['missing']->map(fn ($item) => $item['deliverer']
+                                                ? __('employees.journey.item-by', ['item' => $item['name'], 'name' => $item['deliverer']->name])
+                                                : __('employees.journey.item-nobody', ['item' => $item['name']]))->implode(' · ') }}
+                                        </p>
+                                    @endif
+                                    @break
+
+                                @case('manager_orientation')
+                                    @if ($isDone)
+                                        <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.orientation-done-by', ['date' => $date($step['data']['scheduled_for']), 'name' => $by($step['data']['completed_by'])]) }}</p>
+                                    @else
+                                        <p class="mt-1 text-small text-ink-2">@lang('employees.journey.manager-help')</p>
+                                        <p class="mt-1 text-small text-ink-2">
+                                            {{ $step['data']['managers']->isNotEmpty()
+                                                ? __('employees.journey.manager-names', ['names' => $step['data']['managers']->map(fn ($manager) => $manager->name)->implode(', ')])
+                                                : __('employees.journey.manager-none') }}
+                                        </p>
+                                        @if ($step['data']['scheduled_for'])
+                                            <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.orientation-on', ['date' => $date($step['data']['scheduled_for'])]) }}</p>
+                                        @endif
+                                    @endif
+                                    @break
+
+                                @case('policies')
+                                    @if ($step['note'])
+                                        <p class="mt-1 text-small text-ink-2">@lang('employees.journey.'.$step['note'])</p>
+                                    @elseif (! $isDone)
+                                        <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.policies-pending', ['count' => $step['data']['pending']->count(), 'total' => $step['data']['required']]) }}</p>
+                                    @endif
+                                    @break
+
                                 @case('orientation')
                                     @if ($isDone)
                                         <p class="mt-1 text-small text-ink-2">{{ __('employees.journey.orientation-done-by', ['date' => $date($step['data']['scheduled_for']), 'name' => $by($step['data']['completed_by'])]) }}</p>
@@ -115,6 +154,27 @@
                                 @elseif ($step['state'] === OnboardingJourneys::STATE_TODO)
                                     <x-button variant="outline" size="sm" icon="check" wire:click="markCardHandedOver" data-testid="card-handed-over">@lang('employees.journey.card-action')</x-button>
                                 @endif
+                            @elseif ($key === 'manager_orientation' && $journey)
+                                @if ($isDone)
+                                    <x-button variant="quiet" size="sm" wire:click="confirmReopen('manager_orientation')">@lang('employees.journey.reopen')</x-button>
+                                @else
+                                    <form wire:submit="scheduleManagerOrientation" class="flex flex-wrap items-end gap-2">
+                                        <div>
+                                            <label for="manager-orientation-date" class="block text-small text-ink-2">@lang('employees.journey.orientation-date')</label>
+                                            <x-forms.date-input id="manager-orientation-date" wire:model="managerDate" class="!w-auto"
+                                                :aria-invalid="$errors->has('managerDate') ? 'true' : 'false'" />
+                                        </div>
+                                        <x-button variant="outline" size="sm" type="submit" target="scheduleManagerOrientation">
+                                            {{ $step['data']['scheduled_for'] ? __('employees.journey.reschedule') : __('employees.journey.schedule') }}
+                                        </x-button>
+                                        @if ($step['data']['can_complete'])
+                                            <x-button size="sm" icon="check" wire:click="completeManagerOrientation" data-testid="manager-orientation-done">@lang('employees.journey.orientation-action')</x-button>
+                                        @endif
+                                    </form>
+                                    <p class="w-full text-small text-primary" role="alert">@error('managerDate'){{ $message }}@enderror</p>
+                                @endif
+                            @elseif ($key === 'policies' && $journey && $step['state'] === OnboardingJourneys::STATE_PROBLEM)
+                                <x-button variant="outline" size="sm" :href="route('onboarding.required-policies')">@lang('employees.journey.open-policies-admin')</x-button>
                             @elseif ($key === 'orientation' && $journey)
                                 @if ($isDone)
                                     <x-button variant="quiet" size="sm" wire:click="confirmReopen('orientation')">@lang('employees.journey.reopen')</x-button>
@@ -139,6 +199,20 @@
                     </li>
                 @endforeach
             </ol>
+
+            {{-- The Mug is outside the journey: it never holds the completion back. --}}
+            @if ($mug)
+                <p class="mt-3 flex flex-wrap items-center gap-2 border-t border-line-soft pt-3 text-small text-ink-2" data-testid="onboarding-mug">
+                    <span class="font-medium text-ink">@lang('employees.journey.mug')</span>
+                    @if ($mug['delivered'])
+                        <x-status tone="done" icon="check-circle" :label="__('employees.journey.mug-done')" />
+                    @elseif ($mug['due'])
+                        <x-status tone="attn" icon="alert" :label="__('employees.journey.mug-due')" />
+                    @else
+                        <span>@lang('employees.journey.mug-not-due')</span>
+                    @endif
+                </p>
+            @endif
         </section>
     @endif
 </div>

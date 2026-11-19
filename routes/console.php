@@ -48,6 +48,8 @@ Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
 // D4-I: one reminder to city HR per overdue orientation session.
 Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
+// Track 7: weekly reminders to the owner of an overdue account, electronics, card or manager-session step.
+Schedule::command(App\Console\Commands\SendOnboardingStepReminders::class)->dailyAt('08:12');
 // People whose contract just started join the mail lists their rules match (pending, for the control panel).
 Schedule::command(QueueMailListStarters::class)->dailyAt('08:20');
 // Meeting 19/11 (track 3): a birthday on a weekend or holiday in the coming days asks the volunteer, once, to pick another day.

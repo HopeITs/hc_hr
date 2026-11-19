@@ -20,11 +20,13 @@ class PolicyDocument extends Model
         'content',
         'source_modified_at',
         'synced_at',
+        'required_for_onboarding',
     ];
 
     protected $casts = [
         'source_modified_at' => 'datetime',
         'synced_at' => 'datetime',
+        'required_for_onboarding' => 'boolean',
     ];
 
     /** Documents with text the assistant can read. */

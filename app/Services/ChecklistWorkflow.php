@@ -49,7 +49,7 @@ class ChecklistWorkflow
     {
         $this->batchId = $batchId;
 
-        return $this->transition(
+        $checklist = $this->transition(
             fn (Builder $query) => $query
                 ->where('delivered_id', $actorEmployeeId)
                 ->where('delivered_status', 'pending'),
@@ -62,6 +62,14 @@ class ChecklistWorkflow
             'delivered_status',
             'checklist_delivered',
         );
+
+        // The onboarding journey reads deliveries from here: it recomputes its own
+        // completion (it owns that write), once the delivery is committed.
+        if ($checklist->employee) {
+            app(OnboardingJourneys::class)->settle($checklist->employee);
+        }
+
+        return $checklist;
     }
 
     /**

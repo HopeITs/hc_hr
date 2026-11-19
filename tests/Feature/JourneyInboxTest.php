@@ -97,7 +97,8 @@ class JourneyInboxTest extends TestCase
         $row = app(WorkInbox::class)->rows($this->hrHoms)->firstWhere('key', "onboarding:{$journey->id}:journey");
 
         $this->assertSame(['account'], array_column($row['steps'], 'key'));
-        $this->assertNull($row['due']);
+        // The account is due two days after the start; the card and the session are done.
+        $this->assertSame(now()->subDay()->addDays(2)->toDateString(), $row['due']->toDateString());
         $this->assertFalse($row['late']);
     }
 
@@ -227,7 +228,7 @@ class JourneyInboxTest extends TestCase
         $journey = new OnboardingJourney;
         $journey->forceFill(array_merge([
             'employee_id' => $employee->id,
-            'started_at' => now()->subDays(3),
+            'started_at' => now()->subDay(),
             'orientation_due_on' => now()->addDays(11)->toDateString(),
         ], $attributes))->save();
 
