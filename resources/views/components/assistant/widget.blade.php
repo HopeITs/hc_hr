@@ -59,14 +59,9 @@
             aria-modal="false"
             aria-labelledby="assistant-panel-title"
             tabindex="-1"
-            {{-- With the chat dock on, the panel and button sit above its tab bar (desktop). --}}
-            @class([
-                'fixed inset-x-2 z-40 flex flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-e3 focus:outline-none',
-                'bottom-[calc(9rem+env(safe-area-inset-bottom,0px))] h-[min(34rem,calc(100dvh-11rem))]',
-                'md:inset-x-auto md:end-6 md:w-[24rem]',
-                'md:bottom-24 md:h-[min(36rem,calc(100dvh-8rem))]' => ! config('chat.enabled'),
-                'md:bottom-[calc(8.5rem+var(--chat-dock-lift,0px))] md:h-[min(36rem,calc(100dvh-11rem))]' => config('chat.enabled'),
-            ])
+            class="fixed inset-x-2 z-40 flex flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-e3 focus:outline-none
+                   bottom-[calc(9rem+env(safe-area-inset-bottom,0px))] h-[min(34rem,calc(100dvh-11rem))]
+                   md:inset-x-auto md:end-6 md:bottom-24 md:w-[24rem] md:h-[min(36rem,calc(100dvh-8rem))]"
             data-testid="assistant-panel"
         >
             <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2">
@@ -116,14 +111,9 @@
             aria-haspopup="dialog"
             aria-label="{{ __('assistant.widget.open') }}"
             title="{{ __('assistant.widget.open') }}"
-            @class([
-                'fixed end-4 z-40 inline-flex size-14 items-center justify-center rounded-full border border-line-soft bg-ink text-on-ink shadow-e3 transition-transform hover:scale-105',
-                'bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:end-6',
-                'max-lg:[html:has(.m1-action-bar)_&]:bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))]',
-                'md:bottom-6' => ! config('chat.enabled'),
-                // Above the chat dock's 2.5rem tab bar, which itself rises onto the footer line.
-                'md:bottom-[calc(4.25rem+var(--chat-dock-lift,0px))]' => config('chat.enabled'),
-            ])
+            class="fixed end-4 z-40 inline-flex size-14 items-center justify-center rounded-full border border-line-soft bg-ink text-on-ink shadow-e3 transition-transform hover:scale-105
+                   bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:end-6 md:bottom-6
+                   max-lg:[html:has(.m1-action-bar)_&]:bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))]"
             data-testid="assistant-launcher"
         >
             <x-icons.assistant class="size-6" x-show="! open" />

@@ -1,8 +1,11 @@
 {{--
-    The chat dock (App\Livewire\Chat\Dock). Bottom corner, mirrored in Arabic:
-    the "Chats" button sits in the corner and tabs line up beside it, newest
-    nearest. On a phone the bar is not shown; the header icon opens the list
-    and an opened chat fills the screen until it is closed.
+    The chat dock (App\Livewire\Chat\Dock). Bottom corner on the start side
+    (left in English, right in Arabic), just past the sidebar and following it
+    as it opens and closes: the "Chats" button sits at the start and tabs line
+    up after it, newest nearest. On a phone the bar is not shown; the header
+    icon opens the list and an opened chat fills the screen until it is closed.
+
+    sidebarCollapsed comes from the page's own x-data on <body> (layouts/app).
 --}}
 <div x-data="chatDock(@js('hc-chat-tabs:'.auth()->id()))"
      x-on:chat-tabs-changed.window="save($event.detail.tabs)"
@@ -10,10 +13,38 @@
      x-show="! onPage"
      data-testid="chat-dock">
 
-    {{-- The bar. Children are laid out in reading order, so the last one (the
-         launcher) lands in the end corner in both directions. It rests on the
-         footer's top line while the footer is on screen (--chat-dock-lift, chat.js). --}}
-    <div class="fixed bottom-[var(--chat-dock-lift,0px)] end-4 z-[45] flex items-end gap-2">
+    {{-- The bar, in reading order: launcher, newest tab ... oldest, "+N". It
+         starts where the page content starts (sidebar + the content's 2rem
+         padding, layouts/app) and rests on the footer's top line while the
+         footer is on screen (--chat-dock-lift, chat.js). --}}
+    <div class="fixed bottom-[var(--chat-dock-lift,0px)] start-4 z-[45] flex items-end gap-2 transition-[inset-inline-start] duration-(--sidebar-duration) ease-sidebar"
+         :class="sidebarCollapsed ? 'md:start-28' : 'md:start-72'">
+
+        {{-- The launcher. --}}
+        <button type="button" wire:click="toggleLauncher"
+                aria-expanded="{{ $launcherOpen ? 'true' : 'false' }}"
+                class="flex h-10 w-32 items-center gap-2 rounded-t-[10px] bg-primary px-3 text-small font-semibold text-white max-md:hidden"
+                data-testid="chat-launcher">
+            <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.2A8 8 0 1 1 21 12z"/></svg>
+            <span class="flex-1 truncate text-start">{{ __('chat.ui.chats') }}</span>
+            @if ($unreadChats > 0)
+                <span class="min-w-[18px] rounded-full bg-white px-1 text-center text-[11px] font-bold text-primary"
+                      aria-label="{{ trans_choice('chat.ui.unread_chats', $unreadChats, ['count' => $unreadChats]) }}">{{ $unreadChats }}</span>
+            @endif
+        </button>
+
+        {{-- Every tab's window, newest first so it sits beside the launcher.
+             Those behind "+N" stay mounted but hidden on desktop. --}}
+        @foreach ($visible as $tab)
+            <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="true"
+                                  :mobile-active="$mobileActiveId === $tab['id']"
+                                  :wire:key="'chat-window-'.$tab['id']" />
+        @endforeach
+        @foreach ($overflow as $tab)
+            <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="false"
+                                  :mobile-active="$mobileActiveId === $tab['id']"
+                                  :wire:key="'chat-window-'.$tab['id']" />
+        @endforeach
 
         @if ($overflow->isNotEmpty())
             <div x-data="{ open: false }" class="relative max-md:hidden" x-on:click.outside="open = false">
@@ -27,7 +58,7 @@
                     @endif
                 </button>
                 <div x-show="open" x-cloak
-                     class="absolute bottom-full end-0 mb-1 w-56 rounded-surface border border-line bg-card p-1 shadow-e3">
+                     class="absolute bottom-full start-0 mb-1 w-56 rounded-surface border border-line bg-card p-1 shadow-e3">
                     @foreach ($overflow as $tab)
                         @php($item = $summaries[$tab['id']])
                         <button type="button" wire:click="openConversation({{ $tab['id'] }})" x-on:click="open = false"
@@ -42,32 +73,6 @@
                 </div>
             </div>
         @endif
-
-        {{-- Every tab's window, oldest first so the newest sits beside the
-             launcher. Those behind "+N" stay mounted but hidden on desktop. --}}
-        @foreach ($overflow->reverse() as $tab)
-            <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="false"
-                                  :mobile-active="$mobileActiveId === $tab['id']"
-                                  :wire:key="'chat-window-'.$tab['id']" />
-        @endforeach
-        @foreach ($visible->reverse() as $tab)
-            <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="true"
-                                  :mobile-active="$mobileActiveId === $tab['id']"
-                                  :wire:key="'chat-window-'.$tab['id']" />
-        @endforeach
-
-        {{-- The launcher. --}}
-        <button type="button" wire:click="toggleLauncher"
-                aria-expanded="{{ $launcherOpen ? 'true' : 'false' }}"
-                class="flex h-10 w-32 items-center gap-2 rounded-t-[10px] bg-primary px-3 text-small font-semibold text-white max-md:hidden"
-                data-testid="chat-launcher">
-            <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.2A8 8 0 1 1 21 12z"/></svg>
-            <span class="flex-1 truncate text-start">{{ __('chat.ui.chats') }}</span>
-            @if ($unreadChats > 0)
-                <span class="min-w-[18px] rounded-full bg-white px-1 text-center text-[11px] font-bold text-primary"
-                      aria-label="{{ trans_choice('chat.ui.unread_chats', $unreadChats, ['count' => $unreadChats]) }}">{{ $unreadChats }}</span>
-            @endif
-        </button>
     </div>
 
     {{-- The chats list / new-chat picker: a panel above the launcher on
@@ -76,7 +81,8 @@
         <section role="dialog" aria-modal="false" aria-labelledby="chat-launcher-title"
                  class="fixed z-[9600] flex flex-col overflow-hidden border border-line bg-card shadow-e3
                         max-md:inset-0
-                        md:bottom-[calc(2.75rem+var(--chat-dock-lift,0px))] md:end-4 md:h-[min(30rem,calc(100dvh-8rem))] md:w-80 md:rounded-surface"
+                        md:bottom-[calc(2.75rem+var(--chat-dock-lift,0px))] md:h-[min(30rem,calc(100dvh-8rem))] md:w-80 md:rounded-surface"
+                 :class="sidebarCollapsed ? 'md:start-28' : 'md:start-72'"
                  data-testid="chat-launcher-panel">
 
             @if ($launcherMode === 'chats')
