@@ -45,8 +45,12 @@ return [
         'database' => 'Database',
         'telegram' => 'Telegram group',
         'mail_list' => 'Mail list',
+        'shared_drive' => 'Shared drive',
+        'social_media' => 'Social media and website',
         'camera' => 'Cameras',
         'it_maintenance' => 'IT maintenance',
+        'equipment' => 'Equipment',
+        'physical_access' => 'Keys and premises',
         'other' => 'Other',
     ],
 
