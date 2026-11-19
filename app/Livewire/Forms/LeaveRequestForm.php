@@ -17,6 +17,7 @@ use App\Support\Leave\LeaveWindow;
 use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -75,6 +76,13 @@ class LeaveRequestForm extends Form
 
     public $reject_reason = null;
 
+    /**
+     * The alternative the decider keeps or names instead (meeting 19/11):
+     * filled with the request's own when the decision opens, written with an
+     * acceptance only.
+     */
+    public $decision_alternative = null;
+
     public $approved_at = null;
 
     public $status = LeaveRequestStatus::Pending;
@@ -93,6 +101,9 @@ class LeaveRequestForm extends Form
      * A replay with the same token returns the request it already created.
      */
     public ?string $submission_token = null;
+
+    /** [from, to] employee ids when the last decision changed the alternative; never sent to the browser. */
+    protected ?array $alternativeChange = null;
 
     /** Set by store() for the current request only; never sent to the browser. */
     protected bool $replayed = false;
@@ -123,9 +134,11 @@ class LeaveRequestForm extends Form
                     }
                 },
             ],
+            // Only an id the list shows for the period typed (an edit keeps
+            // the alternative it already has, see alternativeChoices()).
             'alternative_employee' => [
                 'nullable',
-                Rule::in($employee ? app(LeaveAlternativeEmployees::class)->query($employee)->pluck('id')->all() : []),
+                Rule::in($employee ? $this->alternativeChoices()->modelKeys() : []),
             ],
         ];
 
@@ -219,7 +232,74 @@ class LeaveRequestForm extends Form
         // A decision must always be an explicit choice made in this modal.
         $this->status = null;
         $this->reject_reason = null;
+        $this->decision_alternative = $leaveRequest->alternative_employee_id;
+        $this->alternativeChange = null;
         $this->resetValidation();
+    }
+
+    /**
+     * Who may cover the employee the form is about, for the period typed so
+     * far (LeaveAlternativeEmployees). An edit keeps the alternative it was
+     * saved with while the rule still allows them, even if they have since
+     * become busy: changing the reason must not force a new alternative.
+     */
+    public function alternativeChoices(): Collection
+    {
+        $employee = $this->targetEmployee();
+
+        if (! $employee) {
+            return new Collection;
+        }
+
+        $choices = app(LeaveAlternativeEmployees::class)->for($employee, $this->window());
+        $keptId = $this->leaveRequest?->exists ? $this->leaveRequest->alternative_employee_id : null;
+
+        return $this->withKept($choices, $keptId, $employee);
+    }
+
+    /** Clears an alternative the period typed no longer allows, so the select never holds a hidden value. */
+    public function dropUnavailableAlternative(): void
+    {
+        if (filled($this->alternative_employee)
+            && ! $this->alternativeChoices()->contains(fn (Employee $e) => (int) $e->id === (int) $this->alternative_employee)) {
+            $this->alternative_employee = null;
+        }
+    }
+
+    /**
+     * The decision dialog's choices: the same rule and filter for the
+     * request's own period, plus the alternative it already names (kept as
+     * it is when not available, so the decider sees who it was).
+     */
+    public function decisionAlternativeChoices(): Collection
+    {
+        $requester = $this->decisionLeave?->leaveBalance?->contract?->employee;
+
+        if (! $requester) {
+            return new Collection;
+        }
+
+        $choices = app(LeaveAlternativeEmployees::class)->for($requester, LeaveWindow::fromRequest($this->decisionLeave));
+
+        return $this->withKept($choices, $this->decisionLeave->alternative_employee_id, $requester, anyway: true);
+    }
+
+    /** Is the request's own alternative busy (or off) during its period? */
+    public function decisionAlternativeUnavailable(): bool
+    {
+        $current = $this->decisionLeave?->alternative_employee_id;
+        $requester = $this->decisionLeave?->leaveBalance?->contract?->employee;
+
+        return $current !== null && $requester !== null
+            && ! app(LeaveAlternativeEmployees::class)
+                ->for($requester, LeaveWindow::fromRequest($this->decisionLeave))
+                ->contains(fn (Employee $e) => (int) $e->id === (int) $current);
+    }
+
+    /** @return array{from: ?int, to: ?int}|null the alternative the last decision replaced, and by whom */
+    public function alternativeChange(): ?array
+    {
+        return $this->alternativeChange;
     }
 
     public function submitDecision(): LeaveRequest
@@ -234,6 +314,9 @@ class LeaveRequestForm extends Form
             $this->assertStillPending($current);
         }
 
+        $this->alternativeChange = null;
+        $accepting = (int) $this->status === LeaveRequestStatus::Accepted;
+
         $this->validate([
             'status' => [
                 'required',
@@ -242,6 +325,11 @@ class LeaveRequestForm extends Form
                     LeaveRequestStatus::Rejected,
                 ]),
             ],
+            // Only what the dialog lists: the rule, available for the period,
+            // or the alternative the request already names.
+            'decision_alternative' => $accepting
+                ? ['nullable', Rule::in($this->decisionAlternativeChoices()->modelKeys())]
+                : ['nullable'],
             'reject_reason' => [
                 Rule::requiredIf(fn () => (int) $this->status === LeaveRequestStatus::Rejected),
                 'nullable',
@@ -251,6 +339,7 @@ class LeaveRequestForm extends Form
         ], attributes: [
             'status' => __('general.action'),
             'reject_reason' => __('general.reject-reason'),
+            'decision_alternative' => __('general.alternative-employee'),
         ]);
 
         return DB::transaction(function (): LeaveRequest {
@@ -291,6 +380,11 @@ class LeaveRequestForm extends Form
                     throw $this->linkErrorsToFields($e);
                 }
 
+                $previous = $leaveRequest->alternative_employee_id !== null ? (int) $leaveRequest->alternative_employee_id : null;
+                $alternative = filled($this->decision_alternative) ? (int) $this->decision_alternative : null;
+
+                // One update, so the activity log keeps the old and the new
+                // alternative beside the acceptance (LeaveRequest logs it dirty).
                 $leaveRequest->update([
                     'status' => LeaveRequestStatus::Accepted,
                     'reject_reason' => null,
@@ -298,7 +392,12 @@ class LeaveRequestForm extends Form
                     'approved_by' => auth()->user()->profile->id,
                     'decision_basis' => $basis,
                     'decided_on_behalf_of' => $onBehalfOf,
+                    'alternative_employee_id' => $alternative,
                 ]);
+
+                if ($alternative !== $previous) {
+                    $this->alternativeChange = ['from' => $previous, 'to' => $alternative];
+                }
 
                 if ($hours > 0) {
                     $balance->increment('used', $hours);
@@ -1226,6 +1325,23 @@ class LeaveRequestForm extends Form
     {
         return is_string($value)
             && preg_match('/^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', trim($value)) === 1;
+    }
+
+    /**
+     * $choices plus the employee $keptId names, when it is not among them:
+     * while the rule (without the period) still allows them, or $anyway.
+     */
+    private function withKept(Collection $choices, mixed $keptId, Employee $requester, bool $anyway = false): Collection
+    {
+        if ($keptId === null || $choices->contains(fn (Employee $e) => (int) $e->id === (int) $keptId)) {
+            return $choices;
+        }
+
+        $kept = $anyway
+            ? Employee::query()->find($keptId)
+            : app(LeaveAlternativeEmployees::class)->query($requester)->find($keptId);
+
+        return $kept ? $choices->prepend($kept)->values() : $choices;
     }
 
     private function targetEmployee(): ?Employee

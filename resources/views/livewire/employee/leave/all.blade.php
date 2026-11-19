@@ -236,7 +236,8 @@ use App\Enums\LeaveRequestStatus;
                                 :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                             <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                         </div>
-                        <div class="md:col-span-2" wire:key="container-alt-emp-{{ $form->employee_id }}-{{ $form->leaveRequest ? 'edit' : 'create' }}">
+                        {{-- The select2 keeps its options under wire:ignore: the period in the key rebuilds it when the list follows new dates. --}}
+                        <div class="md:col-span-2" wire:key="container-alt-emp-{{ $form->employee_id }}-{{ $form->leaveRequest ? 'edit' : 'create' }}-{{ md5(json_encode([$form->type, $form->start_at, $form->end_at, $form->leave_date, $form->start_hour, $form->end_hour])) }}">
                             <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                             <x-forms.select2-input wire:model.live="form.alternative_employee" id="alternative_employee">
                                 <option
@@ -247,6 +248,7 @@ use App\Enums\LeaveRequestStatus;
                                     <option value="{{ $emp->id }}" @selected($form->alternative_employee === $emp->id)>{{ $emp->name }}</option>
                                 @endforeach
                             </x-forms.select2-input>
+                            <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
                             <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
                         </div>
                     </div>
@@ -478,6 +480,27 @@ use App\Enums\LeaveRequestStatus;
                                 <x-forms.input-label for="reject_reason" required>{{ __('general.reject-reason') }}</x-forms.input-label>
                                 <x-forms.input id="reject_reason" wire:model="form.reject_reason"/>
                                 <x-forms.input-error field="form.reject_reason" input-id="reject_reason"/>
+                            </div>
+                        @endif
+
+                        {{-- Meeting 19/11: whoever accepts may name another alternative, from the same list (rule + free for the period). --}}
+                        @if((int)$form->status === LeaveRequestStatus::Accepted && $decisionAlternatives)
+                            <div wire:key="decision-alternative-{{ $decisionLeave->id }}" data-testid="decision-alternative">
+                                <x-forms.input-label for="decision_alternative">{{ __('leaves.alternative.decision-label') }}</x-forms.input-label>
+                                <x-forms.select2-input wire:model="form.decision_alternative" id="decision_alternative">
+                                    <option value="">{{ __('leaves.alternative.none') }}</option>
+                                    @foreach($decisionAlternatives['choices'] as $emp)
+                                        <option value="{{ $emp->id }}" @selected((int) $form->decision_alternative === $emp->id)>{{ $emp->name }}</option>
+                                    @endforeach
+                                </x-forms.select2-input>
+                                @if($decisionAlternatives['current_unavailable'])
+                                    <p class="mt-1 flex items-center gap-1.5 text-small text-ink" data-testid="decision-alternative-busy">
+                                        <x-ic name="alert" class="size-4 shrink-0" />
+                                        {{ __('leaves.alternative.current-unavailable') }}
+                                    </p>
+                                @endif
+                                <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.decision-hint') }}</p>
+                                <x-forms.input-error field="form.decision_alternative" input-id="decision_alternative"/>
                             </div>
                         @endif
                     </div>

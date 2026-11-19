@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * A mailing list of the organisation (managers@, hope.aleppo@ …): its own
@@ -22,7 +23,113 @@ class MailList extends Model
     /** The groups the page offers, in order; 'other' catches anything new. */
     public const CATEGORIES = ['organisation', 'functions', 'cities', 'projects'];
 
-    protected $fillable = ['name', 'address', 'position'];
+    /** What a list is for: see MailListSync. */
+    public const RULE_ALL_STAFF = 'all_staff';
+
+    public const RULE_BOARD = 'board';
+
+    public const RULE_CUSTOM = 'custom';
+
+    protected $fillable = [
+        'name', 'address', 'position',
+        'rule_type', 'rule_city_id', 'rule_program_id', 'rule_department_id', 'rule_managers_only',
+    ];
+
+    /**
+     * The link that opens a new message in the viewer's mail program: To the list, Cc the
+     * viewer's direct manager (as every other "email" link of the app does). The sender is the
+     * account the mail program is signed in with: a mailto: link cannot choose it.
+     */
+    public function mailto(): string
+    {
+        $user = auth()->user();
+        $cc = $user?->profile
+            ? $user->remember('mail-list-cc', fn () => Employee::directManagerEmails([$user->profile])[$user->profile->id] ?? '')
+            : '';
+
+        $cc = filled($cc) && strcasecmp($cc, $this->address) !== 0 ? $cc : null;
+
+        // '@' stays as it is: it is legal in a mailto: and some mail programs choke on %40.
+        $plain = fn (string $address): string => str_replace('%40', '@', rawurlencode($address));
+
+        return 'mailto:'.$plain($this->address).($cc ? '?cc='.$plain($cc) : '');
+    }
+
+    public function hasRule(): bool
+    {
+        return $this->rule_type !== null;
+    }
+
+    /**
+     * The list that stands for a place or a project, to email it as a whole: the one whose rule is
+     * exactly this city / project / department (and not "managers only"). Null when there is none.
+     *
+     * @param  Collection<int, MailList>|null  $lists  the lists to choose from (all with a custom rule when null)
+     */
+    public static function emailFor(?int $cityId, ?int $programId, ?int $departmentId, ?Collection $lists = null): ?self
+    {
+        if ($cityId === null && $programId === null && $departmentId === null) {
+            return null;
+        }
+
+        $lists ??= self::customRuled();
+
+        return $lists->first(fn (self $list) => ! $list->rule_managers_only
+            && $list->rule_city_id === $cityId
+            && $list->rule_program_id === $programId
+            && $list->rule_department_id === $departmentId);
+    }
+
+    /**
+     * The list for a project or department group inside a city: the one of that city, else the one
+     * for the project or department everywhere.
+     */
+    public static function emailForGroup(?int $cityId, ?int $programId, ?int $departmentId, ?Collection $lists = null): ?self
+    {
+        $lists ??= self::customRuled();
+
+        return self::emailFor($cityId, $programId, $departmentId, $lists)
+            ?? self::emailFor(null, $programId, $departmentId, $lists);
+    }
+
+    /**
+     * Every list, grouped by category in the page's order, for a menu to choose from.
+     *
+     * @return Collection<string, Collection<int, MailList>>
+     */
+    public static function menuGroups(): Collection
+    {
+        $lists = self::query()->orderBy('position')->orderBy('name')->get()
+            ->groupBy(fn (self $list) => self::categoryOf($list->address));
+
+        return collect([...self::CATEGORIES, 'other'])
+            ->filter(fn (string $key) => $lists->has($key))
+            ->mapWithKeys(fn (string $key) => [$key => $lists->get($key)]);
+    }
+
+    /**
+     * The lists worth putting first for a place, project or department: the one for exactly this
+     * combination, then the one for each part on its own. Empty when nothing matches.
+     *
+     * @return Collection<int, MailList>
+     */
+    public static function suggestionsFor(?int $cityId, ?int $programId, ?int $departmentId): Collection
+    {
+        $lists = self::customRuled();
+
+        return collect([
+            self::emailFor($cityId, $programId, $departmentId, $lists),
+            self::emailFor($cityId, null, null, $lists),
+            self::emailFor(null, $programId, null, $lists),
+            self::emailFor(null, null, $departmentId, $lists),
+        ])->filter()->unique('id')->values();
+    }
+
+    /** @return Collection<int, MailList> the lists with a place/project/department rule */
+    public static function customRuled(): Collection
+    {
+        return self::query()->where('rule_type', self::RULE_CUSTOM)->orderBy('position')->get();
+    }
 
     /** Which group a list belongs to, from the name of its address. */
     public static function categoryOf(string $address): string
@@ -70,5 +177,10 @@ class MailList extends Model
             ['email' => $email],
             ['status' => MailListMember::PENDING, 'added_by_user_id' => auth()->id()],
         );
+    }
+
+    protected function casts(): array
+    {
+        return ['rule_managers_only' => 'boolean'];
     }
 }

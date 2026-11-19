@@ -3,7 +3,6 @@
 namespace App\Livewire\Employee\Leave;
 
 use App\Models\LeaveRequest;
-use App\Services\LeaveAlternativeEmployees;
 
 /**
  * The new-request dialog of My Leaves on its own, for the team calendar and
@@ -43,7 +42,7 @@ class LeaveRequestDialog extends MyLeaveRequestModule
     {
         $alternativeEmployees = $this->showModal
             ? $this->guardedLoad(
-                fn () => app(LeaveAlternativeEmployees::class)->for(auth()->user()->profile),
+                fn () => $this->form->alternativeChoices(),
                 fallback: collect(),
             )
             : collect();

@@ -13,7 +13,6 @@ use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
-use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
 use App\Services\LeaveRequestPricing;
@@ -527,6 +526,9 @@ class MyLeaveRequestModule extends Component
             return;
         }
 
+        // A colleague busy in the new period leaves the list, and the choice with them.
+        $this->form->dropUnavailableAlternative();
+
         // The overlap is reported on the period's first field, whichever
         // field moved; the check below decides afresh whether it still holds.
         $overlapField = $this->form->type === 'hour' ? 'leave_date' : 'start_at';
@@ -579,9 +581,10 @@ class MyLeaveRequestModule extends Component
 
         // A failed balance lookup shows a retry panel in place of the cards
         // instead of a 500; the request list below has its own failure state.
+        // The alternatives follow the period typed (wire:model.live on the dates).
         [$availableLeaves, $alternativeEmployees] = $this->guardedLoad(fn () => [
             $employee->availableLeaves(),
-            app(LeaveAlternativeEmployees::class)->for($employee),
+            $this->form->alternativeChoices(),
         ], fallback: [null, collect()]);
 
         return view('livewire.employee.leave.index', compact(

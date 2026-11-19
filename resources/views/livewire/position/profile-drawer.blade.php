@@ -173,12 +173,13 @@
                         <h3 class="flex items-center gap-2 mb-2 text-small font-bold tracking-wide uppercase text-ink-3">
                             @lang('general.direct-reports')
                             <span class="rounded-full bg-surface px-2 py-1 text-caption font-bold text-ink-2">{{ \App\Models\Position::headcount($reports) }}</span>
-                            @if(filled(config('app.team_email')))
-                                {{-- New message to the team's shared mailbox, not to each address. --}}
-                                <a href="mailto:{{ config('app.team_email') }}"
-                                   class="ms-auto text-small font-semibold normal-case tracking-normal text-ink-2 underline hover:text-ink">@lang('general.email-team')</a>
-                            @endif
                         </h3>
+                        {{-- Choose who to write to: a list (the ones for this team's place and project first) or these people directly. --}}
+                        <div class="mb-2 normal-case tracking-normal">
+                            @php($teamEmails = $reports->flatMap(fn ($r) => $r->activeContracts->pluck('employee'))->filter()->unique('id')->pluck('work_email')->filter()->all())
+                            <x-mail-list-menu :up="true" :label="__('general.email-team')" :suggested="\App\Models\MailList::suggestionsFor($position?->city_id ?? $position?->center?->city_id, $position?->program_id, $position?->department_id)"
+                                              :people="$teamEmails" :people-label="__('general.email-team-directly')" />
+                        </div>
                         <div class="space-y-2">
                             @foreach($reports as $report)
                                 @forelse($report->activeContracts->pluck('employee')->filter()->unique('id') as $rEmployee)

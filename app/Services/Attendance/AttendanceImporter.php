@@ -63,8 +63,6 @@ class AttendanceImporter
         $punches = $report['punches'];
 
         return DB::transaction(function () use ($punches, $fileName, $by) {
-            $numbers = array_values(array_unique(array_column($punches, 'device_no')));
-            $employees = $this->employeesFor($numbers);
             $times = array_column($punches, 'at');
 
             $import = AttendanceImport::create([
@@ -73,50 +71,69 @@ class AttendanceImporter
                 'period_start' => $times === [] ? null : min($times)->toDateString(),
                 'period_end' => $times === [] ? null : max($times)->toDateString(),
                 'punches_total' => count($punches),
-                'device_numbers' => count($numbers),
+                'device_numbers' => count(array_unique(array_column($punches, 'device_no'))),
             ]);
 
-            // A locked month does not change: its punches are not taken in.
-            $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
-                ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
+            $stored = $this->store($punches, $import);
 
-            $now = now();
-            $rows = [];
-            $skipped = 0;
-
-            foreach ($punches as $p) {
-                $employeeId = ($employees[$p['device_no']] ?? null)?->id;
-
-                if ($employeeId !== null && isset($locked[$employeeId.'|'.$p['at']->format('Y-m')])) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                $rows[] = [
-                    'import_id' => $import->id,
-                    'device_no' => $p['device_no'],
-                    'employee_id' => $employeeId,
-                    'punched_at' => $p['at']->format('Y-m-d H:i:s'),
-                    'created_at' => $now,
-                ];
-            }
-
-            $new = 0;
-
-            foreach (array_chunk($rows, 500) as $chunk) {
-                $new += AttendancePunch::query()->insertOrIgnore($chunk);
-            }
-
-            $import->update(['punches_new' => $new, 'punches_locked' => $skipped]);
-
-            // New punches in an approved month: what was approved is no longer what the month holds.
-            $this->withdrawApprovals(AttendancePunch::query()->where('import_id', $import->id)->whereNotNull('employee_id')->get(['employee_id', 'punched_at']));
+            $import->update(['punches_new' => $stored['new'], 'punches_locked' => $stored['locked']]);
 
             return $import;
         });
     }
 
+    /**
+     * Keep punches once, whichever way they arrived (a file or a device pushing by itself): tie
+     * each device number to its employee, skip the ones that fall in a locked month, ignore the
+     * ones already stored, and withdraw the approval of any month that gained a new punch.
+     *
+     * @param  list<array{device_no: string, at: CarbonImmutable}>  $punches
+     * @return array{new: int, locked: int}
+     */
+    public function store(array $punches, AttendanceImport $import, ?int $deviceId = null): array
+    {
+        $employees = $this->employeesFor(array_values(array_unique(array_column($punches, 'device_no'))));
+
+        // A locked month does not change: its punches are not taken in.
+        $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
+            ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
+
+        $now = now();
+        $rows = [];
+        $skipped = 0;
+
+        foreach ($punches as $p) {
+            $employeeId = ($employees[$p['device_no']] ?? null)?->id;
+
+            if ($employeeId !== null && isset($locked[$employeeId.'|'.$p['at']->format('Y-m')])) {
+                $skipped++;
+
+                continue;
+            }
+
+            $rows[] = [
+                'import_id' => $import->id,
+                'device_id' => $deviceId,
+                'device_no' => $p['device_no'],
+                'employee_id' => $employeeId,
+                'punched_at' => $p['at']->format('Y-m-d H:i:s'),
+                'created_at' => $now,
+            ];
+        }
+
+        $new = 0;
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            $new += AttendancePunch::query()->insertOrIgnore($chunk);
+        }
+
+        // New punches in an approved month: what was approved is no longer what the month holds.
+        if ($new > 0) {
+            $this->withdrawApprovals(AttendancePunch::query()->where('import_id', $import->id)->whereNotNull('employee_id')->get(['employee_id', 'punched_at']));
+        }
+
+        return ['new' => $new, 'locked' => $skipped];
+    }
     /** Tie a device number to an employee and give the punches already stored for it their owner. */
     public function link(string $deviceNo, Employee $employee, ?User $by): void
     {

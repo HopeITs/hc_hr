@@ -1,0 +1,13 @@
+{
+  "device": {
+    "host": "192.168.1.201",
+    "port": 4370,
+    "commKey": 0,
+    "timeoutSeconds": 15
+  },
+  "server": {
+    "url": "https://rms.hcsyria-apps.org",
+    "key": "zk_PASTE_THE_KEY_FROM_THE_DEVICES_PAGE"
+  },
+  "safetyHours": 48
+}

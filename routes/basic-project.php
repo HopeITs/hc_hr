@@ -36,6 +36,9 @@ Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positio
 Route::prefix('attendance')->name('attendance.')->group(function () {
     Route::get('/upload', \App\Livewire\Attendance\Upload::class)
         ->middleware('active_permission:attendance.manage')->name('upload');
+    // The devices that push their punches by themselves, and the centers they hang in.
+    Route::get('/devices', \App\Livewire\Attendance\Devices::class)
+        ->middleware('active_permission:attendance.manage')->name('devices');
     Route::get('/timesheets', \App\Livewire\Attendance\Timesheets::class)
         ->middleware('active_permission:attendance.view-own')->name('timesheets');
     Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
@@ -54,3 +57,6 @@ Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
 
 // The organisation mailing lists: every signed-in employee reads and emails them; editing needs mail-lists.manage (checked in the component).
 Route::get("/mail-lists", \App\Livewire\MailLists\Index::class)->name("mail-lists.index");
+// What each list should hold by HR data, and who is missing or has left: HR only.
+Route::get("/mail-lists/check", \App\Livewire\MailLists\Check::class)
+    ->middleware('active_permission:mail-lists.manage')->name("mail-lists.check");

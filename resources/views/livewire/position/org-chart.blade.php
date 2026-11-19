@@ -127,6 +127,8 @@
                     @endif
                 </x-button>
 
+                <x-mail-list-menu :suggested="$filterList" />
+
                 <x-button variant="outline" size="sm" wire:click="toggleDensity">
                     <x-icons.code-fork class="size-3.5" />
                     {{ $compact ? __('general.comfortable-view') : __('general.compact-view') }}

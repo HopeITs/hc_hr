@@ -22,16 +22,38 @@
     // What the active role sees: own (an employee), team (a manager), city (HR of a city) or all.
     $own = $mode === 'own';
     $title = match ($mode) { 'own' => __('attendance.timesheets.title-own'), 'team' => __('attendance.timesheets.title-team'), default => __('attendance.timesheets.title') };
+    $isCurrentMonth = $monthDate->format('Y-m') === now()->format('Y-m');
     $lead = match ($mode) { 'own' => __('attendance.timesheets.lead-own'), 'team' => __('attendance.timesheets.lead-team'), default => __('attendance.timesheets.lead') };
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-6"
+     x-data="{
+        {{-- Filtering and folding happen here, in the browser, over the rows the server already sent. --}}
+        q: '',
+        undecided: false,
+        open: {},
+        tick: 0,
+        init() { Livewire.hook('commit', ({ succeed }) => succeed(() => this.$nextTick(() => this.tick++))); },
+        rowEls() { return [...this.$root.querySelectorAll('tr[data-group]')]; },
+        match(s, d) { this.tick; const q = this.q.trim().toLowerCase(); return (! q || s.includes(q)) && (! this.undecided || d > 0); },
+        shown(key) { this.tick; return this.rowEls().some(r => r.dataset.group === key && this.match(r.dataset.s, +r.dataset.d)); },
+        hasRows() { this.tick; return this.rowEls().length > 0; },
+        anyShown() { return this.rowEls().some(r => this.match(r.dataset.s, +r.dataset.d)); },
+        groupKeys() { return [...new Set(this.rowEls().map(r => r.dataset.group))]; },
+        // Groups start collapsed, so a long page opens as a short list of projects. They open by
+        // themselves when there is only one. While a search or filter is on they are all open, whatever
+        // was folded by hand, so a match is never hidden; clearing it brings back what was chosen.
+        isOpen(key) { this.tick; if (this.q.trim() !== '' || this.undecided) return true; if (this.open[key] !== undefined) return this.open[key]; return this.groupKeys().length === 1; },
+        toggle(key) { this.open[key] = ! this.isOpen(key); },
+        foldAll(on) { this.groupKeys().forEach(k => this.open[k] = ! on); },
+     }">
     <x-slot:title>{{ $title }}</x-slot:title>
 
     <x-page-header :title="$title" :lead="$lead">
         <x-slot:actions>
             @if($canManage)
-                <x-button variant="outline" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
+                <x-button variant="outline" :href="route('attendance.devices')">@lang('attendance.devices.title')</x-button>
+                <x-button variant="quiet" :href="route('attendance.upload')">@lang('attendance.timesheets.upload')</x-button>
             @endif
             <x-button icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">{{ $own ? __('attendance.timesheets.print-own') : __('attendance.timesheets.print-all') }}</x-button>
             <x-button variant="outline" :href="route('attendance.export.pdf', $printBase)" :wire:navigate="false" target="_blank" data-testid="pdf-link">@lang('attendance.export.pdf')</x-button>
@@ -61,7 +83,7 @@
             @if($cities->isNotEmpty())
             <div>
                 <x-forms.input-label for="att-city">@lang('attendance.timesheets.city')</x-forms.input-label>
-                <x-forms.select-input id="att-city" wire:model.live="cityId">
+                <x-forms.select-input id="att-city" wire:model.live="cityId" wire:loading.attr="disabled" wire:target="cityId">
                     <option value="">@lang('attendance.timesheets.all-cities')</option>
                     @foreach($cities as $city)
                         <option value="{{ $city->id }}">{{ $city->name }}</option>
@@ -87,17 +109,26 @@
                 <x-forms.input-label for="att-search">@lang('attendance.timesheets.search')</x-forms.input-label>
                 <div class="relative">
                     <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-ink-3"><x-ic name="search" class="size-4" /></span>
-                    <input id="att-search" type="search" wire:model.live.debounce.300ms="search" autocomplete="off"
+                    {{-- Filters the people already on the page, in the browser: no round trip. --}}
+                    <input id="att-search" type="search" x-model="q" autocomplete="off" data-testid="att-search"
                            class="h-11 w-full rounded-control border border-line bg-card ps-10 pe-3 text-body text-ink">
                 </div>
             </div>
 
             <label class="inline-flex h-11 items-center gap-2 text-body text-ink">
-                <input type="checkbox" wire:model.live="onlyToDecide" class="size-4 rounded border-line">
+                <input type="checkbox" x-model="undecided" class="size-4 rounded border-line" data-testid="att-undecided">
                 @lang('attendance.timesheets.only-to-decide')
             </label>
             @endunless
+
+            <span class="inline-flex h-11 items-center gap-2 text-small text-ink-2" wire:loading wire:target="month,cityId,groupBy,shiftMonth" role="status">
+                <x-icons.spinner class="size-4 animate-spin" /> @lang('attendance.timesheets.loading')
+            </span>
         </div>
+
+        @if($cityName)
+            <p class="text-small text-ink-2" data-testid="att-scope">{{ __('attendance.timesheets.showing-city', ['city' => $cityName]) }}</p>
+        @endif
     </x-card>
 
     {{-- The month in three numbers --}}
@@ -111,14 +142,20 @@
             @if($summary['to_decide'] > 0)
                 <div class="mt-1 text-h2 font-extrabold text-primary num">{{ $summary['to_decide'] }}</div>
                 <p class="mt-1 text-small text-ink-2">@lang('attendance.timesheets.to-decide-help')</p>
+                @unless($own)
+                    <button type="button" x-on:click="undecided = ! undecided" x-bind:aria-pressed="undecided" class="mt-2 text-small font-semibold underline text-ink hover:text-primary">
+                        <span x-show="! undecided">@lang('attendance.timesheets.show-only-those')</span>
+                        <span x-show="undecided" x-cloak>@lang('attendance.timesheets.show-everyone')</span>
+                    </button>
+                @endunless
             @else
                 <div class="mt-2"><x-status tone="done" icon="check" :label="__('attendance.timesheets.all-decided')" /></div>
             @endif
         </x-card>
         <x-card>
             <div class="text-small text-ink-2">@lang('attendance.timesheets.overtime')</div>
-            <div class="mt-1 text-h2 font-extrabold text-ink num">{{ $summary['overtime_hours'] }} <span class="text-body font-semibold text-ink-2">h</span></div>
-            <p class="mt-1 text-small text-ink-2 num">= +{{ $summary['overtime_days'] }} @lang('attendance.timesheets.free-days')</p>
+            <div class="mt-1 text-h2 font-extrabold text-ink num">{{ $summary['overtime_hours'] }} <span class="text-body font-semibold text-ink-2">@lang('attendance.timesheets.hours-unit')</span></div>
+            <p class="mt-1 text-small text-ink-2 num"><bdi>= +{{ $summary['overtime_days'] }}</bdi> @lang('attendance.timesheets.free-days')</p>
         </x-card>
     </div>
 
@@ -157,7 +194,20 @@
         @endforeach
     </div>
 
+    @unless($own)
+        <div class="flex flex-wrap items-center justify-between gap-2" x-show="groupKeys().length > 1" x-cloak>
+            <p class="text-small text-ink-2" x-show="q.trim() || undecided" x-cloak role="status">@lang('attendance.timesheets.filtered')</p>
+            <span class="ms-auto inline-flex gap-3">
+                <button type="button" x-on:click="foldAll(false)" class="text-small font-semibold underline text-ink-2 hover:text-ink">@lang('attendance.timesheets.expand-all')</button>
+                <button type="button" x-on:click="foldAll(true)" class="text-small font-semibold underline text-ink-2 hover:text-ink">@lang('attendance.timesheets.collapse-all')</button>
+            </span>
+        </div>
+    @endunless
+
+    <p class="py-6 text-center text-body text-ink-2" x-show="hasRows() && ! anyShown()" x-cloak data-testid="att-no-match">@lang('attendance.timesheets.no-match')</p>
+
     {{-- City, then project or department --}}
+    <div class="space-y-6 transition-opacity" wire:loading.class="opacity-50 pointer-events-none" wire:target="month,cityId,groupBy,shiftMonth">
     @forelse($blocks as $block)
         <section class="space-y-3" aria-labelledby="city-{{ $block['id'] }}" data-testid="city-block" wire:key="city-{{ $block['id'] }}">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -166,16 +216,21 @@
                 @if($block['totals']['to_decide'] > 0)
                     <x-status tone="attn" icon="alert" :label="__('attendance.timesheets.to-decide', ['count' => $block['totals']['to_decide']])" />
                 @endif
+                {{-- The mailing list that stands for this city, when there is one. --}}
+                @if($cityList = \App\Models\MailList::emailFor($block['id'] ? (int) $block['id'] : null, null, null, $mailLists))
+                    <a href="{{ $cityList->mailto() }}" data-testid="email-city" class="inline-flex min-h-8 items-center gap-1.5 text-small font-semibold text-ink-2 underline hover:text-ink">
+                        <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                    </a>
+                @endif
             </div>
 
             @foreach($block['groups'] as $group)
                 @php($foldKey = $block['id'].':'.$group['key'])
-                @php($folded = $collapsed[$foldKey] ?? false)
-                <x-card class="!p-0 overflow-hidden" data-testid="group-card" wire:key="group-{{ $foldKey }}">
+                <x-card class="!p-0 overflow-hidden" style="contain: paint" data-testid="group-card" wire:key="group-{{ $foldKey }}" x-show="shown({{ \Illuminate\Support\Js::from($foldKey) }})">
                     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-soft bg-soft px-4 py-3">
-                        <button type="button" wire:click="toggleGroup('{{ $foldKey }}')" aria-expanded="{{ $folded ? 'false' : 'true' }}"
-                                class="flex min-h-11 items-center gap-2 text-start">
-                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition {{ $folded ? 'rtl:rotate-180' : 'rotate-90' }}" />
+                        <button type="button" x-on:click="toggle(@js($foldKey))" x-bind:aria-expanded="isOpen(@js($foldKey))"
+                                class="flex min-h-11 items-center gap-2 text-start" data-testid="group-fold">
+                            <x-ic name="chevron" class="size-4 shrink-0 text-ink-2 transition" x-bind:class="isOpen({{ \Illuminate\Support\Js::from($foldKey) }}) ? 'rotate-90' : 'rtl:rotate-180'" />
                             <h3 class="text-h4 font-bold text-ink"><bdi>{{ $group['name'] ?? __($groupLabel) }}</bdi></h3>
                             <span class="text-small text-ink-2">{{ trans_choice('attendance.timesheets.people-count', $group['totals']['people']) }}</span>
                         </button>
@@ -187,7 +242,15 @@
                                 <x-status tone="done" icon="check" :label="__('attendance.timesheets.group-ready')" />
                             @endif
                             @if($group['totals']['overtime_hours'] > 0)
-                                <span class="text-small text-ink-2 num">{{ $group['totals']['overtime_hours'] }} h = +{{ $group['totals']['overtime_days'] }} @lang('attendance.timesheets.free-days')</span>
+                                <span class="text-small text-ink-2 num"><bdi>{{ $group['totals']['overtime_hours'] }} @lang('attendance.timesheets.hours-unit') = +{{ $group['totals']['overtime_days'] }}</bdi> @lang('attendance.timesheets.free-days')</span>
+                            @endif
+                            {{-- The list for this project or department (in this city, else nationwide). --}}
+                            @php($groupList = ($group['id'] ?? null) ? \App\Models\MailList::emailForGroup($block['id'] ? (int) $block['id'] : null, $by === \App\Services\Attendance\Grouping::PROJECT ? (int) $group['id'] : null, $by === \App\Services\Attendance\Grouping::DEPARTMENT ? (int) $group['id'] : null, $mailLists) : null)
+                            @if($groupList)
+                                <a href="{{ $groupList->mailto() }}" data-testid="email-group"
+                                   class="inline-flex min-h-9 items-center gap-2 rounded-control border border-line bg-card px-3 text-small font-semibold text-ink hover:bg-hover">
+                                    <x-icons.envelope class="size-4" /> @lang('mail_lists.email_group')
+                                </a>
                             @endif
                             @unless($own)
                                 @php($groupParams = $printBase + ['city_id' => $block['id'], 'group' => $group['id'] ?? 'none'])
@@ -206,7 +269,7 @@
                         </div>
                     </div>
 
-                    @unless($folded)
+                    <div x-show="isOpen(@js($foldKey))" x-cloak>
                         <div class="overflow-x-auto">
                             <table class="w-full min-w-max text-start text-body">
                                 <thead>
@@ -217,7 +280,8 @@
                                         <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.timesheets.decide')</th>
                                         <th scope="col" class="px-3 py-2 text-center font-semibold">@lang('attendance.workflow.state')</th>
                                         @foreach($days as $day)
-                                            <th scope="col" class="px-px py-2 text-center font-semibold num">
+                                            @php($today = $isCurrentMonth && $day['n'] === now()->day)
+                                            <th scope="col" @class(['px-px py-2 text-center font-semibold num', 'rounded-t-control bg-ink text-on-ink' => $today]) @if($today) aria-current="date" @endif>
                                                 <span class="block leading-tight">{{ $day['n'] }}</span>
                                                 <span class="block text-[10px] font-normal leading-tight">{{ $day['w'] }}</span>
                                             </th>
@@ -228,7 +292,10 @@
                                     @foreach($group['items'] as $item)
                                         @php($employee = $item['employee'])
                                         @php($sheet = $item['sheet'])
-                                        <tr class="border-t border-line-soft hover:bg-hover" wire:key="sheet-{{ $employee->id }}">
+                                        {{-- data-s: what the search looks in (both names and the id); data-d: days waiting. --}}
+                                        <tr class="border-t border-line-soft hover:bg-hover" wire:key="sheet-{{ $employee->id }}"
+                                            data-group="{{ $foldKey }}" data-s="{{ mb_strtolower($employee->nameForLocale('en').' '.$employee->nameForLocale('ar').' '.$employee->id) }}" data-d="{{ (int) $sheet['totals']['to_decide'] }}"
+                                            x-show="match($el.dataset.s, +$el.dataset.d)">
                                             <th scope="row" class="sticky start-0 z-10 bg-card px-4 py-2 text-start font-normal">
                                                 <button type="button" wire:click="openMonth({{ $employee->id }})" class="block min-h-11 text-start"
                                                         aria-label="{{ __('attendance.timesheets.open-month', ['name' => $employee->name]) }}">
@@ -239,7 +306,7 @@
                                             <td class="px-3 text-center font-semibold num">{{ $sheet['totals']['working_days'] }}</td>
                                             <td class="px-3 text-center text-small num whitespace-nowrap">
                                                 @if($sheet['totals']['overtime_hours'] > 0)
-                                                    {{ $sheet['totals']['overtime_hours'] }} h = +{{ $sheet['totals']['overtime_days'] }}
+                                                    <bdi>{{ $sheet['totals']['overtime_hours'] }} @lang('attendance.timesheets.hours-unit') = +{{ $sheet['totals']['overtime_days'] }}</bdi>
                                                 @else
                                                     <span class="text-ink-3">–</span>
                                                 @endif
@@ -277,7 +344,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    @endunless
+                    </div>
                 </x-card>
             @endforeach
         </section>
@@ -286,6 +353,7 @@
             <p class="py-8 text-center text-body text-ink-2" data-testid="attendance-empty">@lang('attendance.timesheets.nothing')</p>
         </x-card>
     @endforelse
+    </div>
 
     {{-- One person's month: where it stands, what the viewer may do, the signed paper, the exports --}}
     @if($panel)

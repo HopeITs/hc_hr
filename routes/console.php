@@ -7,9 +7,11 @@ use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateDepartedEmployees;
 use App\Console\Commands\DispatchDueNotifications;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
+use App\Console\Commands\NotifyBirthdayConflicts;
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
+use App\Console\Commands\QueueMailListStarters;
 use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
 use App\Console\Commands\ScanRecruitmentFiles;
 use App\Console\Commands\SendAttendanceReminders;
@@ -43,6 +45,10 @@ Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
 // D4-I: one reminder to city HR per overdue orientation session.
 Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
+// People whose contract just started join the mail lists their rules match (pending, for the control panel).
+Schedule::command(QueueMailListStarters::class)->dailyAt('08:20');
+// Meeting 19/11 (track 3): a birthday on a weekend or holiday in the coming days asks the volunteer, once, to pick another day.
+Schedule::command(NotifyBirthdayConflicts::class)->dailyAt('08:25');
 Schedule::command(ProcessContractAutoRenewals::class)->dailyAt('21:35');
 // Renewal journey: start at 30 days before the end, settle after tonight's renewals.
 Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');

@@ -2,17 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Enums\LeaveRequestStatus;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Services\LeaveAlternativeEmployees;
+use App\Support\Leave\LeaveWindow;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
@@ -165,12 +170,85 @@ class LeaveAlternativeEmployeesTest extends TestCase
         $this->assertAlternatives($officer, []);
     }
 
+    // --- Meeting 19/11: only colleagues available for the period ---
+
+    public function test_a_colleague_on_accepted_or_pending_leave_in_the_period_is_left_out(): void
+    {
+        $officer = $this->seat('officer', 6, $this->hope, $this->frontDesk, $this->headOffice);
+        $free = $this->seat('free', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $onLeave = $this->seat('on-leave', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $pending = $this->seat('pending', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $rejected = $this->seat('rejected', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $before = $this->seat('before', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $monday = self::monday();
+
+        // Overlaps on the Wednesday only: one shared day is enough.
+        $this->leaveFor($onLeave, $monday->addDays(2), $monday->addDays(6), LeaveRequestStatus::Accepted);
+        $this->leaveFor($pending, $monday->subDays(3), $monday, LeaveRequestStatus::Pending);
+        $this->leaveFor($rejected, $monday, $monday->addDay(), LeaveRequestStatus::Rejected);
+        $this->leaveFor($before, $monday->subDays(5), $monday->subDay(), LeaveRequestStatus::Accepted);
+
+        $period = LeaveWindow::days($monday, $monday->addDays(2));
+
+        $this->assertAlternatives($officer, [$free, $rejected, $before], $period);
+        // Without a period the rule alone, as every existing caller gets it.
+        $this->assertAlternatives($officer, [$free, $onLeave, $pending, $rejected, $before]);
+    }
+
+    public function test_hourly_leave_clashes_only_when_the_hours_meet(): void
+    {
+        $officer = $this->seat('officer', 6, $this->hope, $this->frontDesk, $this->headOffice);
+        $morning = $this->seat('morning', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $afternoon = $this->seat('afternoon', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $allDay = $this->seat('all-day', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $monday = self::monday();
+
+        $this->leaveFor($morning, $monday->setTime(9, 0), $monday->setTime(11, 0), LeaveRequestStatus::Accepted, 'hour');
+        $this->leaveFor($afternoon, $monday->setTime(13, 0), $monday->setTime(15, 0), LeaveRequestStatus::Accepted, 'hour');
+        $this->leaveFor($allDay, $monday, $monday, LeaveRequestStatus::Accepted);
+
+        $this->assertAlternatives($officer, [$afternoon], LeaveWindow::hours($monday, '10:00', '12:00'));
+        // A day request meets any hourly leave on one of its days.
+        $this->assertAlternatives($officer, [], LeaveWindow::days($monday, $monday));
+    }
+
+    public function test_a_colleague_off_for_their_own_birthday_is_left_out_but_a_shared_holiday_leaves_everyone(): void
+    {
+        $monday = self::monday();
+        $officer = $this->seat('officer', 6, $this->hope, $this->frontDesk, $this->headOffice);
+        $birthday = $this->seat('birthday', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        $other = $this->seat('other', 7, $this->hope, $this->frontDesk, $this->headOffice);
+        // The birthday counts only inside the contract.
+        DB::table('contracts')->update(['end_date' => $monday->addYear()->toDateString()]);
+        // Tuesday of the period, a working day (the centers rest on Friday).
+        $birthday->update(['dob' => $monday->addDay()->setYear(1990)->toDateString()]);
+
+        Holiday::query()->create([
+            'name_en' => 'Birthday', 'name_ar' => 'عيد الميلاد',
+            'start_date' => $monday->startOfYear()->toDateString(), 'end_date' => $monday->endOfYear()->toDateString(),
+            'scope' => Holiday::SCOPE_NATIONAL, 'kind' => Holiday::KIND_BIRTHDAY,
+        ]);
+
+        $this->assertAlternatives($officer, [$other], LeaveWindow::days($monday, $monday->addDays(2)));
+        // A period that misses the birthday keeps them.
+        $this->assertAlternatives($officer, [$birthday, $other], LeaveWindow::days($monday->addDays(2), $monday->addDays(3)));
+
+        // A national holiday is the requester's day off too: nobody is dropped for it.
+        Holiday::query()->create([
+            'name_en' => 'National', 'name_ar' => 'وطني',
+            'start_date' => $monday->addDays(2)->toDateString(), 'end_date' => $monday->addDays(2)->toDateString(),
+            'scope' => Holiday::SCOPE_NATIONAL, 'kind' => Holiday::KIND_OFFICIAL,
+        ]);
+
+        $this->assertAlternatives($officer, [$birthday, $other], LeaveWindow::days($monday->addDays(2), $monday->addDays(3)));
+    }
+
     /**
      * @param  list<Employee>  $expected
      */
-    private function assertAlternatives(Employee $requester, array $expected): void
+    private function assertAlternatives(Employee $requester, array $expected, ?LeaveWindow $period = null): void
     {
-        $actual = app(LeaveAlternativeEmployees::class)->for($requester->fresh())->pluck('username')->sort()->values()->all();
+        $actual = app(LeaveAlternativeEmployees::class)->for($requester->fresh(), $period)->pluck('username')->sort()->values()->all();
 
         $this->assertSame(collect($expected)->pluck('username')->sort()->values()->all(), $actual);
     }
@@ -220,6 +298,38 @@ class LeaveAlternativeEmployeesTest extends TestCase
         ]);
 
         return $employee;
+    }
+
+    private function leaveFor(Employee $employee, CarbonImmutable $start, CarbonImmutable $end, int $status, string $type = 'day'): void
+    {
+        $typeId = DB::table('leave_types')->insertGetId(['name_en' => 'Annual', 'name_ar' => 'سنوية', 'base_days' => 20]);
+        $balanceId = DB::table('leave_balances')->insertGetId([
+            'contract_id' => $employee->contracts()->value('id'),
+            'type_id' => $typeId,
+            'deserved' => 160,
+            'used' => 0,
+        ]);
+
+        DB::table('leave_requests')->insert([
+            'leave_balance_id' => $balanceId,
+            'type' => $type,
+            'start_at' => $type === 'day' ? $start->startOfDay() : $start,
+            'end_at' => $type === 'day' ? $end->startOfDay() : $end,
+            'reason' => 'Away',
+            'status' => $status,
+        ]);
+    }
+
+    /** A Monday a couple of months out, clear of December. */
+    private static function monday(): CarbonImmutable
+    {
+        $monday = CarbonImmutable::now()->addMonths(2)->next(CarbonImmutable::MONDAY)->startOfDay();
+
+        while ($monday->month === 12 || $monday->addWeek()->month === 12) {
+            $monday = $monday->addWeeks(2);
+        }
+
+        return $monday;
     }
 
     private function center(string $name, City $city): Center

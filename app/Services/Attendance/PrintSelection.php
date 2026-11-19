@@ -48,9 +48,12 @@ class PrintSelection
 
         abort_if($employees->isEmpty(), 404);
 
+        // One batch of reads for the whole selection, not a set per person.
+        $all = $this->timesheet->forEmployees($employees, $month);
+
         $sheets = $employees->map(fn (Employee $employee) => [
             'employee' => $employee,
-            'sheet' => $this->timesheet->forEmployee($employee, $month),
+            'sheet' => $all[$employee->id],
         ])->values();
 
         $by = Grouping::normalize($data['group_by'] ?? null);

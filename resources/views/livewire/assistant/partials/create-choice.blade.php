@@ -12,7 +12,7 @@
     <div class="flex flex-wrap gap-2" data-testid="assistant-create-choice" data-kind="{{ $choice['kind'] ?? '' }}">
         @if ($choice['chat'] ?? false)
             <x-button variant="primary" size="sm" icon="pen" :loading="false"
-                      x-on:click="submit(@js(__('assistant.choice.continue-message')))" data-testid="assistant-choice-chat">
+                      x-on:click="submit({{ \Illuminate\Support\Js::from(__('assistant.choice.continue-message')) }})" data-testid="assistant-choice-chat">
                 {{ __('assistant.choice.continue') }}
             </x-button>
         @endif
