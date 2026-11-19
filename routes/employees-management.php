@@ -29,6 +29,8 @@ Route::get('probation/{review}', ProbationReviewPage::class)->name('probation.sh
 Route::get('onboarding/manager-session/{employee}', App\Livewire\Onboarding\ManagerSession::class)->name('onboarding.manager-session');
 Route::get('onboarding/policies', App\Livewire\Onboarding\Policies::class)->name('onboarding.policies');
 Route::get('onboarding/required-policies', App\Livewire\Onboarding\RequiredPolicies::class)->middleware('active_permission:employees.update')->name('onboarding.required-policies');
+// Permissions Library (track 5): HR roles and the administrators; the component re-checks the active role.
+Route::get('/entitlements', App\Livewire\Entitlements\Library::class)->middleware('active_permission:entitlements.manage-library')->name('entitlements.index');
 Route::get('/default-deliverables', DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
 
 Route::prefix('contracts')

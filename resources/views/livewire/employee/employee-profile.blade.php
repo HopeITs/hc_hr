@@ -351,6 +351,8 @@
                     </div>
                 </x-profile-section>
                 <livewire:employee-cards.manage-digital-id :employee="$employee" :key="'digital-id-'.$employee->id" />
+                {{-- Track 5: Permissions Library items; renders only for HR of the city and the direct manager. --}}
+                <livewire:employee.entitlements-panel :employee="$employee" :key="'entitlements-'.$employee->id" />
 
                 @if ($canViewPrivate)
                     <x-profile-section data-section="personal-contact" :title="__('general.personal-contact')" icon="icons.phone" private>

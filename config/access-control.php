@@ -123,6 +123,8 @@ return [
             'archives.download',
             // Their own timesheet and their direct reports' (Roster).
             'attendance.view-own', 'attendance.view',
+            // Their direct reports' Permissions Library items (EntitlementAccess).
+            'entitlements.assign',
             // Recruitment: the same role covers both sides of the first step —
             // a manager raises his own requests and approves his direct
             // reports'. Holding 'approve' is never sufficient on its own; the
@@ -168,6 +170,11 @@ return [
         // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
         // the administrators: everyone); `manage` (HR) uploads the report, links numbers and decides days.
         'attendance' => ['view-own', 'view', 'manage'],
+        // Permissions Library (meeting 19/11, track 5): professional access tracked outside the system,
+        // never a Spatie permission of its own. `manage-library` edits the items and their position
+        // defaults (HR, administrators); `assign` adds, marks done and revokes a person's items (HR in
+        // their city, a manager for direct reports only: EntitlementAccess).
+        'entitlements' => ['manage-library', 'assign'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -406,6 +413,24 @@ return [
             'scheduleManagerOrientation' => 'employees.update',
             'completeManagerOrientation' => 'employees.update',
             'chooseElectronicsDeliverer' => 'employees.update',
+        ],
+        // Track 5: the Permissions Library page. Each method re-checks Entitlements::canManageLibrary (HR or
+        // administrator active role); position links stay inside Position::inCity, job levels are administrators'.
+        'entitlements.library' => [
+            'save' => 'entitlements.manage-library',
+            'toggleActive' => 'entitlements.manage-library',
+            'deleteItem' => 'entitlements.manage-library',
+            'addPosition' => 'entitlements.manage-library',
+            'addJobLevel' => 'entitlements.manage-library',
+            'removeLink' => 'entitlements.manage-library',
+        ],
+        // Track 5: a person's items on their profile. Each method re-checks Entitlements::canAssign (HR of the
+        // person's city through EmployeePolicy::update, or the direct manager for a direct report).
+        'employee.entitlements-panel' => [
+            'add' => 'entitlements.assign',
+            'markGranted' => 'entitlements.assign',
+            'revoke' => 'entitlements.assign',
+            'keep' => 'entitlements.assign',
         ],
         // Track 7: HR picks the policy documents a new volunteer must agree to; re-checked as HR on every call.
         'onboarding.required-policies' => [
@@ -795,6 +820,8 @@ return [
         'probation.review' => ['send'],
         // Track 7: the manager's session is gated by OnboardingJourneys::canRunManagerOrientation (direct manager, city HR as fallback) on mount and on every action, and again inside the service.
         'onboarding.manager-session' => ['schedule', 'complete'],
+        // Track 5: open / close a form or an item's defaults on the library page; they write nothing, and each re-checks canManageLibrary.
+        'entitlements.library' => ['newItem', 'edit', 'cancelEdit', 'open', 'close'],
         // Track 7: the volunteer acknowledges only for their own employee (never an id from the browser); the document must be one HR marked as required.
         'onboarding.policies' => ['acknowledge'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
