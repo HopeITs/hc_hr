@@ -152,7 +152,7 @@ return [
         'contracts' => ['view', 'create', 'update', 'delete', 'export', 'amend'],
         'programs' => ['view', 'create', 'update', 'delete'],
         'centers' => ['view', 'create', 'update', 'delete', 'export'],
-        'positions' => ['view', 'create', 'update', 'delete', 'export'],
+        'positions' => ['view', 'create', 'update', 'delete', 'export', 'mark-critical', 'view-replacements'],
         'leaves' => ['view-own', 'view-all', 'create', 'update', 'delete', 'decide', 'review', 'manage-balances', 'export'],
         'project-basics' => ['view', 'create', 'update', 'delete', 'export'],
         'news' => ['view', 'create', 'update', 'delete'],
@@ -355,7 +355,7 @@ return [
             'exportExcel' => 'centers.export',
         ],
         'position.position-create' => ['save' => 'positions.create'],
-        'position.position-edit' => ['save' => 'positions.update'],
+        'position.position-edit' => ['save' => 'positions.update', 'toggleCritical' => 'positions.mark-critical'],
         'position.position-table' => [
             'delete' => 'positions.delete',
             'toggleItemStatusConfirmed' => 'positions.update',
@@ -1301,6 +1301,8 @@ return [
             'zoomIn', 'zoomOut', 'resetZoom', 'fitToScreen', 'expandAll',
             'collapseAll', 'toggleCollapse', 'toggleDensity', 'resetFilters',
             'toggleVacancies',
+            // Reports whether the viewer may see the critical tag; writes nothing.
+            'canSeeCritical',
         ],
         'position.directory' => ['resetFilters'],
         // Reset the dependent center selection and pass the city through

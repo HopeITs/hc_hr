@@ -21,6 +21,7 @@ class Position extends Model
         'max_emp' => 'integer',
         'exist_emp' => 'integer',
         'is_active' => 'boolean',
+        'is_critical' => 'boolean',
     ];
 
     // --------------------------------------------

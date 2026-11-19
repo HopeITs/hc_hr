@@ -8,6 +8,7 @@ use App\Console\Commands\DeactivateDepartedEmployees;
 use App\Console\Commands\DispatchDueNotifications;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\NotifyBirthdayConflicts;
+use App\Console\Commands\NotifyCriticalPositions;
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
@@ -36,6 +37,8 @@ Artisan::command('inspire', function () {
 
 // Trials entering their last third get a review before tonight's contract sweeps (21:25, 21:30, 21:35).
 Schedule::command(StartProbationReviews::class)->dailyAt('21:20');
+// Critical positions with no holder: HR of the city and the direct manager (once per episode).
+Schedule::command(NotifyCriticalPositions::class)->dailyAt('07:40')->withoutOverlapping();
 // Before deactivation and auto-renewal, so a renewal inherits the amended terms.
 Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
 // Weekly: an amendment deleted outside the app leaves the history broken; this logs it.
