@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\LeaveRequestStatus;
+use App\Models\Contract;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\Position;
+use App\Support\Leave\LeaveWindow;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,6 +31,13 @@ use Illuminate\Database\Eloquent\Collection;
  *       manager positions.
  * - 5   the same department.
  * - 6+  the same department within the same program.
+ *
+ * Given the period asked for (a LeaveWindow), only the colleagues available
+ * for all of it are kept: nobody with an accepted or pending leave that
+ * overlaps it, and nobody off on a working day of the requester's because of
+ * a holiday of their own (their approved birthday holiday, or a project
+ * holiday that does not reach the requester). Without a period the list is
+ * the rule alone, as before.
  */
 class LeaveAlternativeEmployees
 {
@@ -36,12 +47,21 @@ class LeaveAlternativeEmployees
 
     private const PROJECT_STAFF_GRADES = [3, 4, 6, 7];
 
-    public function for(Employee $employee): Collection
+    public function __construct(private readonly LeaveRequestPricing $pricing) {}
+
+    public function for(Employee $employee, ?LeaveWindow $period = null): Collection
     {
-        return $this->query($employee)->orderBy(transColumn('first_name'))->get();
+        $period = $this->usable($period);
+        $candidates = $this->query($employee, $period)->orderBy(transColumn('first_name'))->get();
+
+        return $period ? $this->withoutHolidaysIn($candidates, $employee, $period) : $candidates;
     }
 
-    public function query(Employee $employee): Builder
+    /**
+     * The rule, and with a period the leave overlap, as a query. Holidays are
+     * calendar work done in PHP: for() is the complete list.
+     */
+    public function query(Employee $employee, ?LeaveWindow $period = null): Builder
     {
         $position = $employee->latestActiveContract()?->position;
 
@@ -50,10 +70,84 @@ class LeaveAlternativeEmployees
         }
 
         $position->loadMissing('jobLevel');
+        $period = $this->usable($period);
 
         return Employee::query()
             ->whereKeyNot($employee->getKey())
-            ->where(fn (Builder $candidates) => $this->applyRule($candidates, $position, $employee->city_id));
+            ->where(fn (Builder $candidates) => $this->applyRule($candidates, $position, $employee->city_id))
+            ->when($period, fn (Builder $candidates) => $candidates->whereDoesntHave(
+                'allContracts.leaveBalances.leaveRequests',
+                fn (Builder $leave) => $this->overlapping($leave, $period),
+            ));
+    }
+
+    /**
+     * Accepted or pending leave overlapping $period. A day leave covers its
+     * dates whole (end date inclusive); an hourly one its own hours, so two
+     * hourly windows on the same day clash only when their hours do.
+     */
+    private function overlapping(Builder $leave, LeaveWindow $period): Builder
+    {
+        [$from, $until] = $period->isHourly()
+            ? [$period->startsAt(), $period->endsAt()]
+            : [$period->startDate->startOfDay(), $period->endDate->addDay()->startOfDay()];
+
+        return $leave
+            ->whereIn('status', [LeaveRequestStatus::Accepted, LeaveRequestStatus::Pending])
+            ->where('start_at', '<', $until->toDateTimeString())
+            ->where(fn (Builder $ends) => $ends
+                ->where(fn (Builder $hourly) => $hourly
+                    ->where('type', 'hour')
+                    ->where('end_at', '>', $from->toDateTimeString()))
+                ->orWhere(fn (Builder $daily) => $daily
+                    ->where('type', '!=', 'hour')
+                    ->where('end_at', '>=', $from->startOfDay()->toDateTimeString())));
+    }
+
+    /**
+     * Drops the candidates off on a working day of the requester's in
+     * $period because of a holiday the requester does not have. A holiday
+     * everyone shares (a national one) is no reason: the requester is off then too.
+     */
+    private function withoutHolidaysIn(Collection $candidates, Employee $requester, LeaveWindow $period): Collection
+    {
+        $from = $period->startDate->startOfDay();
+        $to = $period->endDate->startOfDay();
+        $requesterContract = $requester->latestActiveContract();
+
+        if ($candidates->isEmpty() || ! $requesterContract || ! Holiday::query()->occurringBetween($from, $to)->exists()) {
+            return $candidates;
+        }
+
+        $requesterContract->loadMissing(['position.center', 'employee']);
+        $weekend = $this->pricing->weekendFor($requesterContract)[0];
+        $requesterOff = $this->pricing->officialHolidayDates($requesterContract, $from, $to);
+        $workingDays = [];
+
+        for ($day = $from; $day->lte($to); $day = $day->addDay()) {
+            if (! in_array($day->dayOfWeek, $weekend, true) && ! isset($requesterOff[$day->toDateString()])) {
+                $workingDays[$day->toDateString()] = true;
+            }
+        }
+
+        if ($workingDays === []) {
+            return $candidates;
+        }
+
+        $candidates->load(['contracts.position.center']);
+
+        return $candidates->reject(function (Employee $candidate) use ($from, $to, $workingDays): bool {
+            $contract = $candidate->latestActiveContract();
+
+            return $contract instanceof Contract
+                && array_intersect_key($this->pricing->holidayDates($contract->setRelation('employee', $candidate), $from, $to), $workingDays) !== [];
+        })->values();
+    }
+
+    /** A period that can filter: an inverted, half-typed window filters nothing. */
+    private function usable(?LeaveWindow $period): ?LeaveWindow
+    {
+        return $period && ! $period->isInverted() ? $period : null;
     }
 
     private function applyRule(Builder $candidates, Position $position, int $cityId): void

@@ -1062,6 +1062,9 @@ return [
             'closeDecision', 'closeDetails', 'refreshCounts', 'setActiveTab',
             'resetStatusFilter', // B3: sets the tab to "all"; a view filter only
             'updatedFormEmployeeId',
+            // Meeting 19/11: a date change re-reads the alternatives for the form's
+            // own employee (targetEmployee keeps HR to its cities) and may clear the choice; no writes.
+            'updatedForm',
             // Closing the details dialog only runs closeDetails(); leaveTypeCards
             // prices the balances already loaded for the authorized form; no writes.
             'updatedShowModal', 'leaveTypeCards',

@@ -234,7 +234,8 @@
                                 :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                             <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                         </div>
-                        <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
+                        {{-- The select2 keeps its options under wire:ignore: the period in the key rebuilds it when the list follows new dates. --}}
+                        <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}-{{ md5(json_encode([$form->type, $form->start_at, $form->end_at, $form->leave_date, $form->start_hour, $form->end_hour])) }}">
                             <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
                             <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
                                 <option
@@ -245,6 +246,7 @@
                                     <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}</option>
                                 @endforeach
                             </x-forms.select2-input>
+                            <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
                             <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
                         </div>
                     </div>
