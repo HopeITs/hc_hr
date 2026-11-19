@@ -19,6 +19,7 @@ use App\Notifications\NewCenterCreated;
 use App\Notifications\NewEmployeeWelcome;
 use App\Notifications\NewLeaveRequest;
 use App\Notifications\ProfileChangeDecided;
+use App\Notifications\ProfileUpdatedByEmployee;
 use App\Notifications\TestNotification;
 use Illuminate\Notifications\Notification;
 
@@ -53,6 +54,7 @@ enum NotificationCategory: string
         NewEmployeeWelcome::class => self::Employees,
         AttendanceMonthReminder::class => self::Employees,
         ProfileChangeDecided::class => self::Employees,
+        ProfileUpdatedByEmployee::class => self::Employees,
         ChecklistAssigned::class => self::Checklists,
         FolderShared::class => self::Files,
         NewCenterCreated::class => self::Organization,

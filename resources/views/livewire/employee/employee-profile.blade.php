@@ -30,8 +30,8 @@
             <div
                 class="relative flex flex-col items-start gap-3 p-4 pt-4 sm:gap-6 sm:p-8 min-[900px]:flex-row min-[900px]:items-center">
                 <div class="shrink-0 self-start">
-                    @if ($canPropose)
-                        <div class="mb-2">@include('livewire.employee.partials.proposal-slot', ['section' => 'photo'])</div>
+                    @if ($canAdd)
+                        <div class="mb-2">@include('livewire.employee.partials.entry-slot', ['section' => 'photo'])</div>
                     @endif
                     <div class="relative inline-block">
                         <img src="{{ $employee->avatar_url }}" alt="{{ $employee->name }}"
@@ -244,7 +244,7 @@
                     <div class="grid gap-4 lg:grid-cols-2">
                         <x-profile-section data-section="education" :title="__('general.education')" icon="icons.education">
                         <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('education', $employee->id)" :compact="true" :key="'atd-education-'.$employee->id" /></x-slot:action>
-                        @include('livewire.employee.partials.proposal-slot', ['section' => 'education'])
+                        @include('livewire.employee.partials.entry-slot', ['section' => 'education'])
                             <div class="space-y-4">
                                 @forelse($employee->educations as $education)
                                     <div class="border-s-2 border-line ps-4">
@@ -267,7 +267,7 @@
 
                         <x-profile-section data-section="experience" :title="__('general.experience')" icon="icons.experience">
                         <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('experience', $employee->id)" :compact="true" :key="'atd-experience-'.$employee->id" /></x-slot:action>
-                        @include('livewire.employee.partials.proposal-slot', ['section' => 'experience'])
+                        @include('livewire.employee.partials.entry-slot', ['section' => 'experience'])
                             <div class="space-y-4">
                                 @forelse($employee->experiences as $experience)
                                     <div class="border-s-2 border-line ps-4">
@@ -289,7 +289,18 @@
 
                 @if ($canViewPrivate)
                     <x-profile-section data-tour="profile.private" :title="__('general.personal-information')" :subtitle="__('general.private-information')" icon="icons.contact" private>
-                        <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('personal', $employee->id)" :compact="true" :key="'atd-personal-'.$employee->id" /></x-slot:action>
+                        <x-slot:action>
+                        <div class="flex items-center gap-2">
+                            <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('personal', $employee->id)" :compact="true" :key="'atd-personal-'.$employee->id" />
+                            {{-- Marital status and children only; identity stays with HR on the edit page. --}}
+                            @if (in_array('family-status', $editable, true))
+                            <x-button variant="outline" size="sm" wire:click="openSection('family-status')" data-testid="edit-family-status">
+                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                <span class="sr-only">{{ __('employees.profile.family-status') }}</span>
+                            </x-button>
+                            @endif
+                        </div>
+                        </x-slot:action>
                         <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             @foreach ([[__('general.national-id'), $employee->national_number ?? $notSpecified], [__('general.birthday'), $formatDate($employee->actual_dob)], [__('general.birth-place'), $employee->{'pob_' . app()->getLocale()} ?? $notSpecified], [__('general.nationality'), $employee->nationality !== null ? \App\Enums\Nationality::getLocalizedName((int) $employee->nationality) : $notSpecified], [__('general.marital-status'), $employee->marital_status !== null ? \App\Enums\MaritalStatus::getLocalizedName((int) $employee->marital_status)['value'] : $notSpecified], [__('general.children'), $employee->children ?? 0], [__('general.civil-registry-office'), $employee->civil_registry_office ?? $notSpecified], [__('general.civil-registry-number'), $employee->civil_registry_number ?? $notSpecified], [__('general.address'), $employee->address ?? $notSpecified]] as [$label, $value])
                                 <div class="rounded-surface bg-soft p-4">
@@ -407,7 +418,7 @@
                 @if ($canViewRecords)
                     <x-profile-section data-section="courses" :title="__('general.courses')" icon="icons.courses">
                         <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('courses', $employee->id)" :compact="true" :key="'atd-courses-'.$employee->id" /></x-slot:action>
-                        @include('livewire.employee.partials.proposal-slot', ['section' => 'course'])
+                        @include('livewire.employee.partials.entry-slot', ['section' => 'course'])
                         <div class="space-y-4">
                             @forelse($employee->courses->take(5) as $course)
                                 <div class="border-s-2 border-line ps-3">
@@ -445,10 +456,10 @@
                     </x-profile-section>
                 @endif
 
-                @if ($canViewPrivate && ($employee->relatives->isNotEmpty() || $canPropose))
+                @if ($canViewPrivate && ($employee->relatives->isNotEmpty() || $canAdd))
                     <x-profile-section data-section="family" :title="__('general.family-information')" icon="icons.relatives" private>
                         <x-slot:action><livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('family', $employee->id)" :compact="true" :key="'atd-family-'.$employee->id" /></x-slot:action>
-                        @include('livewire.employee.partials.proposal-slot', ['section' => 'relative'])
+                        @include('livewire.employee.partials.entry-slot', ['section' => 'relative'])
                         <div class="space-y-3">
                             @foreach ($employee->relatives as $relative)
                                 <div class="rounded-surface bg-soft p-3">
@@ -470,7 +481,7 @@
     {{-- D1 section editing (profile-contract.md section 5): one section, its own fields only.
          Closing with changes asks first (A5-M); a stale save keeps the entries. --}}
     @php
-        $sectionTitles = ['personal-contact' => __('general.personal-contact'), 'skills' => __('general.skills-and-interests'), 'work-contact' => __('general.work-contact')];
+        $sectionTitles = ['personal-contact' => __('general.personal-contact'), 'skills' => __('general.skills-and-interests'), 'work-contact' => __('general.work-contact'), 'family-status' => __('employees.profile.family-status')];
         $sectionTitle = isset($sectionTitles[$editing]) ? __('employees.profile.edit-section', ['section' => $sectionTitles[$editing]]) : '';
     @endphp
     <x-modal.dialog id="sectionModal" :title="$sectionTitle" wire:model.defer="sectionModal" close-action="requestClose" wire:ignore.self>
@@ -494,15 +505,26 @@
                         'work_phone' => [__('general.work-phone'), 'tel'],
                         'whatsapp_work' => ['WhatsApp', 'text'],
                         'telegram_work' => ['Telegram', 'text'],
+                        'marital_status' => [__('general.marital-status'), 'select'],
+                        'children' => [trim(__('general.children')), 'number'],
                     ];
                 @endphp
                 <div class="grid gap-4 sm:grid-cols-2">
                     {{-- The section's own columns, never whatever keys the browser sent. --}}
                     @foreach (\App\Livewire\Employee\EmployeeProfile::SECTIONS[$editing] ?? [] as $field)
                         <div @class(['sm:col-span-2' => in_array($field, ['skills', 'interests', 'address_ar', 'address_en'], true)])>
-                            <x-forms.input-label for="section_{{ $field }}">{{ $fieldLabels[$field][0] }}</x-forms.input-label>
-                            <x-forms.input id="section_{{ $field }}" type="{{ $fieldLabels[$field][1] }}" wire:model="sectionFields.{{ $field }}"
-                                :dir="in_array($field, ['personal_phone', 'personal_email', 'work_phone', 'whatsapp_work', 'telegram_work'], true) ? 'ltr' : null" />
+                            <x-forms.input-label for="section_{{ $field }}" :required="$field === 'marital_status'">{{ $fieldLabels[$field][0] }}</x-forms.input-label>
+                            @if ($fieldLabels[$field][1] === 'select')
+                                <select id="section_{{ $field }}" wire:model="sectionFields.{{ $field }}" class="w-full min-h-11 rounded-control border border-line bg-card px-3 text-body">
+                                    @foreach (\App\Enums\MaritalStatus::getValues() as $value)
+                                        <option value="{{ $value }}">{{ \App\Enums\MaritalStatus::getLocalizedName((int) $value)['value'] }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <x-forms.input id="section_{{ $field }}" type="{{ $fieldLabels[$field][1] }}" wire:model="sectionFields.{{ $field }}"
+                                    :min="$field === 'children' ? 0 : null"
+                                    :dir="in_array($field, ['personal_phone', 'personal_email', 'work_phone', 'whatsapp_work', 'telegram_work'], true) ? 'ltr' : null" />
+                            @endif
                             <x-forms.input-error field="sectionFields.{{ $field }}" input-id="section_{{ $field }}" />
                             @if (in_array($field, ['skills', 'interests'], true))
                                 <p class="mt-1 text-caption text-ink-2">@lang('employees.profile.comma-hint')</p>
@@ -519,5 +541,5 @@
         @endif
     </x-modal.dialog>
 
-    @include('livewire.employee.partials.proposal-dialog')
+    @include('livewire.employee.partials.entry-dialog')
 </div>
