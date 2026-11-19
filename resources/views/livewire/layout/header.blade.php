@@ -53,6 +53,10 @@
                 <x-help.button/>
                 <x-tour.button/>
 
+                @if (config('chat.enabled'))
+                    <livewire:chat.header-button />
+                @endif
+
                 <x-layouts.app.notification />
             </div>
 

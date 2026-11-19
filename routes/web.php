@@ -115,6 +115,11 @@ Route::group(
             // ask, and the Assistant service only reads the asker's own record. The
             // page 404s while the assistant is switched off or has no key.
             Route::get('assistant', App\Livewire\Assistant\Chat::class)->name('assistant');
+            // The full chat page, opened only from a chat tab's maximise button.
+            // No permission of its own: every signed-in employee may chat, and
+            // ChatConversationPolicy (membership only) guards each conversation.
+            // 404 while CHAT_ENABLED is off.
+            Route::get('chat', App\Livewire\Chat\Page::class)->name('chat');
 
             // Basic project routes
             require __DIR__.'/basic-project.php';

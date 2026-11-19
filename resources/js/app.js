@@ -249,3 +249,6 @@ $(document).on('select2:open', function () {
  */
 
 import './echo';
+
+// The chat dock (realtime relay, tab memory, fallback polling).
+import './chat';

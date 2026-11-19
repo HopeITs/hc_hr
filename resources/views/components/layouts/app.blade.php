@@ -142,6 +142,16 @@
     @endpersist
 @endauth
 
+{{-- The chat dock (tabs along the bottom edge). Persisted, so open tabs stay as
+     they are across wire:navigate. Off until CHAT_ENABLED. --}}
+@auth
+    @if (config('chat.enabled'))
+        @persist('chat-dock')
+            <livewire:chat.dock />
+        @endpersist
+    @endif
+@endauth
+
 {{-- Outcome toasts (session('status') included) and delete confirmations, for every page. --}}
 <x-toasts/>
 <x-confirm-dialog/>

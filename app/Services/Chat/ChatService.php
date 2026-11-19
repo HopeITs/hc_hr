@@ -2,6 +2,7 @@
 
 namespace App\Services\Chat;
 
+use App\Events\ChatConversationUpdated;
 use App\Models\ChatAttachment;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
@@ -24,6 +25,7 @@ class ChatService
     public function __construct(
         private readonly ChatSearchIndex $index,
         private readonly ChatFileVault $vault,
+        private readonly ChatNotifier $notifier,
     ) {}
 
     /** The private chat between two people, created the first time. */
@@ -104,6 +106,7 @@ class ChatService
                 $this->index->index($message, array_column($stored, 'original_name'));
                 $this->touch($conversation, $message);
                 $this->markRead($sender, $conversation, $message->id);
+                $this->notifier->changed($conversation, $message->id, ChatConversationUpdated::KIND_MESSAGE, $sender->id);
 
                 return $message->load('attachments');
             });
@@ -134,6 +137,7 @@ class ChatService
 
         $message->forceFill(['body' => $body, 'edited_at' => now()])->save();
         $this->index->index($message, $message->attachments->map(fn ($a) => (string) $a->original_name)->all());
+        $this->notifier->changed($conversation, $message->id, ChatConversationUpdated::KIND_EDITED, $user->id);
 
         return $message;
     }
@@ -171,10 +175,14 @@ class ChatService
             ->filter()
             ->all();
 
+        $messageId = $message->id;
+
         DB::transaction(function () use ($message, $conversation) {
             $message->delete(); // tokens, attachments rows and "hidden" rows cascade
             $this->refreshLastMessage($conversation);
         });
+
+        $this->notifier->changed($conversation, $messageId, ChatConversationUpdated::KIND_DELETED, $user->id);
 
         foreach ($paths as $path) {
             $this->vault->delete($path);
@@ -262,6 +270,7 @@ class ChatService
                         $this->index->index($copy, $names);
                         $this->touch($target, $copy);
                         $this->markRead($user, $target, $copy->id);
+                        $this->notifier->changed($target, $copy->id, ChatConversationUpdated::KIND_MESSAGE, $user->id);
                         $created->push($copy);
                     }
                 }
