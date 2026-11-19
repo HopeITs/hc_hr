@@ -18,6 +18,7 @@ use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
 use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
+use App\Console\Commands\StartProbationReviews;
 use App\Console\Commands\SweepRecruitmentRetention;
 use App\Console\Commands\SyncPolicies;
 use App\Console\Commands\SyncRecruitmentCampaignStates;
@@ -32,6 +33,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Trials entering their last third get a review before tonight's contract sweeps (21:25, 21:30, 21:35).
+Schedule::command(StartProbationReviews::class)->dailyAt('21:20');
 // Before deactivation and auto-renewal, so a renewal inherits the amended terms.
 Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
 // Weekly: an amendment deleted outside the app leaves the history broken; this logs it.

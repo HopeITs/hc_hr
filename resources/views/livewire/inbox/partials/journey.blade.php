@@ -39,7 +39,7 @@
 
     <div>
         <x-button variant="outline" size="sm" :href="$row['url']" data-testid="inbox-journey-open">
-            {{ __('journey_inbox.open') }}
+            {{ $row['open_label'] ?? __('journey_inbox.open') }}
         </x-button>
     </div>
 </div>

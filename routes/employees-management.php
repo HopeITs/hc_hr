@@ -11,6 +11,7 @@ use App\Livewire\Employee\EmployeeCreate;
 use App\Livewire\Employee\EmployeeEdit;
 use App\Livewire\Employee\EmployeeModule;
 use App\Livewire\Employee\EmployeeProfile;
+use App\Livewire\Probation\Review as ProbationReviewPage;
 use App\Livewire\ProgramManagement\DefaultDeliverable\DefaultDeliverablesModule;
 
 Route::prefix('employees')
@@ -22,6 +23,8 @@ Route::prefix('employees')
 
     });
 Route::get('employees/{employee:username}/show', EmployeeProfile::class)->name('employees.show');
+// Last-third review of a trial: the policy (direct manager, city HR) is the gate, not a permission.
+Route::get('probation/{review}', ProbationReviewPage::class)->name('probation.show');
 Route::get('/default-deliverables', DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
 
 Route::prefix('contracts')

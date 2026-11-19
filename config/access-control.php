@@ -783,6 +783,8 @@ return [
     */
 
     'livewire_exempt' => [
+        // The probation review is gated by ProbationReviewPolicy (the direct manager, city HR when nobody runs the position), on mount, on send() and again in ProbationReviews::request(); there is no permission to name.
+        'probation.review' => ['send'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
         'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).

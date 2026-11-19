@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Checklist;
 use App\Models\LeaveRequest;
+use App\Models\ProbationReview;
 use App\Models\ProfileChangeRequest;
 use App\Models\User;
 use App\Services\Inbox\JourneyInbox;
@@ -91,6 +92,10 @@ final class WorkInbox
         [$finalize, $finalizeTotal] = $this->checklistFinalizations($user);
         [$profile, $profileTotal] = $this->profileChanges($user);
         [$journey, $journeyTotal] = app(JourneyInbox::class)->collect($user, self::PER_SOURCE);
+        // A trial's last-third review waits on the direct manager, not on HR: listed with the journeys.
+        [$probation, $probationTotal] = $this->probationRequests($user);
+        $journey = $journey->merge($probation);
+        $journeyTotal += $probationTotal;
 
         return [
             'rows' => collect()
@@ -318,6 +323,57 @@ final class WorkInbox
             ->whereHas('employee')
             ->with(['employee.city', 'item'])
             ->orderBy('created_at');
+    }
+
+    /**
+     * Trial reviews the user must answer as the direct manager of the trial's
+     * position (ProbationReviews::pendingFor; HR standing in is notified, not
+     * listed). The row opens the review page, which re-authorizes.
+     *
+     * @return array{0: Collection<int, array<string, mixed>>, 1: int}
+     */
+    private function probationRequests(User $user): array
+    {
+        if ($user->employee_id === null) {
+            return [collect(), 0];
+        }
+
+        $query = app(ProbationReviews::class)->pendingFor($user);
+
+        $rows = (clone $query)
+            ->with(['employee.city', 'contract'])
+            ->orderBy('started_at')
+            ->limit(self::PER_SOURCE)
+            ->get()
+            ->filter(fn (ProbationReview $review) => $review->employee !== null
+                && Gate::forUser($user)->allows('decide', $review))
+            ->map(fn (ProbationReview $review) => [
+                'key' => "probation:{$review->id}:journey",
+                'source' => 'probation',
+                'action' => 'journey',
+                'id' => $review->id,
+                'subject' => $review->employee,
+                'former' => false,
+                'label' => __('journey_inbox.probation.title'),
+                'item' => __('journey_inbox.probation.step.request'),
+                'steps' => [[
+                    'key' => 'request',
+                    'state' => 'manager',
+                    'label' => __('journey_inbox.probation.step.request'),
+                ]],
+                'due' => $review->contract?->end_date,
+                'late' => false,
+                'url' => route('probation.show', $review),
+                'open_label' => __('journey_inbox.probation.open'),
+                'city' => $review->employee->city?->name,
+                'waiting_since' => $review->started_at,
+                'urgent' => false,
+                'version' => null,
+                'bulk' => false,
+            ])
+            ->values();
+
+        return [$rows, $query->count()];
     }
 
     /** @return array<string, mixed> */
