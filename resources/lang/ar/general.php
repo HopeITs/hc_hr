@@ -726,6 +726,7 @@ return [
     'zoom-in' => 'تكبير',
     'zoom-out' => 'تصغير',
     'fit-to-screen' => 'ملاءمة للشاشة',
+    'org-view-options' => 'خيارات العرض',
     'reset-view' => 'إعادة ضبط العرض',
     'drag-to-pan' => 'اسحب مساحة المخطط للتنقل',
     'updating-chart' => 'جارٍ تحديث الهيكلية...',

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Basics;
 
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\TerminationReason;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,7 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class TerminationReasonTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = TerminationReason::class;
@@ -28,6 +30,8 @@ class TerminationReasonTable extends LivewireTable
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         TerminationReason::findOrFail($payload['id'])->delete();
 
         $this->toast();

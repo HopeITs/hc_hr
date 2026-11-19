@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\DepartmentExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Department;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DepartmentTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = Department::class;
@@ -32,6 +34,8 @@ class DepartmentTable extends LivewireTable
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         Department::findOrFail($payload['id'])->delete();
 
         $this->toast();
@@ -41,6 +45,8 @@ class DepartmentTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

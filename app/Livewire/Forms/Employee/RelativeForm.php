@@ -60,8 +60,11 @@ class RelativeForm extends Form
 
         unset($this->relatives[$index]);
 
+        // Within this employee's own relatives: the id comes from the browser, and an
+        // unscoped find() let anyone who may edit one employee delete any relative in
+        // the system, in any city (HR-014).
         if (isset($id)) {
-            Relative::find($id)?->delete();
+            $this->employee?->relatives()->find($id)?->delete();
         }
 
         $this->relatives = array_values($this->relatives);

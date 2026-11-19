@@ -1,0 +1,17 @@
+Empty Save on /en/employees/create (HR-LAT, 390px)
+Focused after the failed save: INPUT#first_name_ar (First Name (AR) * (required))
+
+Messages:
+- The National Number field is required.
+- The username is required. You will find it in the "Employment Info" section.
+- The First Name (AR) field is required.
+- The First Name (EN) field is required.
+- The Last Name (AR) field is required.
+- The Last Name (EN) field is required.
+- The Father Name (AR) field is required.
+- The Father Name (EN) field is required.
+- The Mother Name (AR) field is required.
+- The Mother Name (EN) field is required.
+- The Gender field is required.
+- The Marital Status field is required.
+- The Current Place of Residence field is required.

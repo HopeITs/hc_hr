@@ -7,6 +7,7 @@ use App\Enums\ContractStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\SalaryPer;
 use App\Exports\ContractExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\HasListStates;
 use App\Livewire\Concerns\HasSavedViews;
 use App\Livewire\Concerns\RemembersTableState;
@@ -35,6 +36,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractsTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use HasListStates;
     use HasSavedViews;
 
@@ -127,6 +129,8 @@ class ContractsTable extends LivewireTable
      */
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('contracts.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

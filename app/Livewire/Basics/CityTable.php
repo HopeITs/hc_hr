@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\CityExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\City;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CityTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = City::class;
@@ -33,6 +35,8 @@ class CityTable extends LivewireTable
 
     public function toggleItemStatusConfirmed($payload): void
     {
+        $this->authorizeActivePermission('project-basics.update');
+
         $item = City::findOrFail($payload['id']);
         $item->is_active = ! $item->is_active;
         $item->save();
@@ -44,6 +48,8 @@ class CityTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

@@ -1,0 +1,13 @@
+F.                                                                  2 / 2 (100%)
+Time: 00:03.371, Memory: 80.00 MB
+There was 1 failure:
+1) Tests\Feature\EventListenerPermissionTest::test_a_viewer_cannot_delete_or_export_through_an_event
+Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+C:\laragon\www\hc-hr\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:46
+C:\laragon\www\hc-hr\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:183
+C:\laragon\www\hc-hr\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:141
+C:\laragon\www\hc-hr\vendor\livewire\livewire\src\Features\SupportTesting\Testable.php:421
+C:\laragon\www\hc-hr\tests\Feature\EventListenerPermissionTest.php:39
+FAILURES!
+Tests: 2, Assertions: 2, Failures: 1.

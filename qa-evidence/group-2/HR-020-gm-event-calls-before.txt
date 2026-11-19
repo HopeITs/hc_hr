@@ -1,0 +1,4 @@
+General manager (project-basics.view only) on Basic Settings > Course categories
+Livewire.dispatchTo('basics.course-category-table','exportExcel')  -> HTTP 200
+Livewire.dispatchTo('basics.course-category-table','delete',{payload:{id:320}}) -> HTTP 200
+Database after the call: course category 320 no longer exists (deleted by a role without project-basics.delete).

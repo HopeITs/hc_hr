@@ -4,6 +4,7 @@ namespace App\Livewire\Basics;
 
 use App\Enums\LeaveType as LeaveTypeEnum;
 use App\Exports\LeaveTypeExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\LeaveType;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LeaveTypeTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = LeaveType::class;
@@ -34,6 +36,8 @@ class LeaveTypeTable extends LivewireTable
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         LeaveType::findOrFail($payload['id'])->delete();
 
         $this->toast();
@@ -43,6 +47,8 @@ class LeaveTypeTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'first_name' => 'First name',
+    'first_name' => 'First Name',
     'last_name' => 'Last Name',
     'new_folder' => 'New Folder',
     'upload_files' => 'Upload Files',
@@ -726,6 +726,7 @@ return [
     'zoom-in' => 'Zoom in',
     'zoom-out' => 'Zoom out',
     'fit-to-screen' => 'Fit to screen',
+    'org-view-options' => 'View options',
     'reset-view' => 'Reset view',
     'drag-to-pan' => 'Drag the canvas to move around',
     'updating-chart' => 'Updating organization chart...',

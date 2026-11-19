@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\CourseCategoryExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\CourseCategory;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CourseCategoryTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = CourseCategory::class;
@@ -32,6 +34,8 @@ class CourseCategoryTable extends LivewireTable
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         $cat = CourseCategory::withCount('courses')
             ->findOrFail($payload['id']);
 
@@ -50,6 +54,8 @@ class CourseCategoryTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
         $userSelectedColumns = $this->columns;
