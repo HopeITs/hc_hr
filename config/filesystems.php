@@ -28,6 +28,16 @@ return [
             'report' => true,
         ],
 
+        // Chat attachments: encrypted at rest (App\Services\Chat\ChatFileVault)
+        // and only ever streamed back to members of the conversation.
+        'chat-files' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/chat-files'),
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
