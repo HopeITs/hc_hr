@@ -143,10 +143,15 @@ class BirthdayHoliday
             $fail('working-day');
         }
 
-        return BirthdayHolidayChoice::query()->updateOrCreate(
+        $choice = BirthdayHolidayChoice::query()->updateOrCreate(
             ['holiday_id' => $holiday->id, 'employee_id' => $contract->employee_id, 'year' => $year],
             ['chosen_date' => $day->toDateString(), 'status' => BirthdayHolidayChoice::PENDING, 'decided_by' => null, 'decided_at' => null],
         );
+
+        // The direct manager decides; city HR is told for information.
+        app(BirthdayHolidayNotifier::class)->submitted($choice);
+
+        return $choice;
     }
 
     /** H-4: only the direct manager decides — whoever holds the position the volunteer's position reports to. */
@@ -171,6 +176,8 @@ class BirthdayHoliday
             'decided_by' => $user->id,
             'decided_at' => now(),
         ])->save();
+
+        app(BirthdayHolidayNotifier::class)->decided($choice);
     }
 
     /**

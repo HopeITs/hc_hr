@@ -45,6 +45,7 @@ return [
     ],
 
     'on_leave' => 'On leave',
+    'birthday_holiday' => 'Birthday holiday',
     'partial' => 'Part of the day',
     'you' => 'You',
     'substitute' => 'Substitute: :name',

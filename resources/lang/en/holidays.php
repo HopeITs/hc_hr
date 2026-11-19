@@ -55,5 +55,16 @@ return [
         'already-decided' => 'Your manager has already decided on this request.',
         'same-week' => 'Pick a day in the same week as your birthday.',
         'working-day' => 'Pick a working day (not a weekend or holiday).',
+        'notify' => [
+            'needed-title' => 'Pick your birthday holiday',
+            'needed-body' => 'Your birthday (:date) falls on a weekend or holiday. Pick another working day in the same week on the leaves page.',
+            'submitted-title' => 'Birthday day request',
+            'submitted-body' => ':name asks for :date instead of their birthday. Please approve or decline.',
+            'submitted-hr-body' => ':name asks for :date instead of their birthday. For your information: the direct manager decides.',
+            'approved-title' => 'Birthday holiday approved',
+            'approved-body' => 'Your manager approved :date as your birthday holiday.',
+            'rejected-title' => 'Birthday holiday declined',
+            'rejected-body' => 'Your manager did not approve :date as your birthday holiday.',
+        ],
     ],
 ];
