@@ -45,6 +45,7 @@ return [
     ],
 
     'on_leave' => 'في إجازة',
+    'birthday_holiday' => 'عطلة عيد ميلاد',
     'partial' => 'جزء من اليوم',
     'you' => 'أنت',
     'substitute' => 'البديل: :name',
