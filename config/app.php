@@ -9,6 +9,13 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    /*
+    | Proxies whose X-Forwarded-* headers are believed (comma-separated IPs,
+    | or "*" for any). Needed behind a TLS-terminating proxy such as a preview
+    | tunnel, or the app builds http:// URLs the browser blocks. Unset: none.
+    */
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
     'timezone' => 'Europe/Istanbul',
 
     // The shared mailbox that reaches the whole team ("Email the team" links).
