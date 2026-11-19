@@ -21,6 +21,9 @@
         />
            @activerole('HR' , 'super-admin' ,'general-manager')
         <div class="flex items-center gap-2">
+            @if (auth()->user()?->hasActivePermission('positions.view-replacements'))
+                <x-button variant="outline" :href="route('positions.critical')">@lang('critical-positions.title')</x-button>
+            @endif
             <x-excel-export-button wire:click="$dispatchTo('position.position-table', 'exportExcel')" />
 
             <x-button :href="route('positions.create')">

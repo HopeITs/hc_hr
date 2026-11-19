@@ -12,6 +12,7 @@ use App\Notifications\CenterClosed;
 use App\Notifications\ChecklistAssigned;
 use App\Notifications\ContractsAutoRenewedSummary;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
+use App\Notifications\CriticalPositionNeedsReplacement;
 use App\Notifications\DigitalIdReportedLost;
 use App\Notifications\FolderShared;
 use App\Notifications\HRSawLeaveRequest;
@@ -69,6 +70,7 @@ enum NotificationCategory: string
         FolderShared::class => self::Files,
         NewCenterCreated::class => self::Organization,
         CenterClosed::class => self::Organization,
+        CriticalPositionNeedsReplacement::class => self::Organization,
         DigitalIdReportedLost::class => self::Security,
         TestNotification::class => self::System,
     ];

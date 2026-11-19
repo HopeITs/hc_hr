@@ -119,6 +119,8 @@ class AppServiceProvider extends ServiceProvider
         // The seam for the organization's retention decision: bind another
         // RetentionPolicy here once the periods are confirmed.
         $this->app->bind(RetentionPolicy::class, ConfiguredRetentionPolicy::class);
+        // Critical positions: the AI re-ranking layer is a no-op unless a real one is bound.
+        $this->app->bind(\App\Contracts\CandidateAiRanker::class, \App\Services\CriticalPositions\NullCandidateAiRanker::class);
 
         $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
             ? new ClamdScanner
