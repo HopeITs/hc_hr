@@ -778,7 +778,9 @@ class PublicRecruitmentLinkTest extends TestCase
             ->assertSee(__('careers.internal.applying_as'))
             ->assertSee('Rami Haddad')
             ->assertSee('data-recruitment-wizard', false)
-            ->assertSee('value="Rami Haddad"', false)
+            // The names come from the record one by one (InternalRecruitmentApplicantService::prefill).
+            ->assertSee('value="Rami"', false)
+            ->assertSee('value="Haddad"', false)
             ->assertSee('value="rami.haddad@hopecenter.test"', false)
             ->assertSee('value="+963 944 000 111"', false)
             ->assertSee('readonly', false)

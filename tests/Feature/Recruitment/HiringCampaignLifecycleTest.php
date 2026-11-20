@@ -34,6 +34,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesHrFixtures;
+use Tests\Concerns\ApplicantNames;
 use Tests\TestCase;
 
 class HiringCampaignLifecycleTest extends TestCase
@@ -126,7 +127,7 @@ class HiringCampaignLifecycleTest extends TestCase
         $this->assertSame(HiringCampaignStatus::Open, $opened->status);
         app(PublicRecruitmentLinkService::class)->validateSubmissionShell($token, [
             'locale' => 'en',
-            'answers' => ['full_name' => 'Applicant One', 'email' => 'applicant@example.com'],
+            'answers' => [...ApplicantNames::answers('Applicant One'), 'email' => 'applicant@example.com'],
         ]);
         $this->assertTrue(true);
     }
@@ -150,7 +151,7 @@ class HiringCampaignLifecycleTest extends TestCase
         try {
             app(PublicRecruitmentLinkService::class)->validateSubmissionShell($token, [
                 'locale' => 'en',
-                'answers' => ['full_name' => 'Applicant One', 'email' => 'applicant@example.com'],
+                'answers' => [...ApplicantNames::answers('Applicant One'), 'email' => 'applicant@example.com'],
             ]);
             $this->fail('A closed campaign accepted a submission.');
         } catch (PublicRecruitmentSubmissionException) {
