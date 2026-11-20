@@ -29,15 +29,15 @@
             $last = collect($stops)->filter(fn ($s) => $reached($s))->last();
         @endphp
 
-        <details @class(['group rounded-surface border border-neutral-200 bg-white shadow-e1', 'opacity-95' => ! $latest])
+        <details @class(['group rounded-surface border border-neutral-200 bg-card shadow-e1', 'opacity-95' => ! $latest])
                  wire:key="round-{{ $round['version'] ?? 'draft' }}" @if ($latest) open @endif>
-            <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-surface px-5 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+            <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-surface px-5 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden">
                 <span class="flex flex-wrap items-center gap-2">
                     <span class="text-small font-semibold text-neutral-900">{{ $roundLabel }}</span>
                     @if ($latest)
-                        <span class="rounded-control bg-neutral-900 px-1.5 py-0.5 text-xs font-semibold text-white">{{ __('recruitment.track.latest') }}</span>
+                        <span class="rounded-control bg-neutral-900 px-1.5 py-0.5 text-caption font-semibold text-white">{{ __('recruitment.track.latest') }}</span>
                     @elseif ($last)
-                        <span class="inline-flex items-center gap-1.5 rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark">{{ $last['label'] }}</span>
+                        <span class="inline-flex items-center gap-1.5 rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark">{{ $last['label'] }}</span>
                     @endif
                 </span>
                 <span class="flex items-center gap-3 text-caption text-secondary-medium">
@@ -79,9 +79,9 @@
                             $isCurrent = $stop['state'] === $states::CURRENT;
                             $dot = match ($stop['state']) {
                                 $states::DONE => 'bg-neutral-900 text-white',
-                                $states::CURRENT => 'bg-white ring-[3px] ring-inset ring-primary',
-                                $states::SKIPPED => 'border-2 border-dashed border-neutral-400 bg-white',
-                                default => 'border-2 border-neutral-200 bg-white',
+                                $states::CURRENT => 'bg-card ring-[3px] ring-inset ring-primary',
+                                $states::SKIPPED => 'border-2 border-dashed border-neutral-400 bg-card',
+                                default => 'border-2 border-neutral-200 bg-card',
                             };
                         @endphp
 

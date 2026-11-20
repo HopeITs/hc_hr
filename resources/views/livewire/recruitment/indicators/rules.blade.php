@@ -35,14 +35,14 @@
     // faint = does not apply, soft = unknown. Local to this page; other pages keep Outcome::classes().
     $tones = [
         'met' => 'bg-neutral-900 text-white',
-        'partial' => 'bg-white text-neutral-900 ring-1 ring-inset ring-neutral-900',
+        'partial' => 'bg-card text-neutral-900 ring-1 ring-inset ring-neutral-900',
         'not_met' => 'bg-neutral-200 text-neutral-800',
         'not_applicable' => 'bg-neutral-50 text-secondary-medium ring-1 ring-inset ring-neutral-200',
         'unknown' => 'bg-neutral-100 text-secondary-medium',
         'info' => 'bg-neutral-100 text-secondary-dark',
     ];
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $card = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $card = 'rounded-surface border border-neutral-200 bg-card shadow-e1';
     $countedNow = count(array_filter($enabled)) - (($enabled['previous_applicant'] ?? false) ? 1 : 0);
 
     $years = range(0, 10);
@@ -87,17 +87,17 @@
                 <dt class="sr-only">{{ $t('version_short') }}</dt>
                 <dd class="inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 font-semibold {{ $customised ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-secondary-dark' }}"
                     title="{{ $customised ? $t('customised') : $t('defaults') }}">
-                    <span aria-hidden="true" class="size-1.5 rounded-full {{ $customised ? 'bg-white' : 'bg-neutral-400' }}"></span>
+                    <span aria-hidden="true" class="size-1.5 rounded-full {{ $customised ? 'bg-card' : 'bg-neutral-400' }}"></span>
                     {{ $customised ? $t('customised_short') : $t('defaults_short') }}
                 </dd>
-                <dd class="inline-flex items-center gap-2 rounded-control border border-neutral-200 bg-white px-2.5 py-1 text-secondary-dark shadow-e1">
+                <dd class="inline-flex items-center gap-2 rounded-control border border-neutral-200 bg-card px-2.5 py-1 text-secondary-dark shadow-e1">
                     <span>{{ $t('version_short') }}</span>
                     <code dir="ltr" class="font-mono text-caption font-semibold text-neutral-900">{{ $version }}</code>
                 </dd>
             </dl>
         </div>
 
-        <nav aria-label="{{ $t('title') }}" class="flex flex-wrap gap-1 rounded-control border border-neutral-200 bg-white p-1 shadow-e1 w-fit">
+        <nav aria-label="{{ $t('title') }}" class="flex flex-wrap gap-1 rounded-control border border-neutral-200 bg-card p-1 shadow-e1 w-fit">
             @foreach (['criteria-title' => $t('criteria_title'), 'experience-title' => $t('experience_title'), 'qualification-title' => $t('qualification_title'), 'tester-title' => $t('tester_title')] as $anchor => $label)
                 <a href="#{{ $anchor }}" class="inline-flex min-h-11 items-center rounded-inset px-3 text-small font-medium text-secondary-dark hover:bg-selection hover:text-neutral-900 sm:min-h-8 {{ $focus }}">{{ $label }}</a>
             @endforeach
@@ -130,9 +130,9 @@
                                 <span aria-hidden="true"
                                       class="h-6 w-11 rounded-round bg-neutral-300 transition-colors duration-200 ease-[var(--ease-fluid)]
                                              peer-checked:bg-neutral-900
-                                             peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"></span>
+                                             peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink"></span>
                                 <span aria-hidden="true"
-                                      class="absolute start-0.5 top-1/2 -translate-y-1/2 size-5 rounded-round bg-white shadow-e1 transition-transform duration-200 ease-[var(--ease-fluid)]
+                                      class="absolute start-0.5 top-1/2 -translate-y-1/2 size-5 rounded-round bg-card shadow-e1 transition-transform duration-200 ease-[var(--ease-fluid)]
                                              ltr:peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5"></span>
                             </label>
                             <div class="min-w-0">
@@ -155,7 +155,7 @@
                                         <li @class([
                                             'inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-caption font-semibold',
                                             'bg-neutral-900 text-white' => $kind === 'indicator',
-                                            'border border-neutral-900 bg-white text-neutral-900' => $kind === 'reading',
+                                            'border border-neutral-900 bg-card text-neutral-900' => $kind === 'reading',
                                             'bg-neutral-100 text-secondary-dark' => $kind === 'info',
                                         ]) title="{{ $t('source_kinds.'.$kind) }}">
                                             <flux:icon :name="$sourceIcons[$source]" variant="micro" class="size-3" aria-hidden="true" />{{ $t('sources.'.$source) }}<span class="sr-only">: {{ $t('source_kinds.'.$kind) }}</span>
@@ -183,7 +183,7 @@
         <p id="grid-keys-hint" class="sr-only">{{ $t('grid_keys') }}</p>
 
         {{-- Outcome legend, shared by both matrices --}}
-        <div class="sticky top-16 z-[5] flex flex-wrap items-center gap-2 rounded-control border border-neutral-200 bg-white/95 px-3 py-2 text-small shadow-e1 backdrop-blur" aria-hidden="true">
+        <div class="sticky top-16 z-[5] flex flex-wrap items-center gap-2 rounded-control border border-neutral-200 bg-card/95 px-3 py-2 text-small shadow-e1 backdrop-blur" aria-hidden="true">
             <span class="me-1 font-semibold text-secondary-dark">{{ $t('legend_title') }}</span>
             @foreach ($outcomes as $outcome)
                 <span @class(['inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 font-semibold', $tones[$outcome]])>
@@ -202,7 +202,7 @@
                     <h2 id="experience-title" class="scroll-mt-48 sm:scroll-mt-36 text-h4 font-semibold text-neutral-900">{{ $t('experience_title') }}</h2>
                     <p class="mt-1 text-small text-secondary-medium">{{ $t('experience_hint') }}</p>
                 </div>
-                <p x-cloak x-show="! $wire.enabled.experience" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
+                <p x-cloak x-show="! $wire.enabled.experience" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-card px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
             </div>
 
             <div class="mt-5 flex flex-wrap items-start gap-x-4 gap-y-1">
@@ -211,7 +211,7 @@
                     <input id="defaultYears" type="number" dir="ltr" inputmode="numeric" min="0" max="50" wire:model="defaultYears"
                            aria-describedby="defaultYears-hint @error('defaultYears') defaultYears-error @enderror"
                            @error('defaultYears') aria-invalid="true" @enderror
-                           class="mt-1 w-28 rounded-control border-neutral-300 text-body tabular-nums shadow-e1 focus:border-primary focus:ring-2 focus:ring-neutral-200">
+                           class="mt-1 w-28 rounded-control border-neutral-300 text-body tabular-nums shadow-e1 focus:border-ink focus:ring-2 focus:ring-neutral-200">
                 </div>
                 <div class="max-w-xl pt-1 sm:pt-7">
                     <p id="defaultYears-hint" class="text-small text-secondary-medium">{{ $t('default_experience_hint') }}</p>
@@ -233,7 +233,7 @@
                                     </th>
                                 </tr>
                                 <tr>
-                                    <td class="sticky start-0 z-[1] w-20 bg-white sm:w-48 align-bottom pb-1 text-small text-secondary-medium">{{ $t('answer') }}</td>
+                                    <td class="sticky start-0 z-[1] w-20 bg-card sm:w-48 align-bottom pb-1 text-small text-secondary-medium">{{ $t('answer') }}</td>
                                     @foreach ($years as $year)
                                         <th scope="col" class="relative h-12 min-w-9 rounded-inset text-center align-top text-body font-semibold tabular-nums text-neutral-800 transition-colors duration-150"
                                             :class="colActive({{ $year }}) ? 'bg-selection' : ''">
@@ -254,7 +254,7 @@
                                     <tr wire:key="exp-row-{{ $option }}">
                                         @php $invalid = $errors->has('ranges.'.$option); @endphp
                                         <th scope="row" class="sticky start-0 z-[1] rounded-inset px-2 py-1.5 text-start align-middle font-medium text-neutral-900 transition-colors duration-150"
-                                            :class="selected?.kind === 'exp' && selected.option === '{{ $option }}' ? 'bg-selection' : 'bg-white'">
+                                            :class="selected?.kind === 'exp' && selected.option === '{{ $option }}' ? 'bg-selection' : 'bg-card'">
                                             <span class="block leading-tight">{{ $rangeLabel($option) }}</span>
                                             <span class="mt-1 flex items-center gap-1 font-normal sm:gap-1.5">
                                                 <label class="sr-only" for="min-{{ $option }}">{{ $rangeLabel($option) }}: {{ $t('min_years') }}</label>
@@ -262,14 +262,14 @@
                                                        wire:model="ranges.{{ $option }}.min"
                                                        @focus="select({ kind: 'exp', option: '{{ $option }}', req: selected?.req ?? 3 })"
                                                        @if ($invalid) aria-invalid="true" aria-describedby="range-{{ $option }}-error" @endif
-                                                       class="w-10 rounded-control border-neutral-300 bg-white px-1 py-0.5 text-body tabular-nums sm:w-16 sm:px-2 shadow-e1 focus:border-primary focus:ring-2 focus:ring-neutral-200">
+                                                       class="w-10 rounded-control border-neutral-300 bg-card px-1 py-0.5 text-body tabular-nums sm:w-16 sm:px-2 shadow-e1 focus:border-ink focus:ring-2 focus:ring-neutral-200">
                                                 <span aria-hidden="true" class="text-secondary-light">–</span>
                                                 <label class="sr-only" for="max-{{ $option }}">{{ $rangeLabel($option) }}: {{ $t('max_years') }} ({{ $t('open_ended') }})</label>
                                                 <input id="max-{{ $option }}" type="number" dir="ltr" inputmode="numeric" min="0" max="50"
                                                        wire:model="ranges.{{ $option }}.max" placeholder="{{ $t('no_limit') }}"
                                                        @focus="select({ kind: 'exp', option: '{{ $option }}', req: selected?.req ?? 3 })"
                                                        @if ($invalid) aria-invalid="true" aria-describedby="range-{{ $option }}-error" @endif
-                                                       class="w-10 rounded-control border-neutral-300 bg-white px-1 py-0.5 text-body tabular-nums sm:w-20 sm:px-2 shadow-e1 placeholder:text-small placeholder:text-secondary-light focus:border-primary focus:ring-2 focus:ring-neutral-200">
+                                                       class="w-10 rounded-control border-neutral-300 bg-card px-1 py-0.5 text-body tabular-nums sm:w-20 sm:px-2 shadow-e1 placeholder:text-small placeholder:text-secondary-light focus:border-ink focus:ring-2 focus:ring-neutral-200">
                                             </span>
                                             @error('ranges.'.$option) <span id="range-{{ $option }}-error" class="mt-1 block text-small font-normal text-primary">{{ $message }}</span> @enderror
                                         </th>
@@ -278,7 +278,7 @@
                                                 <button type="button" data-grid="exp" data-r="{{ $loop->parent->index }}" data-c="{{ $year }}"
                                                         :tabindex="tabStop('exp', {{ $loop->parent->index }}, {{ $year }})"
                                                         class="flex h-10 w-full min-w-8 items-center sm:min-w-9 justify-center rounded-inset transition-[background-color,color,box-shadow] duration-200
-                                                               focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                                                               focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
                                                         :class="[toneFor(expOutcome('{{ $option }}', {{ $year }})), isSelected('exp', '{{ $option }}', {{ $year }}) ? 'ring-2 ring-neutral-900 ring-offset-1' : '']"
                                                         :aria-label="cellLabel(@js($rangeLabel($option)), {{ $year }}, expOutcome('{{ $option }}', {{ $year }}))"
                                                         :aria-current="isSelected('exp', '{{ $option }}', {{ $year }}) ? 'true' : null"
@@ -299,18 +299,18 @@
                                 </tr>
                                 <tr>
                                     <th scope="row" class="sticky start-0 z-[1] rounded-inset px-2 py-1.5 text-start align-middle font-medium text-neutral-900"
-                                        :class="selected?.kind === 'cv' ? 'bg-selection' : 'bg-white'">
+                                        :class="selected?.kind === 'cv' ? 'bg-selection' : 'bg-card'">
                                         <label for="cvYears" class="sr-only">{{ $t('cv_years_label') }}</label>
                                         <span class="flex items-center gap-1">
                                             <button type="button" @click="cvYears = Math.max(0, cvYears - 1)"
-                                                    class="grid size-6 cursor-pointer place-items-center rounded-control text-secondary-dark sm:size-7 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-primary"
+                                                    class="grid size-6 cursor-pointer place-items-center rounded-control text-secondary-dark sm:size-7 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-ink"
                                                     aria-label="{{ $t('fewer_years') }}">
                                                 <flux:icon.minus variant="micro" class="size-4" />
                                             </button>
                                             <input id="cvYears" type="number" dir="ltr" min="0" max="50" x-model.number="cvYears"
-                                                   class="w-10 rounded-control border-neutral-300 px-1 py-1 text-center text-body tabular-nums sm:w-12 focus:border-primary focus:ring-2 focus:ring-neutral-200">
+                                                   class="w-10 rounded-control border-neutral-300 px-1 py-1 text-center text-body tabular-nums sm:w-12 focus:border-ink focus:ring-2 focus:ring-neutral-200">
                                             <button type="button" @click="cvYears = Math.min(50, cvYears + 1)"
-                                                    class="grid size-6 cursor-pointer place-items-center rounded-control text-secondary-dark sm:size-7 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-primary"
+                                                    class="grid size-6 cursor-pointer place-items-center rounded-control text-secondary-dark sm:size-7 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-ink"
                                                     aria-label="{{ $t('more_years') }}">
                                                 <flux:icon.plus variant="micro" class="size-4" />
                                             </button>
@@ -322,7 +322,7 @@
                                             <button type="button" data-grid="exp" data-r="{{ count($ranges) }}" data-c="{{ $year }}"
                                                     :tabindex="tabStop('exp', {{ count($ranges) }}, {{ $year }})"
                                                     class="flex h-10 w-full min-w-8 items-center sm:min-w-9 justify-center rounded-inset transition-[background-color,color,box-shadow] duration-200
-                                                           focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                                                           focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
                                                     :class="[toneFor(cvOutcome({{ $year }})), isSelected('cv', null, {{ $year }}) ? 'ring-2 ring-neutral-900 ring-offset-1' : '']"
                                                     :aria-label="cellLabel(ui.text.yearsShort.replace(':count', cvYears), {{ $year }}, cvOutcome({{ $year }}))"
                                                     :aria-current="isSelected('cv', null, {{ $year }}) ? 'true' : null"
@@ -355,7 +355,7 @@
                     <h2 id="qualification-title" class="scroll-mt-48 sm:scroll-mt-36 text-h4 font-semibold text-neutral-900">{{ $t('qualification_title') }}</h2>
                     <p class="mt-1 text-small text-secondary-medium">{{ $t('qualification_hint') }}</p>
                 </div>
-                <p x-cloak x-show="! $wire.enabled.qualification" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-white px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
+                <p x-cloak x-show="! $wire.enabled.qualification" class="inline-flex items-center gap-1.5 rounded-control border border-neutral-300 bg-card px-2.5 py-1 text-small font-medium text-secondary-dark"><span aria-hidden="true" class="size-1.5 rounded-full bg-neutral-400"></span>{{ $t('switched_off') }}</p>
             </div>
 
             <div class="mt-6 grid gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
@@ -366,7 +366,7 @@
                         <select id="defaultLevel" wire:model="defaultLevel"
                                 aria-describedby="defaultLevel-hint @error('defaultLevel') defaultLevel-error @enderror"
                                 @error('defaultLevel') aria-invalid="true" @enderror
-                                class="mt-1 w-full max-w-xs rounded-control border-neutral-300 text-body shadow-e1 focus:border-primary focus:ring-2 focus:ring-neutral-200">
+                                class="mt-1 w-full max-w-xs rounded-control border-neutral-300 text-body shadow-e1 focus:border-ink focus:ring-2 focus:ring-neutral-200">
                             <option value="">{{ $t('no_default') }}</option>
                             @foreach ($levels as $level)
                                 <option value="{{ $level }}">{{ $levelLabel($level) }}</option>
@@ -395,7 +395,7 @@
                                                   :class="testResult?.keyword && norm(testResult.keyword) === norm(word) && testResult.level === '{{ $level }}' ? 'bg-neutral-800 text-white' : ''">
                                                 <span x-text="word" dir="auto"></span>
                                                 <button type="button" @click="removeChip('{{ $level }}', i)"
-                                                        class="-me-0.5 grid size-6 cursor-pointer place-items-center rounded-inset opacity-60 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-primary"
+                                                        class="-me-0.5 grid size-6 cursor-pointer place-items-center rounded-inset opacity-60 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-ink"
                                                         :aria-label="@js($t('remove_keyword', ['word' => '__W__'])).replace('__W__', word)">
                                                     <flux:icon.x-mark variant="micro" class="size-3" />
                                                 </button>
@@ -409,7 +409,7 @@
                                                @blur="addChip('{{ $level }}')"
                                                placeholder="{{ $t('add_keyword_placeholder') }}"
                                                @if ($invalid) aria-invalid="true" aria-describedby="keywords-{{ $level }}-error" @endif
-                                               class="min-w-32 flex-1 border-0 bg-transparent px-1 py-0.5 text-small placeholder:text-secondary-light focus:ring-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary rounded-inset">
+                                               class="min-w-32 flex-1 border-0 bg-transparent px-1 py-0.5 text-small placeholder:text-secondary-light focus:ring-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink rounded-inset">
                                     </div>
                                     @error('keywords.'.$level) <p id="keywords-{{ $level }}-error" class="mt-1 text-small text-primary">{{ $message }}</p> @enderror
                                 </li>
@@ -431,7 +431,7 @@
                                     </th>
                                 </tr>
                                 <tr>
-                                    <td class="sticky start-0 z-[1] w-36 bg-white align-bottom text-small text-secondary-medium">{{ $t('applicant_level') }}</td>
+                                    <td class="sticky start-0 z-[1] w-36 bg-card align-bottom text-small text-secondary-medium">{{ $t('applicant_level') }}</td>
                                     @foreach ($levels as $level)
                                         <th scope="col" class="rounded-inset px-1 py-1.5 text-center align-bottom text-small font-semibold text-neutral-800 transition-colors duration-150"
                                             :class="testMode === 'request' && testResult?.level === '{{ $level }}' ? 'bg-selection' : ''">
@@ -455,7 +455,7 @@
                                 @foreach (array_reverse($levels) as $found)
                                     <tr wire:key="qual-row-{{ $found }}">
                                         <th scope="row" class="sticky start-0 z-[1] rounded-inset px-2 text-start font-medium text-neutral-900 transition-colors duration-150"
-                                            :class="testMode === 'cv' && testResult?.level === '{{ $found }}' ? 'bg-selection' : 'bg-white'">
+                                            :class="testMode === 'cv' && testResult?.level === '{{ $found }}' ? 'bg-selection' : 'bg-card'">
                                             {{ $levelLabel($found) }}
                                         </th>
                                         @foreach ([...$levels, 'no_text', 'no_level'] as $col)
@@ -467,7 +467,7 @@
                                                 <button type="button" data-grid="qual" data-r="{{ $loop->parent->index }}" data-c="{{ $loop->index }}"
                                                         :tabindex="tabStop('qual', {{ $loop->parent->index }}, {{ $loop->index }})"
                                                         @class([
-                                                            'flex w-full overflow-hidden rounded-inset transition-[background-color,color,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+                                                            'flex w-full overflow-hidden rounded-inset transition-[background-color,color,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink',
                                                             'h-12 flex-col' => $split,
                                                             'h-10 items-center justify-center' => ! $split,
                                                         ])
@@ -508,7 +508,7 @@
                                     <input type="radio" name="testMode" value="{{ $mode }}" x-model="testMode" class="peer sr-only">
                                     <span class="block rounded-[calc(var(--radius-control)-2px)] px-3 py-1 text-small font-semibold text-secondary-dark transition-colors duration-150
                                                  peer-checked:bg-white peer-checked:text-neutral-900 peer-checked:shadow-e1
-                                                 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-primary">
+                                                 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-ink">
                                         {{ $t('tester_modes.'.$mode) }}
                                     </span>
                                 </label>
@@ -518,7 +518,7 @@
                         <label for="testText" class="sr-only">{{ $t('tester_title') }}</label>
                         <textarea id="testText" rows="3" dir="auto" x-model="testText"
                                   :placeholder="testMode === 'request' ? @js($t('tester_placeholder.request')) : @js($t('tester_placeholder.cv'))"
-                                  class="mt-3 w-full rounded-control border-neutral-300 text-body shadow-e1 placeholder:text-secondary-light focus:border-primary focus:ring-2 focus:ring-neutral-200"></textarea>
+                                  class="mt-3 w-full rounded-control border-neutral-300 text-body shadow-e1 placeholder:text-secondary-light focus:border-ink focus:ring-2 focus:ring-neutral-200"></textarea>
 
                         <div x-cloak x-show="testText.trim() !== ''" class="mt-3 space-y-2">
                             <p dir="auto" class="rounded-control border border-neutral-100 bg-neutral-50 px-3 py-2 text-body leading-relaxed text-neutral-800 whitespace-pre-wrap"><template x-for="(part, i) in testSegments" :key="i"><span :class="part.chosen ? 'rounded-inset bg-neutral-800 px-0.5 text-white' : (part.hit ? 'rounded-inset bg-selection px-0.5 underline decoration-neutral-400 underline-offset-2' : '')" x-text="part.text"></span></template></p>
@@ -564,28 +564,28 @@
                     </p>
                     <span x-cloak x-show="changes.length" class="flex items-center gap-3 text-small">
                         <button type="button" @click="showChanges = ! showChanges" :aria-expanded="showChanges"
-                                class="cursor-pointer rounded-inset font-semibold text-neutral-800 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-800 focus-visible:outline-2 focus-visible:outline-primary"
+                                class="cursor-pointer rounded-inset font-semibold text-neutral-800 underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-800 focus-visible:outline-2 focus-visible:outline-ink"
                                 x-text="showChanges ? @js($t('hide_changes')) : @js($t('show_changes'))"></button>
                         <button type="button" @click="discard()"
-                                class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-primary">{{ $t('discard') }}</button>
+                                class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-ink">{{ $t('discard') }}</button>
                     </span>
                     @if ($customised)
                         <span x-show="! changes.length && ! confirmingReset" class="text-small">
                             <button type="button" @click="confirmingReset = true"
-                                    class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-primary">{{ $t('reset') }}</button>
+                                    class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-ink">{{ $t('reset') }}</button>
                         </span>
                         <span x-cloak x-show="confirmingReset" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-small" role="group" aria-label="{{ $t('reset') }}">
                             <span class="text-neutral-800">{{ $t('reset_confirm') }}</span>
                             <button type="button" wire:click="resetToDefaults" wire:loading.attr="disabled" wire:target="resetToDefaults" @click="confirmingReset = false"
-                                    class="cursor-pointer rounded-inset font-semibold text-neutral-900 underline decoration-neutral-400 underline-offset-4 focus-visible:outline-2 focus-visible:outline-primary">{{ $t('confirm_reset') }}</button>
+                                    class="cursor-pointer rounded-inset font-semibold text-neutral-900 underline decoration-neutral-400 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ink">{{ $t('confirm_reset') }}</button>
                             <button type="button" @click="confirmingReset = false"
-                                    class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-primary">{{ $t('cancel') }}</button>
+                                    class="cursor-pointer rounded-inset text-secondary-medium underline decoration-neutral-300 underline-offset-4 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-ink">{{ $t('cancel') }}</button>
                         </span>
                     @endif
                     <p x-cloak x-show="changes.length" class="hidden basis-full text-small text-secondary-medium sm:block">{{ $t('form_hint') }}</p>
                 </div>
 
-                <x-primary-button type="submit" wire:target="save" class="shrink-0 disabled:cursor-not-allowed disabled:opacity-50" x-bind:disabled="! changes.length">{{ $t('save') }}</x-primary-button>
+                <x-button type="submit" wire:target="save" class="shrink-0 disabled:cursor-not-allowed disabled:opacity-50" x-bind:disabled="! changes.length">{{ $t('save') }}</x-button>
             </div>
         </div>
     </form>
@@ -677,7 +677,7 @@
         },
         toneFor(outcome) {
             return outcome === 'invalid'
-                ? 'bg-white text-secondary-light border border-dashed border-neutral-300'
+                ? 'bg-card text-secondary-light border border-dashed border-neutral-300'
                 : this.ui.tones[outcome];
         },
         outcomeLabel(outcome) {

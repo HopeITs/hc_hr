@@ -75,7 +75,7 @@ class PendingApprovalTable extends LivewireTable
 
                 return '<span class="block min-w-48">'
                     .'<span class="block break-words font-semibold text-neutral-900"><bdi>'.e($position?->title ?? $request->request_number).'</bdi></span>'
-                    .'<span class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-secondary-medium">'
+                    .'<span class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-small text-secondary-medium">'
                     .'<span title="'.e($request->request_number).'" class="max-w-40 truncate tabular-nums"><bdi>'.e($request->request_number).'</bdi></span>'
                     .($position?->center?->name ? '<span aria-hidden="true">·</span><span>'.e($position->center->name).'</span>' : '')
                     .'</span></span>';
@@ -86,7 +86,7 @@ class PendingApprovalTable extends LivewireTable
                     ? $query->whereLike('pending_requests.request_number', '%'.$search.'%')
                     : null),
 
-            Column::make(__('recruitment-workflow.request_type'), fn (RecruitmentWorkflowInstanceStep $step): string => '<span class="inline-flex whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark">'
+            Column::make(__('recruitment-workflow.request_type'), fn (RecruitmentWorkflowInstanceStep $step): string => '<span class="inline-flex whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark">'
                 .e(RecruitmentRequestType::getLocalizedName((int) $step->workflowInstance->request->request_type)['value']).'</span>', 'type')
                 ->asHtml(),
 
@@ -99,9 +99,9 @@ class PendingApprovalTable extends LivewireTable
                     ->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: '?';
 
                 return '<span class="flex items-center gap-2.5 whitespace-nowrap">'
-                    .'<span aria-hidden="true" class="inline-flex size-8 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-secondary-dark">'.e($initials).'</span>'
+                    .'<span aria-hidden="true" class="inline-flex size-8 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-small font-semibold text-secondary-dark">'.e($initials).'</span>'
                     .'<span><span class="block text-neutral-900"><bdi>'.e($name).'</bdi></span>'
-                    .($city ? '<span class="block text-xs text-secondary-medium">'.e($city).'</span>' : '')
+                    .($city ? '<span class="block text-small text-secondary-medium">'.e($city).'</span>' : '')
                     .'</span></span>';
             }, 'requester')
                 ->asHtml()
@@ -137,7 +137,7 @@ class PendingApprovalTable extends LivewireTable
                 return '<span class="block min-w-28">'
                     .'<span class="flex items-center gap-1.5 whitespace-nowrap '.($long ? 'font-semibold text-primary' : 'text-neutral-900').'">'.e($label).'</span>'
                     .'<span aria-hidden="true" class="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-neutral-200"><span class="block h-full rounded-full '.($long ? 'bg-primary' : 'bg-neutral-500').'" style="width:'.$fill.'%"></span></span>'
-                    .'<time datetime="'.e($since->toIso8601String()).'" class="mt-1 block text-xs tabular-nums text-secondary-medium">'.e(__('recruitment-workflow.since', ['date' => $since->translatedFormat('j M, H:i')])).'</time>'
+                    .'<time datetime="'.e($since->toIso8601String()).'" class="mt-1 block text-small tabular-nums text-secondary-medium">'.e(__('recruitment-workflow.since', ['date' => $since->translatedFormat('j M, H:i')])).'</time>'
                     .'</span>';
             }, 'waiting')
                 ->asHtml()
@@ -145,7 +145,7 @@ class PendingApprovalTable extends LivewireTable
 
             Column::make(__('recruitment-workflow.review'), fn (RecruitmentWorkflowInstanceStep $step): string => '<a href="'.e($this->link($step)).'" x-on:click.stop'
                 .' aria-label="'.e(__('recruitment-workflow.review_request', ['number' => $step->workflowInstance->request->request_number])).'"'
-                .' class="inline-flex min-h-11 sm:min-h-10 items-center gap-1.5 whitespace-nowrap rounded-control border border-neutral-900 bg-neutral-900 px-3 text-sm font-semibold text-white shadow-e1 transition duration-150 hover:opacity-90 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">'
+                .' class="inline-flex min-h-11 sm:min-h-10 items-center gap-1.5 whitespace-nowrap rounded-control border border-neutral-900 bg-neutral-900 px-3 text-sm font-semibold text-white shadow-e1 transition duration-150 hover:opacity-90 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">'
                 .e(__('recruitment-workflow.review')).'</a>', 'action')
                 ->asHtml(),
         ];

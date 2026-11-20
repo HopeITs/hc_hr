@@ -4,7 +4,7 @@
     <livewire:layout.breadcrumbs :title="__('recruitment-applicants.invites_title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment-campaign.campaigns'), 'route' => 'recruitment.campaigns.index'], ['label' => __('recruitment-applicants.invites_title')]]" />
 
 
-    <form wire:submit="add" class="flex flex-wrap items-end gap-4 rounded-control border border-secondary-soft bg-white p-4 shadow-e1">
+    <form wire:submit="add" class="flex flex-wrap items-end gap-4 rounded-control border border-secondary-soft bg-card p-4 shadow-e1">
         <div class="min-w-[220px]">
             <x-forms.input-label for="full_name" required :value="__('recruitment-applicants.invite_full_name')" />
             <x-forms.input id="full_name" model="full_name" required />
@@ -17,14 +17,14 @@
             <x-forms.input-error field="email" input-id="email" />
         </div>
 
-        <x-primary-button type="submit">
+        <x-button type="submit">
             {{ __('recruitment-applicants.invite_add') }}
-        </x-primary-button>
+        </x-button>
     </form>
 
     <div class="flex flex-wrap items-center gap-3">
         <button type="button" wire:click="sendPending" wire:loading.attr="disabled" wire:target="sendPending"
-            class="rounded-control border border-secondary-light px-4 py-2 text-small font-semibold text-secondary-dark hover:bg-secondary-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            class="rounded-control border border-secondary-light px-4 py-2 text-small font-semibold text-secondary-dark hover:bg-secondary-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink">
             {{ __('recruitment-applicants.invite_send_pending') }}
         </button>
         <x-forms.input-error field="send" />

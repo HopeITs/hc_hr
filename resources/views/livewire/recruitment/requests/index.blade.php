@@ -3,7 +3,7 @@
 @php
     use App\Services\RecruitmentRequestListQuery;
 
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
 @endphp
 
 <div class="space-y-6">
@@ -15,7 +15,7 @@
 
     @if (count($views) > 1)
         {{-- Who the request belongs to, as count tiles. "Needs my review" is the only one that asks something of the viewer, so it alone gets a red dot when it is not empty. --}}
-        <nav aria-label="{{ __('recruitment.request_view') }}">
+        <nav aria-label="{{ __('recruitment.request_view') }}" data-tour="recruitment.views">
             <ul class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 @foreach ($views as $view)
                     @php
@@ -30,7 +30,7 @@
                                     'flex min-h-16 w-full cursor-pointer flex-col items-start justify-between gap-1 rounded-control border px-4 py-2.5 text-start shadow-e1 transition duration-150 motion-reduce:transition-none sm:min-w-40',
                                     $focus,
                                     'border-neutral-300 bg-selection' => $isActive,
-                                    'border-neutral-200 bg-white hover:border-neutral-300' => ! $isActive,
+                                    'border-neutral-200 bg-card hover:border-neutral-300' => ! $isActive,
                                 ])>
                             <span class="flex w-full items-center justify-between gap-2">
                                 <span @class(['text-h3 font-semibold tabular-nums', 'text-neutral-900' => $count > 0, 'text-secondary-light' => $count === 0])>{{ $count }}</span>

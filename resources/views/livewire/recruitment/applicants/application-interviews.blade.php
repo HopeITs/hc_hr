@@ -12,7 +12,7 @@
     </div>
 
     @if ($mayScheduleAtAll && ! $canSchedule)
-        <p class="mt-2 text-xs text-secondary-medium">
+        <p class="mt-2 text-small text-secondary-medium">
             {{ $isRejected ? __('recruitment-applicant.interviews.errors.application_rejected') : __('recruitment-applicant.interviews.errors.not_shortlisted') }}
         </p>
     @endif
@@ -32,11 +32,10 @@
                             &middot; {{ trans_choice('recruitment-applicant.interviews.participant_count', $interview->participants_count, ['count' => $interview->participants_count]) }}
                         </span>
                     </a>
-                    <x-recruitment.pill :tone="RecruitmentInterviewStatus::classes($interview->status)" class="recruitment-badge">
-                        {{ __('recruitment-applicant.interviews.statuses.'.$interview->status) }}
-                    </x-recruitment.pill>
+                    @php $interviewChip = \App\Support\Status\RecruitmentStatus::interview($interview->status); @endphp
+                    <x-status class="recruitment-badge" :tone="$interviewChip['tone']" :icon="$interviewChip['icon']" :label="$interviewChip['label']" />
                     @if (isset($tallies[$interview->id]) && $tallies[$interview->id]['total'] > 0)
-                        <div class="flex w-full flex-wrap items-center gap-1 text-xs">
+                        <div class="flex w-full flex-wrap items-center gap-1 text-small">
                             <span class="text-secondary-medium">{{ trans_choice('recruitment-applicant.evaluations.count', $tallies[$interview->id]['total'], ['count' => $tallies[$interview->id]['total']]) }}:</span>
                             @foreach ($tallies[$interview->id]['counts'] as $value => $count)
                                 @if ($count > 0)

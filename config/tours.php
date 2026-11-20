@@ -219,6 +219,92 @@ return [
         ],
     ],
 
+    // Item 19 (UX review): the pages a new HR officer meets with no guide.
+    // Recruitment, in the order a hire moves: requests, applicants, offers, the hire.
+    'recruitment-requests' => [
+        'routes' => ['recruitment.requests.index'],
+        'steps' => [
+            'flow' => [],
+            'views' => ['target' => 'recruitment.views', 'placement' => 'bottom'],
+            'new-request' => ['target' => 'recruitment.new-request', 'placement' => 'bottom'],
+            'direct-open' => ['target' => 'recruitment.direct-open', 'placement' => 'bottom'],
+            'search' => ['target' => 'table.search', 'placement' => 'bottom'],
+            'filters' => ['target' => 'table.filters', 'placement' => 'bottom'],
+        ],
+    ],
+
+    'recruitment-campaigns' => [
+        'routes' => ['recruitment.campaigns.index'],
+        'steps' => [
+            'intro' => [],
+            'search' => ['target' => 'table.search', 'placement' => 'bottom'],
+            'filters' => ['target' => 'table.filters', 'placement' => 'bottom'],
+        ],
+    ],
+
+    'recruitment-applicants' => [
+        'routes' => ['recruitment.applicants.index'],
+        'steps' => [
+            'intro' => [],
+            'search' => ['target' => 'table.search', 'placement' => 'bottom'],
+            'filters' => ['target' => 'table.filters', 'placement' => 'bottom'],
+            'next' => [],
+        ],
+    ],
+
+    'recruitment-offers' => [
+        'routes' => ['recruitment.offers.index'],
+        'steps' => [
+            'intro' => [],
+            'search' => ['target' => 'table.search', 'placement' => 'bottom'],
+            'convert' => [],
+        ],
+    ],
+
+    'recruitment-convert' => [
+        'routes' => ['recruitment.offers.convert'],
+        'steps' => [
+            'intro' => [],
+            'terms' => ['target' => 'convert.terms', 'placement' => 'bottom'],
+            'employee' => ['target' => 'convert.employee', 'placement' => 'top'],
+            'confirm' => ['target' => 'convert.confirm', 'placement' => 'top'],
+            'after' => [],
+        ],
+    ],
+
+    'attendance' => [
+        'routes' => ['attendance.timesheets'],
+        'steps' => [
+            'intro' => [],
+            'toolbar' => ['target' => 'attendance.toolbar', 'placement' => 'bottom'],
+            'summary' => ['target' => 'attendance.summary', 'placement' => 'bottom'],
+            'decide' => ['target' => 'attendance.decide', 'placement' => 'bottom'],
+            'key' => ['target' => 'attendance.key', 'placement' => 'top'],
+            'bulk' => ['target' => 'attendance.bulk', 'placement' => 'bottom'],
+            'month-life' => [],
+        ],
+    ],
+
+    'first-days' => [
+        'routes' => ['onboarding.my-first-days'],
+        'steps' => [
+            'welcome' => [],
+            'progress' => ['target' => 'first-days.progress', 'placement' => 'bottom'],
+            'yours' => ['target' => 'first-days.yours', 'placement' => 'bottom'],
+            'steps' => ['target' => 'first-days.steps', 'placement' => 'top'],
+        ],
+    ],
+
+    'leaves-all' => [
+        'routes' => ['leaves.all'],
+        'steps' => [
+            'intro' => [],
+            'search' => ['target' => 'table.search', 'placement' => 'bottom'],
+            'filters' => ['target' => 'table.filters', 'placement' => 'bottom'],
+            'decide' => [],
+        ],
+    ],
+
     'leaves' => [
         'routes' => ['leaves.index'],
         'steps' => [

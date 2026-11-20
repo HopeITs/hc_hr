@@ -4,7 +4,7 @@
     <livewire:layout.breadcrumbs :title="__('recruitment.direct_open.title')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment.navigation_requests'), 'route' => 'recruitment.requests.index'], ['label' => __('recruitment.direct_open.title')]]" />
 
     <form wire:submit="save" class="space-y-6">
-        <section class="space-y-5 rounded-surface border border-secondary-soft bg-white p-6">
+        <section class="space-y-5 rounded-surface border border-secondary-soft bg-card p-6">
             <div>
                 <h2 class="text-h4 font-semibold">{{ __('recruitment.direct_open.title') }}</h2>
                 <p class="mt-1 text-sm text-secondary-medium">{{ __('recruitment.direct_open.hint') }}</p>
@@ -44,7 +44,7 @@
         @include('livewire.recruitment.requests.partials.request-fields')
 
         @if ($steps !== [])
-            <section class="space-y-5 rounded-surface border border-secondary-soft bg-white p-6">
+            <section class="space-y-5 rounded-surface border border-secondary-soft bg-card p-6">
                 <div>
                     <h2 class="text-h4 font-semibold">{{ __('recruitment.direct_open.confirmations') }}</h2>
                     <p class="mt-1 text-sm text-secondary-medium">{{ __('recruitment.direct_open.confirmations_hint') }}</p>
@@ -98,7 +98,7 @@
                                     @endforeach
                                 </x-forms.select2-input>
                                 @if (($confirmationCandidates[$stepKey] ?? collect())->isEmpty())
-                                    <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment.direct_open.no_confirmer_candidates') }}</p>
+                                    <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment.direct_open.no_confirmer_candidates') }}</p>
                                 @endif
                                 <p class="mt-1 text-sm text-primary">
                                     @error('confirmations.'.$stepKey.'.confirmer_user_id'){{ $message }}@enderror
@@ -136,11 +136,11 @@
             </section>
         @endif
 
-        <footer class="flex flex-wrap items-center justify-between gap-4 rounded-surface border border-secondary-soft bg-white p-5">
+        <footer class="flex flex-wrap items-center justify-between gap-4 rounded-surface border border-secondary-soft bg-card p-5">
             <p class="text-sm text-secondary-medium">{{ __('recruitment.direct_open.hint') }}</p>
-            <x-primary-button type="submit" wire:loading.attr="disabled" wire:target="save">
+            <x-button type="submit" wire:loading.attr="disabled" wire:target="save">
                 {{ __('recruitment.direct_open.open') }}
-            </x-primary-button>
+            </x-button>
         </footer>
     </form>
 </div>

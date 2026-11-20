@@ -19,18 +19,18 @@
         :next="$nextStep"
     />
 
-    <div class="sticky top-0 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-secondary-soft bg-white/95 p-3 shadow-e2 backdrop-blur">
+    <div class="sticky top-0 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-secondary-soft bg-card/95 p-3 shadow-e2 backdrop-blur">
         <div class="flex flex-wrap gap-2">
             <button type="button" x-on:click="addPanel = !addPanel" class="hc-btn hc-btn--add hc-btn--reveal">
                 <x-ic name="plus" /><span class="hc-reveal-label">{{ __('recruitment.application_form.add_question') }}</span>
             </button>
-            <button type="button" x-on:click="$dispatch('open-recruitment-confirmation', { scope: 'application-form-editor', action: 'applyReferenceTemplate', message: @js(__('recruitment.application_form.template_confirm')), confirmLabel: @js(__('recruitment.application_form.use_pdf_template')) })" class="cursor-pointer rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-semibold text-secondary-dark hover:bg-secondary-soft/30">
+            <button type="button" x-on:click="$dispatch('open-recruitment-confirmation', { scope: 'application-form-editor', action: 'applyReferenceTemplate', message: @js(__('recruitment.application_form.template_confirm')), confirmLabel: @js(__('recruitment.application_form.use_pdf_template')) })" class="cursor-pointer rounded-control border border-secondary-light bg-card px-4 py-2 text-body font-semibold text-secondary-dark hover:bg-secondary-soft/30">
                 {{ __('recruitment.application_form.use_pdf_template') }}
             </button>
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <button type="button" wire:click="saveDraft" wire:target="saveDraft" wire:loading.attr="disabled" class="cursor-pointer rounded-control border border-primary bg-white px-4 py-2 text-body font-semibold text-primary hover:bg-secondary-soft/30 disabled:opacity-60">
+            <button type="button" wire:click="saveDraft" wire:target="saveDraft" wire:loading.attr="disabled" class="cursor-pointer rounded-control border border-primary bg-card px-4 py-2 text-body font-semibold text-primary hover:bg-secondary-soft/30 disabled:opacity-60">
                 {{ __('recruitment.job_post.save_draft') }}
             </button>
             <button type="button" x-on:click="$dispatch('open-recruitment-confirmation', { scope: 'application-form-editor', action: 'publish', message: @js(__('recruitment.application_form.publish_confirm')), confirmLabel: @js(__('recruitment.job_post.publish')) })" class="cursor-pointer rounded-control bg-secondary-dark px-4 py-2 text-body font-semibold text-white hover:bg-secondary-dark">
@@ -45,7 +45,7 @@
         </button>
     @endif
 
-    <section class="mb-5 rounded-surface border border-secondary-soft bg-white p-5 shadow-e1">
+    <section class="mb-5 rounded-surface border border-secondary-soft bg-card p-5 shadow-e1">
         <div class="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,1.1fr)]">
             <div>
                 <h2 class="font-bold text-secondary-dark">{{ __('recruitment.application_form.reuse_form') }}</h2>
@@ -58,7 +58,7 @@
                 <div>
                     <label for="published-form-template" class="mb-1 block text-small font-medium text-secondary-dark">{{ __('recruitment.application_form.choose_form_template') }}</label>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                        <select id="published-form-template" wire:model="selectedTemplateVersionId" class="min-w-0 flex-1 rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary">
+                        <select id="published-form-template" wire:model="selectedTemplateVersionId" class="min-w-0 flex-1 rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink">
                             <option value="">{{ __('recruitment.application_form.choose_form_template') }}</option>
                             @foreach ($availableTemplates as $template)
                                 @php
@@ -84,7 +84,7 @@
         </div>
     </section>
 
-    <section x-show="addPanel" x-collapse x-cloak class="mb-5 overflow-hidden rounded-surface border border-secondary-soft bg-white shadow-e1">
+    <section x-show="addPanel" x-collapse x-cloak class="mb-5 overflow-hidden rounded-surface border border-secondary-soft bg-card shadow-e1">
         <div class="border-b border-secondary-soft bg-secondary-soft/30 px-5 py-4">
             <div class="flex items-center justify-between gap-3">
                 <div>
@@ -110,7 +110,7 @@
                                 <p class="mb-2 text-small font-semibold text-secondary-dark">{{ $section['label'][app()->getLocale()] ?? $section['label']['en'] }}</p>
                                 <div class="flex flex-wrap gap-2">
                                     @foreach ($sectionAvailable as $key => $definition)
-                                        <button type="button" wire:click="addField('{{ $key }}')" class="rounded-full border border-secondary-light bg-white px-3 py-1.5 text-small font-medium text-secondary-dark hover:border-primary hover:text-primary">
+                                        <button type="button" wire:click="addField('{{ $key }}')" class="rounded-full border border-secondary-light bg-card px-3 py-1.5 text-small font-medium text-secondary-dark hover:border-primary hover:text-primary">
                                             + {{ $definition['label'][app()->getLocale()] ?? $definition['label']['en'] }}
                                         </button>
                                     @endforeach
@@ -130,7 +130,7 @@
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
                         <x-forms.input-label for="custom-type" required>{{ __('recruitment.application_form.question_type') }}</x-forms.input-label>
-                        <select id="custom-type" wire:model.live="customType" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary">
+                        <select id="custom-type" wire:model.live="customType" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink">
                             @foreach ($types as $key => $type)
                                 <option value="{{ $key }}">{{ $type['label'][app()->getLocale()] ?? $type['label']['en'] }}</option>
                             @endforeach
@@ -139,7 +139,7 @@
                     </div>
                     <div>
                         <x-forms.input-label for="custom-section" required>{{ __('recruitment.application_form.section') }}</x-forms.input-label>
-                        <select id="custom-section" wire:model="customSection" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary">
+                        <select id="custom-section" wire:model="customSection" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink">
                             @foreach ($sections as $key => $section)
                                 <option value="{{ $key }}">{{ $section['label'][app()->getLocale()] ?? $section['label']['en'] }}</option>
                             @endforeach
@@ -167,19 +167,19 @@
                     @if (in_array($customType, ['select', 'radio'], true))
                         <div>
                             <x-forms.input-label for="custom-options-en" required>{{ __('recruitment.application_form.options_en') }}</x-forms.input-label>
-                            <textarea id="custom-options-en" wire:model="customOptionsEn" rows="4" dir="ltr" placeholder="Option 1&#10;Option 2" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary"></textarea>
+                            <textarea id="custom-options-en" wire:model="customOptionsEn" rows="4" dir="ltr" placeholder="Option 1&#10;Option 2" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink"></textarea>
                             <x-error-span>{{ $errors->first('customOptionsEn') }}</x-error-span>
                         </div>
                         <div>
                             <x-forms.input-label for="custom-options-ar">{{ __('recruitment.application_form.options_ar') }}</x-forms.input-label>
-                            <textarea id="custom-options-ar" wire:model="customOptionsAr" rows="4" dir="rtl" placeholder="الخيار 1&#10;الخيار 2" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary"></textarea>
+                            <textarea id="custom-options-ar" wire:model="customOptionsAr" rows="4" dir="rtl" placeholder="الخيار 1&#10;الخيار 2" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink"></textarea>
                         </div>
                     @endif
                 </div>
 
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <label class="inline-flex items-center gap-2 text-body text-secondary-dark">
-                        <input type="checkbox" wire:model="customRequired" class="rounded border-secondary-light text-primary focus:ring-primary">
+                        <input type="checkbox" wire:model="customRequired" class="rounded border-secondary-light text-primary focus:ring-ink">
                         {{ __('recruitment.application_form.required') }}
                     </label>
                     <button type="button" wire:click="addCustomField" class="rounded-control bg-primary px-4 py-2 text-body font-semibold text-white hover:bg-primary/90">
@@ -194,7 +194,7 @@
         <section class="min-w-0 space-y-4">
             @foreach ($sections as $sectionKey => $section)
                 @php $sectionFields = collect($fields)->filter(fn ($field) => $field['section'] === $sectionKey); @endphp
-                <details wire:key="application-form-section-{{ $sectionKey }}" class="group rounded-surface border border-secondary-soft bg-white shadow-e1" @if ($expandedSection === $sectionKey) open @endif>
+                <details wire:key="application-form-section-{{ $sectionKey }}" class="group rounded-surface border border-secondary-soft bg-card shadow-e1" @if ($expandedSection === $sectionKey) open @endif>
                     <summary wire:click.prevent="toggleSection('{{ $sectionKey }}')" class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
                         <div>
                             <h3 class="font-bold text-secondary-dark">{{ $section['label'][app()->getLocale()] ?? $section['label']['en'] }}</h3>
@@ -208,7 +208,7 @@
 
                     <div class="space-y-3 border-t border-secondary-soft bg-secondary-soft/30 p-4">
                         @forelse ($sectionFields as $index => $field)
-                            <article wire:key="form-field-{{ $field['key'] }}" class="rounded-lg border border-secondary-soft border-s-4 border-s-primary bg-white p-4 shadow-sm">
+                            <article wire:key="form-field-{{ $field['key'] }}" class="rounded-lg border border-secondary-soft border-s-4 border-s-primary bg-card p-4 shadow-sm">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <div class="flex min-w-0 flex-wrap items-center gap-2">
                                         <span class="font-semibold text-secondary-dark">{{ $field['label'][app()->getLocale()] ?? $field['label']['en'] }}</span>
@@ -274,8 +274,8 @@
                                         <div class="space-y-2">
                                             @foreach ($field['options'] as $optionIndex => $option)
                                                 <div wire:key="field-{{ $field['key'] }}-option-{{ $optionIndex }}" class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                                                    <input type="text" wire:model.blur="fields.{{ $index }}.options.{{ $optionIndex }}.label.en" dir="ltr" class="min-w-0 rounded-control border-secondary-light text-small focus:border-primary focus:ring-primary" aria-label="{{ __('recruitment.application_form.option_en') }}">
-                                                    <input type="text" wire:model.blur="fields.{{ $index }}.options.{{ $optionIndex }}.label.ar" dir="rtl" class="min-w-0 rounded-control border-secondary-light text-small focus:border-primary focus:ring-primary" aria-label="{{ __('recruitment.application_form.option_ar') }}">
+                                                    <input type="text" wire:model.blur="fields.{{ $index }}.options.{{ $optionIndex }}.label.en" dir="ltr" class="min-w-0 rounded-control border-secondary-light text-small focus:border-ink focus:ring-ink" aria-label="{{ __('recruitment.application_form.option_en') }}">
+                                                    <input type="text" wire:model.blur="fields.{{ $index }}.options.{{ $optionIndex }}.label.ar" dir="rtl" class="min-w-0 rounded-control border-secondary-light text-small focus:border-ink focus:ring-ink" aria-label="{{ __('recruitment.application_form.option_ar') }}">
                                                     <button type="button" wire:click="removeOption({{ $index }}, {{ $optionIndex }})" class="cursor-pointer rounded p-2 text-secondary-light hover:bg-secondary-soft/60 hover:text-primary" aria-label="{{ __('recruitment.application_form.remove') }}">
                                                         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
                                                     </button>
@@ -288,12 +288,12 @@
                                 <div class="mt-4 flex flex-wrap items-center justify-end gap-4 border-t border-secondary-soft pt-4">
                                     <label class="inline-flex items-center gap-2 text-small font-medium text-secondary-dark">
                                         <span>{{ __('recruitment.application_form.required') }}</span>
-                                        <input type="checkbox" wire:model.live="fields.{{ $index }}.required" @disabled($field['locked']) class="size-5 rounded border-secondary-light text-primary focus:ring-primary">
+                                        <input type="checkbox" wire:model.live="fields.{{ $index }}.required" @disabled($field['locked']) class="size-5 rounded border-secondary-light text-primary focus:ring-ink">
                                     </label>
                                 </div>
                             </article>
                         @empty
-                            <div class="rounded-control border border-dashed border-secondary-light bg-white p-6 text-center text-small text-secondary-medium">
+                            <div class="rounded-control border border-dashed border-secondary-light bg-card p-6 text-center text-small text-secondary-medium">
                                 {{ __('recruitment.application_form.no_questions_section') }}
                             </div>
                         @endforelse
@@ -301,7 +301,7 @@
                 </details>
             @endforeach
 
-            <div class="rounded-surface border border-secondary-soft bg-white p-5 shadow-e1">
+            <div class="rounded-surface border border-secondary-soft bg-card p-5 shadow-e1">
                 <x-forms.input-label for="privacy-version" required>{{ __('recruitment.application_form.privacy_version') }}</x-forms.input-label>
                 <x-forms.input id="privacy-version" model="privacyNoticeVersion" dir="ltr" required />
                 <x-error-span>{{ $errors->first('privacyNoticeVersion') }}</x-error-span>
@@ -310,14 +310,14 @@
         </section>
 
         <aside class="min-w-0 xl:sticky xl:top-24">
-            <div class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-secondary-soft bg-white p-3 shadow-e1">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-secondary-soft bg-card p-3 shadow-e1">
                 <div>
                     <p class="font-semibold text-secondary-dark">{{ __('recruitment.application_form.live_preview') }}</p>
                     <p class="text-small text-secondary-medium">{{ __('recruitment.application_form.live_preview_help') }}</p>
                 </div>
                 <div class="inline-flex rounded-control bg-secondary-soft/60 p-1" role="group" aria-label="{{ __('recruitment.application_form.preview_language') }}">
-                    <button type="button" wire:click="setPreviewLocale('en')" class="rounded px-3 py-1.5 text-small font-semibold {{ $previewLocale === 'en' ? 'bg-white text-primary shadow-sm' : 'text-secondary-medium' }}">EN</button>
-                    <button type="button" wire:click="setPreviewLocale('ar')" class="rounded px-3 py-1.5 text-small font-semibold {{ $previewLocale === 'ar' ? 'bg-white text-primary shadow-sm' : 'text-secondary-medium' }}">AR</button>
+                    <button type="button" wire:click="setPreviewLocale('en')" class="rounded px-3 py-1.5 text-small font-semibold {{ $previewLocale === 'en' ? 'bg-card text-primary shadow-sm' : 'text-secondary-medium' }}">EN</button>
+                    <button type="button" wire:click="setPreviewLocale('ar')" class="rounded px-3 py-1.5 text-small font-semibold {{ $previewLocale === 'ar' ? 'bg-card text-primary shadow-sm' : 'text-secondary-medium' }}">AR</button>
                 </div>
             </div>
 

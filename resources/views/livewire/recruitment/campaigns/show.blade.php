@@ -37,7 +37,7 @@
 
     <div class="mx-auto w-full max-w-5xl space-y-6">
     {{-- Header: what this is, and the one-line state. --}}
-    <section class="rounded-surface border border-secondary-soft bg-white p-5 shadow-e1 sm:p-6">
+    <section class="rounded-surface border border-secondary-soft bg-card p-5 shadow-e1 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
                 <p class="text-small font-semibold text-secondary-medium">
@@ -100,7 +100,7 @@
                                         <label wire:key="details-mode-{{ $mode }}"
                                             class="flex cursor-pointer items-start gap-3 rounded-control border p-3 transition has-[:checked]:border-primary has-[:checked]:bg-secondary-soft/30 border-secondary-light">
                                             <input type="radio" value="{{ $mode }}" wire:model="linkMode"
-                                                class="mt-1 border-secondary-light text-primary focus:ring-primary">
+                                                class="mt-1 border-secondary-light text-primary focus:ring-ink">
                                             <span>
                                                 <span class="block text-body font-semibold text-secondary-dark">{{ __('recruitment-campaign.modes.'.$mode) }}</span>
                                                 <span class="block text-small text-secondary-medium">{{ __('recruitment-campaign.mode_hints.'.$mode) }}</span>
@@ -127,13 +127,13 @@
                                 <div>
                                     <x-forms.input-label for="minimumAge">{{ __('recruitment-campaign.minimum_age') }}</x-forms.input-label>
                                     <input id="minimumAge" type="number" min="0" max="120" inputmode="numeric" wire:model="minimumAge"
-                                        class="mt-1 w-full rounded-control border-neutral-300 text-body focus:border-primary focus:ring-primary">
+                                        class="mt-1 w-full rounded-control border-neutral-300 text-body focus:border-ink focus:ring-ink">
                                     <x-error-span>{{ $errors->first('minimumAge') }}</x-error-span>
                                 </div>
                                 <div>
                                     <x-forms.input-label for="maximumAge">{{ __('recruitment-campaign.maximum_age') }}</x-forms.input-label>
                                     <input id="maximumAge" type="number" min="0" max="120" inputmode="numeric" wire:model="maximumAge"
-                                        class="mt-1 w-full rounded-control border-neutral-300 text-body focus:border-primary focus:ring-primary">
+                                        class="mt-1 w-full rounded-control border-neutral-300 text-body focus:border-ink focus:ring-ink">
                                     <x-error-span>{{ $errors->first('maximumAge') }}</x-error-span>
                                 </div>
                             </div>
@@ -143,24 +143,24 @@
                             <div>
                                 <x-forms.input-label for="startsAt">{{ __('recruitment-campaign.starts_at') }}</x-forms.input-label>
                                 <input id="startsAt" type="date" wire:model="startsAt"
-                                    class="mt-1 w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary">
+                                    class="mt-1 w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink">
                                 <x-error-span>{{ $errors->first('startsAt') }}</x-error-span>
                             </div>
                             <div>
                                 <x-forms.input-label for="endsAt">{{ __('recruitment-campaign.ends_at') }}</x-forms.input-label>
                                 <input id="endsAt" type="date" wire:model="endsAt"
-                                    class="mt-1 w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary">
+                                    class="mt-1 w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink">
                                 <x-error-span>{{ $errors->first('endsAt') }}</x-error-span>
                             </div>
                         </div>
                         <p class="text-small text-secondary-medium">{{ __('recruitment-campaign.window_hint') }}</p>
 
                         <div class="flex flex-wrap gap-2">
-                            <x-primary-button type="submit" wire:loading.attr="disabled" wire:target="saveDetails">
+                            <x-button type="submit" wire:loading.attr="disabled" wire:target="saveDetails">
                                 {{ __('recruitment-campaign.page.save_details') }}
-                            </x-primary-button>
+                            </x-button>
                             <button type="button" wire:click="cancelDetails"
-                                class="cursor-pointer rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-semibold text-secondary-dark transition hover:bg-secondary-soft/30">
+                                class="cursor-pointer rounded-control border border-secondary-light bg-card px-4 py-2 text-body font-semibold text-secondary-dark transition hover:bg-secondary-soft/30">
                                 {{ __('recruitment-campaign.cancel') }}
                             </button>
                         </div>
@@ -178,7 +178,7 @@
                         </p>
                         @if ($mayEdit)
                             <button type="button" wire:click="editDetails"
-                                class="cursor-pointer rounded-control border border-secondary-light bg-white px-3 py-1.5 text-small font-semibold text-secondary-dark transition hover:bg-secondary-soft/30">
+                                class="cursor-pointer rounded-control border border-secondary-light bg-card px-3 py-1.5 text-small font-semibold text-secondary-dark transition hover:bg-secondary-soft/30">
                                 {{ __('recruitment-campaign.page.edit') }}
                             </button>
                         @endif
@@ -205,7 +205,7 @@
                             @class([
                                 'inline-flex cursor-pointer items-center gap-2 rounded-control px-4 py-2 text-body font-semibold transition',
                                 'bg-primary text-white hover:bg-primary-hover' => $current === 'post',
-                                'border border-secondary-light bg-white text-secondary-dark hover:bg-secondary-soft/30' => $current !== 'post',
+                                'border border-secondary-light bg-card text-secondary-dark hover:bg-secondary-soft/30' => $current !== 'post',
                             ])>
                             {{ $jobPost ? __('recruitment-campaign.page.open_post') : __('recruitment-campaign.page.create_post') }}
                             <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
@@ -233,7 +233,7 @@
                             @class([
                                 'inline-flex cursor-pointer items-center gap-2 rounded-control px-4 py-2 text-body font-semibold transition',
                                 'bg-primary text-white hover:bg-primary-hover' => $current === 'form',
-                                'border border-secondary-light bg-white text-secondary-dark hover:bg-secondary-soft/30' => $current !== 'form',
+                                'border border-secondary-light bg-card text-secondary-dark hover:bg-secondary-soft/30' => $current !== 'form',
                             ])>
                             {{ $form ? __('recruitment-campaign.page.open_form') : __('recruitment-campaign.page.create_form') }}
                             <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
@@ -259,7 +259,7 @@
 
         {{-- Status panel --}}
         <aside class="order-first lg:order-none lg:sticky lg:top-24 lg:self-start" aria-labelledby="campaign-status-heading">
-            <section class="rounded-surface border border-secondary-soft bg-white p-5 shadow-e1">
+            <section class="rounded-surface border border-secondary-soft bg-card p-5 shadow-e1">
                 <h2 id="campaign-status-heading" class="text-subtitle font-bold text-secondary-dark">{{ __('recruitment-campaign.page.status_title') }}</h2>
                 <p class="mt-2 text-body leading-6 text-secondary-medium">
                     {{ __('recruitment-campaign.page.status_'.$statusKey.($statusKey === 'open' && ! $campaign->ends_at ? '_no_end' : ''), [
@@ -355,9 +355,9 @@
                                 @endif
                                 @class([
                                     'flex w-full cursor-pointer items-center justify-center gap-2 rounded-control px-4 py-2 text-body font-semibold transition',
-                                    'border border-primary bg-white text-primary hover:bg-secondary-soft/30' => $danger,
+                                    'border border-primary bg-card text-primary hover:bg-secondary-soft/30' => $danger,
                                     'bg-primary text-white hover:bg-primary-hover' => ! $danger && $loop->first,
-                                    'border border-secondary-light bg-white text-secondary-dark hover:bg-secondary-soft/30' => ! $danger && ! $loop->first,
+                                    'border border-secondary-light bg-card text-secondary-dark hover:bg-secondary-soft/30' => ! $danger && ! $loop->first,
                                 ])>
                                 @if ($danger)
                                     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.7 17.1A2 2 0 0 0 4.4 20h15.2a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
