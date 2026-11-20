@@ -17,7 +17,7 @@
         try { localStorage.setItem('nav-closed-areas', JSON.stringify(this.closedAreas)); } catch (e) {}
     },
 }" x-cloak>
-    <aside x-cloak data-tour="nav" @click.outside="open = false"
+    <aside x-cloak data-tour="nav" @click.outside="open = false" x-on:hc-workspace-opened.window="open = false"
         class="sidebar-material fixed top-0 z-40 h-full border-e border-line-soft shadow-e3 transition-[width,transform] duration-(--sidebar-duration) ease-sidebar md:translate-x-0"
         :class="[
             sidebarCollapsed ? 'md:w-20' : 'md:w-64',

@@ -57,7 +57,7 @@
             </div>
 
             @auth
-                <div x-data="roleDropdown()" x-init="$store.dir = { rtl: @js($isRtl) }" class="relative shrink-0 ms-0 sm:ms-3" @keydown.escape.window="open=false">
+            <div x-data="roleDropdown()" x-init="$store.dir = { rtl: @js($isRtl) }" class="relative shrink-0 ms-0 sm:ms-3" @keydown.escape.window="open=false" x-on:hc-workspace-opened.window="open = false; rolesOpen = false">
 
                     <button @click="toggle()" :aria-expanded="open" aria-haspopup="menu" class="inline-flex items-center justify-center transition rounded-full size-11 sm:size-10">
 

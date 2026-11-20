@@ -12,7 +12,7 @@
 
 @auth
     <div x-data="roleDropdown()" x-init="$store.dir = { rtl: @js($isRtl) }" class="relative w-full"
-         @keydown.escape.window="open=false">
+         @keydown.escape.window="open=false" x-on:hc-workspace-opened.window="open = false; rolesOpen = false">
         <button @click="toggle()" :aria-expanded="open" aria-haspopup="menu"
                 class="group flex w-full items-center gap-3 px-3 py-2 rounded-surface
                    bg-card

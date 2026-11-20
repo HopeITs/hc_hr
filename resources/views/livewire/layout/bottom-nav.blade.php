@@ -47,6 +47,7 @@
      }"
      x-on:focusin.window="typing = sheet === null && isField($event.target)"
      x-on:focusout.window="typing = false"
+     x-on:hc-workspace-opened.window="close()"
      x-bind:data-typing="typing"
      class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-base/95 backdrop-blur md:hidden"
      style="padding-bottom: env(safe-area-inset-bottom, 0px)">
@@ -137,7 +138,7 @@
                         @foreach ($actions as $action)
                             <li wire:key="bottom-new-{{ $action['id'] }}">
                                 <a href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}" @if ($action['returns']) data-returns @endif
-                                   x-on:click.prevent="go($event)"
+                                   data-ws-skip x-on:click.prevent="go($event)"
                                    class="{{ $tile }} min-h-12 text-ink hover:bg-hover">
                                     <span class="grid size-10 shrink-0 place-items-center rounded-control border border-line-soft bg-soft text-ink" aria-hidden="true">
                                         <x-icons.plus class="size-5" />

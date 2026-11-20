@@ -266,6 +266,15 @@ function homeScreen() {
             document.addEventListener('livewire:navigating', onNavigating);
             cleanup.push(() => document.removeEventListener('livewire:navigating', onNavigating));
 
+            const onWorkspaceOpened = () => {
+                this.closePeek(false);
+                this.outKey = null;
+                this.resetMenu = false;
+                this.gallery = false;
+            };
+            window.addEventListener('hc-workspace-opened', onWorkspaceOpened);
+            cleanup.push(() => window.removeEventListener('hc-workspace-opened', onWorkspaceOpened));
+
             // The page re-rendered (Add, Reset, a retry): keep the person's order on screen.
             this.$wire.$hook('morphed', () => this.$nextTick(() => this.afterServerRender()));
 
