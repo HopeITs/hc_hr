@@ -443,4 +443,165 @@ return [
             'body' => 'Open a request to see its details and who approved or rejected it.',
         ],
     ],
+    // Item 19 (UX review): recruitment, attendance, My first days, all leaves.
+    'recruitment-requests' => [
+        'flow' => [
+            'title' => 'How hiring starts',
+            'body' => 'A manager raises a recruitment request for a position and it goes through approvals. An approved request becomes a vacancy with a campaign; people apply, interviews are held, an offer is sent, and once it is accepted the applicant is converted to an employee.',
+        ],
+        'views' => [
+            'title' => 'Whose requests',
+            'body' => 'These tiles sort the requests: what needs your review, your own, and everything in your scope. A red dot means something waits on you.',
+        ],
+        'new-request' => [
+            'title' => 'New recruitment request',
+            'body' => 'Where a manager starts a request for a position in their team. It stays a draft until sent.',
+        ],
+        'direct-open' => [
+            'title' => 'Direct opening',
+            'body' => 'For a hire already agreed outside the system: record who asked and the approvals given, and the vacancy opens without the approvals here.',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'body' => 'Search by request number, position or requester.',
+        ],
+        'filters' => [
+            'title' => 'Filter the list',
+            'body' => 'Filter by status, governorate or request type.',
+        ],
+    ],
+    'recruitment-campaigns' => [
+        'intro' => [
+            'title' => 'Campaigns',
+            'body' => 'A campaign receives applicants for a vacancy through its own application link. Open one to see its link, its applicants and when it closes.',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'body' => 'Search by campaign or vacancy.',
+        ],
+        'filters' => [
+            'title' => 'Filter the list',
+            'body' => 'Show only open, closed or draft campaigns.',
+        ],
+    ],
+    'recruitment-applicants' => [
+        'intro' => [
+            'title' => 'Applicants',
+            'body' => 'Everyone who applied through a campaign link is here, with where their application stands.',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'body' => 'Search by name, phone or email.',
+        ],
+        'filters' => [
+            'title' => 'Filter the list',
+            'body' => 'Filter by campaign or application status, such as Under review or Shortlisted.',
+        ],
+        'next' => [
+            'title' => 'What comes next',
+            'body' => 'Open an applicant to review the application. Once shortlisted you schedule an interview, and after the interviews the offer is made from the same page.',
+        ],
+    ],
+    'recruitment-offers' => [
+        'intro' => [
+            'title' => 'Job offers',
+            'body' => 'An offer is made from the applicant\'s page after the interviews and sent to them to accept or decline.',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'body' => 'Search by applicant or vacancy.',
+        ],
+        'convert' => [
+            'title' => 'Once accepted',
+            'body' => 'Open the accepted offer and press Convert to employee: the employee record and the contract are created from the offer\'s terms, and their first-days steps begin.',
+        ],
+    ],
+    'recruitment-convert' => [
+        'intro' => [
+            'title' => 'Converting the applicant',
+            'body' => 'This is where the applicant becomes an employee. Nothing is created until you press Confirm hire.',
+        ],
+        'terms' => [
+            'title' => 'The accepted terms',
+            'body' => 'The offer\'s terms as the applicant accepted them. The contract takes them unchanged; there is nothing to type again.',
+        ],
+        'employee' => [
+            'title' => 'Who the employee is',
+            'body' => 'If the person is already on file, link them to that record instead of creating a new one. Otherwise complete their details in Arabic and English.',
+        ],
+        'confirm' => [
+            'title' => 'Confirm hire',
+            'body' => 'Creates the employee and the contract together. If anything fails neither is created, and the reason shows at the top.',
+        ],
+        'after' => [
+            'title' => 'After the conversion',
+            'body' => 'The steps left around the new employee then appear: the sign-in account, the card and the welcome message.',
+        ],
+    ],
+    'attendance' => [
+        'intro' => [
+            'title' => 'The monthly timesheet',
+            'body' => 'The fingerprint device\'s report becomes each person\'s printed timesheet here, month by month.',
+        ],
+        'toolbar' => [
+            'title' => 'What to show',
+            'body' => 'Choose the month and the city, group people by project or department, or search for a name.',
+        ],
+        'summary' => [
+            'title' => 'The month in three numbers',
+            'body' => 'People, days that need a decision, and overtime hours.',
+        ],
+        'decide' => [
+            'title' => 'Days that need a decision',
+            'body' => 'A working day with no punch, or one punch, is never assumed: it waits for Worked or Absent, and the sheet is a draft until every day is answered.',
+        ],
+        'key' => [
+            'title' => 'Key to the squares',
+            'body' => 'Each square means something: worked, one punch, no record, leave, absent, day off.',
+        ],
+        'bulk' => [
+            'title' => 'Month end',
+            'body' => 'Approve the ready months together, then lock the approved ones. Locking adds the overtime to the annual leave balance.',
+        ],
+        'month-life' => [
+            'title' => 'The life of a month',
+            'body' => 'The employee confirms their month, their manager or HR approves it, then HR locks it. Overtime is not paid: it comes back as days off.',
+        ],
+    ],
+    'first-days' => [
+        'welcome' => [
+            'title' => 'Welcome!',
+            'body' => 'This is the page of your start with us: every step, who follows it up, and when.',
+        ],
+        'progress' => [
+            'title' => 'Where you are',
+            'body' => 'How many of the steps are done.',
+        ],
+        'yours' => [
+            'title' => 'What waits on you',
+            'body' => 'What is yours to do, such as reading and agreeing to the policies. Press the button to do it.',
+        ],
+        'steps' => [
+            'title' => 'All the steps',
+            'body' => 'The other steps are followed up by HR, your manager or the IT team. Their status changes here once done.',
+        ],
+    ],
+    'leaves-all' => [
+        'intro' => [
+            'title' => 'All leaves',
+            'body' => 'The leave requests of everyone in your scope, with their status.',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'body' => 'Search by employee name.',
+        ],
+        'filters' => [
+            'title' => 'Filter the list',
+            'body' => 'Filter by status, type or date.',
+        ],
+        'decide' => [
+            'title' => 'Who decides',
+            'body' => 'The direct manager decides their team member\'s request, and HR is informed. When the employee has no manager, HR of their city decides.',
+        ],
+    ],
 ];

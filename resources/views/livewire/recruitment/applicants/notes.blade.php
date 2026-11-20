@@ -1,5 +1,5 @@
 {{-- Internal only. Nothing in this panel can change an application's status. --}}
-<section class="rounded-surface border border-secondary-soft bg-white p-4 sm:p-6">
+<section class="rounded-surface border border-secondary-soft bg-card p-4 sm:p-6">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="notes-title" tabindex="-1" class="scroll-mt-24 text-h4 font-semibold">{{ __('recruitment-applicant.notes.title') }}</h2>
         <p class="text-sm text-secondary-medium">{{ __('recruitment-applicant.notes.internal_hint') }}</p>
@@ -37,9 +37,9 @@
                 <input type="checkbox" wire:model="sensitive" class="rounded border-secondary-light">
                 {{ __('recruitment-applicant.notes.sensitive') }}
             </label>
-            <x-primary-button type="submit" wire:loading.attr="disabled" wire:target="addNote">
+            <x-button type="submit" wire:loading.attr="disabled" wire:target="addNote">
                 {{ __('recruitment-applicant.notes.add') }}
-            </x-primary-button>
+            </x-button>
         </form>
     @endif
 
@@ -54,13 +54,13 @@
                     </p>
                     <div class="flex flex-wrap items-center gap-2">
                         @if ($note->note_type === \App\Models\RecruitmentApplicantNote::TYPE_CV_ARCHIVE)
-                            <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-xs font-semibold text-secondary-dark">{{ __('recruitment-applicant.notes.type_cv_archive') }}</span>
+                            <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-caption font-semibold text-secondary-dark">{{ __('recruitment-applicant.notes.type_cv_archive') }}</span>
                         @endif
                         @if ($note->is_sensitive)
-                            <span class="rounded-control bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary">{{ __('recruitment-applicant.notes.sensitive_badge') }}</span>
+                            <span class="rounded-control bg-primary/5 px-2 py-0.5 text-caption font-semibold text-primary">{{ __('recruitment-applicant.notes.sensitive_badge') }}</span>
                         @endif
                         @can('delete', $note)
-                            <button type="button" id="note-{{ $note->id }}-delete" wire:click="confirmDelete({{ $note->id }})" class="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                            <button type="button" id="note-{{ $note->id }}-delete" wire:click="confirmDelete({{ $note->id }})" class="cursor-pointer text-small font-semibold text-primary hover:underline">
                                 {{ __('recruitment-applicant.notes.delete') }}
                             </button>
                         @endcan
@@ -79,12 +79,12 @@
                             class="mt-1 w-full scroll-mt-24 rounded-control border-secondary-light"></textarea>
                         <x-forms.input-error field="deletionReason" input-id="deletionReason" />
                         <div class="mt-3 flex flex-wrap gap-3">
-                            <x-primary-button type="button" wire:click="deleteNote" wire:target="deleteNote">
+                            <x-button type="button" wire:click="deleteNote" wire:target="deleteNote">
                                 {{ __('recruitment-applicant.notes.delete_confirm') }}
-                            </x-primary-button>
-                            <x-secondary-button wire:click="cancelDelete">
+                            </x-button>
+                            <x-button variant="quiet" wire:click="cancelDelete">
                                 {{ __('recruitment-applicant.cancel') }}
-                            </x-secondary-button>
+                            </x-button>
                         </div>
                     </div>
                 @endif

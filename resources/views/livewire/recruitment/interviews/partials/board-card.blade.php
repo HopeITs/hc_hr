@@ -4,7 +4,7 @@
     use App\Enums\RecruitmentInterviewStatus;
     use App\Enums\RecruitmentInterviewType;
 
-    $focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
     $appId = (int) $interview->application_id;
     $status = $interview->status;
     $showUrl = route('recruitment.interviews.show', ['interviewId' => $interview->id]);
@@ -49,7 +49,7 @@
     $reasonKey = 'recruitment-applicant.interviews.cancellation_reasons.'.$interview->cancellation_reason;
 @endphp
 <li wire:key="board-card-{{ $interview->id }}"
-    class="relative rounded-surface border border-neutral-200 bg-white p-4 transition duration-200 hover:border-neutral-300 hover:shadow-e1 motion-reduce:transition-none has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-2 has-[.card-link:focus-visible]:outline-primary"
+    class="relative rounded-surface border border-neutral-200 bg-card p-4 transition duration-200 hover:border-neutral-300 hover:shadow-e1 motion-reduce:transition-none has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-2 has-[.card-link:focus-visible]:outline-ink"
     x-bind:class="thread === null ? '' : (thread === {{ $appId }} ? 'ring-2 ring-neutral-900 shadow-e2' : 'opacity-40')"
     @if ($threaded)
         x-on:mouseenter="thread = {{ $appId }}" x-on:mouseleave="thread = null"
@@ -69,12 +69,13 @@
                 <span class="text-caption font-semibold uppercase tracking-wider text-secondary-medium">{{ $dayLabel }}</span>
             @endif
             @if ($underWay)
-                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-secondary-dark px-2 py-0.5 text-xs font-semibold text-white">
-                    <span class="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" aria-hidden="true"></span>
+                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-secondary-dark px-2 py-0.5 text-caption font-semibold text-white">
+                    <span class="size-1.5 animate-pulse rounded-full bg-card motion-reduce:animate-none" aria-hidden="true"></span>
                     {{ __('recruitment-applicant.interviews.board.now') }}
                 </span>
             @elseif ($status !== RecruitmentInterviewStatus::Scheduled)
-                <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($status)">{{ __('recruitment-applicant.interviews.statuses.'.$status) }}</x-recruitment.pill>
+                @php $interviewChip = \App\Support\Status\RecruitmentStatus::interview($status); @endphp
+                <x-status class="shrink-0" :tone="$interviewChip['tone']" :icon="$interviewChip['icon']" :label="$interviewChip['label']" />
             @endif
             {{-- This interview on the viewer's dashboard (DashboardLayout::ITEMS, item.interview.<id>); above the stretched link. --}}
             <div class="relative z-10 shrink-0">
@@ -120,7 +121,7 @@
                     @elseif ($round['status'] !== null)
                         <span class="size-2.5 rounded-full {{ RecruitmentInterviewStatus::dotClasses($round['status']) }}"></span>
                     @else
-                        <span class="size-2.5 rounded-full border border-dashed border-neutral-300 bg-white"></span>
+                        <span class="size-2.5 rounded-full border border-dashed border-neutral-300 bg-card"></span>
                     @endif
                 </span>
                 <span aria-hidden="true" @class([

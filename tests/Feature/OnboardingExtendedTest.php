@@ -107,6 +107,64 @@ class OnboardingExtendedTest extends TestCase
         $this->hr = $this->makeUser($this->city, 'HR-ALP', ['employees.update', 'employees.view']);
     }
 
+    // ── My first days: the volunteer's own page ─────────────────────
+
+    public function test_my_first_days_shows_the_volunteer_their_own_steps_and_what_waits_on_them(): void
+    {
+        $volunteer = $this->volunteer();
+        $this->policy('Code of conduct', true);
+        $user = $volunteer->account;
+        app()->setLocale('en');
+
+        $this->assertTrue(\App\Livewire\Onboarding\MyFirstDays::inMenuFor($user));
+
+        Livewire::actingAs($user)->test(\App\Livewire\Onboarding\MyFirstDays::class)
+            ->assertSeeHtml('data-testid="first-days-progress"')
+            // The policies wait on them, with the way to do it.
+            ->assertSeeHtml('data-testid="first-days-yours"')
+            ->assertSee(__('onboarding.first-days.action.policies'))
+            ->assertSee(route('onboarding.policies'), false)
+            // HR's paperwork is not a step of theirs; the manager's session is.
+            ->assertDontSeeHtml('data-step="record"')
+            ->assertSeeHtml('data-step="manager_orientation"')
+            ->assertSee(__('onboarding.first-days.state.with-manager'));
+    }
+
+    public function test_my_first_days_never_shows_hrs_reasons_for_a_stuck_step(): void
+    {
+        // No policy is required yet: for HR the step is a problem with a reason; the volunteer sees who follows it.
+        $volunteer = $this->volunteer();
+        app()->setLocale('en');
+
+        Livewire::actingAs($volunteer->account)->test(\App\Livewire\Onboarding\MyFirstDays::class)
+            ->assertDontSee(__('employees.journey.policies-none-required'))
+            ->assertSee(__('onboarding.first-days.state.with-hr'));
+    }
+
+    public function test_staff_without_a_journey_get_no_menu_item_and_an_explanation(): void
+    {
+        $user = $this->managerUser;
+        app()->setLocale('en');
+
+        $this->assertFalse(\App\Livewire\Onboarding\MyFirstDays::inMenuFor($user));
+        Livewire::actingAs($user)->test(\App\Livewire\Onboarding\MyFirstDays::class)
+            ->assertSee(__('onboarding.first-days.none'));
+
+        $this->actingAs($user)->get(route('dashboard'))->assertDontSee(route('onboarding.my-first-days'), false);
+    }
+
+    public function test_the_menu_item_goes_two_weeks_after_the_journey_is_complete(): void
+    {
+        $volunteer = $this->volunteer();
+        $journey = $volunteer->onboardingJourney;
+        $journey->forceFill(['completed_at' => now()])->save();
+
+        $this->assertTrue(\App\Livewire\Onboarding\MyFirstDays::inMenuFor($volunteer->account->fresh()));
+
+        $this->travel(\App\Livewire\Onboarding\MyFirstDays::MENU_DAYS_AFTER_DONE + 1)->days();
+        $this->assertFalse(\App\Livewire\Onboarding\MyFirstDays::inMenuFor($volunteer->account->fresh()));
+    }
+
     // ── The manager's session ────────────────────────────────────────
 
     public function test_the_manager_schedules_then_records_the_session_and_it_is_due_in_fourteen_days(): void

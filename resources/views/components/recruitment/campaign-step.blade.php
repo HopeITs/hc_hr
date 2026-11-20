@@ -13,7 +13,7 @@
     for everything waiting.
 --}}
 <li {{ $attributes->class([
-    'scroll-mt-24 rounded-surface border bg-white p-5 shadow-e1 transition sm:p-6',
+    'scroll-mt-24 rounded-surface border bg-card p-5 shadow-e1 transition sm:p-6',
     'border-primary' => $current && ! $locked,
     'border-secondary-soft' => ! $current || $locked,
 ]) }}>
@@ -21,7 +21,7 @@
         <span @class([
             'flex size-9 shrink-0 items-center justify-center rounded-full text-body font-bold',
             'bg-primary text-white' => $done,
-            'border-2 border-primary bg-white text-primary' => ! $done && $current && ! $locked,
+            'border-2 border-primary bg-card text-primary' => ! $done && $current && ! $locked,
             'border border-secondary-light bg-secondary-soft/30 text-secondary-light' => ! $done && (! $current || $locked),
         ]) aria-hidden="true">
             @if ($done)

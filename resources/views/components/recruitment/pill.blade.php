@@ -5,4 +5,4 @@
 ])
 
 {{-- A short status or label chip. Layout extras (margin, shrink, wrapping) go in class. --}}
-<span {{ $attributes->class(['rounded-control px-2 py-0.5 text-xs font-semibold', $tone]) }}>{{ $slot }}</span>
+<span {{ $attributes->class(['rounded-control px-2 py-0.5 text-caption font-semibold', $tone]) }}>{{ $slot }}</span>

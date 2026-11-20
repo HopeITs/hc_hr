@@ -41,7 +41,7 @@
 
     <x-recruitment.public-brand-banner />
 
-    <section class="mt-3 overflow-hidden rounded-lg border border-secondary-soft bg-white shadow-e1">
+    <section class="mt-3 overflow-hidden rounded-lg border border-secondary-soft bg-card shadow-e1">
         <div class="border-t-[7px] border-primary px-6 py-5 sm:px-7">
             <h2 class="text-[1.65rem] font-medium leading-tight text-secondary-dark">{{ $title }} - {{ __('recruitment.application_form.vacancy_announcement') }}</h2>
 
@@ -62,7 +62,7 @@
     </section>
 
     @if ($activeSection === 'vacancy' && ($responsibilities || $qualifications))
-        <section class="mt-3 rounded-lg border border-secondary-soft bg-white px-6 py-5 shadow-e1 sm:px-7">
+        <section class="mt-3 rounded-lg border border-secondary-soft bg-card px-6 py-5 shadow-e1 sm:px-7">
             @if ($responsibilities)
                 <h3 class="font-semibold text-secondary-dark">{{ $responsibilitiesLabel }}</h3>
                 <p class="mt-2 whitespace-pre-line text-small leading-6 text-secondary-dark">{{ $responsibilities }}</p>
@@ -74,7 +74,7 @@
         </section>
     @endif
 
-    <section class="mt-3 overflow-hidden rounded-lg border border-secondary-soft bg-white shadow-e1">
+    <section class="mt-3 overflow-hidden rounded-lg border border-secondary-soft bg-card shadow-e1">
         <div class="bg-primary px-6 py-3 text-white sm:px-7">
             <h3 class="text-body font-semibold">{{ $section['label'][$locale] ?? $section['label']['en'] }}</h3>
             <p class="mt-0.5 text-small text-white/80">{{ $section['description'][$locale] ?? $section['description']['en'] }}</p>
@@ -87,7 +87,7 @@
                 $label = $field['label'][$locale] ?: $field['label']['en'];
                 $help = $field['help'][$locale] ?: $field['help']['en'];
             @endphp
-            <section class="rounded-lg border border-secondary-soft bg-white px-6 py-5 shadow-e1 sm:px-7">
+            <section class="rounded-lg border border-secondary-soft bg-card px-6 py-5 shadow-e1 sm:px-7">
                 <label class="block text-body font-medium leading-6 text-secondary-dark">
                     {{ $label }}
                     @if ($field['required']) <span class="text-primary">*</span> @endif
@@ -123,7 +123,7 @@
                         </div>
                         @break
                     @case('file')
-                        <button type="button" disabled class="mt-4 inline-flex items-center gap-2 rounded border border-secondary-light bg-white px-3 py-2 text-small font-semibold text-primary">
+                        <button type="button" disabled class="mt-4 inline-flex items-center gap-2 rounded border border-secondary-light bg-card px-3 py-2 text-small font-semibold text-primary">
                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
                             {{ __('recruitment.application_form.add_file') }}
                         </button>
@@ -139,7 +139,7 @@
                 @endswitch
             </section>
         @empty
-            <section class="rounded-lg border border-dashed border-secondary-light bg-white px-6 py-10 text-center text-body text-secondary-medium">
+            <section class="rounded-lg border border-dashed border-secondary-light bg-card px-6 py-10 text-center text-body text-secondary-medium">
                 {{ __('recruitment.application_form.empty_section') }}
             </section>
         @endforelse
@@ -148,7 +148,7 @@
     <div class="mt-4 flex items-center justify-between gap-3 pb-4">
         <div class="flex gap-2">
             @if ($previousSection)
-                <button type="button" wire:click="setPreviewSection('{{ $previousSection }}')" class="rounded border border-secondary-light bg-white px-4 py-2 text-small font-semibold text-primary shadow-sm hover:bg-secondary-soft/30">
+                <button type="button" wire:click="setPreviewSection('{{ $previousSection }}')" class="rounded border border-secondary-light bg-card px-4 py-2 text-small font-semibold text-primary shadow-sm hover:bg-secondary-soft/30">
                     {{ __('recruitment.application_form.back') }}
                 </button>
             @endif

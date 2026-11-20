@@ -33,8 +33,8 @@
             </div>
             <x-forms.input-error field="applicationIds" input-id="bulk-review-access-selection" />
             <div class="mt-4 flex flex-wrap gap-3">
-                <x-primary-button type="button" wire:click="apply" wire:loading.attr="disabled" wire:target="apply">{{ __('recruitment-applicant.profile_reviews.bulk_apply') }}</x-primary-button>
-                <x-secondary-button wire:click="cancel">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
+                <x-button type="button" wire:click="apply" wire:loading.attr="disabled" wire:target="apply">{{ __('recruitment-applicant.profile_reviews.bulk_apply') }}</x-button>
+                <x-button variant="quiet" wire:click="cancel">{{ __('recruitment-applicant.cancel') }}</x-button>
             </div>
         </section>
     @endif

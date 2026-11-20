@@ -35,6 +35,12 @@ class HelpTopics
         'contract-types' => ['points' => 5, 'permission' => 'contracts.view'],
         'auto-renew' => ['points' => 5, 'permission' => 'contracts.view'],
         'position-dependencies' => ['points' => 5, 'permission' => 'contracts.view'],
+        // Item 19 (UX review): the flows a new HR officer meets with no guide.
+        'hiring-flow' => ['points' => 5, 'permission' => 'recruitment-requests.view'],
+        'hiring-convert' => ['points' => 4, 'permission' => 'recruitment-applicants.convert-hires'],
+        'attendance-month' => ['points' => 5],
+        'first-days' => ['points' => 4],
+        'probation-review' => ['points' => 3],
     ];
 
     /**
@@ -53,6 +59,23 @@ class HelpTopics
         'contracts.edit' => ['contract-types', 'auto-renew', 'position-dependencies'],
         'contracts.show' => ['contract-types', 'auto-renew'],
         'contracts.index' => ['contract-types', 'auto-renew', 'position-dependencies'],
+        'recruitment.requests.index' => ['hiring-flow'],
+        'recruitment.requests.create' => ['hiring-flow'],
+        'recruitment.requests.direct-open' => ['hiring-flow'],
+        'recruitment.campaigns.index' => ['hiring-flow'],
+        'recruitment.applicants.index' => ['hiring-flow'],
+        'recruitment.applicants.show' => ['hiring-flow', 'hiring-convert'],
+        'recruitment.interviews.index' => ['hiring-flow'],
+        'recruitment.offers.index' => ['hiring-convert', 'hiring-flow'],
+        'recruitment.offers.show' => ['hiring-convert', 'hiring-flow'],
+        'recruitment.offers.convert' => ['hiring-convert', 'first-days'],
+        'employees.create' => ['hiring-convert', 'first-days'],
+        'employees.edit' => ['first-days'],
+        'attendance.timesheets' => ['attendance-month'],
+        'attendance.upload' => ['attendance-month'],
+        'onboarding.my-first-days' => ['first-days'],
+        'onboarding.policies' => ['first-days'],
+        'probation.show' => ['probation-review'],
     ];
 
     /**

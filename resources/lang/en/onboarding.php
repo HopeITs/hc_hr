@@ -2,6 +2,54 @@
 
 // Track 7: the pages of the extended onboarding journey.
 return [
+    // My first days (Onboarding\MyFirstDays): the volunteer's own journey, worded for them.
+    'first-days' => [
+        'title' => 'My first days',
+        'lead' => 'The steps of your start with us: what is done, what waits on you, and who follows up the rest.',
+        'none' => 'No starting steps are recorded for you. This page is for new volunteers.',
+        'complete' => 'Every step of your start is done. Welcome to the team!',
+        'progress' => ':done of :total steps done',
+        'yours-title' => '{0} Nothing waits on you now|{1} One thing waits on you now|[2,*] :count things wait on you now',
+        'steps-title' => 'All the steps',
+        'scheduled' => 'Scheduled for',
+        'expected-by' => 'Expected by',
+        'help' => 'If a step is late or you have a question, contact the HR team in your city.',
+        'state' => [
+            'done' => 'Done',
+            'yours' => 'Waits on you',
+            'after-contract' => 'Starts once the contract is signed',
+            'with-hr' => 'HR follows it up',
+            'with-manager' => 'Your manager follows it up',
+            'with-deliverer' => 'Waiting to be handed over',
+            'with-system' => 'Happens on its own',
+        ],
+        'action' => [
+            'policies' => 'Read and agree',
+            'guideline' => 'Review the guideline',
+        ],
+        'step' => [
+            'contract' => 'Your contract',
+            'account' => 'Your sign-in account',
+            'electronics' => 'Your electronics',
+            'card' => 'Your ID card',
+            'orientation' => 'Orientation with HR',
+            'manager_orientation' => 'A session with your manager',
+            'policies' => 'Read and agree to the policies',
+            'guideline' => 'Review the Media guideline',
+            'other_items' => 'Other items for you',
+        ],
+        'about' => [
+            'contract' => 'The signed contract your journey starts with.',
+            'account' => 'The account you sign in to this system with, to request leave and follow your file.',
+            'electronics' => 'What you need to work (laptop, work email…), handed over by the IT team of your city.',
+            'card' => 'Your digital card and its printed copy, handed over by HR.',
+            'orientation' => 'A meeting to get to know the centre, its systems and what is expected of you.',
+            'manager_orientation' => 'A meeting with your direct manager about the programmes you will work in and how the day runs.',
+            'policies' => 'The centre\'s policies, which you read and agree to from your account.',
+            'guideline' => 'A guideline by the Media team, which you review and confirm from your account.',
+            'other_items' => 'Other items your centre sets and hands over to you.',
+        ],
+    ],
     'manager-session' => [
         'title' => 'Orientation session with the new volunteer',
         'lead' => 'Your session with :name: set the date, then record it once it has happened.',

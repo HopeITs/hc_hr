@@ -1,7 +1,7 @@
 <x-slot:title>{{ __('recruitment-workflow.pending_approvals') }}</x-slot:title>
 
 @php
-    $card = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $card = 'rounded-surface border border-neutral-200 bg-card shadow-e1';
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider text-secondary-medium rtl:normal-case rtl:tracking-normal';
     $daysLabel = fn (?int $d) => $d === null ? '—' : ($d === 0 ? __('recruitment-workflow.waiting_today') : trans_choice('recruitment-workflow.waiting_days', $d, ['count' => $d]));
 @endphp
@@ -22,7 +22,7 @@
             <h2 class="mt-4 text-h4 font-semibold text-neutral-900">{{ __('recruitment-workflow.empty_title') }}</h2>
             <p class="mx-auto mt-2 max-w-md text-body text-secondary-medium text-pretty">{{ __('recruitment-workflow.empty_message') }}</p>
             <a href="{{ route('recruitment.requests.index') }}"
-               class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-neutral-200 bg-white px-4 text-small font-semibold text-secondary-dark shadow-e1 hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-10">
+               class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-neutral-200 bg-card px-4 text-small font-semibold text-secondary-dark shadow-e1 hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:min-h-10">
                 {{ __('recruitment.requests') }}
                 <flux:icon.arrow-right variant="micro" class="size-4 rtl:rotate-180" aria-hidden="true" />
             </a>

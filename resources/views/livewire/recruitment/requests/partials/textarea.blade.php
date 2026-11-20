@@ -21,7 +21,7 @@
         :hint="$hint ?? null"
         :placeholder="$placeholder ?? null"
         :disabled="$isLocked"
-        :class="$isLocked ? 'cursor-not-allowed border-secondary-light bg-white text-secondary-dark shadow-none' : ''"
+        :class="$isLocked ? 'cursor-not-allowed border-secondary-light bg-card text-secondary-dark shadow-none' : ''"
         :aria-describedby="$hasError ? $field.'-error' : null"
         aria-invalid="{{ $hasError ? 'true' : 'false' }}" />
     @include('livewire.recruitment.requests.partials.field-state', ['isChangeRequested' => false, 'isLocked' => $isLocked])

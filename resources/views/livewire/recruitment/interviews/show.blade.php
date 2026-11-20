@@ -13,8 +13,8 @@
     $at = fn ($date) => $date?->copy()->setTimezone($timezone)->format('Y-m-d H:i');
 
     // A bordered neutral button: every action here except the one primary next step.
-    $quiet = 'inline-flex cursor-pointer items-center justify-center rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-medium text-secondary-dark shadow-e1 transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $link = 'font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $quiet = 'inline-flex cursor-pointer items-center justify-center rounded-control border border-secondary-light bg-card px-4 py-2 text-body font-medium text-secondary-dark shadow-e1 transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $link = 'font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
 @endphp
 
 <div class="space-y-6">
@@ -23,12 +23,12 @@
     {{-- With a panel open, its own error shows inside it, next to the action that caused it. --}}
     @if ($panel === null)
         @error('interview')
-            <p role="alert" class="rounded-control border border-primary bg-white p-3 text-sm text-primary">{{ $message }}</p>
+            <p role="alert" class="rounded-control border border-primary bg-card p-3 text-sm text-primary">{{ $message }}</p>
         @enderror
     @endif
 
     {{-- Summary --}}
-    <section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+    <section class="rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
                 <h1 id="interview-title" tabindex="-1" class="scroll-mt-24 text-h3 font-semibold wrap-break-word">
@@ -45,9 +45,8 @@
             <div class="flex shrink-0 items-center gap-2">
                 {{-- This interview on the viewer's dashboard (item.interview.<id>). --}}
                 <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('interview', $interview->id)" :key="'atd-interview-'.$interview->id" />
-                <x-recruitment.pill class="shrink-0" :tone="RecruitmentInterviewStatus::classes($interview->status)">
-                    {{ __('recruitment-applicant.interviews.statuses.'.$interview->status) }}
-                </x-recruitment.pill>
+                @php $interviewChip = \App\Support\Status\RecruitmentStatus::interview($interview->status); @endphp
+                <x-status class="shrink-0" :tone="$interviewChip['tone']" :icon="$interviewChip['icon']" :label="$interviewChip['label']" />
             </div>
         </div>
 
@@ -56,7 +55,7 @@
                 <dt class="text-secondary-medium">{{ __('recruitment-applicant.interviews.when') }}</dt>
                 <dd class="mt-1 font-medium">
                     {{ $starts->translatedFormat('l j F Y') }} &middot; {{ $starts->format('H:i') }}@if ($ends) – {{ $ends->format('H:i') }}@endif
-                    <span class="block text-xs font-normal text-secondary-medium">{{ $starts->format('Y-m-d H:i') }} &middot; {{ $timezone }} (UTC{{ $starts->format('P') }})</span>
+                    <span class="block text-small font-normal text-secondary-medium">{{ $starts->format('Y-m-d H:i') }} &middot; {{ $timezone }} (UTC{{ $starts->format('P') }})</span>
                 </dd>
             </div>
             <div>
@@ -73,13 +72,13 @@
                                 <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5"/></svg>
                                 <span class="sr-only">{{ __('recruitment-applicant.interviews.new_tab') }}</span>
                             </a>
-                            <span class="mt-1 block text-xs font-normal break-all text-secondary-medium" dir="ltr">{{ $meetingUrl }}</span>
+                            <span class="mt-1 block text-small font-normal break-all text-secondary-medium" dir="ltr">{{ $meetingUrl }}</span>
                         @elseif ($meetingUrl)
                             {{-- Over: the link as plain text for the record, nothing to click. --}}
-                            <span class="mt-1 block text-xs font-normal break-all text-secondary-medium" dir="ltr">{{ $meetingUrl }}</span>
-                            <span class="block text-xs font-normal text-secondary-medium">{{ __('recruitment-applicant.interviews.meeting_over') }}</span>
+                            <span class="mt-1 block text-small font-normal break-all text-secondary-medium" dir="ltr">{{ $meetingUrl }}</span>
+                            <span class="block text-small font-normal text-secondary-medium">{{ __('recruitment-applicant.interviews.meeting_over') }}</span>
                         @else
-                            <span class="block text-xs font-normal text-secondary-medium">{{ __('recruitment-applicant.interviews.meeting_url_hidden') }}</span>
+                            <span class="block text-small font-normal text-secondary-medium">{{ __('recruitment-applicant.interviews.meeting_url_hidden') }}</span>
                         @endif
                     @endif
                 </dd>
@@ -129,11 +128,11 @@
         @if ($canManage && $interview->isOpen())
             <div class="mt-6 flex flex-wrap items-center gap-2 border-t border-secondary-soft pt-4">
                 @if ($hasStarted)
-                    <x-primary-button type="button" id="interview-action-{{ RecruitmentInterviewStatus::Completed }}" :show-spinner="false"
+                    <x-button type="button" id="interview-action-{{ RecruitmentInterviewStatus::Completed }}" :loading="false"
                         wire:click="beginOutcome('{{ RecruitmentInterviewStatus::Completed }}')"
                         aria-expanded="{{ $panel === RecruitmentInterviewStatus::Completed ? 'true' : 'false' }}">
                         {{ __('recruitment-applicant.interviews.actions.completed') }}
-                    </x-primary-button>
+                    </x-button>
                     <button type="button" id="interview-action-{{ RecruitmentInterviewStatus::NoShow }}"
                         wire:click="beginOutcome('{{ RecruitmentInterviewStatus::NoShow }}')"
                         aria-expanded="{{ $panel === RecruitmentInterviewStatus::NoShow ? 'true' : 'false' }}"
@@ -151,7 +150,7 @@
                 </button>
             </div>
             @unless ($hasStarted)
-                <p class="mt-2 text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.outcome_after_start') }}</p>
+                <p class="mt-2 text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.outcome_after_start') }}</p>
             @endunless
         @endif
 
@@ -167,9 +166,9 @@
             @if ($panel !== null)
                 <div id="interview-panel" class="space-y-3">
                     @error('interview')
-                        <div role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-control border border-primary bg-white p-3 text-sm text-primary">
+                        <div role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-control border border-primary bg-card p-3 text-sm text-primary">
                             <span>{{ $message }}</span>
-                            <a href="{{ route('recruitment.interviews.show', ['interviewId' => $interview->id]) }}" wire:navigate class="font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ __('recruitment-applicant.interviews.reload') }}</a>
+                            <a href="{{ route('recruitment.interviews.show', ['interviewId' => $interview->id]) }}" wire:navigate class="font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">{{ __('recruitment-applicant.interviews.reload') }}</a>
                         </div>
                     @enderror
 
@@ -177,7 +176,7 @@
                         <p class="text-sm text-secondary-medium">{{ __('recruitment-applicant.interviews.cancel_hint') }}</p>
                         <div>
                             <x-forms.input-label for="cancelReason" required :value="__('recruitment-applicant.interviews.cancel_reason')" />
-                            <select id="cancelReason" wire:model.live="cancelReason" class="w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-body shadow-e1 transition focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary">
+                            <select id="cancelReason" wire:model.live="cancelReason" class="w-full rounded-control border border-secondary-light bg-card px-3 py-2 text-body shadow-e1 transition focus:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink">
                                 <option value="">{{ __('recruitment.choose') }}</option>
                                 @foreach ($cancellationReasons as $code)
                                     <option value="{{ $code }}">{{ __('recruitment-applicant.interviews.cancellation_reasons.'.$code) }}</option>
@@ -188,31 +187,31 @@
                         <div>
                             <x-forms.input-label for="cancelNote" :required="$cancelReason === RecruitmentInterviewSchedulingService::REASON_OTHER" :value="__('recruitment-applicant.interviews.internal_note')" />
                             <x-forms.textarea id="cancelNote" wire:model="cancelNote" rows="2" />
-                            <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.internal_note_hint') }}</p>
+                            <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.internal_note_hint') }}</p>
                             <x-forms.input-error field="cancelNote" input-id="cancelNote" />
                         </div>
                         @unless ($hasStarted)
                             <label class="flex items-start gap-2 text-sm">
-                                <input type="checkbox" wire:model="notifyCandidate" class="mt-0.5 size-4 rounded-inset border-secondary-light text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                <input type="checkbox" wire:model="notifyCandidate" class="mt-0.5 size-4 rounded-inset border-secondary-light text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                                 <span>{{ __('recruitment-applicant.interviews.notify_candidate_cancel') }}
-                                    <span class="block text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.notify_candidate_hint') }}</span>
+                                    <span class="block text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.notify_candidate_hint') }}</span>
                                 </span>
                             </label>
                         @endunless
                         <div class="flex flex-wrap gap-3">
-                            <x-primary-button type="button" wire:click="cancelInterview" wire:target="cancelInterview">{{ __('recruitment-applicant.interviews.confirm_cancel') }}</x-primary-button>
-                            <x-secondary-button wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.keep') }}</x-secondary-button>
+                            <x-button type="button" wire:click="cancelInterview" wire:target="cancelInterview">{{ __('recruitment-applicant.interviews.confirm_cancel') }}</x-button>
+                            <x-button variant="quiet" wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.keep') }}</x-button>
                         </div>
                     @else
                         <div>
                             <x-forms.input-label for="outcomeNote" :value="__('recruitment-applicant.interviews.internal_note')" />
                             <x-forms.textarea id="outcomeNote" wire:model="outcomeNote" rows="2" />
-                            <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.outcome_note_hint') }}</p>
+                            <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.outcome_note_hint') }}</p>
                             <x-forms.input-error field="outcome" input-id="outcomeNote" />
                         </div>
                         <div class="flex flex-wrap gap-3">
-                            <x-primary-button type="button" wire:click="recordOutcome" wire:target="recordOutcome">{{ __('recruitment-applicant.interviews.confirm_outcome') }}</x-primary-button>
-                            <x-secondary-button wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.back') }}</x-secondary-button>
+                            <x-button type="button" wire:click="recordOutcome" wire:target="recordOutcome">{{ __('recruitment-applicant.interviews.confirm_outcome') }}</x-button>
+                            <x-button variant="quiet" wire:click="requestClose('interviewActionModal')">{{ __('recruitment-applicant.interviews.back') }}</x-button>
                         </div>
                     @endif
                 </div>
@@ -220,7 +219,7 @@
         </x-modal.dialog>
     </section>
 
-    <section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+    <section class="rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.attachments.title') }}</h2>
@@ -233,7 +232,7 @@
                 <li wire:key="interview-attachment-{{ $media->id }}" class="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div class="min-w-0">
                         <p class="font-medium wrap-anywhere">{{ $media->getCustomProperty('original_name', $media->name) }}</p>
-                        <p class="text-xs text-secondary-medium">{{ number_format($media->size / 1024, 1) }} KB &middot; {{ $media->created_at?->format('Y-m-d H:i') }}</p>
+                        <p class="text-small text-secondary-medium">{{ number_format($media->size / 1024, 1) }} KB &middot; {{ $media->created_at?->format('Y-m-d H:i') }}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <a href="{{ route('recruitment.interview-attachments.download', ['media' => $media->id]) }}" class="{{ $link }}">
@@ -269,12 +268,12 @@
                             input.dispatchEvent(new Event('change', { bubbles: true }));
                         }
                     "
-                    :class="dragging ? 'border-primary bg-primary/5' : 'border-secondary-light bg-white'"
+                    :class="dragging ? 'border-primary bg-primary/5' : 'border-secondary-light bg-card'"
                     class="mt-1 rounded-surface border-2 border-dashed p-6 text-center transition duration-150 motion-reduce:transition-none sm:p-8"
                 >
                     <x-icons.upload class="mx-auto size-12 text-primary" />
                     <p class="mt-3 text-body text-secondary-dark">{{ __('recruitment-applicant.interviews.attachments.drop_hint') }}</p>
-                    <label for="interviewAttachment" class="mt-4 inline-flex cursor-pointer items-center justify-center rounded-control bg-primary px-4 py-2 text-body font-semibold text-white shadow-e1 transition hover:bg-primary-hover focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
+                    <label for="interviewAttachment" class="mt-4 inline-flex cursor-pointer items-center justify-center rounded-control bg-primary px-4 py-2 text-body font-semibold text-white shadow-e1 transition hover:bg-primary-hover focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
                         {{ __('recruitment-applicant.interviews.attachments.browse') }}
                     </label>
                     <input x-ref="fileInput" id="interviewAttachment" type="file" wire:model="attachment"
@@ -283,11 +282,11 @@
                         class="sr-only">
                     <p x-show="selectedName" x-text="selectedName" class="mt-3 break-all text-small font-medium text-secondary-dark" x-cloak></p>
                 </div>
-                <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.attachments.formats') }}</p>
+                <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.attachments.formats') }}</p>
                 <x-forms.input-error field="attachment" input-id="interviewAttachment" />
-                <x-primary-button type="submit" wire:target="attachment,uploadAttachment" class="mt-3">
+                <x-button type="submit" wire:target="attachment,uploadAttachment" class="mt-3">
                     {{ __('recruitment-applicant.interviews.attachments.upload') }}
-                </x-primary-button>
+                </x-button>
             </form>
         @endif
     </section>
@@ -314,7 +313,7 @@
 
     {{-- Reschedule history --}}
     @if ($interview->reschedules->isNotEmpty())
-        <section id="reschedule-history" class="scroll-mt-24 rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+        <section id="reschedule-history" class="scroll-mt-24 rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
             <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.history') }}</h2>
             <ol class="mt-3 space-y-3 text-sm">
                 @foreach ($interview->reschedules as $change)
@@ -341,7 +340,7 @@
 
     {{-- Candidate emails: HR only --}}
     @if ($canManage)
-        <section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+        <section class="rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
             <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.candidate_emails') }}</h2>
             @if ($notices->isEmpty())
                 <p class="mt-2 text-sm text-secondary-medium">{{ __('recruitment-applicant.interviews.no_candidate_emails') }}</p>

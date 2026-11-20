@@ -13,7 +13,7 @@
 @endphp
 
 <div {{ $attributes->class(['grid gap-4 md:grid-cols-2']) }}>
-    <article class="rounded-card border border-secondary-soft bg-white p-5 shadow-e1">
+    <article class="rounded-card border border-secondary-soft bg-card p-5 shadow-e1">
         <div class="flex items-start justify-between gap-3">
             <div class="flex gap-3">
                 <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-small font-bold text-white">1</span>
@@ -36,7 +36,7 @@
         @endif
     </article>
 
-    <article class="rounded-card border border-secondary-soft bg-white p-5 shadow-e1">
+    <article class="rounded-card border border-secondary-soft bg-card p-5 shadow-e1">
         <div class="flex items-start justify-between gap-3">
             <div class="flex gap-3">
                 <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-small font-bold text-white">2</span>

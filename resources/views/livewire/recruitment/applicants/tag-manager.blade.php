@@ -1,11 +1,11 @@
 <div>
     @if ($mayManage)
         @php
-            $field = 'mt-1 block min-h-11 w-full rounded-control border border-neutral-300 bg-white px-3 text-body text-neutral-900 shadow-e1 focus:border-primary focus:ring-primary sm:min-h-10';
-            $quiet = 'inline-flex py-2 cursor-pointer items-center rounded-control px-3 text-body font-semibold transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+            $field = 'mt-1 block min-h-11 w-full rounded-control border border-neutral-300 bg-card px-3 text-body text-neutral-900 shadow-e1 focus:border-ink focus:ring-ink sm:min-h-10';
+            $quiet = 'inline-flex py-2 cursor-pointer items-center rounded-control px-3 text-body font-semibold transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
         @endphp
-        <details class="group rounded-surface border border-neutral-200 bg-white shadow-e1">
-            <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-surface p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+        <details class="group rounded-surface border border-neutral-200 bg-card shadow-e1">
+            <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-surface p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden">
                 <span class="flex min-w-0 items-start gap-3">
                     <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-secondary-dark" aria-hidden="true">
                         <flux:icon.tag variant="mini" class="size-5" />
@@ -49,7 +49,7 @@
                         @endforeach
                     </select>
                 </div>
-                <x-primary-button type="submit" wire:loading.attr="disabled" wire:target="create">{{ __('recruitment-applicant.tags.create') }}</x-primary-button>
+                <x-button type="submit" wire:loading.attr="disabled" wire:target="create">{{ __('recruitment-applicant.tags.create') }}</x-button>
             </form>
             <x-forms.input-error field="tagName" input-id="tagName" />
             <x-forms.input-error field="tagKind" input-id="tagKind" />
@@ -63,11 +63,11 @@
                                 <label for="renameName" class="sr-only">{{ __('recruitment-applicant.tags.new_name') }}</label>
                                 <input id="renameName" type="text" wire:model="renameName" maxlength="{{ config('recruitment.tags.max_length') }}" aria-required="true"
                                     @error('renameName') aria-invalid="true" aria-describedby="renameName-error" @enderror
-                                    class="min-h-11 rounded-control border border-neutral-300 bg-white px-3 text-small shadow-e1 focus:border-primary focus:ring-primary sm:min-h-9">
+                                    class="min-h-11 rounded-control border border-neutral-300 bg-card px-3 text-small shadow-e1 focus:border-ink focus:ring-ink sm:min-h-9">
                                 <label for="renameKind" class="sr-only">{{ __('recruitment-applicant.tags.kind') }}</label>
                                 <select id="renameKind" wire:model="renameKind"
                                     @error('renameKind') aria-invalid="true" aria-describedby="renameKind-error" @enderror
-                                    class="min-h-11 rounded-control border border-neutral-300 bg-white px-3 text-small shadow-e1 focus:border-primary focus:ring-primary sm:min-h-9">
+                                    class="min-h-11 rounded-control border border-neutral-300 bg-card px-3 text-small shadow-e1 focus:border-ink focus:ring-ink sm:min-h-9">
                                     @foreach ($kinds as $kind)
                                         <option value="{{ $kind }}">{{ __('recruitment-applicant.tags.kinds.'.$kind) }}</option>
                                     @endforeach
@@ -75,13 +75,13 @@
                                 <label for="renameColor" class="sr-only">{{ __('recruitment-applicant.tags.color') }}</label>
                                 <select id="renameColor" wire:model="renameColor"
                                     @error('renameColor') aria-invalid="true" aria-describedby="renameColor-error" @enderror
-                                    class="min-h-11 rounded-control border border-neutral-300 bg-white px-3 text-small shadow-e1 focus:border-primary focus:ring-primary sm:min-h-9">
+                                    class="min-h-11 rounded-control border border-neutral-300 bg-card px-3 text-small shadow-e1 focus:border-ink focus:ring-ink sm:min-h-9">
                                     @foreach ($palette as $color)
                                         <option value="{{ $color }}">{{ __('recruitment-applicant.tags.colors.'.$color) }}</option>
                                     @endforeach
                                 </select>
-                                <x-primary-button type="submit">{{ __('recruitment-applicant.tags.save') }}</x-primary-button>
-                                <x-secondary-button wire:click="cancelRename">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
+                                <x-button type="submit">{{ __('recruitment-applicant.tags.save') }}</x-button>
+                                <x-button variant="quiet" wire:click="cancelRename">{{ __('recruitment-applicant.cancel') }}</x-button>
                                 <x-forms.input-error field="renameName" input-id="renameName" class="w-full" />
                                 <x-forms.input-error field="renameKind" input-id="renameKind" class="w-full" />
                                 <x-forms.input-error field="renameColor" input-id="renameColor" class="w-full" />
@@ -98,7 +98,7 @@
                                 </x-recruitment.pill>
                                 <span class="text-secondary-medium">{{ trans_choice('recruitment-applicant.tags.usage', $tag->visible_count, ['count' => $tag->visible_count]) }}</span>
                                 @if ($tag->trashed())
-                                    <span class="text-xs text-secondary-medium">&middot; {{ __('recruitment-applicant.tags.deleted') }}</span>
+                                    <span class="text-small text-secondary-medium">&middot; {{ __('recruitment-applicant.tags.deleted') }}</span>
                                 @endif
                             </div>
                             {{-- Each button names its tag for a screen reader; the row shows it once. --}}

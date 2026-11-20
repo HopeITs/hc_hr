@@ -6,7 +6,7 @@
 <details class="mt-4 rounded-control border border-neutral-200 p-4 text-sm" @if ($open ?? false) open @endif>
     <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2">
         <span class="font-semibold">{{ __('recruitment-applicant.indicators.title') }}</span>
-        <span class="recruitment-badge rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark">
+        <span class="recruitment-badge rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark">
             @if ($set->assessedCount() === 0)
                 {{ __('recruitment-applicant.indicators.none_assessed') }}
             @else
@@ -34,7 +34,7 @@
         @endforeach
     </ul>
 
-    <p class="mt-3 text-xs text-secondary-medium">
+    <p class="mt-3 text-small text-secondary-medium">
         {{ __('recruitment-applicant.indicators.criteria_version', ['version' => $set->criteriaVersion]) }}
         @if ($snapshot)
             &middot; {{ __('recruitment-applicant.indicators.snapshot_saved', [

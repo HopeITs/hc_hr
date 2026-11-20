@@ -4,14 +4,14 @@
     use App\Enums\HiringCampaignStatus;
     use App\Livewire\Recruitment\Campaigns\Index;
 
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
     $tile = fn (bool $on) => 'flex min-h-16 w-full cursor-pointer flex-col items-start justify-between gap-1 rounded-control border px-4 py-2.5 text-start shadow-e1 transition duration-150 motion-reduce:transition-none '.$focus.' '
-        .($on ? 'border-neutral-300 bg-selection' : 'border-neutral-200 bg-white hover:border-neutral-300');
+        .($on ? 'border-neutral-300 bg-selection' : 'border-neutral-200 bg-card hover:border-neutral-300');
     // Same stage dots as the table: hollow = being prepared, ink = live, faded = over.
     $dot = fn (int $status) => match ($status) {
         HiringCampaignStatus::Open => 'bg-neutral-900',
         HiringCampaignStatus::Published => 'bg-neutral-500',
-        HiringCampaignStatus::Draft => 'border border-neutral-500 bg-white',
+        HiringCampaignStatus::Draft => 'border border-neutral-500 bg-card',
         default => 'bg-neutral-300',
     };
 @endphp
