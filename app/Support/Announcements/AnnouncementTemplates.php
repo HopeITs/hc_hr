@@ -95,6 +95,33 @@ final class AnnouncementTemplates
     }
 
     /**
+     * The message as an .eml file. Opened (a double click), Outlook and other mail
+     * programs show it as a new message to send, whatever its length: `X-Unsent: 1`
+     * is what makes it a draft rather than a received mail. Null without a valid To.
+     */
+    public static function eml(string $to, string $cc, string $subject, string $body): ?string
+    {
+        $to = self::addresses($to);
+
+        if ($to === []) {
+            return null;
+        }
+
+        $cc = self::addresses($cc);
+        $lines = [
+            'X-Unsent: 1',
+            'To: '.implode(', ', $to),
+            ...($cc ? ['Cc: '.implode(', ', $cc)] : []),
+            'Subject: '.mb_encode_mimeheader($subject, 'UTF-8', 'B', "\r\n"),
+            'MIME-Version: 1.0',
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+        ];
+
+        return implode("\r\n", $lines)."\r\n\r\n".chunk_split(base64_encode(str_replace("\n", "\r\n", $body)), 76, "\r\n");
+    }
+
+    /**
      * The valid addresses in a list typed by hand.
      *
      * @return list<string>
