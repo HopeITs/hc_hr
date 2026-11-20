@@ -29,6 +29,9 @@ return [
     ],
 
     'file-input' => [
+        // The page draws the file button itself (forms/file-input): the browser's own text follows the browser's language.
+        'choose' => 'Choose file',
+        'none-chosen' => 'None chosen',
         'staged' => 'Not saved yet. This file stays attached while this page is open, even if saving fails. If you leave or reload the page, choose it again.',
         'new-profile-photo' => 'New profile photo',
         'current-profile-photo' => 'Current profile photo',

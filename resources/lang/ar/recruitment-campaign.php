@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Under the list title (quick fix 7): where the rows come from, so an empty list is not a dead end.
+    'campaigns_intro' => 'تُفتح الحملة لشاغر جاء من طلب توظيف موافق عليه، وتستقبل المتقدمين عبر رابط التقديم الخاص بها.',
     'unknown_link_mode' => 'ليس هذا ممّا تُفتح له الحملة.',
     'unknown_transition' => 'ليس هذا ممّا تفعله الحملة.',
     'transition_not_allowed' => 'لا يمكن للحملة أن تنتقل هذا الانتقال من حالتها.',
