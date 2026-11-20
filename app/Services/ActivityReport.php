@@ -118,7 +118,7 @@ class ActivityReport
             ->where('activity_log.causer_type', (new User)->getMorphClass())
             ->join('users', 'users.id', '=', 'activity_log.causer_id')
             ->join('employees', 'employees.id', '=', 'users.employee_id')
-            ->select('employees.city_id', DB::raw('count(*) as actions'), DB::raw('count(distinct users.id) as users'))
+            ->select('employees.city_id', DB::raw('count(*) as actions'), DB::raw('count(distinct '.DB::getQueryGrammar()->wrap('users.id').') as users'))
             ->groupBy('employees.city_id')
             ->orderByDesc('actions')
             ->get();
