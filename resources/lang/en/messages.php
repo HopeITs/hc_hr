@@ -35,6 +35,7 @@ return [
         'copy-body' => 'Copy the email text',
         'copied-subject' => 'Subject copied.',
         'copied-body' => 'Email text copied.',
+        'copied-paste' => 'Email text copied: paste it into the new message.',
         'open-mail' => 'Open in my email',
         'nothing-sent' => 'Nothing is sent from here: copy the text, or open it in your email, read it, and send it yourself.',
         'gender' => ['male' => 'Male', 'female' => 'Female'],

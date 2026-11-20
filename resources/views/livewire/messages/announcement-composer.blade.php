@@ -97,8 +97,17 @@
                     <div class="mt-5 flex flex-wrap gap-3">
                         <x-button x-on:click="{{ $copyJs($message['body'], __('messages.announcements.copied-body')) }}" data-testid="announcement-copy-body">@lang('messages.announcements.copy-body')</x-button>
                         @if ($message['mailto'])
-                            <a href="{{ $message['mailto'] }}" class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover"
-                               data-testid="announcement-mailto">@lang('messages.announcements.open-mail')</a>
+                            {{-- A link too long for a mail program opens with To, CC and subject only; the text is
+                                 copied as it opens, to paste. --}}
+                            <a href="{{ $message['mailto']['url'] }}" data-testid="announcement-mailto"
+                               @if ($message['mailto']['trimmed']) x-on:click="{{ $copyJs($message['body'], __('messages.announcements.copied-paste')) }}" @endif
+                               class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">@lang('messages.announcements.open-mail')</a>
+                        @endif
+                        @if ($message['web'])
+                            <a href="{{ $message['web']['gmail'] }}" target="_blank" rel="noopener" data-testid="announcement-gmail"
+                               class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">Gmail</a>
+                            <a href="{{ $message['web']['outlook'] }}" target="_blank" rel="noopener" data-testid="announcement-outlook"
+                               class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">Outlook</a>
                         @endif
                     </div>
                     <p class="mt-3 text-small text-ink-3">@lang('messages.announcements.nothing-sent')</p>

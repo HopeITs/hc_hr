@@ -115,11 +115,30 @@ class AnnouncementTemplatesTest extends TestCase
 
     public function test_the_mailto_carries_every_recipient_and_skips_what_is_not_an_address(): void
     {
-        $url = AnnouncementTemplates::mailto('team@hcsyria.org', 'fredy.youssef@hcsyria.org; nonsense', 'عطلة', "سطر\nسطر");
+        $mail = AnnouncementTemplates::mailto('team@hcsyria.org', 'fredy.youssef@hcsyria.org; nonsense', 'عطلة', "سطر\nسطر");
 
-        $this->assertStringStartsWith('mailto:team%40hcsyria.org?cc=fredy.youssef%40hcsyria.org&subject=', $url);
-        $this->assertStringContainsString('body='.rawurlencode("سطر\r\nسطر"), $url);
+        $this->assertFalse($mail['trimmed']);
+        $this->assertStringStartsWith('mailto:team@hcsyria.org?cc=fredy.youssef@hcsyria.org&subject=', $mail['url']);
+        $this->assertStringContainsString('body='.rawurlencode("سطر\r\nسطر"), $mail['url']);
         $this->assertNull(AnnouncementTemplates::mailto('', '', 's', 'b'));
+    }
+
+    public function test_a_link_too_long_for_a_mail_program_drops_its_text_and_says_so(): void
+    {
+        $holiday = new HolidayClosure;
+        $values = [...$holiday->defaults(), 'start' => '2026-12-23', 'end' => '2027-01-11', 'resume' => '2027-01-12'];
+        $message = $holiday->render($values);
+
+        $mail = AnnouncementTemplates::mailto('team@hcsyria.org', 'fredy.youssef@hcsyria.org', $message['subject'], $message['body']);
+
+        $this->assertTrue($mail['trimmed']);
+        $this->assertLessThanOrEqual(AnnouncementTemplates::MAILTO_LIMIT, strlen($mail['url']));
+        $this->assertStringNotContainsString('body=', $mail['url']);
+        $this->assertStringContainsString('subject=', $mail['url']);
+
+        $web = AnnouncementTemplates::webLinks('team@hcsyria.org', 'fredy.youssef@hcsyria.org', $message['subject'], $message['body']);
+        $this->assertStringStartsWith('https://mail.google.com/mail/?view=cm', $web['gmail']);
+        $this->assertStringContainsString('body='.rawurlencode(str_replace("\n", "\r\n", $message['body'])), $web['outlook']);
     }
 
     public function test_only_who_may_use_templates_opens_the_composer(): void

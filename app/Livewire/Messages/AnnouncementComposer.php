@@ -126,6 +126,7 @@ class AnnouncementComposer extends Component
                 ...$rendered,
                 'problems' => $problems,
                 'mailto' => AnnouncementTemplates::mailto($this->to, $this->cc, $rendered['subject'], $rendered['body']),
+                'web' => AnnouncementTemplates::webLinks($this->to, $this->cc, $rendered['subject'], $rendered['body']),
             ];
         }
 
