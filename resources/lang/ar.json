@@ -76,19 +76,17 @@
     "Total actions": "إجمالي الإجراءات",
     "Active users": "المستخدمون النشطون",
     "Top 5 most active users": "أكثر 5 مستخدمين نشاطاً",
-    "Top 5 most used modules": "أكثر 5 أقسام استخداماً",
-    "Top 5 actions": "أكثر 5 إجراءات",
     "Last action": "آخر إجراء",
     "No activity in this period.": "لا يوجد نشاط في هذه الفترة.",
     "Export to Excel": "تصدير إلى إكسل",
     "Users with no activity": "مستخدمون بلا نشاط",
     "Daily activity": "النشاط اليومي",
-    "Peak": "الذروة",
     "Busiest hours of the day": "ساعات الذروة خلال اليوم",
     "Activity by city": "النشاط حسب المدينة",
     ":n users": ":n مستخدم",
     "Last seen": "آخر ظهور",
     "Never": "أبداً",
     "Every user was active in this period.": "كل المستخدمين كانوا نشطين في هذه الفترة.",
-    "Showing :n of :total. The full list is in the Excel export.": "عرض :n من :total. القائمة الكاملة في ملف إكسل."
+    "Showing :n of :total. The full list is in the Excel export.": "عرض :n من :total. القائمة الكاملة في ملف إكسل.",
+    "Peak hour": "ساعة الذروة"
 }

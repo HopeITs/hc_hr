@@ -27,8 +27,6 @@ class ActivityReportExport implements WithMultipleSheets
             ]),
             $this->sheet('Top users', ['User', 'Actions', 'Last action'],
                 $r['topUsers']->map(fn ($u) => [$u['name'], $u['actions'], (string) $u['last']])->all()),
-            $this->sheet('Modules', ['Module', 'Actions'], $r['topModules']->map(fn ($u) => [$u['name'], $u['actions']])->all()),
-            $this->sheet('Actions', ['Action', 'Count'], $r['topEvents']->map(fn ($u) => [$u['name'], $u['actions']])->all()),
             $this->sheet('Daily', ['Date', 'Actions'], $r['daily']->map(fn ($d) => [$d['date'], $d['actions']])->all()),
             $this->sheet('Hours', ['Hour', 'Actions'], $r['hours']->map(fn ($h) => [sprintf('%02d:00', $h['hour']), $h['actions']])->all()),
             $this->sheet('Cities', ['City', 'Actions', 'Users'], $r['cities']->map(fn ($c) => [$c['name'], $c['actions'], $c['users']])->all()),

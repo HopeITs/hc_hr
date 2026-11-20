@@ -54,7 +54,7 @@ class ActivityLogReportTest extends TestCase
         activity()->causedBy($a)->log('x');
 
         $r = (new ActivityReport(30))->build();
-        $this->assertCount(8, (new ActivityReportExport($r))->sheets());
+        $this->assertCount(6, (new ActivityReportExport($r))->sheets());
 
         Livewire::test(ActivityLogReport::class)->assertOk()->assertSee('Activity report');
     }

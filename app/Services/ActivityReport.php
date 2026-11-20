@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\City;
 use App\Models\User;
-use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -47,8 +46,6 @@ class ActivityReport
                 'actions' => (int) $row->actions,
                 'last' => $row->last_action,
             ]),
-            'topModules' => $this->grouped('subject_type', fn ($v) => class_basename($v)),
-            'topEvents' => $this->grouped('event', fn ($v) => ucfirst($v)),
             'daily' => $this->daily(),
             'hours' => $this->hours(),
             'cities' => $this->cities(),
@@ -65,18 +62,6 @@ class ActivityReport
     private function base()
     {
         return Activity::query()->where('activity_log.created_at', '>=', $this->from());
-    }
-
-    private function grouped(string $column, Closure $label): Collection
-    {
-        return $this->base()
-            ->whereNotNull($column)
-            ->select($column, DB::raw('count(*) as actions'))
-            ->groupBy($column)
-            ->orderByDesc('actions')
-            ->limit(5)
-            ->get()
-            ->map(fn ($r) => ['name' => $label($r->{$column}), 'actions' => (int) $r->actions, 'last' => null]);
     }
 
     /** Every day of the period, zero-filled, oldest first. */
