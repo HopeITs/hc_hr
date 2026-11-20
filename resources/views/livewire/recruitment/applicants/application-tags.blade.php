@@ -9,7 +9,7 @@
                     'name' => $assignment->creator?->profile?->name ?? $assignment->creator?->name ?? '—',
                     'date' => $assignment->created_at?->format('Y-m-d H:i') ?? '—',
                 ]) }}"
-                class="inline-flex max-w-full items-center gap-1 rounded-control px-2 py-0.5 text-xs font-semibold wrap-anywhere {{ $assignment->tag->classes() }}">
+                class="inline-flex max-w-full items-center gap-1 rounded-control px-2 py-0.5 text-caption font-semibold wrap-anywhere {{ $assignment->tag->classes() }}">
                 @if ($assignment->tag->kind === \App\Models\RecruitmentTag::KIND_GREEN_FLAG)
                     <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6"/></svg>
                     <span>{{ $assignment->tag->kindLabel() }}:</span>
@@ -43,9 +43,9 @@
                         @endforeach
                     </select>
                 </div>
-                <x-secondary-button wire:click="attach" wire:target="attach">
+                <x-button variant="quiet" wire:click="attach" wire:target="attach">
                     {{ __('recruitment-applicant.tags.add') }}
-                </x-secondary-button>
+                </x-button>
             @endif
 
             @if ($mayCreate)
@@ -70,9 +70,9 @@
                             <option value="{{ $color }}">{{ __('recruitment-applicant.tags.colors.'.$color) }}</option>
                         @endforeach
                     </select>
-                    <x-secondary-button type="submit" wire:target="createAndAttach">
+                    <x-button variant="quiet" type="submit" wire:target="createAndAttach">
                         {{ __('recruitment-applicant.tags.create_and_add') }}
-                    </x-secondary-button>
+                    </x-button>
                 </form>
             @endif
         </div>

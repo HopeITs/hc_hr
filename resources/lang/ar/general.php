@@ -452,6 +452,8 @@ return [
     'pending-leave' => 'قيد الدراسة: :attr',
     'pending-leave2' => 'قيد الدراسة',
     'total-leave' => 'الكلي: :attr',
+    // Under the compact balance figure (dashboard tile): what "9/12" means.
+    'leave-days-left-of' => 'أيام متاحة / الرصيد الكلي',
     'no_items_from_checklist' => 'لم يتم تعيين أي عناصر من قائمة التحقق بعد.',
     'hours' => 'ساعة',
     'text1' => 'مركز الرجاء المسيحي - حلب / الإدارة العامة الممثل <strong><br>   في هذا العقد بالسيد فريدي يوسف ',
@@ -949,6 +951,8 @@ return [
     'count' => [
         'days' => ':count يوم|يوم واحد|يومان|:count أيام|:count يومًا|:count يوم',
         'hours' => ':count ساعة|ساعة واحدة|ساعتان|:count ساعات|:count ساعة|:count ساعة',
+        // A whole number of hours and a half (the employee's balance cards, LeaveBalance::*_rounded).
+        'hours-half' => 'نصف ساعة|ساعة ونصف|ساعتان ونصف|:count ساعات ونصف|:count ساعة ونصف|:count ساعة ونصف',
         'minutes' => ':count دقيقة|دقيقة واحدة|دقيقتان|:count دقائق|:count دقيقة|:count دقيقة',
         'months' => ':count شهر|شهر واحد|شهران|:count أشهر|:count شهرًا|:count شهر',
         'years' => ':count سنة|سنة واحدة|سنتان|:count سنوات|:count سنة|:count سنة',

@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Under the list title (quick fix 7): where the rows come from, so an empty list is not a dead end.
+    'applicants_intro' => 'يظهر هنا كل من تقدّم عبر رابط إحدى الحملات. من صفحة المتقدّم تراجع طلبه، وإن وضعته في القائمة القصيرة تحدد له مقابلة.',
     'applicants' => 'المتقدمون',
     'applicants_hint' => 'كل الطلبات ضمن نطاق التوظيف الخاص بك. افتح أي صف لعرض السجل الكامل للمتقدم.',
     'back_to_list' => 'كل المتقدمين',
@@ -909,6 +911,8 @@ return [
      * داخلية؛ لا يرسل النظام أي شيء منها إلى المرشح.
      */
     'offers' => [
+        // Under the list title (quick fix 7): where offers come from and what follows acceptance.
+        'intro' => 'يُعدّ عرض العمل من صفحة المتقدّم بعد المقابلات. حين يقبله، افتح العرض وحوّله إلى موظف، فيُنشأ سجله وعقده.',
         'title' => 'عروض العمل',
         'index_hint' => 'العروض الخاصة بالطلبات ضمن نطاق التوظيف الخاص بك. تظهر مبالغ الرواتب داخل كل عرض، وفقط لمن يُسمح له برؤيتها.',
         'all' => 'كل العروض',

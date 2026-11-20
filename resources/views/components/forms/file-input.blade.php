@@ -103,10 +103,30 @@
             set one), so all it ever did was stamp the STORED file's name onto
             the markup and contradict whatever the user had just picked.
         --}}
-        <input {{ $attributes->merge([
-            'class' => 'block w-full text-body text-ink-2 px-4 file:me-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-body file:font-semibold file:bg-surface file:text-ink hover:file:bg-line',
-            'type' => 'file',
-        ]) }}/>
+        {{--
+            The browser writes its own button and "no file chosen" text, in the
+            browser's language rather than the page's. The real input is kept
+            (screen readers, keyboard, wire:model) but visually hidden, and the
+            page draws the button and the chosen file's name itself.
+        --}}
+        @php
+            $initialName = $oldFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile
+                ? $oldFile->getClientOriginalName()
+                : '';
+        @endphp
+        <div class="flex flex-wrap items-center gap-3 px-4" x-data="{ picked: @js($initialName) }">
+            <label class="hc-btn hc-btn--outline hc-btn--sm cursor-pointer has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ink">
+                <x-ic name="file" aria-hidden="true" />
+                <span>{{ __('employees.file-input.choose') }}</span>
+                <input {{ $attributes->merge([
+                    'class' => 'sr-only',
+                    'type' => 'file',
+                ]) }} x-on:change="picked = $event.target.files.length ? $event.target.files[0].name : ''"/>
+            </label>
+            <span class="min-w-0 truncate text-small text-ink-2" aria-hidden="true">
+                <bdi x-text="picked || @js(__('employees.file-input.none-chosen'))">{{ $initialName ?: __('employees.file-input.none-chosen') }}</bdi>
+            </span>
+        </div>
         {{--
             Guarded: with no `name` attribute (every wire:model-only usage),
             $errors->first(null) returns the FIRST message in the whole bag,

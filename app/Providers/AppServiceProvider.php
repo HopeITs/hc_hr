@@ -18,6 +18,7 @@ use App\Models\JobPost;
 use App\Models\LeaveRequest;
 use App\Models\NotificationPreference;
 use App\Models\Position;
+use App\Models\ProbationReview;
 use App\Models\PublicRecruitmentLink;
 use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
@@ -52,6 +53,7 @@ use App\Policies\HiringCampaignPolicy;
 use App\Policies\JobPostPolicy;
 use App\Policies\LeaveRequestPolicy;
 use App\Policies\PositionPolicy;
+use App\Policies\ProbationReviewPolicy;
 use App\Policies\PublicRecruitmentLinkPolicy;
 use App\Policies\RecruitmentApplicantFilePolicy;
 use App\Policies\RecruitmentApplicantNotePolicy;
@@ -117,6 +119,8 @@ class AppServiceProvider extends ServiceProvider
         // The seam for the organization's retention decision: bind another
         // RetentionPolicy here once the periods are confirmed.
         $this->app->bind(RetentionPolicy::class, ConfiguredRetentionPolicy::class);
+        // Critical positions: the AI re-ranking layer is a no-op unless a real one is bound.
+        $this->app->bind(\App\Contracts\CandidateAiRanker::class, \App\Services\CriticalPositions\NullCandidateAiRanker::class);
 
         $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
             ? new ClamdScanner
@@ -146,6 +150,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Set here, not in bootstrap/app.php: that callback runs before .env is loaded.
+        if ($trustedProxies = config('app.trusted_proxies')) {
+            \Illuminate\Http\Middleware\TrustProxies::at($trustedProxies === '*' ? '*' : explode(',', $trustedProxies));
+        }
+
         // A new account on the organisation's domain joins the all-staff mail list as
         // pending (MailList::queueNewAccount). It must never stop an account being made.
         User::created(function (User $user): void {
@@ -226,6 +235,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Badge::class, BadgePolicy::class);
         Gate::policy(Center::class, CenterPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
+        Gate::policy(ProbationReview::class, ProbationReviewPolicy::class);
         // An amendment is part of its contract: the same policy decides both.
         Gate::policy(ContractAmendment::class, ContractPolicy::class);
         Gate::policy(DefaultDeliverable::class, DefaultDeliverablePolicy::class);

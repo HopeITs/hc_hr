@@ -1,6 +1,11 @@
 <?php
 
 return [
+    // My leaves: the balances nobody has used yet fold away (annual, and any type in use, stay).
+    'balances' => [
+        'show-others' => 'إظهار بقية الأرصدة|إظهار الرصيد الآخر|إظهار الرصيدين الآخرين|إظهار بقية الأرصدة (:count)|إظهار بقية الأرصدة (:count)|إظهار بقية الأرصدة (:count)',
+        'hide-others' => 'إخفاء بقية الأرصدة',
+    ],
 
     // حالة طلب الإجازة: مصطلح واحد لكل حالة في كل الواجهات.
     'status' => [

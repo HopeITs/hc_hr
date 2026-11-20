@@ -3,10 +3,10 @@
     use App\Enums\RecruitmentInterviewStatus;
 
     $t = 'recruitment-applicant.interviews.';
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $panel = 'rounded-surface border border-neutral-200 bg-white p-5';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $panel = 'rounded-surface border border-neutral-200 bg-card p-5';
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider text-secondary-medium';
-    $countPill = 'inline-flex min-w-6 items-center justify-center rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-caption font-semibold tabular-nums text-secondary-dark';
+    $countPill = 'inline-flex min-w-6 items-center justify-center rounded-full border border-neutral-200 bg-card px-2 py-0.5 text-caption font-semibold tabular-nums text-secondary-dark';
     $showUrl = fn ($id) => route('recruitment.interviews.show', ['interviewId' => $id]);
     $zoned = fn ($interview, $date) => $date?->copy()->setTimezone($interview->timezone ?: $timezone);
     $personName = fn ($participant) => $participant->user?->profile?->name ?? $participant->user?->email;
@@ -33,7 +33,7 @@
         </div>
 
         {{-- A view switch, not tabs: two pressed-state buttons, so assistive tech is not promised arrow-key tab behaviour. --}}
-        <div class="inline-flex rounded-control border border-neutral-200 bg-white p-1 text-body" role="group"
+        <div class="inline-flex rounded-control border border-neutral-200 bg-card p-1 text-body" role="group"
              aria-label="{{ __($t.'title') }}">
             @foreach (['board' => ['board_view', 'squares-2x2'], 'calendar' => ['calendar_view', 'calendar-days']] as $option => [$label, $icon])
                 <button type="button" wire:click="$set('view', '{{ $option }}')" aria-pressed="{{ $view === $option ? 'true' : 'false' }}"
@@ -58,13 +58,13 @@
                     @if ($underWay)
                         <span class="inline-flex items-center gap-1.5 rounded-control bg-neutral-900 px-2 py-0.5 text-caption font-semibold text-white">
                             <span class="relative flex size-2" aria-hidden="true">
-                                <span class="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-75 motion-reduce:animate-none"></span>
-                                <span class="relative inline-flex size-2 rounded-full bg-white"></span>
+                                <span class="absolute inline-flex size-full animate-ping rounded-full bg-card opacity-75 motion-reduce:animate-none"></span>
+                                <span class="relative inline-flex size-2 rounded-full bg-card"></span>
                             </span>
                             {{ __($t.'board.now') }}
                         </span>
                     @else
-                        <time datetime="{{ $start->toIso8601String() }}" class="rounded-full border border-primary bg-white px-2.5 py-0.5 text-caption font-semibold tabular-nums text-primary">
+                        <time datetime="{{ $start->toIso8601String() }}" class="rounded-full border border-primary bg-card px-2.5 py-0.5 text-caption font-semibold tabular-nums text-primary">
                             {{ $start->copy()->locale(app()->getLocale())->diffForHumans(['parts' => 2, 'join' => true]) }}
                         </time>
                     @endif

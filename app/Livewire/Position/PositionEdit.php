@@ -50,6 +50,17 @@ class PositionEdit extends Component
 
     }
 
+    /** Set or clear the critical tag (HR and the administrators only: PositionPolicy::markCritical). */
+    public function toggleCritical(): void
+    {
+        Gate::authorize('markCritical', $this->position);
+
+        $this->position->update(['is_critical' => ! $this->position->is_critical]);
+        // The form holds its own copy of the model; keep what the page shows in step.
+        $this->form->position?->forceFill(['is_critical' => $this->position->is_critical])->syncOriginal();
+        $this->toast();
+    }
+
     public function save()
     {
         Gate::authorize('update', $this->position);

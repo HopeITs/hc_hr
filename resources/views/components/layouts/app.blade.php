@@ -70,6 +70,12 @@
      stay on the page until a save can reach the server (G-B-2). --}}
 <livewire:layout.bottom-nav/>
 
+{{-- Ready-made announcements, opened from anywhere with the `announcement-compose` event
+     (header envelope, Ctrl+K, a person's card, the Message templates page). --}}
+@if (auth()->user()?->hasActivePermission('message-templates.use'))
+    <livewire:messages.announcement-composer />
+@endif
+
 <div x-data="{ online: navigator.onLine }"
      x-on:online.window="online = true" x-on:offline.window="online = false"
      x-show="!online" x-cloak role="status" data-testid="offline-notice"
@@ -140,6 +146,16 @@
     @persist('assistant-widget')
         <x-assistant.widget/>
     @endpersist
+@endauth
+
+{{-- The chat dock (tabs along the bottom edge). Persisted, so open tabs stay as
+     they are across wire:navigate. Off until CHAT_ENABLED. --}}
+@auth
+    @if (config('chat.enabled'))
+        @persist('chat-dock')
+            <livewire:chat.dock />
+        @endpersist
+    @endif
 @endauth
 
 {{-- Outcome toasts (session('status') included) and delete confirmations, for every page. --}}

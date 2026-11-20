@@ -61,6 +61,20 @@ class OffboardingJourneys
 
     public const STATE_PROBLEM = 'problem';    // should have happened; needs a look
 
+    /**
+     * The steps a departure needs done: the fixed ones, plus the Permissions
+     * Library step when the journey lists it (track 5).
+     *
+     * @param  array<int|string, array{key: string}>  $steps
+     * @return array<int, string>
+     */
+    public static function requiredKeys(array $steps): array
+    {
+        return collect($steps)->contains(fn (array $step) => $step['key'] === 'entitlements')
+            ? [...self::REQUIRED_STEPS, 'entitlements']
+            : self::REQUIRED_STEPS;
+    }
+
     public function graceDays(): int
     {
         return max(0, (int) config('journeys.exit_grace_days', 7));
@@ -432,6 +446,22 @@ class OffboardingJourneys
             'card_on' => $cardOn,
         ]);
 
+        // Track 5: Permissions Library items still held (granted outside the system) have to be taken
+        // back. Listed only for people who have items on record, so every other journey stays as it was.
+        $library = app(Entitlements::class);
+        if ($library->hasAny($employee)) {
+            $held = $library->outstanding($employee);
+            $steps[] = $this->step('entitlements', match (true) {
+                $held->isEmpty() => self::STATE_DONE,
+                $contractEnded => self::STATE_TODO,
+                default => self::STATE_WAITING,
+            }, 'hr', due: $endsOn, late: $held->isNotEmpty() && $contractEnded && $this->isPast($deactivateOn, $today), blockedBy: $held->isEmpty() || $contractEnded ? null : 'contract', data: [
+                'outstanding' => $held->count(),
+                'names' => $held->map(fn ($row) => $row->entitlement?->name)->filter()->values()->all(),
+                'username' => $employee->username,
+            ]);
+        }
+
         // 5. Exit interview (optional): the one step this journey records.
         $steps[] = $this->step('interview', $journey->exit_interview_held_at !== null ? self::STATE_DONE : self::STATE_TODO, 'hr', data: [
             'optional' => true,
@@ -461,7 +491,7 @@ class OffboardingJourneys
         }
 
         $steps = collect($this->steps($employee) ?? [])->keyBy('key');
-        $complete = collect(self::REQUIRED_STEPS)->every(fn (string $key) => ($steps[$key]['state'] ?? null) === self::STATE_DONE);
+        $complete = collect(self::requiredKeys($steps->all()))->every(fn (string $key) => ($steps[$key]['state'] ?? null) === self::STATE_DONE);
 
         if (! $complete) {
             return false;

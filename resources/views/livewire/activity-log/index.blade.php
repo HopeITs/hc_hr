@@ -10,5 +10,7 @@
         ]"
     />
 
+    <livewire:activity-log.activity-log-report />
+
     <livewire:activity-log.activity-log-table />
 </div>

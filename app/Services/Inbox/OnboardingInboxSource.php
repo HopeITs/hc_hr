@@ -3,6 +3,7 @@
 namespace App\Services\Inbox;
 
 use App\Models\OnboardingJourney;
+use App\Services\OnboardingJourneys;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -40,7 +41,7 @@ class OnboardingInboxSource extends JourneyInboxSource
                 ->whereNull('card_handed_over_at')
                 ->orWhereNull('orientation_completed_at')
                 ->orWhereDoesntHave('employee.account'))
-            ->with(['employee' => fn ($employee) => $employee->with('city')->withExists('account')])
+            ->with(['contract', 'employee' => fn ($employee) => $employee->with('city')->withExists('account')])
             ->orderBy('orientation_due_on')
             ->orderBy('id');
     }
@@ -68,15 +69,32 @@ class OnboardingInboxSource extends JourneyInboxSource
         return $steps;
     }
 
-    /** @param  OnboardingJourney  $journey */
+    /**
+     * The earliest deadline among the steps still waiting on HR: the account
+     * and the card (2 days from the contract start) and HR's session (14 days).
+     *
+     * @param  OnboardingJourney  $journey
+     */
     protected function due(Model $journey): ?CarbonInterface
     {
-        return $journey->orientation_completed_at === null ? $journey->orientation_due_on : null;
+        return collect($this->deadlines($journey))->sort()->first();
     }
 
     /** @param  OnboardingJourney  $journey */
     protected function late(Model $journey): bool
     {
-        return $journey->orientationIsLate();
+        $today = now(config('app.timezone'))->startOfDay();
+
+        return collect($this->deadlines($journey))->contains(fn (CarbonInterface $due) => $due->lt($today));
+    }
+
+    /** @return list<CarbonInterface> */
+    private function deadlines(OnboardingJourney $journey): array
+    {
+        return array_values(array_filter([
+            $journey->employee->account_exists ? null : $journey->dueAfterStart(OnboardingJourneys::ACCOUNT_DAYS),
+            $journey->card_handed_over_at === null ? $journey->dueAfterStart(OnboardingJourneys::CARD_DAYS) : null,
+            $journey->orientation_completed_at === null ? $journey->orientation_due_on : null,
+        ]));
     }
 }

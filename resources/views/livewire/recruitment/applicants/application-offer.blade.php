@@ -6,9 +6,10 @@
             @if ($offer)
                 <a href="{{ route('recruitment.offers.show', ['offerId' => $offer->id]) }}" wire:navigate class="flex items-center gap-2 hover:underline">
                     <span class="text-secondary-medium">v{{ $offer->currentVersion?->version_no }}</span>
-                    <x-recruitment.pill :tone="RecruitmentJobOfferStatus::classes($offer->status)" class="recruitment-badge">{{ __('recruitment-applicant.offers.statuses.'.$offer->status) }}</x-recruitment.pill>
+                    @php $offerChip = \App\Support\Status\RecruitmentStatus::offer($offer->status); @endphp
+                    <x-status class="recruitment-badge" :tone="$offerChip['tone']" :icon="$offerChip['icon']" :label="$offerChip['label']" />
                     @if ($offer->hiringConversion?->isConverted())
-                        <span class="recruitment-badge rounded-control bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">{{ __('recruitment-applicant.statuses.hired') }}</span>
+                        <x-status class="recruitment-badge" tone="done" icon="check-circle" :label="__('recruitment-applicant.statuses.hired')" />
                     @endif
                 </a>
             @else

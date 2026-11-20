@@ -16,6 +16,8 @@
     $cards = $decisions['cards'];
     $items = $decisions['items'] ?? [];
     $n = count($cards);
+    // The rest of the inbox is not only items to hand over: onboarding steps land there too.
+    $onlyChecklist = collect($items)->every(fn (array $item) => in_array($item['action'], ['deliver', 'receive', 'finalize'], true));
 @endphp
 <div class="hc-decide-tile flex h-full w-full flex-col overflow-hidden rounded-surface border border-line-soft bg-card shadow-sm"
      data-fit-rows="{{ $items === [] ? 3 : 4 }}">
@@ -53,7 +55,13 @@
                 <div data-testid="decision-card" aria-roledescription="carousel" aria-label="{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}">
                     {{-- One decision needs no heading of its own: the card says it. --}}
                     <div @class(['hc-decide-sub', 'sr-only' => $n <= 1])>
-                        <h3>{{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}</h3>
+                        <h3>
+                            {{ trans_choice('dashboard.header.decide.title', $decisions['total'], ['count' => $decisions['total']]) }}
+                            {{-- So the line adds up to the badge above it. --}}
+                            @if ($decisions['others'] > 0)
+                                <span class="font-normal text-ink-2">{{ trans_choice('dashboard.decide-tile.others-below', $decisions['others'], ['count' => $decisions['others']]) }}</span>
+                            @endif
+                        </h3>
                         @if ($n > 1)
                             <div class="hc-decide-nav">
                                 <span class="hc-decide-pager" x-show="! all">
@@ -117,7 +125,7 @@
 
             @if ($items !== [])
                 <div class="hc-inbox-items" data-testid="work-inbox-items">
-                    <h3>{{ trans_choice('dashboard.decide-tile.items', $decisions['others'], ['count' => $decisions['others']]) }}</h3>
+                    <h3>{{ trans_choice($onlyChecklist ? 'dashboard.decide-tile.items' : 'dashboard.decide-tile.other-tasks', $decisions['others'], ['count' => $decisions['others']]) }}</h3>
                     <ul>
                         @foreach ($items as $item)
                             <li wire:key="inbox-item-{{ $item['key'] }}">

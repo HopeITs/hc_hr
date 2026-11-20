@@ -44,6 +44,10 @@
     @endphp
     <x-forms.errors-validation-list :sections="$errorTabs" reveal="setActiveTab" />
 
+    @if ($isCreateMode && ($offersAwaitingConversion['count'] ?? 0) > 0)
+        @include('livewire.employee.partials.offers-awaiting-conversion', ['awaiting' => $offersAwaitingConversion])
+    @endif
+
     @include('livewire.employee.partials.onboarding-status')
 
     @unless ($isCreateMode)

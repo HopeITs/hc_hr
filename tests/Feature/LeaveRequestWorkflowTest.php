@@ -1985,6 +1985,25 @@ class LeaveRequestWorkflowTest extends TestCase
         Livewire::actingAs($manager)->test(\App\Livewire\Notifications\Counter::class)->assertSet('count', 0);
     }
 
+    /** Quick fix 3: a notice about a request the reader can no longer open is neither counted nor offered in the short list. */
+    public function test_a_notice_about_a_request_that_is_gone_is_not_counted_or_listed(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $manager->notify(new NewLeaveRequest($leave->fresh()));
+        $states = app(NotificationRequestState::class);
+
+        $this->assertSame(1, $states->unreadCount($manager));
+
+        $leave->delete();
+
+        $this->assertSame(0, $states->unreadCount($manager));
+        $this->assertSame(1, $manager->unreadNotifications()->count(), 'Still unread: the full page lists it, with why');
+        Livewire::actingAs($manager)->test(\App\Livewire\Notifications\Counter::class)->assertSet('count', 0);
+        Livewire::actingAs($manager)->test(NotificationsDropdown::class)
+            ->assertViewHas('notifications', fn ($notifications) => $notifications->isEmpty());
+    }
+
     /** C1: the sidebar's work inbox counts the team's pending request, and drops it once decided. */
     public function test_c1_work_inbox_counts_pending_requests_of_the_managers_team(): void
     {

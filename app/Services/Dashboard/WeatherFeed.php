@@ -23,6 +23,12 @@ class WeatherFeed
 
     public const TIMEOUT_SECONDS = 3;
 
+    /** A host that cannot be reached usually refuses at once; this caps one that hangs instead. */
+    public const CONNECT_TIMEOUT_SECONDS = 2;
+
+    /** How long a failure of both sources is remembered before they are asked again. */
+    public const FAILURE_CACHE_MINUTES = 10;
+
     /** City slug => [latitude, longitude]. The national office (SYR) is Damascus. */
     public const PLACES = [
         'SYR' => [33.5138, 36.2765],
@@ -60,11 +66,19 @@ class WeatherFeed
             return $cached;
         }
 
+        // Both sources failed a moment ago: the card says so without making
+        // every dashboard in the city wait out both timeouts again.
+        if (is_array($cached) && ($cached['failed'] ?? false)) {
+            return null;
+        }
+
         $weather = $this->openMeteo($place) ?? $this->metNorway($place);
 
-        if ($weather !== null) {
-            Cache::put($key, $weather, now()->addMinutes(self::CACHE_MINUTES));
-        }
+        Cache::put(
+            $key,
+            $weather ?? ['failed' => true],
+            now()->addMinutes($weather !== null ? self::CACHE_MINUTES : self::FAILURE_CACHE_MINUTES),
+        );
 
         return $weather;
     }
@@ -106,7 +120,7 @@ class WeatherFeed
     private function openMeteo(array $place): ?array
     {
         try {
-            $current = Http::timeout(self::TIMEOUT_SECONDS)
+            $current = Http::timeout(self::TIMEOUT_SECONDS)->connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
                 ->get('https://api.open-meteo.com/v1/forecast', [
                     'latitude' => $place[0],
                     'longitude' => $place[1],
@@ -143,7 +157,7 @@ class WeatherFeed
     private function metNorway(array $place): ?array
     {
         try {
-            $now = Http::timeout(self::TIMEOUT_SECONDS)
+            $now = Http::timeout(self::TIMEOUT_SECONDS)->connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
                 ->withUserAgent('HopeHR/1.0 (+'.config('app.url').')')
                 ->get('https://api.met.no/weatherapi/locationforecast/2.0/compact', [
                     'lat' => round($place[0], 4),

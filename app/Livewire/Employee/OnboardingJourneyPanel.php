@@ -27,12 +27,15 @@ class OnboardingJourneyPanel extends Component
 
     public string $orientationDate = '';
 
+    public string $managerDate = '';
+
     public function mount(Employee $employee): void
     {
         Gate::authorize('update', $employee);
 
         $this->employeeId = $employee->id;
         $this->orientationDate = $employee->onboardingJourney?->orientation_scheduled_for?->toDateString() ?? '';
+        $this->managerDate = $employee->onboardingJourney?->manager_orientation_scheduled_for?->toDateString() ?? '';
     }
 
     public function scheduleOrientation(OnboardingJourneys $journeys): void
@@ -56,6 +59,36 @@ class OnboardingJourneyPanel extends Component
         $this->toast($changed ? __('employees.journey.orientation-done') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
     }
 
+    /** HR standing in for the manager (the manager has their own page, which uses the same service calls). */
+    public function scheduleManagerOrientation(OnboardingJourneys $journeys): void
+    {
+        $employee = $this->authorizedEmployee();
+
+        $this->validate(
+            ['managerDate' => ['required', 'date_format:Y-m-d']],
+            attributes: ['managerDate' => __('employees.journey.orientation-date')],
+        );
+
+        $changed = $journeys->scheduleManagerOrientation($employee, Carbon::createFromFormat('Y-m-d', $this->managerDate), auth()->user());
+
+        $this->toast($changed ? __('employees.journey.manager-orientation-scheduled') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
+    }
+
+    public function completeManagerOrientation(OnboardingJourneys $journeys): void
+    {
+        $changed = $journeys->completeManagerOrientation($this->authorizedEmployee(), auth()->user());
+
+        $this->toast($changed ? __('employees.journey.manager-orientation-done') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
+    }
+
+    /** HR picks which IT person of the city hands the electronics over. */
+    public function chooseElectronicsDeliverer(int $deliverer, OnboardingJourneys $journeys): void
+    {
+        $changed = $journeys->chooseElectronicsDeliverer($this->authorizedEmployee(), $deliverer, auth()->user());
+
+        $this->toast($changed ? __('employees.journey.deliverer-chosen') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
+    }
+
     public function markCardHandedOver(OnboardingJourneys $journeys): void
     {
         $changed = $journeys->markCardHandedOver($this->authorizedEmployee(), auth()->user());
@@ -67,7 +100,7 @@ class OnboardingJourneyPanel extends Component
     public function confirmReopen(string $step): void
     {
         $this->authorizedEmployee();
-        abort_unless(in_array($step, ['card', 'orientation'], true), 404);
+        abort_unless(in_array($step, ['card', 'orientation', 'manager_orientation'], true), 404);
 
         $this->confirm(
             'reopen',
@@ -81,7 +114,7 @@ class OnboardingJourneyPanel extends Component
 
     public function reopen(string $step, OnboardingJourneys $journeys): void
     {
-        abort_unless(in_array($step, ['card', 'orientation'], true), 404);
+        abort_unless(in_array($step, ['card', 'orientation', 'manager_orientation'], true), 404);
 
         $changed = $journeys->reopen($this->authorizedEmployee(), $step, auth()->user());
 
@@ -100,6 +133,7 @@ class OnboardingJourneyPanel extends Component
             'employee' => $employee,
             'journey' => $employee->onboardingJourney,
             'steps' => $journeys->steps($employee),
+            'mug' => $employee->onboardingJourney ? $journeys->mug($employee) : null,
             'canViewContracts' => auth()->user()?->hasActivePermission('contracts.view') ?? false,
             'canCreateContracts' => auth()->user()?->hasActivePermission('contracts.create') ?? false,
         ]);

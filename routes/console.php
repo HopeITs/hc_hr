@@ -8,6 +8,7 @@ use App\Console\Commands\DeactivateDepartedEmployees;
 use App\Console\Commands\DispatchDueNotifications;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\NotifyBirthdayConflicts;
+use App\Console\Commands\NotifyCriticalPositions;
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
@@ -19,6 +20,7 @@ use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
 use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
+use App\Console\Commands\StartProbationReviews;
 use App\Console\Commands\SweepRecruitmentRetention;
 use App\Console\Commands\SyncPolicies;
 use App\Console\Commands\SyncRecruitmentCampaignStates;
@@ -33,6 +35,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Trials entering their last third get a review before tonight's contract sweeps (21:25, 21:30, 21:35).
+Schedule::command(StartProbationReviews::class)->dailyAt('21:20');
+// Critical positions with no holder: HR of the city and the direct manager (once per episode).
+Schedule::command(NotifyCriticalPositions::class)->dailyAt('07:40')->withoutOverlapping();
 // Before deactivation and auto-renewal, so a renewal inherits the amended terms.
 Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
 // Weekly: an amendment deleted outside the app leaves the history broken; this logs it.
@@ -45,6 +51,8 @@ Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
 // D4-I: one reminder to city HR per overdue orientation session.
 Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
+// Track 7: weekly reminders to the owner of an overdue account, electronics, card or manager-session step.
+Schedule::command(App\Console\Commands\SendOnboardingStepReminders::class)->dailyAt('08:12');
 // People whose contract just started join the mail lists their rules match (pending, for the control panel).
 Schedule::command(QueueMailListStarters::class)->dailyAt('08:20');
 // Meeting 19/11 (track 3): a birthday on a weekend or holiday in the coming days asks the volunteer, once, to pick another day.

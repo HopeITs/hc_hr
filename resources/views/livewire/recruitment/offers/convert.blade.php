@@ -77,12 +77,12 @@
         @endif
 
         {{-- The accepted snapshot: the contract takes these, unchanged --}}
-        <section class="rounded-surface border border-secondary-soft bg-white p-6">
+        <section class="rounded-surface border border-secondary-soft bg-card p-6" data-tour="convert.terms">
             <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.conversions.accepted_terms') }}</h2>
             @if ($version)
                 @include('livewire.recruitment.offers.partials.terms', ['version' => $version])
             @endif
-            <p class="mt-4 text-xs text-secondary-medium">
+            <p class="mt-4 text-small text-secondary-medium">
                 {{ __('recruitment-applicant.conversions.seat', [
                     'filled' => (int) $vacancy?->filled_count, 'needed' => (int) $vacancy?->needed_count,
                     'exist' => (int) $position?->exist_emp, 'max' => (int) $position?->max_emp,
@@ -93,7 +93,7 @@
 
         <form wire:submit="confirmHire" class="space-y-6">
             {{-- Who the employee is --}}
-            <section class="space-y-4 rounded-surface border border-secondary-soft bg-white p-6">
+            <section class="space-y-4 rounded-surface border border-secondary-soft bg-card p-6" data-tour="convert.employee">
                 <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.conversions.employee_section') }}</h2>
 
                 {{-- The national number is on file under another name: the hire stops. --}}
@@ -106,7 +106,7 @@
 
                 <div class="space-y-2">
                     <h3 class="text-sm font-semibold">{{ __('recruitment-applicant.conversions.matches_title') }}</h3>
-                    <p class="text-xs text-secondary-medium">{{ __('recruitment-applicant.conversions.matches_hint') }}</p>
+                    <p class="text-small text-secondary-medium">{{ __('recruitment-applicant.conversions.matches_hint') }}</p>
                     @forelse ($linkable as $match)
                         <label class="flex items-start gap-3 rounded-control border border-secondary-soft p-3 text-sm" wire:key="match-{{ $match['employee']->id }}">
                             <input type="radio" wire:model.live="employeeId" value="{{ $match['employee']->id }}" @disabled($mode !== Conversions::MODE_LINK) class="mt-1 text-primary">
@@ -117,7 +117,7 @@
                                 </span>
                                 <span class="mt-1 flex flex-wrap gap-1">
                                     @foreach ($match['reasons'] as $reason)
-                                        <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-xs">{{ __('recruitment-applicant.conversions.match_reasons.'.$reason) }}</span>
+                                        <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-caption">{{ __('recruitment-applicant.conversions.match_reasons.'.$reason) }}</span>
                                     @endforeach
                                 </span>
                             </span>
@@ -200,7 +200,7 @@
                         <div>
                             <x-forms.input-label for="username" required>{{ __('general.username') }}</x-forms.input-label>
                             <x-forms.input id="username" :model="$field('username')" dir="ltr" required />
-                            <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.conversions.username_hint') }}</p>
+                            <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.conversions.username_hint') }}</p>
                             <x-forms.input-error field="employee.username" input-id="username" />
                         </div>
                         <div>
@@ -225,7 +225,7 @@
             </section>
 
             @if ($needsSessionDuration)
-                <section class="space-y-3 rounded-surface border border-secondary-soft bg-white p-6">
+                <section class="space-y-3 rounded-surface border border-secondary-soft bg-card p-6">
                     <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.conversions.contract_section') }}</h2>
                     <div class="max-w-xs">
                         <x-forms.input-label for="sessionDuration" required>{{ __('recruitment-applicant.conversions.session_duration') }}</x-forms.input-label>
@@ -242,8 +242,8 @@
 
             <div class="flex flex-wrap items-center gap-3">
                 {{-- Disabled only while the hire itself runs: a field update fired by leaving an input (national number) must not disable it under the click. --}}
-                <x-primary-button type="submit" wire:target="confirmHire,save">{{ __('recruitment-applicant.conversions.confirm') }}</x-primary-button>
-                <p class="text-xs text-secondary-medium">{{ __('recruitment-applicant.conversions.confirm_hint') }}</p>
+                <x-button type="submit" wire:target="confirmHire,save" data-tour="convert.confirm">{{ __('recruitment-applicant.conversions.confirm') }}</x-button>
+                <p class="text-small text-secondary-medium">{{ __('recruitment-applicant.conversions.confirm_hint') }}</p>
             </div>
         </form>
     @endif

@@ -6,6 +6,8 @@ use App\Enums\ContractType as ContractTypeEnum;
 use App\Livewire\Contract\ContractCreate;
 use App\Livewire\Employee\OnboardingJourneyPanel;
 use App\Models\Center;
+use App\Models\Checklist;
+use App\Models\ChecklistItem;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractType;
@@ -13,6 +15,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\OnboardingJourney;
+use App\Models\PolicyDocument;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\Role;
@@ -22,6 +25,7 @@ use App\Services\DigitalIdManager;
 use App\Services\EmployeeActivation;
 use App\Services\LeaveBalanceService;
 use App\Services\OnboardingJourneys;
+use App\Services\PolicyAcknowledgements;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -41,11 +45,13 @@ class OnboardingJourneyTest extends TestCase
     use CreatesHrFixtures, RefreshDatabase;
 
     private const STEPS_FOR_A_DRAFT = [
-        'record' => 'todo', 'contract' => 'waiting', 'account' => 'waiting', 'card' => 'waiting', 'orientation' => 'waiting',
+        'record' => 'todo', 'contract' => 'waiting', 'account' => 'waiting', 'electronics' => 'waiting', 'card' => 'waiting',
+        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting', 'guideline' => 'waiting',
     ];
 
     private const STEPS_FOR_AN_AWAITING_VOLUNTEER = [
-        'record' => 'done', 'contract' => 'todo', 'account' => 'waiting', 'card' => 'waiting', 'orientation' => 'waiting',
+        'record' => 'done', 'contract' => 'todo', 'account' => 'waiting', 'electronics' => 'waiting', 'card' => 'waiting',
+        'orientation' => 'waiting', 'manager_orientation' => 'waiting', 'policies' => 'waiting', 'guideline' => 'waiting',
     ];
 
     protected function setUp(): void
@@ -79,7 +85,7 @@ class OnboardingJourneyTest extends TestCase
         $this->assertSame($fixtures['hr']->id, (int) $started->causer_id, 'The HR officer who saved the contract started it.');
     }
 
-    public function test_the_panel_shows_the_five_steps_for_a_draft(): void
+    public function test_the_panel_shows_every_step_for_a_draft(): void
     {
         $fixtures = $this->contractFixtures();
         $draft = $this->makeDraft($fixtures['city']);
@@ -92,7 +98,7 @@ class OnboardingJourneyTest extends TestCase
             ->assertDontSee('data-testid="orientation-done"', false);
     }
 
-    public function test_the_panel_shows_the_five_steps_for_a_volunteer_awaiting_a_contract(): void
+    public function test_the_panel_shows_every_step_for_a_volunteer_awaiting_a_contract(): void
     {
         $fixtures = $this->contractFixtures();
         $volunteer = $this->awaiting($fixtures, 'd4.awaiting');
@@ -116,15 +122,18 @@ class OnboardingJourneyTest extends TestCase
         $this->assertSame(0, OnboardingJourney::query()->count());
     }
 
-    public function test_after_the_contract_the_panel_waits_on_hr_for_the_card_and_the_orientation(): void
+    public function test_after_the_contract_every_step_is_open_side_by_side(): void
     {
         $fixtures = $this->contractFixtures();
         $volunteer = $this->startedJourney($fixtures, 'd4.started');
 
         $this->panel($fixtures['hr'], $volunteer)
             ->assertViewHas('steps', fn ($steps) => $this->states($steps) === [
-                'record' => 'done', 'contract' => 'done', 'account' => 'done', 'card' => 'todo', 'orientation' => 'todo',
+                'record' => 'done', 'contract' => 'done', 'account' => 'done',
+                // No deliverer is named for the electronics in this city, and no policy is required yet: both say so instead of passing.
+                'electronics' => 'problem', 'card' => 'todo', 'orientation' => 'todo', 'manager_orientation' => 'todo', 'policies' => 'problem', 'guideline' => 'problem',
             ])
+            ->assertViewHas('steps', fn ($steps) => collect($steps)->whereNotNull('blocked_by')->isEmpty())
             ->assertViewHas('steps', fn ($steps) => $this->byKey($steps)['orientation']['due']->toDateString() === now()->addDays(14)->toDateString())
             ->assertSee('data-testid="card-handed-over"', false)
             ->assertDontSee('data-testid="orientation-done"', false);
@@ -134,6 +143,7 @@ class OnboardingJourneyTest extends TestCase
     {
         $fixtures = $this->contractFixtures();
         $volunteer = $this->startedJourney($fixtures, 'd4.complete');
+        $this->satisfyTheOtherSteps($fixtures, $volunteer);
 
         $panel = $this->panel($fixtures['hr'], $volunteer)
             ->call('markCardHandedOver')
@@ -170,6 +180,7 @@ class OnboardingJourneyTest extends TestCase
         $fixtures = $this->contractFixtures();
         $volunteer = $this->startedJourney($fixtures, 'd4.past');
         $journeys = app(OnboardingJourneys::class);
+        $this->satisfyTheOtherSteps($fixtures, $volunteer);
 
         $this->assertTrue($journeys->scheduleOrientation($volunteer, now()->subDays(2), $fixtures['hr']));
         $this->assertTrue($journeys->completeOrientation($volunteer, $fixtures['hr']));
@@ -398,7 +409,7 @@ class OnboardingJourneyTest extends TestCase
 
     // ── Reminder: one in-app reminder to city HR per overdue orientation ──
 
-    public function test_an_overdue_orientation_reminds_city_hr_once(): void
+    public function test_an_overdue_orientation_reminds_city_hr_once_a_week(): void
     {
         $fixtures = $this->contractFixtures();
         $volunteer = $this->startedJourney($fixtures, 'd4.overdue');
@@ -418,6 +429,13 @@ class OnboardingJourneyTest extends TestCase
         $this->artisan('onboarding:send-orientation-reminders')->assertSuccessful();
 
         Notification::assertSentToTimes($fixtures['hr'], OrientationOverdue::class, 1);
+
+        // Still not held a week later: one more for that week, and only one.
+        $this->travelTo(now()->addDays(7));
+        $this->artisan('onboarding:send-orientation-reminders')->assertSuccessful();
+        $this->artisan('onboarding:send-orientation-reminders')->assertSuccessful();
+        Notification::assertSentToTimes($fixtures['hr'], OrientationOverdue::class, 2);
+
         Notification::assertSentTo($fixtures['hr'], OrientationOverdue::class, fn (OrientationOverdue $n) => $n->journey->is($journey));
         Notification::assertNotSentTo($otherCityHr, OrientationOverdue::class);
         Notification::assertNotSentTo($volunteer->account, OrientationOverdue::class);
@@ -469,6 +487,29 @@ class OnboardingJourneyTest extends TestCase
     private function logged(string $event): int
     {
         return Activity::query()->where('log_name', 'onboarding')->where('description', $event)->count();
+    }
+
+    /**
+     * Everything but the card and HR's session: the electronics delivered, the
+     * required policy agreed, the manager's session held.
+     */
+    private function satisfyTheOtherSteps(array $fixtures, Employee $volunteer): void
+    {
+        $deliverer = $this->makeEmployee($fixtures['city'], 'deliverer.'.uniqid());
+        ChecklistItem::query()->firstOrCreate(['name' => 'Laptop'], ['order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
+        // Every electronics item (the migration adds a Mouse too).
+        ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->get()->each(
+            fn (ChecklistItem $item) => Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $volunteer->id, 'delivered_id' => $deliverer->id, 'receiver_id' => $volunteer->id, 'delivered_status' => 'delivered']),
+        );
+
+        $policy = PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => 'Code of conduct', 'required_for_onboarding' => true]);
+        app(PolicyAcknowledgements::class)->acknowledge($volunteer, $policy);
+        $guide = PolicyDocument::query()->create(['source' => PolicyDocument::SOURCE_PANEL, 'title' => 'Media guideline', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_REVIEW]);
+        app(PolicyAcknowledgements::class)->acknowledge($volunteer, $guide);
+
+        $journeys = app(OnboardingJourneys::class);
+        $journeys->scheduleManagerOrientation($volunteer, now(), $fixtures['hr']);
+        $journeys->completeManagerOrientation($volunteer, $fixtures['hr']);
     }
 
     private function awaiting(array $fixtures, string $username): Employee

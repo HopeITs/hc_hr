@@ -11,7 +11,7 @@
     />
 
 
-    <section class="mb-5 rounded-card border border-secondary-soft bg-white p-5 shadow-e1">
+    <section class="mb-5 rounded-card border border-secondary-soft bg-card p-5 shadow-e1">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-small font-semibold uppercase tracking-wide text-primary">{{ __('recruitment.job_post.campaign') }} #{{ $campaign->id }}</p>

@@ -166,6 +166,7 @@ class PositionTable extends LivewireTable
                 ->sortable()->searchable(),
 
             BooleanColumn::make(__('general.is-active'), 'is_active'),
+            BooleanColumn::make(__('critical-positions.critical'), 'is_critical'),
 
             Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete, $canHire): string {
                 $isActive = $m->is_active ? 1 : 0;

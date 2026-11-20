@@ -1,6 +1,11 @@
 <?php
 
 return [
+    // My leaves: the balances nobody has used yet fold away (annual, and any type in use, stay).
+    'balances' => [
+        'show-others' => '{1} Show the other balance|[2,*] Show the other :count balances',
+        'hide-others' => 'Hide the other balances',
+    ],
 
     // Leave request workflow status: one term per status, used everywhere.
     'status' => [

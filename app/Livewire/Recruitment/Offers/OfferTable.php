@@ -4,6 +4,7 @@ namespace App\Livewire\Recruitment\Offers;
 
 use App\Enums\RecruitmentJobOfferStatus;
 use App\Models\RecruitmentJobOffer;
+use App\Support\Status\RecruitmentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -51,8 +52,7 @@ class OfferTable extends LivewireTable
             Column::make(__('recruitment-applicant.name'), 'application.applicant.full_name')->sortable()->searchable(),
             Column::make(__('recruitment-applicant.campaign'), 'position.'.transColumn('title'))->searchable(),
             Column::make(__('recruitment-applicant.status'), function (RecruitmentJobOffer $offer): string {
-                return '<span class="rounded-control px-2 py-0.5 text-xs font-semibold '.RecruitmentJobOfferStatus::classes($offer->status).'">'
-                    .e(__('recruitment-applicant.offers.statuses.'.$offer->status)).'</span>';
+                return RecruitmentStatus::html(RecruitmentStatus::offer($offer->status));
             })->asHtml(),
             Column::make(__('recruitment-applicant.offers.version'), fn (RecruitmentJobOffer $offer) => 'v'.$offer->currentVersion?->version_no),
             Column::make(__('recruitment-applicant.offers.start_date'), fn (RecruitmentJobOffer $offer) => $offer->currentVersion?->start_date?->format('Y-m-d') ?? '—'),

@@ -16,18 +16,21 @@
     $nextTarget = collect($currentTargets)->first(fn ($target) => $target !== ApplicationStatus::Rejected);
 
     // Shared recipes. Greys carry structure; red is kept for the one next step and for destructive moves.
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $card = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $card = 'rounded-surface border border-neutral-200 bg-card shadow-e1';
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider text-secondary-medium rtl:normal-case rtl:tracking-normal';
     $sectionTitle = 'text-h4 font-semibold text-neutral-900';
-    $pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark';
-    $quietBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-neutral-200 bg-white px-4 text-small font-semibold text-secondary-dark shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
+    $pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark';
+    $quietBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-neutral-200 bg-card px-4 text-small font-semibold text-secondary-dark shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
     $inkBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-neutral-900 bg-neutral-900 px-4 text-small font-semibold text-white shadow-e1 transition duration-150 hover:bg-neutral-800 motion-reduce:transition-none sm:min-h-10 '.$focus;
-    $dangerBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-primary bg-white px-4 text-small font-semibold text-primary shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
+    $dangerBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-primary bg-card px-4 text-small font-semibold text-primary shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
 
-    // Status as a dot: hollow while waiting, mid-grey in review, ink once chosen, faded once out.
+    // The status chip (icon + words + fill), as every recruitment page draws it.
+    $chip = fn (?string $status) => \App\Support\Status\RecruitmentStatus::application($status);
+
+    // Status as a dot (the side menu and the timeline): hollow while waiting, mid-grey in review, ink once chosen, faded once out.
     $statusDot = fn (?string $status) => match ($status) {
-        ApplicationStatus::Submitted, ApplicationStatus::UnderReview => 'border border-neutral-500 bg-white',
+        ApplicationStatus::Submitted, ApplicationStatus::UnderReview => 'border border-neutral-500 bg-card',
         ApplicationStatus::Shortlisted, ApplicationStatus::InterviewScheduled,
         ApplicationStatus::Interviewed, ApplicationStatus::Finalist => 'bg-neutral-500',
         ApplicationStatus::Selected, ApplicationStatus::OfferSent,
@@ -133,7 +136,8 @@
                 @if ($currentApplication)
                     <p class="mt-2 text-h4 font-semibold text-neutral-900 wrap-break-word">{{ $currentCampaign?->vacancy?->position?->title ?? __('recruitment-applicant.no_vacancy') }}</p>
                     <div class="mt-1.5 flex flex-wrap items-center gap-2">
-                        <span class="{{ $pill }} bg-white ring-1 ring-neutral-200"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full {{ $statusDot($currentApplication->status) }}"></span>{{ __('recruitment-applicant.statuses.'.$currentApplication->status) }}</span>
+                        @php $currentChip = $chip($currentApplication->status); @endphp
+                        <x-status :tone="$currentChip['tone']" :icon="$currentChip['icon']" :label="$currentChip['label']" />
                         @if ($currentCampaign)
                             <span class="text-small text-secondary-medium">{{ __('recruitment-applicant.campaign_number', ['number' => $currentCampaign->id]) }}</span>
                         @endif
@@ -218,7 +222,8 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="{{ $pill }}"><flux:icon.document-text variant="micro" class="size-3.5" aria-hidden="true" />{{ __('recruitment-applicant.cv_availability.'.$availability) }}</span>
-                            <span class="{{ $pill }} bg-white ring-1 ring-neutral-200"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full {{ $statusDot($application->status) }}"></span>{{ __('recruitment-applicant.statuses.'.$application->status) }}</span>
+                            @php $applicationChip = $chip($application->status); @endphp
+                            <x-status :tone="$applicationChip['tone']" :icon="$applicationChip['icon']" :label="$applicationChip['label']" />
                             <span class="sr-only group-open:hidden">{{ __('recruitment-applicant.profile.expand_application') }}</span>
                             <span class="sr-only hidden group-open:inline">{{ __('recruitment-applicant.profile.collapse_application') }}</span>
                             <flux:icon.chevron-down variant="mini" class="size-5 text-secondary-medium transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
@@ -241,8 +246,8 @@
                                         <span aria-hidden="true" @class([
                                             'relative z-10 flex size-4 items-center justify-center rounded-full',
                                             'bg-neutral-900 text-white' => $done,
-                                            'bg-white ring-4 ring-neutral-900 ring-inset' => $current,
-                                            'border-2 border-neutral-200 bg-white' => ! $done && ! $current,
+                                            'bg-card ring-4 ring-neutral-900 ring-inset' => $current,
+                                            'border-2 border-neutral-200 bg-card' => ! $done && ! $current,
                                         ])>
                                             @if ($done)<flux:icon.check variant="micro" class="size-3" />@endif
                                         </span>
@@ -295,7 +300,7 @@
                                                             <x-forms.input-label for="statusReasonCode" required>{{ __('recruitment-applicant.decisions.reason_code') }}</x-forms.input-label>
                                                             <select id="statusReasonCode" wire:model.live="statusReasonCode" aria-required="true"
                                                                 @error('statusReasonCode') aria-invalid="true" aria-describedby="statusReasonCode-error" @enderror
-                                                                class="mt-1 min-h-11 w-full rounded-control border-neutral-300 bg-white shadow-e1 sm:min-h-10">
+                                                                class="mt-1 min-h-11 w-full rounded-control border-neutral-300 bg-card shadow-e1 sm:min-h-10">
                                                                 <option value="">—</option>
                                                                 @foreach ($rejectionReasons as $code)
                                                                     <option value="{{ $code }}">{{ __('recruitment-applicant.decisions.rejection_reasons.'.$code) }}</option>
@@ -308,8 +313,8 @@
                                                         <x-forms.input-label for="statusReason" required>{{ __('recruitment-applicant.decisions.internal_note') }}</x-forms.input-label>
                                                         <textarea id="statusReason" wire:model="statusReason" rows="3" aria-required="true"
                                                             aria-describedby="statusReason-hint @error('statusReason') statusReason-error @enderror" @error('statusReason') aria-invalid="true" @enderror
-                                                            class="mt-1 w-full rounded-control border-neutral-300 bg-white shadow-e1"></textarea>
-                                                        <p id="statusReason-hint" class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.decisions.internal_note_hint') }}</p>
+                                                            class="mt-1 w-full rounded-control border-neutral-300 bg-card shadow-e1"></textarea>
+                                                        <p id="statusReason-hint" class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.decisions.internal_note_hint') }}</p>
                                                         <x-forms.input-error field="statusReason" input-id="statusReason" />
                                                     </div>
                                                     @if ($statusTarget === ApplicationStatus::Rejected)
@@ -321,7 +326,7 @@
                                                                     <input type="checkbox" wire:model="statusNotify" class="mt-0.5 rounded border-neutral-300 text-neutral-900">
                                                                     <span>
                                                                         {{ __('recruitment-applicant.decisions.notify') }}
-                                                                        <span class="block text-xs text-secondary-medium">{{ __('recruitment-applicant.decisions.notify_hint') }}</span>
+                                                                        <span class="block text-small text-secondary-medium">{{ __('recruitment-applicant.decisions.notify_hint') }}</span>
                                                                     </span>
                                                                 </label>
                                                             @endif
@@ -329,12 +334,12 @@
                                                     @endif
                                                 </div>
                                                 <div class="mt-4 flex flex-wrap gap-2">
-                                                    <x-primary-button type="button" wire:click="openStatusConfirmation" wire:target="openStatusConfirmation">
+                                                    <x-button type="button" wire:click="openStatusConfirmation" wire:target="openStatusConfirmation">
                                                         {{ __('recruitment-applicant.decisions.confirm.'.$statusTarget) }}
-                                                    </x-primary-button>
-                                                    <x-secondary-button wire:click="cancelStatusChange">
+                                                    </x-button>
+                                                    <x-button variant="quiet" wire:click="cancelStatusChange">
                                                         {{ __('recruitment-applicant.cancel') }}
-                                                    </x-secondary-button>
+                                                    </x-button>
                                                 </div>
                                             </div>
                                         @else

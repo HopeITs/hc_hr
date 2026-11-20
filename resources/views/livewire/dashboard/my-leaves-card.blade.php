@@ -12,6 +12,7 @@
             <p class="num text-h4 font-extrabold leading-tight text-ink">
                 {{ $remainingDays }}<span class="text-body font-semibold text-ink-2">/{{ $totalDays }}</span>
             </p>
+            <p class="line-clamp-2 text-caption leading-tight text-ink-2">{{ __('general.leave-days-left-of') }}</p>
         </div>
         <span class="hc-leaves-bar" aria-hidden="true"><span style="inline-size: {{ max(0, min(100, 100 - (int) $percentage)) }}%"></span></span>
         <x-button variant="outline" size="sm" :href="route('leaves.index')" class="shrink-0">{{ __('general.show-more') }}</x-button>
@@ -25,25 +26,21 @@
         </x-dashboard-cards.card-header>
 
         <div class="flex min-h-0 flex-1 items-center gap-6 px-6 pb-4">
-            {{-- Number and breakdown stay side by side and a long line wraps inside its own
-                 column. Wrapping the whole breakdown under the number made it taller than a
-                 phone-height tile, and its last line was cut. --}}
-            <div class="flex min-w-0 flex-1 items-end gap-x-5">
-                {{-- The type sits under the number, not over the breakdown, for the same reason. --}}
-                <div class="flex shrink-0 flex-col">
-                    <div class="flex items-end">
-                        <span class="hc-leaves-big num font-extrabold leading-none text-ink">{{ $remainingDays }}</span>
-                        <span class="mb-1 text-h3 font-semibold text-ink-2">/{{ $totalDays }}</span>
-                    </div>
-                    <h3 class="mt-1 truncate text-body font-bold text-ink">{{ $title ?: __('general.annual-leave') }}</h3>
+            {{-- flex-wrap + gap: on a narrow tile the breakdown wraps under the number instead of overflowing. --}}
+            <div class="flex min-w-0 flex-wrap items-end gap-x-6 gap-y-2">
+                <div class="flex items-end">
+                    <span class="hc-leaves-big num font-extrabold leading-none text-ink">{{ $remainingDays }}</span>
+                    <span class="mb-1 text-h3 font-semibold text-ink-2">/{{ $totalDays }}</span>
+                    <span class="sr-only">{{ __('general.leave-days-left-of') }}</span>
                 </div>
 
-                <div class="flex min-w-0 flex-1 flex-col">
-                    <ul class="space-y-0.5 text-small leading-snug text-ink-2">
+                <div class="flex min-w-0 flex-col">
+                    <h3 class="text-body font-bold text-ink">{{ $title ?: __('general.annual-leave') }}</h3>
+                    <ul class="mt-1 space-y-0.5 text-small leading-relaxed text-ink-2">
                         <li>@lang('general.used-leave', ['attr' => $used])</li>
                         <li>@lang('general.available-leave', ['attr' => $remaining])</li>
                         <li>@lang('general.pending-leave', ['attr' => $pending])</li>
-                        <li class="hc-leaves-total">@lang('general.total-leave', ['attr' => $total])</li>
+                        <li>@lang('general.total-leave', ['attr' => $total])</li>
                     </ul>
                 </div>
             </div>

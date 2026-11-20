@@ -43,6 +43,8 @@ final class Navigation
 
         $mySpace = array_values(array_filter([
             self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'inbox'], 'dashboard', 'nav.dashboard'),
+            // A new volunteer's own journey, while it is open (and two weeks after); staff who never had one never see it.
+            \App\Livewire\Onboarding\MyFirstDays::inMenuFor($user) ? self::item('nav.my-space.first-days', __('onboarding.first-days.title'), 'onboarding.my-first-days', ['onboarding.my-first-days', 'onboarding.policies'], 'clipboard-list') : null,
             $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
             $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
             // An employee's own timesheet; managers and HR open theirs from the team / HR menus.
@@ -138,6 +140,7 @@ final class Navigation
 
         $settings = array_values(array_filter([
             $editsBasics && $can('project-basics.view') ? $basics : null,
+            $can('entitlements.manage-library') && $user->activeRoleIs('HR', ...config('access-control.administrator_roles', [])) ? self::item('nav.settings.entitlements', __('entitlements.title'), 'entitlements.index', ['entitlements.*'], 'check-plus') : null,
             $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
             $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
             $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,

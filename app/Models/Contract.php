@@ -305,6 +305,12 @@ class Contract extends Model
         return $this->belongsTo(ContractType::class, 'contract_type_id');
     }
 
+    /** The last-third review of a trial (meeting 19/11, track 4). */
+    public function probationReview()
+    {
+        return $this->hasOne(ProbationReview::class);
+    }
+
     public function terminationReason()
     {
         return $this->belongsTo(TerminationReason::class, 'termination_reason_id');

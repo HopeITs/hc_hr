@@ -15,6 +15,9 @@ class CheckListItemSeeder extends Seeder
             ChecklistItem::create([
                 'name' => $item['name'],
                 'order' => $item['order'],
+                'onboarding_group' => $item['order'] === 3
+                    ? ChecklistItem::GROUP_EXIT
+                    : (ChecklistItem::GROUP_BY_NAME[$item['name']] ?? ChecklistItem::GROUP_OTHER),
             ]);
         }
     }

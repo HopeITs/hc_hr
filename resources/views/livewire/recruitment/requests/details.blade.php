@@ -3,22 +3,16 @@
 @php
     use App\Enums\RecruitmentRequestStatus as Status;
 
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $card = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $card = 'rounded-surface border border-neutral-200 bg-card shadow-e1';
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider rtl:normal-case rtl:tracking-normal text-secondary-medium';
-    $quietBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-neutral-200 bg-white px-4 text-small font-semibold text-secondary-dark shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
-    $dangerBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-primary bg-white px-4 text-small font-semibold text-primary shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
+    $quietBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-neutral-200 bg-card px-4 text-small font-semibold text-secondary-dark shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
+    $dangerBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-primary bg-card px-4 text-small font-semibold text-primary shadow-e1 transition duration-150 hover:bg-selection motion-reduce:transition-none sm:min-h-10 '.$focus;
     $redBtn = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 transition duration-150 hover:opacity-90 motion-reduce:transition-none sm:min-h-10 '.$focus;
-    $field = 'mt-1 w-full rounded-control border-neutral-300 bg-white shadow-e1 focus:border-primary focus:ring-primary';
+    $field = 'mt-1 w-full rounded-control border-neutral-300 bg-card shadow-e1 focus:border-ink focus:ring-ink';
 
     $status = (int) $request->status;
-    $statusDot = match ($status) {
-        Status::Draft, Status::ChangesRequested => 'border border-neutral-500 bg-white',
-        Status::Submitted, Status::UnderReview, Status::Resubmitted => 'bg-neutral-500',
-        Status::Approved, Status::Applied => 'bg-neutral-900',
-        Status::FailedApplication => 'bg-primary',
-        default => 'bg-neutral-300',
-    };
+    $statusChip = \App\Support\Status\RecruitmentStatus::request($status);
     $requesterName = $request->requester?->profile?->name ?? $request->requester?->name;
     $date = fn ($value) => $value ? '<time datetime="'.e($value->toIso8601String()).'" class="tabular-nums">'.e($value->translatedFormat('j M Y, H:i')).'</time>' : '—';
 @endphp
@@ -32,10 +26,7 @@
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-3">
                     <h1 class="text-h2 font-semibold text-neutral-900 tabular-nums"><bdi>{{ $request->request_number }}</bdi></h1>
-                    <span class="inline-flex items-center gap-1.5 rounded-control bg-neutral-100 px-2.5 py-1 text-small font-semibold text-secondary-dark">
-                        <span aria-hidden="true" class="size-2 rounded-full {{ $statusDot }}"></span>
-                        {{ Status::getLocalizedName($status)['value'] }}
-                    </span>
+                    <x-status :tone="$statusChip['tone']" :icon="$statusChip['icon']" :label="$statusChip['label']" />
                 </div>
                 <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-secondary-medium">
                     <span class="font-medium text-secondary-dark">{{ $request->targetPosition?->title ?? '—' }}</span>
@@ -58,7 +49,7 @@
                 @endcan
                 @can('submit', $request)
                     {{-- Disabled while in flight; the service is idempotent regardless. --}}
-                    <x-primary-button type="button" wire:click="submit" wire:loading.attr="disabled" wire:target="submit">{{ __('recruitment.submit') }}</x-primary-button>
+                    <x-button type="button" wire:click="submit" wire:loading.attr="disabled" wire:target="submit">{{ __('recruitment.submit') }}</x-button>
                 @endcan
                 @if ($canCreateCampaign)
                     <a href="{{ route('recruitment.campaigns.create', ['vacancyId' => $request->vacancy->id]) }}" wire:navigate class="{{ $redBtn }}">
@@ -121,7 +112,7 @@
                         {{-- Fields as toggle chips: easier to scan and tap than a column of checkboxes. --}}
                         <div class="mt-3 flex flex-wrap gap-2">
                             @foreach ($selectableFields as $unlockable)
-                                <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-neutral-200 bg-white px-3 text-small text-secondary-dark shadow-e1 transition duration-150 hover:border-neutral-300 has-checked:border-neutral-900 has-checked:bg-neutral-900 has-checked:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary motion-reduce:transition-none sm:min-h-9" wire:key="unlock-{{ $unlockable }}">
+                                <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-neutral-200 bg-card px-3 text-small text-secondary-dark shadow-e1 transition duration-150 hover:border-neutral-300 has-checked:border-neutral-900 has-checked:bg-neutral-900 has-checked:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink motion-reduce:transition-none sm:min-h-9" wire:key="unlock-{{ $unlockable }}">
                                     <input type="checkbox" value="{{ $unlockable }}" wire:model="requestedFields" class="sr-only">
                                     {{ __('recruitment.fields.'.$unlockable) }}
                                 </label>
@@ -137,7 +128,7 @@
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <x-primary-button type="button" wire:click="decide('request_changes')" wire:loading.attr="disabled" wire:target="decide">{{ __('recruitment.send_change_request') }}</x-primary-button>
+                        <x-button type="button" wire:click="decide('request_changes')" wire:loading.attr="disabled" wire:target="decide">{{ __('recruitment.send_change_request') }}</x-button>
                         <button type="button" class="{{ $quietBtn }}" wire:click="cancelChangeRequest">{{ __('recruitment.back_to_decisions') }}</button>
                     </div>
                 </div>
@@ -165,7 +156,7 @@
         {{-- Decided but not yet carried out; until the date the post is still open. --}}
         <section class="{{ $card }} flex flex-wrap items-center justify-between gap-4 bg-neutral-50 p-5" aria-labelledby="awaiting-title">
             <div class="flex min-w-0 items-start gap-3">
-                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-secondary-dark ring-1 ring-neutral-200" aria-hidden="true"><flux:icon.clock variant="mini" class="size-5" /></span>
+                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-secondary-dark ring-1 ring-neutral-200" aria-hidden="true"><flux:icon.clock variant="mini" class="size-5" /></span>
                 <div>
                     <h2 id="awaiting-title" class="font-semibold text-neutral-900">{{ __('recruitment.awaiting_execution') }}</h2>
                     @if ($effectiveDate)

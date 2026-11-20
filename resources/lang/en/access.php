@@ -78,6 +78,7 @@ return [
         'message-templates' => 'Message templates',
         'mail-lists' => 'Mail lists',
         'attendance' => 'Attendance',
+        'entitlements' => 'Permissions Library',
         'recruitment-requests' => 'Recruitment requests',
         'recruitment-vacancies' => 'Vacancies',
         'recruitment-campaigns' => 'Hiring campaigns',
@@ -88,6 +89,7 @@ return [
     ],
     'actions' => [
         'view' => 'View', 'view-own' => 'View own', 'view-all' => 'View all',
+        'manage-library' => 'Manage the library', 'assign' => 'Assign to people',
         'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete',
         'export' => 'Export', 'decide' => 'Approve / reject', 'review' => 'Review', 'amend' => 'Amend (contract amendment)',
         'use' => 'Use', 'confirm' => 'Confirm', 'manage' => 'Manage', 'manage-balances' => 'Manage balances',

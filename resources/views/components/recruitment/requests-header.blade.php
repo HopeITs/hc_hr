@@ -30,9 +30,9 @@
             the manager switches between the list and the chart. --}}
         <div class="flex flex-wrap items-center gap-3">
             @can('create', \App\Models\RecruitmentRequest::class)
-                <x-primary-button :href="route('recruitment.requests.create')" class="!h-7 !py-0 !text-sm !shadow-none">
+                <x-button size="sm" :href="route('recruitment.requests.create')" data-tour="recruitment.new-request">
                     {{ __('recruitment.create') }}
-                </x-primary-button>
+                </x-button>
             @endcan
 
             {{-- Its own permission, never implied by managing requests (D15).
@@ -40,9 +40,9 @@
                  for the HR who holds this permission the direct opening is not
                  the lesser errand. --}}
             @can('directOpen', \App\Models\RecruitmentRequest::class)
-                <x-primary-button :href="route('recruitment.requests.direct-open')" class="!h-7 !py-0 !text-sm !shadow-none">
+                <x-button size="sm" :href="route('recruitment.requests.direct-open')" data-tour="recruitment.direct-open">
                     {{ __('recruitment.direct_open.title') }}
-                </x-primary-button>
+                </x-button>
             @endcan
         </div>
     </div>
@@ -70,7 +70,7 @@
                 </span>
             @else
                 <a href="{{ route($tab['route']) }}" wire:navigate
-                   class="border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-secondary-medium transition hover:border-neutral-300 hover:text-secondary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                   class="border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-secondary-medium transition hover:border-neutral-300 hover:text-secondary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2">
                     {{ $tab['label'] }}
                 </a>
             @endif

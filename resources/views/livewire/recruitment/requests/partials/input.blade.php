@@ -23,7 +23,7 @@
         :disabled="$isLocked"
         @class([
             'num' => in_array($inputType, ['number', 'date'], true),
-            'cursor-not-allowed border-secondary-light bg-white text-secondary-dark shadow-none' => $isLocked,
+            'cursor-not-allowed border-secondary-light bg-card text-secondary-dark shadow-none' => $isLocked,
         ]) />
     @include('livewire.recruitment.requests.partials.field-state', ['isChangeRequested' => false, 'isLocked' => $isLocked])
     <x-forms.input-error :field="'data.'.$field" :input-id="$field" />

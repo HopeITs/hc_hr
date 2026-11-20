@@ -29,12 +29,12 @@
         :next="$nextStep"
     />
 
-    <div class="grid overflow-hidden rounded-card border border-secondary-soft bg-white shadow-e1 xl:grid-cols-[360px_minmax(0,1fr)]">
+    <div class="grid overflow-hidden rounded-card border border-secondary-soft bg-card shadow-e1 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section class="border-b border-secondary-soft p-5 xl:border-b-0 xl:border-e" aria-label="{{ __('recruitment.job_post.title') }}">
             <div class="space-y-4">
                 <div>
                     <x-forms.input-label for="job-post-city" required>{{ __('recruitment.job_post.city') }}</x-forms.input-label>
-                    <select id="job-post-city" wire:model.live="city" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary" required>
+                    <select id="job-post-city" wire:model.live="city" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink" required>
                         @foreach ($cityOptions as $option)
                             <option value="{{ $option }}">{{ $option }}</option>
                         @endforeach
@@ -44,7 +44,7 @@
 
                 <div>
                     <x-forms.input-label for="job-post-program" required>{{ __('recruitment.job_post.project') }}</x-forms.input-label>
-                    <select id="job-post-program" wire:model.live="program" class="w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary" required>
+                    <select id="job-post-program" wire:model.live="program" class="w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink" required>
                         @foreach ($programOptions as $option)
                             <option value="{{ $option }}">{{ $option }}</option>
                         @endforeach
@@ -78,7 +78,7 @@
                 <button
                     type="button"
                     x-on:click="format = 'story'"
-                    x-bind:class="format === 'story' ? 'border-primary bg-primary text-white' : 'border-secondary-light bg-white text-secondary-medium'"
+                    x-bind:class="format === 'story' ? 'border-primary bg-primary text-white' : 'border-secondary-light bg-card text-secondary-medium'"
                 class="cursor-pointer rounded-control border px-3 py-2 text-body font-semibold transition"
                 >
                     {{ __('recruitment.job_post.story') }}
@@ -86,7 +86,7 @@
                 <button
                     type="button"
                     x-on:click="format = 'post'"
-                    x-bind:class="format === 'post' ? 'border-primary bg-primary text-white' : 'border-secondary-light bg-white text-secondary-medium'"
+                    x-bind:class="format === 'post' ? 'border-primary bg-primary text-white' : 'border-secondary-light bg-card text-secondary-medium'"
                     class="cursor-pointer rounded-control border px-3 py-2 text-body font-semibold transition"
                 >
                     {{ __('recruitment.job_post.post') }}
@@ -94,9 +94,9 @@
             </div>
 
             <div class="mt-6 grid gap-2">
-                <x-primary-button type="button" full wire:click="saveDraft" wire:target="saveDraft">
+                <x-button type="button" full wire:click="saveDraft" wire:target="saveDraft">
                     {{ __('recruitment.job_post.save_draft') }}
-                </x-primary-button>
+                </x-button>
 
                 <button
                     type="button"
@@ -121,7 +121,7 @@
                             confirmLabel: @js(__('recruitment.job_post.unpublish')),
                             tone: 'danger',
                         })"
-                    class="flex w-full cursor-pointer items-center justify-center rounded-control border border-primary bg-white px-4 py-2 text-body font-semibold text-primary transition hover:bg-secondary-soft/30"
+                    class="flex w-full cursor-pointer items-center justify-center rounded-control border border-primary bg-card px-4 py-2 text-body font-semibold text-primary transition hover:bg-secondary-soft/30"
                     >
                         {{ __('recruitment.job_post.unpublish') }}
                     </button>
@@ -138,7 +138,7 @@
                             .catch(() => downloadMessage = $root.dataset.exportFailed)
                             .finally(() => downloading = false);
                     "
-                    class="flex w-full cursor-pointer items-center justify-center rounded-control border border-primary bg-white px-4 py-2 text-body font-semibold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                    class="flex w-full cursor-pointer items-center justify-center rounded-control border border-primary bg-card px-4 py-2 text-body font-semibold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     <svg x-show="downloading" class="me-2 size-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"></circle>
@@ -165,7 +165,7 @@
                     <h2 class="text-subtitle font-bold text-secondary-dark">{{ __('recruitment.job_post.preview') }}</h2>
                     <p class="text-small text-secondary-medium">{{ __('recruitment.job_post.exact_template') }}</p>
                 </div>
-                <span class="rounded-full bg-white px-3 py-1 text-small font-semibold text-secondary-medium shadow-e1" x-text="format === 'story' ? '2160 × 3840' : '2160 × 2160'"></span>
+                <span class="rounded-full bg-card px-3 py-1 text-small font-semibold text-secondary-medium shadow-e1" x-text="format === 'story' ? '2160 × 3840' : '2160 × 2160'"></span>
             </div>
 
             <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-control">

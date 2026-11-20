@@ -189,7 +189,7 @@ return [
 
     ],
 
-    'checkListsItems' => [['name' => 'ID Cartoon', 'order' => 1], ['name' => 'Email', 'order' => 1], ['name' => 'Email Signature', 'order' => 1], ['name' => 'Laptop', 'order' => 1], ['name' => 'Mobile', 'order' => 1], ['name' => 'SIM', 'order' => 1], ['name' => 'Mug', 'order' => 2], ['name' => 'ID Plastic', 'order' => 2], ['name' => 'Web photo', 'order' => 2], ['name' => 'Recieve Electronics', 'order' => 3], ['name' => 'Cancel work mail & work accounts', 'order' => 3], ['name' => 'Delete the volunteer from the web page', 'order' => 3]],
+    'checkListsItems' => [['name' => 'ID Cartoon', 'order' => 1], ['name' => 'Email', 'order' => 1], ['name' => 'Email Signature', 'order' => 1], ['name' => 'Laptop', 'order' => 1], ['name' => 'Mouse', 'order' => 1], ['name' => 'Mobile', 'order' => 1], ['name' => 'SIM', 'order' => 1], ['name' => 'Mug', 'order' => 2], ['name' => 'ID Plastic', 'order' => 2], ['name' => 'Web photo', 'order' => 2], ['name' => 'Recieve Electronics', 'order' => 3], ['name' => 'Cancel work mail & work accounts', 'order' => 3], ['name' => 'Delete the volunteer from the web page', 'order' => 3]],
 
     'leaveTypes' => [
         [

@@ -57,6 +57,7 @@ return [
         'message-templates' => 'قوالب الرسائل',
         'mail-lists' => 'القوائم البريدية',
         'attendance' => 'الحضور والدوام',
+        'entitlements' => 'مكتبة الصلاحيات',
         'recruitment-requests' => 'طلبات التوظيف',
         'recruitment-vacancies' => 'الشواغر',
         'recruitment-campaigns' => 'حملات التوظيف',
@@ -67,6 +68,7 @@ return [
     ],
     'actions' => [
         'view' => 'عرض', 'view-own' => 'عرض الخاص', 'view-all' => 'عرض الكل',
+        'manage-library' => 'إدارة المكتبة', 'assign' => 'إسناد للأشخاص',
         'create' => 'إنشاء', 'update' => 'تعديل', 'delete' => 'حذف', 'export' => 'تصدير', 'amend' => 'ملحق عقد',
         'decide' => 'قبول / رفض', 'review' => 'مراجعة', 'use' => 'استخدام', 'confirm' => 'تأكيد', 'manage' => 'إدارة',
         'manage-balances' => 'إدارة الأرصدة', 'manage-employees' => 'إدارة وصول الموظفين',

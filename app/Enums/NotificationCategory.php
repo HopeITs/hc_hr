@@ -12,15 +12,20 @@ use App\Notifications\CenterClosed;
 use App\Notifications\ChecklistAssigned;
 use App\Notifications\ContractsAutoRenewedSummary;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
+use App\Notifications\CriticalPositionNeedsReplacement;
 use App\Notifications\DigitalIdReportedLost;
 use App\Notifications\FolderShared;
 use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveDecisionReminder;
 use App\Notifications\LeaveRequestObjected;
+use App\Notifications\ManagerOrientationOverdue;
 use App\Notifications\NewCenterCreated;
 use App\Notifications\NewEmployeeWelcome;
 use App\Notifications\NewLeaveRequest;
+use App\Notifications\OnboardingStepOverdue;
+use App\Notifications\ProbationFinalThird;
+use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
 use App\Notifications\ProfileUpdatedByEmployee;
 use App\Notifications\TestNotification;
@@ -57,7 +62,11 @@ enum NotificationCategory: string
         BirthdayChoiceDecided::class => self::LeaveUpdates,
         ContractsAutoRenewedSummary::class => self::Contracts,
         ContractsExpiringAutoRenewWarning::class => self::Contracts,
+        ProbationFinalThird::class => self::Contracts,
+        ProbationRequested::class => self::Contracts,
         NewEmployeeWelcome::class => self::Employees,
+        OnboardingStepOverdue::class => self::Employees,
+        ManagerOrientationOverdue::class => self::Employees,
         AttendanceMonthReminder::class => self::Employees,
         ProfileChangeDecided::class => self::Employees,
         ProfileUpdatedByEmployee::class => self::Employees,
@@ -65,6 +74,7 @@ enum NotificationCategory: string
         FolderShared::class => self::Files,
         NewCenterCreated::class => self::Organization,
         CenterClosed::class => self::Organization,
+        CriticalPositionNeedsReplacement::class => self::Organization,
         DigitalIdReportedLost::class => self::Security,
         TestNotification::class => self::System,
     ];
