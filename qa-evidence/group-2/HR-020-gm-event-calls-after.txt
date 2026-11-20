@@ -1,4 +1,0 @@
-General manager (project-basics.view only) on Basic Settings > Course categories
-Livewire.dispatchTo('basics.course-category-table','exportExcel')  -> HTTP 403
-Livewire.dispatchTo('basics.course-category-table','delete',{payload:{id:321}}) -> HTTP 403
-Database after the call: course category 321 still exists (refused).

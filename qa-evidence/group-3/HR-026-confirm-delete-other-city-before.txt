@@ -1,2 +1,0 @@
-HR-LAT (Latakia) on /en/contracts: $wire.confirmDelete(5)  (contract 5 is in Aleppo)
-HTTP 200; delete dialog opened: yes (cancelled if opened; nothing deleted)

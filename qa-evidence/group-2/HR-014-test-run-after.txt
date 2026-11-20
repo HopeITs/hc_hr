@@ -1,3 +1,0 @@
-..                                                                  2 / 2 (100%)
-Time: 00:03.497, Memory: 84.00 MB
-OK (2 tests, 2 assertions)

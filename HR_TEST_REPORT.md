@@ -271,7 +271,7 @@ Cross-cutting issue found while testing this group (affects groups 1, 3, 4, 8):
 **HR-021 — High — Validation / Logic — The first shift's working hours are never validated, and real contracts already have inverted hours**
 - Page / role: contract create, edit, renew and amend, all HR roles and GM.
 - `ContractForm::validateTerms()` validates the *second* shift (`work_hours_2_to` must be `after:work_hours_2_from`) but has **no rule at all for `work_hours_from` / `work_hours_to`** (`app/Livewire/Forms/ContractForm.php:340-381`).
-- Evidence in `hr_db` (active contracts): #153 **21:00 → 17:00**, #163 **09:00 → 01:00**, #273 **08:00 → 04:00** (Hala Nseir's). The last two look like 12-hour-clock mistakes (01:00 meant 13:00). These times print on the signed contract and feed the attendance timesheet's daily hours.
+- Evidence in `hr_db` (active contracts): #153 **21:00 → 17:00**, #163 **09:00 → 01:00**, #273 **08:00 → 04:00** (Hala Nseir's). The last two look like 12-hour-clock mistakes (01:00 meant 13:00). These times print on the signed contract ("from 9:00 AM to 1:00 AM"), and its "hours per day" clause prints **0 hours per day** for an inverted shift (`schedule-clause.blade.php:41-49,115`). The dashboard work-day clock can't read the schedule (`WorkdayClock::period()` returns null). *Corrected:* leave and timesheet daily hours come from `weekly_hours / 5` (`Contract::getWorkHourPerDayAttribute`), not from these times.
 - Suggested fix: add `required_if fixed`, `date_format:H:i`, and `after:work_hours_from` (or an explicit "overnight shift" option), plus a data-fix list for the 3 contracts.
 
 **HR-022 — High — Logic / Data loss — A contract with applied amendments can still be deleted, and its amendments go with it**
