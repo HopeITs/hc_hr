@@ -110,7 +110,8 @@
                             @php($mine = $message->sender_id === $viewerId)
                             <div class="mb-1 flex {{ $mine ? 'justify-end' : 'justify-start' }}" wire:key="m-{{ $message->id }}" data-testid="chat-message">
                                 <div class="max-w-[85%] rounded-[12px] px-2.5 pb-1 pt-1.5 text-small leading-relaxed
-                                            {{ $mine ? 'bg-primary text-white' : 'bg-card text-ink' }}">
+                                            {{-- Own messages: dark silver, not brand red (too loud for a whole thread). --}}
+                                            {{ $mine ? 'bg-[#5C5D61] text-white' : 'bg-card text-ink' }}">
                                     @if ($isGroup && ! $mine)
                                         <p class="text-[11px] font-semibold text-primary">{{ $directory->nameOf($message->sender) }}</p>
                                     @endif

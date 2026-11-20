@@ -97,8 +97,13 @@ const chatDock = (key) => ({
         updateLift();
         window.addEventListener('scroll', updateLift, { passive: true });
         window.addEventListener('resize', updateLift, { passive: true });
+        // Shown or hidden by hand rather than with x-show: the dock is a
+        // persisted element, and its x-show stopped reacting after
+        // wire:navigate, leaving it hidden on the page one came back to.
+        const root = this.$root;
         this.checkPage = () => {
             this.onPage = !!document.querySelector('[data-chat-page]');
+            root.style.display = this.onPage ? 'none' : '';
             updateLift();
         };
         this.checkPage();
@@ -127,7 +132,42 @@ const chatDock = (key) => ({
     save(tabs) {
         writeTabs(key, tabs);
     },
+
+    maximize(url) {
+        openFullPage(url);
+    },
 });
+
+/**
+ * The full chats page, remembering where to come back to. A full load, not
+ * wire:navigate: on the dashboard the workspace (dashboard/workspace.js)
+ * would otherwise open it in its panel over the dashboard.
+ */
+function openFullPage(url) {
+    try {
+        window.sessionStorage.setItem('hc-chat-return', window.location.href);
+    } catch {
+        // Storage blocked: "back" goes to the dashboard instead.
+    }
+
+    window.location.assign(url);
+}
+
+/** Back from the full page to wherever it was opened from. */
+function leaveFullPage(fallbackUrl) {
+    let back = fallbackUrl;
+
+    try {
+        back = window.sessionStorage.getItem('hc-chat-return') || fallbackUrl;
+        window.sessionStorage.removeItem('hc-chat-return');
+    } catch {
+        // Storage blocked: go to the fallback.
+    }
+
+    window.Livewire.navigate(back);
+}
+
+window.hcChatLeaveFullPage = leaveFullPage;
 
 const chatWindow = () => ({
     nearBottom: true,
@@ -188,37 +228,19 @@ const chatWindow = () => ({
         });
     },
 
-    // Maximise: the full chat page, remembering where to come back to.
+    // Maximise: the full chat page on this chat (the dock brings its tabs
+    // back from this browser's memory after the full load).
     maximize(url) {
-        try {
-            window.sessionStorage.setItem('hc-chat-return', window.location.href);
-        } catch {
-            // Storage blocked: "back" goes to the dashboard instead.
-        }
-
-        // A full load, not wire:navigate: on the dashboard, the workspace
-        // (dashboard/workspace.js) would otherwise open the chat page in its
-        // panel over the dashboard instead of the whole window. The dock
-        // brings its tabs back from this browser's memory.
-        window.location.assign(url);
+        openFullPage(url);
     },
 
     // From the full page: the chat goes back on the dock as an open tab, and
-    // the person returns to the page they maximised from.
+    // the person returns to the page they maximised from. The dock is still
+    // mounted (hidden) on the full page, so it opens the tab and keeps it
+    // across the navigation back.
     backToDock(conversationId, fallbackUrl) {
-        let back = fallbackUrl;
-
-        try {
-            back = window.sessionStorage.getItem('hc-chat-return') || fallbackUrl;
-            window.sessionStorage.removeItem('hc-chat-return');
-        } catch {
-            // Storage blocked: go to the fallback.
-        }
-
-        // The dock is still mounted (hidden) on this page, so it opens the tab
-        // and keeps it across the navigation back.
         window.Livewire.dispatch('chat-open', { conversationId });
-        window.Livewire.navigate(back);
+        leaveFullPage(fallbackUrl);
     },
 
     // Desktop: Enter sends, Shift+Enter is a new line, never while an IME is

@@ -37,6 +37,7 @@ return [
         'colleagues' => 'Colleagues',
         'maximize' => 'Open in full page',
         'restore' => 'Back to a tab',
+        'leave_full_page' => 'Back to the page',
         'pick_chat' => 'Choose a chat from the list, or search for a colleague.',
     ],
 

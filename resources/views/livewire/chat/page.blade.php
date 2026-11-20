@@ -9,6 +9,12 @@
         <aside class="flex w-80 shrink-0 flex-col border-e border-line-soft">
             <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2.5">
                 <h1 class="flex-1 text-body font-semibold text-ink">{{ __('chat.ui.chats') }}</h1>
+                {{-- Back to the page the full view was opened from (no chat open needed). --}}
+                <button type="button" x-data x-on:click="window.hcChatLeaveFullPage(@js(route('dashboard')))"
+                        class="grid size-8 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink"
+                        aria-label="{{ __('chat.ui.leave_full_page') }}" title="{{ __('chat.ui.leave_full_page') }}" data-testid="chat-page-leave">
+                    <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>
+                </button>
             </header>
             <div class="px-3 py-2">
                 <input type="search" wire:model.live.debounce.300ms="search"

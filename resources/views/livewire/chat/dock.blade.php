@@ -10,7 +10,9 @@
 <div x-data="chatDock(@js('hc-chat-tabs:'.auth()->id()))"
      x-on:chat-tabs-changed.window="save($event.detail.tabs)"
      x-on:keydown.escape.window="if ($wire.launcherOpen) $wire.toggleLauncher()"
-     x-show="! onPage"
+     {{-- Livewire leaves the root's own attributes alone, so the display that
+          chat.js sets (hidden on the full chats page) survives re-renders. --}}
+     wire:ignore.self
      data-testid="chat-dock">
 
     {{-- The bar, in reading order: launcher, newest tab ... oldest, "+N". It
@@ -88,10 +90,12 @@
             @if ($launcherMode === 'chats')
                 <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2">
                     <h2 id="chat-launcher-title" class="flex-1 text-body font-semibold text-ink">{{ __('chat.ui.chats') }}</h2>
-                    <button type="button" wire:click="showPeople"
-                            class="grid size-9 place-items-center rounded-full bg-primary text-white"
-                            aria-label="{{ __('chat.ui.new_chat') }}" title="{{ __('chat.ui.new_chat') }}" data-testid="chat-new">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                    {{-- The full chats page, like a tab's maximise (no pencil: searching a
+                         name already offers colleagues to start a chat with). --}}
+                    <button type="button" x-on:click="maximize(@js(route('chat')))"
+                            class="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink max-md:hidden"
+                            aria-label="{{ __('chat.ui.maximize') }}" title="{{ __('chat.ui.maximize') }}" data-testid="chat-launcher-maximize">
+                        <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                     </button>
                     <button type="button" wire:click="toggleLauncher"
                             class="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink"
