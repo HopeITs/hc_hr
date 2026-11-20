@@ -11,6 +11,9 @@ final class AnnouncementTemplates
      */
     public const MAILTO_LIMIT = 1800;
 
+    /** The house font first, then what a computer without it falls back to. */
+    private const FONT = "'Somar Sans', 'Segoe UI', Tahoma, sans-serif";
+
     /** @var list<class-string<AnnouncementTemplate>> */
     private const TEMPLATES = [
         WelcomeNewcomer::class,
@@ -86,12 +89,16 @@ final class AnnouncementTemplates
         }
 
         $cc = self::addresses($cc);
+        // Outlook (Word's engine) reads the direction and the font from each element, not from the
+        // page, so both are written on every one. Somar Sans shows where it is installed; the
+        // fallbacks are for a computer without it.
+        $rtl = 'direction:rtl;text-align:right;unicode-bidi:embed;font-family:'.self::FONT.';font-size:12pt';
         $paragraphs = array_map(
-            fn (string $paragraph) => '<p style="margin:0 0 12pt">'.nl2br(e($paragraph), false).'</p>',
+            fn (string $paragraph) => '<p dir="rtl" style="'.$rtl.';margin:0 0 12pt">'.nl2br(e($paragraph), false).'</p>',
             preg_split('/\n{2,}/', trim($body)) ?: [],
         );
-        $html = '<html><body dir="rtl" style="font-family:\'Segoe UI\',Tahoma,sans-serif;font-size:11pt;text-align:right">'
-            .implode('', $paragraphs).'</body></html>';
+        $html = '<html dir="rtl" lang="ar"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>'
+            .'<body dir="rtl" style="'.$rtl.'"><div dir="rtl" style="'.$rtl.'">'.implode('', $paragraphs).'</div></body></html>';
 
         $lines = [
             'X-Unsent: 1',

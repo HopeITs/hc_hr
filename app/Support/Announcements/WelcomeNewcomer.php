@@ -20,7 +20,6 @@ class WelcomeNewcomer extends AnnouncementTemplate
             ['name' => 'direction', 'type' => 'textarea', 'required' => true, 'hint' => 'direction'],
             ['name' => 'projects', 'type' => 'text', 'dir' => 'auto'],
             ['name' => 'expertise', 'type' => 'text', 'hint' => 'expertise'],
-            ['name' => 'signature', 'type' => 'text'],
         ];
     }
 
@@ -45,8 +44,7 @@ class WelcomeNewcomer extends AnnouncementTemplate
             .($this->filled($values, 'projects') ? 'هذه المشاريع وتعزيز أثرها' : 'عمل المؤسسة وتعزيز أثره')
             .'.';
 
-        $body = "الأعزاء،\nنهاركم سعيد،\n\n".$joined."\n\n".$wish."\n\nمع خالص التقدير والمحبة،"
-            .($this->filled($values, 'signature') ? "\n".trim($values['signature']) : '');
+        $body = "الأعزاء،\nنهاركم سعيد،\n\n".$joined."\n\n".$wish."\n\nمع خالص التقدير والمحبة،";
 
         return [
             'subject' => 'ترحيب بانضمام '.$this->value($values, 'name').' إلى عائلة '.$this->value($values, 'center'),

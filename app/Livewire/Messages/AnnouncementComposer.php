@@ -37,6 +37,9 @@ class AnnouncementComposer extends Component
 
     public string $cc = '';
 
+    /** Written once, added at the end of every email (kept on this computer by the page, not on the server). */
+    public string $signature = '';
+
     /**
      * @param  array<string, mixed>  $prefill  values to start with (a person's name, say)
      */
@@ -84,13 +87,18 @@ class AnnouncementComposer extends Component
         $template = $this->current();
         abort_unless($template, 404);
 
-        $message = $template->render($this->values);
+        $message = $this->message($template);
         $eml = AnnouncementTemplates::eml($this->to, $this->cc, $message['subject'], $message['body']);
         abort_if($eml === null, 422);
 
         return response()->streamDownload(function () use ($eml): void {
             echo $eml;
         }, $template->key().'.eml', ['Content-Type' => 'message/rfc822']);
+    }
+
+    public function updatedSignature(): void
+    {
+        $this->signature = mb_substr($this->signature, 0, 1000);
     }
 
     public function back(): void
@@ -124,7 +132,7 @@ class AnnouncementComposer extends Component
         $message = null;
 
         if ($template) {
-            $rendered = $template->render($this->values);
+            $rendered = $this->message($template);
             $problems = [
                 ...array_map(fn (string $label) => __('messages.announcements.problems.missing', ['field' => $label]), $template->missing($this->values)),
                 ...($template instanceof HolidayClosure ? $template->problems($this->values) : []),
@@ -152,6 +160,25 @@ class AnnouncementComposer extends Component
             'current' => $template,
             'message' => $message,
         ]);
+    }
+
+    /**
+     * The email for these values with the signature under it. Outlook adds its own
+     * signature only to a message it composes itself, never to one opened from a link
+     * or a file, so it is written here.
+     *
+     * @return array{subject: string, body: string}
+     */
+    private function message(AnnouncementTemplate $template): array
+    {
+        $message = $template->render($this->values);
+        $signature = trim(str_replace("\r\n", "\n", $this->signature));
+
+        if ($signature !== '') {
+            $message['body'] .= "\n\n".$signature;
+        }
+
+        return $message;
     }
 
     private function current(): ?AnnouncementTemplate

@@ -68,6 +68,25 @@
                             @endif
                         </div>
                     @endforeach
+
+                    {{-- The same signature for every email, kept in this browser. --}}
+                    <div wire:key="ann-signature" class="border-t border-dashed border-line pt-4"
+                         x-data="{
+                             init() {
+                                 try {
+                                     const saved = localStorage.getItem('hopehr-announcement-signature');
+                                     if (saved && ! $wire.signature) $wire.set('signature', saved);
+                                 } catch (e) {}
+                                 $wire.$watch('signature', value => {
+                                     try { localStorage.setItem('hopehr-announcement-signature', value ?? ''); } catch (e) {}
+                                 });
+                             },
+                         }">
+                        <x-forms.input-label for="ann-signature">@lang('messages.announcements.signature')</x-forms.input-label>
+                        <textarea id="ann-signature" rows="3" dir="rtl" maxlength="1000" data-testid="announcement-signature"
+                                  wire:model.live.debounce.600ms="signature" class="{{ $control }}"></textarea>
+                        <p class="mt-1 text-small text-ink-2">@lang('messages.announcements.hints.signature')</p>
+                    </div>
                 </form>
 
                 {{-- The email as it will go. --}}

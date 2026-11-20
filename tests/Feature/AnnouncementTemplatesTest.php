@@ -33,7 +33,6 @@ class AnnouncementTemplatesTest extends TestCase
             'direction' => 'تعزيز قيمة التمكين وتطوير برامجها',
             'projects' => 'الـ DISC, LEAP, Children University',
             'expertise' => 'التمكين',
-            'signature' => '',
         ]);
 
         $this->assertSame(
@@ -149,6 +148,8 @@ class AnnouncementTemplatesTest extends TestCase
         [$head, $encoded] = explode("\r\n\r\n", $eml, 2);
         $html = base64_decode($encoded);
         $this->assertStringContainsString('dir="rtl"', $html);
+        $this->assertStringContainsString('font-family:\'Somar Sans\'', $html);
+        $this->assertSame(substr_count($html, '<p '), substr_count($html, '<p dir="rtl"'));
         $this->assertStringContainsString('مكتب الإدارة العامة سيُعطل بمناسبة الأعياد ابتداءً من 23/12/2026', $html);
         $this->assertStringContainsString('Subject: '.$message['subject'], mb_decode_mimeheader($head));
         $this->assertNull(AnnouncementTemplates::eml('', '', 's', 'b'));
@@ -168,6 +169,24 @@ class AnnouncementTemplatesTest extends TestCase
         Livewire::actingAs($nobody)->test(AnnouncementComposer::class)
             ->call('downloadEml')
             ->assertForbidden();
+    }
+
+    public function test_the_signature_ends_every_email_and_the_message_file(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($aleppo, 'HR-ALP', ['message-templates.use']);
+
+        $component = Livewire::actingAs($hr)->test(AnnouncementComposer::class)
+            ->call('compose', 'holiday_closure')
+            ->set('signature', "مع التحية\nقسم الموارد البشرية")
+            ->assertSee('قسم الموارد البشرية')
+            ->call('downloadEml')
+            ->assertFileDownloaded('holiday_closure.eml');
+
+        // The signature is the last paragraph, its lines kept, and the choice of template does not lose it.
+        $component->call('back')->call('choose', 'welcome')->assertSet('signature', "مع التحية\nقسم الموارد البشرية");
+        $body = (new WelcomeNewcomer)->render((new WelcomeNewcomer)->defaults())['body'];
+        $this->assertStringNotContainsString('signature', $body);
     }
 
     public function test_only_who_may_use_templates_opens_the_composer(): void
