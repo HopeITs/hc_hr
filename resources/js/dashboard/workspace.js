@@ -151,6 +151,7 @@ const workspace = () => ({
     show(id, push = true) {
         this.active = id;
         this.open = true;
+        window.dispatchEvent(new CustomEvent('hc-workspace-opened'));
         if (push) this.address(true);
         this.$nextTick(() => this.$refs.panel?.focus({ preventScroll: true }));
     },

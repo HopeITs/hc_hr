@@ -33,7 +33,8 @@
             Livewire.navigate(href);
         },
      }"
-     x-on:hc-hub-cleared.window="current = []">
+     x-on:hc-hub-cleared.window="current = []"
+     x-on:hc-workspace-opened.window="open = false">
     <div class="flex flex-wrap items-stretch gap-2">
         {{-- My Layout: the viewer's own cards, unfiltered. Pressed while no category filters the grid;
              a click clears the ones that do. --}}
