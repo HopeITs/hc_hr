@@ -3,6 +3,7 @@
 
     <x-page-header :title="__('messages.title')" :lead="__('messages.lead')">
         <x-slot:actions>
+            <x-button variant="outline" x-on:click="Livewire.dispatch('announcement-compose')" data-testid="open-announcements">@lang('messages.announcements.title')</x-button>
             <x-button wire:click="newTemplate">@lang('messages.new')</x-button>
         </x-slot:actions>
     </x-page-header>

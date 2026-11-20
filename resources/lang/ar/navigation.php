@@ -38,6 +38,7 @@ return [
         ],
         'customise' => ['label' => 'تخصيص لوحة التحكم', 'keywords' => 'تخصيص تعديل ترتيب لوحة التحكم الرئيسية البطاقات'],
         'shortcuts' => ['label' => 'اختصارات لوحة المفاتيح', 'keywords' => 'مفاتيح لوحة المفاتيح اختصارات مساعدة'],
+        'announcement' => ['label' => 'إيميلات جاهزة', 'keywords' => 'ايميل بريد قالب اعلان ترحيب استقالة عطلة اعياد تغييرات ادارية'],
     ],
 
     // Prompt 10: نافذة «?» (<x-keyboard-shortcuts>، App\Support\KeyboardShortcuts).

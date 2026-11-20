@@ -56,6 +56,10 @@ window.addEventListener('hopehr-command', (event) => {
         case 'open':
             if (href) Livewire.navigate(returns ? withReturn(href) : href);
             break;
+        case 'announcement':
+            // App\Livewire\Messages\AnnouncementComposer, mounted in the layout for who may use it.
+            Livewire.dispatch('announcement-compose');
+            break;
     }
 });
 

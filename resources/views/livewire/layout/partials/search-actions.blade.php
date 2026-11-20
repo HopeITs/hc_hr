@@ -30,7 +30,16 @@
                             <template x-if="items !== null && items.length === 0">
                                 <span class="block px-2 py-1 text-caption text-ink-2">{{ __('smart_search.templates-none') }}</span>
                             </template>
-                            <template x-for="item in (items || [])" :key="item.name + item.channel">
+                            {{-- A ready-made announcement opens the composer with the person's name in. --}}
+                            <template x-for="item in (items || []).filter(i => i.compose)" :key="'compose-' + item.compose.template">
+                                <button type="button" x-on:click.stop="shown = false; Livewire.dispatch('announcement-compose', item.compose)"
+                                        class="flex w-full items-center justify-between gap-3 rounded-control px-2 py-1 text-start text-caption font-semibold text-ink hover:bg-hover"
+                                        data-testid="search-announcement">
+                                    <span x-text="item.name"></span>
+                                    <span class="text-ink-3">{{ __('messages.announcements.short') }}</span>
+                                </button>
+                            </template>
+                            <template x-for="item in (items || []).filter(i => ! i.compose)" :key="item.name + item.channel">
                                 <a :href="item.url" :target="item.channel === 'whatsapp' ? '_blank' : null" rel="noopener"
                                    class="flex items-center justify-between gap-3 rounded-control px-2 py-1 text-caption font-semibold text-ink hover:bg-hover" x-on:click.stop>
                                     <span x-text="item.name"></span>
