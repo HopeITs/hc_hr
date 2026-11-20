@@ -26,6 +26,7 @@ class ChatService
         private readonly ChatSearchIndex $index,
         private readonly ChatFileVault $vault,
         private readonly ChatNotifier $notifier,
+        private readonly ChatThumbnails $thumbnails,
     ) {}
 
     /** The private chat between two people, created the first time. */
@@ -113,6 +114,7 @@ class ChatService
         } catch (Throwable $e) {
             foreach ($stored as $file) {
                 $this->vault->delete($file['path']);
+                $this->vault->delete($file['thumbnail_path']);
             }
 
             throw $e;
@@ -413,11 +415,18 @@ class ChatService
         }
     }
 
-    /** @return array{path: string, original_name: string, mime: string, size: int, width: ?int, height: ?int, thumbnail_path: null} */
+    /** @return array{path: string, original_name: string, mime: string, size: int, width: ?int, height: ?int, thumbnail_path: ?string} */
     private function storeUpload(UploadedFile $file): array
     {
+        // The type from the file's own bytes, not what the browser claimed.
         $mime = (string) ($file->getMimeType() ?: 'application/octet-stream');
         $dimensions = str_starts_with($mime, 'image/') ? @getimagesize($file->getRealPath()) : false;
+
+        // The preview is made from the upload before encryption; the original
+        // is stored exactly as it came.
+        $preview = $this->thumbnails->make($file->getRealPath(), $mime);
+        $thumbnail = $preview !== null ? $this->vault->storeContents($preview)['path'] : null;
+
         $stored = $this->vault->store($file->getRealPath());
 
         return [
@@ -427,8 +436,7 @@ class ChatService
             'size' => $stored['size'],
             'width' => $dimensions ? (int) $dimensions[0] : null,
             'height' => $dimensions ? (int) $dimensions[1] : null,
-            // Thumbnails come with the attachment screens (stage 4).
-            'thumbnail_path' => null,
+            'thumbnail_path' => $thumbnail,
         ];
     }
 

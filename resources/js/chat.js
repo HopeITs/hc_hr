@@ -364,6 +364,12 @@ const chatDock = (key) => ({
     init() {
         subscribe();
 
+        try {
+            window.hcChatText = JSON.parse(this.$root.dataset.texts || '{}');
+        } catch {
+            window.hcChatText = {};
+        }
+
         updateLift();
         window.addEventListener('scroll', updateLift, { passive: true });
         window.addEventListener('resize', updateLift, { passive: true });
@@ -441,6 +447,16 @@ window.hcChatLeaveFullPage = leaveFullPage;
 
 const chatWindow = () => ({
     nearBottom: true,
+
+    // Files chosen to send, before sending. Each: { key, file, name, sizeLabel, preview }.
+    files: [],
+    uploading: false,
+    progress: 0,
+    uploadError: '',
+    dragging: false,
+
+    // The photo shown full size over the page (a URL), or null.
+    lightbox: null,
 
     init() {
         this.$nextTick(() => this.toBottom());
@@ -551,6 +567,16 @@ const chatWindow = () => ({
     },
 
     submit() {
+        if (this.uploading) {
+            return;
+        }
+
+        if (this.files.length) {
+            this.upload();
+
+            return;
+        }
+
         if (this.$refs.composer && this.$refs.composer.value.trim() === '') {
             return;
         }
@@ -558,7 +584,138 @@ const chatWindow = () => ({
         this.nearBottom = true;
         this.$wire.send();
     },
+
+    // ---- files ---------------------------------------------------------
+
+    form() {
+        return this.$root.querySelector('form[data-upload-url]');
+    },
+
+    addFiles(list) {
+        const form = this.form();
+
+        if (!form || !list) {
+            return;
+        }
+
+        const maxBytes = Number(form.dataset.maxBytes) || 0;
+        const maxFiles = Number(form.dataset.maxFiles) || 10;
+
+        this.uploadError = '';
+
+        for (const file of Array.from(list)) {
+            if (this.files.length >= maxFiles) {
+                this.uploadError = window.hcChatText?.tooManyFiles ?? '';
+                break;
+            }
+
+            if (maxBytes && file.size > maxBytes) {
+                this.uploadError = (window.hcChatText?.tooLarge ?? ':name').replace(':name', file.name);
+                continue;
+            }
+
+            this.files.push({
+                key: `${file.name}-${file.size}-${Math.random()}`,
+                file,
+                name: file.name || 'image.png',
+                sizeLabel: sizeLabel(file.size),
+                preview: /^image\/(jpeg|png|gif|webp)$/.test(file.type) ? URL.createObjectURL(file) : null,
+            });
+        }
+
+        this.$nextTick(() => this.$refs.composer?.focus({ preventScroll: true }));
+    },
+
+    removeFile(index) {
+        const [gone] = this.files.splice(index, 1);
+
+        if (gone?.preview) {
+            URL.revokeObjectURL(gone.preview);
+        }
+    },
+
+    // A pasted image (a screenshot, a copied photo) becomes an attachment.
+    pasted(event) {
+        const images = Array.from(event.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+
+        if (images.length) {
+            event.preventDefault();
+            this.addFiles(images);
+        }
+    },
+
+    // Files go to the chat's own endpoint (encrypted on arrival), with the
+    // text as their caption, and the progress shown as they go.
+    upload() {
+        const form = this.form();
+        const data = new FormData();
+
+        data.append('body', this.$refs.composer?.value ?? '');
+        this.files.forEach((item) => data.append('files[]', item.file, item.name));
+
+        this.uploading = true;
+        this.progress = 0;
+        this.uploadError = '';
+        this.nearBottom = true;
+
+        const request = new XMLHttpRequest();
+        request.open('POST', form.dataset.uploadUrl);
+        request.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]')?.content ?? '');
+        request.setRequestHeader('Accept', 'application/json');
+        request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        request.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                this.progress = Math.round((event.loaded / event.total) * 100);
+            }
+        };
+        request.onload = () => {
+            this.uploading = false;
+
+            if (request.status >= 200 && request.status < 300) {
+                this.files.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+                this.files = [];
+
+                if (this.$refs.composer) {
+                    this.$refs.composer.value = '';
+                    this.$refs.composer.style.height = 'auto';
+                }
+
+                this.$wire.set('draft', '', false);
+                this.$wire.$refresh();
+
+                return;
+            }
+
+            let message = window.hcChatText?.uploadFailed ?? '';
+
+            try {
+                const body = JSON.parse(request.responseText);
+                message = Object.values(body.errors ?? {}).flat()[0] ?? body.message ?? message;
+            } catch {
+                // Not JSON (e.g. the server refused a request too large): the general message.
+            }
+
+            this.uploadError = request.status === 413 ? (window.hcChatText?.tooLargeGeneric ?? message) : message;
+        };
+        request.onerror = () => {
+            this.uploading = false;
+            this.uploadError = window.hcChatText?.uploadFailed ?? '';
+        };
+        request.send(data);
+    },
 });
+
+function sizeLabel(bytes) {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${Math.round(bytes / 1024)} KB`;
+    }
+
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 if (typeof window !== 'undefined') {
     const register = () => {

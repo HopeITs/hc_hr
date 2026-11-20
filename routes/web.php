@@ -120,6 +120,12 @@ Route::group(
             // ChatConversationPolicy (membership only) guards each conversation.
             // 404 while CHAT_ENABLED is off.
             Route::get('chat', App\Livewire\Chat\Page::class)->name('chat');
+            // A message with files (encrypted on arrival), and a file back out,
+            // decrypted, for members of its chat only. Same rules as the chat.
+            Route::post('chat/{conversation}/messages', [App\Http\Controllers\ChatFileController::class, 'store'])
+                ->whereNumber('conversation')->name('chat.messages.store');
+            Route::get('chat/files/{attachment}', [App\Http\Controllers\ChatFileController::class, 'show'])
+                ->whereNumber('attachment')->name('chat.files.show');
 
             // Basic project routes
             require __DIR__.'/basic-project.php';

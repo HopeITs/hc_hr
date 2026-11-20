@@ -39,6 +39,10 @@
             </div>
         @else
             <section x-data="chatWindow" @if (! $onPage) role="dialog" aria-modal="false" @endif aria-label="{{ $summary['title'] }}"
+                     {{-- Drop files anywhere on the chat to attach them. --}}
+                     x-on:dragover.prevent="dragging = true" x-on:dragleave.self="dragging = false"
+                     x-on:drop.prevent="dragging = false; addFiles($event.dataTransfer.files)"
+                     :class="dragging && 'ring-2 ring-primary ring-inset'"
                      @class([
                          'flex flex-col overflow-hidden bg-card',
                          'min-h-0 flex-1' => $onPage,
@@ -146,7 +150,30 @@
                                         <p class="whitespace-pre-line break-words" dir="auto">{{ $message->body }}</p>
                                     @endif
                                     @foreach ($message->attachments as $attachment)
-                                        <p class="mt-1 truncate text-[12px] {{ $mine ? 'text-white/90' : 'text-ink-2' }}">📎 {{ $attachment->original_name }}</p>
+                                        @php($fileUrl = route('chat.files.show', $attachment->id))
+                                        @if ($attachment->thumbnail_path)
+                                            {{-- A photo: its preview; click for full size over the page. --}}
+                                            <button type="button" x-on:click="lightbox = @js($fileUrl)"
+                                                    class="mt-1 block overflow-hidden rounded-[10px]"
+                                                    aria-label="{{ __('chat.ui.open_photo') }}" data-testid="chat-photo">
+                                                {{-- A set width (and the photo's shape) so the space exists before it
+                                                     loads: with no size a lazy image is never "in view" and never loads. --}}
+                                                <img src="{{ $fileUrl }}?thumb=1" alt="{{ $attachment->original_name }}" loading="lazy"
+                                                     class="block max-h-60 w-60 max-w-full bg-soft object-cover"
+                                                     @if ($attachment->width && $attachment->height) style="aspect-ratio: {{ $attachment->width }} / {{ $attachment->height }}" @endif>
+                                            </button>
+                                        @else
+                                            {{-- Any other file: a card that downloads it. --}}
+                                            <a href="{{ $fileUrl }}" download
+                                               class="mt-1 flex items-center gap-2 rounded-[10px] px-2 py-1.5 {{ $mine ? 'bg-white/12 hover:bg-white/20' : 'bg-soft hover:bg-hover' }}"
+                                               aria-label="{{ __('chat.ui.download', ['name' => $attachment->original_name]) }}" data-testid="chat-file">
+                                                <svg class="size-6 shrink-0 {{ $mine ? 'text-white' : 'text-primary' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-[12px] font-semibold" dir="auto">{{ $attachment->original_name }}</span>
+                                                    <span class="block text-[11px] {{ $mine ? 'text-white/75' : 'text-ink-3' }}">{{ \Illuminate\Support\Number::fileSize($attachment->size, precision: 1) }}</span>
+                                                </span>
+                                            </a>
+                                        @endif
                                     @endforeach
                                     <p class="mt-0.5 flex items-center justify-end gap-1 text-[10px] {{ $mine ? 'text-white/80' : 'text-ink-3' }}">
                                         @if ($message->edited_at)<span>{{ __('chat.ui.edited') }}</span>@endif
@@ -169,13 +196,71 @@
                     @endforelse
                 </div>
 
+                {{-- A photo at full size, over the whole page; Escape or a click closes it. --}}
+                <template x-teleport="body">
+                    <div x-show="lightbox" x-cloak x-transition.opacity
+                         x-on:click="lightbox = null" x-on:keydown.escape.window="lightbox = null"
+                         class="fixed inset-0 z-[9800] flex items-center justify-center bg-black/85 p-4"
+                         role="dialog" aria-modal="true" aria-label="{{ __('chat.ui.open_photo') }}" data-testid="chat-lightbox">
+                        <img :src="lightbox" alt="" class="max-h-full max-w-full rounded-[8px] object-contain" x-on:click.stop>
+                        <button type="button" x-on:click="lightbox = null"
+                                class="absolute end-4 top-4 grid size-10 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"
+                                aria-label="{{ __('chat.ui.close_photo') }}">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </template>
+
                 @if ($canSend)
-                    <form x-on:submit.prevent="submit()" class="border-t border-line-soft bg-card px-2 py-1.5">
+                    <form x-on:submit.prevent="submit()" class="border-t border-line-soft bg-card px-2 py-1.5"
+                          data-upload-url="{{ route('chat.messages.store', $conversationId) }}"
+                          data-max-bytes="{{ (int) config('chat.max_file_kb') * 1024 }}"
+                          data-max-files="{{ (int) config('chat.max_files_per_message') }}">
                         @error('draft')
                             <p class="mb-1 text-[11px] text-primary" role="alert">{{ $message }}</p>
                         @enderror
+
+                        {{-- Files chosen to send (before sending): Alpine's own list, so Livewire leaves it alone. --}}
+                        <div wire:ignore>
+                            <p x-show="uploadError" x-text="uploadError" x-cloak class="mb-1 text-[11px] text-primary" role="alert"></p>
+                            <div x-show="files.length" x-cloak class="mb-1.5 flex flex-col gap-1" data-testid="chat-pending-files">
+                                <template x-for="(item, index) in files" :key="item.key">
+                                    <div class="flex items-center gap-2 rounded-control bg-soft px-2 py-1.5">
+                                        <template x-if="item.preview">
+                                            <img :src="item.preview" alt="" class="size-9 shrink-0 rounded object-cover">
+                                        </template>
+                                        <template x-if="! item.preview">
+                                            <span class="grid size-9 shrink-0 place-items-center rounded bg-card text-ink-2" aria-hidden="true">
+                                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                                            </span>
+                                        </template>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-[12px] font-semibold text-ink" dir="auto" x-text="item.name"></span>
+                                            <span class="block text-[11px] text-ink-3" x-text="item.sizeLabel"></span>
+                                        </span>
+                                        <button type="button" x-on:click="removeFile(index)" x-show="! uploading"
+                                                class="grid size-7 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-hover hover:text-ink"
+                                                aria-label="{{ __('chat.ui.remove_file') }}" title="{{ __('chat.ui.remove_file') }}">
+                                            <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </template>
+                                <div x-show="uploading" x-cloak class="h-1 overflow-hidden rounded-full bg-soft" role="progressbar"
+                                     :aria-valuenow="progress" aria-valuemin="0" aria-valuemax="100" aria-label="{{ __('chat.ui.uploading') }}">
+                                    <div class="h-full bg-primary transition-[width]" :style="`width: ${progress}%`"></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex items-end gap-1.5">
-                            <textarea x-ref="composer" wire:model="draft" x-on:keydown="keydown($event)"
+                            <input type="file" multiple x-ref="fileInput" class="hidden" x-on:change="addFiles($event.target.files); $event.target.value = ''"
+                                   data-testid="chat-file-input">
+                            <button type="button" x-on:click="$refs.fileInput.click()" x-bind:disabled="uploading"
+                                    class="grid size-9 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink disabled:opacity-50"
+                                    aria-label="{{ __('chat.ui.attach') }}" title="{{ __('chat.ui.attach') }}" data-testid="chat-attach">
+                                <svg class="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.6-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+                            </button>
+                            <textarea x-ref="composer" wire:model="draft" x-on:keydown="keydown($event)" x-on:paste="pasted($event)"
                                       rows="1" dir="auto" maxlength="{{ config('chat.max_message_length') }}"
                                       x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"
                                       {{-- chat.js whispers "typing…" from here, with this name. --}}

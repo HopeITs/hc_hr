@@ -13,6 +13,13 @@
      {{-- Livewire leaves the root's own attributes alone, so the display that
           chat.js sets (hidden on the full chats page) survives re-renders. --}}
      wire:ignore.self
+     {{-- Messages chat.js shows itself (upload errors), in the page's language. --}}
+     data-texts="{{ json_encode([
+         'tooManyFiles' => __('chat.errors.too_many_files', ['max' => config('chat.max_files_per_message')]),
+         'tooLarge' => __('chat.errors.too_large', ['name' => ':name', 'max' => (int) (config('chat.max_file_kb') / 1024)]),
+         'tooLargeGeneric' => __('chat.errors.upload_too_large'),
+         'uploadFailed' => __('chat.errors.upload_failed'),
+     ], JSON_UNESCAPED_UNICODE) }}"
      data-testid="chat-dock">
 
     {{-- The bar, in reading order: launcher, newest tab ... oldest, "+N". It
