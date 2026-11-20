@@ -135,36 +135,6 @@ class AnnouncementTemplatesTest extends TestCase
         $this->assertLessThanOrEqual(AnnouncementTemplates::MAILTO_LIMIT, strlen($mail['url']));
         $this->assertStringNotContainsString('body=', $mail['url']);
         $this->assertStringContainsString('subject=', $mail['url']);
-
-        $web = AnnouncementTemplates::webLinks('team@hcsyria.org', 'fredy.youssef@hcsyria.org', $message['subject'], $message['body']);
-        $this->assertStringStartsWith('https://mail.google.com/mail/?view=cm', $web['gmail']);
-        $this->assertStringContainsString('body='.rawurlencode(str_replace("\n", "\r\n", $message['body'])), $web['outlook']);
-    }
-
-    public function test_the_eml_opens_as_a_new_message_with_the_whole_text(): void
-    {
-        $holiday = new HolidayClosure;
-        $message = $holiday->render([...$holiday->defaults(), 'start' => '2026-12-23', 'end' => '2027-01-11', 'resume' => '2027-01-12']);
-
-        $eml = AnnouncementTemplates::eml('team@hcsyria.org', 'fredy.youssef@hcsyria.org', $message['subject'], $message['body']);
-
-        $this->assertStringStartsWith("X-Unsent: 1\r\nTo: team@hcsyria.org\r\nCc: fredy.youssef@hcsyria.org\r\nSubject: =?UTF-8?B?", $eml);
-        $this->assertStringContainsString('charset=UTF-8', $eml);
-        [$head, $encoded] = explode("\r\n\r\n", $eml, 2);
-        $this->assertSame(str_replace("\n", "\r\n", $message['body']), base64_decode($encoded));
-        $this->assertStringContainsString('Subject: '.$message['subject'], mb_decode_mimeheader($head));
-        $this->assertNull(AnnouncementTemplates::eml('', '', 's', 'b'));
-    }
-
-    public function test_the_composer_downloads_the_eml_for_who_may_use_it(): void
-    {
-        $aleppo = $this->makeCity('ALP', '001');
-        $hr = $this->makeUser($aleppo, 'HR-ALP', ['message-templates.use']);
-
-        Livewire::actingAs($hr)->test(AnnouncementComposer::class)
-            ->call('compose', 'holiday_closure')
-            ->call('downloadEml')
-            ->assertFileDownloaded('holiday_closure.eml');
     }
 
     public function test_only_who_may_use_templates_opens_the_composer(): void

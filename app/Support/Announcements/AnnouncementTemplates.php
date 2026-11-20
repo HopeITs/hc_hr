@@ -71,57 +71,6 @@ final class AnnouncementTemplates
     }
 
     /**
-     * Compose links for the web mailboxes, which take far longer text than a mailto:.
-     *
-     * @return array{gmail: string, outlook: string}|null
-     */
-    public static function webLinks(string $to, string $cc, string $subject, string $body): ?array
-    {
-        $to = self::addresses($to);
-
-        if ($to === []) {
-            return null;
-        }
-
-        $cc = self::addresses($cc);
-        $body = str_replace("\n", "\r\n", $body);
-
-        return [
-            'gmail' => 'https://mail.google.com/mail/?view=cm&fs=1&to='.rawurlencode(implode(',', $to))
-                .($cc ? '&cc='.rawurlencode(implode(',', $cc)) : '').'&su='.rawurlencode($subject).'&body='.rawurlencode($body),
-            'outlook' => 'https://outlook.office.com/mail/deeplink/compose?to='.rawurlencode(implode(';', $to))
-                .($cc ? '&cc='.rawurlencode(implode(';', $cc)) : '').'&subject='.rawurlencode($subject).'&body='.rawurlencode($body),
-        ];
-    }
-
-    /**
-     * The message as an .eml file. Opened (a double click), Outlook and other mail
-     * programs show it as a new message to send, whatever its length: `X-Unsent: 1`
-     * is what makes it a draft rather than a received mail. Null without a valid To.
-     */
-    public static function eml(string $to, string $cc, string $subject, string $body): ?string
-    {
-        $to = self::addresses($to);
-
-        if ($to === []) {
-            return null;
-        }
-
-        $cc = self::addresses($cc);
-        $lines = [
-            'X-Unsent: 1',
-            'To: '.implode(', ', $to),
-            ...($cc ? ['Cc: '.implode(', ', $cc)] : []),
-            'Subject: '.mb_encode_mimeheader($subject, 'UTF-8', 'B', "\r\n"),
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'Content-Transfer-Encoding: base64',
-        ];
-
-        return implode("\r\n", $lines)."\r\n\r\n".chunk_split(base64_encode(str_replace("\n", "\r\n", $body)), 76, "\r\n");
-    }
-
-    /**
      * The valid addresses in a list typed by hand.
      *
      * @return list<string>

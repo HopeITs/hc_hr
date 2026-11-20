@@ -9,7 +9,6 @@ use App\Support\Announcements\HolidayClosure;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The ready-made announcements (App\Support\Announcements), reachable from
@@ -76,23 +75,6 @@ class AnnouncementComposer extends Component
         ['to' => $this->to, 'cc' => $this->cc] = $template->recipients();
     }
 
-    /** The message as a file Outlook opens as a new message (see AnnouncementTemplates::eml). */
-    public function downloadEml(): StreamedResponse
-    {
-        $this->authorizeActivePermission('message-templates.use');
-
-        $template = $this->current();
-        abort_unless($template, 404);
-
-        $message = $template->render($this->values);
-        $eml = AnnouncementTemplates::eml($this->to, $this->cc, $message['subject'], $message['body']);
-        abort_if($eml === null, 422);
-
-        return response()->streamDownload(function () use ($eml): void {
-            echo $eml;
-        }, $template->key().'.eml', ['Content-Type' => 'message/rfc822']);
-    }
-
     public function back(): void
     {
         $this->reset(['template', 'values', 'to', 'cc']);
@@ -144,7 +126,6 @@ class AnnouncementComposer extends Component
                 ...$rendered,
                 'problems' => $problems,
                 'mailto' => AnnouncementTemplates::mailto($this->to, $this->cc, $rendered['subject'], $rendered['body']),
-                'web' => AnnouncementTemplates::webLinks($this->to, $this->cc, $rendered['subject'], $rendered['body']),
             ];
         }
 
