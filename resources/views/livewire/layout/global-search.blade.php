@@ -56,6 +56,7 @@
      x-on:keydown.window.meta.k.prevent="focus()"
      x-on:click.outside="close()"
      x-on:hc-workspace-opened.window="close()"
+     x-on:hc-workspace-frame-click.window="close()"
      data-tour="header.search">
 
     {{-- Below xl: a button that opens the panel; the full box needs room the header lacks once the sidebar is beside it. --}}

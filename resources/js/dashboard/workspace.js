@@ -25,6 +25,9 @@ const LEAVES = /\/(logout|download|export|export-preview)(\/|$|\?)|\.(pdf|xlsx?|
 
 let seq = 0;
 
+// Clicks in an iframe do not bubble to the dashboard's outside-click handlers.
+const notifyFrameClick = () => window.dispatchEvent(new CustomEvent('hc-workspace-frame-click'));
+
 const workspace = () => ({
     tabs: [], // { id, url, title }
     active: null,
@@ -206,6 +209,7 @@ const workspace = () => ({
 
                 return;
             }
+            win.document.addEventListener('click', notifyFrameClick, true);
             tab.url = u.pathname + u.search + u.hash;
             tab.title = (win.document.title || '').replace(/\s+-\s+[^-]+$/, '').trim() || tab.title;
             if (tab.id === this.active) this.address(false);
