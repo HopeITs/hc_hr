@@ -188,6 +188,8 @@ class ChatDirectory
             'avatar' => $conversation->isGroup() ? null : $this->avatarOf($other),
             'other_user_id' => $other?->id,
             'other_active' => $other ? (bool) $other->profile?->is_active : true,
+            // Shown when the person is not online now (chat.js knows who is).
+            'other_last_seen' => $other ? \App\Support\ChatTime::lastSeen($other->last_seen_at) : null,
             'members' => $conversation->participants->whereNull('left_at')->count(),
             'last_preview' => $this->preview($last),
             'last_mine' => $last && $last->sender_id === $viewer->id,

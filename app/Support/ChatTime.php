@@ -37,4 +37,26 @@ class ChatTime
     {
         return $at->format('H:i');
     }
+
+    /**
+     * "last seen …" for someone who is not online now, from users.last_seen_at
+     * (RecordPresence stamps it at most once a minute).
+     */
+    public static function lastSeen(CarbonInterface|string|null $at): string
+    {
+        if ($at === null || $at === '') {
+            return __('chat.ui.last_seen_long_ago');
+        }
+
+        $at = \Illuminate\Support\Carbon::parse($at)->locale(app()->getLocale());
+        $minutes = (int) $at->diffInMinutes(now());
+
+        return match (true) {
+            $minutes < 1 => __('chat.ui.last_seen_just_now'),
+            $minutes < 60 => trans_choice('chat.ui.last_seen_minutes', $minutes, ['count' => $minutes]),
+            $at->isToday() => __('chat.ui.last_seen_today', ['time' => $at->format('H:i')]),
+            $at->isYesterday() => __('chat.ui.last_seen_yesterday', ['time' => $at->format('H:i')]),
+            default => __('chat.ui.last_seen_on', ['date' => $at->translatedFormat('j F')]),
+        };
+    }
 }

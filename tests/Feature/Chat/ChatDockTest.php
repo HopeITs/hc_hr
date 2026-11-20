@@ -131,9 +131,13 @@ class ChatDockTest extends ChatTestCase
             ->assertDontSee('first-unread-line');
         $this->assertSame(2, $this->chat()->unreadCount($me, $chat));
 
-        Livewire::actingAs($me)->test(Window::class, ['conversationId' => $chat->id, 'open' => true])
+        // Opening alone doesn't read it; being on screen does (chat.js calls seen()).
+        $open = Livewire::actingAs($me)->test(Window::class, ['conversationId' => $chat->id, 'open' => true])
             ->assertSee('first-unread-line')
             ->assertSee('second-unread-line');
+        $this->assertSame(2, $this->chat()->unreadCount($me, $chat));
+
+        $open->call('seen');
         $this->assertSame(0, $this->chat()->unreadCount($me, $chat));
     }
 

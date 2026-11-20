@@ -40,12 +40,12 @@
         @foreach ($visible as $tab)
             <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="true"
                                   :mobile-active="$mobileActiveId === $tab['id']"
-                                  :wire:key="'chat-window-'.$tab['id']" />
+                                  wire:key="chat-window-{{ $tab['id'] }}" />
         @endforeach
         @foreach ($overflow as $tab)
             <livewire:chat.window :conversation-id="$tab['id']" :open="$tab['open']" :in-bar="false"
                                   :mobile-active="$mobileActiveId === $tab['id']"
-                                  :wire:key="'chat-window-'.$tab['id']" />
+                                  wire:key="chat-window-{{ $tab['id'] }}" />
         @endforeach
 
         @if ($overflow->isNotEmpty())
@@ -90,6 +90,11 @@
             @if ($launcherMode === 'chats')
                 <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2">
                     <h2 id="chat-launcher-title" class="flex-1 text-body font-semibold text-ink">{{ __('chat.ui.chats') }}</h2>
+                    <button type="button" wire:click="showSettings"
+                            class="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink"
+                            aria-label="{{ __('chat.ui.settings') }}" title="{{ __('chat.ui.settings') }}" data-testid="chat-settings">
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                    </button>
                     {{-- The full chats page, like a tab's maximise (no pencil: searching a
                          name already offers colleagues to start a chat with). --}}
                     <button type="button" x-on:click="maximize(@js(route('chat')))"
@@ -111,6 +116,28 @@
                 </div>
 
                 @include('livewire.chat.partials.list', ['openAction' => 'openConversation', 'startAction' => 'startWith', 'emptyAction' => 'showPeople'])
+            @elseif ($launcherMode === 'settings')
+                <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2">
+                    <button type="button" wire:click="showChats"
+                            class="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink"
+                            aria-label="{{ __('chat.ui.back') }}" title="{{ __('chat.ui.back') }}">
+                        <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <h2 id="chat-launcher-title" class="flex-1 text-body font-semibold text-ink">{{ __('chat.ui.settings') }}</h2>
+                </header>
+
+                <div class="px-3 py-3">
+                    <button type="button" wire:click="toggleSound" role="switch" aria-checked="{{ $sound ? 'true' : 'false' }}"
+                            class="flex w-full items-center gap-3 rounded-control px-2 py-2 text-start hover:bg-hover"
+                            data-testid="chat-sound-toggle">
+                        <svg class="size-5 shrink-0 text-ink-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/>@if ($sound)<path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>@else<path d="m22 9-6 6M16 9l6 6"/>@endif</svg>
+                        <span class="flex-1 text-small font-semibold text-ink">{{ __('chat.ui.sound') }}</span>
+                        <span @class(['relative h-5 w-9 shrink-0 rounded-full transition-colors', 'bg-primary' => $sound, 'bg-line' => ! $sound])>
+                            <span @class(['absolute top-0.5 size-4 rounded-full bg-white transition-all', 'end-0.5' => $sound, 'start-0.5' => ! $sound])></span>
+                        </span>
+                    </button>
+                    <p class="mt-2 px-2 text-[12px] leading-relaxed text-ink-3">{{ __('chat.ui.sound_hint') }}</p>
+                </div>
             @else
                 <header class="flex items-center gap-2 border-b border-line-soft px-3 py-2">
                     <button type="button" wire:click="showChats"

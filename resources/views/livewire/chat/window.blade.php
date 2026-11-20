@@ -8,7 +8,11 @@
         'flex min-h-0 flex-1 flex-col' => $onPage,
         'md:hidden' => ! $onPage && ! $inBar,
         'max-md:hidden' => ! $onPage && ! $mobileActive,
-     ]) data-testid="chat-window">
+     ])
+     {{-- chat.js finds the chat here: its "typing…" signal and the notice check. --}}
+     data-chat-conversation="{{ $conversationId }}"
+     data-chat-open="{{ ($open || $onPage) ? '1' : '0' }}"
+     data-testid="chat-window">
     @if ($summary)
         @if (! $open && ! $onPage)
             {{-- The minimised tab: a red line and a count when something is unread. --}}
@@ -19,7 +23,10 @@
                         class="flex min-w-0 flex-1 items-center gap-2 text-start"
                         aria-label="{{ __('chat.ui.open_chat', ['name' => $summary['title']]) }}">
                     <x-chat.avatar :item="$summary" size="size-6" />
-                    <span class="min-w-0 flex-1 truncate text-small {{ $summary['unread'] > 0 ? 'font-bold text-ink' : 'font-semibold text-ink' }}">{{ $summary['title'] }}</span>
+                    <span class="min-w-0 flex-1 truncate text-small {{ $summary['unread'] > 0 ? 'font-bold text-ink' : 'font-semibold text-ink' }}"
+                          data-chat-when-not-typing="{{ $conversationId }}">{{ $summary['title'] }}</span>
+                    <span class="min-w-0 flex-1 truncate text-small font-semibold text-primary" hidden
+                          data-chat-when-typing="{{ $conversationId }}">{{ __('chat.ui.typing') }}</span>
                     @if ($summary['unread'] > 0)
                         <span class="min-w-[18px] rounded-full px-1.5 text-center text-[11px] font-semibold text-white {{ $summary['muted'] ? 'bg-ink-3' : 'bg-primary' }}">{{ $summary['unread'] }}</span>
                     @endif
@@ -51,11 +58,26 @@
                     <x-chat.avatar :item="$summary" size="size-8" />
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-small font-semibold text-ink">{{ $summary['title'] }}</p>
-                        @if ($isGroup)
-                            <p class="truncate text-[11px] text-ink-3">{{ trans_choice('chat.ui.members', $summary['members'], ['count' => $summary['members']]) }}</p>
-                        @elseif (! $summary['other_active'])
-                            <p class="truncate text-[11px] text-ink-3">{{ __('chat.ui.deactivated') }}</p>
-                        @endif
+                        {{-- Status line: typing… beats online, online beats last seen. --}}
+                        <p class="truncate text-[11px] text-primary" hidden data-chat-when-typing="{{ $conversationId }}" data-testid="chat-typing">
+                            @if ($isGroup)
+                                <span data-chat-typing-name="{{ $conversationId }}" data-template="{{ __('chat.ui.typing_named', ['name' => ':name']) }}"></span>
+                            @else
+                                {{ __('chat.ui.typing') }}
+                            @endif
+                        </p>
+                        <div data-chat-when-not-typing="{{ $conversationId }}">
+                            @if ($isGroup)
+                                <p class="truncate text-[11px] text-ink-3">{{ trans_choice('chat.ui.members', $summary['members'], ['count' => $summary['members']]) }}</p>
+                            @elseif (! $summary['other_active'])
+                                <p class="truncate text-[11px] text-ink-3">{{ __('chat.ui.deactivated') }}</p>
+                            @else
+                                <p class="truncate text-[11px] text-[#3FA34D]" hidden
+                                   data-chat-when-online="{{ (int) $summary['other_user_id'] }}" data-testid="chat-status-online">{{ __('chat.ui.online') }}</p>
+                                <p class="truncate text-[11px] text-ink-3"
+                                   data-chat-when-offline="{{ (int) $summary['other_user_id'] }}" data-testid="chat-status-last-seen">{{ $summary['other_last_seen'] }}</p>
+                            @endif
+                        </div>
                     </div>
                     @if ($onPage)
                         {{-- Back to where one was, with this chat as a tab on the dock again. --}}
@@ -130,7 +152,12 @@
                                         @if ($message->edited_at)<span>{{ __('chat.ui.edited') }}</span>@endif
                                         <span>{{ \App\Support\ChatTime::time($message->created_at) }}</span>
                                         @if ($mine)
-                                            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="{{ __('chat.ui.sent') }}"><path d="M20 6 9 17l-5-5"/></svg>
+                                            @if ($message->id <= $readUpTo)
+                                                {{-- ✓✓ read (by the other person; in a group, by anyone). --}}
+                                                <svg class="size-3.5" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{ __('chat.ui.read') }}" data-testid="chat-read"><path d="M18 6 7 17l-5-5"/><path d="M26 6 15 17l-1.5-1.5"/></svg>
+                                            @else
+                                                <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="{{ __('chat.ui.sent') }}" data-testid="chat-sent"><path d="M20 6 9 17l-5-5"/></svg>
+                                            @endif
                                         @endif
                                     </p>
                                 </div>
@@ -151,6 +178,8 @@
                             <textarea x-ref="composer" wire:model="draft" x-on:keydown="keydown($event)"
                                       rows="1" dir="auto" maxlength="{{ config('chat.max_message_length') }}"
                                       x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px'"
+                                      {{-- chat.js whispers "typing…" from here, with this name. --}}
+                                      data-chat-composer="{{ $directory->nameOf(auth()->user()) }}"
                                       placeholder="{{ __('chat.ui.type_message') }}" aria-label="{{ __('chat.ui.type_message') }}"
                                       class="max-h-[120px] min-h-9 flex-1 resize-none rounded-[18px] border-0 bg-soft px-3 py-2 text-small text-ink focus:ring-1 focus:ring-primary"
                                       data-testid="chat-composer"></textarea>

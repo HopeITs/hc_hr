@@ -6,6 +6,7 @@ use App\Models\ChatConversation;
 use App\Models\User;
 use App\Services\Chat\ChatDirectory;
 use App\Services\Chat\ChatService;
+use App\Services\Chat\ChatSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -132,9 +133,51 @@ class Dock extends Component
         $this->launcherMode = 'chats';
     }
 
-    /** Something changed in one of the viewer's chats: badges and the list re-render. */
+    public function showSettings(): void
+    {
+        $this->launcherMode = 'settings';
+    }
+
+    public function toggleSound(ChatSettings $settings): void
+    {
+        $settings->setSound($this->viewer(), ! $settings->sound($this->viewer()));
+    }
+
+    /**
+     * Something changed in one of the viewer's chats: badges and the list
+     * re-render. A new message from someone else, in a chat that isn't muted,
+     * also asks the browser for "New message from <name>" (never the text)
+     * and, if the person keeps it on, the sound. chat.js skips both while
+     * that chat is open on screen.
+     */
     #[On('chat-updated')]
-    public function onUpdated(): void {}
+    public function onUpdated(int $conversationId = 0, string $kind = '', int $by = 0): void
+    {
+        $viewer = $this->viewer();
+
+        if ($kind !== 'message' || $by === 0 || $by === $viewer->id) {
+            return;
+        }
+
+        $conversation = ChatConversation::query()->find($conversationId);
+
+        if (! $conversation || ! Gate::forUser($viewer)->allows('view', $conversation)) {
+            return;
+        }
+
+        if ($conversation->participantFor($viewer)?->isMuted()) {
+            return;
+        }
+
+        $directory = app(ChatDirectory::class);
+        $sender = User::query()->with('profile')->find($by);
+
+        $this->dispatch('chat-notify',
+            conversationId: $conversationId,
+            title: __('chat.ui.new_message_from', ['name' => $directory->nameOf($sender)]),
+            sound: app(ChatSettings::class)->sound($viewer),
+        );
+    }
 
     public function render(ChatDirectory $directory): View
     {
@@ -157,6 +200,7 @@ class Dock extends Component
                 : collect(),
             'people' => $this->launcherOpen && $this->launcherMode === 'people' ? $directory->people($viewer, $this->peopleSearch) : collect(),
             'unreadChats' => $directory->unreadChats($viewer),
+            'sound' => $this->launcherMode === 'settings' ? app(ChatSettings::class)->sound($viewer) : null,
         ]);
     }
 

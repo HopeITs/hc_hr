@@ -76,6 +76,31 @@ class Window extends Component
         $this->limit += self::PAGE;
     }
 
+    /**
+     * The person has this chat open in front of them (chat.js calls this when
+     * the tab is open and the browser tab is visible), so it counts as read.
+     */
+    public function seen(ChatService $chat): void
+    {
+        $this->skipRender();
+
+        if (! $this->open) {
+            return;
+        }
+
+        $viewer = $this->viewer();
+        $conversation = $this->conversation();
+        Gate::forUser($viewer)->authorize('view', $conversation);
+
+        $last = (int) $conversation->messages()->visibleTo($viewer)->max('id');
+
+        // Badges here (dock, header) catch up at once; other members hear it
+        // through the realtime signal markRead sends.
+        if ($last > 0 && $chat->markRead($viewer, $conversation, $last)) {
+            $this->dispatch('chat-updated', conversationId: $this->conversationId, kind: 'read', by: $viewer->id);
+        }
+    }
+
     /** Another member changed this chat (chat.js relays the realtime signal). */
     #[On('chat-updated')]
     public function onUpdated(int $conversationId = 0): void
@@ -103,16 +128,14 @@ class Window extends Component
             $messages = (clone $query)->limit($this->limit + 1)->get();
             $hasOlder = $messages->count() > $this->limit;
             $messages = $messages->take($this->limit)->reverse()->values();
-
-            // An open tab counts as seen.
-            if ($last = $messages->last()) {
-                $chat->markRead($viewer, $conversation, $last->id);
-            }
+            // Reading is marked by seen(), only while the chat is actually on screen.
         }
 
         return view('livewire.chat.window', [
             'summary' => $directory->conversation($viewer, $this->conversationId),
             'messages' => $messages,
+            // ✓✓ up to here: the furthest any other member has read.
+            'readUpTo' => $this->open ? $chat->readByOthersUpTo($conversation, $viewer) : 0,
             'hasOlder' => $hasOlder,
             'canSend' => Gate::forUser($viewer)->allows('send', $conversation),
             'viewerId' => $viewer->id,

@@ -35,7 +35,7 @@
         <section class="flex min-w-0 flex-1 flex-col">
             @if ($conversationId)
                 <livewire:chat.window :conversation-id="$conversationId" :open="true" mode="page"
-                                      :wire:key="'chat-page-window-'.$conversationId" />
+                                      wire:key="chat-page-window-{{ $conversationId }}" />
             @else
                 <div class="flex flex-1 flex-col items-center justify-center gap-2 bg-soft p-8 text-center">
                     <svg class="size-10 text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.2A8 8 0 1 1 21 12z"/></svg>

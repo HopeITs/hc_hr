@@ -790,8 +790,11 @@ return [
         'chat.dock' => [
             'restore', 'openConversation', 'startWith', 'toggle', 'minimize', 'close',
             'toggleLauncher', 'showPeople', 'showChats', 'onUpdated',
+            // The viewer's own sound setting only.
+            'showSettings', 'toggleSound',
         ],
-        'chat.window' => ['send', 'loadOlder', 'onUpdated'],
+        // seen(): the viewer's own read marker, in a chat they are a member of.
+        'chat.window' => ['send', 'loadOlder', 'onUpdated', 'seen'],
         'chat.page' => ['select', 'startWith', 'onUpdated'],
         'chat.header-button' => ['onUpdated'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).

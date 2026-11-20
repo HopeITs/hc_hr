@@ -105,7 +105,7 @@ class ChatService
 
                 $this->index->index($message, array_column($stored, 'original_name'));
                 $this->touch($conversation, $message);
-                $this->markRead($sender, $conversation, $message->id);
+                $this->markRead($sender, $conversation, $message->id, announce: false);
                 $this->notifier->changed($conversation, $message->id, ChatConversationUpdated::KIND_MESSAGE, $sender->id);
 
                 return $message->load('attachments');
@@ -269,7 +269,7 @@ class ChatService
 
                         $this->index->index($copy, $names);
                         $this->touch($target, $copy);
-                        $this->markRead($user, $target, $copy->id);
+                        $this->markRead($user, $target, $copy->id, announce: false);
                         $this->notifier->changed($target, $copy->id, ChatConversationUpdated::KIND_MESSAGE, $user->id);
                         $created->push($copy);
                     }
@@ -287,19 +287,41 @@ class ChatService
     }
 
     /** Move this user's read marker forward (never back) to $messageId. */
-    public function markRead(User $user, ChatConversation $conversation, int $messageId): void
+    /**
+     * Move this user's read marker forward (never back) to $messageId.
+     * Returns whether it moved. When it does, and $announce is on, the other
+     * members are told (their ✓ turns into ✓✓); a sender marking their own
+     * new message read announces nothing.
+     */
+    public function markRead(User $user, ChatConversation $conversation, int $messageId, bool $announce = true): bool
     {
         $participant = $conversation->participantFor($user);
 
         if (! $participant) {
-            return;
+            return false;
         }
 
         $messageId = min($messageId, (int) $conversation->messages()->max('id'));
 
-        if ($messageId > (int) $participant->last_read_message_id) {
-            $participant->forceFill(['last_read_message_id' => $messageId])->save();
+        if ($messageId <= (int) $participant->last_read_message_id) {
+            return false;
         }
+
+        $participant->forceFill(['last_read_message_id' => $messageId])->save();
+
+        if ($announce) {
+            $this->notifier->changed($conversation, $messageId, ChatConversationUpdated::KIND_READ, $user->id);
+        }
+
+        return true;
+    }
+
+    /** The newest message id any other current member has read up to (for ✓✓). */
+    public function readByOthersUpTo(ChatConversation $conversation, User $viewer): int
+    {
+        return (int) $conversation->activeParticipants()
+            ->where('user_id', '!=', $viewer->id)
+            ->max('last_read_message_id');
     }
 
     /** Messages from others this user has not read yet. */
