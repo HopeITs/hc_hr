@@ -137,6 +137,39 @@ class AnnouncementTemplatesTest extends TestCase
         $this->assertStringContainsString('subject=', $mail['url']);
     }
 
+    public function test_a_long_email_comes_as_a_message_file_with_the_whole_text_right_to_left(): void
+    {
+        $holiday = new HolidayClosure;
+        $message = $holiday->render([...$holiday->defaults(), 'start' => '2026-12-23', 'end' => '2027-01-11', 'resume' => '2027-01-12']);
+
+        $eml = AnnouncementTemplates::eml('team@hcsyria.org', 'fredy.youssef@hcsyria.org', $message['subject'], $message['body']);
+
+        $this->assertStringStartsWith("X-Unsent: 1\r\nTo: team@hcsyria.org\r\nCc: fredy.youssef@hcsyria.org\r\nSubject: =?UTF-8?B?", $eml);
+        $this->assertStringContainsString('charset=UTF-8', $eml);
+        [$head, $encoded] = explode("\r\n\r\n", $eml, 2);
+        $html = base64_decode($encoded);
+        $this->assertStringContainsString('dir="rtl"', $html);
+        $this->assertStringContainsString('مكتب الإدارة العامة سيُعطل بمناسبة الأعياد ابتداءً من 23/12/2026', $html);
+        $this->assertStringContainsString('Subject: '.$message['subject'], mb_decode_mimeheader($head));
+        $this->assertNull(AnnouncementTemplates::eml('', '', 's', 'b'));
+    }
+
+    public function test_the_composer_downloads_the_message_file_for_who_may_use_it(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($aleppo, 'HR-ALP', ['message-templates.use']);
+        $nobody = $this->makeUser($aleppo, 'employee', []);
+
+        Livewire::actingAs($hr)->test(AnnouncementComposer::class)
+            ->call('compose', 'holiday_closure')
+            ->call('downloadEml')
+            ->assertFileDownloaded('holiday_closure.eml');
+
+        Livewire::actingAs($nobody)->test(AnnouncementComposer::class)
+            ->call('downloadEml')
+            ->assertForbidden();
+    }
+
     public function test_only_who_may_use_templates_opens_the_composer(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

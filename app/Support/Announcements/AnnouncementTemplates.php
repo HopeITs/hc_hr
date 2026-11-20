@@ -71,6 +71,42 @@ final class AnnouncementTemplates
     }
 
     /**
+     * The whole message as an .eml file, for what is too long for a mailto: link.
+     * Opened, Outlook shows it as a new message to send (`X-Unsent: 1` makes it a
+     * draft, not a received mail), with To, CC, subject and the full text, laid out
+     * right to left as Arabic is. UTF-8 throughout, so no letter is lost. Null
+     * without a valid To.
+     */
+    public static function eml(string $to, string $cc, string $subject, string $body): ?string
+    {
+        $to = self::addresses($to);
+
+        if ($to === []) {
+            return null;
+        }
+
+        $cc = self::addresses($cc);
+        $paragraphs = array_map(
+            fn (string $paragraph) => '<p style="margin:0 0 12pt">'.nl2br(e($paragraph), false).'</p>',
+            preg_split('/\n{2,}/', trim($body)) ?: [],
+        );
+        $html = '<html><body dir="rtl" style="font-family:\'Segoe UI\',Tahoma,sans-serif;font-size:11pt;text-align:right">'
+            .implode('', $paragraphs).'</body></html>';
+
+        $lines = [
+            'X-Unsent: 1',
+            'To: '.implode(', ', $to),
+            ...($cc ? ['Cc: '.implode(', ', $cc)] : []),
+            'Subject: '.mb_encode_mimeheader($subject, 'UTF-8', 'B', "\r\n"),
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+        ];
+
+        return implode("\r\n", $lines)."\r\n\r\n".chunk_split(base64_encode($html), 76, "\r\n");
+    }
+
+    /**
      * The valid addresses in a list typed by hand.
      *
      * @return list<string>

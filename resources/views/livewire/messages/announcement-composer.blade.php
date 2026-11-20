@@ -97,11 +97,16 @@
                     <div class="mt-5 flex flex-wrap gap-3">
                         <x-button x-on:click="{{ $copyJs($message['body'], __('messages.announcements.copied-body')) }}" data-testid="announcement-copy-body">@lang('messages.announcements.copy-body')</x-button>
                         @if ($message['mailto'])
-                            {{-- A link too long for a mail program opens with To, CC and subject only; the text is
-                                 copied as it opens, to paste. --}}
-                            <a href="{{ $message['mailto']['url'] }}" data-testid="announcement-mailto"
-                               @if ($message['mailto']['trimmed']) x-on:click="{{ $copyJs($message['body'], __('messages.announcements.copied-paste')) }}" @endif
-                               class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">@lang('messages.announcements.open-mail')</a>
+                            {{-- A short email opens as a link. A long one cannot travel in a link (Windows refuses
+                                 past ~2000 characters, Arabic costs ~6 a letter), so it comes as a message file
+                                 that Outlook opens as a new message with the whole text. --}}
+                            @if ($message['mailto']['trimmed'])
+                                <button type="button" wire:click="downloadEml" wire:loading.attr="disabled" wire:target="downloadEml"
+                                        data-testid="announcement-mailto" class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">@lang('messages.announcements.open-mail')</button>
+                            @else
+                                <a href="{{ $message['mailto']['url'] }}" data-testid="announcement-mailto"
+                                   class="inline-flex min-h-11 items-center rounded-control border border-line px-4 font-semibold text-ink transition hover:bg-hover">@lang('messages.announcements.open-mail')</a>
+                            @endif
                         @endif
                     </div>
                     @if ($message['mailto'] && $message['mailto']['trimmed'])
