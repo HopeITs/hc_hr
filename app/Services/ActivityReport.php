@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\City;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Carbon;
@@ -113,18 +114,23 @@ class ActivityReport
     /** Actions and distinct users per city of the acting employee. */
     private function cities(): Collection
     {
-        $name = 'cities.'.transColumn('name');
-
-        return $this->base()
+        $rows = $this->base()
             ->where('activity_log.causer_type', (new User)->getMorphClass())
             ->join('users', 'users.id', '=', 'activity_log.causer_id')
             ->join('employees', 'employees.id', '=', 'users.employee_id')
-            ->leftJoin('cities', 'cities.id', '=', 'employees.city_id')
-            ->select(DB::raw("coalesce($name, '-') as city"), DB::raw('count(*) as actions'), DB::raw('count(distinct users.id) as users'))
-            ->groupBy('city')
+            ->select('employees.city_id', DB::raw('count(*) as actions'), DB::raw('count(distinct users.id) as users'))
+            ->groupBy('employees.city_id')
             ->orderByDesc('actions')
-            ->get()
-            ->map(fn ($r) => ['name' => $r->city, 'actions' => (int) $r->actions, 'users' => (int) $r->users]);
+            ->get();
+
+        // Names go through the model, like every other city label, not a raw column.
+        $cities = City::whereIn('id', $rows->pluck('city_id')->filter())->get()->keyBy('id');
+
+        return $rows->map(fn ($r) => [
+            'name' => ($cities[$r->city_id] ?? null)?->name ?: '-',
+            'actions' => (int) $r->actions,
+            'users' => (int) $r->users,
+        ]);
     }
 
     /** Users linked to an employee who did nothing in the period. */
