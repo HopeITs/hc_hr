@@ -10,6 +10,11 @@
         ScheduleMode::Fixed => ScheduleMode::getLocalizedName(ScheduleMode::Fixed)['value'],
         ScheduleMode::Flexible => ScheduleMode::getLocalizedName(ScheduleMode::Flexible)['value'],
     ];
+
+    $dayPickOptions = [
+        'range' => __('general.composer.day-pick-range'),
+        'days' => __('general.composer.day-pick-days'),
+    ];
 @endphp
 
 {{-- Section 2 — the working week, in the contract's own words. --}}
@@ -95,7 +100,67 @@
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        {{-- The week as a from–to range, or the days picked one by one. --}}
+        <div>
+            <x-forms.input-label required>@lang('general.composer.day-pick-mode')</x-forms.input-label>
+            <x-forms.segmented-control
+                name="composer_day_pick_mode"
+                model="dayPickMode"
+                :options="$dayPickOptions"
+                :aria-label="__('general.composer.day-pick-mode')"
+            />
+        </div>
+
+        {{--
+            Pick the days: the place's day off is shown but locked (dashed,
+            with the building icon); every day not picked is a day off, listed below.
+            Which days are off stays in the system: it is never printed.
+        --}}
+        <div x-cloak x-show="dayPickMode === 'days'" class="space-y-4">
+            <div>
+                <x-forms.input-label>@lang('general.composer.workdays')</x-forms.input-label>
+                <div class="mt-1 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="@lang('general.composer.workdays')">
+                    <template x-for="d in weekDays" :key="d.day">
+                        <button type="button"
+                                class="hc-choice flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-center"
+                                :class="d.closed ? 'cursor-not-allowed border-dashed bg-soft text-ink-3 hover:border-line' : 'text-ink'"
+                                :disabled="d.closed"
+                                :aria-pressed="d.working ? 'true' : 'false'"
+                                :title="d.closed ? @js(__('general.composer.center-day-off')) : ''"
+                                x-on:click="toggleWorkday(d.day)">
+                            <span class="text-small font-semibold" x-text="d.name"></span>
+                            <span class="text-caption" x-show="d.closed">
+                                <x-ic name="building" class="inline size-3" />
+                                @lang('general.composer.center-short')
+                            </span>
+                            <span class="text-caption text-ink-2" x-show="!d.closed && d.working">@lang('general.composer.workday-short')</span>
+                            <span class="text-caption text-ink-3" x-show="!d.closed && !d.working">@lang('general.composer.day-off-short')</span>
+                        </button>
+                    </template>
+                </div>
+                <p class="mt-1 text-small text-ink-2" x-show="placeWeekend.length">@lang('general.composer.workdays-hint')</p>
+                <p class="mt-1 text-small text-ink-2" x-show="!placeWeekend.length">@lang('general.composer.no-center-weekend')</p>
+                <x-error-span>{{ $errors->first('form.work_weekdays') ?: $errors->first('form.work_weekdays.*') }}</x-error-span>
+            </div>
+
+            <div>
+                <x-forms.input-label>@lang('general.composer.days-off')</x-forms.input-label>
+                <ul class="mt-1 flex flex-wrap gap-2" aria-live="polite">
+                    <template x-for="d in daysOff" :key="d.day">
+                        <li class="inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-small"
+                            :class="d.closed ? 'border-dashed border-line bg-soft text-ink-2' : 'border-ink bg-surface font-semibold text-ink'">
+                            <span x-text="d.name"></span>
+                            <span class="text-caption" :class="d.closed ? 'text-ink-3' : 'text-ink-2'"
+                                  x-text="d.closed ? @js(__('general.composer.center-day-off')) : @js(__('general.composer.own-day-off'))"></span>
+                        </li>
+                    </template>
+                    <li x-show="!daysOff.length" class="text-small text-ink-3">@lang('general.composer.no-days-off')</li>
+                </ul>
+                <p class="mt-1 text-small text-ink-2">@lang('general.composer.days-off-hint')</p>
+            </div>
+        </div>
+
+        <div x-cloak x-show="dayPickMode === 'range'" class="grid gap-4 sm:grid-cols-2">
             <div>
                 <x-forms.input-label for="composer_work_day_from" required>@lang('general.composer.work-day-from')</x-forms.input-label>
                 <x-forms.select id="composer_work_day_from" :options="$dayNames" x-model="workDayFrom"
@@ -130,7 +195,7 @@
                 <span x-text="fixedDaysPerWeekLabel"></span>
             </x-forms.checkbox-card>
 
-            <x-forms.checkbox-card id="composer_show_day_range" model="showDayRange">
+            <x-forms.checkbox-card id="composer_show_day_range" model="showDayRange" x-show="dayPickMode === 'range'">
                 @lang('general.composer.show-day-range')
             </x-forms.checkbox-card>
         </div>

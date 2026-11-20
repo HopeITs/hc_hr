@@ -172,6 +172,7 @@ trait DrivesContractComposer
             'workHours2To' => $this->form->work_hours_2_to,
             'workDayFrom' => $this->form->work_day_from,
             'workDayTo' => $this->form->work_day_to,
+            'workWeekdays' => $this->form->work_weekdays,
             'showDaysPerWeek' => $this->form->show_days_per_week,
             'showHoursPerWeek' => $this->form->show_hours_per_week,
             'showHoursPerDay' => $this->form->show_hours_per_day,
@@ -250,6 +251,11 @@ trait DrivesContractComposer
         $this->form->work_hours_2_to = $this->timeOrNull($payload['workHours2To'] ?? null);
         $this->form->work_day_from = $this->intOrNull($payload['workDayFrom'] ?? null);
         $this->form->work_day_to = $this->intOrNull($payload['workDayTo'] ?? null);
+        // Null = the from–to range; a list = the days picked one by one.
+        $picked = $payload['workWeekdays'] ?? null;
+        $this->form->work_weekdays = is_array($picked) && $picked !== []
+            ? array_values(array_map('intval', array_filter($picked, 'is_numeric')))
+            : null;
         $this->form->show_days_per_week = (bool) ($payload['showDaysPerWeek'] ?? false);
         $this->form->show_hours_per_week = (bool) ($payload['showHoursPerWeek'] ?? false);
         $this->form->show_hours_per_day = (bool) ($payload['showHoursPerDay'] ?? false);
@@ -320,6 +326,7 @@ trait DrivesContractComposer
             'work_hours_2_to' => 'schedule',
             'work_day_from' => 'schedule',
             'work_day_to' => 'schedule',
+            'work_weekdays' => 'schedule',
             'flex_days_per_week' => 'schedule',
             'flex_hours_per_week' => 'schedule',
             'flex_hours_per_month' => 'schedule',

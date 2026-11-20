@@ -8,6 +8,7 @@ use App\Enums\PayMode;
 use App\Enums\SalaryPer;
 use App\Enums\ScheduleMode;
 use App\Enums\SessionDuration;
+use App\Models\Contract;
 use App\Models\ContractAmendment;
 use Carbon\Carbon;
 
@@ -81,7 +82,7 @@ final class ContractAmendmentDescriber
             $add(__('contracts.amendment.hours'), $wasFixed ? $this->shifts($before) : '', $this->shifts($after),
                 $modeMoved || $has('work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'));
             $add(__('general.work-days'), $wasFixed ? $this->days($before) : '', $this->days($after),
-                $modeMoved || $has('work_day_from', 'work_day_to'));
+                $modeMoved || $has('work_day_from', 'work_day_to', 'work_weekdays'));
         }
 
         // The one print toggle named here: it adds a sentence of its own
@@ -215,6 +216,14 @@ final class ContractAmendmentDescriber
 
     private function days(array $t): string
     {
+        // Days picked one by one are counted, never named: which ones (and
+        // so the volunteer's own day off) stays in the system.
+        $picked = Contract::parseWeekdays($t['work_weekdays'] ?? null);
+
+        if ($picked !== []) {
+            return trans_choice('contracts.amendment.days-per-week', count($picked), ['count' => count($picked)]);
+        }
+
         if (! is_numeric($t['work_day_from'] ?? null) || ! is_numeric($t['work_day_to'] ?? null)) {
             return '';
         }

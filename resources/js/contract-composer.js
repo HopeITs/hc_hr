@@ -21,6 +21,10 @@ const CITY_LEVEL = '';
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
+// The order the week is shown in on the day picker: Saturday first, as the
+// working week is read here. Values stay Carbon's (Sunday = 0).
+const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
+
 const str = (value) => (value === null || value === undefined ? '' : String(value));
 
 const clampIndex = (index, length) => (length === 0 ? -1 : Math.min(Math.max(index, 0), length - 1));
@@ -291,6 +295,12 @@ document.addEventListener('alpine:init', () => {
         workHours2To: config.seed?.workHours2To ?? '',
         workDayFrom: config.seed?.workDayFrom != null ? str(config.seed.workDayFrom) : '',
         workDayTo: config.seed?.workDayTo != null ? str(config.seed.workDayTo) : '',
+        // Two ways to state the week: a from–to range ('range'), or the days
+        // picked one by one ('days') — for a week a range cannot say, like
+        // Study Zone's center day off plus a second day the volunteer
+        // chooses. Every day not picked is a day off for leave.
+        dayPickMode: config.seed?.workWeekdays?.length ? 'days' : 'range',
+        workWeekdays: (config.seed?.workWeekdays ?? []).map(Number),
         // Whether the printed clause states each of these four pieces —
         // never edited directly, only ever toggled. A brand-new contract
         // (no seed) starts with all four on, since the standard clause
@@ -374,6 +384,7 @@ document.addEventListener('alpine:init', () => {
             this.$watch('selected.program', () => this.syncing || this.onProgramChange());
             this.$watch('selected.employee', () => this.syncing || this.onEmployeeChange());
             this.$watch('leaveInputs', () => this.scheduleLeavePreview());
+            this.$watch('dayPickMode', (mode) => this.onDayPickModeChange(mode));
             this.$watch('flexCustomOn', (on) => {
                 if (!on) {
                     this.flexCustomEn = '';
@@ -476,7 +487,9 @@ document.addEventListener('alpine:init', () => {
 
         get scheduleValid() {
             if (this.scheduleMode === '1') {
-                if (this.workDayFrom === '' || this.workDayTo === '' || Number(this.workDayTo) < Number(this.workDayFrom)) {
+                if (this.dayPickMode === 'days'
+                    ? this.pickedWorkdays.length === 0
+                    : (this.workDayFrom === '' || this.workDayTo === '' || Number(this.workDayTo) < Number(this.workDayFrom))) {
                     return false;
                 }
 
@@ -514,7 +527,11 @@ document.addEventListener('alpine:init', () => {
             }
 
             if (this.scheduleMode === '1') {
-                if (this.workDayFrom === '' || this.workDayTo === '') {
+                if (this.dayPickMode === 'days' && this.pickedWorkdays.length === 0) {
+                    return this.labels.scheduleHintWorkdays;
+                }
+
+                if (this.dayPickMode !== 'days' && (this.workDayFrom === '' || this.workDayTo === '')) {
                     return this.labels.scheduleHintDayRange;
                 }
 
@@ -1160,8 +1177,72 @@ document.addEventListener('alpine:init', () => {
             this.workHours2To = this.workHours2To || '21:00';
         },
 
+        /**
+         * The place's day off (its center's, or the program centers' for
+         * Study Zone): greyed out on the day picker, never a working day.
+         * The amendment page has no position picker: the server seeds it.
+         */
+        get placeWeekend() {
+            const days = this.amending ? config.seed?.placeWeekend : this.selectedPosition?.placeWeekend;
+
+            return (days ?? []).map(Number);
+        },
+
+        /** The picked working days, without any the place keeps closed. */
+        get pickedWorkdays() {
+            return this.workWeekdays
+                .filter((day) => !this.placeWeekend.includes(day))
+                .sort((a, b) => a - b);
+        },
+
+        /** The week as the picker shows it, Saturday first. */
+        get weekDays() {
+            return WEEK_ORDER.map((day) => ({
+                day,
+                name: this.dayNames[day] ?? '',
+                closed: this.placeWeekend.includes(day),
+                working: this.pickedWorkdays.includes(day),
+            }));
+        },
+
+        /** Every day not picked: the place's day off first, then the person's own. */
+        get daysOff() {
+            return this.weekDays.filter((d) => !d.working).sort((a, b) => Number(b.closed) - Number(a.closed));
+        },
+
+        toggleWorkday(day) {
+            if (this.placeWeekend.includes(day)) {
+                return;
+            }
+
+            this.workWeekdays = this.workWeekdays.includes(day)
+                ? this.workWeekdays.filter((d) => d !== day)
+                : [...this.workWeekdays, day];
+        },
+
+        /**
+         * Switching to "pick the days" starts from what is already known:
+         * the range's days if one was set, else every day the place opens —
+         * so a Study Zone volunteer only has to untick their own day off.
+         */
+        onDayPickModeChange(mode) {
+            if (mode === 'days' && this.pickedWorkdays.length === 0) {
+                const from = Number(this.workDayFrom);
+                const to = Number(this.workDayTo);
+                const range = this.workDayFrom !== '' && this.workDayTo !== '' && to >= from
+                    ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+                    : [0, 1, 2, 3, 4, 5, 6];
+
+                this.workWeekdays = range.filter((day) => !this.placeWeekend.includes(day));
+            }
+        },
+
         /** Whole days in the fixed day range (no week-wrap: to must be >= from). */
         get fixedDaysPerWeek() {
+            if (this.dayPickMode === 'days') {
+                return this.pickedWorkdays.length;
+            }
+
             const from = Number(this.workDayFrom);
             const to = Number(this.workDayTo);
 
@@ -1185,6 +1266,12 @@ document.addEventListener('alpine:init', () => {
          * structured day range covered the same ground).
          */
         get fixedDayRangeLabel() {
+            if (this.dayPickMode === 'days') {
+                return this.pickedWorkdays.length
+                    ? this.weekDays.filter((d) => d.working).map((d) => d.name).join(this.locale === 'ar' ? '، ' : ', ')
+                    : '';
+            }
+
             if (this.workDayFrom === '' || this.workDayTo === '') {
                 return '';
             }
@@ -1217,7 +1304,7 @@ document.addEventListener('alpine:init', () => {
          */
         get weeklyHours() {
             if (this.scheduleMode === '1') {
-                if (this.workDayFrom === '' && this.workDayTo === '') {
+                if (this.dayPickMode === 'days' ? this.pickedWorkdays.length === 0 : (this.workDayFrom === '' && this.workDayTo === '')) {
                     return this.initialWeeklyHours;
                 }
 
@@ -1510,7 +1597,7 @@ document.addEventListener('alpine:init', () => {
             const emptyText = isAr ? 'لم يتم تحديد تفاصيل الدوام بعد.' : 'No schedule details selected yet.';
 
             if (this.scheduleMode === '1') {
-                if (this.workDayFrom === '' || this.workDayTo === '') {
+                if (this.dayPickMode === 'days' ? this.pickedWorkdays.length === 0 : (this.workDayFrom === '' || this.workDayTo === '')) {
                     return emptyText;
                 }
 
@@ -1556,7 +1643,9 @@ document.addEventListener('alpine:init', () => {
 
                 let officeHours = isAr ? 'ساعات الدوام الرسمية هي' : 'Standard office hours are';
 
-                if (this.showDayRange) {
+                // Days picked one by one are never named in print (the
+                // volunteer's own day off stays in the system).
+                if (this.showDayRange && this.dayPickMode !== 'days') {
                     const from = dayNames[Number(this.workDayFrom)] ?? '';
                     const to = dayNames[Number(this.workDayTo)] ?? '';
                     const days = from === to ? from : (isAr ? `من ${from} إلى ${to}` : `${from} to ${to}`);
@@ -1875,6 +1964,7 @@ document.addEventListener('alpine:init', () => {
                 workHours2To: this.workHours2To,
                 workDayFrom: this.workDayFrom,
                 workDayTo: this.workDayTo,
+                workWeekdays: this.scheduleMode === '1' && this.dayPickMode === 'days' ? this.pickedWorkdays : null,
                 showDaysPerWeek: this.showDaysPerWeek,
                 showHoursPerWeek: this.showHoursPerWeek,
                 showHoursPerDay: this.showHoursPerDay,

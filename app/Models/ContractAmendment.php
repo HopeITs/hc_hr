@@ -42,6 +42,7 @@ class ContractAmendment extends Model implements HasMedia
         'work_days_ar',
         'work_day_from',
         'work_day_to',
+        'work_weekdays',
         'show_days_per_week',
         'show_hours_per_week',
         'show_hours_per_day',

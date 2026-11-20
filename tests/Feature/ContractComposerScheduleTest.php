@@ -230,6 +230,65 @@ class ContractComposerScheduleTest extends TestCase
         $this->assertNull($renewed->work_day_from);
     }
 
+    public function test_picked_working_days_are_saved_instead_of_a_range(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $fixtures['center']->update(['weekends' => '5']);
+        $this->ignoreLeaveBalances();
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('submit', $this->basePayload($fixtures, [
+                'scheduleMode' => ScheduleMode::Fixed,
+                'workHoursFrom' => '09:00',
+                'workHoursTo' => '17:00',
+                'workDayFrom' => 0,
+                'workDayTo' => 4,
+                'workWeekdays' => [6, 0, 1, 3, 4],
+                'weeklyHours' => 40,
+            ]))
+            ->assertHasNoErrors();
+
+        $contract = Contract::first();
+        $this->assertSame('0,1,3,4,6', $contract->work_weekdays);
+        $this->assertSame([0, 1, 3, 4, 6], $contract->workWeekdays());
+        // One way or the other, never both.
+        $this->assertNull($contract->work_day_from);
+        $this->assertNull($contract->work_day_to);
+    }
+
+    public function test_the_centers_day_off_cannot_be_picked_as_a_working_day(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $fixtures['center']->update(['weekends' => '5']);
+        $this->ignoreLeaveBalances();
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('submit', $this->basePayload($fixtures, [
+                'scheduleMode' => ScheduleMode::Fixed,
+                'workHoursFrom' => '09:00',
+                'workHoursTo' => '17:00',
+                'workWeekdays' => [1, 2, 5],
+                'weeklyHours' => 24,
+            ]))
+            ->assertHasErrors(['form.work_weekdays']);
+
+        $this->assertSame(0, Contract::count());
+    }
+
+    public function test_the_location_options_carry_each_positions_center_day_off(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $fixtures['center']->update(['weekends' => '5,6']);
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('locationOptions', $fixtures['city']->id)
+            ->assertReturned(fn (array $options): bool => collect($options['positions'])
+                ->firstWhere('value', $fixtures['position']->id)['placeWeekend'] === [5, 6]);
+    }
+
     private function ignoreLeaveBalances(): void
     {
         $this->mock(LeaveBalanceService::class)->shouldReceive('create')->andReturnNull();

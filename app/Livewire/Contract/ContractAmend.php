@@ -149,6 +149,7 @@ class ContractAmend extends Component
                 ...$this->draftSeed(),
                 // No position picker here to carry them (locationOptions()).
                 'weekendDays' => app(ContractWeekendClause::class)->days($this->contract),
+                'placeWeekend' => app(ContractWeekendClause::class)->placeDays($this->contract),
             ],
             'editingNumber' => $this->draft()?->number,
             'nowCard' => $this->nowCard(),
@@ -196,9 +197,14 @@ class ContractAmend extends Component
         $digits = fn (string $s) => $locale === 'ar' ? ar_digits($s) : $s;
         $dayName = fn (int $d) => Carbon::now()->startOfWeek(Carbon::SUNDAY)->addDays($d)->translatedFormat('l');
 
-        $workDays = (int) $contract->schedule_mode === ScheduleMode::Fixed && $contract->work_day_from !== null && $contract->work_day_to !== null
-            ? $dayName((int) $contract->work_day_from).' – '.$dayName((int) $contract->work_day_to)
-            : '—';
+        $isFixed = (int) $contract->schedule_mode === ScheduleMode::Fixed;
+        $picked = $contract->workWeekdays();
+
+        $workDays = match (true) {
+            $isFixed && $picked !== null => collect($picked)->map($dayName)->implode(', '),
+            $isFixed && $contract->work_day_from !== null && $contract->work_day_to !== null => $dayName((int) $contract->work_day_from).' – '.$dayName((int) $contract->work_day_to),
+            default => '—',
+        };
 
         $salary = match (true) {
             ! (auth()->user()?->canViewSalary() ?? false) => __('general.salary-hidden'),

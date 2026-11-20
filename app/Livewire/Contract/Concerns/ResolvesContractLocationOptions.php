@@ -149,6 +149,9 @@ trait ResolvesContractLocationOptions
                     'existEmp' => (int) $position->exist_emp,
                     // Study Zone's printable day(s) off: the weekend-clause checkbox.
                     'weekend' => $weekendClause->daysForPosition($position),
+                    // Any program: the place's day off, greyed out in the
+                    // working-day picker. Null when no center weekend is set.
+                    'placeWeekend' => $weekendClause->placeDaysForPosition($position),
                 ])
                 ->values()
                 ->all(),

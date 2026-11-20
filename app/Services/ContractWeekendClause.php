@@ -32,7 +32,9 @@ class ContractWeekendClause
             return null;
         }
 
-        [$weekend, $source] = $this->pricing->weekendFor($contract);
+        // The centers' day off, never the volunteer's own (work_weekdays):
+        // that one stays in the system and is not printed.
+        [$weekend, $source] = $this->pricing->placeWeekendFor($contract);
 
         return $source === 'default' ? null : $weekend;
     }
@@ -40,6 +42,30 @@ class ContractWeekendClause
     /** @return array<int, int>|null */
     public function daysForPosition(Position $position): ?array
     {
-        return $this->days((new Contract)->setRelation('position', $position)->setRelation('employee', null));
+        return $this->days($this->probe($position));
+    }
+
+    /**
+     * The place's day off for any program — what the composer's working-day
+     * picker greys out. Null when no center weekend is set.
+     *
+     * @return array<int, int>|null
+     */
+    public function placeDays(Contract $contract): ?array
+    {
+        [$weekend, $source] = $this->pricing->placeWeekendFor($contract);
+
+        return $source === 'default' ? null : $weekend;
+    }
+
+    /** @return array<int, int>|null */
+    public function placeDaysForPosition(Position $position): ?array
+    {
+        return $this->placeDays($this->probe($position));
+    }
+
+    private function probe(Position $position): Contract
+    {
+        return (new Contract)->setRelation('position', $position)->setRelation('employee', null);
     }
 }
