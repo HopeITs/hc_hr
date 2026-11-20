@@ -3,7 +3,7 @@
     use App\Models\RecruitmentApplicationParticipant as Participant;
 @endphp
 
-<section class="mt-4 rounded-control border border-neutral-200 bg-white p-4">
+<section class="mt-4 rounded-control border border-neutral-200 bg-card p-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h4 class="font-semibold">{{ __($showAccess ? 'recruitment-applicant.profile_reviews.title' : 'recruitment-applicant.profile_reviews.my_review') }}</h4>
@@ -29,16 +29,16 @@
             <div>
                 <x-forms.input-label for="application-review-role-{{ $application->id }}" :value="__('recruitment-applicant.profile_reviews.access')" />
                 <select id="application-review-role-{{ $application->id }}" wire:model="newParticipantRole"
-                    class="w-full cursor-pointer rounded-control border border-secondary-light bg-white px-3 py-2 text-body shadow-e1 focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary">
+                    class="w-full cursor-pointer rounded-control border border-secondary-light bg-card px-3 py-2 text-body shadow-e1 focus:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink">
                     @foreach (Participant::roles() as $role)
                         <option value="{{ $role }}">{{ __('recruitment-applicant.profile_reviews.roles.'.$role) }}</option>
                     @endforeach
                 </select>
                 <x-forms.input-error field="newParticipantRole" :input-id="'application-review-role-'.$application->id" />
             </div>
-            <x-primary-button type="button" wire:click="addParticipant" wire:target="addParticipant">
+            <x-button type="button" wire:click="addParticipant" wire:target="addParticipant">
                 {{ __('recruitment-applicant.profile_reviews.add') }}
-            </x-primary-button>
+            </x-button>
         </div>
 
         <ul class="mt-4 divide-y divide-neutral-100 text-sm">
@@ -106,9 +106,9 @@
                 <x-forms.input-error field="notes" :input-id="'application-review-notes-'.$application->id" />
             </div>
             <div class="flex justify-end">
-                <x-primary-button type="submit" wire:target="saveReview">
+                <x-button type="submit" wire:target="saveReview">
                     {{ $expectedVersion ? __('recruitment-applicant.profile_reviews.update') : __('recruitment-applicant.profile_reviews.submit') }}
-                </x-primary-button>
+                </x-button>
             </div>
         </form>
     @elseif ($ownParticipant)
@@ -134,7 +134,7 @@
                             @foreach (['pros', 'cons', 'notes'] as $field)
                                 @if (filled($review->{$field}))
                                     <div @class(['md:col-span-2' => $field === 'notes'])>
-                                        <dt class="text-xs font-semibold uppercase tracking-wide text-secondary-medium">{{ __('recruitment-applicant.profile_reviews.'.$field) }}</dt>
+                                        <dt class="text-small font-semibold uppercase tracking-wide text-secondary-medium">{{ __('recruitment-applicant.profile_reviews.'.$field) }}</dt>
                                         <dd class="mt-1 whitespace-pre-line text-sm wrap-break-word">{{ $review->{$field} }}</dd>
                                     </div>
                                 @endif

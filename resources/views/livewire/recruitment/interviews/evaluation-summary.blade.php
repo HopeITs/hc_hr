@@ -4,7 +4,7 @@
     // Times read in the interview's own time zone, as on the rest of its page.
     $at = fn ($date) => $date?->copy()->setTimezone($timezone)->format('Y-m-d H:i');
 @endphp
-<section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+<section class="rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h2 id="evaluations-title" tabindex="-1" class="scroll-mt-24 text-h4 font-semibold">{{ __('recruitment-applicant.evaluations.summary_title') }}</h2>
@@ -13,18 +13,18 @@
         @if ($canClose)
             <button type="button"
                     x-on:click="$dispatch('open-recruitment-confirmation', { scope: 'interview-evaluations', action: 'closeEvaluations', message: @js(__('recruitment-applicant.evaluations.close_confirm')), confirmLabel: @js(__('recruitment-applicant.evaluations.close')), tone: 'danger' })"
-                    class="min-h-11 cursor-pointer rounded-control border border-secondary-light bg-white px-3 text-sm shadow-e1 transition hover:bg-selection sm:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    class="min-h-11 cursor-pointer rounded-control border border-secondary-light bg-card px-3 text-sm shadow-e1 transition hover:bg-selection sm:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                 {{ __('recruitment-applicant.evaluations.close') }}
             </button>
         @elseif ($interview->evaluations_closed_at)
-            <span class="text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.closed_on', ['date' => $at($interview->evaluations_closed_at)]) }}</span>
+            <span class="text-small text-secondary-medium">{{ __('recruitment-applicant.evaluations.closed_on', ['date' => $at($interview->evaluations_closed_at)]) }}</span>
         @endif
     </div>
 
     {{-- With a panel open, its own error shows inside it, next to the action that caused it. --}}
     @if ($panel === null)
         @error('evaluation')
-            <p role="alert" class="mt-4 rounded-control border border-primary bg-white p-3 text-sm text-primary">{{ $message }}</p>
+            <p role="alert" class="mt-4 rounded-control border border-primary bg-card p-3 text-sm text-primary">{{ $message }}</p>
         @enderror
     @endif
 
@@ -37,7 +37,7 @@
             @endif
         @endforeach
     </div>
-    <p class="mt-2 text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.advisory') }}</p>
+    <p class="mt-2 text-small text-secondary-medium">{{ __('recruitment-applicant.evaluations.advisory') }}</p>
 
     @if ($evaluations->isEmpty())
         <p class="mt-4 text-sm text-secondary-medium">
@@ -54,7 +54,7 @@
                                 <span class="font-normal text-secondary-medium">&middot; {{ __('recruitment-applicant.interviews.roles.'.$roles->get($evaluation->reviewer_user_id)) }}</span>
                             @endif
                         </p>
-                        <span class="text-xs text-secondary-medium">
+                        <span class="text-small text-secondary-medium">
                             {{ __('recruitment-applicant.evaluations.submitted_on', ['date' => $at($evaluation->submitted_at)]) }}
                             @if ($evaluation->revisions->contains('action', \App\Models\RecruitmentInterviewEvaluation::ACTION_CORRECTED))
                                 &middot; <span class="font-semibold text-secondary-dark">{{ __('recruitment-applicant.evaluations.corrected_badge') }}</span>
@@ -77,7 +77,7 @@
                             <ul class="mt-2 space-y-3">
                                 @foreach ($evaluation->opinionNotes as $opinionNote)
                                     <li class="text-sm">
-                                        <p class="text-xs text-secondary-medium">
+                                        <p class="text-small text-secondary-medium">
                                             {{ $opinionNote->author?->profile?->name ?? $opinionNote->author?->email }}
                                             &middot; {{ $at($opinionNote->created_at) }}
                                         </p>
@@ -91,7 +91,7 @@
                     @can('addNote', $evaluation)
                         <button type="button" id="evaluation-{{ $evaluation->id }}-note" wire:click="beginNote({{ $evaluation->id }})"
                             aria-expanded="{{ $panel === 'note' && $evaluationId === $evaluation->id ? 'true' : 'false' }}"
-                            class="mt-3 min-h-11 cursor-pointer text-sm font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0">
+                            class="mt-3 min-h-11 cursor-pointer text-sm font-medium text-secondary-dark underline decoration-secondary-light underline-offset-4 transition hover:decoration-secondary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:min-h-0">
                             {{ __('recruitment-applicant.evaluations.add_note') }}
                         </button>
                     @endcan
@@ -123,21 +123,21 @@
                 @endif
 
                 @error('evaluation')
-                    <p role="alert" class="rounded-control border border-primary bg-white p-3 text-sm text-primary">{{ $message }}</p>
+                    <p role="alert" class="rounded-control border border-primary bg-card p-3 text-sm text-primary">{{ $message }}</p>
                 @enderror
 
                 <div>
                     <x-forms.input-label for="evaluation-opinion-note" required :value="__('recruitment-applicant.evaluations.opinion_note')" />
                     <x-forms.textarea id="evaluation-opinion-note" wire:model="opinionNote" rows="4" />
-                    <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.note_hint') }}</p>
+                    <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.evaluations.note_hint') }}</p>
                     <x-forms.input-error field="opinionNote" input-id="evaluation-opinion-note" />
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <x-primary-button type="button" wire:click="addNote">
+                    <x-button type="button" wire:click="addNote">
                         {{ __('recruitment-applicant.evaluations.note_confirm') }}
-                    </x-primary-button>
-                    <x-secondary-button wire:click="requestClose('evaluationActionModal')">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
+                    </x-button>
+                    <x-button variant="quiet" wire:click="requestClose('evaluationActionModal')">{{ __('recruitment-applicant.cancel') }}</x-button>
                 </div>
             </div>
         @endif

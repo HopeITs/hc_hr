@@ -1,8 +1,8 @@
-<div class="mt-4 rounded-control border border-neutral-200 bg-white p-4">
+<div class="mt-4 rounded-control border border-neutral-200 bg-card p-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h4 class="text-sm font-semibold">{{ __('recruitment-applicant.flags.title') }}</h4>
-            <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.flags.hint') }}</p>
+            <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.flags.hint') }}</p>
         </div>
     </div>
 
@@ -11,7 +11,7 @@
             @foreach ($flags as $flag)
                 <li wire:key="application-flag-{{ $flag->id }}" class="flex flex-wrap items-start justify-between gap-3 rounded-control border border-neutral-200 p-3 text-sm">
                     <div class="min-w-0">
-                        <span class="inline-flex items-center gap-1 rounded-control px-2 py-0.5 text-xs font-semibold {{ $flag->type === \App\Models\RecruitmentApplicationFlag::TYPE_RED ? 'border border-primary bg-white text-primary' : 'bg-neutral-100 text-secondary-dark' }}">
+                        <span class="inline-flex items-center gap-1 rounded-control px-2 py-0.5 text-caption font-semibold {{ $flag->type === \App\Models\RecruitmentApplicationFlag::TYPE_RED ? 'border border-primary bg-card text-primary' : 'bg-neutral-100 text-secondary-dark' }}">
                             @if ($flag->type === \App\Models\RecruitmentApplicationFlag::TYPE_RED)
                                 <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
                             @else
@@ -23,10 +23,10 @@
                         @if ($flag->note)
                             <p class="mt-1 whitespace-pre-line text-secondary-medium">{{ $flag->note }}</p>
                         @endif
-                        <p class="mt-1 text-xs text-secondary-medium">{{ $flag->creator?->profile?->name ?? $flag->creator?->name ?? '—' }} · {{ $flag->created_at?->format('Y-m-d') }}</p>
+                        <p class="mt-1 text-small text-secondary-medium">{{ $flag->creator?->profile?->name ?? $flag->creator?->name ?? '—' }} · {{ $flag->created_at?->format('Y-m-d') }}</p>
                     </div>
                     @if ($mayFlag)
-                        <button type="button" wire:click="discardFlag({{ $flag->id }})" wire:confirm="{{ __('recruitment-applicant.flags.discard_confirm') }}" class="cursor-pointer text-xs font-semibold text-primary hover:underline">{{ __('recruitment-applicant.flags.discard') }}</button>
+                        <button type="button" wire:click="discardFlag({{ $flag->id }})" wire:confirm="{{ __('recruitment-applicant.flags.discard_confirm') }}" class="cursor-pointer text-small font-semibold text-primary hover:underline">{{ __('recruitment-applicant.flags.discard') }}</button>
                     @endif
                 </li>
             @endforeach
@@ -67,7 +67,7 @@
                 <x-forms.input-error field="flagNote" input-id="flagNote" />
             </div>
             <div class="md:col-span-2">
-                <x-primary-button type="submit" wire:loading.attr="disabled" wire:target="create" class="!w-auto">{{ __('recruitment-applicant.flags.add') }}</x-primary-button>
+                <x-button type="submit" wire:loading.attr="disabled" wire:target="create" class="!w-auto">{{ __('recruitment-applicant.flags.add') }}</x-button>
             </div>
         </form>
     @endif

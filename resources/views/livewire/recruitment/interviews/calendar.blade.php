@@ -1,12 +1,12 @@
 @php
     use App\Enums\RecruitmentInterviewStatus;
 
-    $navButton = 'inline-flex size-11 cursor-pointer items-center justify-center rounded-control border border-secondary-soft bg-white text-secondary-dark shadow-e1 transition hover:bg-selection sm:size-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    $navButton = 'inline-flex size-11 cursor-pointer items-center justify-center rounded-control border border-secondary-soft bg-card text-secondary-dark shadow-e1 transition hover:bg-selection sm:size-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
 
     // The phone agenda lists only this month's days that have something on them.
     $agendaDays = collect($weeks)->flatten(1)->filter(fn ($day) => $day['inMonth'] && count($day['interviews']) > 0);
 @endphp
-<section class="rounded-surface border border-secondary-soft bg-white p-4 shadow-e1 sm:p-6">
+<section class="rounded-surface border border-secondary-soft bg-card p-4 shadow-e1 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <button type="button" wire:click="previousMonth" class="{{ $navButton }}" aria-label="{{ __('recruitment-applicant.interviews.previous_month') }}">
@@ -17,19 +17,19 @@
                 <svg class="size-4 rtl:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m7.5 5 5 5-5 5"/></svg>
             </button>
             <button type="button" wire:click="thisMonth"
-                    class="ms-1 inline-flex py-2 cursor-pointer items-center rounded-control px-3 text-body font-medium text-secondary-dark transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    class="ms-1 inline-flex py-2 cursor-pointer items-center rounded-control px-3 text-body font-medium text-secondary-dark transition hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                 {{ __('recruitment-applicant.interviews.today') }}
             </button>
         </div>
 
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-secondary-medium">
             @if ($canSchedule)
-                <x-primary-button type="button" wire:click="startScheduling('{{ now()->toDateString() }}')" wire:target="startScheduling">
+                <x-button type="button" wire:click="startScheduling('{{ now()->toDateString() }}')" wire:target="startScheduling">
                     {{ __('recruitment-applicant.interviews.schedule') }}
-                </x-primary-button>
+                </x-button>
             @endif
             <label class="inline-flex min-h-11 cursor-pointer items-center gap-2 sm:min-h-0">
-                <input type="checkbox" wire:model.live="showCancelled" class="size-4 rounded-inset border-secondary-light text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <input type="checkbox" wire:model.live="showCancelled" class="size-4 rounded-inset border-secondary-light text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                 {{ __('recruitment-applicant.interviews.show_cancelled') }}
             </label>
             <span>{{ __('recruitment-applicant.interviews.times_in', ['timezone' => $timezone]) }}</span>
@@ -42,7 +42,7 @@
             <div class="grid gap-4 md:grid-cols-3">
                 <div>
                     <x-forms.input-label for="calendar-schedule-date" required>{{ __('recruitment-applicant.interviews.calendar_date') }}</x-forms.input-label>
-                    <input id="calendar-schedule-date" type="date" value="{{ $selectedDate }}" min="{{ now()->toDateString() }}" wire:change="startScheduling($event.target.value)" class="mt-1 w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-body focus:border-primary focus:ring-primary">
+                    <input id="calendar-schedule-date" type="date" value="{{ $selectedDate }}" min="{{ now()->toDateString() }}" wire:change="startScheduling($event.target.value)" class="mt-1 w-full rounded-control border border-secondary-light bg-card px-3 py-2 text-body focus:border-ink focus:ring-ink">
                     <x-forms.input-error field="selectedDate" />
                     <x-forms.input-error field="date" />
                 </div>
@@ -71,8 +71,8 @@
                 <p class="text-body text-secondary-medium">{{ __('recruitment-applicant.interviews.calendar_empty') }}</p>
             @endif
             <div class="flex flex-wrap gap-2">
-                <x-primary-button type="submit" wire:target="continueScheduling" :disabled="$schedulingOptions->isEmpty()">{{ __('recruitment-applicant.interviews.calendar_continue') }}</x-primary-button>
-                <x-secondary-button wire:click="cancelScheduling">{{ __('recruitment-applicant.cancel') }}</x-secondary-button>
+                <x-button type="submit" wire:target="continueScheduling" :disabled="$schedulingOptions->isEmpty()">{{ __('recruitment-applicant.interviews.calendar_continue') }}</x-button>
+                <x-button variant="quiet" wire:click="cancelScheduling">{{ __('recruitment-applicant.cancel') }}</x-button>
             </div>
         </form>
     @endif
@@ -101,7 +101,7 @@
     {{-- Wider screens: the month grid. Each day is a labelled list, so its entries are announced with their date. --}}
     <div class="mt-4 hidden overflow-x-auto sm:block">
         <div class="min-w-[640px]">
-            <div class="grid grid-cols-7 border-b border-secondary-soft pb-2 text-center text-xs font-semibold text-secondary-medium" aria-hidden="true">
+            <div class="grid grid-cols-7 border-b border-secondary-soft pb-2 text-center text-small font-semibold text-secondary-medium" aria-hidden="true">
                 @foreach ($weekdays as $weekday)
                     <span>{{ $weekday }}</span>
                 @endforeach
@@ -115,11 +115,11 @@
                                 @if ($canSchedule && $day['date']->gte(now()->startOfDay()))
                                     <button type="button" wire:click="startScheduling('{{ $day['date']->toDateString() }}')"
                                             aria-label="{{ __('recruitment-applicant.interviews.schedule_on', ['date' => $day['date']->translatedFormat('j F Y')]) }}"
-                                            class="inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-body font-semibold text-primary hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                            class="inline-flex size-9 cursor-pointer items-center justify-center rounded-control text-body font-semibold text-primary hover:bg-selection focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
                                         <span aria-hidden="true">+</span>
                                     </button>
                                 @endif
-                                <span aria-hidden="true" class="flex size-6 items-center justify-center rounded-full text-xs
+                                <span aria-hidden="true" class="flex size-6 items-center justify-center rounded-full text-small
                                     {{ $day['isToday'] ? 'bg-neutral-900 font-semibold text-white' : ($day['inMonth'] ? 'text-secondary-dark' : 'text-secondary-light') }}">
                                     {{ $day['date']->day }}
                                 </span>

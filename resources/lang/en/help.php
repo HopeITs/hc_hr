@@ -102,5 +102,62 @@ return [
             ],
             'keywords' => 'position city program center seat seats capacity full draft governorate',
         ],
+        // Item 19 (UX review): recruitment, attendance, first days, probation.
+        'hiring-flow' => [
+            'title' => 'How hiring works',
+            'summary' => 'From a recruitment request to a new employee, step by step.',
+            'points' => [
+                1 => 'A manager raises a recruitment request for a position in their team, and it goes through approvals. A reviewer may ask for changes before approving.',
+                2 => 'An approved request becomes a vacancy, and a campaign opens for it with its own application link to publish.',
+                3 => 'Each applicant is reviewed; the shortlisted ones get an interview. After the interviews a candidate is selected and an offer is made.',
+                4 => 'Once the applicant accepts, HR converts them to an employee from the offer\'s page: their record and contract are created from the accepted terms, and their first-days steps begin.',
+                5 => 'Direct opening is for a hire agreed outside the system: the approvals given outside are recorded, and the vacancy opens without the approvals here.',
+            ],
+            'keywords' => 'hiring recruitment request approval vacancy campaign application link applicant shortlist interview offer convert direct opening',
+        ],
+        'hiring-convert' => [
+            'title' => 'Converting an applicant to an employee',
+            'summary' => 'What confirming the hire does, and why not to add the employee by hand.',
+            'points' => [
+                1 => 'The conversion creates the employee record and the contract together; the contract takes the offer terms as accepted.',
+                2 => 'If the person is already on file, their record is suggested so you link them instead of creating a duplicate. A national number on file under another name stops the hire.',
+                3 => 'If anything fails (a full position, a closed vacancy…) nothing is created, and the reason shows so you can fix it and try again.',
+                4 => 'Adding someone through Add employee neither links them to their recruitment file nor writes their contract from the offer, so that page lists the accepted offers waiting to be converted.',
+            ],
+            'keywords' => 'convert hire employee accepted offer contract record link duplicate national number confirm add employee',
+        ],
+        'attendance-month' => [
+            'title' => 'The monthly timesheet',
+            'summary' => 'How punches become a timesheet, and when a month is done.',
+            'points' => [
+                1 => 'Punches come from the fingerprint devices, or from a report HR uploads. Each punch is kept once, so uploading the same file twice does not double it.',
+                2 => 'A working day with no punch, or one punch, is never assumed: it waits for Worked or Absent, and the sheet is a draft until every day is answered.',
+                3 => 'Leave is never created from attendance: it is recorded in leaves first, and then shows on the sheet.',
+                4 => 'The employee confirms their month, their manager or HR approves it (nobody approves their own), then HR locks it.',
+                5 => 'Overtime is not paid; it comes back as days off: locking adds its hours to the annual leave balance.',
+            ],
+            'keywords' => 'attendance punch fingerprint device timesheet month decision worked absent draft approve lock overtime balance',
+        ],
+        'first-days' => [
+            'title' => 'A new volunteer\'s first days',
+            'summary' => 'What happens after the first contract, and who follows each step.',
+            'points' => [
+                1 => 'The steps start with the first real contract. After it no step waits on another: they all run side by side.',
+                2 => 'The sign-in account, the electronics and the card are due within two days of the contract start; the two orientation sessions (with HR and with the direct manager) within 14 days.',
+                3 => 'The IT team of the city hands over the electronics, and HR hands over the card.',
+                4 => 'Reading the policies and reviewing the Media guideline are done from the volunteer\'s own account, on the My first days page.',
+            ],
+            'keywords' => 'onboarding first days new volunteer account electronics card orientation session manager policies media guideline',
+        ],
+        'probation-review' => [
+            'title' => 'The probation review',
+            'summary' => 'What is asked of the manager near the end of a trial contract.',
+            'points' => [
+                1 => 'In the last third of a trial contract, the direct manager is asked for their view of the volunteer.',
+                2 => 'The manager picks what they ask HR for: extend the trial, confirm, or cancel, and gives the reason.',
+                3 => 'The request goes to HR of the city and changes nothing on the contract by itself: HR carries out the decision.',
+            ],
+            'keywords' => 'probation trial review extend confirm cancel direct manager trial contract',
+        ],
     ],
 ];

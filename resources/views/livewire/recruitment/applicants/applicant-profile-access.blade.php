@@ -2,7 +2,7 @@
     use App\Models\RecruitmentApplicationParticipant as Participant;
 @endphp
 
-<section class="rounded-surface border border-neutral-200 bg-white p-4 shadow-e1 sm:p-5">
+<section class="rounded-surface border border-neutral-200 bg-card p-4 shadow-e1 sm:p-5">
     <div>
         <h2 class="font-semibold">{{ __('recruitment-applicant.profile_reviews.title') }}</h2>
         <p class="mt-1 text-sm text-secondary-medium">{{ __('recruitment-applicant.profile_reviews.hint') }}</p>
@@ -22,15 +22,15 @@
             </div>
             <div>
                 <x-forms.input-label for="applicant-profile-role-{{ $applicant->id }}" :value="__('recruitment-applicant.profile_reviews.access')" />
-                <select id="applicant-profile-role-{{ $applicant->id }}" wire:model="newParticipantRole" class="h-[34px] w-full cursor-pointer rounded-control border border-secondary-light bg-white px-3 py-0 text-body">
+                <select id="applicant-profile-role-{{ $applicant->id }}" wire:model="newParticipantRole" class="h-[34px] w-full cursor-pointer rounded-control border border-secondary-light bg-card px-3 py-0 text-body">
                     @foreach (Participant::roles() as $role)
                         <option value="{{ $role }}">{{ __('recruitment-applicant.profile_reviews.roles.'.$role) }}</option>
                     @endforeach
                 </select>
             </div>
-            <x-primary-button type="button" wire:click="addParticipant" wire:target="addParticipant">
+            <x-button type="button" wire:click="addParticipant" wire:target="addParticipant">
                 {{ __('recruitment-applicant.profile_reviews.add') }}
-            </x-primary-button>
+            </x-button>
         </div>
 
         <ul class="mt-4 divide-y divide-neutral-100 text-sm">

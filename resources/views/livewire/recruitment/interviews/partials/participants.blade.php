@@ -4,7 +4,7 @@
 
     $requiredByAttendee = $interview->requiredParticipants->groupBy('attendee_user_id');
 @endphp
-<section class="rounded-surface border border-secondary-soft bg-white p-6 shadow-e1">
+<section class="rounded-surface border border-secondary-soft bg-card p-6 shadow-e1">
     <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.interviews.participants') }}</h2>
     @if ($interview->participants->isEmpty())
         <p class="mt-2 text-sm text-secondary-medium">{{ __('recruitment-applicant.interviews.no_participants') }}</p>
@@ -27,11 +27,11 @@
                             <x-recruitment.pill class="ms-2">{{ __('recruitment-applicant.interviews.inactive') }}</x-recruitment.pill>
                         @endunless
                         @if ($participant->removed_at)
-                            <span class="ms-2 text-xs">{{ __('recruitment-applicant.interviews.removed_on', ['date' => $at($participant->removed_at)]) }}</span>
+                            <span class="ms-2 text-small">{{ __('recruitment-applicant.interviews.removed_on', ['date' => $at($participant->removed_at)]) }}</span>
                         @endif
                     </div>
                     @if ($canManage)
-                        <span class="text-xs text-secondary-medium">{{ __('recruitment-applicant.interviews.notification_statuses.'.$participant->notification_status) }}</span>
+                        <span class="text-small text-secondary-medium">{{ __('recruitment-applicant.interviews.notification_statuses.'.$participant->notification_status) }}</span>
                     @endif
                 </li>
             @endforeach

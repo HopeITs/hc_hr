@@ -62,7 +62,7 @@
     </x-page-header>
 
     {{-- What to show: month, city, how to group, who --}}
-    <x-card class="space-y-4" data-testid="attendance-toolbar">
+    <x-card class="space-y-4" data-testid="attendance-toolbar" data-tour="attendance.toolbar">
         <div class="flex flex-wrap items-end gap-x-6 gap-y-4">
             <div>
                 <span class="mb-1 block text-small font-semibold text-ink-2" id="att-month-label">@lang('attendance.timesheets.month')</span>
@@ -132,12 +132,12 @@
     </x-card>
 
     {{-- The month in three numbers --}}
-    <div class="grid gap-4 sm:grid-cols-3" data-testid="attendance-summary">
+    <div class="grid gap-4 sm:grid-cols-3" data-testid="attendance-summary" data-tour="attendance.summary">
         <x-card>
             <div class="text-small text-ink-2">@lang('attendance.timesheets.people')</div>
             <div class="mt-1 text-h2 font-extrabold text-ink num">{{ $summary['people'] }}</div>
         </x-card>
-        <x-card data-testid="attendance-banner">
+        <x-card data-testid="attendance-banner" data-tour="attendance.decide">
             <div class="text-small text-ink-2">@lang('attendance.timesheets.decide')</div>
             @if($summary['to_decide'] > 0)
                 <div class="mt-1 text-h2 font-extrabold text-primary num">{{ $summary['to_decide'] }}</div>
@@ -161,7 +161,7 @@
 
     {{-- Month-end: approve what is ready, lock what is approved --}}
     @if($summary['ready_to_approve'] > 0 || $summary['ready_to_lock'] > 0)
-        <x-card class="flex flex-wrap items-center gap-3" data-testid="attendance-bulk">
+        <x-card class="flex flex-wrap items-center gap-3" data-testid="attendance-bulk" data-tour="attendance.bulk">
             @if($summary['ready_to_approve'] > 0)
                 <x-button wire:click="approveAllReady" wire:confirm="{{ __('attendance.workflow.approve-all', ['count' => $summary['ready_to_approve']]) }}?">
                     {{ __('attendance.workflow.approve-all', ['count' => $summary['ready_to_approve']]) }}
@@ -176,7 +176,7 @@
     @endif
 
     {{-- Key to the squares --}}
-    <div class="flex flex-wrap gap-x-5 gap-y-2 text-small text-ink-2" aria-label="{{ __('attendance.timesheets.key') }}">
+    <div class="flex flex-wrap gap-x-5 gap-y-2 text-small text-ink-2" aria-label="{{ __('attendance.timesheets.key') }}" data-tour="attendance.key">
         @foreach([
             [Sheet::WORKED, 'attendance.timesheets.legend-worked'],
             [Sheet::ONE_PUNCH, 'attendance.timesheets.legend-one'],

@@ -49,7 +49,7 @@
     </div>
 
     @if ($justPublished && $next)
-        <div class="flex flex-wrap items-center justify-between gap-3 rounded-surface border border-primary bg-white p-4 shadow-e1" role="status" data-next-step>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-surface border border-primary bg-card p-4 shadow-e1" role="status" data-next-step>
             <p class="flex items-center gap-3 text-body font-semibold text-secondary-dark">
                 <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white" aria-hidden="true">
                     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>

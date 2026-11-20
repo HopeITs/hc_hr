@@ -7,7 +7,7 @@
             saved version asks first. Nothing is kept in browser storage, since
             an evaluation must not outlive the session on a shared device.
         --}}
-        <section id="my-evaluation" class="scroll-mt-24 rounded-surface border border-secondary-soft bg-white p-6 shadow-e1"
+        <section id="my-evaluation" class="scroll-mt-24 rounded-surface border border-secondary-soft bg-card p-6 shadow-e1"
                  x-data="{ dirty: false }"
                  x-on:recruitment-evaluations-changed.window="dirty = false"
                  x-on:recruitment-evaluation-reloaded.window="dirty = false"
@@ -27,10 +27,10 @@
             <p role="status" class="mt-3 text-sm text-secondary-dark empty:hidden">@if ($own && ! $own->isWithdrawn() && $closedReason === null){{ __('recruitment-applicant.evaluations.saved_on', ['date' => $own->updated_at?->copy()->setTimezone($timezone)->format('Y-m-d H:i')]) }}@endif</p>
 
             @error('evaluation')
-                <div role="alert" class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-control border border-primary bg-white p-3 text-sm text-primary">
+                <div role="alert" class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-control border border-primary bg-card p-3 text-sm text-primary">
                     <span>{{ $message }}</span>
                     <button type="button" wire:click="reload" wire:confirm="{{ __('recruitment-applicant.evaluations.reload_confirm') }}"
-                        class="min-h-11 cursor-pointer font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0">{{ __('recruitment-applicant.evaluations.reload') }}</button>
+                        class="min-h-11 cursor-pointer font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:min-h-0">{{ __('recruitment-applicant.evaluations.reload') }}</button>
                 </div>
             @enderror
 
@@ -54,13 +54,13 @@
                         {{-- Selection is drawn by CSS from the checked input, so a tap needs no round trip. --}}
                         <div class="mt-2 flex flex-wrap gap-2">
                             @foreach (Recommendation::values() as $value)
-                                <label wire:key="recommendation-{{ $value }}" class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-secondary-light px-3 text-sm transition hover:bg-secondary-soft/30 sm:min-h-9 has-[:checked]:border-secondary-dark has-[:checked]:bg-selection has-[:checked]:font-semibold has-[:checked]:text-secondary-dark has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
+                                <label wire:key="recommendation-{{ $value }}" class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-secondary-light px-3 text-sm transition hover:bg-secondary-soft/30 sm:min-h-9 has-[:checked]:border-secondary-dark has-[:checked]:bg-selection has-[:checked]:font-semibold has-[:checked]:text-secondary-dark has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink">
                                     <input type="radio" wire:model="recommendation" value="{{ $value }}" class="text-primary focus:ring-0">
                                     {{ __('recruitment-applicant.evaluations.recommendations.'.$value) }}
                                 </label>
                             @endforeach
                         </div>
-                        <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.evaluations.advisory') }}</p>
+                        <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.evaluations.advisory') }}</p>
                         <x-forms.input-error field="recommendation" input-id="recommendation" />
                     </fieldset>
 
@@ -70,16 +70,16 @@
                              x-on:recruitment-evaluation-reloaded.window="$nextTick(() => length = $el.querySelector('textarea').value.length)">
                             <x-forms.input-label :for="'evaluation-'.$field" :value="__('recruitment-applicant.evaluations.'.$field)" />
                             <x-forms.textarea :id="'evaluation-'.$field" wire:model="{{ $field }}" rows="3" maxlength="{{ $maxLength }}" />
-                            <p x-cloak x-show="length > {{ (int) floor($maxLength * 0.8) }}" class="mt-1 text-xs text-secondary-medium"
+                            <p x-cloak x-show="length > {{ (int) floor($maxLength * 0.8) }}" class="mt-1 text-small text-secondary-medium"
                                x-text="@js(__('recruitment-applicant.evaluations.length', ['count' => '__count__', 'max' => $maxLength])).replace('__count__', length)"></p>
                             <x-forms.input-error :field="$field" :input-id="'evaluation-'.$field" />
                         </div>
                     @endforeach
 
                     <div class="flex justify-end">
-                        <x-primary-button type="submit" wire:target="save">
+                        <x-button type="submit" wire:target="save">
                             {{ $own ? __('recruitment-applicant.evaluations.update') : __('recruitment-applicant.evaluations.submit') }}
-                        </x-primary-button>
+                        </x-button>
                     </div>
                 </form>
             @endif

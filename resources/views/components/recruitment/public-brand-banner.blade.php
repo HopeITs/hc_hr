@@ -12,5 +12,5 @@
     <img src="{{ asset('assets/recruitment/hope-center/arrow2.svg') }}" alt="" class="pointer-events-none absolute left-[90.8%] top-[53%] w-[1.6%] opacity-20" aria-hidden="true">
     <img src="{{ asset('assets/recruitment/hope-center/arrow2.svg') }}" alt="" class="pointer-events-none absolute left-[94.4%] top-[42%] w-[8.7%] opacity-30" aria-hidden="true">
 
-    <span class="pointer-events-none absolute inset-x-0 bottom-[11%] h-[2.2%] bg-white" aria-hidden="true"></span>
+    <span class="pointer-events-none absolute inset-x-0 bottom-[11%] h-[2.2%] bg-card" aria-hidden="true"></span>
 </div>

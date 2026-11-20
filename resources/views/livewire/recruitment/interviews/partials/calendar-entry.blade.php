@@ -8,7 +8,7 @@
 @endphp
 <li wire:key="calendar-interview-{{ $interview->id }}">
     <a href="{{ route('recruitment.interviews.show', ['interviewId' => $interview->id]) }}" wire:navigate
-       class="flex gap-1.5 rounded-inset border border-neutral-200 bg-white shadow-e1 transition duration-150 hover:shadow-e2 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary
+       class="flex gap-1.5 rounded-inset border border-neutral-200 bg-card shadow-e1 transition duration-150 hover:shadow-e2 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink
               {{ $cancelled ? 'text-secondary-medium' : 'text-secondary-dark' }}
               {{ $compact ? 'items-center px-1.5 py-1 text-caption' : 'items-start px-3 py-2 text-small' }}">
         <span aria-hidden="true" class="size-2 shrink-0 rounded-full {{ RecruitmentInterviewStatus::dotClasses($interview->status) }} {{ $compact ? '' : 'mt-1' }}"></span>

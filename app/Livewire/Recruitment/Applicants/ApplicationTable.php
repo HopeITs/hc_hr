@@ -16,6 +16,7 @@ use App\Services\RecruitmentApplicationFilters;
 use App\Services\RecruitmentInterviewSchedulingService;
 use App\Services\RecruitmentMatchingIndicators;
 use App\Support\Recruitment\MatchingIndicator;
+use App\Support\Status\RecruitmentStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -53,10 +54,10 @@ class ApplicationTable extends LivewireTable
     public const BULK_REVIEW_ACCESS = 'bulk_review_access';
 
     /** Opening of the page's one neutral pill; callers close the class attribute. */
-    private const PILL = '<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark';
+    private const PILL = '<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark';
 
     /** Row actions share one width so the column lines up whatever the label. */
-    private const ACTION = 'inline-flex h-8 min-w-36 items-center justify-center whitespace-nowrap rounded-control border px-3 text-sm font-semibold shadow-e1 transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+    private const ACTION = 'inline-flex h-8 min-w-36 items-center justify-center whitespace-nowrap rounded-control border px-3 text-sm font-semibold shadow-e1 transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
 
     public string $sortColumn = 'submitted_at';
 
@@ -301,7 +302,7 @@ class ApplicationTable extends LivewireTable
 
                 if ($application->campaign !== null) {
                     $title = '<span class="block whitespace-nowrap font-semibold text-neutral-900">'.e(__('recruitment-applicant.campaign_number', ['number' => $application->campaign->id])).'</span>'
-                        .'<span class="block text-xs text-secondary-medium">'.$title.'</span>';
+                        .'<span class="block text-small text-secondary-medium">'.$title.'</span>';
                 }
 
                 // A closed or expired campaign is still worth reviewing, but the
@@ -309,7 +310,7 @@ class ApplicationTable extends LivewireTable
                 if ($application->campaign !== null) {
                     $effective = $states->effective($application->campaign);
                     if (! in_array($effective, [HiringCampaignStatus::Published, HiringCampaignStatus::Open], true)) {
-                        $title .= '<span class="mt-1 inline-flex items-center gap-1 rounded-inset bg-neutral-100 px-1.5 py-0.5 text-xs text-secondary-dark">'
+                        $title .= '<span class="mt-1 inline-flex items-center gap-1 rounded-inset bg-neutral-100 px-1.5 py-0.5 text-caption text-secondary-dark">'
                             .e(HiringCampaignStatus::getLocalizedName($effective)['value']).'</span>';
                     }
                 }
@@ -338,7 +339,7 @@ class ApplicationTable extends LivewireTable
                     default => 'unvoted',
                 };
                 if ($group === 'unvoted') {
-                    return '<span class="whitespace-nowrap text-xs text-secondary-medium">'.e(__('recruitment-applicant.endorsement.group_unvoted')).'</span>';
+                    return '<span class="whitespace-nowrap text-small text-secondary-medium">'.e(__('recruitment-applicant.endorsement.group_unvoted')).'</span>';
                 }
 
                 return self::PILL.'"><span aria-hidden="true" class="size-1.5 rounded-full '.($group === 'preferred' ? 'bg-neutral-900' : 'bg-neutral-500').'"></span>'
@@ -352,7 +353,7 @@ class ApplicationTable extends LivewireTable
                         ->countBy('recommendation');
 
                     if ($counts->isEmpty()) {
-                        return '<span class="whitespace-nowrap text-xs text-secondary-medium">'.e(__('recruitment-applicant.dashboard.not_evaluated')).'</span>';
+                        return '<span class="whitespace-nowrap text-small text-secondary-medium">'.e(__('recruitment-applicant.dashboard.not_evaluated')).'</span>';
                     }
 
                     return '<span class="flex flex-wrap gap-1">'.collect(RecruitmentEvaluationRecommendation::values())
@@ -384,7 +385,7 @@ class ApplicationTable extends LivewireTable
 
             Column::make(__('recruitment-applicant.tags.title'), function (RecruitmentApplication $application): string {
                 return '<span class="flex flex-wrap gap-1">'.$application->tags
-                    ->map(fn (RecruitmentTag $tag): string => '<span class="inline-flex whitespace-nowrap rounded-control px-2 py-0.5 text-xs font-semibold '
+                    ->map(fn (RecruitmentTag $tag): string => '<span class="inline-flex whitespace-nowrap rounded-control px-2 py-0.5 text-caption font-semibold '
                         .$tag->classes().'">'.e($tag->name).'</span>')
                     ->implode('').'</span>';
             })->asHtml(),
@@ -392,7 +393,7 @@ class ApplicationTable extends LivewireTable
             Column::make(__('recruitment-applicant.flags.title'), function (RecruitmentApplication $application): string {
                 // A red flag is a warning a reviewer must not miss, so it keeps the brand red outline; everything else is grey.
                 return '<span class="flex flex-wrap gap-1">'.$application->flags
-                    ->map(fn (RecruitmentApplicationFlag $flag): string => '<span class="inline-flex whitespace-nowrap rounded-control px-2 py-0.5 text-xs font-semibold '.($flag->type === RecruitmentApplicationFlag::TYPE_RED ? 'border border-primary bg-white text-primary' : 'bg-neutral-100 text-secondary-dark').'">'.e($flag->typeLabel()).': '.e($flag->reasonLabel()).'</span>')
+                    ->map(fn (RecruitmentApplicationFlag $flag): string => '<span class="inline-flex whitespace-nowrap rounded-control px-2 py-0.5 text-caption font-semibold '.($flag->type === RecruitmentApplicationFlag::TYPE_RED ? 'border border-primary bg-white text-primary' : 'bg-neutral-100 text-secondary-dark').'">'.e($flag->typeLabel()).': '.e($flag->reasonLabel()).'</span>')
                     ->implode('').'</span>';
             })->asHtml(),
 
@@ -498,7 +499,7 @@ class ApplicationTable extends LivewireTable
             .str_repeat('<span class="h-1 w-4 rounded-full bg-neutral-200"></span>', max($set->assessedCount() - $set->metCount(), 0))
             .'</span>';
 
-        return '<span title="'.e($lines->implode("\n")).'" class="inline-flex cursor-help flex-col whitespace-nowrap text-xs font-semibold text-secondary-dark">'
+        return '<span title="'.e($lines->implode("\n")).'" class="inline-flex cursor-help flex-col whitespace-nowrap text-small font-semibold text-secondary-dark">'
             .e($summary).$meter.'</span>'
             .($lines->isEmpty() ? '' : '<span class="sr-only"> ('.e($lines->implode(__('recruitment-applicant.list_separator'))).')</span>');
     }
@@ -521,16 +522,6 @@ class ApplicationTable extends LivewireTable
      */
     private function statusPill(string $status): string
     {
-        $dot = match ($status) {
-            RecruitmentApplicationStatus::Submitted => 'border border-neutral-500 bg-white',
-            RecruitmentApplicationStatus::Shortlisted, RecruitmentApplicationStatus::InterviewScheduled,
-            RecruitmentApplicationStatus::Interviewed, RecruitmentApplicationStatus::Finalist => 'bg-neutral-500',
-            RecruitmentApplicationStatus::Selected, RecruitmentApplicationStatus::OfferSent,
-            RecruitmentApplicationStatus::OfferAccepted, RecruitmentApplicationStatus::Hired => 'bg-neutral-900',
-            default => 'bg-neutral-300',
-        };
-
-        return self::PILL.'"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full '.$dot.'"></span>'
-            .e(__('recruitment-applicant.statuses.'.$status)).'</span>';
+        return RecruitmentStatus::html(RecruitmentStatus::application($status));
     }
 }

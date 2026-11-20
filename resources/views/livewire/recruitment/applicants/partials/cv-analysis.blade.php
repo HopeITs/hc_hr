@@ -12,13 +12,13 @@
 <details class="mt-4 rounded-control border border-secondary-soft p-4 text-sm" @if ($analysis->isCompleted()) open @endif>
     <summary class="cursor-pointer font-semibold">
         {{ __('recruitment-applicant.cv_analysis.title') }}
-        <span class="ms-1 text-xs font-normal text-secondary-medium">
+        <span class="ms-1 text-small font-normal text-secondary-medium">
             &middot; {{ __('recruitment-applicant.cv_analysis.methods.'.($analysis->extraction_method ?? 'none')) }}
             &middot; {{ $analysis->analyzed_at?->format('Y-m-d H:i') }}
         </span>
     </summary>
 
-    <p class="mt-2 text-xs text-secondary-medium">{{ __('recruitment-applicant.cv_analysis.disclaimer') }}</p>
+    <p class="mt-2 text-small text-secondary-medium">{{ __('recruitment-applicant.cv_analysis.disclaimer') }}</p>
 
     @if (! $analysis->isCompleted())
         <p class="mt-3 rounded-control bg-secondary-soft/60 p-3 text-secondary-dark">{{ __('recruitment-applicant.cv_analysis.statuses.'.$analysis->status) }}</p>
@@ -38,12 +38,12 @@
                         </x-recruitment.pill>
                     @endif
                     @if (! empty($facts['experience']['ranges']))
-                        <span class="block text-xs text-secondary-medium" dir="ltr">
+                        <span class="block text-small text-secondary-medium" dir="ltr">
                             {{ collect($facts['experience']['ranges'])->map(fn ($r) => $r[0].'–'.$r[1])->implode(', ') }}
                         </span>
                     @endif
                     @if (($facts['experience']['stated'] ?? null) !== null)
-                        <span class="block text-xs text-secondary-medium">{{ __('recruitment-applicant.cv_analysis.stated', ['count' => $facts['experience']['stated']]) }}</span>
+                        <span class="block text-small text-secondary-medium">{{ __('recruitment-applicant.cv_analysis.stated', ['count' => $facts['experience']['stated']]) }}</span>
                     @endif
                 </dd>
             </div>
@@ -54,7 +54,7 @@
                 <dd class="mt-1">
                     @if ($facts['education'] ?? null)
                         {{ __('recruitment-applicant.indicators.levels.'.$facts['education']['level']) }}
-                        <span class="text-xs text-secondary-medium">(«{{ $facts['education']['keyword'] }}»)</span>
+                        <span class="text-small text-secondary-medium">(«{{ $facts['education']['keyword'] }}»)</span>
                     @else
                         {{ __('recruitment-applicant.cv_analysis.not_found') }}
                     @endif
@@ -83,7 +83,7 @@
                 <dt class="font-medium">{{ __('recruitment-applicant.cv_analysis.skills_detected') }}</dt>
                 <dd class="mt-1 flex flex-wrap gap-1">
                     @forelse ($facts['skills'] ?? [] as $skill)
-                        <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-xs text-secondary-dark">{{ $skill }}</span>
+                        <span class="rounded-control bg-secondary-soft/60 px-2 py-0.5 text-caption text-secondary-dark">{{ $skill }}</span>
                     @empty
                         {{ __('recruitment-applicant.cv_analysis.not_found') }}
                     @endforelse
@@ -105,9 +105,9 @@
                             <span>
                                 {{ $item['term'] }}
                                 @if ($item['matched'] && $item['evidence'])
-                                    <span class="text-xs text-secondary-medium">({{ __('recruitment-applicant.cv_analysis.found_as', ['word' => $item['evidence']]) }})</span>
+                                    <span class="text-small text-secondary-medium">({{ __('recruitment-applicant.cv_analysis.found_as', ['word' => $item['evidence']]) }})</span>
                                 @elseif (! $item['matched'])
-                                    <span class="text-xs text-secondary-medium">({{ __('recruitment-applicant.cv_analysis.not_mentioned') }})</span>
+                                    <span class="text-small text-secondary-medium">({{ __('recruitment-applicant.cv_analysis.not_mentioned') }})</span>
                                 @endif
                             </span>
                         </li>
