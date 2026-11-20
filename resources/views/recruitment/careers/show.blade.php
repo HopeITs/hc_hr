@@ -229,6 +229,8 @@
                                         placeholder="{{ $field['type'] === 'date' ? '' : __('careers.your_answer') }}"
                                         class="mt-4 block w-full max-w-sm rounded-none border-0 border-b border-neutral-300 bg-transparent px-0 py-2 text-body shadow-none outline-none placeholder:text-neutral-500 focus:border-primary focus:ring-0 {{ in_array($field['type'], ['email', 'tel'], true) ? 'rtl:text-right' : '' }} {{ $workEmail || $invitedEmailField ? 'cursor-not-allowed text-neutral-600' : '' }}"
                                         @if ($field['type'] === 'email' || $field['type'] === 'tel') dir="ltr" @endif
+                                        {{-- A name is typed in its own script, whatever the page language. --}}
+                                        @if (in_array($key, \App\Services\RecruitmentApplicationFormService::NAME_FIELDS, true)) dir="{{ str_ends_with($key, '_ar') ? 'rtl' : 'ltr' }}" lang="{{ str_ends_with($key, '_ar') ? 'ar' : 'en' }}" @endif
                                         @if ($isPhone)
                                             inputmode="numeric"
                                             pattern="09[0-9]{8}"

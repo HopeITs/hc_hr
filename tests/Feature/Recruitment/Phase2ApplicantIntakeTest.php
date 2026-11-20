@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Tests\Concerns\ApplicantNames;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
@@ -111,7 +112,8 @@ class Phase2ApplicantIntakeTest extends TestCase
         $this->assertSame($application->applicant_id, $applicant->id);
         $this->assertSame($this->city->id, (int) $applicant->city_id);
         $this->assertGreaterThan(0, $application->answers()->count());
-        $this->assertSame(['value' => 'Applicant Name'], $application->answers()->where('field_key', 'full_name')->sole()->answer_json);
+        $this->assertSame(['value' => 'Applicant'], $application->answers()->where('field_key', 'first_name_en')->sole()->answer_json);
+        $this->assertSame(ApplicantNames::fullName('Applicant Name'), $applicant->full_name);
     }
 
     /** Task 2 notes: "Create audit/submission log" — identifiers only, no PII. */
@@ -179,7 +181,7 @@ class Phase2ApplicantIntakeTest extends TestCase
         $this->submit($second, $this->answers('VICTIM@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
-        $this->assertSame('Real Person', $applicant->full_name);
+        $this->assertSame(ApplicantNames::fullName('Real Person'), $applicant->full_name);
         $this->assertSame('0944000000', $applicant->phone_normalized);
         $this->assertSame(2, $applicant->applications()->count());
     }
@@ -194,7 +196,7 @@ class Phase2ApplicantIntakeTest extends TestCase
         $this->submit($second, $this->answers('kept@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $latest = RecruitmentApplication::query()->latest('id')->first();
-        $this->assertSame(['value' => 'Someone Else'], $latest->answers()->where('field_key', 'full_name')->sole()->answer_json);
+        $this->assertSame(['value' => 'Else'], $latest->answers()->where('field_key', 'last_name_en')->sole()->answer_json);
         $this->assertSame(['value' => '0955000000'], $latest->answers()->where('field_key', 'phone')->sole()->answer_json);
     }
 
@@ -210,7 +212,7 @@ class Phase2ApplicantIntakeTest extends TestCase
         $this->submit($second, $this->answers('gap@example.com', 'Someone Else', '0955000000'))->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
-        $this->assertSame('Real Person', $applicant->full_name);
+        $this->assertSame(ApplicantNames::fullName('Real Person'), $applicant->full_name);
         $this->assertSame('0955000000', $applicant->phone_normalized);
     }
 
@@ -646,7 +648,7 @@ class Phase2ApplicantIntakeTest extends TestCase
         $this->assertThrows(fn () => DB::table('recruitment_application_answers')->insert([
             'application_id' => 999999,
             'form_version_id' => $campaign->applicationForm->current_version_id,
-            'field_key' => 'full_name',
+            'field_key' => 'first_name_en',
             'answer_json' => json_encode(['value' => 'x']),
             'created_at' => now(),
             'updated_at' => now(),
@@ -714,11 +716,11 @@ class Phase2ApplicantIntakeTest extends TestCase
         return [$campaign->fresh(['applicationForm']), $hr, (string) $token];
     }
 
-    /** Answers for the fixture form: full_name, email + the locked phone, cv and consent. */
+    /** Answers for the fixture form: the eight names, email + the locked phone, cv and consent. */
     private function answers(string $email, string $name = 'Applicant Name', string $phone = '0944123456'): array
     {
         return [
-            'full_name' => $name,
+            ...ApplicantNames::answers($name),
             'email' => $email,
             'phone' => $phone,
             'cv' => UploadedFile::fake()->createWithContent('cv.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF\n"),
