@@ -221,8 +221,14 @@ const chatWindow = () => ({
         window.Livewire.navigate(back);
     },
 
-    // Enter sends; Shift+Enter is a new line; never while an IME is composing.
+    // Desktop: Enter sends, Shift+Enter is a new line, never while an IME is
+    // composing. Phone width: Enter is a new line and the send button sends
+    // (a phone keyboard has no Shift+Enter; the button shows only there).
     keydown(event) {
+        if (window.matchMedia('(max-width: 767px)').matches) {
+            return;
+        }
+
         if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
             event.preventDefault();
             this.submit();

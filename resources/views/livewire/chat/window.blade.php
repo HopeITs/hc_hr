@@ -70,16 +70,19 @@
                                 aria-label="{{ __('chat.ui.maximize') }}" title="{{ __('chat.ui.maximize') }}" data-testid="chat-maximize">
                             <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                         </button>
-                        <button type="button" wire:click="$parent.minimize({{ $conversationId }})"
-                                class="grid size-8 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink max-md:hidden"
-                                aria-label="{{ __('chat.ui.minimize') }}" title="{{ __('chat.ui.minimize') }}">
-                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
-                        </button>
-                        <button type="button" wire:click="$parent.close({{ $conversationId }})"
-                                class="grid size-8 place-items-center rounded-full text-ink-2 hover:bg-hover hover:text-ink"
-                                aria-label="{{ __('chat.ui.close') }}" title="{{ __('chat.ui.close') }}">
-                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        </button>
+                        {{-- Minimise and close as one group (like the header's button group). --}}
+                        <div class="flex shrink-0 items-center gap-0.5 rounded-[12px] bg-soft p-0.5" role="group" data-testid="chat-window-controls">
+                            <button type="button" wire:click="$parent.minimize({{ $conversationId }})"
+                                    class="grid size-7 place-items-center rounded-[10px] text-ink-2 hover:bg-card hover:text-ink max-md:hidden"
+                                    aria-label="{{ __('chat.ui.minimize') }}" title="{{ __('chat.ui.minimize') }}">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+                            </button>
+                            <button type="button" wire:click="$parent.close({{ $conversationId }})"
+                                    class="grid size-7 place-items-center rounded-[10px] text-ink-2 hover:bg-card hover:text-ink"
+                                    aria-label="{{ __('chat.ui.close') }}" title="{{ __('chat.ui.close') }}">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            </button>
+                        </div>
                     @endif
                 </header>
 
@@ -150,8 +153,11 @@
                                       placeholder="{{ __('chat.ui.type_message') }}" aria-label="{{ __('chat.ui.type_message') }}"
                                       class="max-h-[120px] min-h-9 flex-1 resize-none rounded-[18px] border-0 bg-soft px-3 py-2 text-small text-ink focus:ring-1 focus:ring-primary"
                                       data-testid="chat-composer"></textarea>
+                            {{-- Phones only: a phone keyboard has no Shift+Enter, so Enter
+                                 makes a new line there and this button sends. On desktop
+                                 Enter sends (Shift+Enter is a new line). --}}
                             <button type="submit" wire:loading.attr="disabled" wire:target="send"
-                                    class="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white disabled:opacity-60"
+                                    class="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white disabled:opacity-60 md:hidden"
                                     aria-label="{{ __('chat.ui.send') }}" title="{{ __('chat.ui.send') }}" data-testid="chat-send">
                                 <svg class="size-4 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
                             </button>
