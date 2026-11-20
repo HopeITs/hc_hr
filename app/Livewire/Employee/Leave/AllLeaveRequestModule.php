@@ -10,9 +10,12 @@ use App\Livewire\Concerns\TracksTaskAttempt;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Livewire\Forms\LeaveRequestForm;
+use App\Models\AttendancePunch;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\Attendance\Roster as AttendanceRoster;
+use App\Services\Attendance\Timesheet as AttendanceTimesheet;
 use App\Services\LeaveAlternativeEmployees;
 use App\Services\LeaveEligibility;
 use App\Services\LeaveNotificationService;
@@ -22,6 +25,7 @@ use App\Services\TeamCoverage;
 use App\Support\Leave\LeaveQuote;
 use Blade;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
@@ -131,11 +135,11 @@ class AllLeaveRequestModule extends Component
 
         // hydrate dependent lists
         $this->allAvailableLeaves = $this->leavesFor($employee, (int) $id->leave_balance_id);
-        $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
 
         // hydrate form values
         $this->form->employee_id = $employee->id;
         $this->form->leave_balance_id = (int) $id->leave_balance_id;
+        $this->alternativeEmployees = $this->form->alternativeChoices();
 
         $this->modalTitle = __('general.edit');
         $this->markClean('formModal');
@@ -155,11 +159,27 @@ class AllLeaveRequestModule extends Component
         $employee = Employee::with('city')->find($employeeId);
 
         $this->allAvailableLeaves = $this->leavesFor($employee);
-        $this->alternativeEmployees = $this->alternativeEmployeesFor($employee);
-
         // Reset dependent dropdowns
         $this->form->leave_balance_id = null;
         $this->form->alternative_employee = null;
+        $this->alternativeEmployees = $employee ? $this->form->alternativeChoices() : [];
+    }
+
+    /**
+     * The alternatives follow the period typed (wire:model.live on the
+     * dates): a colleague busy in the new period leaves the list, and the
+     * choice with them. submit validates against the same list.
+     */
+    public function updatedForm($value, $key): void
+    {
+        if (! $this->formModal
+            || ! in_array($key, ['type', 'start_at', 'end_at', 'leave_date', 'start_hour', 'end_hour'], true)
+            || (! $this->form->employee_id && ! $this->form->leaveRequest)) {
+            return;
+        }
+
+        $this->alternativeEmployees = $this->form->alternativeChoices();
+        $this->form->dropUnavailableAlternative();
     }
 
     public function openDecision(LeaveRequest $id)
@@ -197,6 +217,7 @@ class AllLeaveRequestModule extends Component
     {
         try {
             $leaveRequest = $this->form->submitDecision();
+            $alternativeChange = $this->form->alternativeChange();
         } catch (LeaveDecisionAlreadyMade $e) {
             // Nothing was written, and no notification goes out.
             $this->finishTaskAttempt('cancelled');
@@ -213,6 +234,16 @@ class AllLeaveRequestModule extends Component
             $leaveRequest,
             auth()->user(),
         );
+
+        // After the commit: the decision's transaction has returned.
+        if ($alternativeChange !== null) {
+            app(LeaveNotificationService::class)->sendAlternativeChanged(
+                $leaveRequest,
+                $alternativeChange['from'],
+                $alternativeChange['to'],
+                auth()->user(),
+            );
+        }
         $this->dispatch('notification-created');
 
         $this->refreshCounts();
@@ -334,6 +365,9 @@ class AllLeaveRequestModule extends Component
         return view('livewire.employee.leave.all', [
             ...compact('employees', 'allAvailableLeaves', 'alternativeEmployees'),
             'decisionOverlap' => $this->decisionOverlap(),
+            'decisionBalance' => $this->decisionBalance(),
+            'decisionAttendance' => $this->decisionAttendance(),
+            'decisionAlternatives' => $this->decisionAlternatives(),
             // The same two checks delete() meets: the permission (route rule) and the policy.
             'canDeleteSelected' => $this->selectedLeave
                 && auth()->user()->hasActivePermission('leaves.delete')
@@ -452,7 +486,7 @@ class AllLeaveRequestModule extends Component
     protected function guardedEntries(string $dialog): array
     {
         return $dialog === 'decisionModal'
-            ? $this->form->only(['status', 'reject_reason'])
+            ? $this->form->only(['status', 'reject_reason', 'decision_alternative'])
             : $this->form->entries() + ['employee_id' => $this->form->employee_id];
     }
 
@@ -556,11 +590,6 @@ class AllLeaveRequestModule extends Component
         return $balances;
     }
 
-    protected function alternativeEmployeesFor(?Employee $employee): Collection
-    {
-        return $employee ? app(LeaveAlternativeEmployees::class)->for($employee) : collect();
-    }
-
     protected function resolveStart()
     {
         return $this->form->type === 'day'
@@ -573,6 +602,131 @@ class AllLeaveRequestModule extends Component
         return $this->form->type === 'day'
             ? Carbon::parse($this->form->end_at)->format('d-m-Y')
             : $this->form->end_hour;
+    }
+
+    /**
+     * The decision dialog's alternative select: the rule and the "available"
+     * filter for the request's period, plus the one it already names.
+     *
+     * @return array{choices: Collection, current_unavailable: bool}|null
+     */
+    /**
+     * The rule alone, with no period: the assistant's screen lists through it
+     * (LeaveForEmployeeScreen) before any date is known; the form narrows the
+     * list to the period once dates are typed and validates against that.
+     */
+    protected function alternativeEmployeesFor(?Employee $employee): Collection
+    {
+        return $employee ? app(LeaveAlternativeEmployees::class)->for($employee) : collect();
+    }
+
+    private function decisionAlternatives(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave || (int) $this->decisionLeave->status !== LeaveRequestStatus::Pending) {
+            return null;
+        }
+
+        try {
+            return [
+                'choices' => $this->form->decisionAlternativeChoices(),
+                'current_unavailable' => $this->form->decisionAlternativeUnavailable(),
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * The balance this request draws on, for whoever decides it: what is
+     * available, what this request takes, what other pending requests on the
+     * same balance would take, and what is left if it is accepted. Hours and
+     * days only, never pay. Advisory: it never blocks the decision. Null when
+     * no decision is open or it cannot be read.
+     *
+     * @return array{available: string, requested: string, pending_others: string|null, after: string, short: bool}|null
+     */
+    private function decisionBalance(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave || (int) $this->decisionLeave->status !== LeaveRequestStatus::Pending) {
+            return null;
+        }
+
+        try {
+            $leave = $this->decisionLeave;
+            $balance = $leave->leaveBalance()->with('contract')->first();
+
+            if (! $balance) {
+                return null;
+            }
+
+            $perDay = $balance->contract ? app(LeaveRequestPricing::class)->hoursPerDayFor($balance->contract) : null;
+            $amount = fn (float $hours): string => $this->formatLeaveSplit(abs($hours), $perDay);
+
+            $available = $balance->availableHours();
+            $requested = $leave->deductionHours();
+            $others = (float) LeaveRequest::query()
+                ->where('leave_balance_id', $balance->id)
+                ->where('status', LeaveRequestStatus::Pending)
+                ->whereKeyNot($leave->id)
+                ->get()
+                ->sum(fn (LeaveRequest $other) => $other->deductionHours());
+            $after = round($available - $requested, 2);
+
+            return [
+                'available' => ($available < 0 ? '−' : '').$amount($available),
+                'requested' => $amount($requested),
+                'pending_others' => $others > 0 ? $amount($others) : null,
+                'after' => ($after < 0 ? '−' : '').$amount($after),
+                'short' => $after < -0.005,
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * One line of context for whoever decides: how the person's last three months looked on the
+     * attendance timesheets (days worked, days with no record). Shown only when the viewer may see
+     * that person's timesheet and some attendance has been uploaded for them. Advisory.
+     *
+     * @return array{worked: int, decide: int}|null
+     */
+    private function decisionAttendance(): ?array
+    {
+        if (! $this->decisionModal || ! $this->decisionLeave) {
+            return null;
+        }
+
+        try {
+            $employee = $this->decisionLeave->leaveBalance->contract->employee;
+            $months = collect([1, 2, 3])->map(fn (int $back) => CarbonImmutable::now()->startOfMonth()->subMonthsNoOverflow($back));
+
+            if (! app(AttendanceRoster::class)->covers(auth()->user(), $employee, $months->first())) {
+                return null;
+            }
+
+            $hasPunches = AttendancePunch::query()
+                ->where('employee_id', $employee->id)
+                ->where('punched_at', '>=', $months->last()->startOfDay())
+                ->exists();
+
+            if (! $hasPunches) {
+                return null;
+            }
+
+            $service = app(AttendanceTimesheet::class);
+            $totals = $months->map(fn (CarbonImmutable $m) => $service->forEmployee($employee, $m)['totals']);
+
+            return ['worked' => (int) $totals->sum('worked_days'), 'decide' => (int) $totals->sum('to_decide')];
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /** C5: who else in the requester's team is away, for the open decision (advisory). */

@@ -195,4 +195,30 @@ return [
         'time-range' => ':date, :from to :to',
     ],
 
+    // The balance behind a request, shown to whoever decides it.
+    'decision_balance' => [
+        'title' => 'Leave balance of this type',
+        'available' => 'Available now',
+        'requested' => 'This request',
+        'pending_others' => 'Other pending requests',
+        'after' => 'Left if accepted',
+        'short' => 'Short by :amount',
+    ],
+
+    // The alternative employee (meeting 19/11): only colleagues free for the
+    // whole period are listed, and the decider may name another one.
+    'alternative' => [
+        'available-hint' => 'Only colleagues who are not on leave or off during this period are listed.',
+        'decision-label' => 'Alternative employee',
+        'decision-hint' => 'You may name another colleague who is free for the whole period. The requester is told.',
+        'current-unavailable' => 'The alternative named in the request is on leave or off during this period.',
+        'none' => 'No alternative',
+    ],
+
+    'alternative-changed' => [
+        'title' => 'Alternative employee changed',
+        'body' => 'Your :type leave was approved with another alternative employee: :current (instead of :previous).',
+        'none' => 'none',
+    ],
+
 ];

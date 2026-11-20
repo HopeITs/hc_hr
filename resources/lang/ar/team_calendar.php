@@ -45,9 +45,13 @@ return [
     ],
 
     'on_leave' => 'في إجازة',
+    'birthday_holiday' => 'عطلة عيد ميلاد',
     'partial' => 'جزء من اليوم',
     'you' => 'أنت',
     'substitute' => 'البديل: :name',
+    'no_cover' => 'لا يوجد بديل',
+    'cover_also_away' => 'البديل في إجازة أيضًا: :dates',
+    'you_cover' => 'أنت البديل',
     'holiday' => 'عطلة',
     'weekend' => 'عطلة أسبوعية',
     'more' => '+:count آخرين',

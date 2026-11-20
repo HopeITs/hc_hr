@@ -15,7 +15,9 @@ class LeaveBalance extends Model
 {
     use HasFactory, LogsActivity;
 
-    protected $fillable = ['contract_id', 'type_id', 'deserved', 'used', 'amendment_offset'];
+    protected $fillable = ['contract_id', 'type_id', 'deserved', 'used', 'amendment_offset', 'overtime_credit'];
+
+    protected $casts = ['overtime_credit' => 'float'];
 
     /** @var array{0: float|null}|null */
     private ?array $workHoursPerDay = null;
@@ -27,14 +29,14 @@ class LeaveBalance extends Model
 
     public function getIntTotalAttribute(): int
     {
-        [$days] = $this->splitIntoDays($this->deserved ?? 0);
+        [$days] = $this->splitIntoDays(($this->deserved ?? 0) + $this->creditHours());
 
         return (int) $days;
     }
 
     public function getDeservedFormattedAttribute(): string
     {
-        [$days, $remaining] = $this->splitIntoDays($this->deserved ?? 0);
+        [$days, $remaining] = $this->splitIntoDays(($this->deserved ?? 0) + $this->creditHours());
 
         return $this->getFormattedLabel($days, $remaining);
     }
@@ -64,7 +66,7 @@ class LeaveBalance extends Model
 
         $totalHours = $this->deserved ?? 0; // e.g. 96 hours
         if ($totalHours <= 0) {
-            return 0;
+            return (int) round($this->creditHours());
         }
 
         // Contract duration in months
@@ -77,8 +79,15 @@ class LeaveBalance extends Model
         $monthsPassed = $start->diffInMonths($now);
         $sectionsPassed = floor($monthsPassed / $sectionMonths) + 1;
 
-        // Cap at total
-        return round(min($sectionsPassed * $hoursPerSection, $totalHours));
+        // Cap at total. Overtime given back as free days is not earned over the contract: it is
+        // there in full from the moment it is credited.
+        return (int) round(min($sectionsPassed * $hoursPerSection, $totalHours) + $this->creditHours());
+    }
+
+    /** Hours of overtime given back as free days (AppServicesAttendanceMonthWorkflow). */
+    public function creditHours(): float
+    {
+        return (float) ($this->overtime_credit ?? 0);
     }
 
     /**
@@ -102,7 +111,7 @@ class LeaveBalance extends Model
 
     public function getIntRemainingAttribute(): int
     {
-        [$days] = $this->splitIntoDays(($this->deserved ?? 0) - ($this->used ?? 0));
+        [$days] = $this->splitIntoDays(($this->deserved ?? 0) + $this->creditHours() - ($this->used ?? 0));
 
         return (int) $days;
     }
@@ -139,7 +148,7 @@ class LeaveBalance extends Model
 
     public function getRemainingAttribute(): string
     {
-        [$days, $remaining] = $this->splitIntoDays(($this->deserved ?? 0) - ($this->used ?? 0));
+        [$days, $remaining] = $this->splitIntoDays(($this->deserved ?? 0) + $this->creditHours() - ($this->used ?? 0));
 
         return $this->getFormattedLabel($days, $remaining);
     }

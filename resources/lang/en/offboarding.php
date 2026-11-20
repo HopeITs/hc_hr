@@ -21,6 +21,7 @@ return [
         'contract' => 'Contract ended',
         'deactivated' => 'Deactivated',
         'access' => 'Access and card closed',
+        'entitlements' => 'Professional access taken back',
         'interview' => 'Exit interview',
     ],
     'state' => [
@@ -31,6 +32,8 @@ return [
     ],
     'equipment-outstanding' => '{1} One delivered item has not come back yet.|[2,*] :count delivered items have not come back yet.',
     'equipment-unrequested' => '{1} One has no return requested: assign a receiver on the checklist tab.|[2,*] :count have no return requested: assign a receiver on the checklist tab.',
+    'entitlements-outstanding' => '{1} One item of the Permissions Library is still held: :names.|[2,*] :count items of the Permissions Library are still held: :names.',
+    'entitlements-open' => 'Open the list',
     'deactivation-help' => 'Automatic on :date unless a new contract starts.',
     'deactivation-overdue' => 'The automatic deactivation is overdue. Check that the scheduler runs, or deactivate by hand.',
     'access-both-open' => 'The login still has an active role and the digital card is still on. Close both from Access Management and the profile page.',

@@ -31,3 +31,32 @@ Route::middleware('reference_page:project-basics')->group(function () {
 Route::get('holidays', HolidayModule::class)->name('holidays.index');
 
 Route::get('/org-chart', OrgChart::class)->middleware('active_permission:positions.view')->name('org.chart');
+
+// Attendance: the device report becomes a printed monthly timesheet.
+Route::prefix('attendance')->name('attendance.')->group(function () {
+    Route::get('/upload', \App\Livewire\Attendance\Upload::class)
+        ->middleware('active_permission:attendance.manage')->name('upload');
+    // The devices that push their punches by themselves, and the centers they hang in.
+    Route::get('/devices', \App\Livewire\Attendance\Devices::class)
+        ->middleware('active_permission:attendance.manage')->name('devices');
+    Route::get('/timesheets', \App\Livewire\Attendance\Timesheets::class)
+        ->middleware('active_permission:attendance.view-own')->name('timesheets');
+    Route::get('/print', \App\Http\Controllers\AttendancePrintController::class)
+        ->middleware('active_permission:attendance.view-own')->name('print');
+    Route::get('/export/pdf', [\App\Http\Controllers\AttendanceExportController::class, 'pdf'])
+        ->middleware('active_permission:attendance.view-own')->name('export.pdf');
+    Route::get('/export/xlsx', [\App\Http\Controllers\AttendanceExportController::class, 'xlsx'])
+        ->middleware('active_permission:attendance.view-own')->name('export.xlsx');
+    Route::get('/signed/{month}', \App\Http\Controllers\AttendanceSignedController::class)
+        ->whereNumber('month')->middleware('active_permission:attendance.view-own')->name('signed');
+});
+
+// HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.
+Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
+    ->middleware('active_permission:message-templates.manage')->name('message-templates.index');
+
+// The organisation mailing lists: every signed-in employee reads and emails them; editing needs mail-lists.manage (checked in the component).
+Route::get("/mail-lists", \App\Livewire\MailLists\Index::class)->name("mail-lists.index");
+// What each list should hold by HR data, and who is missing or has left: HR only.
+Route::get("/mail-lists/check", \App\Livewire\MailLists\Check::class)
+    ->middleware('active_permission:mail-lists.manage')->name("mail-lists.check");

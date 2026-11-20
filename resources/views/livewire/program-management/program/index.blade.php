@@ -118,7 +118,7 @@
                                 <div class="flex flex-col gap-1">
                                     <span class="text-ink-2 text-small">{{ trans_choice('general.employee', 2) }}</span>
                                     <span class="font-semibold text-ink text-body">
-                                        {{ $program->contracts_count }}
+                                        {{ $program->employees_count }}
                                     </span>
                                 </div>
                             </div>

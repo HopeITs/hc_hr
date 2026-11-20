@@ -11,6 +11,8 @@
     $options = collect($pages)->map(fn ($page) => ['href' => route($page['route']), 'type' => 'page'])
         ->merge($people->map(fn ($person) => ['href' => route('employees.show', $person->username), 'type' => 'person']))
         ->merge(collect($commands)->map(fn ($command) => ['href' => $command['href'], 'type' => 'command']))
+        ->merge(collect($groups)->flatten(1)->map(fn ($result) => ['href' => $result['href'], 'type' => $result['type']]))
+        ->merge($ask ? [['href' => $ask['href'], 'type' => 'assistant']] : [])
         ->values();
 @endphp
 {{-- From xl up the search is a bar in the very centre of the top bar (centred on the
@@ -118,6 +120,17 @@
                 </span>
             </p>
 
+            {{-- Narrow the search to one kind of result. --}}
+            @if (count($chips))
+                <div class="flex gap-1.5 overflow-x-auto px-3 pb-2" role="group" aria-label="{{ __('smart_search.filter') }}" data-testid="search-chips">
+                    @foreach ($chips as $chip)
+                        <button type="button" wire:click="setType('{{ $chip['key'] }}')" wire:key="chip-{{ $chip['key'] }}" aria-pressed="{{ $type === $chip['key'] ? 'true' : 'false' }}"
+                                data-chip="{{ $chip['key'] }}"
+                                class="shrink-0 rounded-full border px-3 py-1 text-caption font-semibold transition {{ $type === $chip['key'] ? 'border-ink bg-ink text-on-ink' : 'border-line bg-card text-ink hover:bg-hover' }}">{{ $chip['label'] }}</button>
+                    @endforeach
+                </div>
+            @endif
+
             <ul id="global-search-list" x-ref="list" role="listbox" aria-label="{{ __('general.global-search.label') }}" wire:loading.class="opacity-60" wire:target="q,showRecents"
                 x-on:mousedown.prevent>
                 @php($i = 0)
@@ -156,6 +169,9 @@
                                     @if (! $person->is_active && $person->was_employed)
                                         <span class="ms-1 text-caption font-normal text-ink-2">({{ __('general.global-search.former') }})</span>
                                     @endif
+                                    @if ($person->near_match ?? false)
+                                        <span class="ms-1 text-caption font-normal text-ink-2" data-testid="near-match">({{ __('smart_search.near-match') }})</span>
+                                    @endif
                                 </span>
                                 {{-- The other script's name, the position and the city tell namesakes apart. --}}
                                 <span class="block text-small text-ink-2">
@@ -163,6 +179,9 @@
                                     @if ($position) · <bdi>{{ $position->{'title_'.app()->getLocale()} ?? $position->title_en }}</bdi>@endif
                                     @if ($person->city) · <bdi>{{ $person->city->name }}</bdi>@endif
                                 </span>
+                                @unless ($showingRecents)
+                                    @include('livewire.layout.partials.search-actions', ['actions' => $person->search_actions ?? []])
+                                @endunless
                             </span>
                         </li>
                         @php($i++)
@@ -187,6 +206,45 @@
                         </li>
                         @php($i++)
                     @endforeach
+                @endif
+
+                {{-- Smart search: positions, contracts, leave, hiring, lists, folders, news (SmartSearch). --}}
+                @foreach ($groups as $key => $results)
+                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2" data-group="{{ $key }}">{{ __('smart_search.types.'.$key) }}</li>
+                    @foreach ($results as $result)
+                        <li id="global-search-option-{{ $i }}" role="option" data-href="{{ $result['href'] }}" data-testid="search-result" data-type="{{ $result['type'] }}"
+                            :aria-selected="(active === {{ $i }}).toString()"
+                            :class="active === {{ $i }} ? 'bg-hover' : ''"
+                            x-on:mouseenter="active = {{ $i }}"
+                            x-on:click="active = {{ $i }}; choose()"
+                            class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-3 py-2">
+                            <span class="min-w-0">
+                                <span class="block font-semibold text-ink"><bdi>{{ $result['title'] }}</bdi></span>
+                                @if ($result['subtitle'] !== '')
+                                    <span class="block text-small text-ink-2"><bdi>{{ $result['subtitle'] }}</bdi></span>
+                                @endif
+                                @include('livewire.layout.partials.search-actions', ['actions' => $result['actions']])
+                            </span>
+                        </li>
+                        @php($i++)
+                    @endforeach
+                @endforeach
+
+                {{-- Ask the assistant: only opens it with the question typed in; nothing is sent until Send. --}}
+                @if ($ask)
+                    <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2">{{ __('smart_search.ask') }}</li>
+                    <li id="global-search-option-{{ $i }}" role="option" data-href="{{ $ask['href'] }}" data-testid="search-ask"
+                        :aria-selected="(active === {{ $i }}).toString()"
+                        :class="active === {{ $i }} ? 'bg-hover' : ''"
+                        x-on:mouseenter="active = {{ $i }}"
+                        x-on:click="active = {{ $i }}; choose()"
+                        class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-3 py-2">
+                        <span class="min-w-0">
+                            <span class="block font-semibold text-ink"><bdi>{{ $term }}</bdi></span>
+                            <span class="block text-small text-ink-2">{{ __('smart_search.ask-hint') }}</span>
+                        </span>
+                    </li>
+                    @php($i++)
                 @endif
             </ul>
         </div>

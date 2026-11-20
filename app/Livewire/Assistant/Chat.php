@@ -54,6 +54,12 @@ class Chat extends Component
         abort_unless($assistant->isAvailable(), 404);
 
         $this->mode = $mode === 'panel' ? 'panel' : 'page';
+
+        // "Ask the assistant" in the header search lands here with ?q=: the question is put in the
+        // box and the person presses Send. Nothing is sent to the model by arriving.
+        if ($this->mode === 'page' && filled(request()->query('q'))) {
+            $this->question = mb_substr(trim((string) request()->query('q')), 0, 500);
+        }
     }
 
     /** Answers the question and adds both to the conversation. */

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -36,6 +37,27 @@ class Program extends Model implements HasMedia
         return $this->belongsToMany(Center::class, 'positions', 'program_id', 'center_id')->distinct();
     }
 
+    /** The centers HR set as serving this program (center_program). */
+    public function linkedCenters(): BelongsToMany
+    {
+        return $this->belongsToMany(Center::class, 'center_program');
+    }
+
+    /**
+     * Every center of the program: those its positions are at and those
+     * linked to it (Study Zone's positions have no center), once each, by name.
+     *
+     * @return Collection<int, Center>
+     */
+    public function allCenters(): Collection
+    {
+        return $this->centers
+            ->concat($this->linkedCenters)
+            ->unique('id')
+            ->sortBy(fn (Center $center) => $center->name, SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+    }
+
     public function jobLevels(): BelongsToMany
     {
         return $this->belongsToMany(JobLevel::class, 'positions', 'program_id', 'job_level_id');
@@ -54,9 +76,10 @@ class Program extends Model implements HasMedia
     /**
      * Add the aggregate values displayed on the program index cards.
      *
-     * A program's cities are determined by its positions' centers. The direct
-     * positions.city_id value may differ from the center's city, so it must not
-     * be used for this count.
+     * A program's cities are determined by its centers: those its positions are
+     * at, and those linked to it (center_program). The direct positions.city_id
+     * value may differ from the center's city, so it must not be used for this
+     * count.
      */
     public function scopeWithCardCounts(Builder $query): Builder
     {
@@ -64,11 +87,24 @@ class Program extends Model implements HasMedia
             ->addSelect([
                 'cities_count' => Center::query()
                     ->selectRaw('count(distinct city_id)')
-                    ->whereExists(fn ($positions) => $positions
-                        ->selectRaw('1')
-                        ->from('positions')
-                        ->whereColumn('positions.center_id', 'centers.id')
-                        ->whereColumn('positions.program_id', 'programs.id')),
+                    ->where(fn ($centers) => $centers
+                        ->whereExists(fn ($positions) => $positions
+                            ->selectRaw('1')
+                            ->from('positions')
+                            ->whereColumn('positions.center_id', 'centers.id')
+                            ->whereColumn('positions.program_id', 'programs.id'))
+                        ->orWhereExists(fn ($links) => $links
+                            ->selectRaw('1')
+                            ->from('center_program')
+                            ->whereColumn('center_program.center_id', 'centers.id')
+                            ->whereColumn('center_program.program_id', 'programs.id'))),
+                // People, not contracts: one person on two of its positions counts once,
+                // and only contracts in force, the same as the program page's total.
+                'employees_count' => Contract::query()
+                    ->selectRaw('count(distinct '.Contract::query()->getQuery()->getGrammar()->wrap('contracts.employee_id').')')
+                    ->join('positions', 'positions.id', '=', 'contracts.position_id')
+                    ->whereColumn('positions.program_id', 'programs.id')
+                    ->activeNow(),
             ])
             ->withCount('contracts');
     }

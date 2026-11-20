@@ -302,6 +302,9 @@ return [
     'required_qualifications' => 'المؤهلات المطلوبة',
     'detailed_explanation' => 'المبرّر العملي / الشرح التفصيلي',
     'requests' => 'طلبات التوظيف',
+    // Under the requests page title (quick fixes 6, 7): how a hire starts, for whoever is new to it.
+    'requests_intro' => 'يبدأ التوظيف هنا: يرفع المدير طلب توظيف لمنصب، فيمرّ بالموافقات، ثم يصبح شاغرًا تُفتح له حملة لاستقبال المتقدمين.',
+    'requests_intro_direct' => '«الفتح المباشر» لتوظيف اتُّفق عليه خارج النظام: تسجّل فيه من طلبه والموافقات التي تمّت، فيُفتح دون المرور بالموافقات هنا.',
     'navigation_section' => 'التوظيف',
     'navigation_requests' => 'الطلبات',
     'navigation_pending_approvals' => 'الموافقات المعلّقة',

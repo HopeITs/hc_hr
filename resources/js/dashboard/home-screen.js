@@ -949,6 +949,23 @@ function homeScreen() {
             frame.title = this.labelOf(key);
             frame.style.cssText = 'display:block;width:100%;height:100%;border:0;';
             doc.body.append(frame);
+
+            // The same theme as this page: a window of its own follows the browser's setting, not
+            // the person's choice here, so the page in the frame is told which one it is. It is
+            // told again when it loads and when the theme is switched, and the window's own
+            // background follows.
+            const paintTheme = () => {
+                const root = document.documentElement;
+                const theme = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                doc.documentElement.dataset.theme = theme;
+                doc.documentElement.style.colorScheme = theme;
+                doc.documentElement.style.backgroundColor = getComputedStyle(document.body).backgroundColor;
+                try { frame.contentDocument.documentElement.dataset.theme = theme; } catch (e) { /* not this site */ }
+            };
+            paintTheme();
+            frame.addEventListener('load', paintTheme);
+            window.addEventListener('hopehr-theme', paintTheme);
+            pip.addEventListener('pagehide', () => window.removeEventListener('hopehr-theme', paintTheme));
         },
 
         // Reset the layout only: every card back to its default size and place, nothing

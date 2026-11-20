@@ -4,19 +4,30 @@ namespace App\Enums;
 
 use App\Notifications\ActionLeaveBalance;
 use App\Notifications\ActionLeaveRequest;
+use App\Notifications\AttendanceMonthReminder;
+use App\Notifications\BirthdayChoiceDecided;
+use App\Notifications\BirthdayChoiceNeeded;
+use App\Notifications\BirthdayChoiceSubmitted;
 use App\Notifications\CenterClosed;
 use App\Notifications\ChecklistAssigned;
 use App\Notifications\ContractsAutoRenewedSummary;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
+use App\Notifications\CriticalPositionNeedsReplacement;
 use App\Notifications\DigitalIdReportedLost;
 use App\Notifications\FolderShared;
 use App\Notifications\HRSawLeaveRequest;
+use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveDecisionReminder;
 use App\Notifications\LeaveRequestObjected;
+use App\Notifications\ManagerOrientationOverdue;
 use App\Notifications\NewCenterCreated;
 use App\Notifications\NewEmployeeWelcome;
 use App\Notifications\NewLeaveRequest;
+use App\Notifications\OnboardingStepOverdue;
+use App\Notifications\ProbationFinalThird;
+use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
+use App\Notifications\ProfileUpdatedByEmployee;
 use App\Notifications\TestNotification;
 use Illuminate\Notifications\Notification;
 
@@ -41,18 +52,29 @@ enum NotificationCategory: string
     private const MAP = [
         NewLeaveRequest::class => self::LeaveActions,
         LeaveDecisionReminder::class => self::LeaveActions,
+        BirthdayChoiceNeeded::class => self::LeaveActions,
+        BirthdayChoiceSubmitted::class => self::LeaveActions,
         ActionLeaveRequest::class => self::LeaveUpdates,
         HRSawLeaveRequest::class => self::LeaveUpdates,
         LeaveRequestObjected::class => self::LeaveUpdates,
+        LeaveAlternativeChanged::class => self::LeaveUpdates,
         ActionLeaveBalance::class => self::LeaveUpdates,
+        BirthdayChoiceDecided::class => self::LeaveUpdates,
         ContractsAutoRenewedSummary::class => self::Contracts,
         ContractsExpiringAutoRenewWarning::class => self::Contracts,
+        ProbationFinalThird::class => self::Contracts,
+        ProbationRequested::class => self::Contracts,
         NewEmployeeWelcome::class => self::Employees,
+        OnboardingStepOverdue::class => self::Employees,
+        ManagerOrientationOverdue::class => self::Employees,
+        AttendanceMonthReminder::class => self::Employees,
         ProfileChangeDecided::class => self::Employees,
+        ProfileUpdatedByEmployee::class => self::Employees,
         ChecklistAssigned::class => self::Checklists,
         FolderShared::class => self::Files,
         NewCenterCreated::class => self::Organization,
         CenterClosed::class => self::Organization,
+        CriticalPositionNeedsReplacement::class => self::Organization,
         DigitalIdReportedLost::class => self::Security,
         TestNotification::class => self::System,
     ];

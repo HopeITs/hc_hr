@@ -890,8 +890,9 @@ document.addEventListener('alpine:init', () => {
             return this.programPositions
                 .map((position) => ({
                     ...position,
+                    // No center: the program's centers it is shared by, when linked.
                     centerLabel: str(position.centerId) === ''
-                        ? this.labels.cityLevel
+                        ? (position.sharedCenters || this.labels.cityLevel)
                         : centerName(position.centerId),
                 }));
         },
@@ -919,7 +920,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             if (str(position.centerId) === '') {
-                return this.labels.cityLevel;
+                return position.sharedCenters || this.labels.cityLevel;
             }
 
             return this.options.centers

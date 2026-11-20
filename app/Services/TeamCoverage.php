@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Contract;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\Position;
 use App\Models\User;
@@ -200,12 +201,56 @@ final class TeamCoverage
 
         return $this->leavesOf(array_keys($members), $from, $to)
             ->map(fn (LeaveRequest $leave) => $this->project($viewer, $leave, $members[$leave->leaveBalance->contract->employee_id], $from, $to))
+            ->concat($this->birthdayHolidays($viewer, $members, $from, $to))
             ->filter()
             ->filter(fn (array $entry) => $status === 'all' || $entry['status'] === $status
                 // A colleague-level entry has no status, and is always accepted.
                 || ($entry['status'] === null && $status === 'accepted'))
             ->sortBy([['from', 'asc'], ['name', 'asc']])
-            ->values();
+            ->values()
+            ->pipe(fn (Collection $entries) => $this->withCoverGaps($entries, $members, $from, $to));
+    }
+
+    /**
+     * "Who covers": for each manager-level entry that names a cover, the days
+     * the cover is away as well, so a gap shows before it happens. The cover's
+     * leave counts when it is accepted, or when the cover is someone the
+     * viewer already sees at manager level (pending too); otherwise a pending
+     * request of someone out of reach stays unknown. Advisory only.
+     *
+     * @param  Collection<int, array<string, mixed>>  $entries
+     * @param  array<int, array{level: int, contract: Contract, is_self: bool}>  $members
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function withCoverGaps(Collection $entries, array $members, CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $coverIds = $entries->pluck('substitute_id')->filter()->unique()->values()->all();
+
+        if ($coverIds === []) {
+            return $entries;
+        }
+
+        $awayByCover = [];
+
+        foreach ($this->leavesOf($coverIds, $from, $to) as $leave) {
+            $coverId = $leave->leaveBalance->contract->employee_id;
+            $pending = (int) $leave->status === LeaveRequestStatus::Pending;
+
+            if ($pending && (($members[$coverId]['level'] ?? 0) < self::LEVEL_MANAGER)) {
+                continue;
+            }
+
+            $awayByCover[$coverId] = [...($awayByCover[$coverId] ?? []), ...$this->occupiedDates($leave, $from, $to)];
+        }
+
+        return $entries->map(function (array $entry) use ($awayByCover): array {
+            $away = $awayByCover[$entry['substitute_id']] ?? [];
+            $gap = array_values(array_unique(array_intersect($entry['counted'], $away)));
+            sort($gap);
+            $entry['cover_gap_dates'] = $gap;
+
+            return $entry;
+        });
     }
 
     /**
@@ -242,7 +287,8 @@ final class TeamCoverage
             $days[$key] = [
                 'date' => $key,
                 'expected' => $expected,
-                'away' => $onDay->filter(fn (array $e) => ! $e['partial'] && $e['status'] !== 'pending' && in_array($key, $e['counted'], true))->count(),
+                // One person once, even when a leave and their birthday holiday share the day.
+                'away' => $onDay->filter(fn (array $e) => ! $e['partial'] && $e['status'] !== 'pending' && in_array($key, $e['counted'], true))->unique('person')->count(),
                 'partial' => $onDay->filter(fn (array $e) => $e['partial'] && $e['status'] !== 'pending')->count(),
                 'pending' => $onDay->filter(fn (array $e) => $e['status'] === 'pending')->count(),
                 'is_holiday' => isset($viewerCalendar[1][$key]),
@@ -620,6 +666,89 @@ final class TeamCoverage
             ]);
     }
 
+    /**
+     * Birthday holidays of $members in the range, as absences (meeting 19/11,
+     * track 3): the birthday itself when it is a working day, else the
+     * approved day taken instead. A pending choice is not a day off. Birthday
+     * is private, so a colleague sees only "on leave"; managers and HR, who
+     * decide and see birthdays already, see what it is.
+     *
+     * The date of birth is read here only to skip the people whose birthday
+     * is nowhere near the range; BirthdayHoliday gives the dates.
+     *
+     * @param  array<int, array{level: int, contract: Contract, is_self: bool}>  $members
+     * @return list<array<string, mixed>>
+     */
+    private function birthdayHolidays(User $viewer, array $members, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        // A day chosen instead is in the birthday's own week.
+        $near = [$from->subDays(7), $to->addDays(7)];
+
+        if (! Holiday::query()->where('kind', Holiday::KIND_BIRTHDAY)->occurringBetween($near[0], $near[1])->exists()) {
+            return [];
+        }
+
+        $monthDays = [];
+        for ($day = $near[0]; $day->lte($near[1]); $day = $day->addDay()) {
+            $monthDays[$day->format('m-d')] = true;
+        }
+        if (isset($monthDays['02-28'])) {
+            $monthDays['02-29'] = true;
+        }
+
+        $born = Employee::query()
+            ->whereIn('id', array_keys($members))
+            ->where(fn (Builder $q) => $q->whereNotNull('actual_dob')->orWhereNotNull('dob'))
+            ->get(['id', 'city_id', 'dob', 'actual_dob'])
+            ->filter(fn (Employee $e) => isset($monthDays[($e->actual_dob ?? $e->dob)->format('m-d')]));
+
+        $birthdays = app(BirthdayHoliday::class);
+        $entries = [];
+
+        foreach ($born as $person) {
+            $member = $members[$person->id];
+            // A copy, so the date of birth never rides along on the shared member contract.
+            $contract = (clone $member['contract'])->setRelation('employee', $person);
+            $dates = $birthdays->datesFor($contract, $from, $to);
+
+            if ($dates === []) {
+                continue;
+            }
+
+            $employee = $member['contract']->employee;
+            $level = $member['level'];
+            $manager = $level >= self::LEVEL_MANAGER;
+            $personKey = 'p-'.substr(hash('sha256', $employee->getKey().'|'.session()->getId()), 0, 12);
+
+            foreach ($dates as $date) {
+                $entries[] = [
+                    'key' => 'b-'.substr(hash('sha256', 'birthday|'.$employee->getKey().'|'.$date.'|'.session()->getId().'|'.$viewer->getKey()), 0, 16),
+                    'id' => null,
+                    'person' => $personKey,
+                    'name' => (string) $employee->name,
+                    'avatar' => $employee->avatar_url,
+                    'position' => (string) $member['contract']->position?->title,
+                    'from' => $date,
+                    'to' => $date,
+                    'dates' => [$date],
+                    'counted' => [$date],
+                    'partial' => false,
+                    'hours' => null,
+                    'type' => $manager || $member['is_self'] ? __('team_calendar.birthday_holiday') : __('team_calendar.on_leave'),
+                    'status' => $manager ? 'accepted' : null,
+                    'substitute' => null,
+                    'substitute_id' => null,
+                    'covers_you' => false,
+                    'cover_gap_dates' => [],
+                    'is_self' => $member['is_self'],
+                    'level' => $level,
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
     // ── Leaves and dates ─────────────────────────────────────────────────
 
     /** @return Collection<int, LeaveRequest> */
@@ -684,6 +813,13 @@ final class TeamCoverage
             'type' => $neutral ? __('team_calendar.on_leave') : (string) ($type?->name ?? __('team_calendar.on_leave')),
             'status' => $manager ? ($pending ? 'pending' : 'accepted') : null,
             'substitute' => $manager ? $leave->alternativeEmployee?->name : null,
+            // Who covers: the id (manager level only), whether the viewer is the
+            // cover (any level: it is about themselves), and the days the cover
+            // is away too, filled in by withCoverGaps().
+            'substitute_id' => $manager ? $leave->alternative_employee_id : null,
+            'covers_you' => $viewer->employee_id !== null && $leave->alternative_employee_id !== null
+                && (int) $leave->alternative_employee_id === (int) $viewer->employee_id,
+            'cover_gap_dates' => [],
             'is_self' => $member['is_self'],
             'level' => $level,
         ];
@@ -739,9 +875,12 @@ final class TeamCoverage
             $from->toDateString(), $to->toDateString(),
         ]);
 
+        // Official holidays only: the cache is shared by everyone with the same
+        // key, so one person's birthday must not become a teammate's holiday.
+        // A birthday holiday is an absence of its own (birthdayHolidays()).
         return $this->calendars[$key] ??= [
             $this->pricing->weekendFor($contract)[0],
-            $this->pricing->holidayDates($contract, $from, $to),
+            $this->pricing->officialHolidayDates($contract, $from, $to),
         ];
     }
 
@@ -753,12 +892,19 @@ final class TeamCoverage
         return $contract ? $this->calendarOf($contract, $from, $to) : [[], []];
     }
 
-    /** @return array<int, string> */
+    /** @return array<int, string> the viewer's own working days, their birthday holiday left out */
     private function ownWorkingDates(User $viewer, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $contract = $viewer->profile?->latestActiveContract();
 
-        return $contract ? $this->workingDates($contract, $from, $to) : [];
+        if (! $contract) {
+            return [];
+        }
+
+        return array_values(array_diff(
+            $this->workingDates($contract, $from, $to),
+            app(BirthdayHoliday::class)->datesFor($contract, $from, $to),
+        ));
     }
 
     private function governorate(Position $position): ?int

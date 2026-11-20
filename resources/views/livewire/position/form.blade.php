@@ -15,6 +15,31 @@
 
     </div>
 
+    @if($form->position?->is_active && $form->position?->canAssign() && auth()->user()?->hasActivePermission('recruitment-requests.manage'))
+        {{-- A position with free seats: straight to the hiring request, position pre-filled. --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 mb-4 border rounded-surface border-line-soft bg-soft" data-testid="position-open-seats">
+            <p class="text-body text-ink">{{ __('general.open-seats-notice', ['count' => $form->position->max_emp - $form->position->exist_emp]) }}</p>
+            <x-button variant="outline" size="sm" :href="route('recruitment.requests.create', ['type' => \App\Enums\RecruitmentRequestType::FillVacancy, 'position_id' => $form->position->id])">
+                @lang('general.open-vacancy')
+            </x-button>
+        </div>
+    @endif
+
+    @if ($form->position && auth()->user()?->can('markCritical', $form->position))
+        {{-- HR only: a critical position must never stay without a holder (alerts + suggested replacements). --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 mb-4 border rounded-surface border-line-soft bg-soft" data-testid="position-critical-toggle">
+            <div class="flex items-center gap-2">
+                @if ($form->position->is_critical)
+                    <x-tag variant="soft" icon="alert" :label="__('critical-positions.critical')" />
+                @endif
+                <p class="text-body text-ink">{{ __($form->position->is_critical ? 'critical-positions.is-critical-help' : 'critical-positions.not-critical-help') }}</p>
+            </div>
+            <x-button variant="outline" size="sm" type="button" wire:click="toggleCritical">
+                {{ __($form->position->is_critical ? 'critical-positions.unmark' : 'critical-positions.mark') }}
+            </x-button>
+        </div>
+    @endif
+
     <x-forms.form-body wire:submit.prevent="save">
         <x-forms.errors-validation-list/>
         <div class="grid gap-4 md:grid-cols-2">

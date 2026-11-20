@@ -8,6 +8,7 @@ use App\Livewire\Concerns\ScopesToAuthorizedCity;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Program;
 use App\Models\User;
 use App\Notifications\NewCenterCreated;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +36,7 @@ class CentersModule extends Component
         'weekends' => [],
         'open_at' => null,
         'close_at' => null,
+        'programs' => [],
     ];
 
     protected $rules = [
@@ -46,6 +48,8 @@ class CentersModule extends Component
         'item.weekends' => 'required|array',
         'item.open_at' => 'required',
         'item.close_at' => 'required',
+        'item.programs' => 'array',
+        'item.programs.*' => 'integer|exists:programs,id',
     ];
 
     public function render()
@@ -53,8 +57,9 @@ class CentersModule extends Component
         // The dropdown and save() both resolve the permitted city from
         // ScopesToAuthorizedCity, so they cannot disagree.
         $cities = $this->authorizedCityQuery()->get(['id', transColumn('name')]);
+        $programs = Program::query()->orderBy('name')->get(['id', 'name']);
 
-        return view('livewire.program-management.centers-module', compact('cities'));
+        return view('livewire.program-management.centers-module', compact('cities', 'programs'));
     }
 
     public function create(): void
@@ -72,6 +77,7 @@ class CentersModule extends Component
             'weekends' => [],
             'open_at' => null,
             'close_at' => null,
+            'programs' => [],
         ];
 
         $this->resetValidation();
@@ -102,6 +108,7 @@ class CentersModule extends Component
             'weekends' => explode(',', $model->weekends),
             'open_at' => $model->open_at,
             'close_at' => $model->close_at,
+            'programs' => $model->programs()->pluck('programs.id')->map(fn ($id) => (string) $id)->all(),
         ];
 
         $this->resetValidation();
@@ -133,6 +140,7 @@ class CentersModule extends Component
 
         $model->fill($this->item);
         $model->save();
+        $model->programs()->sync($this->item['programs']);
 
         if ($isNew) {
             $model->load('city');

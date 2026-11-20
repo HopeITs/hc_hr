@@ -35,3 +35,5 @@ chrome-headless-shell
 
 # Local-only test accounts list (LocalTestAccountsSeeder)
 LOCAL-TEST-ACCOUNTS.md
+tools/attendance-agent/config.json
+tools/attendance-agent/agent.log*

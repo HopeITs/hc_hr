@@ -14,6 +14,7 @@ use App\Models\TaskAttempt;
 use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
+use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\NewLeaveRequest;
 use App\Services\LeaveNotificationService;
 use App\Services\NotificationRequestState;
@@ -25,6 +26,7 @@ use Livewire\Livewire;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
+use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -1983,6 +1985,25 @@ class LeaveRequestWorkflowTest extends TestCase
         Livewire::actingAs($manager)->test(\App\Livewire\Notifications\Counter::class)->assertSet('count', 0);
     }
 
+    /** Quick fix 3: a notice about a request the reader can no longer open is neither counted nor offered in the short list. */
+    public function test_a_notice_about_a_request_that_is_gone_is_not_counted_or_listed(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $manager = $this->makeDirectManagerOf($leave);
+        $manager->notify(new NewLeaveRequest($leave->fresh()));
+        $states = app(NotificationRequestState::class);
+
+        $this->assertSame(1, $states->unreadCount($manager));
+
+        $leave->delete();
+
+        $this->assertSame(0, $states->unreadCount($manager));
+        $this->assertSame(1, $manager->unreadNotifications()->count(), 'Still unread: the full page lists it, with why');
+        Livewire::actingAs($manager)->test(\App\Livewire\Notifications\Counter::class)->assertSet('count', 0);
+        Livewire::actingAs($manager)->test(NotificationsDropdown::class)
+            ->assertViewHas('notifications', fn ($notifications) => $notifications->isEmpty());
+    }
+
     /** C1: the sidebar's work inbox counts the team's pending request, and drops it once decided. */
     public function test_c1_work_inbox_counts_pending_requests_of_the_managers_team(): void
     {
@@ -1998,6 +2019,225 @@ class LeaveRequestWorkflowTest extends TestCase
         Livewire::actingAs($manager->fresh())
             ->test(\App\Livewire\Layout\Sidebar::class)
             ->assertDontSeeHtml('data-testid="nav-badge"');
+    }
+
+    /**
+     * A Monday at least a month ahead whose Monday and Tuesday are working
+     * days outside December, so the weekend (0,6) and the December rule
+     * (A3-D D-7) never depend on the day the suite runs.
+     */
+    // --- Meeting 19/11: the alternative must be free, and the decider may change it ---
+
+    public function test_m19_a_colleague_on_leave_in_the_period_is_not_offered_and_is_refused(): void
+    {
+        [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
+        $free = $this->colleagueOf($existingLeave, 'free', 'Fadi');
+        $busy = $this->colleagueOf($existingLeave, 'busy', 'Basel');
+        $this->awayOn($existingLeave, $busy, self::workingMonday(), LeaveRequestStatus::Accepted);
+
+        Livewire::actingAs($employee)
+            ->test(MyLeaveRequestModule::class)
+            ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
+            ->set('form.type', 'day')
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
+            ->set('form.reason', 'Cover by someone who is away.')
+            ->assertViewHas('alternativeEmployees', fn ($list) => $list->contains('id', $free) && ! $list->contains('id', $busy))
+            ->set('form.alternative_employee', $busy)
+            ->call('processSave')
+            ->assertHasErrors(['form.alternative_employee']);
+
+        $this->assertDatabaseMissing('leave_requests', ['alternative_employee_id' => $busy]);
+    }
+
+    public function test_m19_moving_the_dates_onto_the_alternatives_leave_drops_the_choice(): void
+    {
+        [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
+        $busy = $this->colleagueOf($existingLeave, 'busy', 'Basel');
+        $this->awayOn($existingLeave, $busy, self::workingMonday(), LeaveRequestStatus::Pending);
+        $nextWeek = self::workingMonday()->addWeek();
+
+        Livewire::actingAs($employee)
+            ->test(MyLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
+            ->set('form.type', 'day')
+            ->set('form.start_at', $nextWeek->toDateString())
+            ->set('form.end_at', $nextWeek->addDay()->toDateString())
+            ->set('form.alternative_employee', $busy)
+            ->assertSet('form.alternative_employee', $busy)
+            ->set('form.leave_date', $nextWeek->addDays(2)->toDateString())
+            ->assertSet('form.alternative_employee', $busy)
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->assertSet('form.alternative_employee', null);
+    }
+
+    public function test_m19_hr_filing_for_an_employee_gets_the_list_for_the_dates_typed(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $free = $this->colleagueOf($leave, 'free', 'Fadi');
+        $busy = $this->colleagueOf($leave, 'busy', 'Basel');
+        $this->awayOn($leave, $busy, self::workingMonday(), LeaveRequestStatus::Accepted);
+        $requester = $leave->leaveBalance->contract->employee;
+
+        $component = Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.employee_id', $requester->id)
+            ->set('form.alternative_employee', $busy)
+            ->set('form.type', 'day')
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString())
+            ->assertSet('form.alternative_employee', null);
+
+        $offered = collect($component->get('alternativeEmployees'))->pluck('id');
+        $this->assertTrue($offered->contains($free));
+        $this->assertFalse($offered->contains($busy));
+    }
+
+    public function test_m19_the_decider_changes_the_alternative_logs_it_and_tells_the_requester(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $named = $this->colleagueOf($leave, 'named', 'Nader');
+        $other = $this->colleagueOf($leave, 'other', 'Omar');
+        $leave->forceFill(['alternative_employee_id' => $named])->saveQuietly();
+        Notification::fake();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->assertSet('form.decision_alternative', $named)
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->assertSeeHtml('data-testid="decision-alternative"')
+            ->set('form.decision_alternative', $other)
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id, 'status' => LeaveRequestStatus::Accepted, 'alternative_employee_id' => $other,
+        ]);
+
+        $logged = Activity::query()->where('subject_type', $leave->getMorphClass())->where('subject_id', $leave->id)->latest('id')->firstOrFail();
+        $this->assertSame($named, (int) $logged->properties['old']['alternative_employee_id']);
+        $this->assertSame($other, (int) $logged->properties['attributes']['alternative_employee_id']);
+
+        $requester = $leave->leaveBalance->contract->employee->account;
+        Notification::assertSentTo($requester, LeaveAlternativeChanged::class, function (LeaveAlternativeChanged $notification) use ($requester) {
+            $body = $notification->toArray($requester)['body'];
+
+            return str_contains($body['en'], 'Omar') && str_contains($body['en'], 'Nader')
+                && str_contains($body['ar'], 'Omar');
+        });
+        Notification::assertSentTimes(LeaveAlternativeChanged::class, 1);
+    }
+
+    public function test_m19_an_unchanged_alternative_sends_no_change_notification(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $named = $this->colleagueOf($leave, 'named', 'Nader');
+        $leave->forceFill(['alternative_employee_id' => $named])->saveQuietly();
+        Notification::fake();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leave->id, 'alternative_employee_id' => $named]);
+        Notification::assertSentTo($leave->leaveBalance->contract->employee->account, ActionLeaveRequest::class);
+        Notification::assertNotSentTo($leave->leaveBalance->contract->employee->account, LeaveAlternativeChanged::class);
+    }
+
+    public function test_m19_the_decider_may_not_name_a_colleague_who_is_away(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $busy = $this->colleagueOf($leave, 'busy', 'Basel');
+        $this->awayOn($leave, $busy, Carbon::parse($leave->start_at), LeaveRequestStatus::Accepted);
+        $outsider = $this->createEmployeeInCityOf($leave);
+        Notification::fake();
+
+        foreach ([$busy, $outsider] as $refused) {
+            Livewire::actingAs($hr)
+                ->test(AllLeaveRequestModule::class)
+                ->call('openDecision', $leave->id)
+                ->set('form.status', LeaveRequestStatus::Accepted)
+                ->set('form.decision_alternative', $refused)
+                ->call('submitDecision')
+                ->assertHasErrors(['form.decision_alternative']);
+        }
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id, 'status' => LeaveRequestStatus::Pending, 'alternative_employee_id' => null,
+        ]);
+        Notification::assertNothingSent();
+    }
+
+    public function test_m19_the_busy_named_alternative_is_flagged_and_may_be_kept(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $busy = $this->colleagueOf($leave, 'busy', 'Basel');
+        $this->awayOn($leave, $busy, Carbon::parse($leave->start_at), LeaveRequestStatus::Pending);
+        $leave->forceFill(['alternative_employee_id' => $busy])->saveQuietly();
+        Notification::fake();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.status', LeaveRequestStatus::Accepted)
+            ->assertSeeHtml('data-testid="decision-alternative-busy"')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leave->id, 'alternative_employee_id' => $busy]);
+        Notification::assertNotSentTo($leave->leaveBalance->contract->employee->account, LeaveAlternativeChanged::class);
+    }
+
+    public function test_m19_a_rejection_never_changes_the_alternative(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $named = $this->colleagueOf($leave, 'named', 'Nader');
+        $other = $this->colleagueOf($leave, 'other', 'Omar');
+        $leave->forceFill(['alternative_employee_id' => $named])->saveQuietly();
+        Notification::fake();
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->set('form.decision_alternative', $other)
+            ->set('form.status', LeaveRequestStatus::Rejected)
+            ->set('form.reject_reason', 'No cover.')
+            ->call('submitDecision')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id, 'status' => LeaveRequestStatus::Rejected, 'alternative_employee_id' => $named,
+        ]);
+        Notification::assertNotSentTo($leave->leaveBalance->contract->employee->account, LeaveAlternativeChanged::class);
+    }
+
+    public function test_m19_a_manager_from_another_city_cannot_open_or_change_the_decision(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $other = $this->colleagueOf($leave, 'other', 'Omar');
+        [$stranger] = $this->createRejectedLeaveFixture(null, 'far.manager@example.test', 'far-manager');
+        $role = \App\Models\Role::findOrCreate('manager', 'web');
+        $stranger->assignRole($role);
+        $stranger->setActiveRole($role->id);
+        $stranger->givePermissionTo(['leaves.decide', 'leaves.view-all']);
+        Notification::fake();
+
+        Livewire::actingAs($stranger->fresh())
+            ->test(AllLeaveRequestModule::class)
+            ->call('openDecision', $leave->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leave->id, 'status' => LeaveRequestStatus::Pending, 'alternative_employee_id' => null,
+        ]);
+        $this->assertNotSame($other, $leave->fresh()->alternative_employee_id);
+        Notification::assertNothingSent();
     }
 
     /** A manager who holds the position the requester's position reports to, with the real manager permissions. */
@@ -2399,11 +2639,61 @@ class LeaveRequestWorkflowTest extends TestCase
         }
     }
 
-    /**
-     * A Monday at least a month ahead whose Monday and Tuesday are working
-     * days outside December, so the weekend (0,6) and the December rule
-     * (A3-D D-7) never depend on the day the suite runs.
-     */
+    /** A colleague on the requester's own position (always within the rule), named $firstName. */
+    private function colleagueOf(LeaveRequest $leaveRequest, string $username, string $firstName): int
+    {
+        $contract = $leaveRequest->leaveBalance->contract;
+
+        $colleagueId = DB::table('employees')->insertGetId([
+            'city_id' => $contract->employee->city_id,
+            'first_name_en' => $firstName,
+            'first_name_ar' => $firstName,
+            'last_name_en' => 'Colleague',
+            'last_name_ar' => 'زميل',
+            'username' => $username.'-'.$leaveRequest->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('contracts')->insert([
+            'employee_id' => $colleagueId,
+            'position_id' => $contract->position_id,
+            'contract_type_id' => $contract->contract_type_id,
+            'start_date' => now()->subMonth(),
+            'end_date' => now()->addYear(),
+            'currency' => 2,
+            'weekly_hours' => 40,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $colleagueId;
+    }
+
+    /** $employeeId away for the whole of $day, with a request of $status. */
+    private function awayOn(LeaveRequest $like, int $employeeId, Carbon $day, int $status): void
+    {
+        $balanceId = DB::table('leave_balances')->insertGetId([
+            'contract_id' => DB::table('contracts')->where('employee_id', $employeeId)->value('id'),
+            'type_id' => $like->leaveBalance->type_id,
+            'deserved' => 160,
+            'used' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('leave_requests')->insert([
+            'leave_balance_id' => $balanceId,
+            'type' => 'day',
+            'start_at' => $day->copy()->startOfDay(),
+            'end_at' => $day->copy()->startOfDay(),
+            'reason' => 'Away.',
+            'status' => $status,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     private static function workingMonday(): Carbon
     {
         $monday = now()->addMonth()->next(Carbon::MONDAY)->startOfDay();

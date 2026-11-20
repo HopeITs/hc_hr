@@ -40,6 +40,46 @@ class ContractComposerStudyZoneTest extends TestCase
             });
     }
 
+    /**
+     * A Study Zone position has no center: the composer names the active
+     * centers linked to the program in the city instead of "city-level".
+     */
+    public function test_a_position_without_a_center_carries_its_programs_centers_in_the_city(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $city = $fixtures['city'];
+        $linked = fn (string $name, bool $active = true, $cityId = null) => Center::query()->create([
+            'name_en' => $name, 'name_ar' => $name, 'city_id' => $cityId ?? $city->id, 'is_active' => $active,
+        ])->programs()->attach($fixtures['studyZoneProgram']);
+
+        $linked('Study Zone Armenian');
+        $linked('Science Zone');
+        $linked('Study Zone Closed', active: false);
+        $linked('Study Zone Homs', cityId: $this->makeCity('HMS', '002')->id);
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('locationOptions', $city->id)
+            ->assertReturned(function (array $options) use ($fixtures): bool {
+                $positions = collect($options['positions']);
+
+                return $positions->firstWhere('value', $fixtures['studyZonePosition']->id)['sharedCenters']
+                        === __('general.shared-centers', ['centers' => 'Science Zone, Study Zone Armenian'])
+                    && $positions->firstWhere('value', $fixtures['position']->id)['sharedCenters'] === null;
+            });
+    }
+
+    public function test_without_linked_centers_a_position_stays_city_level(): void
+    {
+        $fixtures = $this->makeFixtures();
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('locationOptions', $fixtures['city']->id)
+            ->assertReturned(fn (array $options): bool => collect($options['positions'])
+                ->firstWhere('value', $fixtures['studyZonePosition']->id)['sharedCenters'] === null);
+    }
+
     private function makeFixtures(): array
     {
         $city = $this->makeCity('ALP', '001');

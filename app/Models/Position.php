@@ -21,6 +21,7 @@ class Position extends Model
         'max_emp' => 'integer',
         'exist_emp' => 'integer',
         'is_active' => 'boolean',
+        'is_critical' => 'boolean',
     ];
 
     // --------------------------------------------
@@ -210,6 +211,25 @@ class Position extends Model
     public function scopeInCities($query, array $cityIds)
     {
         return $this->scopeInCity($query, $cityIds);
+    }
+
+    /**
+     * Positions that work at $center: those placed at it, and those without a
+     * center of their own in its city whose program the center serves
+     * (center_program) — a Study Zone position is shared by every Study Zone
+     * center of its city, since its volunteers move between them.
+     */
+    public function scopeServingCenter($query, Center $center)
+    {
+        $programIds = $center->programs()->pluck('programs.id')->all();
+
+        return $query->where(function ($q) use ($center, $programIds) {
+            $q->where($q->qualifyColumn('center_id'), $center->getKey())
+                ->when($programIds !== [], fn ($q) => $q->orWhere(fn ($shared) => $shared
+                    ->whereNull($shared->qualifyColumn('center_id'))
+                    ->where($shared->qualifyColumn('city_id'), $center->city_id)
+                    ->whereIn($shared->qualifyColumn('program_id'), $programIds)));
+        });
     }
 
     // --------------------------------------------

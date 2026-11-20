@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Under the list title (quick fix 7): where the rows come from, so an empty list is not a dead end.
+    'campaigns_intro' => 'A campaign opens for a vacancy that came from an approved recruitment request, and receives applicants through its application link.',
     'unknown_link_mode' => 'That is not a way a campaign can be opened.',
     'unknown_transition' => 'That is not something a campaign can do.',
     'transition_not_allowed' => 'The campaign cannot move that way from where it is.',

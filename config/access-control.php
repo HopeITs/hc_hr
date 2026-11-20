@@ -32,6 +32,9 @@ return [
     'never_granted_to_roles' => [
         'recruitment-requests.approve-finance',
         'recruitment-requests.submit-without-manager',
+        // Whoever holds the mail provider's control panel confirms that people were added to the
+        // groups there. Granted to that one person from Access Management, never to a role.
+        'mail-lists.confirm',
         // Not person-identifying, but held back from every bulk grant for the
         // same reason: candidate export and erasure are answerable acts, so a
         // new HR role must not arrive able to do either. They are read with
@@ -93,6 +96,7 @@ return [
             'checklists.manage', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            'attendance.view-own', 'attendance.view',
             // Recruitment: the CEO and his deputy hold this role, so they both
             // raise requests and approve their direct reports' requests.
             'recruitment-requests.view', 'recruitment-requests.manage',
@@ -117,6 +121,10 @@ return [
             'checklists.view-own', 'project-basics.view', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
+            // Their own timesheet and their direct reports' (Roster).
+            'attendance.view-own', 'attendance.view',
+            // Their direct reports' Permissions Library items (EntitlementAccess).
+            'entitlements.assign',
             // Recruitment: the same role covers both sides of the first step —
             // a manager raises his own requests and approves his direct
             // reports'. Holding 'approve' is never sufficient on its own; the
@@ -135,6 +143,7 @@ return [
             'leaves.create', 'leaves.update', 'archives.view',
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download', 'checklists.view-own', 'project-basics.view',
+            'attendance.view-own',
         ],
     ],
 
@@ -145,7 +154,7 @@ return [
         'contracts' => ['view', 'create', 'update', 'delete', 'export', 'amend'],
         'programs' => ['view', 'create', 'update', 'delete'],
         'centers' => ['view', 'create', 'update', 'delete', 'export'],
-        'positions' => ['view', 'create', 'update', 'delete', 'export'],
+        'positions' => ['view', 'create', 'update', 'delete', 'export', 'mark-critical', 'view-replacements'],
         'leaves' => ['view-own', 'view-all', 'create', 'update', 'delete', 'decide', 'review', 'manage-balances', 'export'],
         'project-basics' => ['view', 'create', 'update', 'delete', 'export'],
         'news' => ['view', 'create', 'update', 'delete'],
@@ -153,6 +162,19 @@ return [
         'archives' => ['view', 'create', 'update', 'delete', 'share', 'download'],
         'checklists' => ['view-own', 'view-all', 'manage', 'deliver', 'receive'],
         'activity-log' => ['view'],
+        'message-templates' => ['manage', 'use'],
+        // 'confirm' is one named person's (never a role's): see never_granted_to_roles.
+        'mail-lists' => ['manage', 'confirm'],
+        // Attendance from the device report, scoped by the active role like the other pages: `view-own` is
+        // every role's (an employee sees only their own timesheet); `view` lifts it to the people the role
+        // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
+        // the administrators: everyone); `manage` (HR) uploads the report, links numbers and decides days.
+        'attendance' => ['view-own', 'view', 'manage'],
+        // Permissions Library (meeting 19/11, track 5): professional access tracked outside the system,
+        // never a Spatie permission of its own. `manage-library` edits the items and their position
+        // defaults (HR, administrators); `assign` adds, marks done and revokes a person's items (HR in
+        // their city, a manager for direct reports only: EntitlementAccess).
+        'entitlements' => ['manage-library', 'assign'],
 
         /*
          * Recruitment module. Two of these are never attached to a role:
@@ -224,6 +246,66 @@ return [
      * inside the component because the required permission depends on state.
      */
     'livewire' => [
+        // Attendance: uploading, linking device numbers and deciding days. Each also checks the
+        // permission and the city scope inside.
+        // The device list. The component re-checks the permission and, for a city HR, the center's city.
+        'attendance.devices' => [
+            'register' => 'attendance.manage',
+            'forgetSighting' => 'attendance.manage',
+            'addBySerial' => 'attendance.manage',
+            'edit' => 'attendance.manage',
+            'saveDevice' => 'attendance.manage',
+            'toggleBlock' => 'attendance.manage',
+            'removeDevice' => 'attendance.manage',
+            'createKey' => 'attendance.manage',
+            'revokeKey' => 'attendance.manage',
+        ],
+        'attendance.upload' => [
+            'updatedFile' => 'attendance.manage',
+            'import' => 'attendance.manage',
+            'linkNumber' => 'attendance.manage',
+        ],
+        // Each also checks who the person is and what the viewer may do with their month (MonthWorkflow).
+        'attendance.timesheets' => [
+            'openDay' => 'attendance.view',
+            'saveDecision' => 'attendance.view',
+            'clearDecision' => 'attendance.view',
+            'openMonth' => 'attendance.view-own',
+            'confirmMonth' => 'attendance.view-own',
+            'approveMonth' => 'attendance.view',
+            'approveAllReady' => 'attendance.view',
+            'lockMonth' => 'attendance.manage',
+            'lockAllApproved' => 'attendance.manage',
+            'reopenMonth' => 'attendance.manage',
+            'saveSigned' => 'attendance.manage',
+            'removeSigned' => 'attendance.manage',
+        ],
+        // HR's email and WhatsApp templates. The component re-checks the permission itself.
+        'mail-lists.check' => [
+            'editRule' => 'mail-lists.manage',
+            'saveRule' => 'mail-lists.manage',
+            'queueMissing' => 'mail-lists.manage',
+            'queueOne' => 'mail-lists.manage',
+            'removeMember' => 'mail-lists.manage',
+            'queueRemoval' => 'mail-lists.manage',
+        ],
+        'mail-lists.index' => [
+            'addMember' => 'mail-lists.manage',
+            'confirmMember' => 'mail-lists.confirm',
+            'confirmEmail' => 'mail-lists.confirm',
+            'confirmRemoval' => 'mail-lists.confirm',
+            'confirmRemovalEmail' => 'mail-lists.confirm',
+            'removeMember' => 'mail-lists.manage',
+            'deleteList' => 'mail-lists.manage',
+        ],
+        // A message template filled in for a person found by the header search (checked again inside).
+        'layout.global-search' => ['templatesFor' => 'message-templates.use'],
+        'messages.template-manager' => [
+            'edit' => 'message-templates.manage',
+            'save' => 'message-templates.manage',
+            'toggleActive' => 'message-templates.manage',
+            'delete' => 'message-templates.manage',
+        ],
         // saveAndSubmit writes the same draft as save(), then submits only when the
         // request's submit policy allows it.
         'recruitment.requests.create' => [
@@ -280,7 +362,7 @@ return [
             'exportExcel' => 'centers.export',
         ],
         'position.position-create' => ['save' => 'positions.create'],
-        'position.position-edit' => ['save' => 'positions.update'],
+        'position.position-edit' => ['save' => 'positions.update', 'toggleCritical' => 'positions.mark-critical'],
         'position.position-table' => [
             'delete' => 'positions.delete',
             'toggleItemStatusConfirmed' => 'positions.update',
@@ -328,6 +410,32 @@ return [
             'markCardHandedOver' => 'employees.update',
             'confirmReopen' => 'employees.update',
             'reopen' => 'employees.update',
+            'scheduleManagerOrientation' => 'employees.update',
+            'completeManagerOrientation' => 'employees.update',
+            'chooseElectronicsDeliverer' => 'employees.update',
+        ],
+        // Track 5: the Permissions Library page. Each method re-checks Entitlements::canManageLibrary (HR or
+        // administrator active role); position links stay inside Position::inCity, job levels are administrators'.
+        'entitlements.library' => [
+            'save' => 'entitlements.manage-library',
+            'toggleActive' => 'entitlements.manage-library',
+            'deleteItem' => 'entitlements.manage-library',
+            'addPosition' => 'entitlements.manage-library',
+            'addJobLevel' => 'entitlements.manage-library',
+            'removeLink' => 'entitlements.manage-library',
+        ],
+        // Track 5: a person's items on their profile. Each method re-checks Entitlements::canAssign (HR of the
+        // person's city through EmployeePolicy::update, or the direct manager for a direct report).
+        'employee.entitlements-panel' => [
+            'add' => 'entitlements.assign',
+            'markGranted' => 'entitlements.assign',
+            'revoke' => 'entitlements.assign',
+            'keep' => 'entitlements.assign',
+        ],
+        // Track 7: HR picks the policy documents a new volunteer must agree to; re-checked as HR on every call.
+        'onboarding.required-policies' => [
+            'setRequired' => 'employees.update',
+            'setKind' => 'employees.update',
         ],
         // Renewal journey (DEC-09 increment 2): HR's renew/stop decision and
         // its undo. contracts.update is the coarse gate; each method re-runs
@@ -708,6 +816,27 @@ return [
     */
 
     'livewire_exempt' => [
+        // The probation review is gated by ProbationReviewPolicy (the direct manager, city HR when nobody runs the position), on mount, on send() and again in ProbationReviews::request(); there is no permission to name.
+        'probation.review' => ['send'],
+        // Track 7: the manager's session is gated by OnboardingJourneys::canRunManagerOrientation (direct manager, city HR as fallback) on mount and on every action, and again inside the service.
+        'onboarding.manager-session' => ['schedule', 'complete'],
+        // Track 5: open / close a form or an item's defaults on the library page; they write nothing, and each re-checks canManageLibrary.
+        'entitlements.library' => ['newItem', 'edit', 'cancelEdit', 'open', 'close'],
+        // Track 7: the volunteer acknowledges only for their own employee (never an id from the browser); the document must be one HR marked as required.
+        'onboarding.policies' => ['acknowledge'],
+        // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
+        'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
+        // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
+        'attendance.upload' => ['cancel'],
+        // UI-only: clears the employees tab's search and filters; render() rechecks employees.view.
+        'program-management.program.program-employees' => ['resetFilters'],
+        // UI-only: open or clear the form; the page itself needs message-templates.manage (route and mount).
+        'messages.template-manager' => ['newTemplate', 'resetForm'],
+        // Closes the device edit row; writes nothing.
+        'attendance.devices' => ['cancelEdit', 'hideKey'],
+        // Which group, which list's members, and the search are what the page shows to every employee; they write nothing.
+        'mail-lists.index' => ['setCategory', 'openList', 'closeList'],
+        'mail-lists.check' => ['cancelRule'],
         // Basic Settings only picks which tab to show (an allowed one); each tab is a module with its own guards.
         'basics.basic-settings' => ['tabs', 'setTab'],
         // Form-only resets. Persistence rechecks role, grade and subtree in the draft service.
@@ -946,7 +1075,7 @@ return [
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
         // Each calls authorizeActivePermission() plus a LeaveRequestPolicy
         // check on the specific record, which is the stronger control.
-        'employee.leave.my-leave-request-module' => [
+        'employee.leave.my-leave-request-module' => $ownLeaveRequestActions = [
             'create', 'edit', 'processSave', 'confirmSave', 'openDetails',
             'reconcileOperation', // X1-I: lookup by the form's token; authorizes leaves.create in the method
             'closeDetails', 'selectedLeave', 'submittedLeave', 'refreshCounts', 'setActiveTab',
@@ -969,11 +1098,19 @@ return [
             'dehydrateTracksTaskAttempt', // X2-I lifecycle hook, see contract.contract-create
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
+        // The new-request dialog of the team calendar and the dashboard tile
+        // extends MyLeaveRequestModule: the same actions with the same checks.
+        // createOn() only runs create() and prefills the start date; the save
+        // validates the dates again.
+        'employee.leave.leave-request-dialog' => [...$ownLeaveRequestActions, 'createOn'],
         'employee.leave.all-leave-request-module' => [
             'edit', 'show', 'processSave', 'confirmSave', 'confirmDelete',
             'closeDecision', 'closeDetails', 'refreshCounts', 'setActiveTab',
             'resetStatusFilter', // B3: sets the tab to "all"; a view filter only
             'updatedFormEmployeeId',
+            // Meeting 19/11: a date change re-reads the alternatives for the form's
+            // own employee (targetEmployee keeps HR to its cities) and may clear the choice; no writes.
+            'updatedForm',
             // Closing the details dialog only runs closeDetails(); leaveTypeCards
             // prices the balances already loaded for the authorized form; no writes.
             'updatedShowModal', 'leaveTypeCards',
@@ -1181,7 +1318,9 @@ return [
         // DirectoryAccess::constrain() and the active role's menu on every render.
         // showRecents (prompt 9) only flags the empty box open; the caller's own recents are
         // read and filtered the same way (NavigationMemory) on render.
-        'layout.global-search' => ['updatedQ', 'showRecents'],
+        // setType only narrows the search to one kind of result (every kind is searched through the
+        // scope of the page that lists it, SmartSearch); templatesFor is mapped to message-templates.use.
+        'layout.global-search' => ['updatedQ', 'showRecents', 'setType'],
         // The add*/openInitiateReturnModal methods stage rows in the in-memory
         // form object; nothing is written until the mapped save* action runs,
         // and mount() has already authorized 'update' on this employee.
@@ -1201,6 +1340,8 @@ return [
             'zoomIn', 'zoomOut', 'resetZoom', 'fitToScreen', 'expandAll',
             'collapseAll', 'toggleCollapse', 'toggleDensity', 'resetFilters',
             'toggleVacancies',
+            // Reports whether the viewer may see the critical tag; writes nothing.
+            'canSeeCritical',
         ],
         'position.directory' => ['resetFilters'],
         // Reset the dependent center selection and pass the city through
@@ -1219,12 +1360,12 @@ return [
         // D1 profile section editing. Not a single permission: openSection and
         // saveSection check EmployeeProfile::canEditSection() on every call
         // (EmployeePolicy::update for HR in scope, or the active owner for
-        // their own contact and skills, profile-contract.md Q5), write only
-        // that section's columns, and refuse a stale save. reloadSection
-        // re-opens through the same check; the close guard writes nothing.
-        // openProposal/submitProposal: the active owner only, for their own record
-        // (ProfileChangeRequests::canPropose); nothing reaches the profile until
-        // HR of the employee's city approves it in the inbox (section 5.1).
-        'employee.employee-profile' => ['openSection', 'saveSection', 'reloadSection', 'openProposal', 'submitProposal', ...$closeGuard],
+        // their own record, meeting 19/11; never identity, contract or pay),
+        // write only that section's columns, and refuse a stale save.
+        // reloadSection re-opens through the same check; the close guard
+        // writes nothing. openEntry/saveEntry: the active owner only, for their
+        // own record (ProfileChangeRequests::canAdd); written at once and
+        // reported to HR of the employee's city (ProfileEditNotifier).
+        'employee.employee-profile' => ['openSection', 'saveSection', 'reloadSection', 'openEntry', 'saveEntry', ...$closeGuard],
     ],
 ];

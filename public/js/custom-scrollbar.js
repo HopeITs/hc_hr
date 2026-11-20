@@ -125,6 +125,10 @@
       ".has-csb-x::-webkit-scrollbar-thumb:hover{background:var(--csb-hover," + C.hoverColor + ");}" +
       ".csb{position:fixed;width:" + TRACKW + "px;pointer-events:none;opacity:0;transition:opacity .18s;}" +
       ".csb.on{opacity:1;}" +
+      // The dashboard's workspace opens pages in a frame over the dashboard, which stays
+      // mounted underneath: the bars of its cards are fixed on <body> and would ride
+      // over the panel. The frame is another document with its own bars, unaffected.
+      "html.ws-open>body>.csb{visibility:hidden;}" +
       // Held while its container (or a parent) animates: gone at once, no fade.
       ".csb.csb-hold,.csb.on.csb-hold{opacity:0;transition:none;}" +
       ".csb-track{position:absolute;inset:0;border:" + C.trackBorder + "px solid var(--csb-color," + C.color + ");border-radius:" + C.trackRadius + "px;box-sizing:border-box;pointer-events:auto;}" +
@@ -219,6 +223,7 @@
       el.scrollTop = t * (el.scrollHeight - el.clientHeight);
     });
 
+    box.update = update;
     instances.push(update); update();
   }
 
@@ -306,7 +311,38 @@
 
   /* wire:navigate replaces <body> wholesale, so the observer above would be left
      watching the detached old one; follow the new body and rescan it. */
-  document.addEventListener("livewire:navigated", function () { observeBody(); schedule(); });
+  document.addEventListener("livewire:navigated", function () { observeBody(); tidy(); schedule(); });
+  // Hide every bar at once when the swap starts, so none is left painted over the incoming page.
+  document.addEventListener("livewire:navigating", function () {
+    for (var i = 0; i < boxes.length; i++) boxes[i].wrap.classList.remove("on");
+  });
+
+  /* Bars live on <body>, and the swap throws the old body away with them.
+     - A container that left the page: drop its bar and its entries, or the
+       arrays keep a detached box alive for good.
+     - A container that survived (@persist moves it into the new body): its bar
+       stayed behind in the old one, and `attached` would never build another,
+       so the bar is moved over.
+     - Any .csb that no box owns is a stray and goes. */
+  function tidy() {
+    var live = [];
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (!document.body.contains(b.el)) {
+        clearTimeout(b.timer);
+        if (b.wrap.parentNode) b.wrap.parentNode.removeChild(b.wrap);
+        var at = instances.indexOf(b.update);
+        if (at > -1) instances.splice(at, 1);
+        continue;
+      }
+      if (!document.body.contains(b.wrap)) document.body.appendChild(b.wrap);
+      live.push(b);
+    }
+    boxes = live;
+    var owned = new Set(boxes.map(function (b) { return b.wrap; }));
+    var strays = document.body.querySelectorAll(":scope > .csb");
+    for (var j = 0; j < strays.length; j++) if (!owned.has(strays[j])) strays[j].remove();
+  }
 
   if (document.readyState !== "loading") boot(); else document.addEventListener("DOMContentLoaded", boot);
   window.addEventListener("load", schedule);

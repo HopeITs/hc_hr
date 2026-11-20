@@ -108,7 +108,7 @@ class ItemCard extends Component
         return [
             'manager' => $program->manager()?->name,
             'cities' => (int) ($counts?->cities_count ?? 0),
-            'employees' => (int) ($counts?->contracts_count ?? 0),
+            'employees' => (int) ($counts?->employees_count ?? 0),
             'start' => $program->start_date,
             'end' => $program->end_date,
         ];

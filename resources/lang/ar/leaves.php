@@ -193,4 +193,29 @@ return [
         'time-range' => ':date، من :from إلى :to',
     ],
 
+    // The balance behind a request, shown to whoever decides it.
+    'decision_balance' => [
+        'title' => 'رصيد الموظف من هذا النوع',
+        'available' => 'المتاح الآن',
+        'requested' => 'هذا الطلب',
+        'pending_others' => 'طلبات أخرى قيد الانتظار',
+        'after' => 'المتبقي عند القبول',
+        'short' => 'عجز قدره :amount',
+    ],
+
+    // الموظف البديل (اجتماع 19/11): لا يظهر إلا المتاحون طوال الفترة، ولمن يقرّر أن يسمّي غيره.
+    'alternative' => [
+        'available-hint' => 'تظهر فقط أسماء الزملاء غير المجازين أو المعطّلين خلال هذه الفترة.',
+        'decision-label' => 'الموظف البديل',
+        'decision-hint' => 'يمكنك تسمية زميل آخر متاح طوال الفترة، ويُبلَّغ مقدّم الطلب بذلك.',
+        'current-unavailable' => 'البديل المذكور في الطلب مجاز أو في عطلة خلال هذه الفترة.',
+        'none' => 'بلا بديل',
+    ],
+
+    'alternative-changed' => [
+        'title' => 'تغيير الموظف البديل',
+        'body' => 'تمت الموافقة على إجازتك (:type) مع بديل آخر: :current (بدلاً من :previous).',
+        'none' => 'لا أحد',
+    ],
+
 ];

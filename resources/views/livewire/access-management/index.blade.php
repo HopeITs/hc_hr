@@ -358,7 +358,7 @@
                                 <x-button variant="outline" wire:click="renameRole">
                                     {{ __('access.rename-role') }}
                                 </x-button>
-                                <x-button variant="outline" icon="trash" target="deleteRole" x-on:click="if (await $confirm({ title: @js(__('access.delete-role')) })) $wire.deleteRole()">
+                                <x-button variant="outline" icon="trash" target="deleteRole" x-on:click="if (await $confirm({ title: {{ \Illuminate\Support\Js::from(__('access.delete-role')) }} })) $wire.deleteRole()">
                                     {{ __('access.delete-role') }}
                                 </x-button>
                             </div>

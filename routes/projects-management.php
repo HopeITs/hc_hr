@@ -1,8 +1,10 @@
 <?php
 
+use App\Livewire\Position\CriticalPositions;
 use App\Livewire\Position\PositionCreate;
 use App\Livewire\Position\PositionEdit;
 use App\Livewire\Position\PositionsModule;
+use App\Livewire\Position\Replacements;
 use App\Livewire\ProgramManagement\Center\CenterCreate;
 use App\Livewire\ProgramManagement\Center\CenterDetails;
 use App\Livewire\ProgramManagement\Center\CentersModule;
@@ -26,6 +28,8 @@ Route::prefix('positions')
         Route::get('/', PositionsModule::class)->middleware('reference_page:positions')->name('index');
         Route::get('/create', PositionCreate::class)->middleware('active_permission:positions.create')->name('create');
         Route::get('/{position}/edit', PositionEdit::class)->middleware('active_permission:positions.update')->name('edit');
+        Route::get('/critical', CriticalPositions::class)->middleware('active_permission:positions.view-replacements')->name('critical');
+        Route::get('/{position}/replacements', Replacements::class)->middleware('active_permission:positions.view-replacements')->name('replacements');
     });
 
 Route::prefix('centers')

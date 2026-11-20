@@ -18,6 +18,7 @@ use App\Models\JobPost;
 use App\Models\LeaveRequest;
 use App\Models\NotificationPreference;
 use App\Models\Position;
+use App\Models\ProbationReview;
 use App\Models\PublicRecruitmentLink;
 use App\Models\RecruitmentApplicant;
 use App\Models\RecruitmentApplicantFile;
@@ -52,6 +53,7 @@ use App\Policies\HiringCampaignPolicy;
 use App\Policies\JobPostPolicy;
 use App\Policies\LeaveRequestPolicy;
 use App\Policies\PositionPolicy;
+use App\Policies\ProbationReviewPolicy;
 use App\Policies\PublicRecruitmentLinkPolicy;
 use App\Policies\RecruitmentApplicantFilePolicy;
 use App\Policies\RecruitmentApplicantNotePolicy;
@@ -101,6 +103,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Livewire\Livewire;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -116,6 +119,8 @@ class AppServiceProvider extends ServiceProvider
         // The seam for the organization's retention decision: bind another
         // RetentionPolicy here once the periods are confirmed.
         $this->app->bind(RetentionPolicy::class, ConfiguredRetentionPolicy::class);
+        // Critical positions: the AI re-ranking layer is a no-op unless a real one is bound.
+        $this->app->bind(\App\Contracts\CandidateAiRanker::class, \App\Services\CriticalPositions\NullCandidateAiRanker::class);
 
         $this->app->bind(RecruitmentFileScanner::class, fn () => config('recruitment-uploads.scanner.driver') === 'clamd'
             ? new ClamdScanner
@@ -145,6 +150,42 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // A new account on the organisation's domain joins the all-staff mail list as
+        // pending (MailList::queueNewAccount). It must never stop an account being made.
+        User::created(function (User $user): void {
+            try {
+                \App\Models\MailList::queueNewAccount($user);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        });
+
+        // The rest of a person's lists follow the same way, by the rules of the lists (MailListSync):
+        // a hire (an account or a contract) queues them as pending on the lists they belong on, and
+        // leaving (the employee turned inactive) flags them for removal at the control panel.
+        // Nothing here may stop a hire or a departure.
+        $lists = fn (callable $work) => function ($model) use ($work): void {
+            try {
+                $work($model, app(\App\Services\MailListSync::class));
+            } catch (Throwable $e) {
+                report($e);
+            }
+        };
+
+        User::created($lists(fn ($user, $sync) => $user->profile && $sync->queueForPerson($user->profile, auth()->id())));
+
+        // A bulk import or command would queue hundreds at once: the check page does that on demand.
+        Contract::created($lists(fn ($contract, $sync) => ! app()->runningInConsole() && $contract->is_active
+            && $contract->employee && $sync->queueForPerson($contract->employee, auth()->id())));
+
+        Employee::updated($lists(function ($employee, $sync): void {
+            if (! $employee->wasChanged('is_active')) {
+                return;
+            }
+
+            $employee->is_active ? $sync->unflagLeaving($employee) : $sync->flagLeaving($employee);
+        }));
+
         // Spatie forgets its cache key on every grant or revocation; User drops
         // its memoized roles and permissions when the generation moves on.
         Event::listen(function (KeyForgotten $event): void {
@@ -153,6 +194,13 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // A device calls about every 30 seconds and posts its log in bursts: generous per device,
+        // and by address when it does not say who it is.
+        RateLimiter::for('iclock', fn (Request $request) => Limit::perMinute(300)
+            ->by((string) ($request->query('SN') ?? $request->query('sn') ?? $request->ip())));
+        // The agent calls every ten minutes, in a few batches. Per key (or per address when it sends none).
+        RateLimiter::for('attendance-agent', fn (Request $request) => Limit::perMinute(60)
+            ->by(sha1((string) ($request->bearerToken() ?: $request->ip()))));
         RateLimiter::for('careers-view', fn (Request $request) => Limit::perMinute(60)
             ->by($request->ip()));
         // Asking "is this address invited?" tells the asker, so it is the one
@@ -182,6 +230,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Badge::class, BadgePolicy::class);
         Gate::policy(Center::class, CenterPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
+        Gate::policy(ProbationReview::class, ProbationReviewPolicy::class);
         // An amendment is part of its contract: the same policy decides both.
         Gate::policy(ContractAmendment::class, ContractPolicy::class);
         Gate::policy(DefaultDeliverable::class, DefaultDeliverablePolicy::class);

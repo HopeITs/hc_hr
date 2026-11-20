@@ -7,9 +7,11 @@
 @endphp
 
 <div class="space-y-6">
+    {{-- How a hire starts, said once on the page a newcomer lands on (an empty list alone says nothing). --}}
     <x-recruitment.requests-header
         current="requests"
-        :title="__('recruitment.requests')" />
+        :title="__('recruitment.requests')"
+        :description="__('recruitment.requests_intro').(auth()->user()?->can('directOpen', \App\Models\RecruitmentRequest::class) ? ' '.__('recruitment.requests_intro_direct') : '')" />
 
     @if (count($views) > 1)
         {{-- Who the request belongs to, as count tiles. "Needs my review" is the only one that asks something of the viewer, so it alone gets a red dot when it is not empty. --}}

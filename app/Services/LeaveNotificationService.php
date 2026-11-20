@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\City;
+use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
+use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveRequestObjected;
 use App\Notifications\NewLeaveRequest;
 use Illuminate\Support\Collection;
@@ -114,6 +116,31 @@ class LeaveNotificationService
             [...$excludedIds, ...$managerRecipients->pluck('id')->all()],
         );
         Notification::send($employeeRecipients, new LeaveRequestObjected($leaveRequest, $note, 'employee'));
+    }
+
+    /**
+     * The decider named another alternative (meeting 19/11): the requester is
+     * told who was replaced and by whom. Nothing when nothing changed.
+     */
+    public function sendAlternativeChanged(LeaveRequest $leaveRequest, ?int $fromId, ?int $toId, ?User $actor = null): void
+    {
+        if ($fromId === $toId) {
+            return;
+        }
+
+        $leaveRequest = $this->loadContext($leaveRequest);
+        $names = Employee::query()->whereKey(array_filter([$fromId, $toId]))->get()->keyBy('id');
+
+        $recipients = $this->eligibleUniqueUsers(
+            collect([$leaveRequest->leaveBalance->contract->employee->account]),
+            [$actor?->id],
+        );
+
+        Notification::send($recipients, new LeaveAlternativeChanged(
+            $leaveRequest,
+            $fromId !== null ? $names->get($fromId) : null,
+            $toId !== null ? $names->get($toId) : null,
+        ));
     }
 
     private function loadContext(LeaveRequest $leaveRequest): LeaveRequest

@@ -52,6 +52,7 @@ class PositionExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'jobLevel_name_en', 'jobLevel_name_ar' => trans_choice('general.job-level', 1, [], 'en'),
                 'directManager_title_en', 'directManager_title_ar' => __('general.direct-manager', [], 'en'),
                 'is_active' => __('general.is-active', [], 'en'),
+                'is_critical' => __('critical-positions.critical', [], 'en'),
                 default => $code,
             };
         }
@@ -77,6 +78,7 @@ class PositionExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'directManager_title_en', 'directManager_title_ar' => $row->directManager?->title_en ?? '',
 
                 'is_active' => $row->is_active ? 'Yes' : 'No',
+                'is_critical' => $row->is_critical ? 'Yes' : 'No',
                 default => '',
             };
         }

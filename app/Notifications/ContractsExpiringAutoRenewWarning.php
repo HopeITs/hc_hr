@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Contract;
+use App\Models\User;
+use App\Services\ContractNonRenewalMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -17,6 +19,9 @@ class ContractsExpiringAutoRenewWarning extends Notification
      */
     public array $contracts;
 
+    /** The contract, when the warning is about exactly one (for the "Don't renew" link). */
+    private ?Contract $single = null;
+
     /**
      * @param  Collection<int, Contract>  $contracts
      */
@@ -24,6 +29,8 @@ class ContractsExpiringAutoRenewWarning extends Notification
         Collection $contracts,
         public int $daysUntilExpiration = 7,
     ) {
+        $this->single = $contracts->count() === 1 ? $contracts->first() : null;
+
         $this->contracts = $contracts
             ->map(fn (Contract $contract): array => [
                 'id' => $contract->id,
@@ -46,9 +53,16 @@ class ContractsExpiringAutoRenewWarning extends Notification
         // See ContractsAutoRenewedSummary::toMail(): one language per email.
         $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
 
-        return (new MailMessage)
+        $message = (new MailMessage)
             ->subject($data['title'][$locale])
             ->line($data['body'][$locale]);
+
+        // One contract: a button that opens the "Don't renew" email to HR.
+        if (! empty($data['url'])) {
+            $message->action(__('renewal.dont_renew.action'), $data['url']);
+        }
+
+        return $message;
     }
 
     /**
@@ -73,7 +87,26 @@ class ContractsExpiringAutoRenewWarning extends Notification
             ],
             'contracts' => $this->contracts,
             'days_until_expiration' => $this->daysUntilExpiration,
+            // Clicking the notification opens a new "Don't renew" email to the
+            // city's HR (one contract only: a list cannot share one message).
+            // The notification is only ever stored; a failure here must not stop it.
+            'url' => $this->dontRenewUrl($notifiable),
         ];
+    }
+
+    private function dontRenewUrl(object $notifiable): ?string
+    {
+        if ($this->single === null) {
+            return null;
+        }
+
+        try {
+            return app(ContractNonRenewalMail::class)->url($this->single, $notifiable instanceof User ? $notifiable : null);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     private function singleContractBodyAr(): string

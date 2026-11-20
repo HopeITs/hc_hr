@@ -45,9 +45,13 @@ return [
     ],
 
     'on_leave' => 'On leave',
+    'birthday_holiday' => 'Birthday holiday',
     'partial' => 'Part of the day',
     'you' => 'You',
     'substitute' => 'Substitute: :name',
+    'no_cover' => 'No cover assigned',
+    'cover_also_away' => 'Cover also away: :dates',
+    'you_cover' => 'You are covering',
     'holiday' => 'Holiday',
     'weekend' => 'Weekend',
     'more' => '+:count more',

@@ -3,6 +3,7 @@
 namespace App\Livewire\ProgramManagement\Center;
 
 use App\Models\Center;
+use App\Models\Contract;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -27,8 +28,10 @@ class CenterDetails extends Component
         $center = Center::query()->with('city')->findOrFail($this->centerId);
         Gate::authorize('view', $center);
 
-        $activeContracts = $center->contracts()
+        // Its own positions' contracts and the shared ones of the programs it serves (Study Zone).
+        $activeContracts = Contract::query()
             ->activeNow()
+            ->servingCenter($center)
             ->with(['contractType', 'position.program'])
             ->get();
 

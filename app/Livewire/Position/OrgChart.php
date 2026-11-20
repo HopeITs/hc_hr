@@ -6,6 +6,7 @@ use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
 use App\Models\JobLevel;
+use App\Models\MailList;
 use App\Models\Position;
 use App\Models\Program;
 use App\Support\DirectoryAccess;
@@ -21,7 +22,7 @@ class OrgChart extends Component
     /** Filter keys that, when changed, require the tree to be rebuilt. */
     private const TREE_FILTERS = [
         'city_id', 'program_id', 'center_id', 'department_id',
-        'job_level_id', 'focus_manager_id', 'manager_type',
+        'job_level_id', 'focus_manager_id', 'manager_type', 'critical_only',
     ];
 
     /** The main "parent" city (Syria) that scopes the whole org. */
@@ -78,6 +79,9 @@ class OrgChart extends Component
     public ?int $department_id = null;
 
     public ?int $job_level_id = null;
+
+    /** Keep only critical positions (meeting 19/11, track 6). */
+    public bool $critical_only = false;
 
     /** Re-root the chart on a specific manager's subtree. */
     public ?int $focus_manager_id = null;
@@ -194,7 +198,7 @@ class OrgChart extends Component
     {
         $this->reset([
             'city_id', 'program_id', 'center_id',
-            'department_id', 'job_level_id', 'focus_manager_id', 'search',
+            'department_id', 'job_level_id', 'focus_manager_id', 'search', 'critical_only',
         ]);
         $this->manager_type = 'direct';
         $this->loadLookups();
@@ -226,6 +230,15 @@ class OrgChart extends Component
             $this->refreshTree();
             $this->fitToScreen();
         }
+    }
+
+    /**
+     * The tag marks where the organization is exposed, so only those who may open
+     * the replacements panel (HR, general manager, administrators) see it or filter by it.
+     */
+    public function canSeeCritical(): bool
+    {
+        return auth()->user()?->hasActivePermission('positions.view-replacements') ?? false;
     }
 
     /** Whether a free-text search is currently active. */
@@ -280,7 +293,7 @@ class OrgChart extends Component
     {
         return collect([
             $this->city_id, $this->program_id, $this->center_id,
-            $this->department_id, $this->job_level_id, $this->focus_manager_id,
+            $this->department_id, $this->job_level_id, $this->focus_manager_id, $this->critical_only,
         ])->filter()->count();
     }
 
@@ -300,7 +313,13 @@ class OrgChart extends Component
             $this->managers->loadMissing(['activeContracts' => DirectoryAccess::holders(auth()->user()), 'jobLevel']);
         }
 
-        return view('livewire.position.org-chart', ['tree' => $this->tree]);
+        // "Email a list": every list can be chosen; the ones for the place / project / department
+        // filtered come first. Any other filter (a center, a level, a manager) or a search narrows
+        // the chart past what such a list holds, so then nothing is suggested.
+        $narrowed = $this->center_id || $this->job_level_id || $this->critical_only || $this->focus_manager_id || trim($this->search) !== '';
+        $filterList = $narrowed ? collect() : MailList::suggestionsFor($this->city_id, $this->program_id, $this->department_id);
+
+        return view('livewire.position.org-chart', ['tree' => $this->tree, 'filterList' => $filterList]);
     }
 
     // -------------------------------------------------------------------
@@ -588,7 +607,8 @@ class OrgChart extends Component
             ->when($this->program_id, fn (Builder $query) => $query->where('program_id', $this->program_id))
             ->when($this->center_id, fn (Builder $query) => $query->where('center_id', $this->center_id))
             ->when($this->department_id, fn (Builder $query) => $query->where('department_id', $this->department_id))
-            ->when($this->job_level_id, fn (Builder $query) => $query->where('job_level_id', $this->job_level_id));
+            ->when($this->job_level_id, fn (Builder $query) => $query->where('job_level_id', $this->job_level_id))
+            ->when($this->critical_only && $this->canSeeCritical(), fn (Builder $query) => $query->where('is_critical', true));
     }
 
     private function updateStats(): void

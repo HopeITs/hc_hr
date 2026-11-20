@@ -127,6 +127,8 @@
                     @endif
                 </x-button>
 
+                <x-mail-list-menu :suggested="$filterList" />
+
                 <x-button variant="outline" size="sm" wire:click="toggleDensity">
                     <x-icons.code-fork class="size-3.5" />
                     {{ $compact ? __('general.comfortable-view') : __('general.compact-view') }}
@@ -583,6 +585,13 @@
                         @endforeach
                     </x-forms.select-input>
                 </label>
+
+                @if ($this->canSeeCritical())
+                    <label class="flex items-center gap-2 text-small font-semibold text-ink-2">
+                        <input type="checkbox" wire:model.live="critical_only" class="rounded border-line">
+                        {{ __('critical-positions.only-critical') }}
+                    </label>
+                @endif
 
             </div>
 

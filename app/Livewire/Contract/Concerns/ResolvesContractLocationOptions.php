@@ -65,6 +65,21 @@ trait ResolvesContractLocationOptions
             ->orderBy($positionTitleColumn)
             ->get();
 
+        // A position without a center is shared by the active centers linked
+        // to its program in this city (Study Zone): their names, per program.
+        $sharedCenters = Center::query()
+            ->where('city_id', $cityId)
+            ->where('is_active', true)
+            ->whereHas('programs')
+            ->with('programs:id')
+            ->orderBy($centerNameColumn)
+            ->get(['id', $centerNameColumn])
+            ->flatMap(fn (Center $center) => $center->programs->map(fn ($program) => [$program->id, $center->{$centerNameColumn}]))
+            ->groupBy(0)
+            ->map(fn (Collection $pairs) => __('general.shared-centers', [
+                'centers' => $pairs->pluck(1)->implode($locale === 'ar' ? '، ' : ', '),
+            ]));
+
         $employees = $this->employeeOptionsForCity($city, $locale);
 
         if ($ensureEmployeeId && ! collect($employees)->contains('value', $ensureEmployeeId)) {
@@ -122,6 +137,9 @@ trait ResolvesContractLocationOptions
                     'label' => $position->{$positionTitleColumn},
                     'programId' => $position->program_id,
                     'centerId' => $position->center_id,
+                    'sharedCenters' => $position->center_id === null
+                        ? ($sharedCenters[$position->program_id] ?? null)
+                        : null,
                     // Capacity travels with the option so the create screen can
                     // show "4 of 5" before the choice instead of failing after it.
                     // Additive: contract-location-picker.js ignores both keys.

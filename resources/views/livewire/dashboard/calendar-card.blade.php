@@ -81,8 +81,18 @@
                 <h3 class="text-small font-bold text-ink">{{ __('dashboard_calendar.next-days') }}</h3>
 
                 <ul class="min-h-0 flex-1 space-y-2 overflow-y-auto pe-1">
-                    @forelse ($upcoming as $date => $events)
-                        @foreach ($events as $event)
+                    @forelse ($upcoming as $row)
+                        @php
+                            $event = $row['event'];
+                            $loc = app()->getLocale();
+                            $start = \Carbon\CarbonImmutable::parse($row['from'])->locale($loc);
+                            $end = \Carbon\CarbonImmutable::parse($row['to'])->locale($loc);
+                            $when = $row['from'] === $row['to']
+                                ? $start->translatedFormat('D j M')
+                                : ($start->month === $end->month
+                                    ? $start->translatedFormat('j').' – '.$end->translatedFormat('j M')
+                                    : $start->translatedFormat('j M').' – '.$end->translatedFormat('j M'));
+                        @endphp
                             <li wire:key="next-{{ $event['key'] }}" class="flex items-start gap-2 text-small" data-testid="calendar-next">
                                 <span class="hc-mark hc-mark--lg hc-mark--{{ $event['type'] }} mt-1.5" aria-hidden="true"></span>
                                 <span class="min-w-0">
@@ -95,11 +105,10 @@
                                         @if ($event['type'] === 'news')
                                             <x-ic name="calendar" class="size-3.5 shrink-0" />
                                         @endif
-                                        <span class="truncate">{{ \Carbon\CarbonImmutable::parse($date)->locale(app()->getLocale())->translatedFormat('D j M') }}@if ($event['type'] === 'news' && $event['detail'])<span aria-hidden="true"> · </span><bdi dir="ltr" class="num">{{ $event['detail'] }}</bdi>@endif<span aria-hidden="true"> · </span>{{ __('dashboard_calendar.types.'.$event['type']) }}</span>
+                                        <span class="truncate">{{ $when }}@if ($event['type'] === 'news' && $event['detail'])<span aria-hidden="true"> · </span><bdi dir="ltr" class="num">{{ $event['detail'] }}</bdi>@endif<span aria-hidden="true"> · </span>{{ __('dashboard_calendar.types.'.$event['type']) }}</span>
                                     </span>
                                 </span>
                             </li>
-                        @endforeach
                     @empty
                         <li class="text-small text-ink-2">{{ __('dashboard_calendar.next-days-empty') }}</li>
                     @endforelse

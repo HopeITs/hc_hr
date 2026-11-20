@@ -199,6 +199,22 @@ class WorkInboxChecklistTest extends TestCase
             ->assertSee('2 items to hand over or take back');
     }
 
+    /** Quick fix 2: next to a decision, the line under the badge adds up to it. */
+    public function test_the_decisions_line_names_the_rest_of_the_inbox(): void
+    {
+        app()->setLocale('en');
+
+        $decisions = ['cards' => [[
+            'key' => 'leave:1:decide', 'action' => 'decide', 'old' => false, 'start_flag' => null,
+            'name' => 'Someone', 'what' => null, 'from' => null, 'to' => null, 'city' => null,
+            'since' => null, 'url' => '#',
+        ]], 'total' => 1, 'items' => [], 'others' => 2, 'all' => 3];
+
+        $html = view('livewire.dashboard.decisions-card', ['decisions' => $decisions, 'loadFailed' => false, 'inboxUrl' => '#'])->render();
+
+        $this->assertStringContainsString('· and 2 more below', $html);
+    }
+
     private function item(string $name, array $attributes = []): Checklist
     {
         $item = ChecklistItem::query()->firstOrCreate(['name' => $name], ['order' => 1]);

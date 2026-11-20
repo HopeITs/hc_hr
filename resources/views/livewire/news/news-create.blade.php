@@ -35,7 +35,7 @@
         <div class="sticky bottom-0 z-20 -mx-4 border-t border-line-soft bg-card/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:mx-0 sm:rounded-surface sm:border sm:shadow-e1">
             <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
                 <x-button variant="quiet" :loading="false"
-                          x-on:click="Livewire.navigate(@js($cancelUrl))">@lang('news.form.actions.cancel')</x-button>
+                          x-on:click="Livewire.navigate({{ \Illuminate\Support\Js::from($cancelUrl) }})">@lang('news.form.actions.cancel')</x-button>
                 <span class="hidden flex-1 sm:block" aria-hidden="true"></span>
                 <x-button variant="outline" icon="eye" wire:click="openPreview">@lang('news.form.actions.preview')</x-button>
                 <x-button variant="outline" icon="pen" wire:click="saveDraft">@lang('news.form.actions.save_draft')</x-button>

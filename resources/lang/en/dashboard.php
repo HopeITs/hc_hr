@@ -140,7 +140,7 @@ return [
     'attention' => [
         'none' => 'Nothing on your record needs you',
         'contract' => '{0} Your contract ends today, :date|{1} Your contract ends tomorrow, :date|[2,*] Your contract ends :date, in :count days',
-        'contract-hint' => 'No renewal is on your record yet.',
+        'contract-hint' => 'No renewal is recorded yet. The HR team in your city follows this up; you can ask them.',
         'leave' => 'Your :period leave is still waiting',
         'leave-hint' => 'Its first day has passed with no decision.',
         'open-profile' => 'My profile',
@@ -343,6 +343,8 @@ return [
         'none' => 'Your inbox is clear.',
         'open' => 'View all',
         'items' => '{1} 1 item to hand over or take back|[2,*] :count items to hand over or take back',
+        'other-tasks' => '{1} 1 other task|[2,*] :count other tasks',
+        'others-below' => '{1} · and 1 more below|[2,*] · and :count more below',
     ],
 
     // A shortcut made big: its data as a small card (Dashboard\AppCard).

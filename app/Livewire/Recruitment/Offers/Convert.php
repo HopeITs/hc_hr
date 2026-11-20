@@ -6,6 +6,7 @@ use App\Enums\SalaryPer;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentHiringConversion;
 use App\Models\RecruitmentJobOffer;
+use App\Services\OnboardingChecklist;
 use App\Services\RecruitmentHiringConversionService as Conversions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
@@ -186,6 +187,7 @@ class Convert extends Component
             'canSeeSalary' => Gate::allows('viewSalary', $offer),
             'blockers' => $converted ? [] : $conversions->blockers($conversion),
             'matches' => $converted ? collect() : $conversions->matches($conversion, $this->employee['nationalNumber'] ?? null),
+            'onboarding' => $converted ? app(OnboardingChecklist::class)->for($conversion, auth()->user()) : [],
             'needsSessionDuration' => (int) $conversion->jobOfferVersion?->salary_per === SalaryPer::Session,
         ]);
     }

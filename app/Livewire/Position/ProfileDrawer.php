@@ -101,7 +101,10 @@ class ProfileDrawer extends Component
         return Position::with([
             'department', 'center', 'program', 'city', 'jobLevel',
             'directManager.activeContracts' => DirectoryAccess::holders(auth()->user()),
-            'directManager.activeContracts.employee' => DirectoryAccess::holderEmployee(),
+            // The manager's work email too: it is pre-filled as CC when the
+            // viewer emails this employee from the drawer.
+            'directManager.activeContracts.employee' => fn ($employee) => DirectoryAccess::holderEmployee()($employee)
+                ->with(DirectoryAccess::ACCOUNT_COLUMNS),
             'directManager.jobLevel',
         ])->find($positionId);
     }

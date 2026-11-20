@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Under the list title (quick fix 7): where the rows come from, so an empty list is not a dead end.
+    'applicants_intro' => 'Everyone who applied through a campaign link appears here. From an applicant\'s page you review the application and, once shortlisted, schedule an interview.',
     'applicants' => 'Applicants',
     'applicants_hint' => 'Every application inside your recruitment scope. Open a row to see the applicant’s full history.',
     'back_to_list' => 'All applicants',
@@ -909,6 +911,8 @@ return [
      * internal; nothing here is sent to the candidate by the system.
      */
     'offers' => [
+        // Under the list title (quick fix 7): where offers come from and what follows acceptance.
+        'intro' => 'An offer is made from the applicant\'s page after the interviews. Once it is accepted, open the offer and convert it to an employee: that creates the employee record and the contract.',
         'title' => 'Job offers',
         'index_hint' => 'Offers for applications in your recruitment scope. Pay figures appear on each offer, only for users allowed to see them.',
         'all' => 'All offers',
@@ -1068,6 +1072,27 @@ return [
         'converted_next' => ':name is now an employee, with contract #:contract.',
         'no_account' => 'They have no login account yet: open the employee page and tick ":label".',
         'has_account' => 'They already have a login account.',
+        'onboarding' => [
+            'title' => 'Next steps for the new colleague',
+            'hint' => 'The employee and the contract are done. What is left, in order:',
+            'done' => 'Done',
+            'todo' => 'To do',
+            'open' => 'Open',
+            'fix' => 'Fix',
+            'employee' => 'Employee record created',
+            'employee_existing' => 'Existing employee linked (no new employee)',
+            'previous' => 'Previous position still active: :position (:program)',
+            'previous_hint' => 'They now hold two positions. For a transfer or promotion, end the old contract.',
+            'card_changed' => 'The project changed (:from to :to): the ID card link changes, so the old printed card stops working. Re-issue it from the employee page.',
+            'announce' => 'Announce the new role',
+            'contract' => 'Contract created',
+            'account' => 'Login account (work email)',
+            'account_hint' => 'Lets them sign in; a password setup link is emailed to them.',
+            'card' => 'ID card',
+            'card_ready' => 'The ID card can be shown now.',
+            'welcome' => 'Welcome message',
+            'welcome_hint' => 'Pick a template: it opens as a new message to read and edit first.',
+        ],
         'open_employee_edit' => 'Open the employee page',
         'open_contract_page' => 'Open the contract',
         'later' => 'Later',
