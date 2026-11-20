@@ -41,6 +41,7 @@ use Livewire\Livewire;
 use Mockery;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
+use Tests\Concerns\ApplicantNames;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
@@ -196,7 +197,9 @@ class PublicRecruitmentLinkTest extends TestCase
             ->assertSee('data-recruitment-wizard', false)
             ->assertSee('data-wizard-step', false)
             ->assertSee('data-wizard-next', false)
-            ->assertSee('name="answers[full_name]"', false)
+            ->assertSee('name="answers[first_name_ar]"', false)
+            ->assertSee('name="answers[mother_name_en]"', false)
+            ->assertDontSee('name="answers[full_name]"', false)
             ->assertSee('name="answers[cv]"', false)
             ->assertSee('name="submission_key"', false)
             ->assertSee('enctype="multipart/form-data"', false)
@@ -316,7 +319,8 @@ class PublicRecruitmentLinkTest extends TestCase
             ->assertSee(__('careers.submitted_title'));
         $this->assertSame(1, RecruitmentApplicant::query()->count());
         $this->assertSame(1, RecruitmentApplication::query()->count());
-        $this->assertDatabaseHas('recruitment_application_answers', ['field_key' => 'full_name']);
+        $this->assertDatabaseHas('recruitment_application_answers', ['field_key' => 'first_name_ar']);
+        $this->assertDatabaseHas('recruitment_application_answers', ['field_key' => 'mother_name_en']);
         $this->assertDatabaseHas('recruitment_applicant_files', ['file_type' => 'cv']);
 
         foreach ([
@@ -804,7 +808,7 @@ class PublicRecruitmentLinkTest extends TestCase
         $this->assertSame('internal', $applicant->source);
         $this->assertNotNull($applicant->identity_verified_at);
         // Edits made on the form stay on the application, not the record.
-        $this->assertSame('Rami H.', $applicant->full_name);
+        $this->assertSame(ApplicantNames::fullName('Rami H.'), $applicant->full_name);
         $this->assertSame('Rami', $staff->profile->fresh()->first_name_en);
 
         $this->actingAs($staff)
@@ -840,7 +844,7 @@ class PublicRecruitmentLinkTest extends TestCase
             ->assertRedirect();
 
         $applicant = RecruitmentApplicant::query()->sole();
-        $this->assertSame('Rami Haddad', $applicant->full_name);
+        $this->assertSame(ApplicantNames::fullName('Rami Haddad'), $applicant->full_name);
         $this->assertSame('0944123456', $applicant->phone_normalized);
         $this->assertSame($staff->employee_id, (int) $applicant->employee_id);
         $this->assertNotNull($applicant->identity_verified_at);
@@ -1402,7 +1406,7 @@ class PublicRecruitmentLinkTest extends TestCase
             'locale' => 'en',
             'submission_key' => $submissionKey ?? bin2hex(random_bytes(32)),
             'answers' => [
-                'full_name' => $fullName,
+                ...ApplicantNames::answers($fullName),
                 'email' => $email,
                 'phone' => '0944123456',
                 'cv' => UploadedFile::fake()->createWithContent(

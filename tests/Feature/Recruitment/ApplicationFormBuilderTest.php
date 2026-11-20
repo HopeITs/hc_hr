@@ -24,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Tests\Concerns\ApplicantNames;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
@@ -68,6 +69,54 @@ class ApplicationFormBuilderTest extends TestCase
         $this->assertSame('Legal full name', $draft->fields_json[0]['label']['en']);
     }
 
+    /** The eight names replace "Full name" on every form, published ones included, where it was: before the email. */
+    public function test_every_form_asks_for_the_eight_names_where_full_name_was(): void
+    {
+        $service = app(RecruitmentApplicationFormService::class);
+
+        // A form published before the names existed.
+        $keys = array_column($service->normalizeFields([['key' => 'vacancy_city'], ['key' => 'full_name'], ['key' => 'email'], ['key' => 'phone']]), 'key');
+
+        $this->assertNotContains('full_name', $keys);
+        $this->assertSame(
+            ['vacancy_city', ...RecruitmentApplicationFormService::NAME_FIELDS, 'email'],
+            array_slice($keys, 0, 10),
+        );
+        foreach ($service->normalizeFields([['key' => 'email']]) as $field) {
+            if (in_array($field['key'], RecruitmentApplicationFormService::NAME_FIELDS, true)) {
+                $this->assertTrue($field['required'] && $field['locked'], $field['key']);
+            }
+        }
+        $this->assertSame(RecruitmentApplicationFormService::NAME_FIELDS, array_values(array_intersect(array_column($service->defaultFields(), 'key'), RecruitmentApplicationFormService::NAME_FIELDS)));
+    }
+
+    /** Each name in its own script, and the record's single name is the Arabic first and last name. */
+    public function test_names_are_checked_for_their_script(): void
+    {
+        [$campaign, $hr] = $this->makeCampaign();
+        $service = app(RecruitmentApplicationFormService::class);
+        $state = $service->openEditor($campaign, $hr);
+        $version = $service->publish(
+            $state['application_form'], collect($state['fields'])->where('locked', true)->values()->all(), 'v1', $hr, $state['version']->id, $state['fingerprint'],
+        );
+        $answers = [
+            ...ApplicantNames::answers('Rami Haddad'), 'email' => 'applicant@example.com', 'phone' => '0944123456',
+            'cv' => UploadedFile::fake()->create('cv.pdf', 100, 'application/pdf'), 'privacy_consent' => 'yes',
+        ];
+
+        $this->assertSame('Rami', $service->validateSubmission($version, $answers)['first_name_en']);
+        $this->assertSame(ApplicantNames::fullName('Rami Haddad'), RecruitmentApplicationFormService::fullNameFrom($answers));
+
+        foreach ([['first_name_ar', 'Rami'], ['mother_name_en', 'ماري'], ['father_name_ar', '']] as [$key, $value]) {
+            try {
+                $service->validateSubmission($version, [...$answers, $key => $value]);
+                $this->fail("{$key} = '{$value}' was accepted.");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey("answers.{$key}", $e->errors());
+            }
+        }
+    }
+
     public function test_submission_is_validated_against_the_exact_published_version_and_rejects_unknown_fields(): void
     {
         [$campaign, $hr] = $this->makeCampaign();
@@ -86,13 +135,13 @@ class ApplicationFormBuilderTest extends TestCase
             $state['application_form'], $minimalFields, 'v1', $hr, $state['version']->id, $state['fingerprint'],
         );
         $answers = [
-            'full_name' => 'Applicant Name', 'email' => 'applicant@example.com', 'phone' => '0944123456',
+            ...ApplicantNames::answers('Applicant Name'), 'email' => 'applicant@example.com', 'phone' => '0944123456',
             'cv' => UploadedFile::fake()->create('cv.pdf', 100, 'application/pdf'),
             'privacy_consent' => 'yes',
             $customField['key'] => 'full_time',
         ];
 
-        $this->assertSame('Applicant Name', $service->validateSubmission($version, $answers)['full_name']);
+        $this->assertSame('Applicant', $service->validateSubmission($version, $answers)['first_name_en']);
         $this->assertSame('full_time', $service->validateSubmission($version, $answers)[$customField['key']]);
 
         $this->expectException(ValidationException::class);
@@ -147,7 +196,7 @@ class ApplicationFormBuilderTest extends TestCase
             ->assertSet('customType', 'text')
             ->assertCount('fields', count(RecruitmentApplicationFormService::FIELD_CATALOG) + 1);
 
-        $this->assertContains('الاسم الكامل', array_column(array_column($component->get('fields'), 'label'), 'ar'));
+        $this->assertContains('الاسم (بالعربية)', array_column(array_column($component->get('fields'), 'label'), 'ar'));
         $this->assertContains('طريقة التواصل المفضلة', array_column(array_column($component->get('fields'), 'label'), 'ar'));
 
         $version = $campaign->fresh()->applicationForm->versions()->firstOrFail();
