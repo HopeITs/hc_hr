@@ -118,6 +118,8 @@ return [
     'pending-leave' => 'PENDING: :attr',
     'pending-leave2' => 'PENDING:',
     'total-leave' => 'TOTAL: :attr',
+    // Under the compact balance figure (dashboard tile): what "9/12" means.
+    'leave-days-left-of' => 'days available / total',
 
     'description' => 'Description',
     'board-member-started-at' => 'Membership Started At',

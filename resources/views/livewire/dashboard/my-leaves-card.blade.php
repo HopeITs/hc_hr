@@ -12,6 +12,7 @@
             <p class="num text-h4 font-extrabold leading-tight text-ink">
                 {{ $remainingDays }}<span class="text-body font-semibold text-ink-2">/{{ $totalDays }}</span>
             </p>
+            <p class="line-clamp-2 text-caption leading-tight text-ink-2">{{ __('general.leave-days-left-of') }}</p>
         </div>
         <span class="hc-leaves-bar" aria-hidden="true"><span style="inline-size: {{ max(0, min(100, 100 - (int) $percentage)) }}%"></span></span>
         <x-button variant="outline" size="sm" :href="route('leaves.index')" class="shrink-0">{{ __('general.show-more') }}</x-button>
@@ -30,6 +31,7 @@
                 <div class="flex items-end">
                     <span class="hc-leaves-big num font-extrabold leading-none text-ink">{{ $remainingDays }}</span>
                     <span class="mb-1 text-h3 font-semibold text-ink-2">/{{ $totalDays }}</span>
+                    <span class="sr-only">{{ __('general.leave-days-left-of') }}</span>
                 </div>
 
                 <div class="flex min-w-0 flex-col">

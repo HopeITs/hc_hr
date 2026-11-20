@@ -302,6 +302,9 @@ return [
     'required_qualifications' => 'Required qualifications',
     'detailed_explanation' => 'Business justification / detailed explanation',
     'requests' => 'Recruitment requests',
+    // Under the requests page title (quick fixes 6, 7): how a hire starts, for whoever is new to it.
+    'requests_intro' => 'Hiring starts here: a manager raises a recruitment request for a position, it goes through approvals, then becomes a vacancy and a campaign opens for it to receive applicants.',
+    'requests_intro_direct' => 'Direct opening is for a hire already agreed outside the system: record who asked and the approvals given, and it opens without going through the approvals here.',
     'navigation_section' => 'Recruitment',
     'navigation_requests' => 'Requests',
     'navigation_pending_approvals' => 'Pending approvals',

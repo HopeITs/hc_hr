@@ -20,6 +20,7 @@
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <livewire:layout.breadcrumbs :title="__('recruitment-campaign.campaigns')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment-campaign.campaigns')]]" />
+            <p class="mt-1 max-w-2xl text-small text-ink-2">{{ __('recruitment-campaign.campaigns_intro') }}</p>
             @if ($closingSoon > 0)
                 {{-- Plain sentence, no alarm colour: it is a reminder, not an error. --}}
                 <p class="mt-1 flex items-center gap-2 text-small text-secondary-dark">

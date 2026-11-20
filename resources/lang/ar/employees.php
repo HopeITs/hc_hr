@@ -29,6 +29,9 @@ return [
     ],
 
     'file-input' => [
+        // The page draws the file button itself (forms/file-input): the browser's own text follows the browser's language.
+        'choose' => 'اختيار ملف',
+        'none-chosen' => 'لم يُختر ملف',
         'staged' => 'لم يُحفظ بعد. يبقى هذا الملف مرفقًا ما دامت هذه الصفحة مفتوحة، حتى لو فشل الحفظ. إذا غادرت الصفحة أو أعدت تحميلها، فاختره مرة أخرى.',
         'new-profile-photo' => 'الصورة الشخصية الجديدة',
         'current-profile-photo' => 'الصورة الشخصية الحالية',

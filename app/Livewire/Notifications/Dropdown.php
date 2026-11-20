@@ -28,13 +28,22 @@ class Dropdown extends Component
 
         // Reads only; retryLoad() never writes, so a retry cannot mark anything read.
         [$notifications, $states, $hasUnread, $unreadCount] = $this->guardedLoad(function () use ($user) {
-            $unread = $user->unreadNotifications()
-                ->latest()
-                ->take(3)
-                ->get();
+            // A notice about a request this user can no longer open leads nowhere:
+            // the short list leaves it out (the full page still lists it, with why).
+            $openable = function ($query, int $limit) use ($user) {
+                $rows = $query->latest()->take($limit + 6)->get();
+                $states = app(NotificationRequestState::class)->forMany($user, $rows);
+
+                return $rows
+                    ->reject(fn ($n) => ($states[$n->id]['state'] ?? null) === NotificationRequestState::UNAVAILABLE)
+                    ->take($limit)
+                    ->values();
+            };
+
+            $unread = $openable($user->unreadNotifications(), 3);
 
             $read = $unread->count() < 3
-                ? $user->readNotifications()->latest()->take(4 - $unread->count())->get()
+                ? $openable($user->readNotifications(), 4 - $unread->count())
                 : collect();
 
             $notifications = $unread->merge($read);

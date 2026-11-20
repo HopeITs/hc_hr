@@ -70,18 +70,17 @@ class NotificationRequestState
             return 0;
         }
 
-        // Only a notice asking for a decision or a review can become handled.
-        $actionable = $user->unreadNotifications()
-            ->where(fn ($query) => $query
-                ->where('data', 'like', '%"action":"decide"%')
-                ->orWhere('data', 'like', '%"action":"review"%'))
+        // Only a notice about a leave request can become handled, or point at a
+        // request this user can no longer open; neither asks anything of them.
+        $aboutLeave = $user->unreadNotifications()
+            ->where('data', 'like', '%"type":"leave_request"%')
             ->get();
 
-        $handled = collect($this->forMany($user, $actionable))
-            ->where('state', self::HANDLED)
+        $settled = collect($this->forMany($user, $aboutLeave))
+            ->whereIn('state', [self::HANDLED, self::UNAVAILABLE])
             ->count();
 
-        return max(0, $unread - $handled);
+        return max(0, $unread - $settled);
     }
 
     /** @return array{state: string, status: ?string, next_step: ?string} */

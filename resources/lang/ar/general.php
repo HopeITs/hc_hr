@@ -452,6 +452,8 @@ return [
     'pending-leave' => 'قيد الدراسة: :attr',
     'pending-leave2' => 'قيد الدراسة',
     'total-leave' => 'الكلي: :attr',
+    // Under the compact balance figure (dashboard tile): what "9/12" means.
+    'leave-days-left-of' => 'أيام متاحة / الرصيد الكلي',
     'no_items_from_checklist' => 'لم يتم تعيين أي عناصر من قائمة التحقق بعد.',
     'hours' => 'ساعة',
     'text1' => 'مركز الرجاء المسيحي - حلب / الإدارة العامة الممثل <strong><br>   في هذا العقد بالسيد فريدي يوسف ',

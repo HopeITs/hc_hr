@@ -32,6 +32,7 @@
             <livewire:layout.breadcrumbs :title="__('recruitment-applicant.applicants')" :crumbs="[['label' => __('recruitment.navigation_section')], ['label' => __('recruitment-applicant.applicants')]]" />
             {{-- Where focus returns after a bulk action; the visible title is the breadcrumb above. --}}
             <span id="applicants-title" tabindex="-1" class="sr-only scroll-mt-24">{{ __('recruitment-applicant.applicants') }}</span>
+            <p class="mt-1 max-w-2xl text-small text-ink-2">{{ __('recruitment-applicant.applicants_intro') }}</p>
         </div>
 
         {{-- The campaign is the widest lens on the page, so it sits with the title rather than inside a filter card. --}}

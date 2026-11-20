@@ -88,6 +88,26 @@ class GlanceCardTest extends TestCase
             ->assertDontSeeHtml('x-ui.load-error');
     }
 
+    public function test_a_failure_is_remembered_so_the_next_dashboard_does_not_wait_again(): void
+    {
+        Http::fake([
+            'api.open-meteo.com/*' => Http::response('down', 503),
+            'api.met.no/*' => Http::response('down', 503),
+        ]);
+        $user = $this->makeUser($this->alp, 'employee', ['leaves.view-own']);
+
+        Livewire::actingAs($user)->test(GlanceCard::class)->assertSee(__('dashboard.glance.no-weather'));
+        Livewire::actingAs($user)->test(GlanceCard::class)->assertSee(__('dashboard.glance.no-weather'));
+
+        // Both sources were asked once; the second card read the remembered failure.
+        Http::assertSentCount(2);
+
+        // Once it is forgotten, they are asked again.
+        $this->travel(WeatherFeed::FAILURE_CACHE_MINUTES + 1)->minutes();
+        Livewire::actingAs($user)->test(GlanceCard::class);
+        Http::assertSentCount(4);
+    }
+
     public function test_met_norway_answers_when_open_meteo_does_not(): void
     {
         Http::fake([

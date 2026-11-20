@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Under the list title (quick fix 7): where the rows come from, so an empty list is not a dead end.
+    'applicants_intro' => 'Everyone who applied through a campaign link appears here. From an applicant\'s page you review the application and, once shortlisted, schedule an interview.',
     'applicants' => 'Applicants',
     'applicants_hint' => 'Every application inside your recruitment scope. Open a row to see the applicant’s full history.',
     'back_to_list' => 'All applicants',
@@ -909,6 +911,8 @@ return [
      * internal; nothing here is sent to the candidate by the system.
      */
     'offers' => [
+        // Under the list title (quick fix 7): where offers come from and what follows acceptance.
+        'intro' => 'An offer is made from the applicant\'s page after the interviews. Once it is accepted, open the offer and convert it to an employee: that creates the employee record and the contract.',
         'title' => 'Job offers',
         'index_hint' => 'Offers for applications in your recruitment scope. Pay figures appear on each offer, only for users allowed to see them.',
         'all' => 'All offers',

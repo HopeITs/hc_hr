@@ -107,6 +107,20 @@ class EmployeeAttachmentPreviewTest extends TestCase
             ->assertDontSee('degree-certificate.pdf');
     }
 
+    /** Quick fix 5: the page draws the file button in its own language; the browser's own text is hidden. */
+    public function test_the_file_button_speaks_the_page_language(): void
+    {
+        app()->setLocale('ar');
+
+        $html = \Illuminate\Support\Facades\Blade::render('<x-forms.file-input id="photo" wire:model="photo" preview-type="avatar" accept="image/*" />');
+
+        $this->assertStringContainsString(__('employees.file-input.choose'), $html);
+        $this->assertStringContainsString(__('employees.file-input.none-chosen'), $html);
+        // The real input stays (keyboard, screen readers, wire:model), only hidden from sight.
+        $this->assertMatchesRegularExpression('/<input[^>]*class="sr-only"[^>]*type="file"|<input[^>]*type="file"[^>]*class="sr-only"/', $html);
+        $this->assertStringContainsString('id="photo"', $html);
+    }
+
     /**
      * The file input used to render `$errors->first(null)` when given no
      * `name`, and MessageBag::first(null) returns the first message in the
