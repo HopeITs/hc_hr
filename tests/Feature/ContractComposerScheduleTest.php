@@ -85,6 +85,45 @@ class ContractComposerScheduleTest extends TestCase
         $this->assertSame(0, Contract::count());
     }
 
+    /** HR-021: "09:00 to 01:00" (01:00 meant 1 PM) used to be saved and printed on the contract. */
+    public function test_a_first_shift_that_ends_before_it_starts_is_rejected(): void
+    {
+        $fixtures = $this->makeFixtures();
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('submit', $this->basePayload($fixtures, [
+                'scheduleMode' => ScheduleMode::Fixed,
+                'workHoursFrom' => '09:00',
+                'workHoursTo' => '01:00',
+                'workDayFrom' => 0,
+                'workDayTo' => 4,
+                'weeklyHours' => 40,
+            ]))
+            ->assertHasErrors('form.work_hours_to');
+
+        $this->assertSame(0, Contract::count());
+    }
+
+    public function test_a_flexible_schedule_needs_no_shift_hours(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $this->ignoreLeaveBalances();
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class)
+            ->call('submit', $this->basePayload($fixtures, [
+                'scheduleMode' => ScheduleMode::Flexible,
+                'workHoursFrom' => '',
+                'workHoursTo' => '',
+                'flexHoursPerWeek' => 25,
+                'weeklyHours' => 25,
+            ]))
+            ->assertHasNoErrors();
+
+        $this->assertSame(1, Contract::count());
+    }
+
     public function test_flexible_mode_takes_weekly_hours_from_its_own_box(): void
     {
         $fixtures = $this->makeFixtures();

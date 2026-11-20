@@ -1,0 +1,6 @@
+..                                                                  2 / 2 (100%)
+Time: 00:03.437, Memory: 84.00 MB
+Contract Composer Schedule (Tests\Feature\ContractComposerSchedule)
+ ✔ A first shift that ends before it starts is rejected
+ ✔ A flexible schedule needs no shift hours
+OK (2 tests, 6 assertions)

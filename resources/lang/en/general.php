@@ -835,6 +835,7 @@ return [
         'schedule-flexible-hint' => 'Tick whichever of the following apply. They can be combined.',
         'schedule-preview-title' => 'Printed wording preview',
         'schedule-hint-day-range' => 'Select a day range above to continue.',
+        'schedule-hint-first-shift' => 'Set the working hours: the end time must be after the start time (13:00 for 1 PM).',
         'schedule-hint-second-shift' => "Finish the second shift's times, or remove it, to continue.",
         'schedule-hint-weekly-hours' => 'Check "Hours per week" below and enter a number to continue.',
         'flex-hours-group' => 'How the hours are counted',

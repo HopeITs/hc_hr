@@ -155,3 +155,66 @@ Tested on `https://hc-hr.test` as city HR (lina.sayegh, HR-LAT) and as the gener
 - [ ] **HR-013 (Critical):** deleting an employee is permanent and cascades to contracts, leave, attendance and the login account.
 - [ ] **HR-015 (Medium):** people holding two positions show only one in the org chart drawer.
 - [ ] **HR-019 (Low):** public ID card links are guessable (sequential employee ID).
+
+---
+---
+
+# Task title
+
+**QA Group 3 – Contracts: shift-hour validation, delete dialog scope, disabled button and phone list (HR-021, HR-023, HR-025, HR-026; HR-024 reviewed)**
+
+**Status:** Done · **Priority:** High · **Tags:** QA, Validation, Permissions, UI, Mobile
+**Commit:** _(fill in after commit)_
+**Attachments:** the 4 screenshots and 6 text files in `qa-evidence/group-3/` (`*-before.*` / `*-after.*`)
+
+---
+
+# Description
+
+## Summary
+The QA review of Group 3 (contracts list, create, renew, edit, details, amendments, PDF) found 6 issues. This task fixes 4 of them. On closer testing, a fifth (HR-024) turned out to be intended behaviour. HR-022 (deleting a contract also deletes its applied amendments) is deliberately not part of this task.
+
+Tested on `https://hc-hr.test` as city HR (lina.sayegh, HR-LAT), at 390px.
+
+## Fixes
+
+### ✅ HR-021 · First-shift working hours were never validated (High)
+- **Before:** `ContractForm::validateTerms()` checked the second shift only. "21:00 to 17:00" or "09:00 to 01:00" (01:00 meant 1 PM) was saved and printed on the signed contract. Three active contracts already have inverted hours: **#153 (21:00→17:00), #163 (09:00→01:00), #273 (08:00→04:00)**.
+- **After:** the same rule as the second shift. Both times or neither, `H:i`, and the end after the start. Not *required*: 75 older fixed-schedule contracts have no hours on file and must stay editable. The composer refuses it in the browser too, with the hint "Set the working hours: the end time must be after the start time (13:00 for 1 PM)." (EN/AR).
+- **Files:** `app/Livewire/Forms/ContractForm.php`, `resources/js/contract-composer.js`, `resources/views/livewire/contract/composer/_screen.blade.php`, `resources/lang/{en,ar}/general.php`
+- **Tests:** in `tests/Feature/ContractComposerScheduleTest.php`, `test_a_first_shift_that_ends_before_it_starts_is_rejected` and `test_a_flexible_schedule_needs_no_shift_hours`.
+- **Evidence:** `HR-021-test-run-before.txt` (the old code let 09:00→01:00 through validation) / `-after.txt` (rejected on `form.work_hours_to`)
+- **⚠ Follow-up for HR:** the three contracts above are **not** changed by this task; their correct hours are an HR decision. Until they're corrected, editing or amending them shows the new error.
+
+### ✅ HR-023 · Disabled primary button showed as pale pink (Low)
+- **Before:** every disabled `.hc-btn` got `opacity: 0.45`, so a red primary ("Save amendment") faded to pink. The brand rule says red is never tinted into a pale fill.
+- **After:** a disabled primary uses the neutral disabled look (surface fill, ink-3 text, full opacity). This applies to every primary button in the app.
+- **File:** `resources/css/components.css`
+- **Evidence:** `HR-023-disabled-save-amendment-390-before.png` / `-after.png` and `.txt` (before: `rgb(190,31,36)` at 0.45; after: `rgb(230,231,232)` / `rgb(147,149,152)` at 1)
+
+### ✅ HR-025 · Contracts list on phones: dates broken mid-value, mixed date formats, stacked chips (Low)
+- **Before (390px):** card text broke inside a date ("2026-" / "12-31"). The five preset chips stacked one per line, pushing the first card below the fold. Dates appeared in three formats (table `01-01-2026`, drawer `2026-01-05`, cards ISO).
+- **After:** the phone card and the drawer use `DD-MM-YYYY` like the table and the rest of the module, and each date stays on one line. On phones the preset chips are one row that scrolls sideways (no page scroll). Two full cards are now on the first screen.
+- **Files:** `resources/views/livewire/contract/_card.blade.php`, `contract-drawer.blade.php`, `contracts-table.blade.php`
+- **Evidence:** `HR-025-contracts-list-390-before.png` / `-after.png`
+
+### ✅ HR-026 · Delete dialog opened for a contract the user may not delete (Low)
+- **Before:** `ContractsTable::confirmDelete()` had no check. As HR-LAT, `confirmDelete(5)` (an Aleppo contract) opened the delete dialog. The delete itself was already refused.
+- **After:** `confirmDelete` checks the same `delete` policy. The same applies to the basic-settings tables' `confirmDelete` (`project-basics.delete`) and the holidays table (`canChange`, the rule its delete already uses).
+- **Files:** `app/Livewire/Contract/ContractsTable.php`, `app/Livewire/Basics/*Table.php` (8 tables + `HolidayTable.php`)
+- **Evidence:** `HR-026-confirm-delete-other-city-before.txt` (HTTP 200, dialog opened) / `-after.txt` (HTTP 403, no dialog). An own-city contract still opens the dialog (checked, then cancelled).
+
+### ℹ️ HR-024 · "Message shown twice": reviewed, no change needed
+- The amendment page shows the weekly-hours error in the form-level summary **and** at the field. In the browser the summary sits at the top (in view) while the field's message is about 1,300px lower (out of view), so the user never sees both at once.
+- The summary is designed to list exactly the errors whose field isn't on screen, each linking to its field. The original report counted both because the check didn't test what was in view.
+- The same probably applies to HR-031 (leave dialog); to be re-checked in that group.
+
+## Verification
+- [x] Browser, 390px: the HR-023 button colours, the HR-025 list (chips in one row, dates whole, no horizontal page scroll), and HR-026 (Aleppo 403, own city opens the dialog).
+- [x] 43 test files covering contracts, amendments, basic settings, holidays and identity components: only the 2 pre-existing `ContractAutoRenewalWorkflowTest::test_warning_command_…` failures.
+- [x] Before/after evidence captured on the original code and on the fixed code (Chrome). Files restored and checked byte for byte afterwards.
+- [x] Full test suite: 2,940 tests. The 2 new tests pass. The same 5 failures as before, all pre-existing (they fail without these changes too): `EmployeeToolsTest`, `BottomNavTest`, 2 × `ContractAutoRenewalWorkflowTest`, `BrandedEmailTest`.
+
+## Not in this task
+- [ ] **HR-022 (High):** deleting a contract with applied amendments deletes them too, against the "never delete an amendment in effect" rule. Left for a separate decision.
+- [ ] **Data:** correct the hours of contracts #153, #163 and #273 (HR to confirm the real times).

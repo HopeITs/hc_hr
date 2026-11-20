@@ -465,9 +465,23 @@ document.addEventListener('alpine:init', () => {
                 && this.endDate >= this.startDate && !this.endDateTooFar);
         },
 
+        /** The first shift: both times or neither, the end after the start (the server's rule). */
+        firstShiftValid() {
+            if (!this.workHoursFrom && !this.workHoursTo) {
+                return true;
+            }
+
+            return Boolean(this.workHoursFrom && this.workHoursTo && this.workHoursTo > this.workHoursFrom);
+        },
+
         get scheduleValid() {
             if (this.scheduleMode === '1') {
                 if (this.workDayFrom === '' || this.workDayTo === '' || Number(this.workDayTo) < Number(this.workDayFrom)) {
+                    return false;
+                }
+
+                // The server refuses the same (HR-021): a shift ends after it starts.
+                if (!this.firstShiftValid()) {
                     return false;
                 }
 
@@ -502,6 +516,10 @@ document.addEventListener('alpine:init', () => {
             if (this.scheduleMode === '1') {
                 if (this.workDayFrom === '' || this.workDayTo === '') {
                     return this.labels.scheduleHintDayRange;
+                }
+
+                if (!this.firstShiftValid()) {
+                    return this.labels.scheduleHintFirstShift;
                 }
 
                 if (this.hasSecondShift() && !(this.workHours2From && this.workHours2To && this.workHours2To > this.workHours2From)) {

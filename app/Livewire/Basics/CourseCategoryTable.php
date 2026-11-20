@@ -29,6 +29,8 @@ class CourseCategoryTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         $this->confirm('delete', ['id' => $id]);
     }
 

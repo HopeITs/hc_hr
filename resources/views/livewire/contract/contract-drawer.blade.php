@@ -58,7 +58,7 @@
 
                     <dl class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-3 gap-y-3 text-small">
                         <dt class="text-ink-2">{{ __('general.period') }}</dt>
-                        <dd class="font-medium" dir="auto"><bdi>{{ $contract->start_date?->format('Y-m-d') }} – {{ $contract->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></dd>
+                        <dd class="font-medium" dir="auto"><bdi><span class="num whitespace-nowrap">{{ $contract->start_date?->format('d-m-Y') }}</span> – <span class="num whitespace-nowrap">{{ $contract->end_date?->format('d-m-Y') ?? __('general.present') }}</span></bdi></dd>
                         @foreach($fields as $label => $value)
                             @continue(blank($value))
                             <dt class="text-ink-2">{{ $label }}</dt>
@@ -67,7 +67,7 @@
                         @if($contract->isTerminated())
                             <dt class="text-ink-2">{{ __('general.terminated-at') }}</dt>
                             <dd class="break-words font-medium" dir="auto">
-                                <bdi>{{ $contract->terminated_at?->format('Y-m-d') }}</bdi>
+                                <bdi>{{ $contract->terminated_at?->format('d-m-Y') }}</bdi>
                                 {{ $contract->terminationReason?->title ?? $contract->reason_of_termination }}
                             </dd>
                         @endif

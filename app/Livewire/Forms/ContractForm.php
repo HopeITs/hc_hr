@@ -371,6 +371,12 @@ class ContractForm extends Form
             // "hours/week" box, for any category that isn't service.
             'work_day_from' => ['nullable', 'integer', 'between:0,6', 'required_with:work_day_to'],
             'work_day_to' => ['nullable', 'integer', 'between:0,6', 'gte:work_day_from', 'required_with:work_day_from'],
+            // The first shift was never checked, so "21:00 to 17:00" or "09:00 to 01:00"
+            // (01:00 meant 1 PM) was saved and printed on the signed contract (HR-021).
+            // Same rule as the second shift: both times or neither (some older contracts
+            // carry none), and the end after the start.
+            'work_hours_from' => ['nullable', 'date_format:H:i', 'required_with:work_hours_to'],
+            'work_hours_to' => ['nullable', 'date_format:H:i', 'required_with:work_hours_from', 'after:work_hours_from'],
             'work_hours_2_from' => ['nullable', 'date_format:H:i', 'required_with:work_hours_2_to'],
             'work_hours_2_to' => ['nullable', 'date_format:H:i', 'required_with:work_hours_2_from', 'after:work_hours_2_from'],
 

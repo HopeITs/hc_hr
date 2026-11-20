@@ -82,6 +82,10 @@ class ContractsTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        // The dialog only opens for a contract this user may delete; the delete
+        // itself re-checks the same policy (HR-026).
+        Gate::authorize('delete', Contract::findOrFail($id));
+
         $this->confirm('delete', ['id' => $id]);
     }
 
