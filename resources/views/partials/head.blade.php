@@ -85,6 +85,15 @@
 {{-- For fetch() calls outside Livewire (resources/js/push-notifications.js). --}}
 <meta name="csrf-token" content="{{ csrf_token() }}" />
 
+{{-- The signed-in user's private realtime channel (resources/js/echo.js). --}}
+@auth
+    <meta name="user-id" content="{{ auth()->id() }}" />
+    @if (config('chat.enabled'))
+        {{-- resources/js/chat.js subscribes to the chat channel only when this is here. --}}
+        <meta name="chat-enabled" content="1" />
+    @endif
+@endauth
+
 {{-- Web Push (docs/notifications/architecture.md, Browser side), signed-in pages only:
      the VAPID public key (empty = push not configured on this server), this
      browser's subscription endpoints, and whether the bell may chime. One query. --}}
