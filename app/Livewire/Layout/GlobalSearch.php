@@ -7,6 +7,7 @@ use App\Models\MessageTemplate;
 use App\Services\Assistant\Assistant;
 use App\Services\MessageTemplateRenderer;
 use App\Services\WorkPresence;
+use App\Support\Announcements\AnnouncementTemplates;
 use App\Support\CommandPalette;
 use App\Support\DirectoryAccess;
 use App\Support\Navigation;
@@ -120,11 +121,27 @@ class GlobalSearch extends Component
 
         $renderer = app(MessageTemplateRenderer::class);
 
-        return MessageTemplate::query()->active()->orderBy('channel')->orderBy('name')->get()
+        $saved = MessageTemplate::query()->active()->orderBy('channel')->orderBy('name')->get()
             ->map(fn (MessageTemplate $template) => ['name' => $template->name, 'channel' => $template->channel, 'url' => $renderer->url($template, $employee, $user)])
             ->filter(fn (array $row) => $row['url'] !== null)
             ->values()
             ->all();
+
+        // The ready-made announcements about one person, opened in the composer with the
+        // person's Arabic name already in (the wording is Arabic).
+        $announcements = collect(['welcome', 'volunteer_resignation', 'administrative_change'])
+            ->map(fn (string $key) => AnnouncementTemplates::find($key))
+            ->filter()
+            ->map(fn ($template) => [
+                'name' => $template->label(),
+                'channel' => 'announcement',
+                'url' => null,
+                'compose' => ['template' => $template->key(), 'prefill' => ['name' => $employee->nameForLocale('ar')]],
+            ])
+            ->values()
+            ->all();
+
+        return [...$saved, ...$announcements];
     }
 
     /** Each new term counts towards the per-user limit. Livewire refuses direct calls to updated*. */
@@ -212,6 +229,26 @@ class GlobalSearch extends Component
             'showingRecents' => $showingRecents,
             'tooShort' => $term !== '' && mb_strlen($term) < self::MIN_LENGTH,
         ]);
+    }
+
+    /** A question mark (either script), a question word to start, or a sentence of four words or more. */
+    public static function looksLikeQuestion(string $term): bool
+    {
+        if (preg_match('/[?؟]/u', $term) === 1) {
+            return true;
+        }
+
+        $words = array_values(array_filter(explode(' ', SearchText::normalize($term)), fn (string $word) => $word !== ''));
+
+        if (count($words) >= 4) {
+            return true;
+        }
+
+        // Question words and verbs that ask for a list, in both languages (folded: متى = متي, أين = اين).
+        return in_array($words[0] ?? '', [
+            'who', 'what', 'when', 'where', 'which', 'how', 'why', 'list', 'show', 'count', 'find', 'tell',
+            'من', 'ما', 'ماذا', 'كم', 'هل', 'متي', 'اين', 'كيف', 'لماذا', 'اعرض', 'اظهر', 'اذكر', 'ابحث',
+        ], true);
     }
 
     /**
@@ -384,7 +421,9 @@ class GlobalSearch extends Component
         $user = auth()->user();
         $cc = Employee::directManagerEmails($people->all());
         $renderer = app(MessageTemplateRenderer::class);
-        $templates = $user->hasActivePermission('message-templates.use') && MessageTemplate::query()->active()->exists();
+        // The ready-made announcements are always there for who may use templates (a welcome
+        // or a resignation needs no address of the person's own).
+        $templates = $user->hasActivePermission('message-templates.use');
 
         return $people->each(function (Employee $employee) use ($cc, $renderer, $templates): void {
             $actions = [];
@@ -399,7 +438,7 @@ class GlobalSearch extends Component
                 $actions[] = ['kind' => 'external', 'label' => 'WhatsApp', 'href' => 'https://wa.me/'.$number];
             }
 
-            if ($templates && ($mail || $number)) {
+            if ($templates) {
                 $actions[] = ['kind' => 'templates', 'label' => __('smart_search.actions.template'), 'id' => $employee->id];
             }
 
@@ -441,26 +480,6 @@ class GlobalSearch extends Component
         }
 
         return ['href' => route('assistant', ['q' => $term])];
-    }
-
-    /** A question mark (either script), a question word to start, or a sentence of four words or more. */
-    public static function looksLikeQuestion(string $term): bool
-    {
-        if (preg_match('/[?؟]/u', $term) === 1) {
-            return true;
-        }
-
-        $words = array_values(array_filter(explode(' ', SearchText::normalize($term)), fn (string $word) => $word !== ''));
-
-        if (count($words) >= 4) {
-            return true;
-        }
-
-        // Question words and verbs that ask for a list, in both languages (folded: متى = متي, أين = اين).
-        return in_array($words[0] ?? '', [
-            'who', 'what', 'when', 'where', 'which', 'how', 'why', 'list', 'show', 'count', 'find', 'tell',
-            'من', 'ما', 'ماذا', 'كم', 'هل', 'متي', 'اين', 'كيف', 'لماذا', 'اعرض', 'اظهر', 'اذكر', 'ابحث',
-        ], true);
     }
 
     /** Directory columns and what a result line shows; the caller adds the scope. */

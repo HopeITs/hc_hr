@@ -146,6 +146,43 @@ class LeaveBalance extends Model
         return $this->getFormattedLabel($days, $remaining);
     }
 
+    /**
+     * The same figures in whole hours, for the employee's own cards (my leaves,
+     * the dashboard tile): "6 days and 1 hour" reads at a glance where "6 days,
+     * 1 hour and 20 minutes" does not. Every figure rounds DOWN to the half hour
+     * (roundedParts): what may still be taken never promises time the request
+     * form would refuse, and an untouched balance shows the same figure as its total
+     * (rounding them two ways made "14 days and 2 hours" left of "14 days and 3
+     * hours"). Requests themselves still take any number of minutes. HR's tables and the exports keep the exact *_formatted.
+     */
+    public function getAvailableRoundedAttribute(): string
+    {
+        return $this->roundedLabel(max(0, $this->availableHours()));
+    }
+
+    public function getUsedRoundedAttribute(): string
+    {
+        return $this->roundedLabel((float) ($this->used ?? 0));
+    }
+
+    public function getDeservedRoundedAttribute(): string
+    {
+        return $this->roundedLabel((float) ($this->deserved ?? 0) + $this->creditHours());
+    }
+
+    /** pending_days / pending_hours are set by Employee::availableLeaves() (days, then the hours left over). */
+    public function getPendingRoundedAttribute(): string
+    {
+        return $this->roundedParts((int) ($this->pending_days ?? 0), (float) ($this->pending_hours ?? 0));
+    }
+
+    public function roundedLabel(float $hours): string
+    {
+        [$days, $rest] = $this->splitIntoDays($hours);
+
+        return $this->roundedParts((int) $days, (float) $rest);
+    }
+
     public function getRemainingAttribute(): string
     {
         [$days, $remaining] = $this->splitIntoDays(($this->deserved ?? 0) + $this->creditHours() - ($this->used ?? 0));
@@ -232,6 +269,34 @@ class LeaveBalance extends Model
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Whole and half hours only: the minutes beyond the last half hour are left
+     * out until they add up to one ("2 hours and 40 minutes" shows "2½ hours").
+     * Display only: a request may still be for any number of minutes.
+     */
+    private function roundedParts(int $days, float $rest): string
+    {
+        // A hair under a half hour after float arithmetic is that half hour, not the one below.
+        $halves = (int) floor(($rest + 0.001) * 2);
+        $hours = intdiv($halves, 2);
+
+        if ($halves % 2 === 0) {
+            return $this->getFormattedLabel($days, $hours);
+        }
+
+        $time = trans_choice('general.count.hours-half', $hours, ['count' => '<strong class="text-secondary-dark">'.$hours.'</strong>']);
+
+        if ($days === 0) {
+            return $time;
+        }
+
+        // The same joining as getFormattedLabel(): "14 days and 2½ hours".
+        return __('general.and', [
+            'attr1' => trans_choice('general.count.days', $days, ['count' => '<strong class="text-secondary-dark">'.$days.'</strong>']).' ',
+            'attr2' => $time,
+        ]);
     }
 
     /**

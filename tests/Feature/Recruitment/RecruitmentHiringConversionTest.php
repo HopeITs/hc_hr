@@ -203,6 +203,31 @@ class RecruitmentHiringConversionTest extends TestCase
     }
 
     /** rules + avoid: the contract is built from the accepted version — never an earlier one, never the live offer. */
+    /** Medium fix 15: Add employee points at an accepted offer still waiting, and stops once it is converted. */
+    public function test_add_employee_points_at_accepted_offers_waiting_to_be_converted(): void
+    {
+        Notification::fake();
+        [, $offer] = $this->accepted();
+        $this->actingAs($this->hr);
+        app()->setLocale('en');
+
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertSeeHtml('data-testid="offers-awaiting-conversion"')
+            ->assertSee('1 accepted job offer is waiting to be converted to an employee')
+            ->assertSeeHtml(route('recruitment.offers.convert', ['offerId' => $offer->id]));
+
+        // Without the right to convert, nothing is offered.
+        $this->actingAs($this->without($this->hr, ['recruitment-applicants.convert-hires']));
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
+
+        // Once hired, it is no longer waiting.
+        $this->actingAs($this->hr);
+        Livewire::test(Convert::class, ['offerId' => $offer->id])->set('employee', $this->person())->call('save');
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
+    }
+
     public function test_the_contract_takes_the_accepted_snapshot(): void
     {
         $application = $this->selected();

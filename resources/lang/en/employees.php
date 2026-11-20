@@ -5,6 +5,13 @@
 // ...) stay in general.php; only what this area adds lives here.
 
 return [
+    // Add employee: accepted offers still to convert (EmployeeCreate::offersAwaitingConversion).
+    'offers-awaiting' => [
+        'title' => '{1} 1 accepted job offer is waiting to be converted to an employee|[2,*] :count accepted job offers are waiting to be converted to an employee',
+        'hint' => 'If the person you are adding is one of them, convert them from their offer instead: that links them to their recruitment file and writes their contract from the accepted terms.',
+        'convert' => 'Convert to employee',
+        'all' => 'See all offers',
+    ],
     'table' => [
         'id' => 'ID',
     ],

@@ -10,6 +10,7 @@ use App\Livewire\Forms\Employee\PersonalInfoForm;
 use App\Models\City;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Models\RecruitmentHiringConversion;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -241,7 +242,35 @@ class EmployeeCreate extends Component
             'canViewContractHistory' => ! auth()->user()->activeRoleIs('employee'),
             'canViewContractPay' => false,
             'contractHistory' => collect(),
+            'offersAwaitingConversion' => $this->offersAwaitingConversion(),
         ]);
+    }
+
+    /**
+     * Accepted offers not yet turned into an employee, that this user may convert.
+     * Converting from the offer links the person to their recruitment file and
+     * writes the contract from the accepted terms; typing them in here does
+     * neither, so the page points there first. Same gates as the convert route
+     * (recruitment-applicants.convert-hires) and the offers list (visibleTo).
+     *
+     * @return array{count: int, rows: \Illuminate\Support\Collection<int, RecruitmentHiringConversion>}
+     */
+    private function offersAwaitingConversion(): array
+    {
+        $user = auth()->user();
+
+        if (! $user->hasActivePermission('recruitment-applicants.convert-hires')) {
+            return ['count' => 0, 'rows' => collect()];
+        }
+
+        $query = RecruitmentHiringConversion::query()
+            ->whereIn('status', [RecruitmentHiringConversion::STATUS_PENDING, RecruitmentHiringConversion::STATUS_FAILED])
+            ->whereHas('jobOffer', fn ($offers) => $offers->visibleTo($user));
+
+        return [
+            'count' => (clone $query)->count(),
+            'rows' => $query->with(['applicant', 'jobOffer.position'])->oldest()->take(3)->get(),
+        ];
     }
 
     /** Where the record this form created is remembered, per user and opened form. */

@@ -948,6 +948,8 @@ return [
     'count' => [
         'days' => ':count Day|:count Days',
         'hours' => ':count Hour|:count Hours',
+        // A whole number of hours and a half (the employee's balance cards, LeaveBalance::*_rounded).
+        'hours-half' => '{0} Half an Hour|{1} 1½ Hours|[2,*] :count½ Hours',
         'minutes' => ':count Minute|:count Minutes',
         'months' => ':count Month|:count Months',
         'years' => ':count Year|:count Years',
