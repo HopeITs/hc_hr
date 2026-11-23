@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Enums\LeavingCategory;
 use App\Exports\LeavingReasonsExport;
+use App\Livewire\Basics\TerminationReasonModule;
 use App\Livewire\Reports\LeavingReasons;
 use App\Models\Center;
 use App\Models\City;
@@ -14,6 +16,7 @@ use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\TerminationReason;
+use App\Notifications\LeavingReasonsMissing;
 use App\Services\LeavingReasonsReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -121,13 +124,146 @@ class LeavingReasonsReportTest extends TestCase
             ->get(route('reports.leaving-reasons'))->assertForbidden();
     }
 
+    public function test_leavers_group_by_category_with_the_unclassified_and_the_missing_apart(): void
+    {
+        $this->resigned->update(['category' => LeavingCategory::Voluntary]);
+
+        $this->left('a', $this->alp, '2026-10-01', $this->resigned);
+        $this->left('b', $this->alp, '2026-10-02', $this->resigned);
+        $this->left('c', $this->alp, '2026-10-03', $this->relocated);
+        $this->left('d', $this->alp, '2026-10-04', null);
+
+        $byCategory = (new LeavingReasonsReport($this->headOffice(), 365))->build()['byCategory']->pluck('count', 'key')->all();
+
+        $this->assertSame(['voluntary' => 2, 'unclassified' => 1, 'missing' => 1], $byCategory);
+    }
+
+    public function test_time_with_us_is_split_into_bands(): void
+    {
+        $this->left('short', $this->alp, '2026-10-01', $this->resigned, '2026-09-01');
+        $this->left('mid', $this->alp, '2026-10-01', $this->resigned, '2026-05-01');
+        $this->left('long', $this->alp, '2026-10-01', $this->resigned, '2024-01-01');
+
+        $bands = (new LeavingReasonsReport($this->headOffice(), 365))->build()['byTenure']->pluck('count')->all();
+
+        $this->assertSame([1, 1, 0, 1], $bands, 'Under 3, 3-6 (none), 6-12, a year or more.');
+    }
+
+    public function test_filters_narrow_the_leavers_by_position_attributes_and_contract_type(): void
+    {
+        $otherDepartment = Department::query()->forceCreate(['name' => 'Finance', 'code' => 'FIN']);
+        $other = $this->position->replicate();
+        $other->forceFill(['title_en' => 'Accountant', 'title_ar' => 'محاسب', 'department_id' => $otherDepartment->id])->save();
+        ContractType::query()->forceCreate(['id' => 3, 'name_en' => 'Trial', 'name_ar' => 'تجريبي']);
+
+        $this->left('prog', $this->alp, '2026-10-01', $this->resigned);
+        $acct = $this->left('acct', $this->alp, '2026-10-02', $this->resigned);
+        $acct->forceFill(['position_id' => $other->id, 'contract_type_id' => 3])->save();
+
+        $total = fn (array $filters) => (new LeavingReasonsReport($this->headOffice(), 365, $filters))->build()['total'];
+
+        $this->assertSame(2, $total([]));
+        $this->assertSame(1, $total(['department_id' => $otherDepartment->id]));
+        $this->assertSame(1, $total(['position_id' => $this->position->id]));
+        $this->assertSame(1, $total(['contract_type_id' => 3]));
+        $this->assertSame(0, $total(['department_id' => $otherDepartment->id, 'contract_type_id' => 1]));
+        $this->assertSame(2, $total(['department_id' => '']), 'A blank filter means all.');
+    }
+
+    public function test_turnover_and_the_previous_period(): void
+    {
+        $this->left('a', $this->alp, '2026-10-01', $this->resigned);
+        $this->left('b', $this->alp, '2026-10-02', $this->resigned);
+        $this->left('prev', $this->alp, '2025-06-01', $this->resigned);
+        foreach (['s1', 's2'] as $name) {
+            $this->contract($this->makeEmployee($this->alp, 'stays.'.$name), ['start_date' => '2025-01-01', 'end_date' => '2027-01-01']);
+        }
+
+        $r = (new LeavingReasonsReport($this->headOffice(), 365))->build();
+
+        $this->assertSame(2, $r['total']);
+        $this->assertSame(1, $r['previousTotal']);
+        $this->assertSame(3, $r['headcount'], 'Four on 2025-11-23 and two today, averaged.');
+        $this->assertSame(66.7, $r['turnoverPercent']);
+
+        $all = (new LeavingReasonsReport($this->headOffice(), 0))->build();
+        $this->assertNull($all['previousTotal']);
+        $this->assertNull($all['turnoverPercent']);
+    }
+
+    public function test_the_page_links_the_gaps_to_the_contract_only_for_those_who_may_edit_it(): void
+    {
+        $c = $this->left('gap', $this->alp, '2026-10-01', null);
+        $link = '/contracts/'.$c->id.'/edit';
+
+        // Roles accumulate permissions in the fixture, so the narrower user goes first.
+        Livewire::actingAs($this->makeUser($this->alp, 'HR-ALP', ['contracts.view']))
+            ->test(LeavingReasons::class)->assertSee('Test Person')->assertDontSee($link);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        Livewire::actingAs($this->makeUser($this->alp, 'HR-ALP', ['contracts.view', 'contracts.update']))
+            ->test(LeavingReasons::class)->assertSee($link);
+    }
+
+    public function test_the_page_filters_and_shows_the_comparison(): void
+    {
+        $this->left('a', $this->alp, '2026-10-01', $this->resigned);
+
+        Livewire::actingAs($this->headOffice())
+            ->test(LeavingReasons::class)
+            ->assertSeeHtml('data-testid="leaving-delta"')
+            ->set('filters.department_id', 999999)
+            ->assertSee('Nobody left in this period.')
+            ->call('clearFilters')
+            ->assertDontSee('Nobody left in this period.');
+    }
+
+    public function test_hr_is_reminded_once_a_month_about_leavers_with_no_reason(): void
+    {
+        $this->left('old-gap', $this->alp, now()->subDays(40)->toDateString(), null);
+        $this->left('fresh-gap', $this->alp, now()->subDays(5)->toDateString(), null);
+        $this->left('has-reason', $this->alp, now()->subDays(40)->toDateString(), $this->resigned);
+        $this->left('ancient', $this->alp, now()->subDays(500)->toDateString(), null);
+        $hr = $this->makeUser($this->alp, 'HR-ALP', ['contracts.view']);
+
+        $this->artisan('leavers:remind-missing-reasons')->assertSuccessful();
+        $this->artisan('leavers:remind-missing-reasons')->assertSuccessful();
+
+        $notes = $hr->notifications()->where('type', LeavingReasonsMissing::class)->get();
+        $this->assertCount(1, $notes, 'The second run sends nothing.');
+        $this->assertStringContainsString('1 contract(s)', $notes->first()->data['body']['en']);
+    }
+
+    public function test_a_termination_reason_can_be_classified(): void
+    {
+        $admin = $this->makeUser($this->alp, 'super-admin', ['project-basics.create', 'project-basics.update']);
+
+        Livewire::actingAs($admin)->test(TerminationReasonModule::class)
+            ->call('create')
+            ->set('item.title_en', 'Moved abroad')
+            ->set('item.title_ar', 'سفر')
+            ->set('item.category', 'voluntary')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame(LeavingCategory::Voluntary, TerminationReason::query()->where('title_en', 'Moved abroad')->firstOrFail()->category);
+
+        Livewire::actingAs($admin)->test(TerminationReasonModule::class)
+            ->call('create')
+            ->set('item.title_en', 'X')
+            ->set('item.title_ar', 'س')
+            ->set('item.category', 'nonsense')
+            ->call('save')
+            ->assertHasErrors('item.category');
+    }
+
     public function test_the_export_carries_the_same_figures(): void
     {
         $this->left('a', $this->alp, '2026-10-01', $this->resigned);
 
         $sheets = (new LeavingReasonsExport((new LeavingReasonsReport($this->headOffice(), 365))->build()))->sheets();
 
-        $this->assertSame(['Summary', 'By reason', 'By city', 'By month', 'No reason'], array_map(fn ($s) => $s->title(), $sheets));
+        $this->assertSame(['Summary', 'By category', 'By reason', 'By tenure', 'By city', 'By month', 'No reason'], array_map(fn ($s) => $s->title(), $sheets));
         $this->assertSame(['Leavers', 1], $sheets[0]->array()[1]);
     }
 
@@ -136,10 +272,10 @@ class LeavingReasonsReportTest extends TestCase
         return $this->makeUser($this->alp, 'super-admin', ['contracts.view']);
     }
 
-    private function left(string $username, City $city, string $on, ?TerminationReason $reason)
+    private function left(string $username, City $city, string $on, ?TerminationReason $reason, string $from = '2025-01-01')
     {
         return $this->contract($this->makeEmployee($city, 'leaver.'.$username), [
-            'start_date' => '2025-01-01',
+            'start_date' => $from,
             'end_date' => $on,
             'terminated_at' => $on,
             'termination_reason_id' => $reason?->id,

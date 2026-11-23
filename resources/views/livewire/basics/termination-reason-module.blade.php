@@ -39,6 +39,17 @@
                     <x-forms.input type="text" wire:model="item.title_ar" id="title_ar" />
                     <x-error-span>{{ $errors->first('item.title_ar') }}</x-error-span>
                 </div>
+
+                <div>
+                    <x-forms.input-label for="category">{{ __('How it counts in the leaving report') }}</x-forms.input-label>
+                    <select id="category" wire:model="item.category" class="w-full rounded-lg border border-line bg-card p-2.5 text-ink">
+                        <option value="">{{ __('Not classified') }}</option>
+                        @foreach (\App\Enums\LeavingCategory::options() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <x-error-span>{{ $errors->first('item.category') }}</x-error-span>
+                </div>
             </div>
 
             <div class="flex justify-end space-x-2">

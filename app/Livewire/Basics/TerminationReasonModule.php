@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Basics;
 
+use App\Enums\LeavingCategory;
 use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\EmbedsInSettings;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\TerminationReason;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class TerminationReasonModule extends Component
@@ -24,6 +26,7 @@ class TerminationReasonModule extends Component
         'id' => null,
         'title_en' => null,
         'title_ar' => null,
+        'category' => null,
     ];
 
     protected $listeners = ['openTerminationReasonEdit' => 'edit'];
@@ -40,6 +43,7 @@ class TerminationReasonModule extends Component
             'id' => null,
             'title_en' => null,
             'title_ar' => null,
+            'category' => null,
         ];
         $this->resetValidation();
         $this->modalTitle = __('general.add-new');
@@ -56,6 +60,7 @@ class TerminationReasonModule extends Component
             'id' => $model->id,
             'title_en' => $model->title_en,
             'title_ar' => $model->title_ar,
+            'category' => $model->category?->value,
         ];
 
         $this->modalTitle = __('general.edit');
@@ -75,7 +80,7 @@ class TerminationReasonModule extends Component
             ? TerminationReason::findOrFail($this->item['id'])
             : new TerminationReason;
 
-        $model->fill($this->item)->save();
+        $model->fill(array_merge($this->item, ['category' => $this->item['category'] ?: null]))->save();
 
         $this->showModal = false;
 
@@ -89,6 +94,7 @@ class TerminationReasonModule extends Component
         return [
             'item.title_en' => 'required|string|max:255',
             'item.title_ar' => 'required|string|max:255',
+            'item.category' => ['nullable', Rule::enum(LeavingCategory::class)],
         ];
     }
 }

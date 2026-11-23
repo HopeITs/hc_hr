@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LeavingCategory;
 use App\Traits\HasTranslation;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,9 @@ class TerminationReason extends Model
 {
     use HasFactory,HasTranslation;
 
-    protected $fillable = ['title_en', 'title_ar'];
+    protected $fillable = ['title_en', 'title_ar', 'category'];
+
+    protected $casts = ['category' => LeavingCategory::class];
 
     protected function title(): Attribute
     {

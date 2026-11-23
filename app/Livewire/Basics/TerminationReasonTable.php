@@ -66,6 +66,8 @@ class TerminationReasonTable extends LivewireTable
                 ->sortable()
                 ->searchable(),
 
+            Column::make(__('Leaving category'), fn (Model $m): string => $m->category?->label() ?? __('Not classified')),
+
             Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete): string {
                 $id = $m->id;
 
