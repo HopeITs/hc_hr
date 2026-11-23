@@ -130,7 +130,10 @@ class AttendanceAgentTest extends TestCase
 
         // Shown once: after "Done" the page no longer has it, and the database never did.
         $page->call('hideKey')->assertDontSee($key);
-        Livewire::actingAs($hr)->test(Devices::class)->assertDontSee($key)->assertSee('zk_••••'.substr($key, -4));
+        // The key's hint is technical detail: IT (super-admin) sees it, HR does not.
+        Livewire::actingAs($hr)->test(Devices::class)->assertDontSee($key)->assertDontSee('zk_••••');
+        $it = $this->makeUser($aleppo, 'super-admin', []);
+        Livewire::actingAs($it)->test(Devices::class)->assertDontSee($key)->assertSee('zk_••••'.substr($key, -4));
 
         // A city HR of another city cannot make or revoke a key for this device.
         Livewire::actingAs($homsHr)->test(Devices::class)->call('createKey', $device->id)->assertForbidden();

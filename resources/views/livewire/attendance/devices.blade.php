@@ -1,6 +1,8 @@
 @php
     // Status = icon + words + fill shape (DESIGN.md). A device that stopped talking waits on HR.
     $tone = ['online' => ['done', 'check'], 'late' => ['wait', 'clock'], 'silent' => ['attn', 'alert'], 'never' => ['wait', 'dot']];
+    // HR keeps devices named and in the right center; the technical side is IT's, who work as super-admin.
+    $isIt = auth()->user()?->activeRoleIs('super-admin') ?? false;
     $centerOptions = $centers->map(fn ($c) => ['id' => $c->id, 'label' => $c->name.' · '.$c->city?->name]);
 @endphp
 
@@ -82,6 +84,7 @@
 
                                 <div class="flex items-center gap-1">
                                     <x-button variant="quiet" size="sm" :loading="false" wire:click="edit({{ $device->id }})">@lang('general.edit')</x-button>
+                                    @if($isIt)
                                     {{-- Everything HR rarely needs lives behind "More". --}}
                                     <details class="relative" data-testid="device-more">
                                         <summary class="grid size-11 cursor-pointer list-none place-items-center rounded-control text-ink-2 hover:bg-hover" aria-label="{{ __('attendance.devices.more') }}"><x-ic name="more" class="size-5" /></summary>
@@ -108,6 +111,9 @@
                                             </div>
                                         </div>
                                     </details>
+                                    @else
+                                        <x-button variant="quiet" size="sm" :loading="false" wire:click="removeDevice({{ $device->id }})" wire:confirm="{{ __('attendance.devices.remove-confirm') }}">@lang('attendance.devices.remove')</x-button>
+                                    @endif
                                 </div>
                             </div>
 
@@ -115,9 +121,9 @@
                             <p class="mt-1 text-small text-ink-2">
                                 @if($health === 'silent')
                                     <span class="font-semibold text-ink">{{ __('attendance.devices.silent-since', ['time' => $device->last_seen_at->diffForHumans()]) }}</span>
-                                    @lang('attendance.devices.silent-help')
+                                    {{ $isIt ? __('attendance.devices.silent-help') : __('attendance.devices.tell-it') }}
                                 @elseif($health === 'never')
-                                    @lang('attendance.devices.never-help')
+                                    {{ $isIt ? __('attendance.devices.never-help') : __('attendance.devices.never-help-hr') }}
                                 @elseif($device->last_punch_at)
                                     @lang('attendance.devices.last-punch'): <bdi class="num">{{ $device->last_punch_at->format('d/m/Y H:i') }}</bdi>
                                 @else
@@ -143,18 +149,9 @@
             </ul>
         @endif
 
-        @if($withoutDevice->isNotEmpty())
-            <details class="text-small text-ink-2" data-testid="centers-without-device">
-                <summary class="cursor-pointer font-semibold text-ink">{{ trans_choice('attendance.devices.without-count', $withoutDevice->count(), ['count' => $withoutDevice->count()]) }}</summary>
-                <p class="mt-2 flex flex-wrap gap-2">
-                    @foreach($withoutDevice as $center)
-                        <x-tag variant="soft" :label="$center->name.' · '.$center->city?->name" />
-                    @endforeach
-                </p>
-            </details>
-        @endif
     </section>
 
+    @if($isIt)
     {{-- 3. Reference: how to set a device up, and adding one that never calls. Closed unless there is nothing yet. --}}
     <details class="rounded-surface border border-line-soft bg-card" data-testid="device-setup" @if($devices->isEmpty() && $sightings->isEmpty()) open @endif>
         <summary class="flex min-h-12 cursor-pointer items-center gap-2 px-5 font-bold text-ink"><x-ic name="info" class="size-4 text-ink-2" />@lang('attendance.devices.setup-title')</summary>
@@ -193,4 +190,5 @@
             </form>
         </div>
     </details>
+    @endif
 </div>
