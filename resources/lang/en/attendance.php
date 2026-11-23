@@ -21,6 +21,7 @@ return [
         'import' => 'Import :count punches',
         'cancel' => 'Cancel',
         'imported' => 'Imported. :new new punches stored.',
+        'imported-detail' => 'The file replaced :from to :to. :total punches in it: :new new, :same unchanged. :removed older punches on those days were not in the file and were removed. :locked in closed months were left as they are.',
         'device-no' => 'Device number',
         'employee' => 'Employee',
         'status' => 'Status',
@@ -150,6 +151,7 @@ return [
         'confirmed-by' => 'Confirmed by :name on :date.',
         'days-off' => 'Weekly days off',
         'days-off-from' => ['contract' => 'set on the contract', 'center' => 'from the center: :center', 'default' => 'the general default: the center has none set'],
+        'worked-off' => 'Worked (day off)',
         'no-one' => 'Nobody here.',
         'h' => 'h',
         'status' => [

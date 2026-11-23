@@ -247,6 +247,60 @@ class AttendanceTest extends TestCase
             ->assertSee(__('attendance.timesheets.days-off-from.contract'));
     }
 
+    public function test_a_day_off_with_punches_shows_its_times_on_the_calendar(): void
+    {
+        $employee = $this->volunteer();   // days off: Sunday and Saturday
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+        $this->punch($employee, '2026-09-12 09:00');
+        $this->punch($employee, '2026-09-12 15:30');
+
+        Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-09')
+            ->call('openMonth', $employee->id)
+            ->assertSee('09:00–15:30')
+            ->assertSee(__('attendance.timesheets.worked-off'));
+    }
+
+    public function test_the_upload_says_what_happened_to_every_punch_when_the_same_file_comes_twice(): void
+    {
+        $employee = $this->volunteer();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+        $csv = "AC-No.,Time\n{$employee->id},01/09/2026 08:00\n{$employee->id},01/09/2026 16:00\n";
+        $file = fn () => UploadedFile::fake()->createWithContent('report.csv', $csv);
+
+        Livewire::actingAs($hr)->test(Upload::class)->set('file', $file())->call('import');
+        Livewire::actingAs($hr)->test(Upload::class)->set('file', $file())->call('import')->assertHasNoErrors();
+
+        // The second upload stores nothing new, and its record says so: 2 in the file, 0 new.
+        $second = \App\Models\AttendanceImport::query()->latest('id')->first();
+        $this->assertSame([2, 0, 0], [$second->punches_total, $second->punches_new, $second->punches_locked]);
+        $this->assertSame(2, AttendancePunch::query()->count());
+    }
+
+    public function test_a_new_report_replaces_what_was_stored_for_the_days_it_covers(): void
+    {
+        $employee = $this->volunteer();
+        $other = $this->volunteer();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+        $upload = fn (string $csv) => Livewire::actingAs($hr)->test(Upload::class)
+            ->set('file', UploadedFile::fake()->createWithContent('report.csv', "AC-No.,Time\n".$csv))->call('import')->assertHasNoErrors();
+
+        $upload("{$employee->id},01/09/2026 08:00\n{$employee->id},01/09/2026 16:00\n{$employee->id},02/09/2026 08:00\n");
+        // Someone the next file does not mention, and a day outside it: both stay.
+        $this->punch($other, '2026-09-01 08:30');
+        $this->punch($employee, '2026-09-20 08:00');
+
+        // The corrected export for 1 September: 08:00 became 08:05. The 2nd is outside it and stays.
+        $upload("{$employee->id},01/09/2026 08:05\n{$employee->id},01/09/2026 16:00\n");
+
+        $left = AttendancePunch::query()->where('employee_id', $employee->id)->orderBy('punched_at')->pluck('punched_at')->map->format('Y-m-d H:i')->all();
+        $this->assertSame(['2026-09-01 08:05', '2026-09-01 16:00', '2026-09-02 08:00', '2026-09-20 08:00'], $left);
+        $this->assertSame(1, AttendancePunch::query()->where('employee_id', $other->id)->count());
+
+        $last = \App\Models\AttendanceImport::query()->latest('id')->first();
+        $this->assertSame([2, 1], [$last->punches_total, $last->punches_new]);
+    }
+
     public function test_the_pages_need_the_permission_and_a_city_hr_role_sees_only_its_city(): void
     {
         $this->withoutVite();

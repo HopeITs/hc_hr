@@ -89,7 +89,16 @@ class Upload extends Component
 
         $this->importedId = $import->id;
         $this->cancel();
-        $this->toast(__('attendance.upload.imported', ['new' => $import->punches_new]));
+        // Say what happened to every punch of the file, so a number is never a mystery.
+        $this->toast(__('attendance.upload.imported-detail', [
+            'from' => $import->period_start?->format('d/m/Y') ?? '—',
+            'to' => $import->period_end?->format('d/m/Y') ?? '—',
+            'total' => $import->punches_total,
+            'new' => $import->punches_new,
+            'same' => max(0, $import->punches_total - $import->punches_new - $import->punches_locked),
+            'removed' => (int) $import->punches_replaced,
+            'locked' => $import->punches_locked,
+        ]));
     }
 
     public function cancel(): void

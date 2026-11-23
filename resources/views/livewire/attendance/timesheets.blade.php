@@ -143,6 +143,11 @@
                             @case(Sheet::LEAVE)@lang('attendance.timesheets.status.leave')@break
                             @case(Sheet::HOLIDAY)<span class="line-clamp-2">{{ $row['note'] ?: __('attendance.timesheets.status.holiday') }}</span>@break
                         @endswitch
+                        {{-- Worked on a day off: the punches are there and count as overtime, so show them. --}}
+                        @if(in_array($k, [Sheet::WEEKEND, Sheet::HOLIDAY], true) && $row['first'])
+                            <span class="hidden text-ink-2 sm:block num" dir="ltr">{{ $hm($row['first']) }}–{{ $hm($row['last']) }}</span>
+                            <span class="font-bold text-ink">@lang('attendance.timesheets.worked-off')</span>
+                        @endif
                     </span>
                     <span class="sr-only">{{ $label }}</span>
                 @if($canAnswer)</button>@else</div>@endif
