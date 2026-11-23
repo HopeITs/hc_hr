@@ -186,6 +186,35 @@ class AttendanceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_a_public_holiday_or_a_feast_is_a_day_off_with_its_name_never_a_day_to_answer(): void
+    {
+        $employee = $this->volunteer();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+
+        // A three-day feast, for everyone: no punches on those days and nothing to ask.
+        \App\Models\Holiday::query()->create([
+            'name_en' => 'Eid al-Adha', 'name_ar' => 'عيد الأضحى',
+            'start_date' => '2026-09-15', 'end_date' => '2026-09-17',
+            'is_recurring' => false, 'scope' => \App\Models\Holiday::SCOPE_NATIONAL, 'kind' => \App\Models\Holiday::KIND_OFFICIAL,
+        ]);
+
+        $rows = collect(app(Timesheet::class)->forEmployee($employee, $this->september())['rows'])
+            ->keyBy(fn (array $row) => $row['date']->toDateString());
+
+        foreach (['2026-09-15', '2026-09-16', '2026-09-17'] as $date) {
+            $this->assertSame(Timesheet::HOLIDAY, $rows[$date]['kind']);
+            $this->assertFalse($rows[$date]['decidable']);
+        }
+
+        // The person's calendar shows the feast by name, and the day cannot be opened as a question.
+        Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-09')
+            ->call('openMonth', $employee->id)
+            ->assertSee('عيد الأضحى')
+            ->call('openDay', $employee->id, '2026-09-16')
+            ->assertForbidden();
+    }
+
     public function test_the_pages_need_the_permission_and_a_city_hr_role_sees_only_its_city(): void
     {
         $this->withoutVite();
