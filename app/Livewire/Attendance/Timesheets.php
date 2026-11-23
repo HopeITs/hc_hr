@@ -76,7 +76,9 @@ class Timesheets extends Component
     public function shiftMonth(int $delta): void
     {
         $this->month = $this->monthDate()->addMonths($delta > 0 ? 1 : -1)->format('Y-m');
-        $this->closeMonth();
+        // An open person stays open: their next or previous month. Without a contract then, the list shows.
+        $this->closeDay();
+        $this->signedFile = null;
     }
 
     // ---- Deciding a day -------------------------------------------------------------------
@@ -127,6 +129,32 @@ class Timesheets extends Component
         $this->toast(__('attendance.timesheets.saved'));
     }
 
+    /**
+     * The person's calendar answers a day with one of two buttons. The answer is saved through the
+     * same checks as the dialog, then the next day that still waits opens by itself.
+     */
+    public function answerDay(string $kind): void
+    {
+        $employeeId = $this->dayEmployeeId;
+        $this->dayKind = $kind;
+        $this->dayNote = '';
+        $this->saveDecision();
+
+        if ($employeeId === null || $this->getErrorBag()->isNotEmpty()) {
+            return;
+        }
+
+        $employee = Employee::query()->find($employeeId);
+        $next = $employee ? collect(app(Timesheet::class)->forEmployee($employee, $this->monthDate())['rows'])
+            ->first(fn (array $row) => in_array($row['kind'], [Timesheet::ONE_PUNCH, Timesheet::NO_RECORD], true) && $row['decidable']) : null;
+
+        if ($next !== null && $this->mayDecide($employee, $next['date']->toDateString())) {
+            $this->dayEmployeeId = $employee->id;
+            $this->dayDate = $next['date']->toDateString();
+            $this->dayKind = AttendanceDayDecision::WORKED;
+        }
+    }
+
     public function clearDecision(): void
     {
         $employee = $this->scopedEmployee((int) $this->dayEmployeeId, $this->dayDate);
@@ -159,6 +187,7 @@ class Timesheets extends Component
     {
         $this->monthEmployeeId = null;
         $this->signedFile = null;
+        $this->closeDay();
         $this->resetErrorBag();
     }
 
@@ -260,6 +289,11 @@ class Timesheets extends Component
             $panel = $items->first(fn (array $i) => $i['employee']->id === $this->monthEmployeeId);
         }
 
+        // An employee sees only their own month: it opens straight away, with no list before it.
+        if ($panel === null && $roster->mode(auth()->user()) === 'own') {
+            $panel = $items->first();
+        }
+
         $days = collect(range(1, $month->daysInMonth))->map(fn (int $d) => [
             'n' => $d,
             'w' => $month->day($d)->locale(app()->getLocale())->isoFormat('dd'),
@@ -267,6 +301,7 @@ class Timesheets extends Component
 
         return view('livewire.attendance.timesheets', [
             'blocks' => app(Grouping::class)->group($items, $by),
+            'items' => $items,
             'summary' => $summary,
             // The mailing lists that stand for a city, project or department: "Email this group".
             'mailLists' => MailList::customRuled(),

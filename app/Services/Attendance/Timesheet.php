@@ -47,6 +47,9 @@ class Timesheet
 
     public const NO_RECORD = 'no_record';
 
+    /** A working day still ahead: nothing to decide yet, and it counts for nothing. */
+    public const UPCOMING = 'upcoming';
+
     public const DECIDED_WORKED = 'decided_worked';
 
     public const DECIDED_ABSENT = 'decided_absent';
@@ -286,6 +289,9 @@ class Timesheet
                 $row['kind'] = self::WORKED;
                 $row['working_days'] = 1.0;
                 $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
+            } elseif ($times === [] && $day->isAfter(CarbonImmutable::today())) {
+                // Not come yet: no one can answer for it, so it waits for nobody.
+                $row['kind'] = self::UPCOMING;
             } else {
                 // One punch, or none: nothing is assumed. HR decides, and until then it counts for nothing.
                 $row['kind'] = count($times) === 1 ? self::ONE_PUNCH : self::NO_RECORD;

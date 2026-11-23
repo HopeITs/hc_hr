@@ -3,714 +3,339 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HopeHR — Timesheets (mockup)</title>
+<title>HopeHR — Attendance (mockup)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Tokens: DESIGN.md (Hope Center identity). One red, the identity neutrals, nothing else. */
 :root{
-  --brand:#BE1F24; --on-brand:#fff;
-  --ink:#414042; --ink-2:#6D6E71; --ink-3:#939598;
+  --brand:#BE1F24; --ink:#414042; --ink-2:#6D6E71; --ink-3:#939598;
   --line:#BCBEC0; --line-soft:#E6E7E8; --surface:#E6E7E8; --soft:#F3F3F4; --hover:#F3F3F4;
-  --card:#fff; --field:#fff; --base:#fff; --on-ink:#fff; --focus:#414042; --ring:rgba(65,64,66,.12);
-  --backdrop:rgba(20,19,21,.45);
-  --shadow-sm:0 1px 3px rgba(65,64,66,.08); --shadow:0 6px 24px rgba(65,64,66,.14);
-  --ease:cubic-bezier(.22,1,.36,1);
+  --card:#fff; --base:#fff; --on-ink:#fff; --focus:#414042; --ring:rgba(65,64,66,.12);
+  --shadow-sm:0 1px 3px rgba(65,64,66,.08); --shadow:0 6px 24px rgba(65,64,66,.14); --ease:cubic-bezier(.22,1,.36,1);
 }
 :root[data-theme="dark"]{
   --ink:#E6E7E8; --ink-2:#BCBEC0; --ink-3:#939598; --line:#4A4A4E; --line-soft:#333336; --surface:#2A2A2D;
-  --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --field:#1B1B1D; --base:#161617; --on-ink:#161617;
-  --focus:#E6E7E8; --ring:rgba(230,231,232,.18); --backdrop:rgba(0,0,0,.6);
+  --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --base:#161617; --on-ink:#161617; --focus:#E6E7E8; --ring:rgba(230,231,232,.18);
   --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow:0 6px 24px rgba(0,0,0,.5);
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --ink:#E6E7E8; --ink-2:#BCBEC0; --ink-3:#939598; --line:#4A4A4E; --line-soft:#333336; --surface:#2A2A2D;
-    --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --field:#1B1B1D; --base:#161617; --on-ink:#161617;
-    --focus:#E6E7E8; --ring:rgba(230,231,232,.18); --backdrop:rgba(0,0,0,.6);
-    --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow:0 6px 24px rgba(0,0,0,.5);
-  }
-}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E6E7E8; --ink-2:#BCBEC0; --ink-3:#939598; --line:#4A4A4E; --line-soft:#333336; --surface:#2A2A2D;
+  --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --base:#161617; --on-ink:#161617; --focus:#E6E7E8; --ring:rgba(230,231,232,.18);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow:0 6px 24px rgba(0,0,0,.5);
+}}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--base);color:var(--ink);font:400 16px/1.55 "Somar Sans",Lato,"Noto Sans Arabic",ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums}
-html[lang="ar"] body{font-size:17px;line-height:1.7;font-family:"Somar Sans","Noto Sans Arabic",Lato,ui-sans-serif,system-ui,sans-serif}
+body{margin:0;background:var(--base);color:var(--ink);font:400 16px/1.55 "Somar Sans",Lato,"Noto Sans Arabic",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+html[lang="ar"] body{font-size:17px;line-height:1.7;font-family:"Somar Sans","Noto Sans Arabic",Lato,system-ui,sans-serif}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 ::selection{background:var(--ink);color:var(--on-ink)}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 input:focus-visible,select:focus-visible{outline:none;border-color:var(--ink)!important;box-shadow:0 0 0 3px var(--ring)}
 svg.i{width:1em;height:1em;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.num{font-variant-numeric:tabular-nums}
 bdi{unicode-bidi:isolate}
 
-/* ───── app bar ───── */
 .appbar{position:sticky;top:0;z-index:40;height:56px;display:flex;align-items:center;gap:24px;padding-inline:24px;background:var(--card);border-bottom:1px solid var(--line-soft)}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
-.logo b{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:800}
+.logo b{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--brand);color:#fff;font-size:13px}
 .nav{display:flex;gap:4px;height:100%}
-.nav a{display:flex;align-items:center;padding-inline:12px;color:var(--ink-2);font-weight:600;font-size:15px;text-decoration:none;border-block-end:3px solid transparent;margin-block-end:-1px}
-.nav a:hover{color:var(--ink)}
+.nav a{display:flex;align-items:center;padding-inline:12px;color:var(--ink-2);font-weight:600;font-size:15px;text-decoration:none;border-block-end:3px solid transparent}
 .nav a[aria-current]{color:var(--ink);border-color:var(--brand)}
-.appbar .sp{margin-inline-start:auto;display:flex;gap:8px;align-items:center}
+.sp{margin-inline-start:auto;display:flex;gap:4px}
 .iconbtn{display:grid;place-items:center;min-width:44px;height:44px;padding-inline:10px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font-weight:700;font-size:14px}
 .iconbtn:hover{background:var(--hover);color:var(--ink)}
 .iconbtn .i{font-size:20px}
-.who{display:flex;align-items:center;gap:10px;padding-inline-start:12px;border-inline-start:1px solid var(--line-soft);font-size:14px;line-height:1.25}
-.who small{display:block;color:var(--ink-3);font-size:12px}
-.av{width:34px;height:34px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:13px}
 
-/* ───── page ───── */
-.page{max-width:1360px;margin:0 auto;padding:32px 24px 96px}
-.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px}
-h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.2;font-weight:800;text-wrap:balance}
-.lead{margin:6px 0 0;color:var(--ink-2);max-width:62ch;font-size:16px}
-.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding-inline:18px;border-radius:8px;border:1.5px solid transparent;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s}
+.page{max-width:880px;margin:0 auto;padding:32px 24px 96px}
+.head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.2;font-weight:800}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding-inline:18px;border-radius:8px;border:1.5px solid transparent;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;background:none}
 .btn .i{font-size:17px}
 .btn-primary{background:var(--brand);color:#fff}
 .btn-primary:hover{background:color-mix(in srgb,var(--brand) 90%,#000)}
 .btn-outline{background:var(--card);border-color:var(--line);color:var(--ink)}
-.btn-outline:hover{background:var(--hover);border-color:var(--ink-3)}
-.btn-quiet{background:transparent;color:var(--ink-2)}
-.btn-quiet:hover{background:var(--hover);color:var(--ink)}
-.btn-sm{min-height:36px;padding-inline:12px;font-size:14px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.link{background:none;border:0;padding:0;font-weight:700;text-decoration:underline;color:var(--ink);text-underline-offset:3px}
-.link:hover{color:var(--brand)}
-
-details.menu{position:relative}
-details.menu>summary{list-style:none}
-details.menu>summary::-webkit-details-marker{display:none}
-.menu-list{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:30;min-width:190px;padding:4px;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow);animation:pop .14s var(--ease)}
-.menu-list a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
-.menu-list a:hover{background:var(--hover)}
-.menu-list .i{color:var(--ink-3)}
-
-/* ───── control bar (sticky) ───── */
-.bar{position:sticky;top:56px;z-index:30;margin-top:24px;margin-inline:-24px;padding:12px 24px;background:color-mix(in srgb,var(--base) 94%,transparent);backdrop-filter:blur(8px);border-block-end:1px solid var(--line-soft);display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
-.stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
-.stepper button{display:grid;place-items:center;width:44px;height:42px;border:0;background:transparent;color:var(--ink)}
+.btn-outline:hover{background:var(--hover)}
+.btn-sm{min-height:36px;padding-inline:14px;font-size:14px}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;background:var(--card)}
+.stepper button{display:grid;place-items:center;width:42px;height:42px;border:0;background:transparent;border-radius:8px}
 .stepper button:hover{background:var(--hover)}
-.stepper .m{min-width:150px;text-align:center;font-weight:800;font-size:16px;padding-inline:8px}
-.field{height:44px;border:1.5px solid var(--line);border-radius:8px;background:var(--field);padding-inline:12px;color:var(--ink)}
-select.field{padding-inline-end:8px}
-.search{position:relative;flex:1;min-width:220px;max-width:380px}
-.search .i{position:absolute;inset-inline-start:12px;top:50%;translate:0 -50%;color:var(--ink-3);font-size:17px;pointer-events:none}
+.stepper .m{min-width:130px;text-align:center;font-weight:800}
+
+/* list */
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line-soft);flex:1;min-width:260px}
+.tabs button{border:0;background:none;padding:10px 12px;font-weight:700;font-size:15px;color:var(--ink-2);border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;gap:8px;align-items:center}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.tabs .c{min-width:22px;height:22px;padding-inline:6px;border-radius:999px;background:var(--surface);font-size:12px;display:inline-grid;place-items:center}
+.tabs .c.red{background:var(--brand);color:#fff}
+.field{height:44px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);padding-inline:12px}
+.search{position:relative;width:240px}
+.search .i{position:absolute;inset-inline-start:12px;top:50%;translate:0 -50%;color:var(--ink-3)}
 .search input{width:100%;padding-inline-start:38px}
-.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
-.seg button{height:41px;padding-inline:16px;border:0;background:transparent;font-weight:700;font-size:15px;color:var(--ink-2)}
-.seg button:hover{background:var(--hover)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
-.chk{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-weight:600;font-size:15px;cursor:pointer;user-select:none}
-.chk input{appearance:none;width:22px;height:22px;border:1.5px solid var(--line);border-radius:6px;background:var(--field);display:grid;place-items:center;margin:0;cursor:pointer}
-.chk input:checked{background:var(--ink);border-color:var(--ink)}
-.chk input:checked::after{content:"";width:10px;height:5px;border:solid var(--on-ink);border-width:0 0 2.5px 2.5px;rotate:-45deg;translate:0 -1px}
-.chk .n{font-weight:800;color:var(--brand)}
+.list{list-style:none;margin:16px 0 0;padding:0;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.list li+li{border-top:1px solid var(--line-soft)}
+.prow{display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border:0;background:none;text-align:start}
+.prow:hover{background:var(--hover)}
+.av{width:42px;height:42px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:16px}
+.who small{display:block;color:var(--ink-3);font-size:13px}
+.dd{font-size:14px;color:var(--ink-2);white-space:nowrap}
+.dd b{color:var(--ink);font-size:16px}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding-inline:10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;min-width:120px;justify-content:center}
+.tag-need{background:var(--brand);color:#fff}
+.tag-ready{border:1.5px solid var(--ink)}
+.tag-ok{background:var(--surface)}
+.go{color:var(--ink-3)}
+[dir=rtl] .go{scale:-1 1}
+.empty{padding:40px;text-align:center;color:var(--ink-2)}
 
-/* ───── month-end overview ───── */
-.over{margin-top:24px;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px 32px;padding:20px 24px;align-items:center}
-.facts{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 16px;color:var(--ink-2);font-size:15px}
-.facts b{font-size:20px;font-weight:800;color:var(--ink);margin-inline-end:4px}
-.facts .wait b{color:var(--brand)}
-.facts .wait{color:var(--ink)}
-.pipe{display:flex;gap:4px;align-items:stretch}
-.pipe .s{min-width:0;flex:var(--n) 1 0}
-.pipe .s[data-n="0"]{flex:0 0 120px;opacity:.7}
-.pipe .bar-s{height:10px;border-radius:5px}
-.pipe .lab{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
-.pipe .lab .i{font-size:15px;color:var(--ink-2)}
-.pipe .lab em{font-style:normal;font-weight:800;margin-inline-start:2px}
-.fill-open{background:var(--card);border:1.5px solid var(--line)}
-.fill-confirmed{background:var(--card);border:2px solid var(--ink)}
-.fill-approved{background:var(--ink)}
-.fill-locked{background:var(--surface)}
-.over .cta{display:flex;flex-direction:column;gap:8px;min-width:230px}
-.over .cta p{margin:0;color:var(--ink-2);font-size:14px;line-height:1.45}
-
-.legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:20px 0 4px;font-size:14px;color:var(--ink-2)}
-.legend span{display:inline-flex;align-items:center;gap:8px}
-.legend .k{font-weight:700;color:var(--ink)}
-
-/* ───── status chips: icon + words + fill shape ───── */
-.st{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding-inline:10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;border:1.5px solid transparent}
-.st .i{font-size:14px}
-.st-open{background:var(--card);border-color:var(--line);color:var(--ink-2)}
-.st-confirmed{background:var(--card);border-color:var(--ink);color:var(--ink)}
-.st-approved{background:var(--ink);color:var(--on-ink)}
-.st-locked{background:var(--surface);color:var(--ink)}
-.st-ready{background:var(--surface);color:var(--ink)}
-.st-need{background:var(--card);border-color:var(--ink);color:var(--ink)}
-.st-late{background:var(--brand);color:#fff}
-
-/* ───── city / group ───── */
-.city{margin-top:36px}
-.city>h2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 12px;font-size:22px;font-weight:800;line-height:1.3}
-.city>h2 small{font-size:15px;font-weight:500;color:var(--ink-2)}
-.grp{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);margin-bottom:16px;contain:paint}
-.grp-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:6px 12px 6px 16px;padding-inline:8px 12px;background:var(--soft);border-block-end:1px solid var(--line-soft)}
-.fold{display:flex;align-items:center;gap:10px;min-height:48px;border:0;background:none;text-align:start;padding-inline:8px;border-radius:8px}
-.fold h3{margin:0;font-size:17px;font-weight:800}
-.fold small{font-size:14px;color:var(--ink-2);font-weight:500}
-.fold .chev{font-size:17px;color:var(--ink-2);transition:rotate .2s var(--ease)}
-[dir=rtl] .fold .chev{scale:-1 1}
-.fold[aria-expanded="true"] .chev{rotate:90deg}
-.grp-r{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:14px;color:var(--ink-2)}
-.scroll{overflow-x:auto}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:max-content;font-size:15px}
-th,td{padding:0}
-thead th{font-size:13px;font-weight:700;color:var(--ink-2);padding-block:10px 6px;text-align:center;white-space:nowrap;background:var(--card)}
-thead th.p{text-align:start;padding-inline:16px;min-width:230px}
-thead th.d{width:30px;min-width:30px;font-weight:600;line-height:1.15}
-thead th.d i{display:block;font-style:normal;font-size:11px;font-weight:500;color:var(--ink-3)}
-thead th.d.we,td.d.we{background:var(--soft)}
-thead th.d.hol,td.d.hol{background:repeating-linear-gradient(135deg,var(--soft) 0 4px,var(--surface) 4px 5px)}
-tbody tr:hover td,tbody tr:hover th{background-color:var(--hover)}
-tbody tr:hover td.d.we{background:var(--surface)}
-tbody th,tbody td{border-block-start:1px solid var(--line-soft);height:52px}
-tbody th.p{position:sticky;inset-inline-start:0;z-index:2;background:var(--card);padding-inline:6px 12px;text-align:start;font-weight:400;box-shadow:inset -1px 0 0 var(--line-soft)}
-[dir=rtl] tbody th.p{box-shadow:inset 1px 0 0 var(--line-soft)}
-thead th.p{position:sticky;inset-inline-start:0;z-index:3}
-.pbtn{display:block;width:100%;min-height:48px;padding:4px 10px;border:0;background:none;text-align:start;border-radius:8px}
-.pbtn:hover .nm{text-decoration:underline;text-underline-offset:3px}
-.nm{display:block;font-weight:700;color:var(--ink);line-height:1.3}
-.sub{display:block;font-size:12px;color:var(--ink-3);line-height:1.3}
-td.c{padding-inline:12px;text-align:center;white-space:nowrap}
-td.c .dash{color:var(--ink-3)}
-td.d{width:30px;padding:0;text-align:center}
-.sq{display:grid;place-items:center;width:24px;height:24px;margin:auto;border-radius:6px;font-size:13px}
-.sq .i{font-size:13px}
-.sq-w{background:var(--surface);color:var(--ink-3)}
-.sq-w .i{font-size:11px}
-.sq-one{background:var(--card);border:2px solid var(--ink);color:var(--ink)}
-.sq-none{background:var(--brand);color:#fff}
-.sq-l{background:var(--card);border:1.5px solid var(--line);color:var(--ink-2)}
-.sq-da{background:var(--card);border:1.5px dashed var(--ink-2);color:var(--ink-2)}
-.sq-out{border:1.5px dashed var(--line-soft);color:var(--ink-3)}
-.sq-off{color:var(--ink-3)}
-button.sq{padding:0;transition:scale .12s var(--ease)}
-button.sq:hover{scale:1.18}
-button.sq[aria-expanded="true"]{outline:2px solid var(--focus);outline-offset:2px}
-.hol-dot{width:5px;height:5px;border-radius:50%;background:var(--ink-3);margin:auto}
-
-.empty{padding:48px 16px;text-align:center;color:var(--ink-2)}
-
-/* ───── popover (a day) ───── */
-.pop{position:fixed;z-index:60;width:320px;max-width:calc(100vw - 24px);background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow);padding:16px;animation:pop .14s var(--ease)}
-.pop h4{margin:0;font-size:16px;font-weight:800;line-height:1.3}
-.pop .when{margin:2px 0 0;font-size:14px;color:var(--ink-2)}
-.pop .why{margin:10px 0 12px;font-size:15px;display:flex;gap:8px;align-items:flex-start}
-.pop .why .i{margin-top:5px;flex:none}
-.opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;font-weight:700;font-size:15px}
-.opt small{display:block;font-weight:400;font-size:13px;color:var(--ink-2);line-height:1.35}
-.opt:has(input:checked){border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-.opt input{accent-color:var(--ink);width:18px;height:18px;margin:0;flex:none}
-.pop .note{width:100%;margin-top:4px}
-.pop .row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
-
-/* ───── drawer (a person's month) ───── */
-.scrim{position:fixed;inset:0;z-index:50;background:var(--backdrop);animation:fade .18s ease-out}
-.drawer{position:fixed;z-index:51;inset-block:0;inset-inline-end:0;width:min(440px,100vw);background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;animation:slide .28s var(--ease)}
-[dir=rtl] .drawer{animation-name:slide-r}
-.drawer header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:24px 24px 16px}
-.drawer h2{margin:0;font-size:22px;font-weight:800;line-height:1.25}
-.drawer .body{flex:1;overflow-y:auto;padding:0 24px 24px;display:flex;flex-direction:column;gap:24px}
-.drawer h5{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink-2);letter-spacing:0}
-.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.tot div{background:var(--soft);border-radius:8px;padding:10px 12px}
-.tot small{display:block;font-size:12px;color:var(--ink-2)}
-.tot b{font-size:20px;font-weight:800}
-.tot .red b{color:var(--brand)}
-.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
-.steps li{display:grid;grid-template-columns:24px 1fr;gap:12px;padding-bottom:16px;position:relative}
-.steps li:not(:last-child)::before{content:"";position:absolute;inset-inline-start:11px;top:26px;bottom:2px;width:2px;background:var(--line-soft)}
-.steps .dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);color:var(--ink-3);background:var(--card)}
-.steps .done .dot{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
-.steps .dot .i{font-size:13px}
-.steps b{display:block;font-size:15px}
-.steps span{font-size:13px;color:var(--ink-2)}
-.steps .todo b{color:var(--ink-2);font-weight:600}
-.todo-d{display:grid;gap:8px}
-.todo-d .r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 12px;padding-inline:12px 8px;border:1px solid var(--line-soft);border-radius:8px}
-.todo-d .r b{font-size:15px}
-.todo-d .r small{display:block;color:var(--ink-2);font-size:13px;line-height:1.3}
-.todo-d .pair{display:flex;gap:6px}
-.drawer footer{display:flex;flex-wrap:wrap;gap:8px;padding:16px 24px;border-block-start:1px solid var(--line-soft);background:var(--card)}
-
-/* ───── toast ───── */
-.toast{position:fixed;z-index:70;inset-inline-start:24px;bottom:24px;display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--ink);color:var(--on-ink);border-radius:12px;box-shadow:var(--shadow);font-weight:600;font-size:15px;animation:pop .2s var(--ease)}
-.toast button{background:none;border:0;color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px;padding:6px}
-
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-@keyframes slide{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
-@keyframes slide-r{from{transform:translateX(-40px);opacity:0}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (max-width:860px){
-  .over{grid-template-columns:1fr}
-  .appbar .nav,.who span{display:none}
-  .pipe{flex-wrap:wrap;row-gap:12px}
-  .pipe .s,.pipe .s[data-n="0"]{flex:1 1 40%}
-  .bar{position:static}
-  .page{padding-inline:16px}.bar{margin-inline:-16px;padding-inline:16px}
+/* one person */
+.back{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink-2);font-weight:700;padding:8px 0}
+.back:hover{color:var(--ink)}
+[dir=rtl] .back .i{scale:-1 1}
+.ph{display:flex;align-items:center;gap:16px;margin-top:8px}
+.ph .av{width:56px;height:56px;font-size:20px}
+.ph h1{font-size:28px}
+.ph p{margin:0;color:var(--ink-2)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.sum div{background:var(--soft);border-radius:12px;padding:14px 16px}
+.sum small{display:block;color:var(--ink-2);font-size:14px}
+.sum b{font-size:24px;font-weight:800}
+.alert{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:2px solid var(--brand);border-radius:12px;font-weight:700}
+.days{margin-top:20px;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.day{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:12px;min-height:52px;padding:8px 18px;border-top:1px solid var(--line-soft)}
+.day:first-child{border-top:0}
+.day .dt b{display:block;font-size:15px}
+.day .dt small{color:var(--ink-3);font-size:13px}
+.day .tm{color:var(--ink);font-size:15px}
+.day .tm .muted{color:var(--ink-3)}
+.day .h{font-weight:700;font-size:15px}
+.day.off{min-height:36px;background:var(--soft);color:var(--ink-3);font-size:14px}
+.day.off .dt b{font-weight:500}
+.day.q{background:color-mix(in srgb,var(--brand) 0%,var(--card));box-shadow:inset 4px 0 0 var(--brand)}
+[dir=rtl] .day.q{box-shadow:inset -4px 0 0 var(--brand)}
+.day.q .tm{color:var(--brand);font-weight:700}
+.pair{display:flex;gap:6px}
+.pill{font-size:13px;font-weight:700;color:var(--ink-2)}
+.foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-top:20px}
+.foot p{margin:0;color:var(--ink-2);font-size:14px}
+.toast{position:fixed;z-index:70;inset-inline-start:24px;bottom:24px;padding:12px 16px;background:var(--ink);color:var(--on-ink);border-radius:12px;box-shadow:var(--shadow);font-weight:600;animation:pop .2s var(--ease)}
+.view{animation:pop .22s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+@media (max-width:640px){
+  .nav{display:none}.page{padding-inline:16px}
+  .search{width:100%}
+  .dd{display:none}
+  .tag{min-width:0}
+  .day{grid-template-columns:80px 1fr;row-gap:4px}
+  .day .r{grid-column:1/-1}
+  .day.off .r{display:none}
+  .sum b{font-size:20px}
 }
+
+/* calendar */
+.cal{margin-top:20px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wh{text-align:center;font-size:13px;font-weight:700;color:var(--ink-2);padding-bottom:2px}
+.cd{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:84px;padding:8px 10px;border:1px solid var(--line-soft);border-radius:10px;background:var(--card);text-align:start;font:inherit;color:inherit}
+.cd .dn{font-weight:800;font-size:16px;line-height:1}
+.cd .tm{font-size:12px;color:var(--ink-2);margin-top:auto;direction:ltr}
+.cd .hr{font-size:13px;font-weight:700}
+.cd .lbl{font-size:13px;font-weight:700;margin-top:auto;color:var(--ink-2)}
+.cd.blank{border:0;background:none}
+.cd.off{background:var(--soft);border-color:transparent;color:var(--ink-3)}
+.cd.lv{border:1.5px solid var(--line)}
+.cd.ab{border:1.5px dashed var(--ink-2)}
+.cd.q{background:var(--brand);border-color:var(--brand);color:#fff;cursor:pointer;transition:transform .12s var(--ease)}
+.cd.q .lbl{color:#fff;direction:ltr}
+button.cd.q:hover{transform:translateY(-2px)}
+.cd.q.sel{outline:3px solid var(--ink);outline-offset:2px}
+.ask{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:2px solid var(--ink);border-radius:12px;animation:pop .18s var(--ease)}
+.ask b{display:block}
+.ask span{color:var(--ink-2);font-size:15px}
+@media (max-width:640px){.cal{gap:3px}.cd{min-height:58px;padding:5px;border-radius:7px}.cd .tm,.cd .hr{display:none}.cd .lbl{font-size:10px}.wh{font-size:11px}.ask .pair{width:100%}.ask .btn{flex:1}}
 </style>
 </head>
 <body>
-
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
-    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.01"/><path d="M10.3 3.9L2.4 17.5A2 2 0 004.1 20.5h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></symbol>
-    <symbol id="i-q" viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 115.8 1c-.6 1.4-2.9 1.9-2.9 3.5M12 17.5v.01"/></symbol>
-    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.1 8.1-7.5 9.5-4.4-1.4-7.5-4.9-7.5-9.5V6L12 3z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
-    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
-    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
-    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
-    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V5M7 9l5-5 5 5M5 20h14"/></symbol>
-    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9M7 17H4.5v-7.5h15V17H17M7 14h10v6.5H7z"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
-    <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/></symbol>
-    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></symbol>
-    <symbol id="i-dev" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9.5 16.5h5"/></symbol>
-    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
-    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
-  </defs>
-</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9M7 17H4.5v-7.5h15V17H17M7 14h10v6.5H7z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+</defs></svg>
 
 <header class="appbar">
   <div class="logo"><b>HR</b><span>HopeHR</span></div>
   <nav class="nav" id="nav"></nav>
-  <div class="sp">
-    <button class="iconbtn" id="lang" aria-label="Language"></button>
-    <button class="iconbtn" id="theme" aria-label="Theme"><svg class="i"><use href="#i-moon"/></svg></button>
-    <div class="who"><div class="av">HR</div><span id="who"></span></div>
-  </div>
+  <div class="sp"><button class="iconbtn" id="lang"></button><button class="iconbtn" id="theme" aria-label="Theme"><svg class="i"><use href="#i-moon"/></svg></button></div>
 </header>
-
-<main class="page">
-  <div class="head">
-    <div>
-      <h1 id="h1"></h1>
-      <p class="lead" id="lead"></p>
-    </div>
-    <div class="acts" id="acts"></div>
-  </div>
-
-  <div class="bar" id="bar"></div>
-  <div id="content"></div>
-</main>
-
-<div id="overlay"></div>
+<main class="page" id="app"></main>
 <div id="toast"></div>
 
 <script>
-/* ═══ Mockup only: nothing here is wired to the application. ═══ */
-const YEAR = 2026, MONTH = 10, DIM = 31;          // October 2026: the month HR is closing now
-const dow = d => (3 + d) % 7;                       // 1 Oct 2026 is a Thursday (0 = Sunday)
-const HOLIDAY = 6;                                  // Tishreen Liberation War Day
+/* Mockup only: sample data, nothing is wired to the application. */
+const YEAR = 2026, MONTH = 10, DIM = 31, HOLIDAY = 6;
+const dow = d => (3 + d) % 7;            // 1 Oct 2026 = Thursday; Fri/Sat off
 
 const T = {
-  en: {
-    nav: ['Dashboard','Employees','Contracts','Leave','Attendance','Recruitment'],
-    who: ['HR Homs', 'HR-HMS'], title: 'Timesheets',
-    lead: 'The month built from the device punches. Days with no punch, or one, wait for your answer before the month can be approved.',
-    devices: 'Devices', upload: 'Upload report', print: 'Print all', export: 'Export', pdf: 'PDF', xlsx: 'Excel',
-    months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-    prev: 'Previous month', next: 'Next month', city: 'City', allCities: 'All cities', homs: 'Homs', aleppo: 'Aleppo',
-    groupBy: 'Group by', byProject: 'Project', byDept: 'Department', search: 'Search name or ID…', onlyDecide: 'Only people with days to decide',
-    people: n => n === 1 ? '1 person' : n + ' people',
-    waiting: n => n === 1 ? 'day is waiting for you' : 'days are waiting for you', allClear: 'Every day is answered',
-    ot: 'overtime', otEq: (h,d) => `${h} h = +${d} free days`,
-    stOpen: 'Open', stConfirmed: 'Confirmed', stApproved: 'Approved', stLocked: 'Locked',
-    approveReady: n => `Approve ${n} ready`, lockApproved: n => `Lock ${n} approved`,
-    readyHelp: 'Ready = every day answered. Approving fixes the overtime.', nothingReady: 'Nothing is ready to approve yet. Answer the open days first.',
-    key: 'Key', lgWorked: 'Worked', lgOne: 'One punch', lgNone: 'No punch', lgLeave: 'Leave', lgAbsent: 'Absent', lgOff: 'Weekend / holiday', lgOut: 'Outside contract',
-    person: 'Person', days: 'Days', otCol: 'Overtime', decide: 'To decide', state: 'Month',
-    toDecide: n => `${n} to decide`, groupReady: 'Ready', printGroup: 'Print this group', hrs: 'h',
-    noProject: 'No project', expand: 'Expand all', collapse: 'Collapse all',
-    noMatch: 'Nobody matches this search.', clear: 'Clear filters',
-    dTitle: 'What happened on this day?', dOne: t => `One punch at ${t}, no second one.`, dNone: 'The device recorded nothing for this working day.',
-    worked: 'Worked', workedH: 'Counts as a working day.', absent: 'Absent', absentH: 'No working day. Leave is recorded in the Leave module, not here.',
-    note: 'Note (optional)', save: 'Save', cancel: 'Cancel',
-    close: 'Close', timeline: 'Where this month stands', confirmed: 'Confirmed by the employee', approved: 'Approved by manager', locked: 'Locked by HR',
-    notYet: 'Not yet', daysFirst: 'Days waiting for you', daysFirstHelp: 'Answer each one to unlock approval.',
-    approve: 'Approve month', lock: 'Lock month', reopen: 'Reopen', signed: 'Signed paper', signedNone: 'No signed copy uploaded yet.', signedUp: 'Upload signed copy',
-    bulkOk: (a, n) => `${n} timesheet${n === 1 ? '' : 's'} ${a}.`, undo: 'Undo', saved: 'Saved', who1: 'Lina K.',
-    w: ['S','M','T','W','T','F','S'], status: { w: 'Worked', dw: 'Worked (decided)', one: 'One punch', none: 'No punch', l: 'Leave', da: 'Absent (decided)', we: 'Weekend', hol: 'Public holiday', out: 'Outside contract' },
-    footnote: 'Mockup · sample data'
-  },
   ar: {
-    nav: ['الرئيسية','الموظفون','العقود','الإجازات','الحضور','التوظيف'],
-    who: ['الموارد البشرية – حمص', 'HR-HMS'], title: 'سجلات الدوام',
-    lead: 'الشهر مبنيّ من بصمات الأجهزة. الأيام التي بلا بصمة أو ببصمة واحدة تنتظر إجابتك قبل اعتماد الشهر.',
-    devices: 'الأجهزة', upload: 'رفع التقرير', print: 'طباعة الكل', export: 'تصدير', pdf: 'PDF', xlsx: 'Excel',
-    months: ['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'],
-    prev: 'الشهر السابق', next: 'الشهر التالي', city: 'المدينة', allCities: 'كل المدن', homs: 'حمص', aleppo: 'حلب',
-    groupBy: 'التجميع حسب', byProject: 'المشروع', byDept: 'القسم', search: 'ابحث بالاسم أو الرقم…', onlyDecide: 'فقط من لديهم أيام تنتظر القرار',
-    people: n => n === 1 ? 'موظف واحد' : n === 2 ? 'موظفان' : n <= 10 ? n + ' موظفين' : n + ' موظفاً',
-    waiting: n => n === 1 ? 'يوم ينتظر قرارك' : n === 2 ? 'يومان ينتظران قرارك' : 'أيام تنتظر قرارك', allClear: 'كل الأيام مجاب عنها',
-    ot: 'ساعات إضافية', otEq: (h,d) => `${h} ساعة = +${d} يوم راحة`,
-    stOpen: 'مفتوح', stConfirmed: 'مؤكَّد', stApproved: 'معتمد', stLocked: 'مقفل',
-    approveReady: n => `اعتماد ${n} جاهز`, lockApproved: n => `قفل ${n} معتمد`,
-    readyHelp: 'الجاهز = كل أيامه مجاب عنها. الاعتماد يثبّت الساعات الإضافية.', nothingReady: 'لا شيء جاهز للاعتماد بعد. أجب عن الأيام المفتوحة أولاً.',
-    key: 'الدليل', lgWorked: 'دوام', lgOne: 'بصمة واحدة', lgNone: 'بلا بصمة', lgLeave: 'إجازة', lgAbsent: 'غياب', lgOff: 'عطلة أسبوعية / رسمية', lgOut: 'خارج العقد',
-    person: 'الموظف', days: 'الأيام', otCol: 'إضافي', decide: 'بانتظار القرار', state: 'حالة الشهر',
-    toDecide: n => `${n} بانتظار القرار`, groupReady: 'جاهز', printGroup: 'طباعة هذه المجموعة', hrs: 'س',
-    noProject: 'بلا مشروع', expand: 'فتح الكل', collapse: 'طيّ الكل',
-    noMatch: 'لا أحد يطابق هذا البحث.', clear: 'مسح التصفية',
-    dTitle: 'ماذا حدث في هذا اليوم؟', dOne: t => `بصمة واحدة عند ${t} ولا بصمة ثانية.`, dNone: 'لم يسجّل الجهاز أي شيء لهذا اليوم.',
-    worked: 'داوم', workedH: 'يُحتسب يوم عمل.', absent: 'غائب', absentH: 'لا يُحتسب يوم عمل. الإجازة تُسجَّل في وحدة الإجازات لا هنا.',
-    note: 'ملاحظة (اختياري)', save: 'حفظ', cancel: 'إلغاء',
-    close: 'إغلاق', timeline: 'أين وصل هذا الشهر', confirmed: 'أكّده الموظف', approved: 'اعتمده المدير', locked: 'قفلته الموارد البشرية',
-    notYet: 'لم يتم بعد', daysFirst: 'أيام تنتظر قرارك', daysFirstHelp: 'أجب عن كل يوم لتفتح الاعتماد.',
-    approve: 'اعتماد الشهر', lock: 'قفل الشهر', reopen: 'إعادة فتح', signed: 'الورقة الموقّعة', signedNone: 'لم تُرفع نسخة موقّعة بعد.', signedUp: 'رفع نسخة موقّعة',
-    bulkOk: (a, n) => `${a} ${n} ${n <= 10 ? 'سجلات' : 'سجلاً'}.`, undo: 'تراجع', saved: 'تم الحفظ', who1: 'لينا ك.',
-    w: ['ح','ن','ث','ر','خ','ج','س'], status: { w: 'دوام', dw: 'دوام (بقرار)', one: 'بصمة واحدة', none: 'بلا بصمة', l: 'إجازة', da: 'غياب (بقرار)', we: 'عطلة أسبوعية', hol: 'عطلة رسمية', out: 'خارج العقد' },
-    footnote: 'نموذج تصوّري · بيانات تجريبية'
+    nav:['الرئيسية','الموظفون','العقود','الإجازات','الحضور','التوظيف'], title:'الحضور',
+    months:['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'],
+    days:['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
+    tAll:'الكل', tNeed:'تحتاج جوابك', tDone:'مؤكَّد', search:'ابحث عن اسم…',
+    need:n => n==1?'يوم يحتاج جوابك':n==2?'يومان يحتاجان جوابك':`${f(n)} أيام تحتاج جوابك`, ready:'بانتظار تأكيدك', ok:'مؤكَّد',
+    of:'من', worked:'أيام الدوام', hours:'الساعات', leave:'الإجازة', back:'كل الموظفين',
+    alert:n => n==1?'يوم واحد بلا بصمة كاملة. هل داوم؟':n==2?'يومان بلا بصمة كاملة. هل داوم؟':`${f(n)} أيام بلا بصمة كاملة. هل داوم؟`,
+    yes:'داوم', no:'غاب', weekend:'عطلة أسبوعية', holiday:'عطلة رسمية', onLeave:'إجازة', absent:'غائب', missing:'بلا بصمة', onlyIn:'دخول فقط',
+    outside:'خارج العقد', approve:'تأكيد الشهر', why:'التأكيد يعني: راجعتُ الشهر وهو صحيح. بعده يُحسب للرواتب والإجازات ولا يتغيّر.', pick:'اضغط على يوم أحمر لتجيب عنه.', oneAt:t=>`بصمة دخول فقط عند ${t}، ولا بصمة خروج.`, noneAt:'لم يسجّل الجهاز أي بصمة.', q:'هل داوم في هذا اليوم؟', wk:['سبت','أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة'], print:'طباعة', approved:'✓ الشهر مؤكَّد: راجعه المدير وهو صحيح.', answerFirst:'أجب عن الأيام الحمراء أولاً، ثم أكّد الشهر.',
+    h:'س', saved:'تم الحفظ', none:'لا أحد هنا.', foot:'نموذج تصوّري · بيانات تجريبية'
+  },
+  en: {
+    nav:['Dashboard','Employees','Contracts','Leave','Attendance','Recruitment'], title:'Attendance',
+    months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    days:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    tAll:'All', tNeed:'Needs you', tDone:'Confirmed', search:'Search a name…',
+    need:n => n==1?'1 day needs you':`${f(n)} days need you`, ready:'Waiting for you to confirm', ok:'Confirmed',
+    of:'of', worked:'Days worked', hours:'Hours', leave:'Leave', back:'All employees',
+    alert:n => n==1?'1 day has no complete punch. Did they work?':`${f(n)} days have no complete punch. Did they work?`,
+    yes:'Worked', no:'Absent', weekend:'Weekend', holiday:'Public holiday', onLeave:'Leave', absent:'Absent', missing:'No punch', onlyIn:'Clock-in only',
+    outside:'Not under contract', approve:'Confirm month', why:'Confirming means: I checked this month and it is right. It then counts for pay and leave and stays fixed.', pick:'Click a red day to answer it.', oneAt:t=>`Clock-in only at ${t}, no clock-out.`, noneAt:'The device recorded no punch.', q:'Did they work this day?', wk:['Sat','Sun','Mon','Tue','Wed','Thu','Fri'], print:'Print', approved:'✓ Month confirmed: the manager checked it and it is right.', answerFirst:'Answer the red days first, then confirm the month.',
+    h:'h', saved:'Saved', none:'Nobody here.', foot:'Mockup · sample data'
   }
 };
-
-/* sample people (ex = exceptions by day; p = the single punch time) */
 const P = [
-  { id:1041, en:'Rana Haddad',   ar:'رنا حداد',   city:'homs',   proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Homs Clinic','عيادة حمص'],   st:'confirmed', ot:0, ex:{} },
-  { id:1042, en:'Omar Khoury',   ar:'عمر خوري',   city:'homs',   proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Homs Clinic','عيادة حمص'],   st:'open',      ot:6, ex:{9:'one',14:'none',15:'one'}, p:'08:12' },
-  { id:1043, en:'Layla Nasser',  ar:'ليلى ناصر',  city:'homs',   proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Homs Clinic','عيادة حمص'],   st:'approved',  ot:3, ex:{}, leave:[20,22] },
-  { id:1044, en:'Samer Issa',    ar:'سامر عيسى',  city:'homs',   proj:['Health Program','البرنامج الصحي'],        dept:['Finance','المالية'],      center:['Homs Office','مكتب حمص'],    st:'approved',  ot:9.5, ex:{} },
-  { id:1045, en:'Hiba Saleh',    ar:'هبة صالح',   city:'homs',   proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Homs Clinic','عيادة حمص'],   st:'open',      ot:0, ex:{12:'one'}, p:'07:58' },
-  { id:1051, en:'George Maalouf',ar:'جورج معلوف', city:'homs',   proj:['Education Support','دعم التعليم'],        dept:['Programs','البرامج'],     center:['Homs School','مدرسة حمص'],   st:'confirmed', ot:2, ex:{} },
-  { id:1052, en:'Maya Darwish',  ar:'مايا درويش', city:'homs',   proj:['Education Support','دعم التعليم'],        dept:['Programs','البرامج'],     center:['Homs School','مدرسة حمص'],   st:'approved',  ot:0, ex:{27:'da'} },
-  { id:1053, en:'Fadi Antoun',   ar:'فادي أنطون', city:'homs',   proj:['Education Support','دعم التعليم'],        dept:['Field Ops','العمليات الميدانية'], center:['Homs School','مدرسة حمص'], st:'locked', ot:4, ex:{}, to:23 },
-  { id:1054, en:'Nour Abbas',    ar:'نور عباس',   city:'homs',   proj:['Education Support','دعم التعليم'],        dept:['Field Ops','العمليات الميدانية'], center:['Homs School','مدرسة حمص'], st:'open',  ot:0, ex:{5:'none',19:'one'}, p:'09:40' },
-  { id:2011, en:'Khaled Mansour',ar:'خالد منصور', city:'aleppo', proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Aleppo Clinic','عيادة حلب'], st:'locked',    ot:5, ex:{} },
-  { id:2012, en:'Sara Yacoub',   ar:'سارة يعقوب', city:'aleppo', proj:['Health Program','البرنامج الصحي'],        dept:['Programs','البرامج'],     center:['Aleppo Clinic','عيادة حلب'], st:'locked',    ot:0, ex:{}, leave:[13,14] },
-  { id:2013, en:'Elias Kassab',  ar:'إلياس كساب', city:'aleppo', proj:['Health Program','البرنامج الصحي'],        dept:['Finance','المالية'],      center:['Aleppo Office','مكتب حلب'],  st:'open',      ot:1.5, ex:{8:'one'}, p:'08:31' },
-  { id:2021, en:'Dina Rahal',    ar:'دينا راحل',  city:'aleppo', proj:['Livelihoods','سبل العيش'],               dept:['Programs','البرامج'],     center:['Aleppo Hub','مركز حلب'],     st:'approved',  ot:0, ex:{} },
-  { id:2022, en:'Tamer Zein',    ar:'تامر زين',   city:'aleppo', proj:['Livelihoods','سبل العيش'],               dept:['Field Ops','العمليات الميدانية'], center:['Aleppo Hub','مركز حلب'], st:'open',  ot:7, ex:{26:'one'}, from:12, p:'08:05' },
+  {id:1041,en:'Rana Haddad',ar:'رنا حداد',g:['Health Program','البرنامج الصحي'],ok:false,ex:{}},
+  {id:1042,en:'Omar Khoury',ar:'عمر خوري',g:['Health Program','البرنامج الصحي'],ok:false,ex:{13:'one',14:'none',15:'one'}},
+  {id:1043,en:'Layla Nasser',ar:'ليلى ناصر',g:['Health Program','البرنامج الصحي'],ok:true,ex:{},leave:[20,22]},
+  {id:1044,en:'Samer Issa',ar:'سامر عيسى',g:['Health Program','البرنامج الصحي'],ok:true,ex:{}},
+  {id:1045,en:'Hiba Saleh',ar:'هبة صالح',g:['Health Program','البرنامج الصحي'],ok:false,ex:{12:'one'}},
+  {id:1051,en:'George Maalouf',ar:'جورج معلوف',g:['Education Support','دعم التعليم'],ok:false,ex:{}},
+  {id:1052,en:'Maya Darwish',ar:'مايا درويش',g:['Education Support','دعم التعليم'],ok:true,ex:{27:'abs'}},
+  {id:1054,en:'Nour Abbas',ar:'نور عباس',g:['Education Support','دعم التعليم'],ok:false,ex:{5:'none',19:'one'}},
+  {id:2013,en:'Elias Kassab',ar:'إلياس كساب',g:['Livelihoods','سبل العيش'],ok:false,ex:{8:'one'}},
+  {id:2021,en:'Dina Rahal',ar:'دينا راحل',g:['Livelihoods','سبل العيش'],ok:true,ex:{}},
 ];
-P.forEach(p => {
-  p.days = [null];
+// build each person's month: kind + in/out times (deterministic)
+P.forEach(p => { p.days = [null];
   for (let d = 1; d <= DIM; d++) {
+    const r = (p.id * 31 + d * 17) % 23;
+    const inM = 8 * 60 - 6 + r, outM = 16 * 60 + ((r * 7) % 40) - 5;
     let k = 'w';
-    if ((p.from && d < p.from) || (p.to && d > p.to)) k = 'out';
-    else if ([5,6].includes(dow(d))) k = 'we';
-    else if (d === HOLIDAY) k = 'hol';
+    if ([5,6].includes(dow(d))) k = 'we'; else if (d === HOLIDAY) k = 'hol';
     else if (p.leave && d >= p.leave[0] && d <= p.leave[1]) k = 'l';
     else if (p.ex[d]) k = p.ex[d];
-    p.days.push(k);
+    p.days.push({k, inM, outM});
   }
-  p.notes = {};
 });
-const CITY = { homs:{en:'Homs',ar:'حمص'}, aleppo:{en:'Aleppo',ar:'حلب'} };
 
-/* ═══ state ═══ */
-const S = { lang: 'ar', city: '', by: 'proj', q: '', only: false, fold: {}, pop: null, drawer: null, undo: null };
+const S = {lang:'ar', tab:'all', q:'', person:null, sel:null};
 const L = () => T[S.lang];
-const nm = (p) => S.lang === 'ar' ? p.ar : p.en;
-const gname = (v) => v[S.lang === 'ar' ? 1 : 0];
-const AR = '٠١٢٣٤٥٦٧٨٩';
-const n = (x) => { let s = String(x); if (S.lang === 'ar') s = s.replace(/\d/g, d => AR[d]).replace('.', '٫'); return s; };
-const ic = (id, cls = '') => `<svg class="i ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
-const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tr = v => v[S.lang === 'ar' ? 1 : 0];
+const nm = p => S.lang === 'ar' ? p.ar : p.en;
+const f = x => n(x);
+const n = x => S.lang === 'ar' ? String(x).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]).replace('.', '٫') : String(x);
+const ic = id => `<svg class="i" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const hm = m => n(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+const initials = p => nm(p).split(' ').map(w => w[0]).slice(0, 2).join(S.lang === 'ar' ? ' ' : '');
+const open = p => p.days.filter(x => x && (x.k === 'one' || x.k === 'none')).length;
+const workDays = p => p.days.filter(x => x && (x.k === 'w' || x.k === 'yes')).length;
+const planned = p => p.days.filter(x => x && !['we','hol'].includes(x.k)).length;
+const hours = p => Math.round(p.days.reduce((a, x) => a + (x && x.k === 'w' ? x.outM - x.inM : x && x.k === 'yes' ? 480 : 0), 0) / 60);
+const status = p => p.ok ? 'ok' : open(p) ? 'need' : 'ready';
 
-const stats = p => {
-  const c = k => p.days.filter(x => x === k).length;
-  return { days: c('w') + c('dw'), dec: c('one') + c('none') };
-};
-const freeDays = h => { const v = Math.round(h / 8 * 10) / 10; return v; };
-const ready = p => (p.st === 'open' || p.st === 'confirmed') && stats(p).dec === 0;
-const visible = p => {
-  if (S.city && p.city !== S.city) return false;
-  if (S.only && stats(p).dec === 0) return false;
-  const q = S.q.trim().toLowerCase();
-  if (q && !(`${p.en} ${p.ar} ${p.id}`.toLowerCase().includes(q))) return false;
-  return true;
-};
-const scope = () => P.filter(p => !S.city || p.city === S.city);
-
-/* ═══ static chrome ═══ */
 function chrome() {
   const t = L();
   document.documentElement.lang = S.lang; document.documentElement.dir = S.lang === 'ar' ? 'rtl' : 'ltr';
-  document.title = 'HopeHR — ' + t.title + ' (mockup)';
   document.getElementById('nav').innerHTML = t.nav.map((x, i) => `<a href="#" ${i === 4 ? 'aria-current="page"' : ''}>${x}</a>`).join('');
   document.getElementById('lang').textContent = S.lang === 'ar' ? 'EN' : 'عربي';
-  document.getElementById('who').innerHTML = `<b>${t.who[0]}</b><small>${t.who[1]}</small>`;
-  document.getElementById('h1').textContent = t.title + ' ';
-  document.getElementById('h1').insertAdjacentHTML('beforeend', `<span style="color:var(--ink-3);font-weight:600"><bdi>${t.months[MONTH - 1]} ${n(YEAR)}</bdi></span>`);
-  document.getElementById('lead').textContent = t.lead;
-  document.getElementById('acts').innerHTML = `
-    <a class="btn btn-quiet" href="#">${ic('dev')}${t.devices}</a>
-    <a class="btn btn-quiet" href="#">${ic('up')}${t.upload}</a>
-    <details class="menu"><summary class="btn btn-outline">${ic('down')}${t.export}${ic('chev','')}</summary>
-      <div class="menu-list"><a href="#">${ic('file')}${t.pdf}</a><a href="#">${ic('file')}${t.xlsx}</a></div></details>
-    <a class="btn btn-outline" href="#">${ic('print')}${t.print}</a>`;
-  bar();
 }
-function bar() {
-  const t = L(); const nDec = scope().reduce((a, p) => a + (stats(p).dec > 0 ? 1 : 0), 0);
-  document.getElementById('bar').innerHTML = `
-    <div class="stepper" role="group" aria-label="${t.months[MONTH-1]}">
-      <button aria-label="${t.prev}">${ic('chev', 'flip-prev')}</button>
-      <div class="m"><bdi>${t.months[MONTH - 1]} ${n(YEAR)}</bdi></div>
-      <button aria-label="${t.next}">${ic('chev', 'flip-next')}</button>
-    </div>
-    <select class="field" id="city" aria-label="${t.city}">
-      <option value="">${t.allCities}</option><option value="homs" ${S.city==='homs'?'selected':''}>${t.homs}</option><option value="aleppo" ${S.city==='aleppo'?'selected':''}>${t.aleppo}</option>
-    </select>
-    <div class="seg" role="group" aria-label="${t.groupBy}">
-      <button aria-pressed="${S.by==='proj'}" data-by="proj">${t.byProject}</button>
-      <button aria-pressed="${S.by==='dept'}" data-by="dept">${t.byDept}</button>
-    </div>
-    <label class="search"><span class="sr">${t.search}</span>${ic('search')}<input class="field" id="q" type="search" autocomplete="off" placeholder="${t.search}" value="${esc(S.q)}"></label>
-    <label class="chk"><input type="checkbox" id="only" ${S.only?'checked':''}> ${t.onlyDecide} <span class="n">${n(nDec)}</span></label>`;
-  // chevrons point away from the middle of the stepper, in both directions
-  const rtl = S.lang === 'ar';
-  const bs = document.querySelectorAll('.stepper button svg');
-  bs[0].style.transform = rtl ? '' : 'scaleX(-1)'; bs[1].style.transform = rtl ? 'scaleX(-1)' : '';
-}
+const monthPicker = () => { const t = L(), rtl = S.lang === 'ar';
+  return `<div class="stepper"><button aria-label="-1" style="${rtl ? '' : 'transform:scaleX(-1)'}">${ic('chev')}</button><div class="m"><bdi>${t.months[MONTH-1]} ${n(YEAR)}</bdi></div><button aria-label="+1" style="${rtl ? 'transform:scaleX(-1)' : ''}">${ic('chev')}</button></div>`; };
 
-/* ═══ cells ═══ */
-function cell(p, d) {
-  const t = L(), k = p.days[d], lab = `${t.status[k]} · ${n(d)}/${n(MONTH)}`;
-  const wk = k === 'we' ? ' we' : k === 'hol' ? ' hol' : '';
-  let inner;
-  if (k === 'one' || k === 'none') {
-    const cls = k === 'one' ? 'sq-one' : 'sq-none', icon = k === 'one' ? 'alert' : 'q';
-    inner = `<button class="sq ${cls}" data-day="${p.id}:${d}" title="${esc(lab)}" aria-label="${esc(nm(p) + ': ' + lab)}" aria-haspopup="dialog">${ic(icon)}</button>`;
-  } else if (k === 'w' || k === 'dw') inner = `<span class="sq sq-w" title="${esc(lab)}">${ic('check')}<span class="sr">${lab}</span></span>`;
-  else if (k === 'l') inner = `<span class="sq sq-l" title="${esc(lab)}">${ic('cal')}<span class="sr">${lab}</span></span>`;
-  else if (k === 'da') inner = `<span class="sq sq-da" title="${esc(lab)}">${ic('x')}<span class="sr">${lab}</span></span>`;
-  else if (k === 'out') inner = `<span class="sq sq-out" title="${esc(lab)}"><span class="sr">${lab}</span></span>`;
-  else if (k === 'hol') inner = `<span class="hol-dot" title="${esc(lab)}"><span class="sr">${lab}</span></span>`;
-  else inner = `<span class="sr">${lab}</span>`;
-  return `<td class="d${wk}">${inner}</td>`;
-}
-const stChip = s => {
-  const t = L(), m = { open:['open','clock',t.stOpen], confirmed:['confirmed','check',t.stConfirmed], approved:['approved','check',t.stApproved], locked:['locked','shield',t.stLocked] }[s];
-  return `<span class="st st-${m[0]}">${ic(m[1])}${m[2]}</span>`;
-};
-
-function groupBlock(list, key) {
-  const t = L();
-  const tot = list.reduce((a, p) => { const s = stats(p); a.dec += s.dec; a.ot += p.ot; return a; }, { dec:0, ot:0 });
-  const first = list[0];
-  const name = key === '_' ? t.noProject : gname(S.by === 'proj' ? first.proj : first.dept);
-  const id = first.city + ':' + (key === '_' ? '_' : S.by + key);
-  const open = S.fold[id] !== false;
-  const head = `<thead><tr>
-    <th class="p" scope="col">${t.person}</th>
-    <th class="c" scope="col" style="padding-inline:12px">${t.days}</th><th scope="col" style="padding-inline:12px">${t.otCol}</th><th scope="col" style="padding-inline:12px">${t.decide}</th><th scope="col" style="padding-inline:12px">${t.state}</th>
-    ${Array.from({length: DIM}, (_, i) => { const d = i + 1, w = dow(d), c = [5,6].includes(w) ? ' we' : d === HOLIDAY ? ' hol' : ''; return `<th class="d${c}" scope="col">${n(d)}<i>${t.w[w]}</i></th>`; }).join('')}
-  </tr></thead>`;
-  const rows = list.map(p => {
-    const s = stats(p);
-    return `<tr>
-      <th class="p" scope="row"><button class="pbtn" data-person="${p.id}" aria-label="${esc(nm(p))}"><span class="nm"><bdi>${esc(nm(p))}</bdi></span><span class="sub"><span class="num">ID ${n(p.id)}</span> · <bdi>${esc(gname(p.center))}</bdi></span></button></th>
-      <td class="c num"><b>${n(s.days)}</b></td>
-      <td class="c num" style="font-size:14px">${p.ot ? `<bdi>${n(p.ot)} ${t.hrs} = +${n(freeDays(p.ot))}</bdi>` : '<span class="dash">–</span>'}</td>
-      <td class="c">${s.dec ? `<span class="st st-need">${ic('alert')}${n(s.dec)}</span>` : '<span class="dash">–</span>'}</td>
-      <td class="c">${stChip(p.st)}</td>
-      ${Array.from({length: DIM}, (_, i) => cell(p, i + 1)).join('')}
-    </tr>`;
-  }).join('');
-  return `<section class="grp">
-    <div class="grp-h">
-      <button class="fold" data-fold="${id}" aria-expanded="${open}">${ic('chev', 'chev')}<h3><bdi>${esc(name)}</bdi></h3><small>${t.people(list.length)}</small></button>
-      <div class="grp-r">
-        ${tot.dec ? `<span class="st st-need">${ic('alert')}${t.toDecide(n(tot.dec))}</span>` : `<span class="st st-ready">${ic('check')}${t.groupReady}</span>`}
-        ${tot.ot ? `<span class="num"><bdi>${n(tot.ot)} ${t.hrs} = +${n(freeDays(tot.ot))}</bdi></span>` : ''}
-        <details class="menu"><summary class="btn btn-outline btn-sm">${ic('print')}${t.printGroup}${ic('chev')}</summary>
-          <div class="menu-list"><a href="#">${ic('print')}${t.print.replace(/.*/, S.lang==='ar'?'طباعة':'Print')}</a><a href="#">${ic('file')}${t.pdf}</a><a href="#">${ic('file')}${t.xlsx}</a></div></details>
+/* 1 — everyone: one row each, one status each */
+function listView() {
+  const t = L(), cnt = {all:P.length, need:P.filter(p => status(p) === 'need').length, ok:P.filter(p => p.ok).length};
+  const rows = P.filter(p => (S.tab === 'all' || (S.tab === 'need' ? status(p) === 'need' : p.ok))
+    && (!S.q.trim() || (p.en + ' ' + p.ar).toLowerCase().includes(S.q.trim().toLowerCase())));
+  const tag = p => { const s = status(p);
+    return s === 'need' ? `<span class="tag tag-need">${t.need(open(p))}</span>` : s === 'ready' ? `<span class="tag tag-ready">${t.ready}</span>` : `<span class="tag tag-ok">${ic('check')}${t.ok}</span>`; };
+  return `<div class="view">
+    <div class="head"><h1>${t.title}</h1>${monthPicker()}</div>
+    <div class="tools">
+      <div class="tabs" role="tablist">
+        ${[['all',t.tAll],['need',t.tNeed],['ok',t.tDone]].map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}<span class="c ${k === 'need' && cnt.need ? 'red' : ''}">${n(cnt[k])}</span></button>`).join('')}
       </div>
+      <label class="search">${ic('search')}<input class="field" id="q" type="search" placeholder="${t.search}" aria-label="${t.search}" value="${S.q}"></label>
     </div>
-    ${open ? `<div class="scroll"><table>${head}<tbody>${rows}</tbody></table></div>` : ''}
-  </section>`;
+    <ul class="list">${rows.length ? rows.map(p => `<li><button class="prow" data-person="${p.id}">
+      <span class="av">${initials(p)}</span>
+      <span class="who"><b><bdi>${nm(p)}</bdi></b><small><bdi>${tr(p.g)}</bdi></small></span>
+      <span class="dd"><b>${n(workDays(p))}</b> ${t.of} ${n(planned(p))}</span>
+      ${tag(p)}<span class="go">${ic('chev')}</span></button></li>`).join('') : `<li class="empty">${t.none}</li>`}</ul>
+    <p style="margin-top:40px;color:var(--ink-3);font-size:13px;text-align:center">${t.foot}</p></div>`;
 }
 
-/* ═══ content ═══ */
-function content() {
-  const t = L(), sc = scope();
-  const cnt = { open:0, confirmed:0, approved:0, locked:0 }; sc.forEach(p => cnt[p.st]++);
-  const dec = sc.reduce((a, p) => a + stats(p).dec, 0);
-  const ot = sc.reduce((a, p) => a + p.ot, 0);
-  const nReady = sc.filter(ready).length, nLock = sc.filter(p => p.st === 'approved').length;
-  const seg = [['open','clock',t.stOpen],['confirmed','check',t.stConfirmed],['approved','check',t.stApproved],['locked','shield',t.stLocked]];
-
-  let html = `<section class="over" aria-label="${t.title}">
-    <div>
-      <p class="facts">
-        <span><b class="num">${n(sc.length)}</b>${t.people(sc.length).replace(/^\S+\s?/, '') || ''}</span>
-        <span class="wait">${dec ? `<b class="num">${n(dec)}</b>${t.waiting(dec)}` : `<b>${ic('check')}</b>${t.allClear}`}</span>
-        <span><b class="num">${n(Math.round(ot * 10) / 10)}</b>${t.hrs} ${t.ot} · <bdi class="num">+${n(freeDays(ot))}</bdi> ${S.lang==='ar'?'يوم راحة':'free days'}</span>
-      </p>
-      <div class="pipe" role="img" aria-label="${seg.map(s => s[2] + ' ' + cnt[s[0]]).join(', ')}">
-        ${seg.map(([k, i, lab]) => `<div class="s" data-n="${cnt[k]}" style="--n:${cnt[k]}"><div class="bar-s fill-${k}"></div><div class="lab">${ic(i)}${lab}<em class="num">${n(cnt[k])}</em></div></div>`).join('')}
-      </div>
+/* 2 — one person: their month as a calendar (week starts Saturday) */
+function personView(p) {
+  const t = L(), o = open(p), leaveDays = p.days.filter(x => x && x.k === 'l').length;
+  const lead = (dow(1) + 1) % 7;               // empty cells before the 1st
+  const cellOf = (x, d) => {
+    const pend = x.k === 'one' || x.k === 'none', sel = S.sel === d;
+    let body = '', cls = '';
+    if (x.k === 'we' || x.k === 'hol') { cls = 'off'; body = x.k === 'hol' ? `<span class="lbl">${t.holiday}</span>` : ''; }
+    else if (x.k === 'l') { cls = 'lv'; body = `<span class="lbl">${t.onLeave}</span>`; }
+    else if (x.k === 'abs' || x.k === 'no') { cls = 'ab'; body = `<span class="lbl">${t.absent}</span>`; }
+    else if (pend) { cls = 'q'; body = `<span class="lbl">${x.k === 'one' ? hm(x.inM) + ' – ?' : t.missing}</span>`; }
+    else if (x.k === 'yes') body = `<span class="lbl">${t.yes}</span>`;
+    else { const m = x.outM - x.inM; body = `<span class="tm">${hm(x.inM)}–${hm(x.outM)}</span><span class="hr">${n(Math.floor(m / 60))}${t.h} ${n(m % 60)}</span>`; }
+    const tag = pend && !p.ok ? 'button' : 'div';
+    return `<${tag} class="cd ${cls}${sel ? ' sel' : ''}" ${tag === 'button' ? `data-pick="${d}" aria-label="${t.days[dow(d)]} ${n(d)}: ${t.missing}"` : ''}><span class="dn">${n(d)}</span>${body}</${tag}>`;
+  };
+  const x = S.sel && p.days[S.sel];
+  const ask = x && (x.k === 'one' || x.k === 'none') ? `<div class="ask"><div><b>${t.days[dow(S.sel)]} ${n(S.sel)}/${n(MONTH)}</b><span>${x.k === 'one' ? t.oneAt(hm(x.inM)) : t.noneAt} ${t.q}</span></div>
+      <div class="pair"><button class="btn btn-outline" data-set="${S.sel}:yes">${ic('check')}${t.yes}</button><button class="btn btn-outline" data-set="${S.sel}:no">${t.no}</button></div></div>` : '';
+  return `<div class="view">
+    <button class="back" data-back>${ic('back')}${t.back}</button>
+    <div class="head"><div class="ph"><span class="av">${initials(p)}</span><div><h1><bdi>${nm(p)}</bdi></h1><p><bdi>${tr(p.g)}</bdi></p></div></div>${monthPicker()}</div>
+    <div class="sum"><div><small>${t.worked}</small><b>${n(workDays(p))}</b> <span style="color:var(--ink-3)">/ ${n(planned(p))}</span></div>
+      <div><small>${t.hours}</small><b>${n(hours(p))}</b></div><div><small>${t.leave}</small><b>${n(leaveDays)}</b></div></div>
+    ${o && !p.ok ? `<div class="alert"><span>${t.alert(o)} <span style="font-weight:400;color:var(--ink-2)">${t.pick}</span></span></div>` : ''}
+    <div class="cal">
+      ${t.wk.map((w, i) => `<div class="wh">${w}</div>`).join('')}
+      ${'<div class="cd blank"></div>'.repeat(lead)}
+      ${p.days.slice(1).map((x, i) => cellOf(x, i + 1)).join('')}
     </div>
-    <div class="cta">
-      <button class="btn btn-primary" data-bulk="approve" ${nReady ? '' : 'disabled'}>${ic('check')}${t.approveReady(n(nReady))}</button>
-      ${nLock ? `<button class="btn btn-outline" data-bulk="lock">${ic('shield')}${t.lockApproved(n(nLock))}</button>` : ''}
-      <p>${nReady ? t.readyHelp : t.nothingReady}</p>
-    </div>
-  </section>
-
-  <div class="legend" aria-label="${t.key}">
-    <span class="k">${t.key}</span>
-    <span><i class="sq sq-w">${ic('check')}</i>${t.lgWorked}</span>
-    <span><i class="sq sq-one">${ic('alert')}</i>${t.lgOne}</span>
-    <span><i class="sq sq-none">${ic('q')}</i>${t.lgNone}</span>
-    <span><i class="sq sq-l">${ic('cal')}</i>${t.lgLeave}</span>
-    <span><i class="sq sq-da">${ic('x')}</i>${t.lgAbsent}</span>
-    <span><i class="sq" style="background:repeating-linear-gradient(135deg,var(--soft) 0 4px,var(--surface) 4px 5px)"></i>${t.lgOff}</span>
-    <span><i class="sq sq-out"></i>${t.lgOut}</span>
-  </div>`;
-
-  const vis = P.filter(visible);
-  if (!vis.length) html += `<div class="empty"><p>${t.noMatch}</p><button class="btn btn-outline" data-clear>${t.clear}</button></div>`;
-  ['homs','aleppo'].forEach(c => {
-    const inCity = vis.filter(p => p.city === c); if (!inCity.length) return;
-    const cdec = inCity.reduce((a, p) => a + stats(p).dec, 0);
-    const groups = {};
-    inCity.forEach(p => { const k = gname(S.by === 'proj' ? p.proj : p.dept); (groups[k] = groups[k] || []).push(p); });
-    const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, S.lang));
-    html += `<section class="city"><h2><bdi>${gname([CITY[c].en, CITY[c].ar])}</bdi><small>${t.people(inCity.length)}</small>
-      ${cdec ? `<span class="st st-need">${ic('alert')}${t.toDecide(n(cdec))}</span>` : ''}</h2>
-      ${keys.map(k => groupBlock(groups[k], k)).join('')}</section>`;
-  });
-  html += `<p style="margin-top:48px;color:var(--ink-3);font-size:13px;text-align:center">${t.footnote}</p>`;
-  document.getElementById('content').innerHTML = html;
+    ${ask}
+    <div class="foot">
+      ${p.ok ? `<p>${t.approved}</p>` : o ? `<p>${t.answerFirst}</p>` : `<div><button class="btn btn-primary" data-approve>${ic('check')}${t.approve}</button><p style="margin-top:8px;max-width:52ch">${t.why}</p></div>`}
+      <a class="btn btn-outline" href="#">${ic('print')}${t.print}</a></div></div>`;
 }
 
-/* ═══ day popover ═══ */
-function openPop(btn) {
-  const [id, d] = btn.dataset.day.split(':').map(Number); const p = P.find(x => x.id === id); const t = L();
-  closePop(false); S.pop = { id, d };
-  btn.setAttribute('aria-expanded', 'true');
-  const k = p.days[d], el = document.createElement('div');
-  el.className = 'pop'; el.id = 'pop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-labelledby', 'pop-t');
-  el.innerHTML = `<h4 id="pop-t"><bdi>${esc(nm(p))}</bdi></h4>
-    <p class="when"><bdi>${t.w[dow(d)]} · ${n(d)}/${n(MONTH)}/${n(YEAR)}</bdi></p>
-    <p class="why">${ic(k === 'one' ? 'alert' : 'q')}<span>${k === 'one' ? t.dOne(n(p.p || '08:00')) : t.dNone}</span></p>
-    <form id="pop-f">
-      <label class="opt"><input type="radio" name="k" value="dw" checked><span>${t.worked}<small>${t.workedH}</small></span></label>
-      <label class="opt"><input type="radio" name="k" value="da"><span>${t.absent}<small>${t.absentH}</small></span></label>
-      <input class="field note" name="note" maxlength="200" dir="auto" placeholder="${t.note}" aria-label="${t.note}">
-      <div class="row"><button type="button" class="btn btn-quiet btn-sm" data-popclose>${t.cancel}</button><button class="btn btn-primary btn-sm">${t.save}</button></div>
-    </form>`;
-  document.body.appendChild(el);
-  const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
-  let x = r.left + r.width / 2 - w / 2; x = Math.max(12, Math.min(innerWidth - w - 12, x));
-  let y = r.bottom + 10; if (y + h > innerHeight - 12) y = Math.max(12, r.top - h - 10);
-  el.style.left = x + 'px'; el.style.top = y + 'px';
-  el.querySelector('input[type=radio]').focus();
-  el.querySelector('form').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); decide(id, d, f.get('k'), f.get('note')); closePop(false); };
+function render(top) {
+  const app = document.getElementById('app'), p = P.find(x => x.id === S.person);
+  app.innerHTML = p ? personView(p) : listView();
+  if (top) scrollTo(0, 0);
 }
-function closePop(refocus = true) {
-  const el = document.getElementById('pop'); if (el) el.remove();
-  document.querySelectorAll('[aria-expanded="true"][data-day]').forEach(b => b.setAttribute('aria-expanded', 'false'));
-  const was = S.pop; S.pop = null;
-  if (refocus && was) document.querySelector(`[data-day="${was.id}:${was.d}"]`)?.focus();
-}
-function decide(id, d, kind, note) {
-  const p = P.find(x => x.id === id); p.days[d] = kind; if (note) p.notes[d] = note;
-  // a decision in an approved month would withdraw the approval; here every day touched is in an open one
-  content(); bar(); if (S.drawer) drawer(S.drawer);
-  flash(L().saved);
-}
+let tt; const flash = m => { const el = document.getElementById('toast'); clearTimeout(tt); el.innerHTML = `<div class="toast" role="status">${m}</div>`; tt = setTimeout(() => el.innerHTML = '', 3000); };
 
-/* ═══ drawer ═══ */
-function drawer(id) {
-  const p = P.find(x => x.id === id); if (!p) return; const t = L(), s = stats(p); S.drawer = id;
-  const pend = p.days.map((k, d) => (k === 'one' || k === 'none') ? d : 0).filter(Boolean);
-  const canApprove = ready(p), canLock = p.st === 'approved', canReopen = p.st === 'locked' || p.st === 'approved';
-  const step = (done, label, sub) => `<li class="${done ? 'done' : 'todo'}"><span class="dot">${ic(done ? 'check' : 'dot')}</span><div><b>${label}</b><span>${done ? sub : t.notYet}</span></div></li>`;
-  const idx = ['open','confirmed','approved','locked'].indexOf(p.st);
-  document.getElementById('overlay').innerHTML = `<div class="scrim" data-close></div>
-  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-t">
-    <header><div><h2 id="dr-t"><bdi>${esc(nm(p))}</bdi></h2><p style="margin:2px 0 10px;color:var(--ink-2);font-size:14px"><bdi class="num">${t.months[MONTH-1]} ${n(YEAR)}</bdi> · <span class="num">ID ${n(p.id)}</span></p>${stChip(p.st)}</div>
-      <button class="iconbtn" data-close aria-label="${t.close}">${ic('x')}</button></header>
-    <div class="body">
-      <div class="tot"><div><small>${t.days}</small><b class="num">${n(s.days)}</b></div><div><small>${t.otCol}</small><b class="num">${n(p.ot)} ${t.hrs}</b></div><div class="${s.dec ? 'red' : ''}"><small>${t.decide}</small><b class="num">${n(s.dec)}</b></div></div>
-      ${pend.length ? `<div><h5>${t.daysFirst}</h5><p style="margin:-4px 0 10px;font-size:14px;color:var(--ink-2)">${t.daysFirstHelp}</p><div class="todo-d">${pend.map(d => `
-        <div class="r"><div><b><bdi>${t.w[dow(d)]} ${n(d)}/${n(MONTH)}</bdi></b><small>${p.days[d] === 'one' ? t.dOne(n(p.p || '08:00')) : t.dNone}</small></div>
-          <div class="pair"><button class="btn btn-outline btn-sm" data-quick="${p.id}:${d}:dw">${t.worked}</button><button class="btn btn-outline btn-sm" data-quick="${p.id}:${d}:da">${t.absent}</button></div></div>`).join('')}</div></div>` : ''}
-      <div><h5>${t.timeline}</h5><ol class="steps">
-        ${step(idx >= 1, t.confirmed, S.lang==='ar' ? 'بتاريخ ٢٨/١٠/٢٠٢٦ ٠٩:١٤' : '28/10/2026 09:14')}
-        ${step(idx >= 2, t.approved, S.lang==='ar' ? 'الإضافي المعتمد: ' + n(p.ot) + ' ساعة' : 'Overtime fixed: ' + p.ot + ' h')}
-        ${step(idx >= 3, t.locked, S.lang==='ar' ? 'رُصيد الراحة: +' + n(freeDays(p.ot)) + ' يوم' : 'Credited: +' + freeDays(p.ot) + ' free days')}
-      </ol></div>
-      <div><h5>${t.signed}</h5><p style="margin:0 0 10px;font-size:14px;color:var(--ink-2)">${t.signedNone}</p><button class="btn btn-outline btn-sm">${ic('up')}${t.signedUp}</button></div>
-    </div>
-    <footer>
-      ${canApprove ? `<button class="btn btn-primary" data-one="${p.id}:approved">${ic('check')}${t.approve}</button>` : ''}
-      ${canLock ? `<button class="btn btn-primary" data-one="${p.id}:locked">${ic('shield')}${t.lock}</button>` : ''}
-      ${canReopen ? `<button class="btn btn-outline" data-one="${p.id}:open">${t.reopen}</button>` : ''}
-      <a class="btn btn-outline" href="#" style="margin-inline-start:auto">${ic('print')}${S.lang==='ar'?'طباعة':'Print'}</a>
-    </footer></aside>`;
-  document.querySelector('.drawer .iconbtn').focus();
-}
-function closeDrawer() { S.drawer = null; document.getElementById('overlay').innerHTML = ''; }
-
-/* ═══ toast + undo ═══ */
-let tt;
-function flash(msg, undo) {
-  const el = document.getElementById('toast'); clearTimeout(tt);
-  el.innerHTML = `<div class="toast" role="status"><span>${msg}</span>${undo ? `<button data-undo>${L().undo}</button>` : ''}</div>`;
-  S.undo = undo || null; tt = setTimeout(() => el.innerHTML = '', 6000);
-}
-function bulk(kind) {
-  const before = P.map(p => p.st); let c = 0;
-  P.filter(p => !S.city || p.city === S.city).forEach(p => {
-    if (kind === 'approve' && ready(p)) { p.st = 'approved'; c++; }
-    if (kind === 'lock' && p.st === 'approved') { p.st = 'locked'; c++; }
-  });
-  const t = L(); const a = kind === 'approve' ? (S.lang === 'ar' ? 'تم اعتماد' : 'approved') : (S.lang === 'ar' ? 'تم قفل' : 'locked');
-  content(); bar();
-  flash(S.lang === 'ar' ? `${a} ${n(c)} ${c <= 10 ? 'سجلات' : 'سجلاً'}.` : `${c} timesheet${c === 1 ? '' : 's'} ${a}.`, () => { P.forEach((p, i) => p.st = before[i]); content(); bar(); document.getElementById('toast').innerHTML = ''; });
-}
-
-/* ═══ events ═══ */
 document.addEventListener('click', e => {
-  const q = s => e.target.closest(s);
-  let b;
-  if ((b = q('[data-day]'))) { if (b.getAttribute('aria-expanded') === 'true') closePop(); else openPop(b); return; }
-  if (!q('#pop')) closePop(false);
-  if ((b = q('[data-popclose]'))) return closePop();
-  if ((b = q('[data-fold]'))) { const id = b.dataset.fold; S.fold[id] = !(S.fold[id] !== false); content(); document.querySelector(`[data-fold="${id}"]`)?.focus(); return; }
-  if ((b = q('[data-person]'))) return drawer(+b.dataset.person);
-  if (q('[data-close]')) return closeDrawer();
-  if ((b = q('[data-quick]'))) { const [id, d, k] = b.dataset.quick.split(':'); return decide(+id, +d, k); }
-  if ((b = q('[data-one]'))) { const [id, st] = b.dataset.one.split(':'); P.find(x => x.id === +id).st = st; content(); bar(); drawer(+id); return; }
-  if ((b = q('[data-bulk]'))) return bulk(b.dataset.bulk);
-  if ((b = q('[data-by]'))) { S.by = b.dataset.by; bar(); content(); return; }
-  if (q('[data-undo]') && S.undo) return S.undo();
-  if (q('[data-clear]')) { S.q = ''; S.only = false; S.city = ''; bar(); content(); return; }
-  if (q('#lang')) { S.lang = S.lang === 'ar' ? 'en' : 'ar'; chrome(); content(); if (S.drawer) drawer(S.drawer); return; }
-  if (q('#theme')) { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches; r.dataset.theme = dark ? 'light' : 'dark'; document.querySelector('#theme use').setAttribute('href', dark ? '#i-moon' : '#i-sun'); return; }
+  const q = s => e.target.closest(s); let b;
+  if ((b = q('[data-person]'))) { S.person = +b.dataset.person; S.sel = null; return render(true); }
+  if ((b = q('[data-pick]'))) { S.sel = S.sel === +b.dataset.pick ? null : +b.dataset.pick; render(); document.querySelector('.ask .btn')?.focus(); return; }
+  if (q('[data-back]')) { S.person = null; return render(true); }
+  if ((b = q('[data-tab]'))) { S.tab = b.dataset.tab; return render(); }
+  if ((b = q('[data-set]'))) { const [d, k] = b.dataset.set.split(':'); P.find(x => x.id === S.person).days[+d].k = k; const pp = P.find(x => x.id === S.person); S.sel = pp.days.findIndex(x => x && (x.k === 'one' || x.k === 'none')); if (S.sel < 0) S.sel = null; render(); return flash(L().saved); }
+  if (q('[data-approve]')) { P.find(x => x.id === S.person).ok = true; render(); return flash(L().approved); }
+  if (q('#lang')) { S.lang = S.lang === 'ar' ? 'en' : 'ar'; chrome(); return render(); }
+  if (q('#theme')) { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+    r.dataset.theme = dark ? 'light' : 'dark'; document.querySelector('#theme use').setAttribute('href', dark ? '#i-moon' : '#i-sun'); }
 });
-document.addEventListener('input', e => {
-  if (e.target.id === 'q') { S.q = e.target.value; content(); }
-});
-document.addEventListener('change', e => {
-  if (e.target.id === 'city') { S.city = e.target.value; bar(); content(); }
-  if (e.target.id === 'only') { S.only = e.target.checked; content(); }
-});
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (S.pop) closePop(); else if (S.drawer) closeDrawer();
-});
-
-chrome(); content();
-if (new URLSearchParams(location.search).get('lang') === 'en') { S.lang = 'en'; chrome(); content(); }
+document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; render(); const i = document.getElementById('q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } });
+chrome(); render();
 </script>
 </body>
 </html>
