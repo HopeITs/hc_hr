@@ -1837,3 +1837,6 @@ html:has([data-tour="contract.save"]) .app-install-banner {
         display: none;
     }
 }
+
+/* The sidebar takes its starting width without sliding there on load (layouts/app x-init). */
+.sb-init, .sb-init * { transition: none !important; }

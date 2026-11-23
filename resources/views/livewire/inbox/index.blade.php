@@ -131,24 +131,26 @@
                     {{-- Actions --}}
                     <div class="mt-3">
                         @if ($row['action'] === 'decide')
-                            {{-- Accept or reject; a rejection needs its reason (DEC-05). Enter submits. --}}
-                            <form x-data="{ choice: null }"
-                                  x-on:submit.prevent="choice && $wire.decide(@js($row['key']), @js($row['version']), choice)"
+                            {{-- UX 2026-11-23: accept is one click; reject opens its reason (DEC-05) and a confirm button. --}}
+                            <form x-data="{ rejecting: false }"
+                                  x-on:submit.prevent="rejecting && $wire.decide(@js($row['key']), @js($row['version']), 2)"
                                   class="flex flex-col gap-2">
-                                <div role="radiogroup" aria-label="{{ __('inbox.decision.label') }}" class="flex flex-wrap gap-2">
-                                    <button type="button" role="radio" :aria-checked="(choice === 1).toString()" x-on:click="choice = 1"
-                                            class="hc-choice inline-flex min-h-11 items-center gap-2 px-4 font-semibold text-ink"><x-ic name="check" class="size-4" />{{ __('inbox.decision.accept') }}</button>
-                                    <button type="button" role="radio" :aria-checked="(choice === 2).toString()" x-on:click="choice = 2; $nextTick(() => $refs.reason.focus())"
-                                            class="hc-choice inline-flex min-h-11 items-center gap-2 px-4 font-semibold text-ink"><x-ic name="x" class="size-4" />{{ __('inbox.decision.reject') }}</button>
+                                <div class="flex flex-wrap gap-2" x-show="!rejecting">
+                                    <x-button type="button" icon="check" data-testid="inbox-accept"
+                                              wire:click="decide({{ \Illuminate\Support\Js::from($row['key']) }}, {{ \Illuminate\Support\Js::from($row['version']) }}, 1)"
+                                              wire:loading.attr="disabled">{{ __('inbox.decision.accept') }}</x-button>
+                                    <x-button type="button" variant="outline" icon="x" data-testid="inbox-reject"
+                                              x-on:click="rejecting = true; $nextTick(() => $refs.reason.focus())">{{ __('inbox.decision.reject') }}…</x-button>
                                 </div>
-                                <div x-show="choice === 2" x-cloak>
+                                <div x-show="rejecting" x-cloak>
                                     <label for="reason-{{ $slug }}" class="text-small font-semibold text-ink">{{ __('general.reject-reason') }} <span class="text-primary">*</span></label>
                                     <input id="reason-{{ $slug }}" x-ref="reason" type="text" maxlength="255" wire:model="reasons.{{ $slug }}"
                                            class="mt-1 h-11 w-full rounded-control border border-line bg-field px-3">
                                     @error('reasons.'.$slug) <p class="mt-1 text-small text-primary">{{ $message }}</p> @enderror
-                                </div>
-                                <div>
-                                    <x-button type="submit" ::disabled="!choice" data-testid="inbox-decide">{{ __('inbox.decision.save') }}</x-button>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <x-button type="submit" data-testid="inbox-decide">{{ __('inbox.decision.confirm-reject') }}</x-button>
+                                        <x-button type="button" variant="quiet" x-on:click="rejecting = false">{{ __('general.cancel') }}</x-button>
+                                    </div>
                                 </div>
                             </form>
                         @elseif ($row['action'] === 'review')

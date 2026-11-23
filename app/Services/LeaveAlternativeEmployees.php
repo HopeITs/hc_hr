@@ -52,7 +52,10 @@ class LeaveAlternativeEmployees
     public function for(Employee $employee, ?LeaveWindow $period = null): Collection
     {
         $period = $this->usable($period);
-        $candidates = $this->query($employee, $period)->orderBy(transColumn('first_name'))->get();
+        // Their current position goes with each name: two colleagues may share one.
+        $candidates = $this->query($employee, $period)
+            ->with('contracts.position')
+            ->orderBy(transColumn('first_name'))->get();
 
         return $period ? $this->withoutHolidaysIn($candidates, $employee, $period) : $candidates;
     }

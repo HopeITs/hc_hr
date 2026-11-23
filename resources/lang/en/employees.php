@@ -55,6 +55,7 @@ return [
 
     'onboarding' => [
         'new-record' => 'New volunteer',
+        'page-title' => 'Add employee',
         'state-draft' => 'Incomplete record (draft)',
         'state-awaiting' => 'Ready, awaiting contract',
         'awaiting-help' => 'This record is complete. The volunteer becomes active, and gets a login account, when their first contract starts.',

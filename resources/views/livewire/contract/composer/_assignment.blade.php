@@ -117,8 +117,8 @@
                 {{-- D3: the "?" sits beside the label, not inside it. --}}
                 <div class="flex items-start gap-1">
                     <x-forms.input-label for="composer_position"
-                        required>{{ trans_choice('general.positions', 1) }}</x-forms.input-label>
-                    <x-help.trigger topic="position-dependencies" :label="trans_choice('general.positions', 1)"/>
+                        required>{{ __('general.position') }}</x-forms.input-label>
+                    <x-help.trigger topic="position-dependencies" :label="__('general.position')"/>
                 </div>
                 <x-forms.combobox id="composer_position" required variant="position" clearable options="positionOptions"
                     model="selected.position" disabled="loading || !selected.program" />
@@ -211,7 +211,7 @@
          on both. --}}
     <div class="grid gap-5 mt-5 sm:grid-cols-2">
         <div>
-            <x-forms.input-label required>@lang('general.type')</x-forms.input-label>
+            <x-forms.input-label required>@lang('contracts.attributes.type')</x-forms.input-label>
 
             {{--
                 Full/Part time only make sense for a volunteer or trial
@@ -221,7 +221,7 @@
                 screen instead of offering a choice that would fail validation.
             --}}
             <div x-cloak x-show="selectedType?.category !== 'service'" class="grid grid-cols-2 gap-2 mt-1"
-                role="radiogroup" aria-label="@lang('general.type')">
+                role="radiogroup" aria-label="@lang('contracts.attributes.type')">
                 @foreach ($typeOptions as $value => $label)
                     @continue($value === ContractTypeEnum::Freelance)
                     <label class="cursor-pointer">
