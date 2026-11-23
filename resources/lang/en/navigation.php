@@ -38,6 +38,7 @@ return [
         ],
         'customise' => ['label' => 'Customize dashboard', 'keywords' => 'customise customize dashboard home edit arrange tiles layout'],
         'shortcuts' => ['label' => 'Keyboard shortcuts', 'keywords' => 'keyboard keys hotkeys help'],
+        'announcement' => ['label' => 'Ready-made emails', 'keywords' => 'email mail template announcement welcome resignation holiday administrative change'],
     ],
 
     // Prompt 10: the "?" sheet (<x-keyboard-shortcuts>, App\Support\KeyboardShortcuts).

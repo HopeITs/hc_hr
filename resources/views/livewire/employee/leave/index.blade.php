@@ -33,26 +33,32 @@
     @if($loadFailed)
         <x-ui.load-error class="mb-6" :message="__('states.balances-unavailable')" />
     @elseif($availableLeaves !== null && $availableLeaves->isNotEmpty())
-        <div data-tour="leaves.balances" class="grid
-            grid-cols-1
-            sm:grid-cols-2
-            lg:grid-cols-3
-            xl:grid-cols-5
-            gap-6
-            mb-6">
-            @foreach($availableLeaves as $availableLeave)
-                <x-leave-card
-                    class="{{ $availableLeave->isAnnual() ? 'col-span-1 sm:col-span-2' : 'col-span-1' }}"
-                    :title="$availableLeave->leaveType->name"
-                    :total="$availableLeave->deserved_formatted"
-                    :remaining="$availableLeave->available_formatted"
-                    :total-days="$availableLeave->intTotal"
-                    :remaining-days="$availableLeave->int_available"
-                    :is-annual="$availableLeave->isAnnual()"
-                    :used="$availableLeave->used_formatted"
-                    :pending="formatDuration($availableLeave->pending_days , $availableLeave->pending_hours)"
-                />
-            @endforeach
+        @php
+            // Annual leave, and any other type already in use (taken or waiting), stay in view;
+            // the types nobody has touched (sick, bereavement…) fold behind "Show the other balances".
+            [$shownLeaves, $otherLeaves] = $availableLeaves->partition(
+                fn ($balance) => $balance->isAnnual() || (float) ($balance->used ?? 0) > 0
+                    || (int) ($balance->pending_days ?? 0) > 0 || (float) ($balance->pending_hours ?? 0) > 0
+            );
+        @endphp
+        <div data-tour="leaves.balances" class="mb-6" x-data="{ more: false }">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                @foreach($shownLeaves as $availableLeave)
+                    @include('livewire.employee.leave.partials.my-balance-card', ['balance' => $availableLeave])
+                @endforeach
+                @foreach($otherLeaves as $availableLeave)
+                    <div class="col-span-1 flex" x-show="more" x-cloak wire:key="other-balance-{{ $availableLeave->id }}" data-testid="other-balance">
+                        @include('livewire.employee.leave.partials.my-balance-card', ['balance' => $availableLeave])
+                    </div>
+                @endforeach
+            </div>
+
+            @if($otherLeaves->isNotEmpty())
+                <x-button variant="link" size="sm" class="mt-3" x-on:click="more = ! more" x-bind:aria-expanded="more.toString()" data-testid="toggle-other-balances">
+                    <span x-show="! more">{{ trans_choice('leaves.balances.show-others', $otherLeaves->count(), ['count' => $otherLeaves->count()]) }}</span>
+                    <span x-show="more" x-cloak>{{ __('leaves.balances.hide-others') }}</span>
+                </x-button>
+            @endif
         </div>
     @else
         <div class="rounded-surface shadow-e2 mb-6 text-center font-semibold text-ink-2 p-4" role="status">

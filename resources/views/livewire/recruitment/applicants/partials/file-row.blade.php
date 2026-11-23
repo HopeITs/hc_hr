@@ -14,10 +14,10 @@
         <span class="font-medium">{{ $typeLabel }}</span>
         <span class="text-secondary-medium">&middot; {{ $file->uploaded_at?->format('Y-m-d') }}</span>
         @if ($scan !== \App\Enums\RecruitmentFileScanStatus::Clean)
-            <span class="recruitment-badge ms-1 rounded-control border px-2 py-0.5 text-xs font-semibold {{ $scan === \App\Enums\RecruitmentFileScanStatus::Pending ? 'border-neutral-300 bg-neutral-100 text-secondary-dark' : 'border-primary bg-white text-primary' }}">{{ __('recruitment-applicant.scan.'.$scan) }}</span>
+            <span class="recruitment-badge ms-1 rounded-control border px-2 py-0.5 text-caption font-semibold {{ $scan === \App\Enums\RecruitmentFileScanStatus::Pending ? 'border-neutral-300 bg-neutral-100 text-secondary-dark' : 'border-primary bg-card text-primary' }}">{{ __('recruitment-applicant.scan.'.$scan) }}</span>
         @endif
         @if ($file->isArchived())
-            <span class="ms-1 rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark">
+            <span class="ms-1 rounded-control bg-neutral-100 px-2 py-0.5 text-caption font-semibold text-secondary-dark">
                 {{ __('recruitment-applicant.cv_archive.archived_on', ['date' => $file->archived_at->format('Y-m-d'), 'name' => $file->archivedBy?->profile?->name ?? $file->archivedBy?->name ?? '—']) }}
             </span>
         @endif
@@ -50,12 +50,12 @@
                 <x-forms.input-error field="archiveReason" input-id="archiveReason" />
             </div>
             <div class="mt-4 flex flex-wrap gap-3">
-                <x-primary-button type="button" wire:click="archiveCv" wire:loading.attr="disabled" wire:target="archiveCv">
+                <x-button type="button" wire:click="archiveCv" wire:loading.attr="disabled" wire:target="archiveCv">
                     {{ __('recruitment-applicant.cv_archive.archive_confirm') }}
-                </x-primary-button>
-                <x-secondary-button wire:click="cancelArchive">
+                </x-button>
+                <x-button variant="quiet" wire:click="cancelArchive">
                     {{ __('recruitment-applicant.cancel') }}
-                </x-secondary-button>
+                </x-button>
             </div>
         </div>
     @endif

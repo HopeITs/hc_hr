@@ -183,6 +183,10 @@ return [
             'freelance_requires_service' => 'Freelance is only available for service contracts.',
         ],
 
+        'work_weekdays' => [
+            'center_day_off' => 'The center\'s day off cannot be a working day.',
+        ],
+
         'weekly_hours' => [
             'required_unless_service' => 'Weekly hours must be an explicit number for this contract category — complete the day/hour range, or the flexible "hours/week" box.',
         ],

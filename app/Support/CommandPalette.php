@@ -53,6 +53,11 @@ final class CommandPalette
             $commands[] = self::make($action['id'], 'open', route($action['route'], $action['params']), $action['returns'], fallback: $action['label']);
         }
 
+        // The ready-made announcements (App\Livewire\Messages\AnnouncementComposer).
+        if ($user->hasActivePermission('message-templates.use')) {
+            $commands[] = self::make('announcement', 'announcement');
+        }
+
         $other = app()->getLocale() === 'ar' ? 'en' : 'ar';
 
         foreach (self::GENERAL as $id) {

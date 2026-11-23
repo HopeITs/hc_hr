@@ -96,7 +96,8 @@ class PublicRecruitmentApplicationService
         $fields = $this->forms->normalizeFields($resolvedLink->formVersion->fields_json);
         $fieldsByKey = collect($fields)->keyBy('key');
         $email = $this->links->normalizeEmail((string) ($validated['email'] ?? ''));
-        $fullName = trim((string) ($validated['full_name'] ?? ''));
+        // The form asks for the names one by one; the applicant record keeps one (RecruitmentApplicationFormService::fullNameFrom).
+        $fullName = RecruitmentApplicationFormService::fullNameFrom($validated);
         $phone = $this->normalizePhone((string) ($validated['phone'] ?? ''));
         $cityId = filter_var($input['city_id'] ?? null, FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],

@@ -18,9 +18,9 @@
     @enderror
 
     <form wire:submit="save" class="space-y-6">
-        <section class="space-y-4 rounded-surface border border-secondary-soft bg-white p-6">
+        <section class="space-y-4 rounded-surface border border-secondary-soft bg-card p-6">
             <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.offers.pay') }}</h2>
-            <p class="text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.salary_confidential') }}</p>
+            <p class="text-small text-secondary-medium">{{ __('recruitment-applicant.offers.salary_confidential') }}</p>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
                     <x-forms.input-label for="salary" required :value="__('recruitment-applicant.offers.salary')" />
@@ -48,7 +48,7 @@
             </div>
         </section>
 
-        <section class="space-y-4 rounded-surface border border-secondary-soft bg-white p-6">
+        <section class="space-y-4 rounded-surface border border-secondary-soft bg-card p-6">
             <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.offers.contract_details') }}</h2>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -109,18 +109,18 @@
             </div>
         </section>
 
-        <section class="space-y-4 rounded-surface border border-secondary-soft bg-white p-6">
+        <section class="space-y-4 rounded-surface border border-secondary-soft bg-card p-6">
             @if ($mode === 'revise')
                 <div>
                     <x-forms.input-label for="reason" required :value="__('recruitment-applicant.offers.revision_reason')" />
                     <x-forms.textarea id="reason" wire:model="reason" rows="2" />
-                    <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.revision_reason_hint') }}</p>
+                    <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.offers.revision_reason_hint') }}</p>
                     <x-forms.input-error field="reason" input-id="reason" />
                 </div>
             @endif
-            <p class="text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.draft_hint') }}</p>
+            <p class="text-small text-secondary-medium">{{ __('recruitment-applicant.offers.draft_hint') }}</p>
             <div class="flex justify-end">
-                <x-primary-button type="submit" wire:loading.attr="disabled">{{ __('recruitment-applicant.offers.save.'.$mode) }}</x-primary-button>
+                <x-button type="submit" wire:loading.attr="disabled">{{ __('recruitment-applicant.offers.save.'.$mode) }}</x-button>
             </div>
         </section>
     </form>

@@ -52,6 +52,12 @@ class RecruitmentApplicationFormService
         ],
     ];
 
+    /** The name fields, in form order; each key is also the employee column it fills. */
+    public const NAME_FIELDS = [
+        'first_name_ar', 'last_name_ar', 'father_name_ar', 'mother_name_ar',
+        'first_name_en', 'last_name_en', 'father_name_en', 'mother_name_en',
+    ];
+
     /** @var array<string, array{label: array{en: string, ar: string}}> */
     public const TYPE_CATALOG = [
         'text' => ['label' => ['en' => 'Short answer', 'ar' => 'إجابة قصيرة']],
@@ -81,9 +87,43 @@ class RecruitmentApplicationFormService
                 ['value' => 'tartus', 'label' => ['en' => 'Tartus', 'ar' => 'طرطوس']],
             ],
         ],
-        'full_name' => [
+        // The four names the employee record needs, in both languages, so a hire
+        // retypes none of them (RecruitmentHiringConversionService::prefill). They
+        // replaced "Full name", which is now built from the Arabic first and last
+        // name (fullNameFrom()); locked, so every form asks for them, published
+        // ones included. Keys match the employee columns (NAME_FIELDS).
+        'first_name_ar' => [
             'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
-            'label' => ['en' => 'Full name', 'ar' => 'الاسم الكامل'], 'help' => ['en' => '', 'ar' => ''],
+            'label' => ['en' => 'First name (Arabic)', 'ar' => 'الاسم (بالعربية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'last_name_ar' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => 'Last name (Arabic)', 'ar' => 'الكنية (بالعربية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'father_name_ar' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => "Father's name (Arabic)", 'ar' => 'اسم الأب (بالعربية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'mother_name_ar' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => "Mother's name (Arabic)", 'ar' => 'اسم الأم (بالعربية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'first_name_en' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => 'First name (English)', 'ar' => 'الاسم (بالإنجليزية)'],
+            'help' => ['en' => 'As it should appear on your contract and card.', 'ar' => 'كما تريد أن يُكتب في عقدك وبطاقتك.'],
+        ],
+        'last_name_en' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => 'Last name (English)', 'ar' => 'الكنية (بالإنجليزية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'father_name_en' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => "Father's name (English)", 'ar' => 'اسم الأب (بالإنجليزية)'], 'help' => ['en' => '', 'ar' => ''],
+        ],
+        'mother_name_en' => [
+            'type' => 'text', 'required' => true, 'locked' => true, 'section' => 'personal',
+            'label' => ['en' => "Mother's name (English)", 'ar' => 'اسم الأم (بالإنجليزية)'], 'help' => ['en' => '', 'ar' => ''],
         ],
         'email' => [
             'type' => 'email', 'required' => true, 'locked' => true, 'section' => 'personal',
@@ -212,6 +252,12 @@ class RecruitmentApplicationFormService
 
     /** @var array<int, string> */
     private const SAFE_UPLOAD_EXTENSIONS = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+
+    /** The applicant's single name (lists, search, duplicates): the Arabic first and last name. */
+    public static function fullNameFrom(array $answers): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', ((string) ($answers['first_name_ar'] ?? '')).' '.((string) ($answers['last_name_ar'] ?? ''))) ?? '');
+    }
 
     /** @return array{application_form: ApplicationForm, version: ApplicationFormVersion, fingerprint: string, fields: array<int, array<string, mixed>>, privacy_notice_version: string} */
     public function openEditor(HiringCampaign $campaign, User $actor): array
@@ -457,6 +503,9 @@ class RecruitmentApplicationFormService
 
             $rules[$path] = match (true) {
                 $field['key'] === 'phone' => [...$presence, 'regex:/\A09[0-9]{8}\z/'],
+                // Each name in its own script: no Latin letter in an Arabic name, no Arabic letter in an English one.
+                str_ends_with($field['key'], '_ar') && in_array($field['key'], self::NAME_FIELDS, true) => [...$presence, 'string', 'max:100', 'regex:/\p{Arabic}/u', 'not_regex:/\p{Latin}/u'],
+                str_ends_with($field['key'], '_en') && in_array($field['key'], self::NAME_FIELDS, true) => [...$presence, 'string', 'max:100', 'regex:/\p{Latin}/u', 'not_regex:/\p{Arabic}/u'],
                 $field['key'] === 'date_of_birth' => [...$presence, 'date_format:Y-m-d', 'before:today'],
                 $field['type'] === 'email' => [...$presence, 'email:rfc', 'max:191'],
                 $field['type'] === 'tel' => [...$presence, 'string', 'max:40'],
@@ -475,6 +524,9 @@ class RecruitmentApplicationFormService
             'answers.phone.regex' => __('careers.errors.invalid_phone'),
             'answers.date_of_birth.before' => __('careers.errors.invalid_birth_date'),
             'answers.date_of_birth.date_format' => __('careers.errors.invalid_birth_date'),
+            ...collect(self::NAME_FIELDS)->flatMap(fn (string $key): array => str_ends_with($key, '_ar')
+                ? ["answers.{$key}.regex" => __('careers.errors.name_arabic'), "answers.{$key}.not_regex" => __('careers.errors.name_arabic')]
+                : ["answers.{$key}.regex" => __('careers.errors.name_latin'), "answers.{$key}.not_regex" => __('careers.errors.name_latin')])->all(),
         ], $attributes)->validate()['answers'];
     }
 
@@ -588,7 +640,16 @@ class RecruitmentApplicationFormService
             }
         }
 
-        return array_values($normalized);
+        // The names stay together, in their order, where "Full name" was: just
+        // before the email. A form published before them gets them there too,
+        // not appended after its last field.
+        $names = array_intersect_key($normalized, array_flip(self::NAME_FIELDS));
+        $names = array_replace(array_intersect_key(array_flip(self::NAME_FIELDS), $names), $names);
+        $rest = array_diff_key($normalized, $names);
+        $at = array_search('email', array_keys($rest), true);
+        $at = $at === false ? 0 : $at;
+
+        return array_values([...array_slice($rest, 0, $at, true), ...$names, ...array_slice($rest, $at, null, true)]);
     }
 
     /** @param array<int, array<string, mixed>> $fields @return array<int, array<string, mixed>> */

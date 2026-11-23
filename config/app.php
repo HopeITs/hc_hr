@@ -1,13 +1,20 @@
 <?php
 
 return [
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'HopeHR'),
 
     'env' => env('APP_ENV', 'production'),
 
     'debug' => (bool) env('APP_DEBUG', false),
 
     'url' => env('APP_URL', 'http://localhost'),
+
+    /*
+    | Proxies whose X-Forwarded-* headers are believed (comma-separated IPs,
+    | or "*" for any). Needed behind a TLS-terminating proxy such as a preview
+    | tunnel, or the app builds http:// URLs the browser blocks. Unset: none.
+    */
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
 
     'timezone' => 'Europe/Istanbul',
 

@@ -19,10 +19,10 @@
     @enderror
 
     {{-- The offer document: the current version's terms --}}
-    <section class="rounded-surface border border-secondary-soft bg-white p-6">
+    <section class="rounded-surface border border-secondary-soft bg-card p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <p class="text-xs uppercase tracking-wide text-secondary-medium">{{ __('recruitment-applicant.offers.document_title') }} &middot; v{{ $current?->version_no }}</p>
+                <p class="text-small uppercase tracking-wide text-secondary-medium">{{ __('recruitment-applicant.offers.document_title') }} &middot; v{{ $current?->version_no }}</p>
                 <h1 class="mt-1 text-h3 font-semibold">{{ $application?->applicant?->full_name }}</h1>
                 <p class="mt-1 text-sm text-secondary-medium">
                     {{ $offer->position?->title }}
@@ -31,7 +31,8 @@
                     @endif
                 </p>
             </div>
-            <span class="rounded-control px-3 py-1 text-sm font-semibold {{ Status::classes($offer->status) }}">{{ __('recruitment-applicant.offers.statuses.'.$offer->status) }}</span>
+            @php $offerChip = \App\Support\Status\RecruitmentStatus::offer($offer->status); @endphp
+            <x-status :tone="$offerChip['tone']" :icon="$offerChip['icon']" :label="$offerChip['label']" />
         </div>
 
         @if ($current)
@@ -67,7 +68,7 @@
                                         <a href="{{ route('recruitment.offer-response-evidence.download', ['media' => $evidence->id]) }}" class="font-medium text-primary hover:underline">
                                             {{ $evidence->getCustomProperty('original_name', $evidence->file_name) }}
                                         </a>
-                                        <button type="button" wire:click="discardResponseEvidence({{ $evidence->id }})" wire:confirm="{{ __('recruitment-applicant.offers.response_evidence.remove_confirm') }}" class="rounded-control border border-primary px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5">
+                                        <button type="button" wire:click="discardResponseEvidence({{ $evidence->id }})" wire:confirm="{{ __('recruitment-applicant.offers.response_evidence.remove_confirm') }}" class="rounded-control border border-primary px-2 py-1 text-small font-semibold text-primary hover:bg-primary/5">
                                             {{ __('recruitment-applicant.offers.response_evidence.remove') }}
                                         </button>
                                     </li>
@@ -78,14 +79,14 @@
                         <div class="mt-3 flex flex-wrap items-end gap-2">
                             <div class="min-w-64 flex-1">
                                 <x-forms.input-label for="responseEvidenceAfter" :value="__('recruitment-applicant.offers.response_evidence.add')" />
-                                <input id="responseEvidenceAfter" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-sm" />
+                                <input id="responseEvidenceAfter" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-card px-3 py-2 text-sm" />
                                 <x-forms.input-error field="responseEvidence" input-id="responseEvidenceAfter" />
                             </div>
-                            <x-primary-button type="button" wire:click="uploadResponseEvidence" wire:loading.attr="disabled" wire:target="responseEvidence,uploadResponseEvidence" class="!w-auto">
+                            <x-button type="button" wire:click="uploadResponseEvidence" wire:loading.attr="disabled" wire:target="responseEvidence,uploadResponseEvidence" class="!w-auto">
                                 {{ __('recruitment-applicant.offers.response_evidence.upload') }}
-                            </x-primary-button>
+                            </x-button>
                         </div>
-                        <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
+                        <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
                     </div>
                 @endif
                 @if ($offer->status === Status::Accepted && $conversion)
@@ -133,7 +134,7 @@
 
         {{-- Rule reminder: an offer never touches the vacancy by itself --}}
         @if ($offer->vacancy)
-            <p class="mt-4 text-xs text-secondary-medium">
+            <p class="mt-4 text-small text-secondary-medium">
                 {{ trans_choice('recruitment-applicant.offers.seats_left', $seatsLeft, ['count' => $seatsLeft]) }}
                 &middot; {{ __('recruitment-applicant.offers.vacancy_untouched') }}
             </p>
@@ -197,16 +198,16 @@
                             </div>
                             <div>
                                 <x-forms.input-label for="responseEvidence" :value="__('recruitment-applicant.offers.response_evidence.label')" />
-                                <input id="responseEvidence" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-sm" />
+                                <input id="responseEvidence" type="file" wire:model="responseEvidence" accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.txt" class="mt-1 block w-full rounded-control border border-secondary-light bg-card px-3 py-2 text-sm" />
                                 <x-forms.input-error field="responseEvidence" input-id="responseEvidence" />
-                                <p class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
+                                <p class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.offers.response_evidence.hint') }}</p>
                             </div>
                             <x-forms.input-error field="response" input-id="responseNote" />
                         @else
                             <p class="text-sm text-secondary-medium">{{ __('recruitment-applicant.offers.cancel_hint') }}</p>
                             <div>
                                 <x-forms.input-label for="cancelReason" required :value="__('recruitment-applicant.interviews.cancel_reason')" />
-                                <select id="cancelReason" wire:model.live="cancelReason" class="w-full rounded-control border border-secondary-light bg-white px-3 py-2 text-body">
+                                <select id="cancelReason" wire:model.live="cancelReason" class="w-full rounded-control border border-secondary-light bg-card px-3 py-2 text-body">
                                     <option value="">{{ __('recruitment.choose') }}</option>
                                     @foreach ($cancellationReasons as $code)
                                         <option value="{{ $code }}">{{ __('recruitment-applicant.offers.cancellation_reasons.'.$code) }}</option>
@@ -222,8 +223,8 @@
                         @endif
 
                         <div class="flex flex-wrap gap-2">
-                            <x-primary-button type="button" wire:click="{{ $action }}" wire:loading.attr="disabled" wire:target="{{ $action }}" class="!w-auto">{{ $actionLabel }}</x-primary-button>
-                            <x-primary-button type="button" wire:click="requestClose('offerActionModal')" class="!bg-secondary-light !w-auto">{{ __('recruitment-applicant.cancel') }}</x-primary-button>
+                            <x-button type="button" wire:click="{{ $action }}" wire:loading.attr="disabled" wire:target="{{ $action }}" class="!w-auto">{{ $actionLabel }}</x-button>
+                            <x-button type="button" wire:click="requestClose('offerActionModal')" class="!bg-secondary-light !w-auto">{{ __('recruitment-applicant.cancel') }}</x-button>
                         </div>
                     </div>
                 @endif
@@ -232,7 +233,7 @@
     </section>
 
     {{-- History: every version exactly as it was offered --}}
-    <section class="rounded-surface border border-secondary-soft bg-white p-6">
+    <section class="rounded-surface border border-secondary-soft bg-card p-6">
         <h2 class="text-h4 font-semibold">{{ __('recruitment-applicant.offers.history') }}</h2>
         <ol class="mt-3 space-y-4">
             @foreach ($offer->versions as $version)

@@ -150,6 +150,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Set here, not in bootstrap/app.php: that callback runs before .env is loaded.
+        if ($trustedProxies = config('app.trusted_proxies')) {
+            \Illuminate\Http\Middleware\TrustProxies::at($trustedProxies === '*' ? '*' : explode(',', $trustedProxies));
+        }
+
         // A new account on the organisation's domain joins the all-staff mail list as
         // pending (MailList::queueNewAccount). It must never stop an account being made.
         User::created(function (User $user): void {

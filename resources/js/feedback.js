@@ -510,11 +510,17 @@ document.addEventListener('alpine:init', () => {
          */
         focusFirstError() {
             const summary = this.$root;
-            const first = summary.querySelector('[data-error-key]');
+            const items = [...summary.querySelectorAll('[data-error-key]')];
 
-            if (!first) return;
+            if (!items.length) return;
 
-            const field = locateField(first.dataset.errorKey, first.textContent.trim(), summary);
+            // The error that comes first on the page, not the first in the server's rule
+            // order: that put the focus on National Number, halfway down the form, with
+            // the required names above it still off screen (HR-017).
+            const field = items
+                .map((item) => locateField(item.dataset.errorKey, item.textContent.trim(), summary))
+                .filter(Boolean)
+                .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))[0];
 
             if (field) {
                 field.scrollIntoView({ block: 'center' });

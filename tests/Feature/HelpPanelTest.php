@@ -109,11 +109,19 @@ class HelpPanelTest extends TestCase
 
         $forHr = HelpTopics::forRequest($this->requestFor('contracts.create'), $hr);
         $this->assertSame(['contract-types', 'position-dependencies', 'auto-renew'], $forHr['current']);
-        $this->assertSame(array_keys(HelpTopics::TOPICS), array_column($forHr['topics'], 'key'));
+        // Every topic but the recruitment ones, which need their own permissions.
+        $this->assertSame(
+            array_values(array_diff(array_keys(HelpTopics::TOPICS), ['hiring-flow', 'hiring-convert'])),
+            array_column($forHr['topics'], 'key'),
+        );
 
         $forEmployee = HelpTopics::forRequest($this->requestFor('leaves.index'), $employee);
         $this->assertSame(['leave-units', 'leave-balance'], $forEmployee['current']);
-        $this->assertSame(['leave-units', 'leave-balance'], array_column($forEmployee['topics'], 'key'));
+        // Leave, and the topics every role has a use for; never contract or recruitment help.
+        $this->assertSame(['leave-units', 'leave-balance', 'attendance-month', 'first-days', 'probation-review'], array_column($forEmployee['topics'], 'key'));
+
+        $recruiter = $this->makeUser($this->city, 'HR-ALP', ['recruitment-requests.view']);
+        $this->assertSame(['hiring-flow'], HelpTopics::forRequest($this->requestFor('recruitment.requests.index'), $recruiter)['current']);
 
         // A page with no topics of its own still offers the full list.
         $elsewhere = HelpTopics::forRequest($this->requestFor('settings.password'), $employee);

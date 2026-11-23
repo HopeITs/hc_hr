@@ -824,6 +824,20 @@ return [
         'entitlements.library' => ['newItem', 'edit', 'cancelEdit', 'open', 'close'],
         // Track 7: the volunteer acknowledges only for their own employee (never an id from the browser); the document must be one HR marked as required.
         'onboarding.policies' => ['acknowledge'],
+        // The chat: every signed-in employee may use it, so no permission. Each
+        // action is self-scoped instead: ChatConversationPolicy (membership only,
+        // no role exception) is checked on the conversation inside the action
+        // and in render, and the services re-check it. The rest is UI state.
+        'chat.dock' => [
+            'restore', 'openConversation', 'startWith', 'toggle', 'minimize', 'close',
+            'toggleLauncher', 'showPeople', 'showChats', 'onUpdated',
+            // The viewer's own sound setting only.
+            'showSettings', 'toggleSound',
+        ],
+        // seen(): the viewer's own read marker, in a chat they are a member of.
+        'chat.window' => ['send', 'loadOlder', 'onUpdated', 'seen'],
+        'chat.page' => ['select', 'startWith', 'onUpdated'],
+        'chat.header-button' => ['onUpdated'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
         'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).

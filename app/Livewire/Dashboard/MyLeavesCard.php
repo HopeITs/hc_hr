@@ -30,12 +30,12 @@ class MyLeavesCard extends Component
         $user = auth()->user();
         $leave = $user->profile->availableLeaves()->first();
         $this->title = $leave->leaveType->name;
-        $this->total = $leave->deserved_formatted;
-        $this->remaining = $leave->available_formatted;
+        $this->total = $leave->deserved_rounded;
+        $this->remaining = $leave->available_rounded;
         $this->totalDays = $leave->int_total;
         $this->remainingDays = $leave->int_available;
-        $this->used = $leave->used_formatted;
-        $this->pending = formatDuration($leave->pending_days, $leave->pending_hours);
+        $this->used = $leave->used_rounded;
+        $this->pending = $leave->pending_rounded;
         $this->percentage = round($leave->used / $leave->deserved * 100);
 
     }

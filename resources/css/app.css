@@ -1161,7 +1161,7 @@ select.public-career-select option:checked {
         background-color: var(--color-secondary-light);
         padding: 1px 4px;
         color: #ffffff;
-        font-size: 6.5cqw;
+        font-size: max(10px, 6.5cqw);
         font-weight: 400;
         line-height: 1.2;
         text-transform: uppercase;
@@ -1177,7 +1177,7 @@ select.public-career-select option:checked {
         padding-inline: 5px;
         padding-block: 1px;
         border-radius: 10%;
-        font-size: 7cqw;
+        font-size: max(10px, 7cqw);
         font-weight: 200;
         text-transform: uppercase;
         background-color: var(--color-secondary-light);
@@ -1186,7 +1186,7 @@ select.public-career-select option:checked {
     .org-id-card__info {
         display: grid;
         flex: 0 0 auto;
-        grid-template-rows: calc(11cqw * 1.2 * 2 + 1cqw) calc(7cqw * 1.25 * 2 + 0.5cqw);
+        grid-template-rows: calc(11cqw * 1.2 * 2 + 1cqw) calc(max(11px, 7cqw) * 1.25 * 2 + 0.5cqw);
 
         width: 100%;
         padding: 12.5cqw 6cqw 7cqw;
@@ -1229,10 +1229,11 @@ select.public-career-select option:checked {
         -webkit-box-orient: vertical;
 
         width: 100%;
-        max-height: calc(7cqw * 1.25 * 2 + 0.5cqw);
+        max-height: calc(max(11px, 7cqw) * 1.25 * 2 + 0.5cqw);
         padding-bottom: 0.08em;
         color: var(--color-black, #414042);
-        font-size: 7cqw;
+        /* Proportional to the card, with a floor: at the card's 8rem the title was 8.8px (HR-018). */
+        font-size: max(11px, 7cqw);
         font-weight: 700;
         line-height: 1.25;
         word-break: break-word;
@@ -1241,14 +1242,14 @@ select.public-career-select option:checked {
     }
 
     .org-id-card__center {
-        min-height: calc(4.4cqw * 1.1);
+        min-height: calc(max(10px, 4.4cqw) * 1.1);
         max-width: 100%;
         margin-top: 1.2cqw;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         color: var(--color-black, #414042);
-        font-size: 4.4cqw;
+        font-size: max(10px, 4.4cqw);
         font-weight: 700;
         line-height: 1.05;
         text-transform: uppercase;
@@ -1836,3 +1837,6 @@ html:has([data-tour="contract.save"]) .app-install-banner {
         display: none;
     }
 }
+
+/* The sidebar takes its starting width without sliding there on load (layouts/app x-init). */
+.sb-init, .sb-init * { transition: none !important; }

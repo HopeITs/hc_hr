@@ -289,6 +289,16 @@
         transform: none;
     }
 
+    /* Faded, the red read as pink, and red is never tinted into a pale fill (HR-023):
+       a disabled primary goes neutral instead. */
+    .hc-btn--primary:disabled,
+    .hc-btn--primary[aria-disabled="true"] {
+        opacity: 1;
+        background: var(--color-surface);
+        border-color: var(--color-surface);
+        color: var(--color-ink-3);
+    }
+
     .hc-spin {
         display: inline-block;
         width: 1em;

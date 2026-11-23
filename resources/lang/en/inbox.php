@@ -48,6 +48,7 @@ return [
         'label' => 'Decision',
         'accept' => 'Accept',
         'reject' => 'Reject',
+        'confirm-reject' => 'Confirm rejection',
         'save' => 'Save decision',
     ],
     'review' => [

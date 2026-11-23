@@ -202,6 +202,65 @@ class RecruitmentHiringConversionTest extends TestCase
             ->assertRedirect(route('contracts.edit', $contract->id));
     }
 
+    /** Medium fix 15: Add employee points at an accepted offer still waiting, and stops once it is converted. */
+    public function test_add_employee_points_at_accepted_offers_waiting_to_be_converted(): void
+    {
+        Notification::fake();
+        [, $offer] = $this->accepted();
+        $this->actingAs($this->hr);
+        app()->setLocale('en');
+
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertSeeHtml('data-testid="offers-awaiting-conversion"')
+            ->assertSee('1 accepted job offer is waiting to be converted to an employee')
+            ->assertSeeHtml(route('recruitment.offers.convert', ['offerId' => $offer->id]));
+
+        // Without the right to convert, nothing is offered.
+        $this->actingAs($this->without($this->hr, ['recruitment-applicants.convert-hires']));
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
+
+        // Once hired, it is no longer waiting.
+        $this->actingAs($this->hr);
+        Livewire::test(Convert::class, ['offerId' => $offer->id])->set('employee', $this->person())->call('save');
+        Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
+            ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
+    }
+
+    /** Item 16: the hire form takes the eight names from the application, so HR retypes none. */
+    public function test_the_hire_form_takes_the_eight_names_from_the_application(): void
+    {
+        Notification::fake();
+        [$application, , $conversion] = $this->accepted();
+        foreach (\Tests\Concerns\ApplicantNames::answers('Rami Haddad') as $key => $value) {
+            $application->answers()->create(['form_version_id' => $application->form_version_id, 'field_key' => $key, 'answer_json' => ['value' => $value]]);
+        }
+
+        $prefill = $this->conversions()->prefill($conversion->fresh());
+
+        $this->assertSame('Rami', $prefill['firstNameEn']);
+        $this->assertSame('Haddad', $prefill['lastNameEn']);
+        $this->assertSame('George', $prefill['fatherNameEn']);
+        $this->assertSame('Mary', $prefill['motherNameEn']);
+        $this->assertSame(\Tests\Concerns\ApplicantNames::arabic('Rami'), $prefill['firstNameAr']);
+        $this->assertSame('جورج', $prefill['fatherNameAr']);
+        $this->assertSame('ماري', $prefill['motherNameAr']);
+        $this->assertNotSame('', $prefill['username']);
+    }
+
+    /** An application made before the names were asked keeps the old split of the full name. */
+    public function test_an_older_application_still_splits_the_full_name(): void
+    {
+        Notification::fake();
+        [, , $conversion] = $this->accepted('Candidate One');
+
+        $prefill = $this->conversions()->prefill($conversion->fresh());
+
+        $this->assertSame('Candidate', $prefill['firstNameEn']);
+        $this->assertSame('One', $prefill['lastNameEn']);
+        $this->assertSame('', $prefill['fatherNameAr']);
+    }
+
     /** rules + avoid: the contract is built from the accepted version — never an earlier one, never the live offer. */
     public function test_the_contract_takes_the_accepted_snapshot(): void
     {

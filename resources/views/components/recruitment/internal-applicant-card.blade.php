@@ -6,7 +6,7 @@
 --}}
 @php $state = $internal['state']; @endphp
 
-<section class="mt-4 rounded-[16px] border border-secondary-soft bg-white px-6 py-6 shadow-e1 sm:px-9" data-internal-state="{{ $state }}">
+<section class="mt-4 rounded-[16px] border border-secondary-soft bg-card px-6 py-6 shadow-e1 sm:px-9" data-internal-state="{{ $state }}">
     @if ($state === 'ready')
         @php $profile = $internal['profile']; @endphp
         <div class="flex flex-wrap items-start gap-4">
@@ -37,7 +37,7 @@
             </div>
             <a
                 href="{{ $internal['sign_in_url'] }}"
-                class="inline-flex cursor-pointer items-center gap-2 rounded-control bg-primary px-6 py-3 font-semibold text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                class="inline-flex cursor-pointer items-center gap-2 rounded-control bg-primary px-6 py-3 font-semibold text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2"
                 data-internal-sign-in
             >
                 <svg class="size-5 rtl:-scale-x-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">

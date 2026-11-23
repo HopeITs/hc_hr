@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Vacancy;
 use App\Services\HiringCampaignStateMachine;
 use App\Services\RecruitmentRequestListQuery;
+use App\Support\Status\RecruitmentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -24,9 +25,6 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class RequestTable extends LivewireTable
 {
-    /** Opening of the page's one neutral pill; callers close the class attribute. */
-    private const PILL = '<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark';
-
     public string $sortColumn = 'created_at';
 
     public string $sortDirection = 'desc';
@@ -143,7 +141,7 @@ class RequestTable extends LivewireTable
                     ? '<span class="text-secondary-light">—</span>'
                     : '<time datetime="'.e($value->toIso8601String()).'" class="block whitespace-nowrap tabular-nums">'
                         .'<span class="block text-secondary-dark">'.e($value->translatedFormat('j M Y')).'</span>'
-                        .'<span class="block text-xs text-secondary-medium">'.e($value->format('H:i')).'</span></time>')
+                        .'<span class="block text-small text-secondary-medium">'.e($value->format('H:i')).'</span></time>')
                 ->asHtml()
                 ->sortable(),
 
@@ -250,7 +248,7 @@ class RequestTable extends LivewireTable
                     <div class="min-w-0">
                         <div class="whitespace-nowrap text-neutral-900"><bdi>{{ $name }}</bdi></div>
                         @if ($needsReview)
-                            <span class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-control border border-primary bg-white px-1.5 py-px text-xs font-semibold text-primary">
+                            <span class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-control border border-primary bg-white px-1.5 py-px text-caption font-semibold text-primary">
                                 <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
                                 {{ __('recruitment.needs_my_review') }}
                             </span>
@@ -272,17 +270,7 @@ class RequestTable extends LivewireTable
      */
     private function statusPill(int $status): string
     {
-        $dot = match ($status) {
-            RecruitmentRequestStatus::Draft, RecruitmentRequestStatus::ChangesRequested => 'border border-neutral-500 bg-white',
-            RecruitmentRequestStatus::Submitted, RecruitmentRequestStatus::UnderReview,
-            RecruitmentRequestStatus::Resubmitted => 'bg-neutral-500',
-            RecruitmentRequestStatus::Approved, RecruitmentRequestStatus::Applied => 'bg-neutral-900',
-            RecruitmentRequestStatus::FailedApplication => 'bg-primary',
-            default => 'bg-neutral-300',
-        };
-
-        return self::PILL.'"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full '.$dot.'"></span>'
-            .e(RecruitmentRequestStatus::getLocalizedName($status)['value']).'</span>';
+        return RecruitmentStatus::html(RecruitmentStatus::request($status));
     }
 
     /** Priority as a short bar meter: one, two or three filled steps. Urgent is the darkest, never red. */
@@ -436,7 +424,7 @@ class RequestTable extends LivewireTable
         return Blade::render(
             // Solid ink for the next step, quiet outline for "view"; both one width so the column lines up.
             '<a href="{{ $url }}" wire:navigate x-on:click.stop @class(['
-            .'"inline-flex h-8 w-40 items-center justify-center whitespace-nowrap rounded-control border px-3 text-center text-sm font-semibold shadow-e1 transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", '
+            .'"inline-flex h-8 w-40 items-center justify-center whitespace-nowrap rounded-control border px-3 text-center text-sm font-semibold shadow-e1 transition duration-150 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink", '
             .'"border-neutral-200 bg-white text-secondary-dark hover:bg-selection" => $outlined, '
             .'"border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-800" => ! $outlined, '
             .'])>{{ $label }}</a>',

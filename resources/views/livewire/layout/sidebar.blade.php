@@ -116,7 +116,8 @@
         </div>
     </aside>
     {{-- Dim to focus: the drawer is a modal layer on mobile, so the page behind
-         it is both dimmed and pushed out of focus. --}}
+         it is both dimmed and pushed out of focus. Above the bottom bar (z-30), which
+         otherwise stayed sharp and tappable under it; below the drawer (z-40). --}}
     <div x-show="open" x-transition.opacity @click="open = false"
-        class="fixed inset-0 z-30 bg-backdrop backdrop-blur-sm md:hidden" x-cloak></div>
+        class="fixed inset-0 z-[35] bg-backdrop backdrop-blur-sm md:hidden" x-cloak></div>
 </div>

@@ -5,6 +5,13 @@
 // ...) stay in general.php; only what this area adds lives here.
 
 return [
+    // Add employee: accepted offers still to convert (EmployeeCreate::offersAwaitingConversion).
+    'offers-awaiting' => [
+        'title' => '{1} 1 accepted job offer is waiting to be converted to an employee|[2,*] :count accepted job offers are waiting to be converted to an employee',
+        'hint' => 'If the person you are adding is one of them, convert them from their offer instead: that links them to their recruitment file and writes their contract from the accepted terms.',
+        'convert' => 'Convert to employee',
+        'all' => 'See all offers',
+    ],
     'table' => [
         'id' => 'ID',
     ],
@@ -48,6 +55,7 @@ return [
 
     'onboarding' => [
         'new-record' => 'New volunteer',
+        'page-title' => 'Add employee',
         'state-draft' => 'Incomplete record (draft)',
         'state-awaiting' => 'Ready, awaiting contract',
         'awaiting-help' => 'This record is complete. The volunteer becomes active, and gets a login account, when their first contract starts.',
@@ -176,6 +184,7 @@ return [
         'work-phone-format' => 'The work phone must be exactly 10 digits and start with 09.',
         'personal-phone-format' => 'The personal phone must be exactly 10 digits and start with 09.',
         'national-number-syrian' => 'The national number must be exactly 11 digits for Syrian employees.',
+        'username-required' => 'The username is required. You will find it in the ":section" section.',
     ],
     'drawer' => [
         'pending-requests' => 'Pending requests',

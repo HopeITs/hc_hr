@@ -11,6 +11,7 @@ use App\Notifications\BirthdayChoiceSubmitted;
 use App\Notifications\CenterClosed;
 use App\Notifications\ChecklistAssigned;
 use App\Notifications\ContractsAutoRenewedSummary;
+use App\Notifications\ContractsAwaitingNewYearRenewal;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
 use App\Notifications\CriticalPositionNeedsReplacement;
 use App\Notifications\DigitalIdReportedLost;
@@ -19,6 +20,7 @@ use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveDecisionReminder;
 use App\Notifications\LeaveRequestObjected;
+use App\Notifications\LeavingReasonsMissing;
 use App\Notifications\ManagerOrientationOverdue;
 use App\Notifications\NewCenterCreated;
 use App\Notifications\NewEmployeeWelcome;
@@ -61,9 +63,11 @@ enum NotificationCategory: string
         ActionLeaveBalance::class => self::LeaveUpdates,
         BirthdayChoiceDecided::class => self::LeaveUpdates,
         ContractsAutoRenewedSummary::class => self::Contracts,
+        ContractsAwaitingNewYearRenewal::class => self::Contracts,
         ContractsExpiringAutoRenewWarning::class => self::Contracts,
         ProbationFinalThird::class => self::Contracts,
         ProbationRequested::class => self::Contracts,
+        LeavingReasonsMissing::class => self::Contracts,
         NewEmployeeWelcome::class => self::Employees,
         OnboardingStepOverdue::class => self::Employees,
         ManagerOrientationOverdue::class => self::Employees,

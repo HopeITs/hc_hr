@@ -53,6 +53,20 @@
                 <x-help.button/>
                 <x-tour.button/>
 
+                @if (config('chat.enabled'))
+                    <livewire:chat.header-button />
+                @endif
+
+                {{-- Ready-made announcements (App\Livewire\Messages\AnnouncementComposer). --}}
+                @if ($user?->hasActivePermission('message-templates.use'))
+                    <button type="button" x-on:click="Livewire.dispatch('announcement-compose')"
+                            aria-label="{{ __('messages.announcements.title') }}" title="{{ __('messages.announcements.title') }}"
+                            class="relative inline-flex items-center justify-center transition rounded-[14px] cursor-pointer size-11 sm:size-9 text-ink-2 hover:bg-card hover:text-ink hover:shadow-e1"
+                            data-testid="announcement-header-button">
+                        <svg class="size-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                    </button>
+                @endif
+
                 <x-layouts.app.notification />
             </div>
 

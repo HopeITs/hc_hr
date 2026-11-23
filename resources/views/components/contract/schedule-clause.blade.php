@@ -119,8 +119,14 @@
             $clausesAr[] = '<strong>'.$glyphs($digitsAr($dailyHours).' ساعات').'</strong> '.$glyphs('يوميًا');
         }
 
-        if ($contract->show_days_per_week && $contract->work_day_from !== null && $contract->work_day_to !== null) {
-            $daysCount = (int) $contract->work_day_to - (int) $contract->work_day_from + 1;
+        // The days picked one by one are counted; which ones (and so the
+        // volunteer's own day off) stays in the system, never printed.
+        $pickedDays = $contract->workWeekdays();
+
+        if ($contract->show_days_per_week && ($pickedDays !== null || ($contract->work_day_from !== null && $contract->work_day_to !== null))) {
+            $daysCount = $pickedDays !== null
+                ? count($pickedDays)
+                : (int) $contract->work_day_to - (int) $contract->work_day_from + 1;
 
             $clausesEn[] = '<strong>'.$daysCount.' days</strong> per week';
             $clausesAr[] = '<strong>'.$glyphs($digitsAr($daysCount).' أيام').'</strong> '.$glyphs('أسبوعيًا');

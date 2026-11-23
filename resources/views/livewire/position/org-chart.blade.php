@@ -46,7 +46,10 @@
 
     <section class="isolate overflow-hidden bg-card border border-line-soft shadow-e1 rounded-surface">
         {{-- ---------- Header + stats ---------- --}}
-        <div class="relative px-6 py-6 text-on-ink bg-ink">
+        {{-- On a phone the header, four counters and the whole toolbar used to fill the first
+             screen before any of the chart (HR-018): there the subtitle goes, the counters sit
+             in one row, and the view controls fold behind "View options". --}}
+        <div class="relative px-4 py-4 text-on-ink bg-ink sm:px-6 sm:py-6">
             <div class="relative flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                 <div>
                     <div class="flex items-center gap-2 mb-2 text-caption font-semibold uppercase tracking-wider text-on-ink/70">
@@ -54,10 +57,10 @@
                         @lang('general.organization-overview')
                     </div>
                     <h1 class="text-h3 font-bold leading-tight tracking-tight sm:text-h2">@lang('general.orgn-chart')</h1>
-                    <p class="max-w-2xl mt-2 text-body leading-relaxed text-on-ink/75">@lang('general.org-chart-subtitle')</p>
+                    <p class="hidden max-w-2xl mt-2 text-body leading-relaxed text-on-ink/75 sm:block">@lang('general.org-chart-subtitle')</p>
                 </div>
 
-                <div data-tour="org.stats" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div data-tour="org.stats" class="grid grid-cols-4 gap-1.5 sm:gap-2">
                     @foreach([
                         ['value' => $stats['positions'], 'label' => __('general.total-positions'), 'accent' => false],
                         ['value' => $stats['employees'], 'label' => __('general.filled-positions'), 'accent' => false],
@@ -66,11 +69,11 @@
                     ] as $stat)
                         {{-- Uniform neutral cards; the vacancies card carries a flat red
                              accent bar because vacancies are the actionable metric. --}}
-                        <div class="relative min-w-28 overflow-hidden rounded-surface border border-on-ink/10 bg-on-ink/10 px-4 py-3">
+                        <div class="relative min-w-0 overflow-hidden rounded-surface border border-on-ink/10 bg-on-ink/10 px-2 py-2 sm:min-w-28 sm:px-4 sm:py-3">
                             @if($stat['accent'])
                                 <span class="absolute inset-y-0 start-0 w-1 bg-primary" aria-hidden="true"></span>
                             @endif
-                            <div class="text-h3 font-bold tabular-nums">{{ number_format($stat['value']) }}</div>
+                            <div class="text-h4 font-bold tabular-nums sm:text-h3">{{ number_format($stat['value']) }}</div>
                             <div class="mt-1 text-caption font-medium leading-snug text-on-ink/80">{{ $stat['label'] }}</div>
                         </div>
                     @endforeach
@@ -96,9 +99,10 @@
             <livewire:position.directory />
         @else
         {{-- ---------- Slim sticky toolbar ---------- --}}
-        <div class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-line-soft bg-card/95 px-4 py-2 backdrop-blur">
+        <div class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 border-b border-line-soft bg-card/95 px-4 py-2 backdrop-blur"
+             x-data="{ more: false }">
             <div class="flex flex-wrap items-center gap-2">
-                <div class="relative" data-tour="org.search">
+                <div class="relative w-full sm:w-auto" data-tour="org.search">
                     <span class="pointer-events-none absolute inset-y-0 start-2.5 flex items-center text-ink-3">
                         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3-3"/>
@@ -106,7 +110,7 @@
                     </span>
                     <input type="search" wire:model.live.debounce.350ms="search"
                            placeholder="{{ __('general.search-name-or-position') }}"
-                           class="py-2 text-small font-medium border border-line-soft w-52 rounded-surface bg-soft ps-8 pe-3 text-ink placeholder:text-ink-3 focus:bg-card" />
+                           class="w-full py-2 text-small font-medium border border-line-soft sm:w-52 rounded-surface bg-soft ps-8 pe-3 text-ink placeholder:text-ink-3 focus:bg-card" />
                     @if($this->isSearching)
                         <button type="button" wire:click="$set('search', '')" aria-label="{{ __('general.clear-search') }}"
                                 class="absolute inset-y-0 flex items-center transition end-2 text-ink-3 hover:text-ink">
@@ -150,9 +154,16 @@
                     </svg>
                     {{ $showVacancies ? __('general.hide-vacancies') : __('general.show-vacancies') }}
                 </button>
+
+                <x-button variant="quiet" size="sm" :loading="false" class="sm:hidden"
+                          x-on:click="more = ! more" x-bind:aria-expanded="more.toString()" aria-controls="org-view-options">
+                    <x-ic name="layout" class="size-4" aria-hidden="true" />
+                    @lang('general.org-view-options')
+                </x-button>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2" data-tour="org.controls">
+            <div id="org-view-options" class="flex flex-wrap items-center gap-2" data-tour="org.controls"
+                 x-bind:class="more ? '' : 'max-sm:hidden'">
                 <div class="flex items-center overflow-hidden border border-line-soft rounded-surface bg-soft">
                     <button type="button" wire:click="zoomOut" title="{{ __('general.zoom-out') }}" aria-label="{{ __('general.zoom-out') }}"
                             class="flex items-center justify-center transition size-11 text-ink-2 hover:bg-card hover:text-ink">

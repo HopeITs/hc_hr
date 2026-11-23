@@ -98,7 +98,8 @@ class ContractPdfRenderer
             || array_intersect(['work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'], $changed) !== [];
         $dayRangeChanged = array_intersect(['work_day_from', 'work_day_to'], $changed) !== [];
         $after->show_day_range = $after->show_day_range || $dayRangeChanged;
-        $after->show_days_per_week = $after->show_days_per_week || $dayRangeChanged;
+        // Days picked one by one print as a count only, never by name.
+        $after->show_days_per_week = $after->show_days_per_week || $dayRangeChanged || in_array('work_weekdays', $changed, true);
 
         return view('pdf.amendment', [
             'amendment' => $amendment,

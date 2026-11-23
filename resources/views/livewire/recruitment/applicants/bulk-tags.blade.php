@@ -47,12 +47,12 @@
             <x-forms.input-error field="applicationIds" input-id="bulk-tags-selection" />
 
             <div class="mt-4 flex flex-wrap gap-3">
-                <x-primary-button type="button" wire:click="apply" wire:loading.attr="disabled" wire:target="apply">
+                <x-button type="button" wire:click="apply" wire:loading.attr="disabled" wire:target="apply">
                     {{ __('recruitment-applicant.tags.bulk_apply') }}
-                </x-primary-button>
-                <x-secondary-button wire:click="cancel">
+                </x-button>
+                <x-button variant="quiet" wire:click="cancel">
                     {{ __('recruitment-applicant.cancel') }}
-                </x-secondary-button>
+                </x-button>
             </div>
         </section>
     @endif

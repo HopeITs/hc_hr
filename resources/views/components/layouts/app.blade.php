@@ -15,7 +15,11 @@
       {{-- The sidebar starts closed on every load (refresh included) and opens only from its
            arrow (2026-11-09). Opened, it stays open across in-page visits (wire:navigate keeps the
            window, so window.hcSidebarOpen survives); a refresh closes it again. Nothing is stored. --}}
-      x-data="{ sidebarCollapsed: ! window.hcSidebarOpen }"
+      {{-- UX walkthrough 2026-11-23: closed, the rail shows My space only, so HR could not find
+           Employees, Contracts or Attendance. On a wide screen, for a role with work areas beyond
+           My space, it now starts open; the arrow still closes it for the rest of the visit. --}}
+      x-data="{ sidebarCollapsed: ! (window.hcSidebarOpen ?? (window.innerWidth >= 1280 && !! document.querySelector('[data-nav-area]:not([data-nav-area=my-space])'))) }"
+      x-init="window.hcSidebarOpen = ! sidebarCollapsed; $el.classList.add('sb-init'); requestAnimationFrame(() => requestAnimationFrame(() => $el.classList.remove('sb-init')))"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
           window.hcSidebarOpen = ! sidebarCollapsed;
@@ -69,6 +73,12 @@
      cached for offline use: without a connection the app says so, and entries
      stay on the page until a save can reach the server (G-B-2). --}}
 <livewire:layout.bottom-nav/>
+
+{{-- Ready-made announcements, opened from anywhere with the `announcement-compose` event
+     (header envelope, Ctrl+K, a person's card, the Message templates page). --}}
+@if (auth()->user()?->hasActivePermission('message-templates.use'))
+    <livewire:messages.announcement-composer />
+@endif
 
 <div x-data="{ online: navigator.onLine }"
      x-on:online.window="online = true" x-on:offline.window="online = false"
@@ -142,6 +152,16 @@
     @endpersist
 @endauth
 
+{{-- The chat dock (tabs along the bottom edge). Persisted, so open tabs stay as
+     they are across wire:navigate. Off until CHAT_ENABLED. --}}
+@auth
+    @if (config('chat.enabled'))
+        @persist('chat-dock')
+            <livewire:chat.dock />
+        @endpersist
+    @endif
+@endauth
+
 {{-- Outcome toasts (session('status') included) and delete confirmations, for every page. --}}
 <x-toasts/>
 <x-confirm-dialog/>
@@ -164,6 +184,22 @@
 </script>
 {{-- Served as immutable for a year: the mtime query is what makes an edit reach browsers. --}}
 <script src="{{ asset('js/custom-scrollbar.js') }}?v={{ filemtime(public_path('js/custom-scrollbar.js')) }}" defer></script>
+{{-- A page open in the dashboard's workspace panel is an iframe: its "inbox changed" would never
+     reach the menu badge around it. Relay it to the parent page (same origin only). --}}
+<script>
+    document.addEventListener('livewire:init', () => {
+        const relayed = ['inbox-changed', 'notification-created'];
+        if (window.parent !== window) {
+            relayed.forEach((name) => Livewire.on(name, () => {
+                try { window.parent.postMessage({ hcRelay: name }, window.location.origin); } catch (e) {}
+            }));
+        }
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin || ! relayed.includes(event.data?.hcRelay)) return;
+            Livewire.dispatch(event.data.hcRelay);
+        });
+    });
+</script>
 </body>
 
 </html>

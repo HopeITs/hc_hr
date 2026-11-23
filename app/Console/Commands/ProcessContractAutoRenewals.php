@@ -6,7 +6,9 @@ use App\Models\City;
 use App\Models\Contract;
 use App\Models\User;
 use App\Notifications\ContractsAutoRenewedSummary;
+use App\Notifications\ContractsAwaitingNewYearRenewal;
 use App\Services\ContractAutoRenewalService;
+use App\Services\NotificationDeliveryLedger;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -17,15 +19,53 @@ class ProcessContractAutoRenewals extends Command
 
     protected $description = 'Create successor contracts for expired inactive auto-renewable contracts';
 
-    public function handle(ContractAutoRenewalService $renewals): int
+    public function handle(ContractAutoRenewalService $renewals, NotificationDeliveryLedger $ledger): int
     {
         $contracts = $renewals->process();
 
         $this->notifyGovernorateHr($contracts);
 
-        $this->info('Renewed '.$contracts->count().' contract(s).');
+        $waiting = $this->notifyAwaitingNewYear($renewals->waitingForNewYear(), $ledger);
+
+        $this->info('Renewed '.$contracts->count().' contract(s); told HR of '.$waiting.' newly waiting for the new year.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Tell city HR, once per contract, which contracts ended in October to
+     * December and will only be renewed on 1 January. The ledger is keyed on
+     * the contract's end date, so a re-run or a later night sends nothing new.
+     *
+     * @param  Collection<int, Contract>  $contracts
+     */
+    private function notifyAwaitingNewYear(Collection $contracts, NotificationDeliveryLedger $ledger): int
+    {
+        $told = [];
+
+        $contracts
+            ->groupBy(fn (Contract $contract): ?int => $contract->employee?->city_id)
+            ->filter(fn (Collection $group, mixed $cityId): bool => $cityId !== null && $cityId !== '')
+            ->each(function (Collection $group) use ($ledger, &$told): void {
+                foreach ($this->hrUsersForCity($group->first()) as $recipient) {
+                    $new = $group->filter(fn (Contract $contract): bool => $ledger->claim(
+                        'contract_renews_new_year', $recipient->id, [$contract->id], $contract->end_date,
+                    ) !== [])->values();
+
+                    if ($new->isEmpty()) {
+                        continue;
+                    }
+
+                    $recipient->notify(new ContractsAwaitingNewYearRenewal($new));
+
+                    foreach ($new as $contract) {
+                        $ledger->markDelivered('contract_renews_new_year', $recipient->id, [$contract->id], $contract->end_date);
+                        $told[$contract->id] = true;
+                    }
+                }
+            });
+
+        return count($told);
     }
 
     /**

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HopeHR — Attendance (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#BE1F24; --ink:#414042; --ink-2:#6D6E71; --ink-3:#939598;
+  --line:#BCBEC0; --line-soft:#E6E7E8; --surface:#E6E7E8; --soft:#F3F3F4; --hover:#F3F3F4;
+  --card:#fff; --base:#fff; --on-ink:#fff; --focus:#414042; --ring:rgba(65,64,66,.12);
+  --shadow-sm:0 1px 3px rgba(65,64,66,.08); --shadow:0 6px 24px rgba(65,64,66,.14); --ease:cubic-bezier(.22,1,.36,1);
+}
+:root[data-theme="dark"]{
+  --ink:#E6E7E8; --ink-2:#BCBEC0; --ink-3:#939598; --line:#4A4A4E; --line-soft:#333336; --surface:#2A2A2D;
+  --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --base:#161617; --on-ink:#161617; --focus:#E6E7E8; --ring:rgba(230,231,232,.18);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow:0 6px 24px rgba(0,0,0,.5);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E6E7E8; --ink-2:#BCBEC0; --ink-3:#939598; --line:#4A4A4E; --line-soft:#333336; --surface:#2A2A2D;
+  --soft:#1E1E20; --hover:#2C2C2F; --card:#232325; --base:#161617; --on-ink:#161617; --focus:#E6E7E8; --ring:rgba(230,231,232,.18);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow:0 6px 24px rgba(0,0,0,.5);
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--base);color:var(--ink);font:400 16px/1.55 "Somar Sans",Lato,"Noto Sans Arabic",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+html[lang="ar"] body{font-size:17px;line-height:1.7;font-family:"Somar Sans","Noto Sans Arabic",Lato,system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+::selection{background:var(--ink);color:var(--on-ink)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input:focus-visible,select:focus-visible{outline:none;border-color:var(--ink)!important;box-shadow:0 0 0 3px var(--ring)}
+svg.i{width:1em;height:1em;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+bdi{unicode-bidi:isolate}
+
+.appbar{position:sticky;top:0;z-index:40;height:56px;display:flex;align-items:center;gap:24px;padding-inline:24px;background:var(--card);border-bottom:1px solid var(--line-soft)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+.logo b{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--brand);color:#fff;font-size:13px}
+.nav{display:flex;gap:4px;height:100%}
+.nav a{display:flex;align-items:center;padding-inline:12px;color:var(--ink-2);font-weight:600;font-size:15px;text-decoration:none;border-block-end:3px solid transparent}
+.nav a[aria-current]{color:var(--ink);border-color:var(--brand)}
+.sp{margin-inline-start:auto;display:flex;gap:4px}
+.iconbtn{display:grid;place-items:center;min-width:44px;height:44px;padding-inline:10px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font-weight:700;font-size:14px}
+.iconbtn:hover{background:var(--hover);color:var(--ink)}
+.iconbtn .i{font-size:20px}
+
+.page{max-width:880px;margin:0 auto;padding:32px 24px 96px}
+.head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.2;font-weight:800}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding-inline:18px;border-radius:8px;border:1.5px solid transparent;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;background:none}
+.btn .i{font-size:17px}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:color-mix(in srgb,var(--brand) 90%,#000)}
+.btn-outline{background:var(--card);border-color:var(--line);color:var(--ink)}
+.btn-outline:hover{background:var(--hover)}
+.btn-sm{min-height:36px;padding-inline:14px;font-size:14px}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;background:var(--card)}
+.stepper button{display:grid;place-items:center;width:42px;height:42px;border:0;background:transparent;border-radius:8px}
+.stepper button:hover{background:var(--hover)}
+.stepper .m{min-width:130px;text-align:center;font-weight:800}
+
+/* list */
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line-soft);flex:1;min-width:260px}
+.tabs button{border:0;background:none;padding:10px 12px;font-weight:700;font-size:15px;color:var(--ink-2);border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;gap:8px;align-items:center}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.tabs .c{min-width:22px;height:22px;padding-inline:6px;border-radius:999px;background:var(--surface);font-size:12px;display:inline-grid;place-items:center}
+.tabs .c.red{background:var(--brand);color:#fff}
+.field{height:44px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);padding-inline:12px}
+.search{position:relative;width:240px}
+.search .i{position:absolute;inset-inline-start:12px;top:50%;translate:0 -50%;color:var(--ink-3)}
+.search input{width:100%;padding-inline-start:38px}
+.list{list-style:none;margin:16px 0 0;padding:0;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.list li+li{border-top:1px solid var(--line-soft)}
+.prow{display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border:0;background:none;text-align:start}
+.prow:hover{background:var(--hover)}
+.av{width:42px;height:42px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:16px}
+.who small{display:block;color:var(--ink-3);font-size:13px}
+.dd{font-size:14px;color:var(--ink-2);white-space:nowrap}
+.dd b{color:var(--ink);font-size:16px}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding-inline:10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;min-width:120px;justify-content:center}
+.tag-need{background:var(--brand);color:#fff}
+.tag-ready{border:1.5px solid var(--ink)}
+.tag-ok{background:var(--surface)}
+.go{color:var(--ink-3)}
+[dir=rtl] .go{scale:-1 1}
+.empty{padding:40px;text-align:center;color:var(--ink-2)}
+
+/* one person */
+.back{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink-2);font-weight:700;padding:8px 0}
+.back:hover{color:var(--ink)}
+[dir=rtl] .back .i{scale:-1 1}
+.ph{display:flex;align-items:center;gap:16px;margin-top:8px}
+.ph .av{width:56px;height:56px;font-size:20px}
+.ph h1{font-size:28px}
+.ph p{margin:0;color:var(--ink-2)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.sum div{background:var(--soft);border-radius:12px;padding:14px 16px}
+.sum small{display:block;color:var(--ink-2);font-size:14px}
+.sum b{font-size:24px;font-weight:800}
+.alert{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:2px solid var(--brand);border-radius:12px;font-weight:700}
+.days{margin-top:20px;background:var(--card);border:1px solid var(--line-soft);border-radius:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.day{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:12px;min-height:52px;padding:8px 18px;border-top:1px solid var(--line-soft)}
+.day:first-child{border-top:0}
+.day .dt b{display:block;font-size:15px}
+.day .dt small{color:var(--ink-3);font-size:13px}
+.day .tm{color:var(--ink);font-size:15px}
+.day .tm .muted{color:var(--ink-3)}
+.day .h{font-weight:700;font-size:15px}
+.day.off{min-height:36px;background:var(--soft);color:var(--ink-3);font-size:14px}
+.day.off .dt b{font-weight:500}
+.day.q{background:color-mix(in srgb,var(--brand) 0%,var(--card));box-shadow:inset 4px 0 0 var(--brand)}
+[dir=rtl] .day.q{box-shadow:inset -4px 0 0 var(--brand)}
+.day.q .tm{color:var(--brand);font-weight:700}
+.pair{display:flex;gap:6px}
+.pill{font-size:13px;font-weight:700;color:var(--ink-2)}
+.foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-top:20px}
+.foot p{margin:0;color:var(--ink-2);font-size:14px}
+.toast{position:fixed;z-index:70;inset-inline-start:24px;bottom:24px;padding:12px 16px;background:var(--ink);color:var(--on-ink);border-radius:12px;box-shadow:var(--shadow);font-weight:600;animation:pop .2s var(--ease)}
+.view{animation:pop .22s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+@media (max-width:640px){
+  .nav{display:none}.page{padding-inline:16px}
+  .search{width:100%}
+  .dd{display:none}
+  .tag{min-width:0}
+  .day{grid-template-columns:80px 1fr;row-gap:4px}
+  .day .r{grid-column:1/-1}
+  .day.off .r{display:none}
+  .sum b{font-size:20px}
+}
+
+/* calendar */
+.cal{margin-top:20px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wh{text-align:center;font-size:13px;font-weight:700;color:var(--ink-2);padding-bottom:2px}
+.cd{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:84px;padding:8px 10px;border:1px solid var(--line-soft);border-radius:10px;background:var(--card);text-align:start;font:inherit;color:inherit}
+.cd .dn{font-weight:800;font-size:16px;line-height:1}
+.cd .tm{font-size:12px;color:var(--ink-2);margin-top:auto;direction:ltr}
+.cd .hr{font-size:13px;font-weight:700}
+.cd .lbl{font-size:13px;font-weight:700;margin-top:auto;color:var(--ink-2)}
+.cd.blank{border:0;background:none}
+.cd.off{background:var(--soft);border-color:transparent;color:var(--ink-3)}
+.cd.lv{border:1.5px solid var(--line)}
+.cd.ab{border:1.5px dashed var(--ink-2)}
+.cd.q{background:var(--brand);border-color:var(--brand);color:#fff;cursor:pointer;transition:transform .12s var(--ease)}
+.cd.q .lbl{color:#fff;direction:ltr}
+button.cd.q:hover{transform:translateY(-2px)}
+.cd.q.sel{outline:3px solid var(--ink);outline-offset:2px}
+.ask{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:2px solid var(--ink);border-radius:12px;animation:pop .18s var(--ease)}
+.ask b{display:block}
+.ask span{color:var(--ink-2);font-size:15px}
+@media (max-width:640px){.cal{gap:3px}.cd{min-height:58px;padding:5px;border-radius:7px}.cd .tm,.cd .hr{display:none}.cd .lbl{font-size:10px}.wh{font-size:11px}.ask .pair{width:100%}.ask .btn{flex:1}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9M7 17H4.5v-7.5h15V17H17M7 14h10v6.5H7z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+</defs></svg>
+
+<header class="appbar">
+  <div class="logo"><b>HR</b><span>HopeHR</span></div>
+  <nav class="nav" id="nav"></nav>
+  <div class="sp"><button class="iconbtn" id="lang"></button><button class="iconbtn" id="theme" aria-label="Theme"><svg class="i"><use href="#i-moon"/></svg></button></div>
+</header>
+<main class="page" id="app"></main>
+<div id="toast"></div>
+
+<script>
+/* Mockup only: sample data, nothing is wired to the application. */
+const YEAR = 2026, MONTH = 10, DIM = 31, HOLIDAY = 6;
+const dow = d => (3 + d) % 7;            // 1 Oct 2026 = Thursday; Fri/Sat off
+
+const T = {
+  ar: {
+    nav:['الرئيسية','الموظفون','العقود','الإجازات','الحضور','التوظيف'], title:'الحضور',
+    months:['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'],
+    days:['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
+    tAll:'الكل', tNeed:'تحتاج جوابك', tDone:'مؤكَّد', search:'ابحث عن اسم…',
+    need:n => n==1?'يوم يحتاج جوابك':n==2?'يومان يحتاجان جوابك':`${f(n)} أيام تحتاج جوابك`, ready:'بانتظار تأكيدك', ok:'مؤكَّد',
+    of:'من', worked:'أيام الدوام', hours:'الساعات', leave:'الإجازة', back:'كل الموظفين',
+    alert:n => n==1?'يوم واحد بلا بصمة كاملة. هل داوم؟':n==2?'يومان بلا بصمة كاملة. هل داوم؟':`${f(n)} أيام بلا بصمة كاملة. هل داوم؟`,
+    yes:'داوم', no:'غاب', weekend:'عطلة أسبوعية', holiday:'عطلة رسمية', onLeave:'إجازة', absent:'غائب', missing:'بلا بصمة', onlyIn:'دخول فقط',
+    outside:'خارج العقد', approve:'تأكيد الشهر', why:'التأكيد يعني: راجعتُ الشهر وهو صحيح. بعده يُحسب للرواتب والإجازات ولا يتغيّر.', pick:'اضغط على يوم أحمر لتجيب عنه.', oneAt:t=>`بصمة دخول فقط عند ${t}، ولا بصمة خروج.`, noneAt:'لم يسجّل الجهاز أي بصمة.', q:'هل داوم في هذا اليوم؟', wk:['سبت','أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة'], print:'طباعة', approved:'✓ الشهر مؤكَّد: راجعه المدير وهو صحيح.', answerFirst:'أجب عن الأيام الحمراء أولاً، ثم أكّد الشهر.',
+    h:'س', saved:'تم الحفظ', none:'لا أحد هنا.', foot:'نموذج تصوّري · بيانات تجريبية'
+  },
+  en: {
+    nav:['Dashboard','Employees','Contracts','Leave','Attendance','Recruitment'], title:'Attendance',
+    months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    days:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    tAll:'All', tNeed:'Needs you', tDone:'Confirmed', search:'Search a name…',
+    need:n => n==1?'1 day needs you':`${f(n)} days need you`, ready:'Waiting for you to confirm', ok:'Confirmed',
+    of:'of', worked:'Days worked', hours:'Hours', leave:'Leave', back:'All employees',
+    alert:n => n==1?'1 day has no complete punch. Did they work?':`${f(n)} days have no complete punch. Did they work?`,
+    yes:'Worked', no:'Absent', weekend:'Weekend', holiday:'Public holiday', onLeave:'Leave', absent:'Absent', missing:'No punch', onlyIn:'Clock-in only',
+    outside:'Not under contract', approve:'Confirm month', why:'Confirming means: I checked this month and it is right. It then counts for pay and leave and stays fixed.', pick:'Click a red day to answer it.', oneAt:t=>`Clock-in only at ${t}, no clock-out.`, noneAt:'The device recorded no punch.', q:'Did they work this day?', wk:['Sat','Sun','Mon','Tue','Wed','Thu','Fri'], print:'Print', approved:'✓ Month confirmed: the manager checked it and it is right.', answerFirst:'Answer the red days first, then confirm the month.',
+    h:'h', saved:'Saved', none:'Nobody here.', foot:'Mockup · sample data'
+  }
+};
+const P = [
+  {id:1041,en:'Rana Haddad',ar:'رنا حداد',g:['Health Program','البرنامج الصحي'],ok:false,ex:{}},
+  {id:1042,en:'Omar Khoury',ar:'عمر خوري',g:['Health Program','البرنامج الصحي'],ok:false,ex:{13:'one',14:'none',15:'one'}},
+  {id:1043,en:'Layla Nasser',ar:'ليلى ناصر',g:['Health Program','البرنامج الصحي'],ok:true,ex:{},leave:[20,22]},
+  {id:1044,en:'Samer Issa',ar:'سامر عيسى',g:['Health Program','البرنامج الصحي'],ok:true,ex:{}},
+  {id:1045,en:'Hiba Saleh',ar:'هبة صالح',g:['Health Program','البرنامج الصحي'],ok:false,ex:{12:'one'}},
+  {id:1051,en:'George Maalouf',ar:'جورج معلوف',g:['Education Support','دعم التعليم'],ok:false,ex:{}},
+  {id:1052,en:'Maya Darwish',ar:'مايا درويش',g:['Education Support','دعم التعليم'],ok:true,ex:{27:'abs'}},
+  {id:1054,en:'Nour Abbas',ar:'نور عباس',g:['Education Support','دعم التعليم'],ok:false,ex:{5:'none',19:'one'}},
+  {id:2013,en:'Elias Kassab',ar:'إلياس كساب',g:['Livelihoods','سبل العيش'],ok:false,ex:{8:'one'}},
+  {id:2021,en:'Dina Rahal',ar:'دينا راحل',g:['Livelihoods','سبل العيش'],ok:true,ex:{}},
+];
+// build each person's month: kind + in/out times (deterministic)
+P.forEach(p => { p.days = [null];
+  for (let d = 1; d <= DIM; d++) {
+    const r = (p.id * 31 + d * 17) % 23;
+    const inM = 8 * 60 - 6 + r, outM = 16 * 60 + ((r * 7) % 40) - 5;
+    let k = 'w';
+    if ([5,6].includes(dow(d))) k = 'we'; else if (d === HOLIDAY) k = 'hol';
+    else if (p.leave && d >= p.leave[0] && d <= p.leave[1]) k = 'l';
+    else if (p.ex[d]) k = p.ex[d];
+    p.days.push({k, inM, outM});
+  }
+});
+
+const S = {lang:'ar', tab:'all', q:'', person:null, sel:null};
+const L = () => T[S.lang];
+const tr = v => v[S.lang === 'ar' ? 1 : 0];
+const nm = p => S.lang === 'ar' ? p.ar : p.en;
+const f = x => n(x);
+const n = x => S.lang === 'ar' ? String(x).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]).replace('.', '٫') : String(x);
+const ic = id => `<svg class="i" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const hm = m => n(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+const initials = p => nm(p).split(' ').map(w => w[0]).slice(0, 2).join(S.lang === 'ar' ? ' ' : '');
+const open = p => p.days.filter(x => x && (x.k === 'one' || x.k === 'none')).length;
+const workDays = p => p.days.filter(x => x && (x.k === 'w' || x.k === 'yes')).length;
+const planned = p => p.days.filter(x => x && !['we','hol'].includes(x.k)).length;
+const hours = p => Math.round(p.days.reduce((a, x) => a + (x && x.k === 'w' ? x.outM - x.inM : x && x.k === 'yes' ? 480 : 0), 0) / 60);
+const status = p => p.ok ? 'ok' : open(p) ? 'need' : 'ready';
+
+function chrome() {
+  const t = L();
+  document.documentElement.lang = S.lang; document.documentElement.dir = S.lang === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('nav').innerHTML = t.nav.map((x, i) => `<a href="#" ${i === 4 ? 'aria-current="page"' : ''}>${x}</a>`).join('');
+  document.getElementById('lang').textContent = S.lang === 'ar' ? 'EN' : 'عربي';
+}
+const monthPicker = () => { const t = L(), rtl = S.lang === 'ar';
+  return `<div class="stepper"><button aria-label="-1" style="${rtl ? '' : 'transform:scaleX(-1)'}">${ic('chev')}</button><div class="m"><bdi>${t.months[MONTH-1]} ${n(YEAR)}</bdi></div><button aria-label="+1" style="${rtl ? 'transform:scaleX(-1)' : ''}">${ic('chev')}</button></div>`; };
+
+/* 1 — everyone: one row each, one status each */
+function listView() {
+  const t = L(), cnt = {all:P.length, need:P.filter(p => status(p) === 'need').length, ok:P.filter(p => p.ok).length};
+  const rows = P.filter(p => (S.tab === 'all' || (S.tab === 'need' ? status(p) === 'need' : p.ok))
+    && (!S.q.trim() || (p.en + ' ' + p.ar).toLowerCase().includes(S.q.trim().toLowerCase())));
+  const tag = p => { const s = status(p);
+    return s === 'need' ? `<span class="tag tag-need">${t.need(open(p))}</span>` : s === 'ready' ? `<span class="tag tag-ready">${t.ready}</span>` : `<span class="tag tag-ok">${ic('check')}${t.ok}</span>`; };
+  return `<div class="view">
+    <div class="head"><h1>${t.title}</h1>${monthPicker()}</div>
+    <div class="tools">
+      <div class="tabs" role="tablist">
+        ${[['all',t.tAll],['need',t.tNeed],['ok',t.tDone]].map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}<span class="c ${k === 'need' && cnt.need ? 'red' : ''}">${n(cnt[k])}</span></button>`).join('')}
+      </div>
+      <label class="search">${ic('search')}<input class="field" id="q" type="search" placeholder="${t.search}" aria-label="${t.search}" value="${S.q}"></label>
+    </div>
+    <ul class="list">${rows.length ? rows.map(p => `<li><button class="prow" data-person="${p.id}">
+      <span class="av">${initials(p)}</span>
+      <span class="who"><b><bdi>${nm(p)}</bdi></b><small><bdi>${tr(p.g)}</bdi></small></span>
+      <span class="dd"><b>${n(workDays(p))}</b> ${t.of} ${n(planned(p))}</span>
+      ${tag(p)}<span class="go">${ic('chev')}</span></button></li>`).join('') : `<li class="empty">${t.none}</li>`}</ul>
+    <p style="margin-top:40px;color:var(--ink-3);font-size:13px;text-align:center">${t.foot}</p></div>`;
+}
+
+/* 2 — one person: their month as a calendar (week starts Saturday) */
+function personView(p) {
+  const t = L(), o = open(p), leaveDays = p.days.filter(x => x && x.k === 'l').length;
+  const lead = (dow(1) + 1) % 7;               // empty cells before the 1st
+  const cellOf = (x, d) => {
+    const pend = x.k === 'one' || x.k === 'none', sel = S.sel === d;
+    let body = '', cls = '';
+    if (x.k === 'we' || x.k === 'hol') { cls = 'off'; body = x.k === 'hol' ? `<span class="lbl">${t.holiday}</span>` : ''; }
+    else if (x.k === 'l') { cls = 'lv'; body = `<span class="lbl">${t.onLeave}</span>`; }
+    else if (x.k === 'abs' || x.k === 'no') { cls = 'ab'; body = `<span class="lbl">${t.absent}</span>`; }
+    else if (pend) { cls = 'q'; body = `<span class="lbl">${x.k === 'one' ? hm(x.inM) + ' – ?' : t.missing}</span>`; }
+    else if (x.k === 'yes') body = `<span class="lbl">${t.yes}</span>`;
+    else { const m = x.outM - x.inM; body = `<span class="tm">${hm(x.inM)}–${hm(x.outM)}</span><span class="hr">${n(Math.floor(m / 60))}${t.h} ${n(m % 60)}</span>`; }
+    const tag = pend && !p.ok ? 'button' : 'div';
+    return `<${tag} class="cd ${cls}${sel ? ' sel' : ''}" ${tag === 'button' ? `data-pick="${d}" aria-label="${t.days[dow(d)]} ${n(d)}: ${t.missing}"` : ''}><span class="dn">${n(d)}</span>${body}</${tag}>`;
+  };
+  const x = S.sel && p.days[S.sel];
+  const ask = x && (x.k === 'one' || x.k === 'none') ? `<div class="ask"><div><b>${t.days[dow(S.sel)]} ${n(S.sel)}/${n(MONTH)}</b><span>${x.k === 'one' ? t.oneAt(hm(x.inM)) : t.noneAt} ${t.q}</span></div>
+      <div class="pair"><button class="btn btn-outline" data-set="${S.sel}:yes">${ic('check')}${t.yes}</button><button class="btn btn-outline" data-set="${S.sel}:no">${t.no}</button></div></div>` : '';
+  return `<div class="view">
+    <button class="back" data-back>${ic('back')}${t.back}</button>
+    <div class="head"><div class="ph"><span class="av">${initials(p)}</span><div><h1><bdi>${nm(p)}</bdi></h1><p><bdi>${tr(p.g)}</bdi></p></div></div>${monthPicker()}</div>
+    <div class="sum"><div><small>${t.worked}</small><b>${n(workDays(p))}</b> <span style="color:var(--ink-3)">/ ${n(planned(p))}</span></div>
+      <div><small>${t.hours}</small><b>${n(hours(p))}</b></div><div><small>${t.leave}</small><b>${n(leaveDays)}</b></div></div>
+    ${o && !p.ok ? `<div class="alert"><span>${t.alert(o)} <span style="font-weight:400;color:var(--ink-2)">${t.pick}</span></span></div>` : ''}
+    <div class="cal">
+      ${t.wk.map((w, i) => `<div class="wh">${w}</div>`).join('')}
+      ${'<div class="cd blank"></div>'.repeat(lead)}
+      ${p.days.slice(1).map((x, i) => cellOf(x, i + 1)).join('')}
+    </div>
+    ${ask}
+    <div class="foot">
+      ${p.ok ? `<p>${t.approved}</p>` : o ? `<p>${t.answerFirst}</p>` : `<div><button class="btn btn-primary" data-approve>${ic('check')}${t.approve}</button><p style="margin-top:8px;max-width:52ch">${t.why}</p></div>`}
+      <a class="btn btn-outline" href="#">${ic('print')}${t.print}</a></div></div>`;
+}
+
+function render(top) {
+  const app = document.getElementById('app'), p = P.find(x => x.id === S.person);
+  app.innerHTML = p ? personView(p) : listView();
+  if (top) scrollTo(0, 0);
+}
+let tt; const flash = m => { const el = document.getElementById('toast'); clearTimeout(tt); el.innerHTML = `<div class="toast" role="status">${m}</div>`; tt = setTimeout(() => el.innerHTML = '', 3000); };
+
+document.addEventListener('click', e => {
+  const q = s => e.target.closest(s); let b;
+  if ((b = q('[data-person]'))) { S.person = +b.dataset.person; S.sel = null; return render(true); }
+  if ((b = q('[data-pick]'))) { S.sel = S.sel === +b.dataset.pick ? null : +b.dataset.pick; render(); document.querySelector('.ask .btn')?.focus(); return; }
+  if (q('[data-back]')) { S.person = null; return render(true); }
+  if ((b = q('[data-tab]'))) { S.tab = b.dataset.tab; return render(); }
+  if ((b = q('[data-set]'))) { const [d, k] = b.dataset.set.split(':'); P.find(x => x.id === S.person).days[+d].k = k; const pp = P.find(x => x.id === S.person); S.sel = pp.days.findIndex(x => x && (x.k === 'one' || x.k === 'none')); if (S.sel < 0) S.sel = null; render(); return flash(L().saved); }
+  if (q('[data-approve]')) { P.find(x => x.id === S.person).ok = true; render(); return flash(L().approved); }
+  if (q('#lang')) { S.lang = S.lang === 'ar' ? 'en' : 'ar'; chrome(); return render(); }
+  if (q('#theme')) { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+    r.dataset.theme = dark ? 'light' : 'dark'; document.querySelector('#theme use').setAttribute('href', dark ? '#i-moon' : '#i-sun'); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.target.value; render(); const i = document.getElementById('q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } });
+chrome(); render();
+</script>
+</body>
+</html>

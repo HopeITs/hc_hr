@@ -52,7 +52,10 @@ class InternalRecruitmentApplicantService
         $dob = $employee->dob ?? $employee->actual_dob;
 
         return array_filter([
-            'full_name' => $employee->nameForLocale($locale),
+            // The eight names, from the record, under the form's keys (which are the columns).
+            ...collect(RecruitmentApplicationFormService::NAME_FIELDS)
+                ->mapWithKeys(fn (string $column): array => [$column => (string) $employee->getAttribute($column)])
+                ->all(),
             'email' => $this->email($user),
             'phone' => (string) ($employee->personal_phone ?: $employee->work_phone),
             'city' => (string) $employee->city?->getAttribute("name_{$locale}"),

@@ -3,14 +3,14 @@
 @php
     use App\Enums\RecruitmentApplicationStatus;
 
-    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-    $panel = 'rounded-surface border border-neutral-200 bg-white shadow-e1';
+    $focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+    $panel = 'rounded-surface border border-neutral-200 bg-card shadow-e1';
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider text-secondary-medium';
     // One chip recipe for every quick filter on the page: grey selection, never a red fill.
     $chip = fn (bool $on) => 'inline-flex py-2 cursor-pointer items-center gap-2 rounded-control border px-3 text-body transition duration-150 motion-reduce:transition-none '.$focus.' '
-        .($on ? 'border-neutral-300 bg-selection font-semibold text-secondary-dark' : 'border-neutral-200 bg-white text-secondary-dark hover:border-neutral-300');
+        .($on ? 'border-neutral-300 bg-selection font-semibold text-secondary-dark' : 'border-neutral-200 bg-card text-secondary-dark hover:border-neutral-300');
     $chipCount = fn (bool $on) => 'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-caption font-semibold tabular-nums '
-        .($on ? 'bg-white text-secondary-dark' : 'bg-neutral-100 text-secondary-medium');
+        .($on ? 'bg-card text-secondary-dark' : 'bg-neutral-100 text-secondary-medium');
 
     // The pipeline, in the order an application moves through it.
     $pipeline = [
@@ -39,7 +39,7 @@
         <div class="w-full sm:w-72">
             <label for="applicant-campaign-filter" class="mb-1 block text-caption font-semibold text-secondary-dark">{{ __('recruitment-applicant.filters.campaign') }}</label>
             <select id="applicant-campaign-filter" wire:model.live="activeCampaignId"
-                    class="min-h-11 w-full cursor-pointer rounded-control border border-neutral-300 bg-white ps-3 pe-8 text-body text-neutral-900 shadow-e1 focus:border-primary focus:ring-primary sm:min-h-10">
+                    class="min-h-11 w-full cursor-pointer rounded-control border border-neutral-300 bg-card ps-3 pe-8 text-body text-neutral-900 shadow-e1 focus:border-ink focus:ring-ink sm:min-h-10">
                 <option value="">{{ __('recruitment-applicant.filters.all_campaigns') }}</option>
                 @foreach ($campaignOptions as $campaignId => $campaignLabel)
                     <option value="{{ $campaignId }}">{{ $campaignLabel }}</option>
@@ -63,7 +63,7 @@
                         'group relative flex min-h-16 cursor-pointer flex-col items-start justify-between gap-1 rounded-control border px-3 py-2.5 text-start transition duration-150 motion-reduce:transition-none',
                         $focus,
                         'border-neutral-300 bg-selection' => $allOn,
-                        'border-neutral-200 bg-white hover:border-neutral-300' => ! $allOn,
+                        'border-neutral-200 bg-card hover:border-neutral-300' => ! $allOn,
                     ])>
                 <span class="text-h3 font-semibold tabular-nums text-neutral-900">{{ $allCount }}</span>
                 <span class="text-small {{ $allOn ? 'font-semibold text-secondary-dark' : 'text-secondary-medium' }}">{{ __('recruitment-applicant.filters.all') }}</span>
@@ -80,7 +80,7 @@
                             'group relative flex min-h-16 cursor-pointer flex-col items-start justify-between gap-1 rounded-control border px-3 py-2.5 text-start transition duration-150 motion-reduce:transition-none',
                             $focus,
                             'border-neutral-300 bg-selection' => $isActive,
-                            'border-neutral-200 bg-white hover:border-neutral-300' => ! $isActive,
+                            'border-neutral-200 bg-card hover:border-neutral-300' => ! $isActive,
                         ])>
                     <span class="flex w-full items-center justify-between gap-2">
                         <span @class(['text-h3 font-semibold tabular-nums', 'text-neutral-900' => $count > 0, 'text-secondary-light' => $count === 0])>{{ $count }}</span>
@@ -120,7 +120,7 @@
                                     'size-2 shrink-0 rounded-full',
                                     'bg-neutral-900' => $group === 'preferred',
                                     'bg-neutral-500' => $group === 'alternative',
-                                    'border border-neutral-400 bg-white' => $group === 'unvoted',
+                                    'border border-neutral-400 bg-card' => $group === 'unvoted',
                                 ])></span>
                                 {{ __('recruitment-applicant.endorsement.group_'.$group) }}
                                 <span class="{{ $chipCount($isActive) }}">{{ $endorsementCounts[$group] ?? 0 }}</span>
@@ -179,9 +179,9 @@
                 </div>
             </div>
             @if ($finalistCount === 1 && $mayFinalize)
-                <x-primary-button type="button" wire:click="finalizeSingleCandidate" wire:loading.attr="disabled" wire:target="finalizeSingleCandidate">
+                <x-button type="button" wire:click="finalizeSingleCandidate" wire:loading.attr="disabled" wire:target="finalizeSingleCandidate">
                     {{ __('recruitment-applicant.finalists.proceed_offer') }}
-                </x-primary-button>
+                </x-button>
             @endif
         </section>
     @endif

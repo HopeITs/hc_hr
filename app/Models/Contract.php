@@ -62,10 +62,12 @@ class Contract extends Model
         'schedule_mode',
         'work_day_from',
         'work_day_to',
+        'work_weekdays',
         'show_days_per_week',
         'show_hours_per_week',
         'show_hours_per_day',
         'show_day_range',
+        'show_weekend_clause',
         'flex_days_per_week',
         'flex_hours_per_week',
         'flex_hours_per_month',
@@ -94,6 +96,7 @@ class Contract extends Model
         'show_hours_per_week' => 'boolean',
         'show_hours_per_day' => 'boolean',
         'show_day_range' => 'boolean',
+        'show_weekend_clause' => 'boolean',
         'flex_days_per_week' => 'integer',
         'flex_hours_per_week' => 'integer',
         'flex_hours_per_month' => 'integer',
@@ -499,6 +502,37 @@ class Contract extends Model
         return round($start_date->diffInMonths($end_date), 1);
     }
 
+    /**
+     * The days picked one by one (work_weekdays), Carbon numbering, sorted;
+     * null when the contract states a from–to range (or nothing) instead.
+     *
+     * @return array<int, int>|null
+     */
+    public function workWeekdays(): ?array
+    {
+        $days = self::parseWeekdays($this->work_weekdays);
+
+        return $days === [] ? null : $days;
+    }
+
+    /**
+     * "0,1,3" (or an array) as sorted, distinct day numbers 0–6.
+     *
+     * @return array<int, int>
+     */
+    public static function parseWeekdays(string|array|null $value): array
+    {
+        $parts = is_array($value) ? $value : explode(',', (string) $value);
+
+        $days = array_values(array_unique(array_map('intval', array_filter(
+            array_map(fn ($day) => trim((string) $day), $parts),
+            fn (string $day) => $day !== '' && ctype_digit($day) && (int) $day <= 6,
+        ))));
+        sort($days);
+
+        return $days;
+    }
+
     public function getWorkHourPerDayAttribute(): int
     {
         return $this->weekly_hours / 5;
@@ -523,6 +557,7 @@ class Contract extends Model
                 'salary_per',
                 'work_days_en',
                 'work_days_ar',
+                'work_weekdays',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

@@ -21,5 +21,6 @@ return [
     // :first, :last and :total arrive already wrapped in markup by the view.
     'showing' => 'Showing :first to :last of :total results',
     'go_to_page' => 'Go to page :page',
+    'page_of' => 'Page :current of :last',
 
 ];

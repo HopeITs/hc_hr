@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Storage;
 use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter;
 use Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect;
 use RuntimeException;
+use Tests\Concerns\ApplicantNames;
 use Tests\Concerns\BuildsRecruitmentApplications;
 use Tests\Concerns\CapturesSecurityEvents;
 use Tests\Concerns\CreatesHrFixtures;
@@ -372,7 +373,7 @@ class RecruitmentMonitoringTest extends TestCase
             'locale' => 'en',
             'submission_key' => bin2hex(random_bytes(32)),
             'answers' => [
-                'full_name' => 'Applicant Name',
+                ...ApplicantNames::answers('Applicant Name'),
                 'email' => $email,
                 'phone' => '0999123456',
                 'cv' => $cv ?? $this->pdf(),

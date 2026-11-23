@@ -47,6 +47,9 @@ class Timesheet
 
     public const NO_RECORD = 'no_record';
 
+    /** A working day still ahead: nothing to decide yet, and it counts for nothing. */
+    public const UPCOMING = 'upcoming';
+
     public const DECIDED_WORKED = 'decided_worked';
 
     public const DECIDED_ABSENT = 'decided_absent';
@@ -211,7 +214,12 @@ class Timesheet
             $key = ($position?->program_id ?? 0).'-'.($position?->city_id ?? 0);
             $holidayCache[$key] ??= $this->holidaysFor($position?->program_id, $position?->city_id, $first, $last);
 
-            $weekends = array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
+            // Days picked one by one on the contract: every other day is off
+            // (Study Zone's center day plus the volunteer's own).
+            $workdays = $contract->workWeekdays();
+            $weekends = $workdays !== null
+                ? array_values(array_diff(range(0, 6), $workdays))
+                : array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
             $block = max(1, (int) $overtime['block_minutes']);
 
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {
@@ -281,6 +289,9 @@ class Timesheet
                 $row['kind'] = self::WORKED;
                 $row['working_days'] = 1.0;
                 $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
+            } elseif ($times === [] && $day->isAfter(CarbonImmutable::today())) {
+                // Not come yet: no one can answer for it, so it waits for nobody.
+                $row['kind'] = self::UPCOMING;
             } else {
                 // One punch, or none: nothing is assumed. HR decides, and until then it counts for nothing.
                 $row['kind'] = count($times) === 1 ? self::ONE_PUNCH : self::NO_RECORD;

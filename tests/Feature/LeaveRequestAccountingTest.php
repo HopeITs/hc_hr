@@ -171,8 +171,9 @@ class LeaveRequestAccountingTest extends TestCase
         }
 
         // 2. What is stored.
-        $component->call('confirmSave')->assertHasNoErrors()->assertDispatched('confirm-dialog')
-            ->call('processSave')->assertHasNoErrors()->assertSet('showModal', false);
+        // Send writes at once: the form's own summary replaced the confirm dialog.
+        $component->call('confirmSave')->assertHasNoErrors()->assertNotDispatched('confirm-dialog')
+            ->assertSet('showModal', false);
 
         $created = LeaveRequest::query()->where('leave_balance_id', $balance->id)->latest('id')->firstOrFail();
         $this->assertSame($expected, $created->computed_hours);
@@ -233,6 +234,47 @@ class LeaveRequestAccountingTest extends TestCase
         $this->assertSame('12 Days', trim(strip_tags($card->deserved_formatted)));
     }
 
+    /** Medium fix 9: annual and any type in use stay in view; untouched types fold behind one button. */
+    public function test_my_leaves_folds_the_balances_nobody_has_used(): void
+    {
+        [$user, $annual] = $this->requester('A', deserved: 160);
+        $sick = LeaveBalance::query()->create(['contract_id' => $annual->contract_id, 'type_id' => LeaveTypeCases::FullSick, 'deserved' => 48, 'used' => 0]);
+        $usedSick = LeaveBalance::query()->create(['contract_id' => $annual->contract_id, 'type_id' => LeaveTypeCases::MaternityFirst, 'deserved' => 48, 'used' => 8]);
+        app()->setLocale('en');
+
+        $html = Livewire::actingAs($user)->test(MyLeaveRequestModule::class)->html();
+
+        // One folded card (the untouched full-sick balance), and the button that opens it.
+        $this->assertSame(1, substr_count($html, 'data-testid="other-balance"'));
+        $this->assertStringContainsString('wire:key="other-balance-'.$sick->id.'"', $html);
+        $this->assertStringNotContainsString('wire:key="other-balance-'.$usedSick->id.'"', $html);
+        $this->assertStringContainsString('Show the other balance', $html);
+    }
+
+    /** Medium fix 10: the employee's own cards read in whole hours; HR's exact figures keep their minutes. */
+    public function test_the_employees_cards_round_to_whole_hours(): void
+    {
+        // 9 h 20 min used out of 51 h leaves 41 h 40 min.
+        [$user, $balance] = $this->requester('A', typeId: LeaveTypeCases::FullSick, deserved: 51, used: 9 + 1 / 3);
+        app()->setLocale('en');
+        $card = $user->profile->availableLeaves()->firstWhere('id', $balance->id);
+        $plain = fn (string $html) => trim(strip_tags($html));
+
+        $this->assertStringContainsString('Minute', $plain($card->used_formatted));
+        $this->assertStringContainsString('Minute', $plain($card->available_formatted));
+
+        foreach (['used_rounded', 'available_rounded', 'deserved_rounded', 'pending_rounded'] as $label) {
+            $this->assertStringNotContainsString('Minute', $plain($card->{$label}), $label);
+        }
+
+        // Down to the half hour: 41 h 40 min reads as 41½ h, never more than a request accepts.
+        $this->assertSame($plain($card->roundedLabel(41.5)), $plain($card->available_rounded));
+        // The same for the rest: 9 h 20 min reads as 9 h (the 20 minutes wait to make a half hour).
+        $this->assertSame($plain($card->roundedLabel(9.0)), $plain($card->used_rounded));
+        $this->assertStringContainsString('½', $plain($card->available_rounded));
+        $this->assertStringNotContainsString('½', $plain($card->used_rounded));
+    }
+
     // --- AC-A3-02 -------------------------------------------------------------
 
     public function test_an_insufficient_annual_balance_is_a_field_error_that_keeps_the_input(): void
@@ -271,8 +313,7 @@ class LeaveRequestAccountingTest extends TestCase
         $this->assertSame([], $impact['errors']);
         $this->assertContains(__('leave_quote.codes.exceeds_balance'), $impact['warnings']);
 
-        $component->call('confirmSave')->assertHasNoErrors()
-            ->call('processSave')->assertHasNoErrors();
+        $component->call('confirmSave')->assertHasNoErrors();
 
         $this->assertSame(16.0, LeaveRequest::query()->latest('id')->firstOrFail()->computed_hours);
     }
@@ -315,7 +356,6 @@ class LeaveRequestAccountingTest extends TestCase
 
         $component = $this->fill($user, $balance, ['start_at' => '2026-11-01', 'end_at' => '2026-11-05']);
         $this->assertSame([], $component->instance()->leaveImpact['errors']);
-        $component->call('confirmSave')->assertHasNoErrors();
 
         // Meanwhile another request on the same balance is sent and accepted.
         $other = $this->leaveRequest($balance, '2026-11-15', '2026-11-16', computedHours: 16.0);
@@ -324,7 +364,7 @@ class LeaveRequestAccountingTest extends TestCase
 
         // Back in the requester's session, the open form is sent.
         $this->actingAs($user);
-        $component->call('processSave')
+        $component->call('confirmSave')
             ->assertHasErrors(['form.leave_balance_id'])
             ->assertSet('showModal', true)
             ->assertSet('form.start_at', '2026-11-01');

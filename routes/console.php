@@ -14,6 +14,7 @@ use App\Console\Commands\PrunePushData;
 use App\Console\Commands\PruneTaskAttempts;
 use App\Console\Commands\QueueMailListStarters;
 use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
+use App\Console\Commands\RemindMissingLeavingReasons;
 use App\Console\Commands\ScanRecruitmentFiles;
 use App\Console\Commands\SendAttendanceReminders;
 use App\Console\Commands\SendContractExpirationWarnings;
@@ -37,6 +38,8 @@ Artisan::command('inspire', function () {
 
 // Trials entering their last third get a review before tonight's contract sweeps (21:25, 21:30, 21:35).
 Schedule::command(StartProbationReviews::class)->dailyAt('21:20');
+// People who left over a month ago with no termination reason: HR of the city, once a month.
+Schedule::command(RemindMissingLeavingReasons::class)->monthlyOn(1, '08:30');
 // Critical positions with no holder: HR of the city and the direct manager (once per episode).
 Schedule::command(NotifyCriticalPositions::class)->dailyAt('07:40')->withoutOverlapping();
 // Before deactivation and auto-renewal, so a renewal inherits the amended terms.

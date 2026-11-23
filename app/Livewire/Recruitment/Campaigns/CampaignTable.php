@@ -7,6 +7,7 @@ use App\Models\HiringCampaign;
 use App\Models\Position;
 use App\Models\User;
 use App\Services\HiringCampaignStateMachine;
+use App\Support\Status\RecruitmentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -19,8 +20,6 @@ use RamonRietdijk\LivewireTables\Livewire\LivewireTable;
 
 class CampaignTable extends LivewireTable
 {
-    private const PILL = '<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-control bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-secondary-dark';
-
     private const DASH = '<span class="text-secondary-light">—</span>';
 
     public string $sortColumn = 'created_at';
@@ -135,7 +134,7 @@ class CampaignTable extends LivewireTable
                 ->displayUsing(fn ($value): string => $value === null ? self::DASH
                     : '<time datetime="'.e($value->toIso8601String()).'" class="block whitespace-nowrap tabular-nums">'
                         .'<span class="block text-secondary-dark">'.e($value->translatedFormat('j M Y')).'</span>'
-                        .'<span class="block text-xs text-secondary-medium">'.e($value->format('H:i')).'</span></time>')
+                        .'<span class="block text-small text-secondary-medium">'.e($value->format('H:i')).'</span></time>')
                 ->asHtml()
                 ->sortable(function (Builder $query, Direction $direction): void {
                     $query
@@ -148,15 +147,7 @@ class CampaignTable extends LivewireTable
     /** Grey pill + stage dot: hollow = being prepared, ink = live, faded = over. */
     private function statusPill(int $status): string
     {
-        $dot = match ($status) {
-            HiringCampaignStatus::Open => 'bg-neutral-900',
-            HiringCampaignStatus::Published => 'bg-neutral-500',
-            HiringCampaignStatus::Draft => 'border border-neutral-500 bg-white',
-            default => 'bg-neutral-300',
-        };
-
-        return self::PILL.'"><span aria-hidden="true" class="size-1.5 shrink-0 rounded-full '.$dot.'"></span>'
-            .e(HiringCampaignStatus::getLocalizedName($status)['value']).'</span>';
+        return RecruitmentStatus::html(RecruitmentStatus::campaign($status));
     }
 
     /** Audience with an icon, so public / staff / invite-only read at a glance without colour. */
@@ -183,7 +174,7 @@ class CampaignTable extends LivewireTable
         $end = $campaign->ends_at;
 
         if ($start === null && $end === null) {
-            return '<span class="whitespace-nowrap text-xs text-secondary-medium">'.e(__('recruitment-campaign.no_end_date')).'</span>';
+            return '<span class="whitespace-nowrap text-small text-secondary-medium">'.e(__('recruitment-campaign.no_end_date')).'</span>';
         }
 
         $range = e($start?->translatedFormat('j M') ?? '…').' <span aria-hidden="true" class="text-secondary-light">→</span> '.e($end?->translatedFormat('j M Y') ?? '…');
@@ -193,7 +184,7 @@ class CampaignTable extends LivewireTable
         $note = '';
         if ($live && $end !== null && $end->isFuture()) {
             $soon = $end->lte(now()->addDays(7));
-            $note = '<span class="block text-xs '.($soon ? 'font-semibold text-neutral-900' : 'text-secondary-medium').'">'
+            $note = '<span class="block text-small '.($soon ? 'font-semibold text-neutral-900' : 'text-secondary-medium').'">'
                 .e($end->locale(app()->getLocale())->diffForHumans(['parts' => 1])).'</span>';
         }
 
@@ -210,7 +201,7 @@ class CampaignTable extends LivewireTable
             ->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: '?';
 
         return '<span class="flex items-center gap-2 whitespace-nowrap">'
-            .'<span aria-hidden="true" class="inline-flex size-7 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-secondary-dark">'.e($initials).'</span>'
+            .'<span aria-hidden="true" class="inline-flex size-7 shrink-0 select-none items-center justify-center rounded-full bg-neutral-100 text-small font-semibold text-secondary-dark">'.e($initials).'</span>'
             .'<span class="text-secondary-dark"><bdi>'.e($name).'</bdi></span></span>';
     }
 

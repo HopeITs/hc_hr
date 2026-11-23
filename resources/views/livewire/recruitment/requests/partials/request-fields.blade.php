@@ -285,7 +285,7 @@
                 $errors->has('data.salary_amount') ? 'salary_amount-error' : null,
                 $errors->has('data.currency') ? 'currency-error' : null,
             ]);
-            $lockedClass = 'cursor-not-allowed border-secondary-light bg-white text-secondary-dark shadow-none';
+            $lockedClass = 'cursor-not-allowed border-secondary-light bg-card text-secondary-dark shadow-none';
         @endphp
         <section aria-labelledby="request-compensation" class="{{ $sectionClass }}">
             @include('livewire.recruitment.requests.partials.section-header', [

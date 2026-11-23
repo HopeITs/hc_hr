@@ -3,6 +3,11 @@
 namespace App\Livewire\Concerns;
 
 use App\Services\NotificationRequestState;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 trait HandlesNotificationActions
 {
@@ -81,7 +86,7 @@ trait HandlesNotificationActions
         }
 
         if (str_starts_with($url, '/')) {
-            return str_starts_with($url, '//') ? null : $url;
+            return str_starts_with($url, '//') ? null : $this->withLocale($url);
         }
 
         if (preg_match('/^mailto:[^?\s@]+@[^?\s@]+(?:,[^?\s@]+@[^?\s@]+)*(?:\?[^\\s]*)?$/i', $url) === 1) {
@@ -110,7 +115,7 @@ trait HandlesNotificationActions
         $path = $parts['path'] ?? '/';
         $query = isset($parts['query']) ? '?'.$parts['query'] : '';
 
-        return $path.$query;
+        return $this->withLocale($path).$query;
     }
 
     /**
@@ -122,5 +127,30 @@ trait HandlesNotificationActions
     protected function requestStates(iterable $notifications): array
     {
         return app(NotificationRequestState::class)->forMany(auth()->user(), $notifications);
+    }
+
+    /**
+     * Notifications written outside a localized request (a broadcast, a queued job,
+     * a command) store links with no locale (/employees/x/show), which only worked
+     * through an extra redirect. Give such a path the viewer's locale, unless it is
+     * already localized or is one of the routes that live outside the locale group
+     * (/ID/…, /careers/…), which match as they are.
+     */
+    private function withLocale(string $url): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $first = explode('/', ltrim($path, '/'))[0];
+
+        if (array_key_exists($first, LaravelLocalization::getSupportedLocales())) {
+            return $url;
+        }
+
+        try {
+            Route::getRoutes()->match(Request::create($path));
+
+            return $url;
+        } catch (NotFoundHttpException|MethodNotAllowedHttpException) {
+            return '/'.app()->getLocale().($path === '/' ? substr($url, 1) : $url);
+        }
     }
 }

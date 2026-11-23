@@ -3,6 +3,7 @@
 namespace App\Livewire\Basics;
 
 use App\Exports\ContractTypeExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\ContractType;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractTypeTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = ContractType::class;
@@ -27,11 +29,15 @@ class ContractTypeTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         ContractType::findOrFail($payload['id'])->delete();
 
         $this->toast();
@@ -41,6 +47,7 @@ class ContractTypeTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
 
         $query = $this->appliedQuery();
 

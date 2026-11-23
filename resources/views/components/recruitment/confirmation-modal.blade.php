@@ -92,14 +92,14 @@
                 x-transition:leave-start="translate-y-0 opacity-100 sm:scale-100"
                 x-transition:leave-end="translate-y-3 opacity-0 sm:scale-95"
                 x-on:click.stop
-                class="relative w-full max-w-md overflow-hidden rounded-surface border border-secondary-soft bg-white shadow-e3"
+                class="relative w-full max-w-md overflow-hidden rounded-surface border border-secondary-soft bg-card shadow-e3"
             >
                 <div class="flex items-start gap-4 p-5 sm:p-6">
                     {{-- Brand red in both tones: a destructive action is told
                          apart by its warning icon and outlined button, never by
                          a second hue. --}}
                     <div
-                        class="flex size-11 shrink-0 items-center justify-center rounded-full border border-primary bg-white text-primary"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-full border border-primary bg-card text-primary"
                         aria-hidden="true"
                     >
                         <svg x-show="tone === 'danger'" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -128,7 +128,7 @@
                                 rows="3"
                                 x-bind:required="requireReason"
                                 x-bind:aria-invalid="reasonError ? 'true' : 'false'"
-                                class="mt-2 w-full rounded-control border-secondary-light text-body focus:border-primary focus:ring-primary"
+                                class="mt-2 w-full rounded-control border-secondary-light text-body focus:border-ink focus:ring-ink"
                             ></textarea>
                             <p class="mt-1 text-small text-secondary-medium" x-text="reasonHint"></p>
                             <p x-cloak x-show="reasonError" role="alert" class="mt-1 text-small font-medium text-primary" x-text="reasonError"></p>
@@ -141,7 +141,7 @@
                         type="button"
                         x-on:click="close()"
                         x-bind:disabled="busy"
-                        class="cursor-pointer rounded-control border border-secondary-light bg-white px-4 py-2 text-body font-semibold text-secondary-dark transition hover:bg-secondary-soft/60 disabled:cursor-wait disabled:opacity-60"
+                        class="cursor-pointer rounded-control border border-secondary-light bg-card px-4 py-2 text-body font-semibold text-secondary-dark transition hover:bg-secondary-soft/60 disabled:cursor-wait disabled:opacity-60"
                     >
                         {{ __('general.cancel') }}
                     </button>
@@ -151,7 +151,7 @@
                         x-on:click="confirm()"
                         x-bind:disabled="busy"
                         x-bind:class="tone === 'danger'
-                            ? 'border border-primary bg-white text-primary hover:bg-secondary-soft/30'
+                            ? 'border border-primary bg-card text-primary hover:bg-secondary-soft/30'
                             : 'bg-primary text-white hover:bg-primary-hover'"
                         class="cursor-pointer rounded-control px-4 py-2 text-body font-semibold transition disabled:cursor-wait disabled:opacity-60"
                     >

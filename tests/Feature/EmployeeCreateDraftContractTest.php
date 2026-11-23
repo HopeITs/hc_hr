@@ -69,7 +69,8 @@ class EmployeeCreateDraftContractTest extends TestCase
             ->set('infoForm.nationality', 1)
             ->set('infoForm.national_number', '12345678903')
             ->set('infoForm.city_id', $fixtures['city']->id)
-            // username left blank on purpose — it lives on Contact, never visited.
+            // username cleared on purpose (it follows the English name) — it lives on Contact, never visited.
+            ->set('infoForm.username', '')
             ->call('saveInformation')
             ->assertHasErrors('infoForm.username')
             ->assertSet('activeTab', 'contact')

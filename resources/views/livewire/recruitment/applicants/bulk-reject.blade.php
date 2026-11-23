@@ -41,7 +41,7 @@
                     <textarea id="bulkReason" wire:model="reason" rows="3" @if ($needsReason) aria-required="true" @endif
                         aria-describedby="bulkReason-hint @error('reason') bulkReason-error @enderror" @error('reason') aria-invalid="true" @enderror
                         class="mt-1 w-full rounded-control border-secondary-light"></textarea>
-                    <p id="bulkReason-hint" class="mt-1 text-xs text-secondary-medium">{{ __('recruitment-applicant.decisions.internal_note_hint') }}</p>
+                    <p id="bulkReason-hint" class="mt-1 text-small text-secondary-medium">{{ __('recruitment-applicant.decisions.internal_note_hint') }}</p>
                     <x-forms.input-error field="reason" input-id="bulkReason" />
                 </div>
 
@@ -49,20 +49,20 @@
                     <input type="checkbox" wire:model="notify" class="mt-0.5 rounded border-secondary-light">
                     <span>
                         {{ __('recruitment-applicant.decisions.bulk_notify') }}
-                        <span class="block text-xs text-secondary-medium">{{ __('recruitment-applicant.decisions.notify_hint') }}</span>
+                        <span class="block text-small text-secondary-medium">{{ __('recruitment-applicant.decisions.notify_hint') }}</span>
                     </span>
                 </label>
             </div>
             <x-forms.input-error field="applicationIds" input-id="bulk-reject-selection" />
 
             <div class="mt-4 flex flex-wrap gap-3">
-                <x-primary-button type="button" wire:click="apply" wire:target="apply"
+                <x-button type="button" wire:click="apply" wire:target="apply"
                     wire:confirm="{{ __('recruitment-applicant.decisions.bulk_confirm') }}">
                     {{ __('recruitment-applicant.decisions.bulk_apply') }}
-                </x-primary-button>
-                <x-secondary-button wire:click="cancel">
+                </x-button>
+                <x-button variant="quiet" wire:click="cancel">
                     {{ __('recruitment-applicant.cancel') }}
-                </x-secondary-button>
+                </x-button>
             </div>
         </section>
     @endif

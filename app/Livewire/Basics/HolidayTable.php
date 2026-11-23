@@ -24,6 +24,9 @@ class HolidayTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        // Same rule as delete() below, so the dialog never opens for a holiday this user may not change.
+        abort_unless($this->projects()->canChange(auth()->user(), Holiday::findOrFail($id)), 403);
+
         $this->confirm('delete', ['id' => $id]);
     }
 

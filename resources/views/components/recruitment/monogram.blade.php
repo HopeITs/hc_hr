@@ -19,5 +19,5 @@
     'size-10 text-body' => $size === 'md',
     'bg-neutral-100 text-secondary-dark' => $tone === 'candidate',
     'bg-neutral-800 text-white' => $tone === 'staff' && ! $self,
-    'bg-white text-neutral-900 ring-2 ring-neutral-900' => $self,
+    'bg-card text-neutral-900 ring-2 ring-neutral-900' => $self,
 ]) }}>{{ $initials !== '' ? $initials : '?' }}</span>

@@ -334,7 +334,7 @@ class RenewalJourneys
         }, data: [
             'contract_id' => $successor?->id,
             'start_date' => $successor?->start_date,
-            'auto_renew_on' => $contract->end_date?->copy()->addDay(),
+            'auto_renew_on' => ContractAutoRenewalService::renewalStart($contract),
             'source_id' => $contract->id,
             'can_renew_by_hand' => $successor === null && $decision === RenewalJourney::DECISION_RENEW && ! $auto
                 && $contract->is_active && ! $terminated,
@@ -417,6 +417,10 @@ class RenewalJourneys
             $journey->decision === RenewalJourney::DECISION_STOP => 'stopped',
             $contract->isTerminated() => 'terminated',
             $journey->decision === RenewalJourney::DECISION_RENEW && $this->renewedWithLeave($contract) => 'renewed',
+            // Renewed by the nightly run with no decision recorded: the journey
+            // has nothing left to wait for, so it closes instead of staying open
+            // and late. The outcome says no one decided.
+            $journey->decision === null && $this->renewedWithLeave($contract) => 'renewed_without_decision',
             default => null,
         };
 

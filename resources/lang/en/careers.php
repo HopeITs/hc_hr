@@ -68,6 +68,8 @@ return [
         'invalid_email' => 'Enter a valid email address.',
         'invalid_phone' => 'Enter a 10-digit mobile number that starts with 09.',
         'invalid_birth_date' => 'Enter a valid birth date in the past.',
+        'name_arabic' => 'Write this name in Arabic letters.',
+        'name_latin' => 'Write this name in English (Latin) letters.',
         'age_not_eligible' => 'You cannot apply because your age is outside the range allowed for this campaign.',
         'link_expired' => 'This application link has expired or was replaced. Ask the recruitment team for the current link.',
         'link_changed' => 'This application link was replaced while you were filling in the form. Ask the recruitment team for the current link.',
