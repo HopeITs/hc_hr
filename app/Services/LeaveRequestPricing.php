@@ -113,6 +113,11 @@ class LeaveRequestPricing
 
         // --- Schedule ---------------------------------------------------------
         [$weekend, $weekendSource] = $this->weekendFor($contract);
+        // The contract's own days off that are not the place's, listed apart
+        // so the employee sees which day was skipped as their own day off.
+        $ownDaysOff = $weekendSource === 'contract'
+            ? array_values(array_diff($weekend, $this->placeWeekendFor($contract)[0]))
+            : [];
         $explanation[] = $this->line('weekend_'.$weekendSource, ['weekdays' => implode(',', $weekend)]);
 
         if ($weekendSource === 'default') {
@@ -151,7 +156,7 @@ class LeaveRequestPricing
 
             // A holiday that falls on a weekend is listed once, as weekend.
             if (! $calendarDays && in_array($date->dayOfWeek, $weekend, true)) {
-                $excludedDates[] = ['date' => $key, 'reason' => 'weekend'];
+                $excludedDates[] = ['date' => $key, 'reason' => in_array($date->dayOfWeek, $ownDaysOff, true) ? 'day_off' : 'weekend'];
             } elseif (isset($holidays[$key])) {
                 $excludedDates[] = ['date' => $key, 'reason' => 'holiday'];
             } else {
@@ -160,7 +165,7 @@ class LeaveRequestPricing
         }
 
         $countedDays = count($countedDates);
-        $skippedWeekends = count(array_filter($excludedDates, fn (array $d) => $d['reason'] === 'weekend'));
+        $skippedWeekends = count(array_filter($excludedDates, fn (array $d) => $d['reason'] !== 'holiday'));
         $skippedHolidays = count($excludedDates) - $skippedWeekends;
 
         if ($skippedWeekends > 0) {
@@ -324,9 +329,32 @@ class LeaveRequestPricing
     /**
      * The weekend that applies to $contract, as day-of-week numbers (0 = Sunday).
      *
-     * @return array{0: array<int, int>, 1: 'center'|'program'|'default'}
+     * A contract whose working days were picked one by one (work_weekdays)
+     * has every other day off: Study Zone's center day off plus the day the
+     * volunteer chose. Otherwise the place's weekend (placeWeekendFor()).
+     *
+     * @return array{0: array<int, int>, 1: 'contract'|'center'|'program'|'default'}
      */
     public function weekendFor(Contract $contract): array
+    {
+        $workdays = $contract->workWeekdays();
+
+        if ($workdays !== null) {
+            return [array_values(array_diff(range(0, 6), $workdays)), 'contract'];
+        }
+
+        return $this->placeWeekendFor($contract);
+    }
+
+    /**
+     * The weekend of the place $contract works at, whatever days the contract
+     * itself names: its center, else the program's centers in its city, else
+     * the code default. What the composer marks as the center's day off, and
+     * what Study Zone's printed weekend clause names.
+     *
+     * @return array{0: array<int, int>, 1: 'center'|'program'|'default'}
+     */
+    public function placeWeekendFor(Contract $contract): array
     {
         $position = $contract->position;
         $center = $position?->center;

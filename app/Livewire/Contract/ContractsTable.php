@@ -7,6 +7,7 @@ use App\Enums\ContractStatus;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\SalaryPer;
 use App\Exports\ContractExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\HasListStates;
 use App\Livewire\Concerns\HasSavedViews;
 use App\Livewire\Concerns\RemembersTableState;
@@ -35,6 +36,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractsTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use HasListStates;
     use HasSavedViews;
 
@@ -80,6 +82,10 @@ class ContractsTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        // The dialog only opens for a contract this user may delete; the delete
+        // itself re-checks the same policy (HR-026).
+        Gate::authorize('delete', Contract::findOrFail($id));
+
         $this->confirm('delete', ['id' => $id]);
     }
 
@@ -127,6 +133,8 @@ class ContractsTable extends LivewireTable
      */
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('contracts.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

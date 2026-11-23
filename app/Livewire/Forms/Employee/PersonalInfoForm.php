@@ -96,7 +96,8 @@ class PersonalInfoForm extends Form
     #[Validate('nullable|integer|min:0')]
     public $children;
 
-    #[Validate('integer')]
+    // Optional on the form (no star): an empty value used to fail as "must be an integer".
+    #[Validate('nullable|integer')]
     public $nationality;
 
     #[Validate('required|exists:cities,id')]
@@ -216,16 +217,35 @@ class PersonalInfoForm extends Form
             'work_phone.regex' => __('employees.validation.work-phone-format'),
             'personal_phone.regex' => __('employees.validation.personal-phone-format'),
             'national_number.digits' => __('employees.validation.national-number-syrian'),
+            // The username sits in another section of the form, so the message says where.
+            'username.required' => __('employees.validation.username-required', ['section' => __('general.employment_info')]),
         ];
     }
 
+    /**
+     * Each field named the way the form labels it ("First name (AR)", "Current Place of
+     * Residence"), not by its column ("first name ar", "city name").
+     */
     public function validationAttributes(): array
     {
-        return [
+        $attributes = [
             'national_number' => __('general.national_number'),
             'work_phone' => __('general.work_phone'),
             'personal_phone' => __('general.personal_phone'),
+            'city_id' => __('general.current-residence'),
+            'gender' => __('general.gender'),
+            'marital_status' => __('general.marital_status'),
+            'nationality' => __('general.nationality'),
+            'username' => __('general.username'),
         ];
+
+        foreach (['first_name', 'last_name', 'father_name', 'mother_name'] as $name) {
+            foreach (config('app.supported_locales') as $locale) {
+                $attributes["{$name}_{$locale}"] = __("general.{$name}").' ('.strtoupper($locale).')';
+            }
+        }
+
+        return $attributes;
     }
 
     public function setEmployee(Employee $employee): void

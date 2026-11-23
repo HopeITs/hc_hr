@@ -183,6 +183,7 @@ return [
         'work-phone-format' => 'The work phone must be exactly 10 digits and start with 09.',
         'personal-phone-format' => 'The personal phone must be exactly 10 digits and start with 09.',
         'national-number-syrian' => 'The national number must be exactly 11 digits for Syrian employees.',
+        'username-required' => 'The username is required. You will find it in the ":section" section.',
     ],
     'drawer' => [
         'pending-requests' => 'Pending requests',

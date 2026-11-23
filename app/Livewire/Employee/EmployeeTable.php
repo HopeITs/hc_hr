@@ -3,6 +3,7 @@
 namespace App\Livewire\Employee;
 
 use App\Exports\EmployeeExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\HasListStates;
 use App\Livewire\Concerns\HasSavedViews;
 use App\Livewire\Concerns\RemembersTableState;
@@ -29,6 +30,7 @@ use Throwable;
 
 class EmployeeTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use HasListStates {
         // Kept under its own name: paginate() below adds the presence dots on
         // top of it, and must not lose its load-failure guard.
@@ -110,6 +112,8 @@ class EmployeeTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('employees.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

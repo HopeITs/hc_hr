@@ -4,6 +4,7 @@ namespace App\Livewire\Basics;
 
 use App\Enums\ChecklistItemOrder;
 use App\Exports\ChecklistItemExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\ChecklistItem;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ChecklistItemTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     protected string $model = ChecklistItem::class;
@@ -29,11 +31,15 @@ class ChecklistItemTable extends LivewireTable
 
     public function confirmDelete(int $id): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         $this->confirm('delete', ['id' => $id]);
     }
 
     public function delete(array $payload): void
     {
+        $this->authorizeActivePermission('project-basics.delete');
+
         ChecklistItem::findOrFail($payload['id'])->delete();
 
         $this->toast();
@@ -43,6 +49,8 @@ class ChecklistItemTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('project-basics.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

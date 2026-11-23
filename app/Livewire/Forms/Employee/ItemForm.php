@@ -3,7 +3,6 @@
 namespace App\Livewire\Forms\Employee;
 
 use App\Models\Employee;
-use App\Models\EmployeeItem;
 use Livewire\Form;
 
 class ItemForm extends Form
@@ -41,8 +40,9 @@ class ItemForm extends Form
 
     public function removeItem(int $index, ?int $id = null): void
     {
+        // Within this employee's own items, like the other employee forms (HR-014).
         if ($id) {
-            EmployeeItem::find($id)?->delete();
+            $this->employee?->items()->find($id)?->delete();
         }
 
         unset($this->items[$index]);
@@ -56,10 +56,11 @@ class ItemForm extends Form
         }
 
         foreach ($this->items as $data) {
-            EmployeeItem::updateOrCreate(
+            // Through the relation: an id that belongs to another employee is not found
+            // here, so it can never rewrite (or move) that employee's item.
+            $this->employee->items()->updateOrCreate(
                 ['id' => $data['id']],
                 [
-                    'employee_id' => $this->employee->id,
                     'item' => $data['item'],
                     'brand' => $data['brand'],
                     'model' => $data['model'],

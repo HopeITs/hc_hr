@@ -14,6 +14,7 @@ use App\Models\ContractPayTier;
 use App\Models\ContractType;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Services\LeaveRequestPricing;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,15 @@ class ContractForm extends Form
 
     public ?int $work_day_to = null;
 
+    /**
+     * The working days picked one by one (Carbon numbering), instead of the
+     * from–to range: null when the range is used. The place's day off can
+     * never be one of them; every day not picked is a day off for leave.
+     *
+     * @var array<int, int>|null
+     */
+    public ?array $work_weekdays = null;
+
     /** Whether the printed contract states the computed "N days/week" / "M hours/week" / "M hours/day" / day range — fixed mode only, never edited directly. */
     public bool $show_days_per_week = false;
 
@@ -94,6 +104,9 @@ class ContractForm extends Form
     public bool $show_hours_per_day = false;
 
     public bool $show_day_range = false;
+
+    /** Study Zone only: whether the printed contract states the centers' weekend day as a day off. Either mode. */
+    public bool $show_weekend_clause = false;
 
     // -- Flexible mode
     public ?int $flex_days_per_week = null;
@@ -195,6 +208,7 @@ class ContractForm extends Form
         $this->work_hours_2_to = null;
         $this->work_day_from = null;
         $this->work_day_to = null;
+        $this->work_weekdays = null;
         // A brand-new contract starts with the full standard clause stated —
         // "40 working hours per week, 8 hours per day, 5 days per week,
         // Monday to Friday" — since that is the common case; HR unchecks
@@ -203,6 +217,7 @@ class ContractForm extends Form
         $this->show_hours_per_week = true;
         $this->show_hours_per_day = true;
         $this->show_day_range = true;
+        $this->show_weekend_clause = false;
         $this->flex_days_per_week = null;
         $this->flex_hours_per_week = null;
         $this->flex_hours_per_month = null;
@@ -293,10 +308,12 @@ class ContractForm extends Form
         $this->work_hours_2_to = $contract->work_hours_2_to;
         $this->work_day_from = $contract->work_day_from;
         $this->work_day_to = $contract->work_day_to;
+        $this->work_weekdays = $contract->workWeekdays();
         $this->show_days_per_week = (bool) $contract->show_days_per_week;
         $this->show_hours_per_week = (bool) $contract->show_hours_per_week;
         $this->show_hours_per_day = (bool) $contract->show_hours_per_day;
         $this->show_day_range = (bool) $contract->show_day_range;
+        $this->show_weekend_clause = (bool) $contract->show_weekend_clause;
         $this->flex_days_per_week = $contract->flex_days_per_week;
         $this->flex_hours_per_week = $contract->flex_hours_per_week;
         $this->flex_hours_per_month = $contract->flex_hours_per_month;
@@ -366,6 +383,16 @@ class ContractForm extends Form
             // "hours/week" box, for any category that isn't service.
             'work_day_from' => ['nullable', 'integer', 'between:0,6', 'required_with:work_day_to'],
             'work_day_to' => ['nullable', 'integer', 'between:0,6', 'gte:work_day_from', 'required_with:work_day_from'],
+            // The other way to state the week: the days themselves, none of
+            // them the place's own day off (workWeekdaysRule()).
+            'work_weekdays' => ['nullable', 'array', 'min:1', 'max:7', $this->workWeekdaysRule()],
+            'work_weekdays.*' => ['integer', 'between:0,6', 'distinct'],
+            // The first shift was never checked, so "21:00 to 17:00" or "09:00 to 01:00"
+            // (01:00 meant 1 PM) was saved and printed on the signed contract (HR-021).
+            // Same rule as the second shift: both times or neither (some older contracts
+            // carry none), and the end after the start.
+            'work_hours_from' => ['nullable', 'date_format:H:i', 'required_with:work_hours_to'],
+            'work_hours_to' => ['nullable', 'date_format:H:i', 'required_with:work_hours_from', 'after:work_hours_from'],
             'work_hours_2_from' => ['nullable', 'date_format:H:i', 'required_with:work_hours_2_to'],
             'work_hours_2_to' => ['nullable', 'date_format:H:i', 'required_with:work_hours_2_from', 'after:work_hours_2_from'],
 
@@ -631,6 +658,29 @@ class ContractForm extends Form
      * contract that only says "varies" / "coordinated with manager" / free
      * text has nothing to compute a number from, and that is fine only there.
      */
+    /**
+     * The place's day off (the center's, or the program centers' for Study
+     * Zone) cannot be picked as a working day — the composer greys it out.
+     */
+    private function workWeekdaysRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $position = $this->position_id ? Position::with('center')->find($this->position_id) : null;
+
+            if (! $position || ! is_array($value)) {
+                return;
+            }
+
+            [$weekend, $source] = app(LeaveRequestPricing::class)->placeWeekendFor(
+                (new Contract)->setRelation('position', $position)->setRelation('employee', null),
+            );
+
+            if ($source !== 'default' && array_intersect(Contract::parseWeekdays($value), $weekend) !== []) {
+                $fail(__('validation.custom.work_weekdays.center_day_off'));
+            }
+        };
+    }
+
     private function weeklyHoursRule(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
@@ -719,6 +769,8 @@ class ContractForm extends Form
     {
         $isFixed = $this->schedule_mode === ScheduleMode::Fixed;
         $isFixedPay = $this->pay_mode === PayMode::Fixed;
+        $pickedDays = $this->work_weekdays ? Contract::parseWeekdays($this->work_weekdays) : null;
+        $pickedDays = $pickedDays === [] ? null : $pickedDays;
 
         $payload = [
             'employee_id' => $this->employee_id,
@@ -744,12 +796,15 @@ class ContractForm extends Form
             // keep a stale value from the mode it left behind.
             'work_hours_2_from' => $isFixed ? $this->work_hours_2_from : null,
             'work_hours_2_to' => $isFixed ? $this->work_hours_2_to : null,
-            'work_day_from' => $isFixed ? $this->work_day_from : null,
-            'work_day_to' => $isFixed ? $this->work_day_to : null,
+            // One way to state the week or the other, never both.
+            'work_day_from' => $isFixed && $pickedDays === null ? $this->work_day_from : null,
+            'work_day_to' => $isFixed && $pickedDays === null ? $this->work_day_to : null,
+            'work_weekdays' => $isFixed && $pickedDays !== null ? implode(',', $pickedDays) : null,
             'show_days_per_week' => $isFixed && $this->show_days_per_week,
             'show_hours_per_week' => $isFixed && $this->show_hours_per_week,
             'show_hours_per_day' => $isFixed && $this->show_hours_per_day,
             'show_day_range' => $isFixed && $this->show_day_range,
+            'show_weekend_clause' => $this->show_weekend_clause,
 
             'flex_days_per_week' => $isFixed ? null : $this->flex_days_per_week,
             'flex_hours_per_week' => $isFixed ? null : $this->flex_hours_per_week,

@@ -84,6 +84,52 @@ class LeaveProgramCentersTest extends TestCase
         $this->assertEqualsWithDelta(40 / 6, $evening->hoursPerDay, 0.0001);
     }
 
+    /**
+     * Rama's case: the center closes on Friday and the volunteer works five
+     * days, so a second day off (Tuesday) is theirs. With the working days on
+     * the contract, a leave from Monday to Wednesday is two days, not three,
+     * and the skipped Tuesday is listed as their own day off.
+     */
+    public function test_the_contracts_own_working_days_leave_the_volunteers_day_off_uncounted(): void
+    {
+        $this->center($this->homs, '5', '08:00', '21:00', programs: [$this->studyZone]);
+        [$contract, $balance] = $this->volunteer($this->studyZone, $this->homs);
+        $contract->update(['work_weekdays' => '6,0,1,3,4']);
+
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-02', '2026-11-04'));
+
+        $this->assertSame([[2, 5], 'contract'], $this->pricing->weekendFor($contract->fresh()));
+        $this->assertSame(2, $quote->countedDays);
+        $this->assertSame([['date' => '2026-11-03', 'reason' => 'day_off']], $quote->excludedDates);
+        // Five working days: 40 h a week is 8 h a day.
+        $this->assertSame(16.0, $quote->requestedHours);
+    }
+
+    public function test_a_leave_across_the_centers_day_and_the_volunteers_own_lists_both(): void
+    {
+        $this->center($this->homs, '5', programs: [$this->studyZone]);
+        [$contract, $balance] = $this->volunteer($this->studyZone, $this->homs);
+        $contract->update(['work_weekdays' => '0,1,2,3,4']);
+
+        // Thursday 5 Nov → Sunday 8 Nov: Friday is the center's, Saturday hers.
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-05', '2026-11-08'));
+
+        $this->assertSame(2, $quote->countedDays);
+        $this->assertSame([
+            ['date' => '2026-11-06', 'reason' => 'weekend'],
+            ['date' => '2026-11-07', 'reason' => 'day_off'],
+        ], $quote->excludedDates);
+    }
+
+    public function test_the_printed_weekend_clause_names_only_the_centers_day(): void
+    {
+        $this->center($this->homs, '5', programs: [$this->studyZone]);
+        [$contract] = $this->volunteer($this->studyZone, $this->homs);
+        $contract->update(['work_weekdays' => '6,0,1,3,4']);
+
+        $this->assertSame([[5], 'program'], $this->pricing->placeWeekendFor($contract->fresh()));
+    }
+
     public function test_the_linked_centers_hours_bound_the_request_exactly(): void
     {
         $this->center($this->homs, '5', '08:00', '21:00', programs: [$this->studyZone]);

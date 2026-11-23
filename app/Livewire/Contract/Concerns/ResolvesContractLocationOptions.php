@@ -9,6 +9,7 @@ use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Services\ContractWeekendClause;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Renderless;
 
@@ -59,7 +60,7 @@ trait ResolvesContractLocationOptions
             ->inCity($cityId)
             ->with([
                 'program:id,name,slug',
-                'center' => fn ($query) => $query->select('id', 'city_id', $centerNameColumn),
+                'center' => fn ($query) => $query->select('id', 'city_id', 'weekends', $centerNameColumn),
             ])
             ->select('id', 'program_id', 'center_id', 'city_id', 'max_emp', 'exist_emp', $positionTitleColumn)
             ->orderBy($positionTitleColumn)
@@ -81,6 +82,7 @@ trait ResolvesContractLocationOptions
             ]));
 
         $employees = $this->employeeOptionsForCity($city, $locale);
+        $weekendClause = app(ContractWeekendClause::class);
 
         if ($ensureEmployeeId && ! collect($employees)->contains('value', $ensureEmployeeId)) {
             $currentEmployee = Employee::query()
@@ -145,6 +147,11 @@ trait ResolvesContractLocationOptions
                     // Additive: contract-location-picker.js ignores both keys.
                     'maxEmp' => (int) $position->max_emp,
                     'existEmp' => (int) $position->exist_emp,
+                    // Study Zone's printable day(s) off: the weekend-clause checkbox.
+                    'weekend' => $weekendClause->daysForPosition($position),
+                    // Any program: the place's day off, greyed out in the
+                    // working-day picker. Null when no center weekend is set.
+                    'placeWeekend' => $weekendClause->placeDaysForPosition($position),
                 ])
                 ->values()
                 ->all(),

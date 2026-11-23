@@ -79,7 +79,10 @@
                      save must not disable them. --}}
                 <span class="flex flex-wrap items-center gap-2" x-show="editing" x-cloak>
                     <x-button variant="quiet" size="sm" icon="reset" :loading="false" x-on:click="reset()">{{ __('dashboard.home.reset') }}</x-button>
-                    <x-button variant="outline" size="sm" icon="plus" :loading="false" x-ref="add"
+                    {{-- Not icon="plus": <x-button> turns a plus into the red "add" square whatever
+                         the variant, which put two red buttons side by side with Done. Done is the
+                         one primary action of the toolbar. --}}
+                    <x-button variant="outline" size="sm" icon="layout" :loading="false" x-ref="add"
                               x-on:click="openGallery()" x-bind:disabled="addable().length === 0">{{ __('dashboard.home.add') }}</x-button>
                     <x-button size="sm" icon="check" :loading="false" x-ref="done" x-on:click="done()">{{ __('dashboard.home.done') }}</x-button>
                 </span>
@@ -151,7 +154,8 @@
         {{-- The strip under the groups: minimised cards, cards made smaller than their minimum, and
              shortcuts, each as its own icon. One click brings a card back in its place (a shrunk one
              at its minimum card size); a shortcut opens its page. --}}
-        <section class="hc-dock" x-ref="dock" aria-label="{{ __('dashboard.home.minimised') }}" data-testid="dashboard-dock">
+        <section class="hc-dock" x-ref="dock" aria-label="{{ __('dashboard.home.minimised') }}" data-testid="dashboard-dock"
+                 :class="{ 'hc-dock-empty': docked().length === 0 && ! editing }">
             <ul class="hc-dock-list">
                 <template x-for="it in docked()" :key="it.key">
                     <li class="hc-dock-entry">

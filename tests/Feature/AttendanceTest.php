@@ -223,6 +223,20 @@ class AttendanceTest extends TestCase
             ->assertSee('مسودة');
     }
 
+    public function test_a_print_link_without_a_month_opens_the_pages_default_month(): void
+    {
+        $employee = $this->volunteer();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
+
+        // The Timesheets page opens on the month of ten days ago: early October means September.
+        $this->travelTo('2026-10-05 09:00');
+
+        $this->actingAs($hr)->get(route('attendance.print'))
+            ->assertOk()
+            ->assertSee($employee->name)
+            ->assertSee('Monthly TimeSheet');
+    }
+
     public function test_the_upload_page_previews_then_imports(): void
     {
         $employee = $this->volunteer();

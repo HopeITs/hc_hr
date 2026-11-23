@@ -4,6 +4,7 @@ namespace App\Livewire\Employee\Leave;
 
 use App\Enums\LeaveTypeCases;
 use App\Exports\EmployeeLeaveBalanceExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\HasScreenListStates;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Employee;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EmpLeaveBalanceTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use HasScreenListStates;
 
     public LeaveBalanceForm $form;
@@ -46,6 +48,8 @@ class EmpLeaveBalanceTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('leaves.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

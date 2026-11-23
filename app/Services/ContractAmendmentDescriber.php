@@ -8,6 +8,7 @@ use App\Enums\PayMode;
 use App\Enums\SalaryPer;
 use App\Enums\ScheduleMode;
 use App\Enums\SessionDuration;
+use App\Models\Contract;
 use App\Models\ContractAmendment;
 use Carbon\Carbon;
 
@@ -17,7 +18,8 @@ use Carbon\Carbon;
  * sheet words them through the contract's own clause components instead.
  *
  * Only what a person chose is named. The print toggles (whether the sheet
- * states "N hours a week") are presentation, not terms, and are left out; a
+ * states "N hours a week") are presentation, not terms, and are left out —
+ * except the Study Zone day-off clause, a sentence of its own; a
  * fixed-mode time is not named once the schedule is flexible, nor a flexible
  * box once it is fixed; and a term that had no value before has no "before".
  */
@@ -80,7 +82,14 @@ final class ContractAmendmentDescriber
             $add(__('contracts.amendment.hours'), $wasFixed ? $this->shifts($before) : '', $this->shifts($after),
                 $modeMoved || $has('work_hours_from', 'work_hours_to', 'work_hours_2_from', 'work_hours_2_to'));
             $add(__('general.work-days'), $wasFixed ? $this->days($before) : '', $this->days($after),
-                $modeMoved || $has('work_day_from', 'work_day_to'));
+                $modeMoved || $has('work_day_from', 'work_day_to', 'work_weekdays'));
+        }
+
+        // The one print toggle named here: it adds a sentence of its own
+        // ("Friday is considered a day off…"), and may be all that changed.
+        if ($has('show_weekend_clause')) {
+            $clause = fn (array $t) => __(! empty($t['show_weekend_clause']) ? 'contracts.amendment.weekend-clause-on' : 'contracts.amendment.weekend-clause-off');
+            $add(__('contracts.amendment.weekend-clause'), $clause($before), $clause($after), true);
         }
 
         if ($withPay) {
@@ -207,6 +216,14 @@ final class ContractAmendmentDescriber
 
     private function days(array $t): string
     {
+        // Days picked one by one are counted, never named: which ones (and
+        // so the volunteer's own day off) stays in the system.
+        $picked = Contract::parseWeekdays($t['work_weekdays'] ?? null);
+
+        if ($picked !== []) {
+            return trans_choice('contracts.amendment.days-per-week', count($picked), ['count' => count($picked)]);
+        }
+
         if (! is_numeric($t['work_day_from'] ?? null) || ! is_numeric($t['work_day_to'] ?? null)) {
             return '';
         }

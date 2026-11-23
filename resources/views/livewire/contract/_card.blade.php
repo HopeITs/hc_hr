@@ -16,7 +16,7 @@
         aria-label="{{ __('contracts.view-named', ['name' => $name]) }}"
         x-on:click="{{ $table->openDrawerJs($item->getKey()) }}">
         <span class="block break-words font-semibold" dir="auto">{{ $name }}</span>
-        <span class="block break-words text-small text-ink-2" dir="auto">{{ $item->contractType?->name }} · <bdi>{{ $item->start_date?->format('Y-m-d') }} – {{ $item->end_date?->format('Y-m-d') ?? __('general.present') }}</bdi></span>
+        <span class="block break-words text-small text-ink-2" dir="auto">{{ $item->contractType?->name }} · <bdi><span class="num whitespace-nowrap">{{ $item->start_date?->format('d-m-Y') }}</span> – <span class="num whitespace-nowrap">{{ $item->end_date?->format('d-m-Y') ?? __('general.present') }}</span></bdi></span>
         <span class="mt-1 flex flex-wrap items-center gap-2">
             <x-status :status="$contractStatus" />
             @if($days !== null)

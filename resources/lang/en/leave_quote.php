@@ -26,12 +26,14 @@ return [
     'reasons' => [
         'weekend' => 'Weekend',
         'holiday' => 'Official holiday',
+        'day_off' => 'Your day off (contract)',
     ],
 
     'explain' => [
         'weekend_center' => 'Weekend days follow your center.',
         'weekend_program' => 'Weekend days follow your program\'s centers in your governorate.',
         'weekend_default' => 'Weekend days use the default (Saturday and Sunday).',
+        'weekend_contract' => 'Your days off are the days your contract does not list as working days.',
         'days' => ':days working days × :hours_per_day h = :hours h.',
         'calendar_days' => ':days calendar days, weekends and holidays included, × :hours_per_day h = :hours h.',
         'skipped_weekends' => 'Weekend days not counted: :count.',

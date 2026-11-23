@@ -4,6 +4,7 @@ namespace App\Livewire\Position;
 
 use App\Enums\RecruitmentRequestType;
 use App\Exports\PositionExport;
+use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Center;
 use App\Models\City;
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PositionTable extends LivewireTable
 {
+    use AuthorizesActivePermissions;
     use WithFeedback;
 
     public ?int $centerId = null;
@@ -77,6 +79,8 @@ class PositionTable extends LivewireTable
 
     public function exportExcel(): BinaryFileResponse
     {
+        $this->authorizeActivePermission('positions.export');
+
         $query = $this->appliedQuery();
         $data = $query->get();
 

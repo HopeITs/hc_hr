@@ -106,6 +106,7 @@
                         :en="$LB($scheduleNo.'. Volunteer Work Hours,').' to become:'"
                         :ar="$LB($scheduleNo.'. ساعات العمل التطوعّي،').' لتصبح:'" />
                     <x-contract.schedule-clause :contract="$after" />
+                    <x-contract.weekend-clause :contract="$after" />
                 </div>
             @endif
 

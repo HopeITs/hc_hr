@@ -59,7 +59,7 @@
 
         <div class="md:col-span-full">
             <x-forms.input-label for="weekends" required>@lang('general.weekend-days')</x-forms.input-label>
-            <div class="flex gap-x-4 flex-wrap">
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
                 @foreach(__('general.days-of-week') as $key => $day)
                     <x-forms.checkbox-input id="weekends-{{$key}}" type="checkbox" :value="$key" wire:model="item.weekends">
                         {{ $day }}
