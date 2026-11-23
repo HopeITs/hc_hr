@@ -33,7 +33,9 @@ Route::get('onboarding/my-first-days', App\Livewire\Onboarding\MyFirstDays::clas
 Route::get('onboarding/required-policies', App\Livewire\Onboarding\RequiredPolicies::class)->middleware('active_permission:employees.update')->name('onboarding.required-policies');
 // Permissions Library (track 5): HR roles and the administrators; the component re-checks the active role.
 Route::get('/entitlements', App\Livewire\Entitlements\Library::class)->middleware('active_permission:entitlements.manage-library')->name('entitlements.index');
-Route::get('/default-deliverables', DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
+// Why people leave (reasons recorded on contracts): HR and head office; the component re-checks the active role.
+Route::get('/reports/leaving-reasons', App\Livewire\Reports\LeavingReasons::class)->middleware('active_permission:contracts.view')->name('reports.leaving-reasons');
+Route::get('/default-deliverables',DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
 
 Route::prefix('contracts')
     ->name('contracts.')
