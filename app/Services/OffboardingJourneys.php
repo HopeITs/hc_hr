@@ -143,8 +143,9 @@ class OffboardingJourneys
     /**
      * Ended, set to auto-renew, and its renewal not made yet: the 21:35
      * auto-renewal run will make it (same successor rule as
-     * ContractAutoRenewalService). Normally that has already happened by the
-     * time this is asked; this only matters on a day the renewal run failed.
+     * ContractAutoRenewalService::renewalStart). Normally that happens the
+     * night after the end; a contract ending in October to December waits
+     * until 1 January, and its volunteer stays active until then.
      *
      * @param  Collection<int, Contract>  $contracts
      */
@@ -155,7 +156,9 @@ class OffboardingJourneys
             return false;
         }
 
-        $successorStart = $contract->end_date->copy()->addDay()->toDateString();
+        // 1 January for a contract ending in October to December, so a
+        // volunteer waiting for the new year is not deactivated meanwhile.
+        $successorStart = ContractAutoRenewalService::renewalStart($contract)->toDateString();
 
         return ! $contracts->contains(fn (Contract $other) => $other->id !== $contract->id
             && (int) $other->position_id === (int) $contract->position_id

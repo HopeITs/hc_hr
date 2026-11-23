@@ -201,14 +201,23 @@ class RenewalJourneyTest extends TestCase
         $this->assertTrue($contract->fresh()->auto_renew, '"Renew" leaves auto-renew on.');
         $this->assertNull($journey->completed_at);
 
-        // The evening after the end date: deactivate, renew, then the journey command.
+        // The evening after the end date: deactivate, then the renewal run. A
+        // contract ending in October to December waits for 1 January, so
+        // nothing is made yet and the journey stays open.
         $this->travelTo('2026-10-26 21:30:00');
         Contract::query()->whereKey($contract)->update(['is_active' => false]);
         $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
         $this->artisan('renewals:track-journeys')->assertSuccessful();
 
+        $this->assertSame(1, Contract::query()->where('employee_id', $contract->employee_id)->count());
+        $this->assertNull($journey->fresh()->completed_at);
+
+        $this->travelTo('2027-01-01 21:35:00');
+        $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
+        $this->artisan('renewals:track-journeys')->assertSuccessful();
+
         $successor = Contract::query()->where('employee_id', $contract->employee_id)->whereKeyNot($contract->id)->sole();
-        $this->assertSame('2026-10-26', $successor->start_date->toDateString());
+        $this->assertSame('2027-01-01', $successor->start_date->toDateString());
         $this->assertTrue($successor->leaveBalances()->exists());
 
         $journey->refresh();
