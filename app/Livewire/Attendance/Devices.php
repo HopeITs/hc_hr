@@ -50,6 +50,9 @@ class Devices extends Component
 
     public function mount(): void
     {
+        // Hidden for now (config/attendance.php devices_page): the page answers as if it did not exist.
+        abort_unless(config('attendance.devices_page'), 404);
+
         $this->authorizeActivePermission('attendance.manage');
     }
 

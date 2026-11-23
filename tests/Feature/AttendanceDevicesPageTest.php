@@ -20,6 +20,24 @@ class AttendanceDevicesPageTest extends TestCase
 {
     use CreatesHrFixtures, RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The page is hidden by default (config/attendance.php devices_page); these tests are about the page itself.
+        config(['attendance.devices_page' => true]);
+    }
+
+    public function test_the_device_page_is_hidden_until_it_is_turned_on(): void
+    {
+        config(['attendance.devices_page' => false]);
+        $aleppo = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($aleppo, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+
+        $this->actingAs($hr)->get(route('attendance.devices'))->assertNotFound();
+        $this->actingAs($hr)->get(route('attendance.upload'))->assertOk()->assertDontSee(route('attendance.devices'));
+    }
+
     public function test_only_those_who_manage_attendance_open_the_device_list(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

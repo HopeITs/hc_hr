@@ -244,7 +244,9 @@
                         <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.export.xlsx', $printBase) }}" data-testid="xlsx-link">@lang('attendance.export.xlsx')</a>
                         @if($canManage)
                             <a class="block border-t border-line-soft px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.upload') }}" wire:navigate>@lang('attendance.timesheets.upload')</a>
-                            <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.devices') }}" wire:navigate>@lang('attendance.timesheets.devices')</a>
+                            @if(config('attendance.devices_page'))
+                                <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.devices') }}" wire:navigate>@lang('attendance.timesheets.devices')</a>
+                            @endif
                         @endif
                     </div>
                 </details>

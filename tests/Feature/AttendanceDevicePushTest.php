@@ -20,16 +20,25 @@ class AttendanceDevicePushTest extends TestCase
 {
     use CreatesHrFixtures, RefreshDatabase;
 
-    private function device(array $attributes = []): AttendanceDevice
+    protected function setUp(): void
     {
-        return AttendanceDevice::query()->create($attributes + ['serial' => 'SFAA123456', 'name' => 'Hope Center']);
+        parent::setUp();
+
+        // Receiving is off by default (config/attendance.php device_push); these tests are about receiving.
+        config(['attendance.device_push' => true]);
     }
 
-    private function push(string $serial, string $body, ?string $stamp = null)
+    public function test_nothing_is_received_from_devices_or_the_agent_while_it_is_turned_off(): void
     {
-        $uri = '/iclock/cdata?SN='.$serial.'&table=ATTLOG'.($stamp ? '&Stamp='.$stamp : '');
+        config(['attendance.device_push' => false]);
 
-        return $this->call('POST', $uri, [], [], [], ['CONTENT_TYPE' => 'text/plain'], $body);
+        $this->get('/iclock/cdata?SN=NEWDEVICE01&options=all')->assertNotFound();
+        $this->call('POST', '/iclock/cdata?SN=NEWDEVICE01&table=ATTLOG', [], [], [], ['CONTENT_TYPE' => 'text/plain'], '7	2026-09-01 08:00:00')->assertNotFound();
+        $this->getJson('/api/attendance/agent/state')->assertNotFound();
+        $this->postJson('/api/attendance/agent/punches', [])->assertNotFound();
+
+        $this->assertDatabaseCount('attendance_punches', 0);
+        $this->assertDatabaseCount('attendance_devices', 0);
     }
 
     public function test_a_device_that_is_not_registered_is_refused_and_remembered(): void
@@ -139,5 +148,17 @@ class AttendanceDevicePushTest extends TestCase
 
         $device->forceFill(['last_seen_at' => now()->subDays(4)])->save();
         $this->assertSame('silent', $device->fresh()->health());
+    }
+
+    private function device(array $attributes = []): AttendanceDevice
+    {
+        return AttendanceDevice::query()->create($attributes + ['serial' => 'SFAA123456', 'name' => 'Hope Center']);
+    }
+
+    private function push(string $serial, string $body, ?string $stamp = null)
+    {
+        $uri = '/iclock/cdata?SN='.$serial.'&table=ATTLOG'.($stamp ? '&Stamp='.$stamp : '');
+
+        return $this->call('POST', $uri, [], [], [], ['CONTENT_TYPE' => 'text/plain'], $body);
     }
 }

@@ -22,6 +22,14 @@ class AttendanceAgentTest extends TestCase
 {
     use CreatesHrFixtures, RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The page is hidden by default (config/attendance.php devices_page); these tests are about the page itself.
+        config(['attendance.devices_page' => true, 'attendance.device_push' => true]);
+    }
+
     public function test_without_a_valid_key_nothing_is_taken(): void
     {
         [$device] = $this->device();

@@ -3,7 +3,9 @@
 
     <x-page-header :title="__('attendance.upload.title')" :lead="__('attendance.upload.lead')">
         <x-slot:actions>
-            <x-button variant="outline" :href="route('attendance.devices')">@lang('attendance.devices.title')</x-button>
+            @if(config('attendance.devices_page'))
+                <x-button variant="outline" :href="route('attendance.devices')">@lang('attendance.devices.title')</x-button>
+            @endif
             <x-button variant="outline" :href="route('attendance.timesheets')">@lang('attendance.upload.then')</x-button>
         </x-slot:actions>
     </x-page-header>
