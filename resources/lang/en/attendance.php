@@ -273,7 +273,7 @@ return [
     // Devices that push their punches by themselves (ZKTeco "Cloud Server", ADMS).
     'devices' => [
         'title' => 'Time-clock devices',
-        'lead' => 'Each center\'s device sends its own punches. Add it once by its serial number; there is no report to download.',
+        'lead' => 'Each center’s device sends its punches by itself. Here you see whether each one is connected.',
         'file-fallback' => 'Upload a file instead',
         'sightings-title' => 'Devices waiting to be added',
         'sightings-help' => 'These devices called the system but are not registered. Choose the center each one hangs in and add it: it then sends everything it holds.',
@@ -341,6 +341,8 @@ return [
         'never-help' => 'Added, but it has not contacted the system yet. Check its settings under "Setting up a device".',
         'no-punch-yet' => 'Connected. No punch has arrived yet.',
         'without-count' => '{1} 1 center has no device yet|[2,*] :count centers have no device yet',
+        'tell-it' => 'Please tell IT so they can check it.',
+        'never-help-hr' => 'Added, but it has not contacted the system yet. IT will finish setting it up.',
         'setup-after' => 'Within a minute it appears in the list above. Add it, and it sends everything it has stored, then each new punch as it happens. Until it is added it keeps its records safe.',
     ],
 ];

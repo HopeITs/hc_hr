@@ -20,14 +20,6 @@ class AttendanceDevicesPageTest extends TestCase
 {
     use CreatesHrFixtures, RefreshDatabase;
 
-    private function center(City $city, string $name): Center
-    {
-        return Center::query()->create([
-            'name_en' => $name, 'name_ar' => $name, 'city_id' => $city->id, 'is_active' => true,
-            'weekends' => '5,6', 'open_at' => '08:00:00', 'close_at' => '16:00:00',
-        ]);
-    }
-
     public function test_only_those_who_manage_attendance_open_the_device_list(): void
     {
         $aleppo = $this->makeCity('ALP', '001');
@@ -74,8 +66,10 @@ class AttendanceDevicesPageTest extends TestCase
         Livewire::actingAs($hr)->test(Devices::class)
             ->assertSeeHtml('data-health="silent"')
             ->assertSee('Alpha clock')
-            ->assertSeeHtml('data-testid="centers-without-device"')
-            ->assertSee('Bravo Center');
+            // HR sees the devices: no list of centers without one, no device settings (that is IT's).
+            ->assertDontSeeHtml('data-testid="centers-without-device"')
+            ->assertDontSee('Bravo Center')
+            ->assertDontSeeHtml('data-testid="device-setup"');
     }
 
     public function test_a_device_can_be_blocked_edited_and_removed(): void
@@ -125,5 +119,13 @@ class AttendanceDevicesPageTest extends TestCase
         Livewire::actingAs($homsHr)->test(Devices::class)
             ->set('newCenter.NEWONE0001', (string) $hms->id)->call('register', 'NEWONE0001')->assertHasNoErrors();
         $this->assertSame($hms->id, AttendanceDevice::query()->where('serial', 'NEWONE0001')->value('center_id'));
+    }
+
+    private function center(City $city, string $name): Center
+    {
+        return Center::query()->create([
+            'name_en' => $name, 'name_ar' => $name, 'city_id' => $city->id, 'is_active' => true,
+            'weekends' => '5,6', 'open_at' => '08:00:00', 'close_at' => '16:00:00',
+        ]);
     }
 }
