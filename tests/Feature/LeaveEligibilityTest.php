@@ -265,6 +265,44 @@ class LeaveEligibilityTest extends TestCase
         $this->assertSame(0, LeaveRequest::query()->count());
     }
 
+    public function test_hr_on_all_leaves_may_file_a_daily_leave_that_started_before_today(): void
+    {
+        [$employee, $balances] = $this->staff(annualUsed: self::ANNUAL_ELIGIBLE);
+
+        Livewire::actingAs($this->hrUser())
+            ->test(AllLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.employee_id', $employee->id)
+            ->set('form.leave_balance_id', (string) $balances[LeaveTypeCases::Unpaid]->id)
+            ->set('form.type', 'day')
+            // "Today" is Wednesday 21 Oct: Monday 19th is in the past.
+            ->set('form.start_at', '2026-10-19')
+            ->set('form.end_at', '2026-10-19')
+            ->set('form.reason', 'Recorded after the day.')
+            ->call('processSave')
+            ->assertHasNoErrors();
+
+        $this->assertSame('2026-10-19', LeaveRequest::query()->sole()->start_at->toDateString());
+    }
+
+    public function test_an_employee_on_my_leaves_still_cannot_start_a_daily_leave_before_today(): void
+    {
+        [, $balances, $user] = $this->staff(annualUsed: self::ANNUAL_ELIGIBLE);
+
+        Livewire::actingAs($user)
+            ->test(MyLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.leave_balance_id', (string) $balances[LeaveTypeCases::Unpaid]->id)
+            ->set('form.type', 'day')
+            ->set('form.start_at', '2026-10-19')
+            ->set('form.end_at', '2026-10-19')
+            ->set('form.reason', 'Filed after the day.')
+            ->call('processSave')
+            ->assertHasErrors(['form.start_at']);
+
+        $this->assertSame(0, LeaveRequest::query()->count());
+    }
+
     public function test_reopening_hr_new_request_offers_no_leave_types_until_an_employee_is_chosen(): void
     {
         [$employee] = $this->staff(annualUsed: 0);

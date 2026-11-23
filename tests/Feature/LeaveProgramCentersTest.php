@@ -121,6 +121,22 @@ class LeaveProgramCentersTest extends TestCase
         ], $quote->excludedDates);
     }
 
+    public function test_picked_working_days_apply_to_a_position_with_its_own_center_too(): void
+    {
+        // Any program, not only Study Zone: a Micro Project center closed on
+        // Friday and Saturday, and a part-timer who works three days of it.
+        $center = $this->center($this->homs, '5,6', programs: [$this->micro]);
+        [$contract, $balance] = $this->volunteer($this->micro, $this->homs, $center, weeklyHours: 24);
+        $contract->update(['work_weekdays' => '0,2,4']);
+
+        // Sunday 1 Nov → Thursday 5 Nov: Sunday, Tuesday and Thursday only.
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-01', '2026-11-05'));
+
+        $this->assertSame([[1, 3, 5, 6], 'contract'], $this->pricing->weekendFor($contract->fresh()));
+        $this->assertSame(3, $quote->countedDays);
+        $this->assertSame(8.0, $quote->hoursPerDay);
+    }
+
     public function test_the_printed_weekend_clause_names_only_the_centers_day(): void
     {
         $this->center($this->homs, '5', programs: [$this->studyZone]);

@@ -145,6 +145,42 @@ class ContractAmendmentScreensTest extends TestCase
         $this->assertSame(20, $contract->refresh()->weekly_hours);
     }
 
+    public function test_an_amendment_can_switch_the_range_to_picked_working_days(): void
+    {
+        $contract = $this->contract();
+        $contract->position->center->update(['weekends' => '5,6']);
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract])
+            ->assertSee(__('general.composer.day-pick-days'))
+            ->call('submit', $this->payload(['workWeekdays' => [0, 1, 3, 4], 'weeklyHours' => 24]))
+            ->assertHasNoErrors();
+
+        $amendment = ContractAmendment::query()->sole();
+        $this->assertContains('work_weekdays', $amendment->changedFields());
+        $this->assertSame('0,1,3,4', $amendment->terms_after['work_weekdays']);
+        $this->assertNull($amendment->terms_after['work_day_from']);
+
+        app(ContractAmendmentService::class)->approve($amendment);
+
+        $contract->refresh();
+        $this->assertSame([0, 1, 3, 4], $contract->workWeekdays());
+        $this->assertNull($contract->work_day_from);
+    }
+
+    public function test_an_amendment_cannot_pick_the_centers_day_off(): void
+    {
+        $contract = $this->contract();
+        $contract->position->center->update(['weekends' => '5,6']);
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract])
+            ->call('submit', $this->payload(['workWeekdays' => [0, 1, 6]]))
+            ->assertHasErrors(['form.work_weekdays']);
+
+        $this->assertSame(0, ContractAmendment::query()->count());
+    }
+
     public function test_the_page_cannot_move_the_assignment_or_the_term(): void
     {
         $contract = $this->contract();
