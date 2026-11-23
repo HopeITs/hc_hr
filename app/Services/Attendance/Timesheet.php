@@ -404,11 +404,13 @@ class Timesheet
             return ['days' => array_values(array_diff(range(0, 6), $workdays)), 'from' => 'contract'];
         }
 
-        $center = $contract->position?->center?->weekends;
+        // "0" is Sunday, not "nothing set": only a missing or blank value falls back to the default.
+        $center = trim((string) $contract->position?->center?->weekends);
+        $set = $center !== '' && Contract::parseWeekdays($center) !== [];
 
         return [
-            'days' => Contract::parseWeekdays((string) ($center ?: config('attendance.default_weekends'))),
-            'from' => $center ? 'center' : 'default',
+            'days' => Contract::parseWeekdays($set ? $center : (string) config('attendance.default_weekends')),
+            'from' => $set ? 'center' : 'default',
         ];
     }
 

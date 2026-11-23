@@ -225,6 +225,15 @@ class AttendanceTest extends TestCase
         $this->assertSame([0, 6], $placement['days_off']);
         $this->assertSame('center', $placement['days_off_from']);
 
+        // A center whose only day off is Sunday ("0") is a real setting, not "nothing set".
+        $contract->position->center->update(['weekends' => '0']);
+        $timesheet = app(Timesheet::class)->forEmployee($employee->fresh(), $this->september());
+        $this->assertSame([0], $timesheet['placement']['days_off']);
+        $this->assertSame('center', $timesheet['placement']['days_off_from']);
+        $rows = collect($timesheet['rows'])->keyBy(fn (array $row) => $row['date']->toDateString());
+        $this->assertSame(Timesheet::WEEKEND, $rows['2026-09-13']['kind']);      // Sunday
+        $this->assertNotSame(Timesheet::WEEKEND, $rows['2026-09-12']['kind']);   // Saturday is a working day
+
         // Days picked on the contract win over the center: Sunday, Tuesday, Thursday worked.
         $contract->update(['work_weekdays' => '0,2,4']);
         $placement = app(Timesheet::class)->forEmployee($employee->fresh(), $this->september())['placement'];
