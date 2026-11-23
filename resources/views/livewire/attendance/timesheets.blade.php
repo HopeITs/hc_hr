@@ -126,7 +126,7 @@
                             @case(Sheet::DECIDED_WORKED)@lang('attendance.timesheets.yes')@break
                             @case(Sheet::DECIDED_ABSENT)@lang('attendance.timesheets.no')@break
                             @case(Sheet::LEAVE)@lang('attendance.timesheets.status.leave')@break
-                            @case(Sheet::HOLIDAY)@lang('attendance.timesheets.status.holiday')@break
+                            @case(Sheet::HOLIDAY)<span class="line-clamp-2">{{ $row['note'] ?: __('attendance.timesheets.status.holiday') }}</span>@break
                         @endswitch
                     </span>
                     <span class="sr-only">{{ $label }}</span>
