@@ -148,6 +148,8 @@ return [
         'in-progress' => 'In progress',
         'closed-note' => 'Closed by HR on :date. It no longer changes.',
         'confirmed-by' => 'Confirmed by :name on :date.',
+        'days-off' => 'Weekly days off',
+        'days-off-from' => ['contract' => 'set on the contract', 'center' => 'from the center: :center', 'default' => 'the general default: the center has none set'],
         'no-one' => 'Nobody here.',
         'h' => 'h',
         'status' => [

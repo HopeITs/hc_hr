@@ -215,6 +215,29 @@ class AttendanceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_the_calendar_names_the_persons_own_days_off_and_where_they_come_from(): void
+    {
+        $employee = $this->volunteer();   // the center's days off: Sunday and Saturday
+        $contract = $employee->contracts()->first();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+
+        $placement = app(Timesheet::class)->forEmployee($employee, $this->september())['placement'];
+        $this->assertSame([0, 6], $placement['days_off']);
+        $this->assertSame('center', $placement['days_off_from']);
+
+        // Days picked on the contract win over the center: Sunday, Tuesday, Thursday worked.
+        $contract->update(['work_weekdays' => '0,2,4']);
+        $placement = app(Timesheet::class)->forEmployee($employee->fresh(), $this->september())['placement'];
+        $this->assertSame([1, 3, 5, 6], $placement['days_off']);
+        $this->assertSame('contract', $placement['days_off_from']);
+
+        Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-09')
+            ->call('openMonth', $employee->id)
+            ->assertSeeHtml('data-testid="days-off"')
+            ->assertSee(__('attendance.timesheets.days-off-from.contract'));
+    }
+
     public function test_the_pages_need_the_permission_and_a_city_hr_role_sees_only_its_city(): void
     {
         $this->withoutVite();

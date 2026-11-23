@@ -74,6 +74,21 @@
             <div class="rounded-surface bg-soft p-4"><dt class="text-small text-ink-2">@lang('attendance.timesheets.leave')</dt><dd class="text-h3 font-extrabold text-ink num">{{ $leaveDays }}</dd></div>
         </dl>
 
+        {{-- This person's own weekly days off: from the contract, else the center --}}
+        @php
+            $off = $pSheet['placement']['days_off'] ?? [];
+            $offFrom = $pSheet['placement']['days_off_from'] ?? null;
+            $offNames = collect($off)->map(fn ($d) => \Carbon\CarbonImmutable::now()->startOfWeek(0)->addDays($d)->locale(app()->getLocale())->isoFormat('dddd'))->join(app()->getLocale() === 'ar' ? '، ' : ', ');
+        @endphp
+        @if($offFrom)
+            <p class="flex flex-wrap items-center gap-x-2 text-ink" data-testid="days-off">
+                <x-ic name="calendar" class="size-4 text-ink-3" />
+                <span class="font-semibold">@lang('attendance.timesheets.days-off'):</span>
+                <span>{{ $offNames ?: '—' }}</span>
+                <span class="text-small text-ink-2">({{ __('attendance.timesheets.days-off-from.'.$offFrom, ['center' => $pSheet['placement']['center'] ?? '—']) }})</span>
+            </p>
+        @endif
+
         @if($pTotals['to_decide'] > 0)
             <p class="rounded-surface border-2 border-primary px-5 py-4 font-bold text-ink" role="status">
                 @if($pCan['decide'])

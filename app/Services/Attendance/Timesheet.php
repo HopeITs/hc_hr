@@ -216,10 +216,7 @@ class Timesheet
 
             // Days picked one by one on the contract: every other day is off
             // (Study Zone's center day plus the volunteer's own).
-            $workdays = $contract->workWeekdays();
-            $weekends = $workdays !== null
-                ? array_values(array_diff(range(0, 6), $workdays))
-                : array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
+            $weekends = $this->daysOff($contract)['days'];
             $block = max(1, (int) $overtime['block_minutes']);
 
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {
@@ -376,14 +373,42 @@ class Timesheet
      */
     private function placement(Collection $contracts): array
     {
-        $position = $contracts->sortByDesc('start_date')->first()?->position;
+        $contract = $contracts->sortByDesc('start_date')->first();
+        $position = $contract?->position;
+        $off = $contract ? $this->daysOff($contract) : ['days' => [], 'from' => null];
 
         return [
+            // The weekly days off of the latest contract in the month, and where they come from.
+            'days_off' => $off['days'],
+            'days_off_from' => $off['from'],
             'program_id' => $position?->program_id,
             'program' => $position?->program?->name,
             'department_id' => $position?->department_id,
             'department' => $position?->department?->name,
             'center' => $position?->center?->name,
+        ];
+    }
+
+    /**
+     * A contract's weekly days off (0 = Sunday … 6 = Saturday), and where they come from: the days
+     * picked on the contract itself (every other day is off), else the center of its position,
+     * else the configured default.
+     *
+     * @return array{days: list<int>, from: 'contract'|'center'|'default'}
+     */
+    private function daysOff(Contract $contract): array
+    {
+        $workdays = $contract->workWeekdays();
+
+        if ($workdays !== null) {
+            return ['days' => array_values(array_diff(range(0, 6), $workdays)), 'from' => 'contract'];
+        }
+
+        $center = $contract->position?->center?->weekends;
+
+        return [
+            'days' => Contract::parseWeekdays((string) ($center ?: config('attendance.default_weekends'))),
+            'from' => $center ? 'center' : 'default',
         ];
     }
 
