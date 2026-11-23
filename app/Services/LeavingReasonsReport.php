@@ -64,12 +64,16 @@ class LeavingReasonsReport
     {
         $days = self::normaliseDays($this->days);
 
+        // Raw SQL does not get the table prefix; wrapping through the grammar does.
+        $grammar = Contract::query()->getQuery()->getGrammar();
+        $left = 'coalesce('.$grammar->wrap('contracts.terminated_at').', '.$grammar->wrap('contracts.end_date').')';
+
         return Contract::query()
             ->visibleTo($this->viewer)
             ->latestPerEmployee()
             ->where(fn (Builder $q) => $q->whereNotNull('contracts.terminated_at')->orWhereNotNull('contracts.termination_reason_id'))
             ->when($days > 0, fn (Builder $q) => $q->whereRaw(
-                'coalesce(contracts.terminated_at, contracts.end_date) >= ?',
+                "$left >= ?",
                 [now()->subDays($days)->startOfDay()->toDateTimeString()],
             ))
             ->with('employee');
