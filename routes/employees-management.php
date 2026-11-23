@@ -34,8 +34,15 @@ Route::get('onboarding/required-policies', App\Livewire\Onboarding\RequiredPolic
 // Permissions Library (track 5): HR roles and the administrators; the component re-checks the active role.
 Route::get('/entitlements', App\Livewire\Entitlements\Library::class)->middleware('active_permission:entitlements.manage-library')->name('entitlements.index');
 // Why people leave (reasons recorded on contracts): HR and head office; the component re-checks the active role.
+// The reports hub and its reports (HR and head office). Each component re-checks through ReportCatalog::allows().
+Route::get('/reports', App\Livewire\Reports\Index::class)->name('reports.index');
 Route::get('/reports/leaving-reasons', App\Livewire\Reports\LeavingReasons::class)->middleware('active_permission:contracts.view')->name('reports.leaving-reasons');
-Route::get('/default-deliverables',DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
+Route::get('/reports/recruitment-funnel', App\Livewire\Reports\RecruitmentFunnel::class)->name('reports.recruitment-funnel');
+Route::get('/reports/leave', App\Livewire\Reports\LeaveReport::class)->middleware('active_permission:leaves.view-all')->name('reports.leave');
+Route::get('/reports/vacancies', App\Livewire\Reports\PositionVacancies::class)->middleware('active_permission:positions.view')->name('reports.vacancies');
+Route::get('/reports/training', App\Livewire\Reports\Training::class)->middleware('active_permission:employees.view')->name('reports.training');
+Route::get('/reports/profile-completeness', App\Livewire\Reports\ProfileCompleteness::class)->middleware('active_permission:employees.view')->name('reports.profile-completeness');
+Route::get('/default-deliverables', DefaultDeliverablesModule::class)->middleware('active_permission:checklists.manage')->name('default-deliverables.index');
 
 Route::prefix('contracts')
     ->name('contracts.')

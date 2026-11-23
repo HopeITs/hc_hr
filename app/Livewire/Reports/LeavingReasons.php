@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\Program;
 use App\Models\User;
 use App\Services\LeavingReasonsReport;
+use App\Support\Reports\ReportCatalog;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
@@ -29,9 +30,7 @@ class LeavingReasons extends Component
 
     public static function mayView(?User $user): bool
     {
-        return $user !== null
-            && $user->hasActivePermission('contracts.view')
-            && $user->activeRoleIs('HR', ...config('access-control.administrator_roles', []));
+        return ReportCatalog::allows('leaving-reasons', $user);
     }
 
     public function mount(): void

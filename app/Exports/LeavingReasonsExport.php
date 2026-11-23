@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -9,7 +10,7 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
 /** The leaving-reasons report as a workbook: one sheet per block. */
-class LeavingReasonsExport implements WithMultipleSheets
+class LeavingReasonsExport implements Export, WithMultipleSheets
 {
     use Exportable;
 

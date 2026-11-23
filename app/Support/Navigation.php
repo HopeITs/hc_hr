@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\HolidayProjects;
 use App\Services\RecruitmentApproverEligibility;
 use App\Services\WorkInbox;
+use App\Support\Reports\ReportCatalog;
 use Throwable;
 
 /**
@@ -144,7 +145,7 @@ final class Navigation
             $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
             $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
             $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
-            \App\Livewire\Reports\LeavingReasons::mayView($user) ? self::item('nav.settings.leaving-reasons', __('Why people leave'), 'reports.leaving-reasons', ['reports.leaving-reasons'], 'activity-log') : null,
+            ReportCatalog::visibleTo($user) !== [] ? self::item('nav.settings.reports', __('Reports'), 'reports.index', ['reports.*'], 'activity-log') : null,
             $can('activity-log.view') ? self::item('nav.settings.activity', __('general.activity-log'), 'activity-log.index', ['activity-log.*'], 'activity-log', 'nav.activity-log') : null,
             // D3 / DEC-08: the IT team only; not a role permission (User::canReadFeedback()).
             $user->canReadFeedback() ? self::item('nav.settings.feedback', __('feedback.inbox.title'), 'feedback.index', ['feedback.*'], 'activity-log') : null,

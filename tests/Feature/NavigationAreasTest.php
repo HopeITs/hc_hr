@@ -57,10 +57,10 @@ class NavigationAreasTest extends TestCase
             // The inbox is part of the dashboard now: no role has a menu link to it.
             'manager' => [...self::MY_SPACE, 'org.chart', 'centers.index', 'programs.index', 'leaves.all', 'contracts.index', 'news.index', ...$recruiting],
             'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, ...$recruiting],
-            'HR-ALP' => [...self::MY_SPACE, $library, 'reports.leaving-reasons', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', ...$hrRecruiting],
-            'HR-SYR' => [...self::MY_SPACE, $library, 'reports.leaving-reasons', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$hrRecruiting, 'recruitment.indicator-rules'],
+            'HR-ALP' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', ...$hrRecruiting],
+            'HR-SYR' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$hrRecruiting, 'recruitment.indicator-rules'],
             // The D3 feedback list follows an IT contract, not a role (InAppFeedbackTest).
-            'super-admin' => [...self::MY_SPACE, $library, 'reports.leaving-reasons', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
+            'super-admin' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
         ];
 
         foreach ($expected as $role => $routes) {
