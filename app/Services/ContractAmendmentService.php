@@ -8,6 +8,7 @@ use App\Exceptions\ContractAmendmentCannotApply;
 use App\Models\Contract;
 use App\Models\ContractAmendment;
 use App\Models\ContractAmendmentPayTier;
+use App\Models\ContractWorkPattern;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -51,6 +52,8 @@ class ContractAmendmentService
             throw ValidationException::withMessages(['amendment' => __('contracts.amendment.errors.already-applied')]);
         }
 
+        // An approved one may already have set the days from its date.
+        $this->forgetWorkDays($amendment);
         $amendment->delete();
     }
 
@@ -99,6 +102,11 @@ class ContractAmendmentService
 
         if ($amendment->effective_from->lte(today())) {
             $this->apply($amendment);
+        } elseif (in_array('work_weekdays', $amendment->changedFields(), true)) {
+            // Approved for a later date: leave asked for now, for a day after
+            // that date, is priced with the days it will have then. apply()
+            // writes the same row again on the day.
+            app(ContractWorkPatterns::class)->fromAmendment($amendment);
         }
 
         return $amendment->refresh();
@@ -227,6 +235,12 @@ class ContractAmendmentService
             ->values();
     }
 
+    /** The work-pattern row an approved, not yet applied amendment set ahead of its date. */
+    private function forgetWorkDays(ContractAmendment $amendment): void
+    {
+        ContractWorkPattern::query()->where('contract_amendment_id', $amendment->id)->delete();
+    }
+
     private function cancelIfContractEnded(ContractAmendment $amendment): bool
     {
         if (! $this->endedBefore($amendment)) {
@@ -239,7 +253,9 @@ class ContractAmendmentService
             'effective_from' => $amendment->effective_from->toDateString(),
         ]);
 
-        // Through Eloquent, so a signed copy leaves the disk with it.
+        // Through Eloquent, so a signed copy leaves the disk with it; and the
+        // days it would have set from its date go too.
+        $this->forgetWorkDays($amendment);
         $amendment->delete();
 
         return true;

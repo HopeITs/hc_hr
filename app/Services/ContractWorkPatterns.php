@@ -65,10 +65,12 @@ class ContractWorkPatterns
         $contract = $amendment->contract;
         $days = Contract::parseWeekdays($amendment->terms_after['work_weekdays'] ?? null);
 
-        $contract->workPatterns()->updateOrCreate(
-            ['effective_from' => $amendment->effective_from->toDateString()],
-            ['weekdays' => $days === [] ? null : implode(',', $days), 'contract_amendment_id' => $amendment->id, 'created_by' => $amendment->approved_by ?? auth()->id(), 'note' => null],
-        );
+        $this->putOn($contract, $amendment->effective_from->toDateString(), [
+            'weekdays' => $days === [] ? null : implode(',', $days),
+            'contract_amendment_id' => $amendment->id,
+            'created_by' => $amendment->approved_by ?? auth()->id(),
+            'note' => null,
+        ]);
 
         $contract->unsetRelation('workPatterns');
     }
@@ -89,10 +91,12 @@ class ContractWorkPatterns
 
         $this->assertChangeable($contract, $days, $date);
 
-        $pattern = DB::transaction(fn () => $contract->workPatterns()->updateOrCreate(
-            ['effective_from' => $date->toDateString()],
-            ['weekdays' => implode(',', $days), 'contract_amendment_id' => null, 'created_by' => $by?->id, 'note' => filled($note) ? trim($note) : null],
-        ));
+        $pattern = DB::transaction(fn () => $this->putOn($contract, $date->toDateString(), [
+            'weekdays' => implode(',', $days),
+            'contract_amendment_id' => null,
+            'created_by' => $by?->id,
+            'note' => filled($note) ? trim($note) : null,
+        ]));
 
         $contract->unsetRelation('workPatterns');
 
@@ -138,6 +142,24 @@ class ContractWorkPatterns
             ->whereDate('end_at', '>=', CarbonImmutable::parse($from)->toDateString())
             ->orderBy('start_at')
             ->get();
+    }
+
+    /**
+     * The row from $date, replaced or created. Found by whereDate, not by the
+     * string: a date column comes back with a time of day on some databases
+     * (SQLite), and the unique key would then refuse a second row.
+     */
+    private function putOn(Contract $contract, string $date, array $values): ContractWorkPattern
+    {
+        $row = $contract->workPatterns()->whereDate('effective_from', $date)->first();
+
+        if ($row) {
+            $row->update($values);
+
+            return $row;
+        }
+
+        return $contract->workPatterns()->create($values + ['effective_from' => $date]);
     }
 
     /**
