@@ -525,6 +525,15 @@ html[lang="ar"] {
     --tw-ring-color: var(--color-focus);
 }
 
+/* Waiting: Livewire 4 marks the element that sent a request with data-loading.
+   Every button that runs an action shows it is working and takes no second
+   click, so hand-written buttons behave like <x-button> without a wire:target. */
+:is(button, [role="button"], a[wire\:click])[data-loading] {
+    cursor: progress;
+    opacity: .65;
+    pointer-events: none;
+}
+
 /* Inputs on focus: ink border + 3px ring. An invalid field keeps its red border. */
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="button"], [type="submit"], [type="color"]), select, textarea):focus:not([aria-invalid="true"]) {
     border-color: var(--color-focus);

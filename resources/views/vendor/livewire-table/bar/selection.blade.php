@@ -9,14 +9,14 @@
             <span>
                 @choice('Selected 1 record|Selected :value records', count($this->selected), ['value' => count($this->selected)])
             </span>
-            <div class="flex flex-row gap-2 ml-auto ps-3">
-                <a href="#" wire:click.prevent="selectTable(true)" class="underline ml-auto">
+            <div class="flex flex-row gap-2 ms-auto ps-3">
+                <a href="#" wire:click.prevent="selectTable(true)" class="underline ms-auto">
                     @lang('All')
                 </a>
-                <a href="#" wire:click.prevent="selectTable(false)" class="underline ml-auto">
+                <a href="#" wire:click.prevent="selectTable(false)" class="underline ms-auto">
                     @lang('None')
                 </a>
-                <a href="#" wire:click.prevent="clearSelection" class="underline ml-auto">
+                <a href="#" wire:click.prevent="clearSelection" class="underline ms-auto">
                     @lang('Clear')
                 </a>
             </div>

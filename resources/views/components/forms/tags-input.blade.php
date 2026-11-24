@@ -44,7 +44,7 @@
     <!-- suggestions -->
     <template x-if="showSuggestions && filtered.length">
         <ul
-            class="absolute top-full left-0 z-10 w-full bg-card border border-line mt-1 rounded-control shadow-e2 max-h-40 overflow-y-auto"
+            class="absolute top-full start-0 z-10 w-full bg-card border border-line mt-1 rounded-control shadow-e2 max-h-40 overflow-y-auto"
         >
             <template x-for="(s, i) in filtered" :key="i">
                 <li
