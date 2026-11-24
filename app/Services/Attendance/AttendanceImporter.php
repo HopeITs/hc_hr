@@ -81,6 +81,10 @@ class AttendanceImporter
 
             $stored = $this->store($punches, $import);
 
+            // Punches kept from before may have been stored when their number matched no one
+            // (or someone else): tie every punch of the file's days to whom its number is now.
+            $this->relink($punches);
+
             $import->update(['punches_new' => $stored['new'], 'punches_locked' => $stored['locked']]);
 
             // Not a column: only the message after the upload needs it.
@@ -188,6 +192,38 @@ class AttendanceImporter
     }
 
     /** @param  Collection<int, AttendancePunch>  $punches */
+    /**
+     * For the file's days and device numbers, set each stored punch's employee to whom the number
+     * stands for now. A closed month is left as it is.
+     *
+     * @param  list<array{device_no: string, at: CarbonImmutable}>  $punches
+     */
+    private function relink(array $punches): void
+    {
+        if ($punches === []) {
+            return;
+        }
+
+        $times = array_column($punches, 'at');
+        $from = min($times)->startOfDay()->format('Y-m-d H:i:s');
+        $to = max($times)->endOfDay()->format('Y-m-d H:i:s');
+        $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
+            ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
+
+        foreach ($this->employeesFor(array_values(array_unique(array_column($punches, 'device_no')))) as $number => $employee) {
+            $stale = AttendancePunch::query()
+                ->where('device_no', (string) $number)
+                ->whereBetween('punched_at', [$from, $to])
+                ->where(fn ($q) => $q->whereNull('employee_id')->orWhere('employee_id', '!=', $employee->id))
+                ->get(['id', 'punched_at'])
+                ->reject(fn (AttendancePunch $p) => isset($locked[$employee->id.'|'.$p->punched_at->format('Y-m')]));
+
+            foreach ($stale->pluck('id')->chunk(500) as $ids) {
+                AttendancePunch::query()->whereIn('id', $ids->all())->update(['employee_id' => $employee->id]);
+            }
+        }
+    }
+
     /**
      * Remove the punches already stored for the file's device numbers on the days the file covers
      * (from its first day to its last), except in a closed month. Returns how many went.

@@ -277,6 +277,24 @@ class AttendanceTest extends TestCase
         $this->assertSame(2, AttendancePunch::query()->count());
     }
 
+    public function test_punches_stored_before_with_no_employee_are_tied_to_their_employee_by_the_next_upload(): void
+    {
+        $employee = $this->volunteer();
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+
+        // Stored earlier when the number matched no one (an old upload, or a device).
+        AttendancePunch::query()->create(['import_id' => $this->import()->id, 'device_no' => (string) $employee->id, 'employee_id' => null, 'punched_at' => '2026-09-01 08:00']);
+        AttendancePunch::query()->create(['import_id' => $this->import()->id, 'device_no' => (string) $employee->id, 'employee_id' => null, 'punched_at' => '2026-09-01 16:00']);
+
+        Livewire::actingAs($hr)->test(Upload::class)
+            ->set('file', UploadedFile::fake()->createWithContent('report.csv', "AC-No.,Time\n{$employee->id},01/09/2026 08:00\n{$employee->id},01/09/2026 16:00\n"))
+            ->call('import')->assertHasNoErrors();
+
+        $this->assertSame(2, AttendancePunch::query()->where('employee_id', $employee->id)->count());
+        $rows = collect(app(Timesheet::class)->forEmployee($employee, $this->september())['rows'])->keyBy(fn ($r) => $r['date']->toDateString());
+        $this->assertSame(Timesheet::WORKED, $rows['2026-09-01']['kind']);
+    }
+
     public function test_a_new_report_replaces_what_was_stored_for_the_days_it_covers(): void
     {
         $employee = $this->volunteer();
