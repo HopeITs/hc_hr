@@ -352,12 +352,14 @@ class AttendanceTest extends TestCase
 
         $mine = $this->volunteer();
         $this->punch($mine, '2026-09-02 08:00');
+        $this->settle($mine);
         $damascus = $this->makeCity('DMS', '002');
         $other = $this->makeEmployee($damascus, 'other', [
             'first_name_en' => 'Zed', 'last_name_en' => 'Faraway', 'first_name_ar' => 'زيد', 'last_name_ar' => 'بعيد',
         ]);
         $this->makeContractFor($other)->position->center->update(['weekends' => '0,6']);
         $this->punch($other, '2026-09-02 08:00');
+        $this->settle($other);
 
         // A role with no baseline of its own (every real role holds attendance.view-own).
         $nobody = $this->makeUser($mine->city, 'guest', []);
@@ -375,15 +377,51 @@ class AttendanceTest extends TestCase
             ->assertSee('Monthly Summary');
     }
 
-    public function test_a_sheet_with_waiting_days_prints_as_a_draft(): void
+    public function test_the_paper_is_not_printed_while_a_day_waits_or_a_leave_request_is_unanswered(): void
+    {
+        $this->withoutVite();
+        $employee = $this->volunteer();
+        $this->punch($employee, '2026-09-02 08:00');   // the other working days have no punch: they wait for HR
+        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
+
+        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))->assertStatus(422);
+        $this->actingAs($hr)->get(route('attendance.export.pdf', ['month' => '2026-09']))->assertStatus(422);
+        $this->actingAs($hr)->get(route('attendance.export.xlsx', ['month' => '2026-09']))->assertStatus(422);
+
+        Livewire::actingAs($hr)->test(Timesheets::class)->set('month', '2026-09')
+            ->assertSeeHtml('data-testid="print-blocked"')
+            ->assertDontSeeHtml('data-testid="print-link"');
+
+        // Every day answered: it prints.
+        $this->settle($employee);
+        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))->assertOk();
+
+        // The print and PDF links open in a new tab, so the page they were opened from stays open.
+        Livewire::actingAs($hr)->test(Timesheets::class)->set('month', '2026-09')
+            ->assertSeeHtmlInOrder(['data-testid="print-link"', 'target="_blank"'])
+            ->call('openMonth', $employee->id)
+            ->assertSeeHtml('target="_blank"');
+    }
+
+    public function test_a_day_with_a_leave_request_is_never_a_day_for_hr_to_decide(): void
     {
         $employee = $this->volunteer();
         $this->punch($employee, '2026-09-02 08:00');
-        $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
+        $contract = $employee->contracts()->first();
+        LeaveType::query()->forceCreate(['id' => 1, 'name_en' => 'Annual leave', 'name_ar' => 'إجازة سنوية', 'base_days' => 12]);
+        $balance = LeaveBalance::query()->create(['contract_id' => $contract->id, 'type_id' => 1, 'deserved' => 96, 'used' => 0]);
 
-        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))
-            ->assertOk()
-            ->assertSee('مسودة');
+        foreach ([\App\Enums\LeaveRequestStatus::Pending, \App\Enums\LeaveRequestStatus::Accepted] as $status) {
+            LeaveRequest::query()->delete();
+            LeaveRequest::query()->create([
+                'leave_balance_id' => $balance->id, 'type' => 'day', 'status' => $status, 'reason' => 'x',
+                'start_at' => '2026-09-14 00:00:00', 'end_at' => '2026-09-14 23:59:59',
+            ]);
+            $rows = collect(app(Timesheet::class)->forEmployee($employee->fresh(), $this->september())['rows'])->keyBy(fn ($r) => $r['date']->toDateString());
+
+            $this->assertSame(Timesheet::LEAVE, $rows['2026-09-14']['kind']);
+            $this->assertFalse($rows['2026-09-14']['decidable']);
+        }
     }
 
     public function test_print_pdf_and_excel_follow_the_page_only_people_with_punches_and_never_a_month_to_come(): void
@@ -392,6 +430,7 @@ class AttendanceTest extends TestCase
         $with = $this->volunteer();
         $without = $this->volunteer();
         $this->punch($with, '2026-09-02 08:00');
+        $this->settle($with);
         $hr = $this->makeUser($with->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         // The person without punches is left out; asking for only them finds nothing.
@@ -407,6 +446,7 @@ class AttendanceTest extends TestCase
     {
         $employee = $this->volunteer();
         $this->punch($employee, '2026-09-02 08:00');
+        $this->settle($employee);
         $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         // The Timesheets page opens on the month of ten days ago: early October means September.
@@ -466,6 +506,15 @@ class AttendanceTest extends TestCase
         file_put_contents($path, $bytes);
 
         return $path;
+    }
+
+    private function settle(Employee $employee): void
+    {
+        for ($d = $this->september(); $d->month === 9; $d = $d->addDay()) {
+            if (! in_array($d->dayOfWeek, [0, 6], true)) {
+                AttendanceDayDecision::query()->updateOrCreate(['employee_id' => $employee->id, 'work_date' => $d->toDateString()], ['kind' => 'worked']);
+            }
+        }
     }
 
     private function punch(Employee $employee, string $at): void

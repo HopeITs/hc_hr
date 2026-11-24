@@ -67,6 +67,14 @@ class PrintSelection
 
         abort_if($sheets->isEmpty(), 404);
 
+        // The paper is signed: it prints only when every day is answered (nothing waits for HR) and
+        // no leave request of the month is still waiting for its approver.
+        abort_if(
+            $sheets->contains(fn (array $s) => $s['sheet']['totals']['to_decide'] > 0 || $s['sheet']['totals']['leave_pending'] > 0),
+            422,
+            __('attendance.timesheets.print-blocked'),
+        );
+
         // The order of the page: city, then project or department, then name.
         $sheets = $this->grouping->group($sheets, $by)
             ->flatMap(fn (array $block) => $block['groups'])

@@ -119,7 +119,8 @@ class Timesheet
 
         $leaves = LeaveRequest::query()
             ->with('leaveBalance.leaveType', 'leaveBalance.contract:id,employee_id')
-            ->where('status', LeaveRequestStatus::Accepted)
+            // A leave that is asked for (pending) already answers the day: HR never decides it; the print waits for its answer.
+            ->whereIn('status', [LeaveRequestStatus::Accepted, LeaveRequestStatus::Pending])
             ->whereHas('leaveBalance.contract', fn ($contract) => $contract->whereIn('employee_id', $ids))
             ->whereDate('start_at', '<=', $last)
             ->whereDate('end_at', '>=', $first)
@@ -236,6 +237,32 @@ class Timesheet
                 continue;
             }
 
+            [$leaveHours, $leaveType, $leavePending] = $this->leaveOn($leaves, $day, $daily);
+
+            if ($leaveHours >= $daily) {
+                $row['kind'] = self::LEAVE;
+                $row['leave_type'] = $leaveType;
+                $row['leave_hours'] = $daily;
+                $row['working_days'] = 0.0;
+                $row['leave_pending'] = $leavePending;
+                $rows[] = $row;
+
+                continue;
+            }
+
+            if ($leaveHours > 0) {
+                // An hourly leave inside a working day: the rest of the day is worked.
+                $row['kind'] = self::WORKED;
+                $row['leave_pending'] = $leavePending;
+                $row['leave_type'] = $leaveType;
+                $row['leave_hours'] = $leaveHours;
+                $row['working_days'] = 1 - ($leaveHours / $daily);
+                $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
+                $rows[] = $row;
+
+                continue;
+            }
+
             $decision = $decisions[$date] ?? null;
 
             if ($decision !== null) {
@@ -253,30 +280,6 @@ class Timesheet
                     $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
                 }
 
-                $rows[] = $row;
-
-                continue;
-            }
-
-            [$leaveHours, $leaveType] = $this->leaveOn($leaves, $day, $daily);
-
-            if ($leaveHours >= $daily) {
-                $row['kind'] = self::LEAVE;
-                $row['leave_type'] = $leaveType;
-                $row['leave_hours'] = $daily;
-                $row['working_days'] = 0.0;
-                $rows[] = $row;
-
-                continue;
-            }
-
-            if ($leaveHours > 0) {
-                // An hourly leave inside a working day: the rest of the day is worked.
-                $row['kind'] = self::WORKED;
-                $row['leave_type'] = $leaveType;
-                $row['leave_hours'] = $leaveHours;
-                $row['working_days'] = 1 - ($leaveHours / $daily);
-                $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
                 $rows[] = $row;
 
                 continue;
@@ -320,9 +323,14 @@ class Timesheet
         $minutes = 0;
         $days = 0.0;
         $toDecide = 0;
+        $leavePending = 0;
         $workedDays = 0;
 
         foreach ($rows as $row) {
+            if (! empty($row['leave_pending'])) {
+                $leavePending++;
+            }
+
             if (empty($row['paid_off_day'])) {
                 $leave += $row['leave_hours'];
             }
@@ -348,6 +356,8 @@ class Timesheet
             'working_days' => round($days, 2),
             'worked_days' => $workedDays,
             'to_decide' => $toDecide,
+            // Days covered by a leave request nobody has answered yet: never HR's to decide, but the paper waits for it.
+            'leave_pending' => $leavePending,
         ];
     }
 
@@ -435,14 +445,15 @@ class Timesheet
     }
 
     /**
-     * Hours of accepted leave on a working day, and its type.
+     * Hours of leave on a working day (accepted or still asked for), its type, and whether any of it is still pending.
      *
-     * @return array{0: float, 1: ?LeaveType}
+     * @return array{0: float, 1: ?LeaveType, 2: bool}
      */
     private function leaveOn(Collection $leaves, CarbonImmutable $day, float $daily): array
     {
         $hours = 0.0;
         $type = null;
+        $pending = false;
 
         foreach ($leaves as $leave) {
             if ($leave->type === 'hour') {
@@ -458,9 +469,10 @@ class Timesheet
             }
 
             $type ??= $leave->leaveBalance?->leaveType;
+            $pending = $pending || (int) $leave->status === LeaveRequestStatus::Pending;
         }
 
-        return [min($hours, $daily), $type];
+        return [min($hours, $daily), $type, $pending];
     }
 
     /**

@@ -15,8 +15,9 @@
     full:    true for full width
     loading: true (default) — while Livewire works on this button's action the
              button is disabled and aria-busy, and a spinner replaces the icon.
-             target: the wire:target to watch; defaults to the method in wire:click,
+             target: on a button, the wire:target to watch; defaults to the method in wire:click,
              otherwise any request of the component (as the old primary-button did).
+             On a link (href), the HTML target: target="_blank" opens a new tab.
 --}}
 @props([
     'variant' => 'primary',
@@ -46,7 +47,8 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes, 'wire:navigate' => true]) }}>
+    {{-- On a link, "target" is the HTML target ("_blank" opens a new tab), not a wire:target. --}}
+    <a href="{{ $href }}" @if ($target) target="{{ $target }}" @if ($target === '_blank' && ! $attributes->has('rel')) rel="noopener" @endif @endif {{ $attributes->merge(['class' => $classes, 'wire:navigate' => true]) }}>
         @if ($icon)<x-ic :name="$icon" />@endif
         @if ($isAdd)<span class="hc-reveal-label">{{ $slot }}</span>@else {{ $slot }} @endif
     </a>

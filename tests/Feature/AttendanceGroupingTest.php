@@ -190,6 +190,13 @@ class AttendanceGroupingTest extends TestCase
             'punched_at' => $at,
         ]);
 
+        // Every working day of September answered, so the paper may be printed (nothing waits).
+        for ($d = \Carbon\CarbonImmutable::create(2026, 9, 1); $d->month === 9; $d = $d->addDay()) {
+            if (! in_array($d->dayOfWeek, [0, 6], true)) {
+                \App\Models\AttendanceDayDecision::query()->updateOrCreate(['employee_id' => $employee->id, 'work_date' => $d->toDateString()], ['kind' => 'worked']);
+            }
+        }
+
         return $employee;
     }
 

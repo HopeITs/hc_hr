@@ -8,6 +8,7 @@
     $own = $mode === 'own';
     $title = match ($mode) { 'own' => __('attendance.timesheets.title-own'), 'team' => __('attendance.timesheets.title-team'), default => __('attendance.timesheets.title') };
     $pending = [Sheet::ONE_PUNCH, Sheet::NO_RECORD];
+    $blocked = $items->contains(fn ($i) => $i['sheet']['totals']['to_decide'] > 0 || $i['sheet']['totals']['leave_pending'] > 0);
 
     // One status per person, in plain words. Red is only for days that wait for an answer.
     $statusOf = function (array $item) {
@@ -38,6 +39,8 @@
         $pCan = $panel['can'];
         $pSheet = $panel['sheet'];
         $pTotals = $pSheet['totals'];
+        // The paper prints only when nothing waits: no day for HR, no leave request unanswered.
+        $pBlocked = $pTotals['to_decide'] > 0 || $pTotals['leave_pending'] > 0;
         $pSigned = $pRecord->exists ? $pRecord->getFirstMedia('signed') : null;
         $pParams = ['month' => $month, 'employees' => [$pEmployee->id]];
         $lead = ($monthDate->startOfMonth()->dayOfWeek + 1) % 7;   // weeks start on Saturday
@@ -64,7 +67,11 @@
             </div>
             <div class="flex items-center gap-2">
                 @include('livewire.attendance.partials.month-stepper')
-                <x-button variant="outline" icon="file" target="_blank" :wire:navigate="false" :href="route('attendance.print', $pParams)" data-testid="print-link">@lang('attendance.export.print')</x-button>
+                @if($pBlocked)
+                    <x-button variant="outline" icon="file" disabled title="{{ __('attendance.timesheets.print-blocked') }}" data-testid="print-blocked">@lang('attendance.export.print')</x-button>
+                @else
+                    <x-button variant="outline" icon="file" target="_blank" :wire:navigate="false" :href="route('attendance.print', $pParams)" data-testid="print-link">@lang('attendance.export.print')</x-button>
+                @endif
             </div>
         </div>
 
@@ -130,7 +137,7 @@
                     <div title="{{ $label }}" class="{{ $cls }}">
                 @endif
                     <span class="text-body font-extrabold leading-none num">{{ $row['date']->day }}</span>
-                    <span class="mt-auto w-full text-[10px] font-semibold leading-tight sm:text-caption">
+                    <span class="mt-auto w-full text-caption font-semibold leading-tight sm:text-caption">
                         @switch($k)
                             @case(Sheet::WORKED)
                                 <span class="hidden text-ink-2 sm:block num" dir="ltr">{{ $hm($row['first']) }}–{{ $hm($row['last']) }}</span>
@@ -140,7 +147,7 @@
                             @case(Sheet::NO_RECORD)@lang('attendance.timesheets.status.no_record')@break
                             @case(Sheet::DECIDED_WORKED)@lang('attendance.timesheets.yes')@break
                             @case(Sheet::DECIDED_ABSENT)@lang('attendance.timesheets.no')@break
-                            @case(Sheet::LEAVE)@lang('attendance.timesheets.status.leave')@break
+                            @case(Sheet::LEAVE){{ ! empty($row['leave_pending']) ? __('attendance.timesheets.leave-waits') : __('attendance.timesheets.status.leave') }}@break
                             @case(Sheet::HOLIDAY)<span class="line-clamp-2">{{ $row['note'] ?: __('attendance.timesheets.status.holiday') }}</span>@break
                         @endswitch
                         {{-- Worked on a day off: the punches are there and count as overtime, so show them. --}}
@@ -241,12 +248,20 @@
             <h1 class="text-h1 font-extrabold text-ink">{{ $title }}</h1>
             <div class="flex flex-wrap items-center gap-2">
                 @include('livewire.attendance.partials.month-stepper')
-                <x-button variant="outline" icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">@lang('attendance.export.print')</x-button>
+                @if($blocked)
+                    <x-button variant="outline" icon="file" disabled title="{{ __('attendance.timesheets.print-blocked') }}" data-testid="print-blocked">@lang('attendance.export.print')</x-button>
+                @else
+                    <x-button variant="outline" icon="file" :href="route('attendance.print', $printBase)" :wire:navigate="false" target="_blank" data-testid="print-link">@lang('attendance.export.print')</x-button>
+                @endif
                 <details class="relative">
                     <summary class="grid size-11 cursor-pointer list-none place-items-center rounded-control text-ink-2 hover:bg-hover" aria-label="{{ __('attendance.timesheets.more') }}"><x-ic name="more" class="size-5" /></summary>
                     <div class="absolute end-0 z-20 mt-1 w-56 overflow-hidden rounded-surface border border-line-soft bg-card py-1 shadow-e3">
-                        <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" target="_blank" href="{{ route('attendance.export.pdf', $printBase) }}" data-testid="pdf-link">@lang('attendance.export.pdf')</a>
-                        <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.export.xlsx', $printBase) }}" data-testid="xlsx-link">@lang('attendance.export.xlsx')</a>
+                        @if($blocked)
+                            <p class="px-4 py-2.5 text-small text-ink-2" data-testid="export-blocked">@lang('attendance.timesheets.print-blocked')</p>
+                        @else
+                            <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" target="_blank" href="{{ route('attendance.export.pdf', $printBase) }}" data-testid="pdf-link">@lang('attendance.export.pdf')</a>
+                            <a class="block px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.export.xlsx', $printBase) }}" data-testid="xlsx-link">@lang('attendance.export.xlsx')</a>
+                        @endif
                         @if($canManage)
                             <a class="block border-t border-line-soft px-4 py-2.5 text-small font-semibold text-ink hover:bg-hover" href="{{ route('attendance.upload') }}" wire:navigate>@lang('attendance.timesheets.upload')</a>
                             @if(config('attendance.devices_page'))
