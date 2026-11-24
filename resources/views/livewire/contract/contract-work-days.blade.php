@@ -96,6 +96,7 @@
                      x-data="{
                          days: $wire.entangle('days').live,
                          mode: $wire.entangle('mode'),
+                         dateTaken: $wire.entangle('dateTaken'),
                          meta: @js($pickerDays),
                          expected: @js($expected),
                          from: '',
@@ -192,7 +193,17 @@
                         <div>
                             <x-forms.input-label for="work_days_from" required>@lang('contracts.work-days.effective-from')</x-forms.input-label>
                             <x-forms.date-input id="work_days_from" class="w-full" wire:model.live="effectiveFrom" />
-                            <x-error-span>{{ $errors->first('effectiveFrom') }}</x-error-span>
+                            @if($amendmentOnDate)
+                                {{-- Said as soon as the date is picked, with the way out. --}}
+                                <div class="mt-2 rounded-control border border-ink bg-soft px-3 py-2 text-small text-ink" role="status" aria-live="polite">
+                                    <p><x-ic name="info" class="inline size-4" /> @lang('contracts.work-days.amendment-on-date', ['number' => $amendmentOnDate])</p>
+                                    <x-button variant="outline" size="sm" class="mt-2" wire:click="$set('effectiveFrom', '{{ $freeDate }}')">
+                                        @lang('contracts.work-days.use-date', ['date' => \Illuminate\Support\Carbon::parse($freeDate)->format('d/m/Y')])
+                                    </x-button>
+                                </div>
+                            @else
+                                <x-error-span>{{ $errors->first('effectiveFrom') }}</x-error-span>
+                            @endif
                         </div>
                         <div>
                             <x-forms.input-label for="work_days_note">@lang('contracts.work-days.note')</x-forms.input-label>
@@ -228,7 +239,7 @@
 
                     <div class="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end">
                         <x-button variant="quiet" x-on:click="close()">@lang('general.cancel')</x-button>
-                        <x-button wire:click="save" x-bind:disabled="countDiffers || rangeInvalid">
+                        <x-button wire:click="save" x-bind:disabled="countDiffers || rangeInvalid || dateTaken">
                             <span wire:loading.remove wire:target="save">@lang('general.save')</span>
                             <span wire:loading wire:target="save">@lang('general.saving')…</span>
                         </x-button>

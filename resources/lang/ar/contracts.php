@@ -121,6 +121,8 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'work-days' => [
+        'amendment-on-date' => 'حدّد الملحق رقم :number أيام الدوام في هذا التاريخ، لذلك يمكن تغييرها من تاريخ آخر فقط (أو بملحق جديد).',
+        'use-date' => 'استخدم :date',
         'working-days' => 'أيام الدوام',
         'change-range' => 'تغيير أيام الدوام',
         'range-badge' => 'نطاق الدوام: :range',

@@ -189,6 +189,40 @@ class ContractWorkDaysTest extends TestCase
         $this->assertSame($amendmentId, DB::table('contract_work_patterns')->whereDate('effective_from', '2026-11-15')->value('contract_amendment_id'));
     }
 
+    public function test_the_dialog_skips_an_amendments_date_and_says_so_when_it_is_picked(): void
+    {
+        // Contract 415's case: an amendment set the days today (10 Nov).
+        $contract = $this->contract();
+        $amendmentId = DB::table('contract_amendments')->insertGetId([
+            'contract_id' => $contract->id, 'number' => 1, 'status' => 2, 'effective_from' => '2026-11-10',
+            'terms_before' => '{}', 'terms_after' => '{}', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('contract_work_patterns')->insert([
+            'contract_id' => $contract->id, 'weekdays' => '0,1,2,3,4', 'effective_from' => '2026-11-10',
+            'contract_amendment_id' => $amendmentId, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $message = __('contracts.work-days.amendment-on-date', ['number' => 1]);
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractWorkDays::class, ['contract' => $contract->fresh()])
+            ->call('openChange')
+            // Opens on the next free day, not on the amendment's.
+            ->assertSet('effectiveFrom', '2026-11-11')
+            ->assertDontSee($message)
+            // Picking the amendment's date says so at once, with the way out.
+            ->set('effectiveFrom', '2026-11-10')
+            ->assertSee($message)
+            ->assertSee(__('contracts.work-days.use-date', ['date' => '11/11/2026']))
+            // And the way out saves.
+            ->set('effectiveFrom', '2026-11-11')
+            ->call('toggleDay', 4)
+            ->call('toggleDay', 6)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame([0, 1, 2, 3, 6], $contract->fresh()->workWeekdaysOn('2026-11-11'));
+    }
+
     public function test_a_past_date_is_allowed(): void
     {
         $contract = $this->contract();

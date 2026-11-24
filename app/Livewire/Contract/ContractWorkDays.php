@@ -58,6 +58,12 @@ class ContractWorkDays extends Component
      */
     public string $mode = 'days';
 
+    /**
+     * An amendment set the days on the chosen date (save() refuses it): kept
+     * here so the browser can hold Save back. A hint only; save() decides.
+     */
+    public bool $dateTaken = false;
+
     public function mount(Contract $contract): void
     {
         Gate::authorize('view', $contract);
@@ -74,7 +80,9 @@ class ContractWorkDays extends Component
         $this->days = $this->daysInForce($contract);
         $this->seeded = $this->days;
         $this->mode = $this->isRange($contract) ? 'range' : 'days';
-        $this->effectiveFrom = today()->toDateString();
+        // Today, unless an amendment fixed the days on it: then the next free day.
+        $this->effectiveFrom = $this->freeDateFrom($contract, today()->toDateString());
+        $this->dateTaken = false;
         $this->note = null;
         $this->markClean('workDaysDialog');
         $this->showChange = true;
@@ -112,6 +120,7 @@ class ContractWorkDays extends Component
         Gate::authorize('changeWorkDays', $contract);
 
         $this->resetErrorBag('effectiveFrom');
+        $this->dateTaken = $this->amendmentOn($contract, $this->effectiveFrom) !== null;
 
         if (! $this->effectiveFrom || ! strtotime($this->effectiveFrom)) {
             return;
@@ -152,7 +161,7 @@ class ContractWorkDays extends Component
 
     public function close(): void
     {
-        $this->reset(['showChange', 'days', 'seeded', 'mode', 'effectiveFrom', 'note']);
+        $this->reset(['showChange', 'days', 'seeded', 'mode', 'dateTaken', 'effectiveFrom', 'note']);
         $this->resetErrorBag();
     }
 
@@ -200,6 +209,9 @@ class ContractWorkDays extends Component
             'move' => $this->showChange ? $this->move($contract, $place) : null,
             'expected' => $patterns->daysPerWeek($contract),
             // Accepted leave on or after the date keeps the hours it was decided with.
+            // An amendment's date is the signed terms: said before Save, with the next free day.
+            'amendmentOnDate' => $amendmentOnDate = $this->showChange ? $this->amendmentOn($contract, $this->effectiveFrom) : null,
+            'freeDate' => $amendmentOnDate ? $this->freeDateFrom($contract, $this->effectiveFrom) : null,
             'affected' => $this->showChange && $this->effectiveFrom && strtotime($this->effectiveFrom)
                 ? $patterns->acceptedLeavesFrom($contract, $this->effectiveFrom)
                 : collect(),
@@ -318,6 +330,44 @@ class ContractWorkDays extends Component
             'after' => $asRange ? $this->rangeLabel($workAfter) : ($after === [] ? '—' : $this->names($after)),
             'changed' => $before !== $after,
         ];
+    }
+
+    /**
+     * The number of the amendment whose days start on $date, if one does: a
+     * change on that date would replace the signed terms, so it is refused.
+     */
+    private function amendmentOn(Contract $contract, ?string $date): ?int
+    {
+        if (! $date || ! strtotime($date)) {
+            return null;
+        }
+
+        $row = $contract->workPatterns()
+            ->with('amendment:id,number')
+            ->whereNotNull('contract_amendment_id')
+            ->whereDate('effective_from', Carbon::parse($date)->toDateString())
+            ->first();
+
+        return $row?->amendment?->number;
+    }
+
+    /** $date, or the first day after it on which no amendment set the days. */
+    private function freeDateFrom(Contract $contract, string $date): string
+    {
+        $taken = $contract->workPatterns()
+            ->whereNotNull('contract_amendment_id')
+            ->whereDate('effective_from', '>=', Carbon::parse($date)->toDateString())
+            ->pluck('effective_from')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->all();
+
+        $day = Carbon::parse($date);
+
+        while (in_array($day->toDateString(), $taken, true)) {
+            $day = $day->addDay();
+        }
+
+        return $day->toDateString();
     }
 
     /**

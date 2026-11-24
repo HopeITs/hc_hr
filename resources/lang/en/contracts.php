@@ -122,6 +122,8 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'work-days' => [
+        'amendment-on-date' => 'Amendment :number set the working days on this date, so they can only change from another date (or with a new amendment).',
+        'use-date' => 'Use :date',
         'working-days' => 'Working days',
         'change-range' => 'Change working days',
         'range-badge' => 'Day range: :range',
