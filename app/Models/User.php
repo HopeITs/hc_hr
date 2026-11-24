@@ -419,6 +419,30 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->roles()->limit(2)->count() > 1;
     }
 
+    /**
+     * The role a sign-in starts on: the narrowest working role the user holds
+     * (config('access-control.login_role_order')), so someone who holds both a
+     * city HR role and HR-SYR starts inside their own city, and an IT person
+     * holding super-admin starts as an employee. Switching is unchanged.
+     */
+    public function defaultLoginRoleId(): ?int
+    {
+        $order = config('access-control.login_role_order', []);
+        $rank = function (string $name) use ($order): int {
+            foreach ($order as $i => $entry) {
+                if ($entry === $name || ($entry === 'HR-*' && Str::startsWith($name, 'HR-') && ! in_array($name, $order, true))) {
+                    return $i;
+                }
+            }
+
+            return count($order);
+        };
+
+        return $this->roles()->get(['roles.id', 'roles.name'])
+            ->sortBy([fn ($a, $b) => $rank($a->name) <=> $rank($b->name), fn ($a, $b) => $a->id <=> $b->id])
+            ->first()?->id;
+    }
+
     public function setActiveRole(int $roleId): void
     {
         DB::transaction(function () use ($roleId) {

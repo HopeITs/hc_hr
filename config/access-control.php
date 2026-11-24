@@ -13,6 +13,22 @@ return [
     'administrator_roles' => ['super-admin', 'HR-SYR'],
 
     /*
+     * Which role a sign-in starts on, narrowest working role first (decided
+     * 2026-11-24). 'HR-*' stands for every city HR role. HR-SYR and
+     * super-admin come last on purpose: whoever holds them also holds a
+     * narrower role and switches up only when the task needs it.
+     */
+    'login_role_order' => ['HR-*', 'manager', 'general-manager', 'employee', 'HR-SYR', 'super-admin'],
+
+    /*
+     * Raised roles stood down while their holder has no running contract, and
+     * given back when one runs again; HR Syria is told (decided 2026-11-24,
+     * App\Services\Access\OrgRoleSync). 'manager' is not listed: it follows
+     * the org chart and is added or removed outright.
+     */
+    'suspend_without_contract' => ['super-admin', 'general-manager', 'HR-*'],
+
+    /*
     |--------------------------------------------------------------------------
     | Permissions no role may ever hold
     |--------------------------------------------------------------------------
@@ -97,8 +113,8 @@ return [
             'archives.create', 'archives.update', 'archives.delete', 'archives.share',
             'archives.download',
             'attendance.view-own', 'attendance.view',
-            // Recruitment: the CEO and his deputy hold this role, so they both
-            // raise requests and approve their direct reports' requests.
+            // Recruitment: the CEO holds this role, so he both raises requests
+            // and approves his direct reports' requests.
             'recruitment-requests.view', 'recruitment-requests.manage',
             'recruitment-requests.submit', 'recruitment-requests.cancel',
             'recruitment-requests.approve', 'recruitment-requests.reject',

@@ -30,6 +30,7 @@ use App\Notifications\ProbationFinalThird;
 use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
 use App\Notifications\ProfileUpdatedByEmployee;
+use App\Notifications\RolesSuspendedForNoContract;
 use App\Notifications\TestNotification;
 use Illuminate\Notifications\Notification;
 
@@ -80,6 +81,7 @@ enum NotificationCategory: string
         CenterClosed::class => self::Organization,
         CriticalPositionNeedsReplacement::class => self::Organization,
         DigitalIdReportedLost::class => self::Security,
+        RolesSuspendedForNoContract::class => self::Security,
         TestNotification::class => self::System,
     ];
 
