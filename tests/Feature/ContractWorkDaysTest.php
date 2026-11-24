@@ -136,6 +136,59 @@ class ContractWorkDaysTest extends TestCase
             ->assertHasErrors(['effectiveFrom']);
     }
 
+    public function test_a_new_date_shows_that_dates_days_until_hr_picks_others(): void
+    {
+        $contract = $this->contract();
+        app(ContractWorkPatterns::class)->change($contract, [6, 0, 1, 2, 3], '2026-11-25');
+
+        $component = Livewire::actingAs($this->hr())
+            ->test(ContractWorkDays::class, ['contract' => $contract->fresh()])
+            ->call('openChange')
+            ->assertSet('days', [0, 1, 2, 3, 4])
+            ->set('effectiveFrom', '2026-12-01')
+            ->assertSet('days', [0, 1, 2, 3, 6]);
+
+        // Once HR has picked, a new date leaves the picked days alone.
+        $component->set('days', [0, 1, 3, 4, 6])
+            ->set('effectiveFrom', '2026-12-08')
+            ->assertSet('days', [0, 1, 3, 4, 6]);
+    }
+
+    public function test_changing_the_days_clears_an_error_about_them(): void
+    {
+        Livewire::actingAs($this->hr())
+            ->test(ContractWorkDays::class, ['contract' => $this->contract()])
+            ->call('openChange')
+            ->set('days', [0, 1, 2, 3])
+            ->set('effectiveFrom', '2026-11-15')
+            ->call('save')
+            ->assertHasErrors(['days'])
+            ->set('days', [0, 1, 2, 3, 6])
+            ->assertHasNoErrors(['days']);
+    }
+
+    public function test_a_change_on_the_date_an_amendment_set_the_days_is_refused(): void
+    {
+        $contract = $this->contract();
+        $amendmentId = DB::table('contract_amendments')->insertGetId([
+            'contract_id' => $contract->id, 'number' => 1, 'status' => 2, 'effective_from' => '2026-11-15',
+            'terms_before' => '{}', 'terms_after' => '{}', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('contract_work_patterns')->insert([
+            'contract_id' => $contract->id, 'weekdays' => '0,1,2,3,6', 'effective_from' => '2026-11-15',
+            'contract_amendment_id' => $amendmentId, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        try {
+            app(ContractWorkPatterns::class)->change($contract->fresh(), [0, 1, 2, 3, 4], '2026-11-15');
+            $this->fail('A change on the date of an amendment was accepted.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('effective_from', $e->errors());
+        }
+
+        $this->assertSame($amendmentId, DB::table('contract_work_patterns')->whereDate('effective_from', '2026-11-15')->value('contract_amendment_id'));
+    }
+
     public function test_a_past_date_is_allowed(): void
     {
         $contract = $this->contract();

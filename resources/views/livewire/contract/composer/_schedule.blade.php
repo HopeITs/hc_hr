@@ -119,22 +119,20 @@
         <div x-cloak x-show="dayPickMode === 'days'" class="space-y-4">
             <div>
                 <x-forms.input-label>@lang('general.composer.workdays')</x-forms.input-label>
-                <div class="mt-1 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="@lang('general.composer.workdays')">
-                    <template x-for="d in weekDays" :key="d.day">
+                {{-- The same tile as the contract page's working-days card and its
+                     dialog (livewire/contract/_work-day-tile-alpine). --}}
+                @php($shortDays = collect(range(0, 6))->mapWithKeys(fn (int $d) => [$d => now()->startOfWeek(0)->addDays($d)->isoFormat('ddd')]))
+                <div class="mt-1 grid max-w-3xl grid-cols-7 gap-1 sm:gap-1.5" role="group" aria-label="@lang('general.composer.workdays')"
+                     x-data="{ shortDays: @js($shortDays) }">
+                    <template x-for="w in weekDays" :key="w.day">
                         <button type="button"
-                                class="hc-choice flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-center"
-                                :class="d.closed ? 'cursor-not-allowed border-dashed bg-soft text-ink-3 hover:border-line' : 'text-ink'"
-                                :disabled="d.closed"
-                                :aria-pressed="d.working ? 'true' : 'false'"
-                                :title="d.closed ? @js(__('general.composer.center-day-off')) : ''"
-                                x-on:click="toggleWorkday(d.day)">
-                            <span class="text-small font-semibold" x-text="d.name"></span>
-                            <span class="text-caption" x-show="d.closed">
-                                <x-ic name="building" class="inline size-3" />
-                                @lang('general.composer.center-short')
-                            </span>
-                            <span class="text-caption text-ink-2" x-show="!d.closed && d.working">@lang('general.composer.workday-short')</span>
-                            <span class="text-caption text-ink-3" x-show="!d.closed && !d.working">@lang('general.composer.day-off-short')</span>
+                                class="flex rounded-control focus-visible:outline-2 focus-visible:outline-offset-2"
+                                :class="w.closed ? 'cursor-not-allowed' : 'transition hover:-translate-y-px motion-reduce:transition-none'"
+                                :disabled="w.closed"
+                                :aria-pressed="w.working ? 'true' : 'false'"
+                                x-on:click="toggleWorkday(w.day)"
+                                x-data="{ get d() { return { ...w, short: shortDays[w.day] } } }">
+                            @include('livewire.contract._work-day-tile-alpine')
                         </button>
                     </template>
                 </div>
@@ -147,11 +145,11 @@
                 <x-forms.input-label>@lang('general.composer.days-off')</x-forms.input-label>
                 <ul class="mt-1 flex flex-wrap gap-2" aria-live="polite">
                     <template x-for="d in daysOff" :key="d.day">
-                        <li class="inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-small"
-                            :class="d.closed ? 'border-dashed border-line bg-soft text-ink-2' : 'border-ink bg-surface font-semibold text-ink'">
-                            <span x-text="d.name"></span>
-                            <span class="text-caption" :class="d.closed ? 'text-ink-3' : 'text-ink-2'"
-                                  x-text="d.closed ? @js(__('general.composer.center-day-off')) : @js(__('general.composer.own-day-off'))"></span>
+                        {{-- The badges of the contract page's card: ⌂ own day off, building = the center's. --}}
+                        <li class="hc-tag hc-tag--soft">
+                            <span class="inline-flex" x-show="!d.closed"><x-ic name="home" class="size-[1em]" /></span>
+                            <span class="inline-flex" x-show="d.closed"><x-ic name="building" class="size-[1em]" /></span>
+                            <span x-text="(d.closed ? @js(__('general.composer.center-day-off')) : @js(__('general.composer.own-day-off'))) + ': ' + d.name"></span>
                         </li>
                     </template>
                     <li x-show="!daysOff.length" class="text-small text-ink-3">@lang('general.composer.no-days-off')</li>

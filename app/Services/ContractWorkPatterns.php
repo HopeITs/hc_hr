@@ -176,6 +176,13 @@ class ContractWorkPatterns
             $fail('effective_from', 'outside-term');
         }
 
+        // The days an amendment set on its date are the signed terms: a change
+        // on that very date would replace them and drop the amendment from the
+        // history. Another date, or another amendment.
+        if ($contract->workPatterns()->whereDate('effective_from', $date->toDateString())->whereNotNull('contract_amendment_id')->exists()) {
+            $fail('effective_from', 'amendment-date');
+        }
+
         $locked = AttendanceMonth::query()
             ->where('employee_id', $contract->employee_id)
             ->whereNotNull('locked_at')

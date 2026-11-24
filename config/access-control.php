@@ -492,6 +492,8 @@ return [
         'contract.contract-work-days' => [
             'openChange' => 'contracts.update',
             'toggleDay' => 'contracts.update',
+            'updatedDays' => 'contracts.update',
+            'updatedEffectiveFrom' => 'contracts.update',
             'save' => 'contracts.update',
         ],
         'contract.contract-amendments' => [
