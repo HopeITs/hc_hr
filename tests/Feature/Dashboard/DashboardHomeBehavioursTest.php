@@ -303,23 +303,6 @@ class DashboardHomeBehavioursTest extends TestCase
             ->assertSeeHtml('class="hc-acnum"');
     }
 
-    /** "My leaves" made big shows its balance, never the whole page in a frame. */
-    public function test_a_big_my_leaves_shortcut_shows_the_balance_not_the_page(): void
-    {
-        $city = $this->makeCity('ALP', '001');
-        $staff = $this->makeUser($city, 'employee', ['leaves.view-own']);
-
-        Livewire::actingAs($staff)->test(AppCard::class, ['tile' => 'app.nav.my-space.leaves'])
-            ->assertDontSeeHtml('<iframe')
-            ->assertSeeHtml('class="hc-ac');
-
-        foreach (['en', 'ar'] as $locale) {
-            foreach (['app-card.no-balance', 'app-card.days-available'] as $key) {
-                $this->assertNotSame('dashboard.'.$key, __('dashboard.'.$key, [], $locale), "{$key} {$locale}");
-            }
-        }
-    }
-
     public function test_every_new_string_is_in_both_languages(): void
     {
         foreach (['tiles.late', 'tiles.decide', 'late-tile.none', 'decide-tile.none', 'home.nothing', 'home.page-open',

@@ -105,6 +105,8 @@ const OPEN = (() => {
     }
 })();
 // What a card marks as "nothing here right now"; a loading placeholder is never empty.
+// The tallest a shortcut's card grows to fit its page (cardRows).
+const CARD_MAX_ROWS = 10;
 const EMPTY_MARK = '[data-tile-empty], [data-state="empty"], .hc-nt-empty';
 // A press or a click on these is not "outside" while customising.
 const NOT_OUTSIDE = '.hc-tile, button, a, input, select, textarea, label, dialog, [role="dialog"], .hc-sheet-back, [data-slot="bottom-bar-picker"], ' + OPEN;
@@ -1155,6 +1157,16 @@ function homeScreen() {
             });
             observer.observe(grid, { childList: true, subtree: true });
             cleanup.push(() => observer.disconnect());
+            // A page inside a card says when its height changes (partials/head.blade.php).
+            const framed = () => {
+                if (frame) return;
+                frame = requestAnimationFrame(() => {
+                    frame = null;
+                    this.readEmpty();
+                });
+            };
+            window.addEventListener('hc-card-page-resized', framed);
+            cleanup.push(() => window.removeEventListener('hc-card-page-resized', framed));
             this.readEmpty();
             this.fitCharts();
         },
@@ -1187,7 +1199,15 @@ function homeScreen() {
             for (const tile of this.tiles()) {
                 const key = tile.dataset.key;
                 const body = tile.querySelector(':scope > .hc-tile-body');
-                if (! key || isApp(key) || ! body) continue;
+                if (! key || ! body) continue;
+                // A shortcut shown as a card holds its page in a frame: the card takes the rows
+                // that page needs (cardRows), so it opens fitted, with nothing to scroll.
+                if (isApp(key)) {
+                    const rows = this.cardRows(tile);
+                    if (rows > 0) fit[key] = rows;
+                    else if (this.fit[key]) fit[key] = this.fit[key];
+                    continue;
+                }
                 // Still loading: it keeps what it was last known to be (this visit, or remembered
                 // from the last one), so a remembered empty card does not open and close again.
                 if (body.querySelector('[data-state="loading"]')) {
@@ -1212,6 +1232,31 @@ function homeScreen() {
                 this.empty = next;
                 this.fit = fit;
             });
+        },
+
+        /*
+         * Rows a shortcut's card needs to show its page whole: the page's own height
+         * (read from the frame, same origin) plus the card's header and edges, in grid
+         * rows. 0 while the frame has not loaded. Capped at CARD_MAX_ROWS: a longer page
+         * scrolls inside its card rather than pushing the dashboard down without end.
+         */
+        cardRows(tile) {
+            const frame = tile.querySelector('iframe.hc-acframe');
+            let content = 0;
+            try {
+                const page = frame?.contentDocument?.querySelector('#main-content > div');
+                content = page ? Math.ceil(page.scrollHeight) : 0;
+            } catch (e) {
+                return 0;
+            }
+            if (! content) return 0;
+            const grid = this.$refs.grid;
+            const style = getComputedStyle(grid);
+            const row = parseFloat(style.gridAutoRows) || 80;
+            const gap = parseFloat(style.rowGap) || 0;
+            const chrome = Math.max(0, tile.getBoundingClientRect().height - frame.getBoundingClientRect().height);
+
+            return Math.min(CARD_MAX_ROWS, Math.max(2, Math.ceil((content + chrome + gap) / (row + gap))));
         },
 
         // ---- the wheel: a card keeps it only where there is more to scroll ----

@@ -353,8 +353,6 @@ return [
         'inbox-empty' => 'Your inbox is clear.',
         'ending-soon' => '{0} contracts ending within 30 days|{1} contract ending within 30 days|[2,*] contracts ending within 30 days',
         'not-renewed' => 'Ended without renewal',
-        'days-available' => '{0} days available|{1} day available|[2,*] days available',
-        'no-balance' => 'No leave balance yet.',
     ],
 
     // Prompt 7: the top of the dashboard (Dashboard\Header), fixed above the tiles.

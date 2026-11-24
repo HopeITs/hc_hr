@@ -39,6 +39,32 @@
         mark();
         new MutationObserver(mark).observe(root, { attributes: true, attributeFilter: ['class'] });
         document.addEventListener('livewire:navigated', mark);
+
+        // A dashboard card (data-ws-card): the card grows to the page. The page drops its
+        // title and breadcrumbs (the card has its own name) and tells the dashboard each time
+        // its height changes; the dashboard gives the card the rows it needs (home-screen.js
+        // cardRows), so it opens fitted, at full size, with nothing to scroll.
+        if (! window.frameElement.hasAttribute('data-ws-card')) return;
+        var markCard = function () { if (! root.classList.contains('in-card')) root.classList.add('in-card'); };
+        markCard();
+        new MutationObserver(markCard).observe(root, { attributes: true, attributeFilter: ['class'] });
+
+        var last = 0;
+        var tell = function () {
+            var page = document.querySelector('#main-content > div');
+            var height = page ? Math.ceil(page.scrollHeight) : 0;
+            if (! height || height === last) return;
+            last = height;
+            try { window.parent.dispatchEvent(new CustomEvent('hc-card-page-resized')); } catch (e) {}
+        };
+        var watch = function () {
+            var page = document.querySelector('#main-content > div');
+            if (! page || ! window.ResizeObserver) return tell();
+            new ResizeObserver(tell).observe(page);
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
+        window.addEventListener('load', tell);
+        document.addEventListener('livewire:navigated', watch);
     })();
 </script>
 {{-- D2-PWA install prompt. Chrome and Edge fire beforeinstallprompt once, often before

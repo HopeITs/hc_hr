@@ -461,6 +461,38 @@
         padding-bottom: 24px;
     }
 
+    /* A page inside a dashboard card (data-ws-card): fitted to the card. The card
+       carries the page's name, so the page's title and breadcrumbs go; tighter
+       edges; and no scrollbar (the head script zooms the page down to fit). */
+    html.in-card {
+        scrollbar-gutter: auto;
+        scrollbar-width: none;
+    }
+
+    html.in-card::-webkit-scrollbar {
+        display: none;
+    }
+
+    html.in-card .page-breadcrumb,
+    html.in-card #main-content header > div:first-child > h1,
+    html.in-card #main-content header > div:first-child > div:first-child {
+        display: none !important;
+    }
+
+    html.in-card #main-content {
+        padding-top: 12px !important;
+    }
+
+    html.in-card #main-content > div {
+        padding-inline: 12px;
+        padding-bottom: 12px;
+        min-height: 0;
+    }
+
+    html.in-card #main-content [class*="mb-6"]:first-child {
+        margin-bottom: 12px;
+    }
+
     /* Rendering: real kerning, no faked bold/italic (Somar Sans ships every
        weight in use) and the smoothest glyph drawing each system offers. */
     body {
