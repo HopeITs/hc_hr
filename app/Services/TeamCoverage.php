@@ -663,6 +663,8 @@ final class TeamCoverage
                 'position.center',
                 'position.jobLevel',
                 'position.department',
+                // Read by isWorkingDay() for every member: one query, not one each.
+                'workPatterns',
             ]);
     }
 
@@ -859,6 +861,12 @@ final class TeamCoverage
     {
         [$weekend, $holidays] = $this->calendarOf($contract, $from, $to);
 
+        // A contract with days of its own (a moved day off) is read on the
+        // day itself: they may change inside the range.
+        if ($contract->loadMissing('workPatterns')->workPatterns->isNotEmpty()) {
+            $weekend = $this->pricing->weekendFor($contract, $day)[0];
+        }
+
         return ! in_array($day->dayOfWeek, $weekend, true) && ! isset($holidays[$day->toDateString()]);
     }
 
@@ -873,13 +881,15 @@ final class TeamCoverage
         $key = implode(':', [
             $position?->center_id, $position?->program_id, $position?->city_id, $contract->employee?->city_id,
             $from->toDateString(), $to->toDateString(),
+            // Days of its own are this contract's alone: never shared with a teammate.
+            $contract->loadMissing('workPatterns')->workPatterns->isNotEmpty() ? 'c'.$contract->id : '',
         ]);
 
         // Official holidays only: the cache is shared by everyone with the same
         // key, so one person's birthday must not become a teammate's holiday.
         // A birthday holiday is an absence of its own (birthdayHolidays()).
         return $this->calendars[$key] ??= [
-            $this->pricing->weekendFor($contract)[0],
+            $this->pricing->weekendFor($contract, $from)[0],
             $this->pricing->officialHolidayDates($contract, $from, $to),
         ];
     }

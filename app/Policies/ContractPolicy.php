@@ -77,6 +77,21 @@ class ContractPolicy
     }
 
     /**
+     * Move a contract's day off from a date on (ContractWorkPatterns): HR of
+     * the contract's city, HR Syria for every city — the people who edit the
+     * contract — while it is in force. Not an amendment: which days is not a
+     * printed term.
+     */
+    public function changeWorkDays(User $user, Contract $contract): bool
+    {
+        return $user->activeRoleIs('HR')
+            && $user->hasActivePermission('contracts.update')
+            && $contract->is_active
+            && ! $contract->isTerminated()
+            && $this->isVisibleTo($user, $contract);
+    }
+
+    /**
      * Approve a draft once signed, or change it before: the people who may
      * draft one, while the contract is still in force. A draft left open on a
      * contract that has since ended can only be deleted.

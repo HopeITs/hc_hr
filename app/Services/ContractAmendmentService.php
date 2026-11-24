@@ -154,6 +154,11 @@ class ContractAmendmentService
 
             $this->leaveBalances->rescaleForDailyHours($contract, $amendment->dailyHoursBefore(), $amendment->dailyHoursAfter());
 
+            // New days apply from the amendment's date; the months before keep theirs.
+            if (in_array('work_weekdays', $changed, true)) {
+                app(ContractWorkPatterns::class)->fromAmendment($amendment->setRelation('contract', $contract));
+            }
+
             $amendment->update([
                 'status' => ContractAmendmentStatus::Applied,
                 'applied_at' => now(),

@@ -13,6 +13,7 @@ use App\Models\Holiday;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\LeaveRequestPricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -22,7 +23,8 @@ use Illuminate\Support\Collection;
  *
  * Where each figure comes from:
  *  - the days the contract covers, and its daily hours: the contract;
- *  - weekends: the center's weekend setting; holidays: the Holidays page;
+ *  - weekends: the center's weekend setting, plus the days the contract's work pattern
+ *    leaves out on that day (Contract::workWeekdaysOn()); holidays: the Holidays page;
  *  - leave: accepted leave requests (a full day or an hourly leave);
  *  - worked or not, and the time at work: the uploaded punches (first to last of the day);
  *  - a working day with no record, or only one punch: nothing is assumed, it waits for HR
@@ -50,6 +52,9 @@ class Timesheet
     public const DECIDED_WORKED = 'decided_worked';
 
     public const DECIDED_ABSENT = 'decided_absent';
+
+    /** One for the whole page, so the program centers' weekend is read once (it caches). */
+    private ?LeaveRequestPricing $pricing = null;
 
     /**
      * @return array{
@@ -85,7 +90,7 @@ class Timesheet
         $last = $month->endOfMonth()->startOfDay();
 
         $contracts = Contract::query()
-            ->with('position.center', 'position.program', 'position.department')
+            ->with('position.center', 'position.program', 'position.department', 'workPatterns')
             ->whereIn('employee_id', $ids)
             ->where('type', '!=', ContractType::Draft)
             ->whereDate('start_date', '<=', $last)
@@ -211,12 +216,14 @@ class Timesheet
             $key = ($position?->program_id ?? 0).'-'.($position?->city_id ?? 0);
             $holidayCache[$key] ??= $this->holidaysFor($position?->program_id, $position?->city_id, $first, $last);
 
-            // Days picked one by one on the contract: every other day is off
-            // (Study Zone's center day plus the volunteer's own).
-            $workdays = $contract->workWeekdays();
-            $weekends = $workdays !== null
-                ? array_values(array_diff(range(0, 6), $workdays))
-                : array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
+            $weekends = array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
+            // The contract's own days in force on this day (a Study Zone
+            // volunteer's day off, moved from a date on): the same days off
+            // leave is priced with — every day they do not list, plus the
+            // place's own (the program's centers when there is no center).
+            if ($contract->workWeekdaysOn($day) !== null) {
+                $weekends = ($this->pricing ??= app(LeaveRequestPricing::class))->weekendFor($contract, $day)[0];
+            }
             $block = max(1, (int) $overtime['block_minutes']);
 
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {

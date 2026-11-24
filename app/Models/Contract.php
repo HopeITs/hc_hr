@@ -8,6 +8,7 @@ use App\Enums\ContractType as ContractTypeEnum;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
 use Closure;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -325,6 +326,31 @@ class Contract extends Model
     public function payTiers()
     {
         return $this->hasMany(ContractPayTier::class)->orderBy('sort_order');
+    }
+
+    /** The days worked from each date on, oldest first (ContractWorkPatterns). */
+    public function workPatterns()
+    {
+        return $this->hasMany(ContractWorkPattern::class)->orderBy('effective_from');
+    }
+
+    /**
+     * The days this contract works on $date: the work pattern in force then,
+     * or null when none is (the day range and the center's weekend apply).
+     *
+     * @return array<int, int>|null
+     */
+    public function workWeekdaysOn(DateTimeInterface|string $date): ?array
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        $day = Carbon::parse($date)->toDateString();
+
+        return $this->loadMissing('workPatterns')->workPatterns
+            ->last(fn (ContractWorkPattern $pattern) => $pattern->effective_from->toDateString() <= $day)
+            ?->days();
     }
 
     public function amendments()

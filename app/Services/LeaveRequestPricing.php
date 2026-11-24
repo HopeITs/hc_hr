@@ -14,6 +14,7 @@ use App\Models\LeaveRequest;
 use App\Support\Leave\LeaveQuote;
 use App\Support\Leave\LeaveWindow;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -112,12 +113,11 @@ class LeaveRequestPricing
         $explanation = [];
 
         // --- Schedule ---------------------------------------------------------
-        [$weekend, $weekendSource] = $this->weekendFor($contract);
-        // The contract's own days off that are not the place's, listed apart
-        // so the employee sees which day was skipped as their own day off.
-        $ownDaysOff = $weekendSource === 'contract'
-            ? array_values(array_diff($weekend, $this->placeWeekendFor($contract)[0]))
-            : [];
+        // The days in force on the first day price the day (hours per day);
+        // each date below is checked against the days in force on it, since a
+        // day off moved during the leave (ContractWorkPatterns) changes them.
+        [$weekend, $weekendSource] = $this->weekendFor($contract, $window->startDate);
+        $placeWeekend = $this->placeWeekendFor($contract)[0];
         $explanation[] = $this->line('weekend_'.$weekendSource, ['weekdays' => implode(',', $weekend)]);
 
         if ($weekendSource === 'default') {
@@ -155,8 +155,12 @@ class LeaveRequestPricing
             $key = $date->toDateString();
 
             // A holiday that falls on a weekend is listed once, as weekend.
-            if (! $calendarDays && in_array($date->dayOfWeek, $weekend, true)) {
-                $excludedDates[] = ['date' => $key, 'reason' => in_array($date->dayOfWeek, $ownDaysOff, true) ? 'day_off' : 'weekend'];
+            $offThatDay = $this->weekendFor($contract, $date)[0];
+
+            if (! $calendarDays && in_array($date->dayOfWeek, $offThatDay, true)) {
+                // The contract's own day off, apart from the place's, so the
+                // employee sees which day was skipped as their own.
+                $excludedDates[] = ['date' => $key, 'reason' => in_array($date->dayOfWeek, $placeWeekend, true) ? 'weekend' : 'day_off'];
             } elseif (isset($holidays[$key])) {
                 $excludedDates[] = ['date' => $key, 'reason' => 'holiday'];
             } else {
@@ -329,21 +333,29 @@ class LeaveRequestPricing
     /**
      * The weekend that applies to $contract, as day-of-week numbers (0 = Sunday).
      *
-     * A contract whose working days were picked one by one (work_weekdays)
-     * has every other day off: Study Zone's center day off plus the day the
-     * volunteer chose. Otherwise the place's weekend (placeWeekendFor()).
+     * On $on (today when null): when a work pattern is in force then
+     * (Contract::workWeekdaysOn()), every day it does not list is off, and
+     * so is the place's own day off whatever the pattern says — a center
+     * closing on a new day is never charged. Otherwise the place's weekend
+     * (placeWeekendFor()).
      *
      * @return array{0: array<int, int>, 1: 'contract'|'center'|'program'|'default'}
      */
-    public function weekendFor(Contract $contract): array
+    public function weekendFor(Contract $contract, ?CarbonInterface $on = null): array
     {
-        $workdays = $contract->workWeekdays();
+        $place = $this->placeWeekendFor($contract);
+        $workdays = $contract->workWeekdaysOn($on ?? today());
 
-        if ($workdays !== null) {
-            return [array_values(array_diff(range(0, 6), $workdays)), 'contract'];
+        if ($workdays === null) {
+            return $place;
         }
 
-        return $this->placeWeekendFor($contract);
+        // The code default is a guess, not a place's day off: never add it.
+        $closed = $place[1] === 'default' ? [] : $place[0];
+        $weekend = array_values(array_unique([...array_diff(range(0, 6), $workdays), ...$closed]));
+        sort($weekend);
+
+        return [$weekend, 'contract'];
     }
 
     /**

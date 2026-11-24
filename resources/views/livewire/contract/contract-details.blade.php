@@ -112,6 +112,8 @@
         </x-card>
     @endif
 
+    <livewire:contract.contract-work-days :contract="$contract" :key="'work-days-'.$contract->id" />
+
     <livewire:contract.contract-amendments :contract="$contract" :key="'amendments-'.$contract->id" />
 
     @php($signed = $contract->asSigned())

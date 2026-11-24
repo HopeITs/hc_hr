@@ -55,8 +55,12 @@ class WorkdayClock
             return null;
         }
 
-        $from = $contract->work_day_from;
-        $to = $contract->work_day_to;
+        $today = CarbonImmutable::instance($now ?? now())->setTimezone(self::TIMEZONE);
+        // Days of its own in force today (a moved day off) say it outright.
+        $ownDays = $contract->workWeekdaysOn($today->toDateString());
+
+        $from = $ownDays !== null ? 0 : $contract->work_day_from;
+        $to = $ownDays !== null ? 6 : $contract->work_day_to;
 
         if ($readDayText && $from === null && $to === null) {
             [$from, $to] = self::dayRangeFromText($contract->work_days_en) ?? [null, null];
@@ -68,13 +72,14 @@ class WorkdayClock
             return null;
         }
 
-        $today = CarbonImmutable::instance($now ?? now())->setTimezone(self::TIMEZONE);
         $date = $today->toDateString();
         $day = CarbonImmutable::parse($date);   // the Damascus date, as a plain day
 
         // Sunday (0) to Saturday (6); a range like Saturday to Thursday wraps.
         $dow = $today->dayOfWeek;
-        $working = $from <= $to ? $dow >= $from && $dow <= $to : $dow >= $from || $dow <= $to;
+        $working = $ownDays !== null
+            ? in_array($dow, $ownDays, true)
+            : ($from <= $to ? $dow >= $from && $dow <= $to : $dow >= $from || $dow <= $to);
 
         // The same holidays as officialHolidayDates() (national and project ones,
         // never the birthday), read with their rows so the day can be named.

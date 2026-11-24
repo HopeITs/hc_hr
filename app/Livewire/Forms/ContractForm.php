@@ -14,6 +14,7 @@ use App\Models\ContractPayTier;
 use App\Models\ContractType;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Services\ContractWorkPatterns;
 use App\Services\LeaveRequestPricing;
 use Carbon\Carbon;
 use Closure;
@@ -260,6 +261,12 @@ class ContractForm extends Form
 
         $this->start_date = $start;
         $this->end_date = $end;
+
+        // The days worked at the end of the old term, a day off moved since
+        // included, are where the new one starts.
+        if ($source->end_date !== null && ($lastDays = $source->workWeekdaysOn($source->end_date)) !== null) {
+            $this->work_weekdays = $lastDays;
+        }
     }
 
     public function fillFromModel(Contract $contract): void
@@ -476,6 +483,7 @@ class ContractForm extends Form
             }
 
             $this->syncPayTiers($this->contract);
+            $this->syncWorkPatterns($this->contract);
 
             return $this->contract;
         });
@@ -489,6 +497,7 @@ class ContractForm extends Form
         return DB::transaction(function (): Contract {
             $this->contract = $this->insert();
             $this->syncPayTiers($this->contract);
+            $this->syncWorkPatterns($this->contract);
 
             return $this->contract;
         });
@@ -503,6 +512,7 @@ class ContractForm extends Form
         return DB::transaction(function () use ($contract): bool {
             $result = $contract->update($this->buildPayload());
             $this->syncPayTiers($contract);
+            $this->syncWorkPatterns($contract);
 
             return $result;
         });
@@ -546,6 +556,8 @@ class ContractForm extends Form
             // Automatically deactivate when a termination is recorded
             'is_active' => $isTerminated ? false : $this->is_active,
         ]);
+
+        $this->syncWorkPatterns($this->contract);
     }
 
     public function savePay(): void
@@ -707,6 +719,25 @@ class ContractForm extends Form
         $contract->save();
 
         return $contract;
+    }
+
+    /**
+     * The picked days are the contract's work pattern from its start date
+     * (ContractWorkPatterns::syncInitial()). Only when they or the start date
+     * changed; and never once an amendment has been applied, whose own date
+     * carries its days — rewriting the first row would erase the history.
+     */
+    private function syncWorkPatterns(Contract $contract): void
+    {
+        if (! $contract->wasRecentlyCreated && ! $contract->wasChanged(['work_weekdays', 'start_date'])) {
+            return;
+        }
+
+        if ($contract->hasAppliedAmendments()) {
+            return;
+        }
+
+        app(ContractWorkPatterns::class)->syncInitial($contract);
     }
 
     /**
