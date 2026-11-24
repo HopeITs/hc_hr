@@ -89,6 +89,25 @@ class AppCard extends Component
                     ],
                 ];
             })(),
+            // The annual balance, as the "My leaves" card reads it. Without a summary the
+            // card would embed the whole page (its header, breadcrumbs and scrollbar).
+            'nav.my-space.leaves' => (function () use ($user) {
+                $leave = $user?->profile?->availableLeaves()?->first();
+
+                if (! $leave) {
+                    return ['rows' => [], 'empty' => __('dashboard.app-card.no-balance')];
+                }
+
+                return [
+                    'num' => $leave->int_available,
+                    'unit' => trans_choice('dashboard.app-card.days-available', $leave->int_available),
+                    'rows' => [
+                        ['t' => __('general.used'), 's' => (string) $leave->used_rounded],
+                        ['t' => __('general.pending'), 's' => (string) $leave->pending_rounded],
+                        ['t' => __('general.total'), 's' => (string) $leave->deserved_rounded],
+                    ],
+                ];
+            })(),
             default => ['rows' => []],
         };
     }
