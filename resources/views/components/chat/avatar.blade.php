@@ -21,7 +21,7 @@
     @if ($userId)
         {{-- Shown by chat.js while that person is online. --}}
         <span hidden data-chat-online-dot="{{ (int) $userId }}"
-              class="absolute bottom-0 end-0 size-[28%] min-h-2 min-w-2 rounded-full border-2 border-card bg-[#3FA34D]"
+              class="absolute bottom-0 end-0 size-[28%] min-h-2 min-w-2 rounded-full border-2 border-card bg-ink"
               aria-hidden="true" data-testid="chat-online-dot"></span>
     @endif
 </span>

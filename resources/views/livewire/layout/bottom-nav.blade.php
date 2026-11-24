@@ -20,7 +20,7 @@
      "ملفي الشخصي") does not push its icon out of line with the others. Narrow phones get
      11px labels and less side padding, so a long single word ("Dashboard") is not cut. --}}
 @php
-    $place = 'relative flex min-h-14 w-full flex-col items-center justify-start gap-0.5 px-0.5 pt-2 pb-1.5 text-caption max-[379px]:text-[11px] font-semibold leading-tight focus-visible:outline-2';
+    $place = 'relative flex min-h-14 w-full flex-col items-center justify-start gap-0.5 px-0.5 pt-2 pb-1.5 text-caption max-[379px]:text-caption font-semibold leading-tight focus-visible:outline-2';
     $tile = 'flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-body font-semibold focus-visible:outline-2';
 @endphp
 <nav aria-label="{{ __('general.nav.bottom') }}" data-testid="bottom-nav"

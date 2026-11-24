@@ -17,11 +17,11 @@
             <table class="min-w-full text-body text-start text-ink">
                 <thead class="bg-surface text-ink-2 uppercase text-small tracking-wider">
                     <tr>
-                        <th class="px-4 py-3">{{ __('general.employee') }}</th>
-                        <th class="px-4 py-3">{{ __('general.item') }}</th>
-                        <th class="px-4 py-3">{{ __('general.return_requested_at') }}</th>
-                        <th class="px-4 py-3">{{ __('general.note') }}</th>
-                        <th class="px-4 py-3 text-center w-40"></th>
+                        <th scope="col" class="px-4 py-3">{{ __('general.employee') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ __('general.item') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ __('general.return_requested_at') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ __('general.note') }}</th>
+                        <th scope="col" class="px-4 py-3 text-center w-40"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line-soft bg-card">

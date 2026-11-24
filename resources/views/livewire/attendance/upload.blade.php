@@ -52,10 +52,10 @@
                 <table class="w-full text-start text-body">
                     <thead>
                         <tr class="border-b border-line-soft text-small text-ink-2">
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.device-no')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.employee')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
-                            <th class="py-2 text-start font-semibold">@lang('attendance.upload.status')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.device-no')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.employee')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
+                            <th scope="col" class="py-2 text-start font-semibold">@lang('attendance.upload.status')</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,10 +100,10 @@
                 <table class="w-full text-start text-body">
                     <thead>
                         <tr class="border-b border-line-soft text-small text-ink-2">
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.device-no')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.seen')</th>
-                            <th class="py-2 text-start font-semibold">@lang('attendance.upload.employee-id')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.device-no')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.seen')</th>
+                            <th scope="col" class="py-2 text-start font-semibold">@lang('attendance.upload.employee-id')</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -138,11 +138,11 @@
                 <table class="w-full text-start text-body">
                     <thead>
                         <tr class="border-b border-line-soft text-small text-ink-2">
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.file')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.period')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
-                            <th class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.new')</th>
-                            <th class="py-2 text-start font-semibold">@lang('attendance.upload.by')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.file')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.period')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.punches')</th>
+                            <th scope="col" class="py-2 pe-4 text-start font-semibold">@lang('attendance.upload.new')</th>
+                            <th scope="col" class="py-2 text-start font-semibold">@lang('attendance.upload.by')</th>
                         </tr>
                     </thead>
                     <tbody>

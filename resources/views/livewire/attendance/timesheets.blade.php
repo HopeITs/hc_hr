@@ -137,7 +137,7 @@
                     <div title="{{ $label }}" class="{{ $cls }}">
                 @endif
                     <span class="text-body font-extrabold leading-none num">{{ $row['date']->day }}</span>
-                    <span class="mt-auto w-full text-caption font-semibold leading-tight sm:text-caption">
+                    <span class="mt-auto w-full text-caption font-semibold leading-tight">
                         @switch($k)
                             @case(Sheet::WORKED)
                                 <span class="hidden text-ink-2 sm:block num" dir="ltr">{{ $hm($row['first']) }}–{{ $hm($row['last']) }}</span>

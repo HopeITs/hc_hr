@@ -1,6 +1,6 @@
 <div class="mb-4" >
     <div class="w-1/4">
-        <x-forms.input  type="text"  id="search" name="search" :placeholder="__('general.search')" wire:model.live="search"/>
+        <x-forms.input  type="text"  id="search" name="search" aria-label="{{ __('general.search') }}" :placeholder="__('general.search')" wire:model.live="search"/>
     </div>
 
 </div>

@@ -43,7 +43,7 @@
         {{-- A count (the work inbox): beside the label, or on the icon when the sidebar is collapsed.
              A red circle with the number in its centre (17px; two digits or more widen it into a capsule). --}}
         @if ($badge !== null)
-            <span class="ms-2 inline-flex h-[17px] min-w-[17px] shrink-0 items-center justify-center rounded-full px-[3.4px] text-[10.2px] font-bold leading-none tabular-nums bg-primary text-on-brand"
+            <span class="ms-2 inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-caption font-bold leading-none tabular-nums bg-primary text-on-brand"
                   :class="sidebarCollapsed && !open ? 'md:absolute md:top-0 md:end-0 md:ms-0' : ''"
                   aria-label="{{ $badgeLabel ?? $badge }}" data-testid="nav-badge">{{ $badge }}</span>
         @endif

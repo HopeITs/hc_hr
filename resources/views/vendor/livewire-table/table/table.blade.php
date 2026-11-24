@@ -4,24 +4,24 @@
     <thead class="border-b border-line-soft">
     <tr class="group">
         @if($this->canSelect())
-            <th class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" class="p-0 text-start text-ink-2 bg-soft">
                 <input type="checkbox" wire:model.live="selectedPage" class="size-4 mx-3">
             </th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 {{ $column->renderHeader() }}
             </th>
         @endforeach
     </tr>
     <tr class="group" data-tour="table.column-search">
         @if($this->canSelect())
-            <th class="p-0 text-start text-ink-2 bg-soft"></th>
+            <th scope="col" class="p-0 text-start text-ink-2 bg-soft"></th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 @if($column->isSearchable())
                     {{ $column->renderSearch() }}
                 @endif
@@ -117,11 +117,11 @@
     <tfoot class="border-t border-line-soft">
     <tr class="group">
         @if($this->canSelect())
-            <th class="p-0 text-start text-ink-2 bg-soft"></th>
+            <th scope="col" class="p-0 text-start text-ink-2 bg-soft"></th>
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
                 {{ $column->renderFooter() }}
             </th>
         @endforeach

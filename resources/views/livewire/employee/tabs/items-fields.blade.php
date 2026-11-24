@@ -6,10 +6,10 @@
             <table class="min-w-full divide-y divide-line-soft">
                 <thead class="bg-soft">
                     <tr>
-                        <th class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.item')</th>
-                        <th class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.note')</th>
-                        <th class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.status')</th>
-                        <th class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.received_at')</th>
+                        <th scope="col" class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.item')</th>
+                        <th scope="col" class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.note')</th>
+                        <th scope="col" class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.status')</th>
+                        <th scope="col" class="px-6 py-3 text-start text-small font-medium text-ink-2 uppercase tracking-wider">@lang('general.received_at')</th>
                     </tr>
                 </thead>
                 <tbody class="bg-card divide-y divide-line-soft">

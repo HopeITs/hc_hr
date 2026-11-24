@@ -24,10 +24,10 @@
                     <table class="w-full text-body text-ink">
                         <thead>
                         <tr class="border-b border-b-line text-ink-2">
-                            <th class="sticky top-0 z-10 bg-card py-1 w-10 text-center font-medium"></th>
-                            <th class="sticky top-0 z-10 bg-card py-1 font-medium text-start"></th>
-                            <th class="sticky top-0 z-10 bg-card py-1 px-3 ltr:text-right rtl:text-left font-medium">@lang('general.actions')</th>
-                            <th class="sticky top-0 z-10 bg-card py-1 text-center font-medium w-16">@lang('general.done')!</th>
+                            <th scope="col" class="sticky top-0 z-10 bg-card py-1 w-10 text-center font-medium"></th>
+                            <th scope="col" class="sticky top-0 z-10 bg-card py-1 font-medium text-start"></th>
+                            <th scope="col" class="sticky top-0 z-10 bg-card py-1 px-3 ltr:text-right rtl:text-left font-medium">@lang('general.actions')</th>
+                            <th scope="col" class="sticky top-0 z-10 bg-card py-1 text-center font-medium w-16">@lang('general.done')!</th>
                         </tr>
                         </thead>
 

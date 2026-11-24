@@ -224,7 +224,7 @@
     </div>
 
     @if ($showCreateFolderModal)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('showCreateFolderModal', false)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('showCreateFolderModal', false)" x-data x-on:keydown.escape.window="$wire.$set('showCreateFolderModal', false)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -248,7 +248,7 @@
     @endif
 
     @if ($editingFolderId)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('editingFolderId', null)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('editingFolderId', null)" x-data x-on:keydown.escape.window="$wire.$set('editingFolderId', null)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -270,7 +270,7 @@
     @endif
 
     @if ($editingFileId)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('editingFileId', null)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('editingFileId', null)" x-data x-on:keydown.escape.window="$wire.$set('editingFileId', null)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -297,7 +297,7 @@
         $canPreviewInOffice = in_array($previewExtension, ['docx', 'xlsx', 'pptx'], true);
         $canExtractOfficeText = in_array($previewExtension, ['docx', 'xlsx'], true);
     @endphp
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="closePreviewModal"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="closePreviewModal" x-data x-on:keydown.escape.window="$wire.closePreviewModal()"></div>
     <div class="fixed z-50 w-full max-w-5xl -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="flex flex-col max-h-[88vh] mx-4 overflow-hidden bg-card border border-line-soft rounded-surface shadow-e3">
             <div class="flex items-center justify-between gap-4 px-4 py-4 border-b border-line-soft bg-soft">
@@ -401,7 +401,7 @@
     @endif
 
     @if ($showPermissionsModal)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="closePermissionsModal"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="closePermissionsModal" x-data x-on:keydown.escape.window="$wire.closePermissionsModal()"></div>
     <div class="fixed z-50 w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="flex flex-col mx-4 overflow-hidden bg-card border border-line-soft rounded-surface shadow-e3">
             <div class="px-6 py-4 border-b border-line-soft bg-soft">

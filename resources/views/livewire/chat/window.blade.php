@@ -28,7 +28,7 @@
                     <span class="min-w-0 flex-1 truncate text-small font-semibold text-primary" hidden
                           data-chat-when-typing="{{ $conversationId }}">{{ __('chat.ui.typing') }}</span>
                     @if ($summary['unread'] > 0)
-                        <span class="min-w-[18px] rounded-full px-1.5 text-center text-[11px] font-semibold text-white {{ $summary['muted'] ? 'bg-ink-3' : 'bg-primary' }}">{{ $summary['unread'] }}</span>
+                        <span class="min-w-[18px] rounded-full px-1.5 text-center text-caption font-semibold text-white {{ $summary['muted'] ? 'bg-ink-3' : 'bg-primary' }}">{{ $summary['unread'] }}</span>
                     @endif
                 </button>
                 <button type="button" wire:click="$parent.close({{ $conversationId }})"
@@ -63,7 +63,7 @@
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-small font-semibold text-ink">{{ $summary['title'] }}</p>
                         {{-- Status line: typing… beats online, online beats last seen. --}}
-                        <p class="truncate text-[11px] text-primary" hidden data-chat-when-typing="{{ $conversationId }}" data-testid="chat-typing">
+                        <p class="truncate text-caption text-primary" hidden data-chat-when-typing="{{ $conversationId }}" data-testid="chat-typing">
                             @if ($isGroup)
                                 <span data-chat-typing-name="{{ $conversationId }}" data-template="{{ __('chat.ui.typing_named', ['name' => ':name']) }}"></span>
                             @else
@@ -72,13 +72,13 @@
                         </p>
                         <div data-chat-when-not-typing="{{ $conversationId }}">
                             @if ($isGroup)
-                                <p class="truncate text-[11px] text-ink-3">{{ trans_choice('chat.ui.members', $summary['members'], ['count' => $summary['members']]) }}</p>
+                                <p class="truncate text-caption text-ink-3">{{ trans_choice('chat.ui.members', $summary['members'], ['count' => $summary['members']]) }}</p>
                             @elseif (! $summary['other_active'])
-                                <p class="truncate text-[11px] text-ink-3">{{ __('chat.ui.deactivated') }}</p>
+                                <p class="truncate text-caption text-ink-3">{{ __('chat.ui.deactivated') }}</p>
                             @else
-                                <p class="truncate text-[11px] text-[#3FA34D]" hidden
+                                <p class="truncate text-caption text-ink-2" hidden
                                    data-chat-when-online="{{ (int) $summary['other_user_id'] }}" data-testid="chat-status-online">{{ __('chat.ui.online') }}</p>
-                                <p class="truncate text-[11px] text-ink-3"
+                                <p class="truncate text-caption text-ink-3"
                                    data-chat-when-offline="{{ (int) $summary['other_user_id'] }}" data-testid="chat-status-last-seen">{{ $summary['other_last_seen'] }}</p>
                             @endif
                         </div>
@@ -118,7 +118,7 @@
                     @if ($hasOlder)
                         <div class="mb-2 flex justify-center">
                             <button type="button" x-on:click="older()"
-                                    class="rounded-full bg-card px-3 py-1 text-[11px] font-semibold text-ink-2 hover:text-ink">{{ __('chat.ui.older') }}</button>
+                                    class="rounded-full bg-card px-3 py-1 text-caption font-semibold text-ink-2 hover:text-ink">{{ __('chat.ui.older') }}</button>
                         </div>
                     @endif
 
@@ -126,12 +126,12 @@
                     @forelse ($messages as $message)
                         @if (\App\Livewire\Chat\Window::startsNewDay($previous, $message))
                             <div class="my-2 flex justify-center" wire:key="day-{{ $message->id }}">
-                                <span class="rounded-full bg-card px-2.5 py-0.5 text-[11px] text-ink-2">{{ \App\Support\ChatTime::dayLabel($message->created_at) }}</span>
+                                <span class="rounded-full bg-card px-2.5 py-0.5 text-caption text-ink-2">{{ \App\Support\ChatTime::dayLabel($message->created_at) }}</span>
                             </div>
                         @endif
 
                         @if ($message->isService())
-                            <p class="my-1.5 text-center text-[11px] text-ink-3" wire:key="m-{{ $message->id }}">{{ $directory->serviceText($message) }}</p>
+                            <p class="my-1.5 text-center text-caption text-ink-3" wire:key="m-{{ $message->id }}">{{ $directory->serviceText($message) }}</p>
                         @else
                             @php($mine = $message->sender_id === $viewerId)
                             <div class="mb-1 flex {{ $mine ? 'justify-end' : 'justify-start' }}" wire:key="m-{{ $message->id }}" data-testid="chat-message">
@@ -139,10 +139,10 @@
                                             {{-- Own messages: dark silver, not brand red (too loud for a whole thread). --}}
                                             {{ $mine ? 'bg-[#5C5D61] text-white' : 'bg-card text-ink' }}">
                                     @if ($isGroup && ! $mine)
-                                        <p class="text-[11px] font-semibold text-primary">{{ $directory->nameOf($message->sender) }}</p>
+                                        <p class="text-caption font-semibold text-primary">{{ $directory->nameOf($message->sender) }}</p>
                                     @endif
                                     @if ($message->isForwarded())
-                                        <p class="text-[11px] font-semibold {{ $mine ? 'text-white/90' : 'text-primary' }}">
+                                        <p class="text-caption font-semibold {{ $mine ? 'text-white/90' : 'text-primary' }}">
                                             {{ __('chat.ui.forwarded_from', ['name' => $directory->nameOf($message->forwardedFrom)]) }}
                                         </p>
                                     @endif
@@ -170,12 +170,12 @@
                                                 <svg class="size-6 shrink-0 {{ $mine ? 'text-white' : 'text-primary' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
                                                 <span class="min-w-0 flex-1">
                                                     <span class="block truncate text-[12px] font-semibold" dir="auto">{{ $attachment->original_name }}</span>
-                                                    <span class="block text-[11px] {{ $mine ? 'text-white/75' : 'text-ink-3' }}">{{ \Illuminate\Support\Number::fileSize($attachment->size, precision: 1) }}</span>
+                                                    <span class="block text-caption {{ $mine ? 'text-white/75' : 'text-ink-3' }}">{{ \Illuminate\Support\Number::fileSize($attachment->size, precision: 1) }}</span>
                                                 </span>
                                             </a>
                                         @endif
                                     @endforeach
-                                    <p class="mt-0.5 flex items-center justify-end gap-1 text-[10px] {{ $mine ? 'text-white/80' : 'text-ink-3' }}">
+                                    <p class="mt-0.5 flex items-center justify-end gap-1 text-caption {{ $mine ? 'text-white/80' : 'text-ink-3' }}">
                                         @if ($message->edited_at)<span>{{ __('chat.ui.edited') }}</span>@endif
                                         <span>{{ \App\Support\ChatTime::time($message->created_at) }}</span>
                                         @if ($mine)
@@ -217,12 +217,12 @@
                           data-max-bytes="{{ (int) config('chat.max_file_kb') * 1024 }}"
                           data-max-files="{{ (int) config('chat.max_files_per_message') }}">
                         @error('draft')
-                            <p class="mb-1 text-[11px] text-primary" role="alert">{{ $message }}</p>
+                            <p class="mb-1 text-caption text-primary" role="alert">{{ $message }}</p>
                         @enderror
 
                         {{-- Files chosen to send (before sending): Alpine's own list, so Livewire leaves it alone. --}}
                         <div wire:ignore>
-                            <p x-show="uploadError" x-text="uploadError" x-cloak class="mb-1 text-[11px] text-primary" role="alert"></p>
+                            <p x-show="uploadError" x-text="uploadError" x-cloak class="mb-1 text-caption text-primary" role="alert"></p>
                             <div x-show="files.length" x-cloak class="mb-1.5 flex flex-col gap-1" data-testid="chat-pending-files">
                                 <template x-for="(item, index) in files" :key="item.key">
                                     <div class="flex items-center gap-2 rounded-control bg-soft px-2 py-1.5">
@@ -236,7 +236,7 @@
                                         </template>
                                         <span class="min-w-0 flex-1">
                                             <span class="block truncate text-[12px] font-semibold text-ink" dir="auto" x-text="item.name"></span>
-                                            <span class="block text-[11px] text-ink-3" x-text="item.sizeLabel"></span>
+                                            <span class="block text-caption text-ink-3" x-text="item.sizeLabel"></span>
                                         </span>
                                         <button type="button" x-on:click="removeFile(index)" x-show="! uploading"
                                                 class="grid size-7 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-hover hover:text-ink"
