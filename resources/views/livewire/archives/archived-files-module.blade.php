@@ -442,10 +442,11 @@
                     @if ($groupShares)
                         <ul class="mt-3 divide-y divide-line-soft border border-line-soft rounded-control">
                             @foreach ($groupShares as $i => $share)
+                                @php $members = $groupMembers[$i] ?? []; @endphp
                                 <li class="flex flex-wrap items-center gap-2 px-3 py-2" wire:key="group-share-{{ $share['type'] }}-{{ $share['id'] }}">
                                     <span class="flex-1 min-w-0">
                                         <span class="block font-semibold text-ink truncate">{{ $groupTypes[$share['type']] ?? $share['type'] }}: {{ $share['label'] }}</span>
-                                        <span class="block text-caption text-ink-3 num">{{ trans_choice('folders.share.members-now', $groupCounts[$i] ?? 0, ['count' => $groupCounts[$i] ?? 0]) }}</span>
+                                        <span class="block text-caption text-ink-3 num">{{ trans_choice('folders.share.members-now', count($members), ['count' => count($members)]) }}</span>
                                     </span>
                                     <select aria-label="{{ __('folders.share.role-of', ['name' => $share['label']]) }}"
                                             wire:change="setGroupRole({{ $i }}, $event.target.value)"
@@ -459,6 +460,17 @@
                                             class="inline-flex items-center justify-center size-11 text-ink-2 rounded-control hover:bg-hover hover:text-ink">
                                         <svg viewBox="0 0 14 14" class="size-3.5 stroke-current" aria-hidden="true"><path d="M4 4l6 6m0-6l-6 6" stroke-width="1.6"/></svg>
                                     </button>
+                                    {{-- The people in it now, one click away: who a group share reaches. --}}
+                                    @if ($members)
+                                        <details class="w-full" data-testid="group-people">
+                                            <summary class="cursor-pointer text-small font-semibold text-ink-2 hover:text-ink">{{ __('folders.share.people-in-group', ['group' => $share['label']]) }}</summary>
+                                            <ul class="flex flex-wrap gap-1.5 pt-2">
+                                                @foreach ($members as $member)
+                                                    <li class="px-2.5 py-0.5 text-small border rounded-full bg-surface border-line-soft text-ink">{{ $member['name'] }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </details>
+                                    @endif
                                 </li>
                             @endforeach
                         </ul>
@@ -503,6 +515,7 @@
                 {{-- Share with people: one by one, each with a role. --}}
                 <h4 class="mt-5 text-body font-bold text-ink">{{ __('folders.share.people-title') }}</h4>
                 <p class="mt-0.5 text-small text-ink-2">{{ __('folders.share.people-hint') }}</p>
+                <p class="mt-0.5 text-small text-ink-3">{{ __('folders.share.people-any') }}</p>
 
                 {{-- Search --}}
                 <div class="mt-3">
@@ -612,6 +625,7 @@
                                 </span>
                                 <span class="flex-1 min-w-0">
                                     <span class="block text-body font-semibold text-ink truncate">{{ $uName }}</span>
+                                    @isset($viaGroups[$user->id])<span class="block text-caption text-ink-3" data-testid="via-group">{{ __("folders.share.through-group", ["group" => implode(", ", $viaGroups[$user->id])]) }}</span>@endisset
                                     @if($isCreator)<span class="text-caption text-ink-3">{{ __('folders.roles.owner') }}</span>@endif
                                 </span>
                             </button>
@@ -648,6 +662,7 @@
                                 class="flex items-center w-full gap-3 px-4 py-2 text-start transition-colors hover:bg-hover bg-card border-s-[3px] border-transparent">
                             <span class="flex-1 min-w-0">
                                 <span class="block text-body font-medium text-ink-2 truncate">{{ $uName }}</span>
+                                @isset($viaGroups[$user->id])<span class="block text-caption text-ink-3" data-testid="via-group">{{ __("folders.share.through-group", ["group" => implode(", ", $viaGroups[$user->id])]) }}</span>@endisset
                             </span>
                             <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-card border-line"></span>
                         </button>

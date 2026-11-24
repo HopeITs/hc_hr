@@ -680,6 +680,25 @@ class ArchivedFilesModule extends Component
                 && $toggleable->every(fn ($id) => in_array($id, $selectedIds, true));
         }
 
+        // The people each group holds now, so the dialog can name them, and the groups that
+        // reach each person (shown beside them in the list below).
+        $groupMembers = [];
+        $viaGroups = [];
+
+        if ($this->showPermissionsModal) {
+            foreach ($this->groupShares as $i => $share) {
+                $members = $this->access()->members($share['type'], (int) $share['id'])->with('profile')->get()
+                    ->map(fn (User $member) => ['id' => (int) $member->id, 'name' => $member->profile?->name ?? $member->email])
+                    ->sortBy('name')->values();
+
+                $groupMembers[$i] = $members->all();
+
+                foreach ($members as $member) {
+                    $viaGroups[$member['id']][] = $share['label'];
+                }
+            }
+        }
+
         $previewFile = null;
 
         if ($this->previewFileId) {
@@ -694,10 +713,9 @@ class ArchivedFilesModule extends Component
             'canDeleteInCurrentFolder' => $this->currentFolder !== null && $this->access()->canDelete($this->user, $this->currentFolder),
             // Each listed folder's role for this person: what its menu offers.
             'folderRoles' => $this->folders->mapWithKeys(fn (Folder $folder) => [$folder->id => $this->access()->role($this->user, $folder)])->all(),
-            // How many people each group in the dialog holds now.
-            'groupCounts' => $this->showPermissionsModal
-                ? collect($this->groupShares)->mapWithKeys(fn (array $share, int $i) => [$i => $this->access()->members($share['type'], (int) $share['id'])->count()])->all()
-                : [],
+            // Who each group in the dialog holds now (names), and which group reaches each person.
+            'groupMembers' => $groupMembers,
+            'viaGroups' => $viaGroups,
             'groupTypes' => $this->permissionFilterCategories,
             'previewFile' => $previewFile,
             'convertedOfficePdfUrl' => $this->convertedOfficePdfUrl($previewFile),

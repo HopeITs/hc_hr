@@ -195,6 +195,55 @@ class FolderDriveSharingTest extends TestCase
         $this->assertSame('viewer', $root->fresh()->users()->whereKey($guest->id)->first()->pivot->role);
     }
 
+    public function test_a_folder_can_be_shared_with_chosen_people_and_no_group(): void
+    {
+        Notification::fake();
+        $owner = $this->person();
+        // Different departments, none of them in a group the folder is shared with.
+        $a = $this->person($this->hr);
+        $b = $this->person();
+        $stranger = $this->person();
+        $folder = $this->folder($owner, 'Hand picked');
+
+        Livewire::actingAs($owner)->test(ArchivedFilesModule::class)
+            ->call('editPermissions', $folder->id)
+            ->call('toggleUser', $a->id)
+            ->call('toggleUser', $b->id)
+            ->call('setUserRole', $b->id, 'editor')
+            ->call('savePermissions')
+            ->assertHasNoErrors();
+
+        $this->assertSame(0, FolderGroupShare::query()->count());
+        $this->assertSame('viewer', $folder->fresh()->users()->whereKey($a->id)->first()->pivot->role);
+        $this->assertSame('editor', $folder->fresh()->users()->whereKey($b->id)->first()->pivot->role);
+        Notification::assertSentTo([$a, $b], FolderShared::class);
+        Notification::assertNotSentTo($stranger, FolderShared::class);
+        $this->sees($a, 'Hand picked');
+        $this->doesNotSee($stranger, 'Hand picked');
+    }
+
+    public function test_the_dialog_names_the_people_in_a_group_and_tags_those_it_reaches(): void
+    {
+        $owner = $this->person();
+        $member = $this->person($this->hr);
+        $other = $this->person();
+        $folder = $this->folder($owner, 'Team');
+
+        $page = Livewire::actingAs($owner)->test(ArchivedFilesModule::class)
+            ->call('editPermissions', $folder->id)
+            ->set('groupType', 'department')
+            ->set('groupValue', (string) $this->hr->id)
+            ->call('addGroupShare');
+
+        $names = collect($page->viewData('groupMembers')[0])->pluck('name')->all();
+        $this->assertSame([$member->profile->name], $names);
+        $this->assertSame([$this->hr->name], $page->viewData('viaGroups')[$member->id]);
+        $this->assertArrayNotHasKey($other->id, $page->viewData('viaGroups'));
+
+        $page->assertSee(__('folders.share.through-group', ['group' => $this->hr->name]))
+            ->assertSee(__('folders.share.people-any'));
+    }
+
     private function person(?Department $department = null): User
     {
         $user = $this->makeUser($this->aleppo, 'employee', self::ARCHIVES);
