@@ -102,9 +102,10 @@ class AppCard extends Component
                     'num' => $leave->int_available,
                     'unit' => trans_choice('dashboard.app-card.days-available', $leave->int_available),
                     'rows' => [
-                        ['t' => __('general.used'), 's' => (string) $leave->used_rounded],
-                        ['t' => __('general.pending'), 's' => (string) $leave->pending_rounded],
-                        ['t' => __('general.total'), 's' => (string) $leave->deserved_rounded],
+                        // The *_rounded labels carry <strong> for the leave card's {!! !!}; plain text here.
+                        ['t' => __('general.used'), 's' => strip_tags($leave->used_rounded)],
+                        ['t' => __('general.pending'), 's' => strip_tags($leave->pending_rounded)],
+                        ['t' => __('general.total'), 's' => strip_tags($leave->deserved_rounded)],
                     ],
                 ];
             })(),
