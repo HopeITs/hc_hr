@@ -859,13 +859,11 @@ final class TeamCoverage
 
     private function isWorkingDay(Contract $contract, CarbonImmutable $day, CarbonImmutable $from, CarbonImmutable $to): bool
     {
-        [$weekend, $holidays] = $this->calendarOf($contract, $from, $to);
+        [, $holidays] = $this->calendarOf($contract, $from, $to);
 
-        // A contract with days of its own (a moved day off) is read on the
-        // day itself: they may change inside the range.
-        if ($contract->loadMissing('workPatterns')->workPatterns->isNotEmpty()) {
-            $weekend = $this->pricing->weekendFor($contract, $day)[0];
-        }
+        // Each person's own week on the day itself: their day range or picked
+        // days, a day off moved inside the range, plus the center's weekend.
+        $weekend = $this->pricing->weekendFor($contract, $day)[0];
 
         return ! in_array($day->dayOfWeek, $weekend, true) && ! isset($holidays[$day->toDateString()]);
     }
@@ -881,8 +879,8 @@ final class TeamCoverage
         $key = implode(':', [
             $position?->center_id, $position?->program_id, $position?->city_id, $contract->employee?->city_id,
             $from->toDateString(), $to->toDateString(),
-            // Days of its own are this contract's alone: never shared with a teammate.
-            $contract->loadMissing('workPatterns')->workPatterns->isNotEmpty() ? 'c'.$contract->id : '',
+            // The weekend in [0] depends on the person (their days): keyed by them.
+            $contract->id,
         ]);
 
         // Official holidays only: the cache is shared by everyone with the same

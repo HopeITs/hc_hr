@@ -121,6 +121,13 @@ return [
     'drawer-open-full' => 'فتح العقد كاملًا',
     'export-columns-shown' => 'يصدّر الأعمدة المعروضة',
     'work-days' => [
+        'working-days' => 'أيام الدوام',
+        'change-range' => 'تغيير أيام الدوام',
+        'range-badge' => 'نطاق الدوام: :range',
+        'range-invalid' => 'يجب أن يأتي آخر يوم بعد أول يوم.',
+        'count-differs' => 'العقد ينص على :expected أيام دوام أسبوعيًا، وهذا التغيير يجعلها :count.',
+        'count-differs-hint' => 'تغيير عدد أيام الدوام تغيير في العقد: اعمل ملحق عقد لذلك.',
+        'make-amendment' => 'إضافة ملحق عقد',
         'tile' => ['work' => 'دوام', 'off' => 'عطلة', 'closed' => 'مغلق'],
         'days-a-week' => '{1} يوم دوام واحد أسبوعيًا|[2,*] :count أيام دوام أسبوعيًا',
         'own-off' => 'عطلة المتطوع: :days',

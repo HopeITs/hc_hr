@@ -210,7 +210,8 @@ class ContractWorkDaysTest extends TestCase
         app(ContractWorkPatterns::class)->change($contract, [6, 0, 1, 2, 3], '2026-11-15');
         $contract = $contract->fresh();
 
-        $this->assertSame([[5], 'center'], $pricing->weekendFor($contract, Carbon::parse('2026-11-12')));
+        // Before the date, its range: Saturday is outside it, Friday the center's.
+        $this->assertSame([[5, 6], 'contract'], $pricing->weekendFor($contract, Carbon::parse('2026-11-12')));
         $this->assertSame([[4, 5], 'contract'], $pricing->weekendFor($contract, Carbon::parse('2026-11-16')));
     }
 

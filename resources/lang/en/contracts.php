@@ -122,6 +122,13 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'work-days' => [
+        'working-days' => 'Working days',
+        'change-range' => 'Change working days',
+        'range-badge' => 'Day range: :range',
+        'range-invalid' => 'The last day must come after the first.',
+        'count-differs' => 'The contract says :expected working days a week; this change makes :count.',
+        'count-differs-hint' => 'Changing how many days a week is worked changes the contract: make an amendment for it.',
+        'make-amendment' => 'Make an amendment',
         'tile' => ['work' => 'Work', 'off' => 'Day off', 'closed' => 'Closed'],
         'days-a-week' => '{1} :count working day a week|[2,*] :count working days a week',
         'own-off' => 'Own day off: :days',

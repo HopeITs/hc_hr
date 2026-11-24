@@ -102,7 +102,7 @@ class ContractAmendmentService
 
         if ($amendment->effective_from->lte(today())) {
             $this->apply($amendment);
-        } elseif (in_array('work_weekdays', $amendment->changedFields(), true)) {
+        } elseif (array_intersect(ContractWorkPatterns::DAY_TERMS, $amendment->changedFields()) !== []) {
             // Approved for a later date: leave asked for now, for a day after
             // that date, is priced with the days it will have then. apply()
             // writes the same row again on the day.
@@ -163,7 +163,7 @@ class ContractAmendmentService
             $this->leaveBalances->rescaleForDailyHours($contract, $amendment->dailyHoursBefore(), $amendment->dailyHoursAfter());
 
             // New days apply from the amendment's date; the months before keep theirs.
-            if (in_array('work_weekdays', $changed, true)) {
+            if (array_intersect(ContractWorkPatterns::DAY_TERMS, $changed) !== []) {
                 app(ContractWorkPatterns::class)->fromAmendment($amendment->setRelation('contract', $contract));
             }
 

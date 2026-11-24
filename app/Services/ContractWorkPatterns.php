@@ -17,22 +17,29 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * The one place that writes contract_work_patterns: the days a contract
- * works from a date on (Contract::workWeekdaysOn() reads them back).
+ * works from a date on (Contract::workWeekdaysOn() reads them back). With no
+ * row, the contract's own terms say it (its picked days, or its day range).
  *
- * - The composer's picked days are the contract's first pattern, from its
- *   start date (syncInitial()).
- * - HR moves the day off on a date without an amendment (change()): the
- *   number of days is a contract term, which days is not, and is not printed.
- * - An amendment that changes the days adds a pattern from its own date
- *   (fromAmendment()), so the months before keep the days worked then.
+ * - The composer's picked days are the contract's first row, from its start
+ *   date (syncInitial()).
+ * - HR moves the days on a date without an amendment (change()): the number
+ *   of days is a contract term, which days is not, and is not printed.
+ * - An amendment that changes the week (picked days, day range, fixed or
+ *   flexible) adds a row from its own date (fromAmendment()).
+ * - Whatever writes the first change also writes the days the contract had
+ *   from its start (ensureStart()), so the months before keep them.
  */
 class ContractWorkPatterns
 {
+    /** The amendable terms that say which days are worked. */
+    public const DAY_TERMS = ['work_weekdays', 'work_day_from', 'work_day_to', 'schedule_mode'];
+
     public function __construct(private LeaveRequestPricing $pricing) {}
 
     /**
-     * The composer saved the contract: its picked days are the pattern from
-     * its start date. Rows from a later date (a day off moved since) stay.
+     * The composer saved the contract: the days it states are its row from
+     * its start date: picked days always, a day range only when later rows
+     * exist (otherwise its terms already say it). Later rows stay.
      */
     public function syncInitial(Contract $contract): void
     {
@@ -45,9 +52,12 @@ class ContractWorkPatterns
         DB::transaction(function () use ($contract, $start): void {
             $contract->workPatterns()->whereDate('effective_from', '<=', $start)->delete();
 
-            if ($contract->workWeekdays() !== null) {
+            $days = Contract::termsDays($contract->getAttributes());
+            $later = $contract->workPatterns()->whereDate('effective_from', '>', $start)->exists();
+
+            if ($days !== null && ($contract->workWeekdays() !== null || $later)) {
                 $contract->workPatterns()->create([
-                    'weekdays' => implode(',', $contract->workWeekdays()),
+                    'weekdays' => implode(',', $days),
                     'effective_from' => $start,
                     'created_by' => auth()->id(),
                 ]);
@@ -58,15 +68,28 @@ class ContractWorkPatterns
     }
 
     /**
-     * An amendment changed the contract's days: they apply from its date.
+     * An amendment changed the contract's week (its picked days, its day
+     * range, or fixed/flexible): from its date the week is the amendment's —
+     * its picked days, or none (the range and the center's weekend).
      */
     public function fromAmendment(ContractAmendment $amendment): void
     {
         $contract = $amendment->contract;
-        $days = Contract::parseWeekdays($amendment->terms_after['work_weekdays'] ?? null);
+        $from = $amendment->effective_from->toDateString();
+        $days = Contract::termsDays($amendment->terms_after ?? []);
 
-        $this->putOn($contract, $amendment->effective_from->toDateString(), [
-            'weekdays' => $days === [] ? null : implode(',', $days),
+        // The days before it are the ones it replaces.
+        $this->ensureStart($contract, Contract::termsDays($amendment->terms_before ?? []));
+
+        // The signed sheet decides the week from its date: a day off HR moved
+        // by hand on or after it was about the old week, and goes.
+        $contract->workPatterns()
+            ->whereNull('contract_amendment_id')
+            ->whereDate('effective_from', '>=', $from)
+            ->delete();
+
+        $this->putOn($contract, $from, [
+            'weekdays' => $days === null ? null : implode(',', $days),
             'contract_amendment_id' => $amendment->id,
             'created_by' => $amendment->approved_by ?? auth()->id(),
             'note' => null,
@@ -90,6 +113,9 @@ class ContractWorkPatterns
         $date = CarbonImmutable::parse($from)->startOfDay();
 
         $this->assertChangeable($contract, $days, $date);
+
+        // A day range has no row yet: the days before the change are its range.
+        $this->ensureStart($contract, $contract->workWeekdaysOn($date->subDay()));
 
         $pattern = DB::transaction(fn () => $this->putOn($contract, $date->toDateString(), [
             'weekdays' => implode(',', $days),
@@ -117,15 +143,9 @@ class ContractWorkPatterns
      */
     public function daysPerWeek(Contract $contract): ?int
     {
-        if ($contract->workWeekdays() !== null) {
-            return count($contract->workWeekdays());
-        }
+        $days = Contract::termsDays($contract->getAttributes());
 
-        if ($contract->work_day_from !== null && $contract->work_day_to !== null && $contract->work_day_to >= $contract->work_day_from) {
-            return (int) $contract->work_day_to - (int) $contract->work_day_from + 1;
-        }
-
-        return null;
+        return $days === null ? null : count($days);
     }
 
     /**
@@ -142,6 +162,25 @@ class ContractWorkPatterns
             ->whereDate('end_at', '>=', CarbonImmutable::parse($from)->toDateString())
             ->orderBy('start_at')
             ->get();
+    }
+
+    /**
+     * The row from the contract's start, when none covers it yet: the days it
+     * worked before its first change. Nothing for a flexible week.
+     *
+     * @param  array<int, int>|null  $days
+     */
+    private function ensureStart(Contract $contract, ?array $days): void
+    {
+        if ($contract->start_date === null || $days === null) {
+            return;
+        }
+
+        $start = $contract->start_date->toDateString();
+
+        if (! $contract->workPatterns()->whereDate('effective_from', '<=', $start)->exists()) {
+            $contract->workPatterns()->create(['weekdays' => implode(',', $days), 'effective_from' => $start]);
+        }
     }
 
     /**

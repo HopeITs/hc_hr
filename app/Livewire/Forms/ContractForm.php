@@ -729,7 +729,7 @@ class ContractForm extends Form
      */
     private function syncWorkPatterns(Contract $contract): void
     {
-        if (! $contract->wasRecentlyCreated && ! $contract->wasChanged(['work_weekdays', 'start_date'])) {
+        if (! $contract->wasRecentlyCreated && ! $contract->wasChanged(['work_weekdays', 'work_day_from', 'work_day_to', 'schedule_mode', 'start_date'])) {
             return;
         }
 

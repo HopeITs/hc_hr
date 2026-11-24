@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\EncryptedSalary;
 use App\Enums\ContractAmendmentStatus;
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Enums\ScheduleMode;
 use App\Traits\RedactsSensitiveActivityLog;
 use Carbon\Carbon;
 use Closure;
@@ -335,22 +336,60 @@ class Contract extends Model
     }
 
     /**
-     * The days this contract works on $date: the work pattern in force then,
-     * or null when none is (the day range and the center's weekend apply).
+     * The days this contract works on $date: the work pattern in force then
+     * (a day off moved, an amendment, the picked days), else the days its own
+     * terms state — the picked days, or every day of its day range. Null when
+     * it states none (flexible, or nothing set): the center's weekend alone.
      *
      * @return array<int, int>|null
      */
     public function workWeekdaysOn(DateTimeInterface|string $date): ?array
     {
         if (! $this->exists) {
-            return null;
+            return self::termsDays($this->getAttributes());
         }
 
         $day = Carbon::parse($date)->toDateString();
+        $rows = $this->loadMissing('workPatterns')->workPatterns;
 
-        return $this->loadMissing('workPatterns')->workPatterns
-            ->last(fn (ContractWorkPattern $pattern) => $pattern->effective_from->toDateString() <= $day)
-            ?->days();
+        // Never changed: the contract's own terms say it.
+        if ($rows->isEmpty()) {
+            return self::termsDays($this->getAttributes());
+        }
+
+        // Changed since: the row in force. Before the first one the contract
+        // stated no days (its start row is written whenever it did).
+        return $rows->last(fn (ContractWorkPattern $pattern) => $pattern->effective_from->toDateString() <= $day)?->days();
+    }
+
+    /**
+     * The days a set of terms (a contract's, or an amendment's before/after)
+     * says are worked: its picked days, else each day of its from–to range.
+     * Null for a flexible schedule or one that names no days.
+     *
+     * @param  array<string, mixed>  $terms
+     * @return array<int, int>|null
+     */
+    public static function termsDays(array $terms): ?array
+    {
+        if ((int) ($terms['schedule_mode'] ?? ScheduleMode::Fixed) === ScheduleMode::Flexible) {
+            return null;
+        }
+
+        $picked = self::parseWeekdays($terms['work_weekdays'] ?? null);
+
+        if ($picked !== []) {
+            return $picked;
+        }
+
+        $from = $terms['work_day_from'] ?? null;
+        $to = $terms['work_day_to'] ?? null;
+
+        if (! is_numeric($from) || ! is_numeric($to) || (int) $to < (int) $from) {
+            return null;
+        }
+
+        return range((int) $from, (int) $to);
     }
 
     public function amendments()

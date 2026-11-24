@@ -51,6 +51,13 @@ class ContractWorkDays extends Component
 
     public ?string $note = null;
 
+    /**
+     * How the dialog states the week: 'range' (from–to, the contract's own
+     * way for most programs) or 'days' (picked one by one, Study Zone's).
+     * Either way it saves the days; only the picker differs.
+     */
+    public string $mode = 'days';
+
     public function mount(Contract $contract): void
     {
         Gate::authorize('view', $contract);
@@ -66,6 +73,7 @@ class ContractWorkDays extends Component
         $this->resetErrorBag();
         $this->days = $this->daysInForce($contract);
         $this->seeded = $this->days;
+        $this->mode = $this->isRange($contract) ? 'range' : 'days';
         $this->effectiveFrom = today()->toDateString();
         $this->note = null;
         $this->markClean('workDaysDialog');
@@ -144,7 +152,7 @@ class ContractWorkDays extends Component
 
     public function close(): void
     {
-        $this->reset(['showChange', 'days', 'seeded', 'effectiveFrom', 'note']);
+        $this->reset(['showChange', 'days', 'seeded', 'mode', 'effectiveFrom', 'note']);
         $this->resetErrorBag();
     }
 
@@ -162,6 +170,11 @@ class ContractWorkDays extends Component
             // Shown for a fixed schedule that has days of its own, or may get them.
             'visible' => $fixed && ($patternRows->isNotEmpty() || $canChange),
             'canChange' => $canChange,
+            // A day-range contract reads as a range, and is changed as one.
+            'isRange' => $isRange = $this->isRange($contract),
+            'rangeLabel' => $isRange ? $this->rangeLabel($this->daysInForce($contract)) : null,
+            // A different number of days is an amendment: where to make one.
+            'amendUrl' => $user?->can('amend', $contract) ? route('contracts.amend', $contract) : null,
             'now' => $this->summary($this->daysInForce($contract), $place),
             'week' => $this->week($this->daysInForce($contract), $place),
             // The change the days shown come from (null: as signed, never moved).
@@ -215,24 +228,16 @@ class ContractWorkDays extends Component
     }
 
     /**
-     * The days worked today: the work pattern in force, else the day range
-     * without the place's day off. Empty when the contract states neither.
+     * The days worked on $on (today by default). Empty when the contract
+     * states none (a flexible week).
      *
      * @return array<int, int>
      */
     private function daysInForce(Contract $contract, ?string $on = null): array
     {
-        $own = $contract->workWeekdaysOn($on ?? today());
-
-        if ($own !== null) {
-            return $own;
-        }
-
-        if ($contract->work_day_from === null || $contract->work_day_to === null || $contract->work_day_to < $contract->work_day_from) {
-            return [];
-        }
-
-        return array_values(array_diff(range((int) $contract->work_day_from, (int) $contract->work_day_to), $this->placeWeekend($contract)));
+        // Picked days, a moved day off, or the day range (Contract::workWeekdaysOn),
+        // without a day the center is closed.
+        return array_values(array_diff($contract->workWeekdaysOn($on ?? today()) ?? [], $this->placeWeekend($contract)));
     }
 
     /** @return array<int, int> */
@@ -295,17 +300,55 @@ class ContractWorkDays extends Component
         // What is in force on the date itself: saving replaces it from then on
         // (a row already on that date included), so that is what changes.
         $on = Carbon::parse($this->effectiveFrom)->toDateString();
+        $workBefore = $this->daysInForce($contract, $on);
+        $workAfter = Contract::parseWeekdays($this->days);
         $off = fn (array $working) => array_values(array_diff(range(0, 6), $working, $closed));
-        $before = $off($this->daysInForce($contract, $on));
-        $after = $off(array_map('intval', $this->days));
+        $before = $off($workBefore);
+        $after = $off($workAfter);
         sort($before);
         sort($after);
 
+        // A day range reads best as the days worked ("Monday – Tuesday →
+        // Tuesday – Wednesday"); picked days as the day off that moves.
+        $asRange = $this->mode === 'range' && $this->isRun($workBefore) && $this->isRun($workAfter);
+
         return [
-            'before' => $before === [] ? '—' : $this->names($before),
-            'after' => $after === [] ? '—' : $this->names($after),
+            'label' => __($asRange ? 'contracts.work-days.working-days' : 'contracts.work-days.day-off'),
+            'before' => $asRange ? $this->rangeLabel($workBefore) : ($before === [] ? '—' : $this->names($before)),
+            'after' => $asRange ? $this->rangeLabel($workAfter) : ($after === [] ? '—' : $this->names($after)),
             'changed' => $before !== $after,
         ];
+    }
+
+    /**
+     * A contract whose week is a day range: none picked one by one in its
+     * terms, and the days in force today follow on from each other.
+     */
+    private function isRange(Contract $contract): bool
+    {
+        if ($contract->workWeekdays() !== null) {
+            return false;
+        }
+
+        return $this->isRun($this->daysInForce($contract));
+    }
+
+    /** Days that follow on from each other (a from–to range). @param  array<int, int>  $days */
+    private function isRun(array $days): bool
+    {
+        return $days !== [] && max($days) - min($days) + 1 === count($days);
+    }
+
+    /** "Monday – Tuesday", or one day's name. @param  array<int, int>  $days */
+    private function rangeLabel(array $days): ?string
+    {
+        if ($days === []) {
+            return null;
+        }
+
+        return min($days) === max($days)
+            ? $this->dayName(min($days))
+            : $this->dayName(min($days)).' – '.$this->dayName(max($days));
     }
 
     /** What set a row: its amendment, named in the viewer's language (never stored as words), else HR's note. */

@@ -168,7 +168,7 @@ class ContractAmendmentScreensTest extends TestCase
         $this->assertNull($contract->work_day_from);
         // The new days from the amendment's date; the months before keep the range.
         $this->assertSame([0, 1, 3, 4], $contract->workWeekdaysOn('2026-05-01'));
-        $this->assertNull($contract->workWeekdaysOn('2026-04-30'));
+        $this->assertSame([0, 1, 2, 3, 4], $contract->workWeekdaysOn('2026-04-30'));
         // The row points at the amendment, so the card names it in the viewer's language.
         $this->assertSame($amendment->id, $contract->workPatterns->last()->contract_amendment_id);
     }

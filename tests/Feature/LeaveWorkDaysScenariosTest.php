@@ -101,14 +101,26 @@ class LeaveWorkDaysScenariosTest extends TestCase
         $this->assertSame(8.0, $long->requestedHours);
     }
 
-    public function test_a_study_zone_contract_still_on_a_day_range_knows_only_the_centers_day_off(): void
+    public function test_a_study_zone_contract_on_a_day_range_skips_the_days_outside_it(): void
     {
-        // Before its days are picked: Sunday–Thursday as a range. Leave reads
-        // only the centers' Friday, so Saturday counts and a day is 40 / 6 h.
+        // Sunday to Thursday as a range; the centers close on Friday. Saturday
+        // is outside the range: a day off of the contract's own.
         $contract = $this->studyZone(range: [0, 4]);
 
-        $this->assertDays($contract, '2026-11-20', '2026-11-22', 2, ['2026-11-20' => 'weekend']);
-        $this->assertEqualsWithDelta(40 / 6, $this->quote($contract, LeaveWindow::days('2026-11-16', '2026-11-16'))->hoursPerDay, 0.0001);
+        $this->assertDays($contract, '2026-11-20', '2026-11-22', 1, ['2026-11-20' => 'weekend', '2026-11-21' => 'day_off']);
+        $this->assertSame(8.0, $this->quote($contract, LeaveWindow::days('2026-11-16', '2026-11-16'))->hoursPerDay);
+    }
+
+    public function test_a_part_timer_on_a_day_range_is_charged_only_the_days_of_the_range(): void
+    {
+        // Contract 24's case: Monday and Tuesday, 14 hours; the center closed on Sunday.
+        $contract = $this->atCenter(weekends: '0', range: [1, 2], weeklyHours: 14);
+        $week = $this->quote($contract, LeaveWindow::days('2026-11-15', '2026-11-21'));
+
+        $this->assertSame(2, $week->countedDays);
+        $this->assertSame(7.0, $week->hoursPerDay);
+        $this->assertSame(14.0, $week->requestedHours);
+        $this->assertContains(LeaveQuote::NO_COUNTABLE_DAYS, $this->quote($contract, LeaveWindow::hours('2026-11-18', '10:00', '11:00'))->errors);
     }
 
     // ── Other programs ───────────────────────────────────────────────
@@ -174,9 +186,8 @@ class LeaveWorkDaysScenariosTest extends TestCase
         app(ContractWorkPatterns::class)->change($contract, [6, 0, 1, 2, 3], '2026-11-23');
         $contract = $contract->fresh();
 
-        // Before the date the range is read through the center alone (see the
-        // Study Zone range test): only Friday is skipped.
-        $this->assertDays($contract, '2026-11-19', '2026-11-21', 2, ['2026-11-20' => 'weekend']);
+        // Before the date, the range: Saturday is outside it.
+        $this->assertDays($contract, '2026-11-19', '2026-11-21', 1, ['2026-11-20' => 'weekend', '2026-11-21' => 'day_off']);
         // From it: Thursday is the employee's own day off.
         $this->assertDays($contract, '2026-11-25', '2026-11-28', 2, ['2026-11-26' => 'day_off', '2026-11-27' => 'weekend']);
     }
@@ -250,6 +261,51 @@ class LeaveWorkDaysScenariosTest extends TestCase
 
         $this->assertNull($amendment->fresh());
         $this->assertSame(0, DB::table('contract_work_patterns')->whereNotNull('contract_amendment_id')->count());
+    }
+
+    public function test_an_amendment_to_the_day_range_replaces_a_day_off_moved_by_hand(): void
+    {
+        // Contract 24's case: picked days, a day off moved by hand from 23 Nov,
+        // then an amendment from 23 Nov to a Monday–Tuesday range, 16 hours.
+        $contract = $this->studyZone(picked: [6, 0, 1, 3, 4]);
+        app(ContractWorkPatterns::class)->change($contract, [0, 1, 2, 3, 4], '2026-11-23');
+
+        Carbon::setTestNow('2026-11-23 10:00:00');
+        $service = app(ContractAmendmentService::class);
+        $amendment = $service->draft($contract->fresh(), [
+            'work_weekdays' => null, 'work_day_from' => 1, 'work_day_to' => 2, 'weekly_hours' => 16,
+        ], '2026-11-23');
+        $service->approve($amendment);
+        $contract = $contract->fresh();
+
+        $this->assertTrue($amendment->fresh()->isApplied());
+        // From its date: the amendment's range, Monday and Tuesday.
+        $this->assertSame([1, 2], $contract->workWeekdaysOn('2026-11-24'));
+        $this->assertSame([0, 1, 3, 4, 6], $contract->workWeekdaysOn('2026-11-22'));
+        // The hand-made move is gone; the amendment's row holds the range.
+        $rows = DB::table('contract_work_patterns')->where('contract_id', $contract->id)->orderBy('effective_from')->get();
+        $this->assertCount(2, $rows);
+        $this->assertSame('1,2', $rows[1]->weekdays);
+        $this->assertSame($amendment->id, (int) $rows[1]->contract_amendment_id);
+        // Leave: Wednesday 25 is now outside the range.
+        $this->assertDays($contract, '2026-11-24', '2026-11-25', 1, ['2026-11-25' => 'day_off']);
+    }
+
+    public function test_an_amendment_to_a_day_range_is_recorded_from_its_date_and_leave_follows_it(): void
+    {
+        // Monday–Friday until 31 Oct, Monday–Thursday from 1 Nov.
+        $contract = $this->atCenter(weekends: '0,6', range: [1, 5]);
+        $service = app(ContractAmendmentService::class);
+        $amendment = $service->draft($contract, ['work_day_to' => 4, 'weekly_hours' => 32], '2026-11-01');
+        $service->approve($amendment);
+        $contract = $contract->fresh();
+
+        $rows = DB::table('contract_work_patterns')->where('contract_id', $contract->id)->orderBy('effective_from')->get();
+        $this->assertSame(['1,2,3,4,5', '1,2,3,4'], $rows->pluck('weekdays')->all());
+        $this->assertSame($amendment->id, (int) $rows[1]->contract_amendment_id);
+
+        $this->assertDays($contract, '2026-10-30', '2026-10-30', 1, []);
+        $this->assertDays($contract, '2026-11-20', '2026-11-20', 0, ['2026-11-20' => 'day_off']);
     }
 
     // ── helpers ──────────────────────────────────────────────────────
