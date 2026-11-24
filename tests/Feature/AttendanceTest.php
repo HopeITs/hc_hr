@@ -189,6 +189,7 @@ class AttendanceTest extends TestCase
     public function test_a_public_holiday_or_a_feast_is_a_day_off_with_its_name_never_a_day_to_answer(): void
     {
         $employee = $this->volunteer();
+        $this->punch($employee, '2026-09-02 08:00');
         $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
 
         // A three-day feast, for everyone: no punches on those days and nothing to ask.
@@ -219,6 +220,7 @@ class AttendanceTest extends TestCase
     {
         $employee = $this->volunteer();   // the center's days off: Sunday and Saturday
         $contract = $employee->contracts()->first();
+        $this->punch($employee, '2026-09-02 08:00');
         $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
 
         $placement = app(Timesheet::class)->forEmployee($employee, $this->september())['placement'];
@@ -319,16 +321,43 @@ class AttendanceTest extends TestCase
         $this->assertSame([2, 1], [$last->punches_total, $last->punches_new]);
     }
 
+    public function test_the_page_lists_only_people_with_punches_in_the_month_and_never_a_month_to_come(): void
+    {
+        $with = $this->volunteer();
+        $without = $this->volunteer();
+        $hr = $this->makeUser($with->city, 'HR-ALP', ['attendance.view-own', 'attendance.view', 'attendance.manage']);
+        $this->punch($with, '2026-09-02 08:00');
+
+        // Someone whose center's report is not uploaded yet is not on the page.
+        Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-09')
+            ->assertSeeHtml('wire:key="row-'.$with->id.'"')
+            ->assertDontSeeHtml('wire:key="row-'.$without->id.'"');
+
+        // A month with no punches at all says so, and the next month never opens.
+        $this->travelTo(CarbonImmutable::create(2026, 11, 24, 10));
+        Livewire::actingAs($hr)->test(Timesheets::class)
+            ->set('month', '2026-10')
+            ->assertSee(__('attendance.timesheets.no-punches'))
+            ->set('month', '2027-03')
+            ->assertSet('month', '2026-11')
+            ->set('month', '2026-11')
+            ->call('shiftMonth', 1)
+            ->assertSet('month', '2026-11');
+    }
+
     public function test_the_pages_need_the_permission_and_a_city_hr_role_sees_only_its_city(): void
     {
         $this->withoutVite();
 
         $mine = $this->volunteer();
+        $this->punch($mine, '2026-09-02 08:00');
         $damascus = $this->makeCity('DMS', '002');
         $other = $this->makeEmployee($damascus, 'other', [
             'first_name_en' => 'Zed', 'last_name_en' => 'Faraway', 'first_name_ar' => 'زيد', 'last_name_ar' => 'بعيد',
         ]);
         $this->makeContractFor($other)->position->center->update(['weekends' => '0,6']);
+        $this->punch($other, '2026-09-02 08:00');
 
         // A role with no baseline of its own (every real role holds attendance.view-own).
         $nobody = $this->makeUser($mine->city, 'guest', []);
@@ -349,6 +378,7 @@ class AttendanceTest extends TestCase
     public function test_a_sheet_with_waiting_days_prints_as_a_draft(): void
     {
         $employee = $this->volunteer();
+        $this->punch($employee, '2026-09-02 08:00');
         $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))
@@ -356,9 +386,27 @@ class AttendanceTest extends TestCase
             ->assertSee('مسودة');
     }
 
+    public function test_print_pdf_and_excel_follow_the_page_only_people_with_punches_and_never_a_month_to_come(): void
+    {
+        $this->withoutVite();
+        $with = $this->volunteer();
+        $without = $this->volunteer();
+        $this->punch($with, '2026-09-02 08:00');
+        $hr = $this->makeUser($with->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
+
+        // The person without punches is left out; asking for only them finds nothing.
+        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09']))->assertOk();
+        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09', 'employees' => [$without->id]]))->assertNotFound();
+
+        // A month to come is refused outright.
+        $this->travelTo('2026-11-24 10:00');
+        $this->actingAs($hr)->get(route('attendance.print', ['month' => '2027-01']))->assertSessionHasErrors('month');
+    }
+
     public function test_a_print_link_without_a_month_opens_the_pages_default_month(): void
     {
         $employee = $this->volunteer();
+        $this->punch($employee, '2026-09-02 08:00');
         $hr = $this->makeUser($employee->city, 'HR-ALP', ['attendance.view-own', 'attendance.view']);
 
         // The Timesheets page opens on the month of ten days ago: early October means September.

@@ -152,6 +152,7 @@ return [
         'days-off' => 'Weekly days off',
         'days-off-from' => ['contract' => 'set on the contract', 'center' => 'from the center: :center', 'default' => 'the general default: the center has none set'],
         'worked-off' => 'Worked (day off)',
+        'no-punches' => 'No punches for this month yet. Upload the device report of this center for this month: only people it holds punches for appear here.',
         'no-one' => 'Nobody here.',
         'h' => 'h',
         'status' => [

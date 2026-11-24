@@ -359,7 +359,7 @@
                 @endforeach
             </section>
         @empty
-            <x-card><p class="py-8 text-center text-ink-2" data-testid="attendance-empty">@lang('attendance.timesheets.nothing')</p></x-card>
+            <x-card><p class="py-8 text-center text-ink-2" data-testid="attendance-empty">{{ $items->isEmpty() ? __('attendance.timesheets.no-punches') : __('attendance.timesheets.nothing') }}</p></x-card>
         @endforelse
         </div>
     </div>

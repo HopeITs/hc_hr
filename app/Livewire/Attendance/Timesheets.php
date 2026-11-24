@@ -6,6 +6,7 @@ use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\AttendanceDayDecision;
 use App\Models\AttendanceMonth;
+use App\Models\AttendancePunch;
 use App\Models\Employee;
 use App\Models\MailList;
 use App\Services\Attendance\Grouping;
@@ -62,6 +63,8 @@ class Timesheets extends Component
             $this->month = now()->subDays(10)->format('Y-m');
         }
 
+        $this->clampMonth();
+
         $this->groupBy = Grouping::normalize($this->groupBy);
 
         // Who loads what by default: an employee, a manager and the HR of a city are already
@@ -76,9 +79,17 @@ class Timesheets extends Component
     public function shiftMonth(int $delta): void
     {
         $this->month = $this->monthDate()->addMonths($delta > 0 ? 1 : -1)->format('Y-m');
+        $this->clampMonth();
         // An open person stays open: their next or previous month. Without a contract then, the list shows.
         $this->closeDay();
         $this->signedFile = null;
+    }
+
+    /** The month picker or the link was changed by hand: still never a month to come. */
+    public function updatedMonth(): void
+    {
+        $this->clampMonth();
+        $this->closeDay();
     }
 
     // ---- Deciding a day -------------------------------------------------------------------
@@ -317,6 +328,16 @@ class Timesheets extends Component
         ]);
     }
 
+    /** There are no punches in the future, so the page never goes past the current month. */
+    private function clampMonth(): void
+    {
+        $current = now()->format('Y-m');
+
+        if (! preg_match('/^\d{4}-\d{2}$/', $this->month) || $this->month > $current) {
+            $this->month = $current;
+        }
+    }
+
     /**
      * Everyone the viewer may see this month, with the month's record and what the viewer may do
      * with it. The roster is already scoped to the viewer, so every person is covered.
@@ -326,7 +347,8 @@ class Timesheets extends Component
     private function items(CarbonImmutable $month): Collection
     {
         $workflow = app(MonthWorkflow::class);
-        $employees = app(Roster::class)->employees(auth()->user(), $month, $this->cityId);
+        // Only people the uploaded reports hold punches for in this month (the exports follow the same rule).
+        $employees = app(Roster::class)->withPunches(app(Roster::class)->employees(auth()->user(), $month, $this->cityId), $month);
         $sheets = app(Timesheet::class)->forEmployees($employees, $month);
 
         $records = AttendanceMonth::query()

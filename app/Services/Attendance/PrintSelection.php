@@ -33,7 +33,8 @@ class PrintSelection
         }
 
         $data = $request->validate([
-            'month' => ['required', 'date_format:Y-m'],
+            // There are no punches in the future: a month to come is never printed.
+            'month' => ['required', 'date_format:Y-m', 'before_or_equal:'.now()->format('Y-m')],
             'city_id' => ['nullable', 'integer'],
             'employees' => ['nullable', 'array'],
             'employees.*' => ['integer'],
@@ -43,7 +44,7 @@ class PrintSelection
 
         $month = CarbonImmutable::createFromFormat('!Y-m', $data['month']);
 
-        $employees = $this->roster->employees($request->user(), $month, $data['city_id'] ?? null)
+        $employees = $this->roster->withPunches($this->roster->employees($request->user(), $month, $data['city_id'] ?? null), $month)
             ->when(! empty($data['employees']), fn ($all) => $all->whereIn('id', $data['employees']));
 
         abort_if($employees->isEmpty(), 404);

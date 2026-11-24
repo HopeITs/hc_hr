@@ -88,12 +88,12 @@ class AttendanceGroupingTest extends TestCase
     {
         $this->world();
         Livewire::actingAs($this->hr())->test(Timesheets::class)
-            ->set('month', '2026-12')
+            ->set('month', '2026-08')
             ->call('shiftMonth', 1)
-            ->assertSet('month', '2027-01')
+            ->assertSet('month', '2026-09')
             ->call('shiftMonth', -1)
             ->call('shiftMonth', -1)
-            ->assertSet('month', '2026-11')
+            ->assertSet('month', '2026-07')
             ->set('month', '2026-09')
             ->set('cityId', null)
             ->assertSee('Anna Alpha')
@@ -180,6 +180,19 @@ class AttendanceGroupingTest extends TestCase
         $this->actingAs($hr)->get(route('attendance.print', ['month' => '2026-09', 'group' => 'x']))->assertSessionHasErrors('group');
     }
 
+    /** The page lists only people the uploaded reports hold punches for in the month. */
+    private function withPunch(\App\Models\Employee $employee, string $at = '2026-09-02 08:00'): \App\Models\Employee
+    {
+        \App\Models\AttendancePunch::query()->create([
+            'import_id' => \App\Models\AttendanceImport::query()->firstOrCreate(['file_name' => 'fixture.xls'])->id,
+            'device_no' => (string) $employee->id,
+            'employee_id' => $employee->id,
+            'punched_at' => $at,
+        ]);
+
+        return $employee;
+    }
+
     private function person(string $key, City $city, string $project, string $department, string $first, string $last): Employee
     {
         $program = Program::query()->firstOrCreate(['code' => strtoupper($project)], [
@@ -193,6 +206,7 @@ class AttendanceGroupingTest extends TestCase
             'first_name_en' => $first, 'last_name_en' => $last, 'first_name_ar' => $first, 'last_name_ar' => $last,
         ]);
         $this->makeContractFor($employee, ['position_id' => $position->id]);
+        $this->withPunch($employee);
 
         return $this->people[$key] = $employee;
     }

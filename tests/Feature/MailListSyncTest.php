@@ -239,11 +239,25 @@ class MailListSyncTest extends TestCase
     }
 
     /** An employee with a contract running today and an account on the organisation's domain. */
+    /** The page lists only people the uploaded reports hold punches for in the month. */
+    private function withPunch(\App\Models\Employee $employee, string $at = '2026-09-02 08:00'): \App\Models\Employee
+    {
+        \App\Models\AttendancePunch::query()->create([
+            'import_id' => \App\Models\AttendanceImport::query()->firstOrCreate(['file_name' => 'fixture.xls'])->id,
+            'device_no' => (string) $employee->id,
+            'employee_id' => $employee->id,
+            'punched_at' => $at,
+        ]);
+
+        return $employee;
+    }
+
     private function person(string $key, City $city, array $position = [], bool $active = true): User
     {
         $employee = $this->makeEmployee($city, $key, ['first_name_en' => ucfirst($key), 'is_active' => $active]);
         $contractPosition = $this->makePosition($city, $position);
         $this->makeContractFor($employee, ['position_id' => $contractPosition->id]);
+        $this->withPunch($employee, now()->startOfMonth()->addHours(8)->format('Y-m-d H:i'));
 
         $user = User::factory()->create(['employee_id' => $employee->id, 'email' => $key.'@hcsyria.org']);
 
