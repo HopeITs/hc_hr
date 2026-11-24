@@ -116,6 +116,10 @@ class AppServiceProvider extends ServiceProvider
         // Its dedupe counters live in the cache, so one instance is plenty.
         $this->app->singleton(SecurityMonitor::class);
 
+        // Remembers each person's groups for one request (or one queued job), never longer:
+        // joining or leaving a group must take effect on the next request.
+        $this->app->scoped(\App\Services\Folders\FolderAccess::class);
+
         // The seam for the organization's retention decision: bind another
         // RetentionPolicy here once the periods are confirmed.
         $this->app->bind(RetentionPolicy::class, ConfiguredRetentionPolicy::class);

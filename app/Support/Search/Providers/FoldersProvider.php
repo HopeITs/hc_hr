@@ -25,10 +25,13 @@ final class FoldersProvider implements SearchProvider
     {
         $query = Folder::query()->with('parent:id,name')->where('name', 'like', NameMatch::like($term));
 
+        // Own folders and those shared by name or through a group (FolderAccess::sharedWith).
+        // Subfolders reached only by inheritance are found by opening their parent.
         if (! $user->isActiveAdministrator()) {
+            $shared = app(\App\Services\Folders\FolderAccess::class)->sharedWith($user)->select('folders.id');
             $query->where(fn (Builder $mine) => $mine
                 ->where('user_id', $user->id)
-                ->orWhereHas('users', fn (Builder $users) => $users->whereKey($user->id)));
+                ->orWhereIn('id', $shared));
         }
 
         return $query->orderBy('name')->limit($limit)->get()

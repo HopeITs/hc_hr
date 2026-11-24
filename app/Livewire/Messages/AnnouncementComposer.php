@@ -3,6 +3,8 @@
 namespace App\Livewire\Messages;
 
 use App\Livewire\Concerns\AuthorizesActivePermissions;
+use App\Livewire\Concerns\GuardsModalClose;
+use App\Livewire\Concerns\WithFeedback;
 use App\Support\Announcements\AnnouncementTemplate;
 use App\Support\Announcements\AnnouncementTemplates;
 use App\Support\Announcements\HolidayClosure;
@@ -24,6 +26,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AnnouncementComposer extends Component
 {
     use AuthorizesActivePermissions;
+    use GuardsModalClose;
+    use WithFeedback;
+
+    /**
+     * The close guard (A5-M): what was typed into an announcement is not
+     * thrown away by Escape or the close button without asking. The dialog's
+     * id is the guard's key; `open` is what shows it. The signature is kept
+     * by the page itself, so it is not part of what closing would lose.
+     */
+    private const DIALOG = 'announcement-composer';
 
     public bool $open = false;
 
@@ -55,6 +67,8 @@ class AnnouncementComposer extends Component
         if ($template !== null && AnnouncementTemplates::find($template)) {
             $this->choose($template, $prefill);
         }
+
+        $this->markClean(self::DIALOG);
     }
 
     /** @param  array<string, mixed>  $prefill */
@@ -77,6 +91,9 @@ class AnnouncementComposer extends Component
         $this->template = $key;
         $this->values = $values;
         ['to' => $this->to, 'cc' => $this->cc] = $template->recipients();
+
+        // A template just picked holds only its defaults: closing it asks nothing.
+        $this->markClean(self::DIALOG);
     }
 
     /** The whole message as a file Outlook opens as a new message (see AnnouncementTemplates::eml). */
@@ -160,6 +177,28 @@ class AnnouncementComposer extends Component
             'current' => $template,
             'message' => $message,
         ]);
+    }
+
+    protected function guardedDialogs(): array
+    {
+        return [self::DIALOG];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->open;
+    }
+
+    /** @return array<string, mixed> */
+    protected function guardedEntries(string $dialog): array
+    {
+        return ['template' => $this->template, 'values' => $this->values, 'to' => $this->to, 'cc' => $this->cc];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->close();
+        $this->resetValidation();
     }
 
     /**

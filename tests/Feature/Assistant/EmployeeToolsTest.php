@@ -119,9 +119,9 @@ class EmployeeToolsTest extends TestCase
         $phone = ChecklistItem::query()->firstOrCreate(['name' => 'Phone'], ['order' => 2]);
         $other = $this->makeEmployee($this->city, 'colleague');
 
-        Checklist::query()->create(['item_id' => $laptop->id, 'employee_id' => $user->profile->id, 'brand' => 'Dell', 'serial' => 'SN-1', 'delivered_status' => 'delivered', 'delivered_at' => '2026-02-01']);
-        Checklist::query()->create(['item_id' => $phone->id, 'employee_id' => $user->profile->id, 'delivered_status' => 'pending']);
-        Checklist::query()->create(['item_id' => $phone->id, 'employee_id' => $other->id, 'serial' => 'THEIRS', 'delivered_status' => 'delivered']);
+        Checklist::query()->create(['item_id' => $laptop->id, 'employee_id' => $user->profile->id, 'delivered_id' => $other->id, 'brand' => 'Dell', 'serial' => 'SN-1', 'delivered_status' => 'delivered', 'delivered_at' => '2026-02-01']);
+        Checklist::query()->create(['item_id' => $phone->id, 'employee_id' => $user->profile->id, 'delivered_id' => $other->id, 'delivered_status' => 'pending']);
+        Checklist::query()->create(['item_id' => $phone->id, 'employee_id' => $other->id, 'delivered_id' => $other->id, 'serial' => 'THEIRS', 'delivered_status' => 'delivered']);
 
         $tools = app(EmployeeTools::class);
         $result = $tools->call($user, 'get_my_items');

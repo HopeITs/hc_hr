@@ -7,16 +7,18 @@ use App\Models\Center;
 use App\Models\City;
 use App\Models\Department;
 use App\Models\Folder;
-use App\Models\MailList;
-use App\Models\MailListMember;
+use App\Models\FolderGroupShare;
 use App\Models\JobLevel;
+use App\Models\MailList;
 use App\Models\Program;
 use App\Models\User;
 use App\Notifications\FolderShared;
+use App\Services\Folders\FolderAccess;
 use DOMDocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -106,6 +108,21 @@ class ArchivedFilesModule extends Component
 
     public bool $permissionUsersNeedRefresh = false;
 
+    /** @var array<int|string, string> each selected person's role (FolderAccess::SHARE_ROLES), by user id */
+    public array $userRoles = [];
+
+    /** @var list<array{type: string, id: int, role: string, label: string}> the groups the folder is shared with */
+    public array $groupShares = [];
+
+    public string $groupType = '';
+
+    public string $groupValue = '';
+
+    public string $groupRole = FolderAccess::VIEWER;
+
+    /** @var array<int|string, string> */
+    public array $groupOptions = [];
+
     public function mount($folderId = null)
     {
         $this->user = auth()->user();
@@ -113,8 +130,8 @@ class ArchivedFilesModule extends Component
         $this->isShared = request()->query('scope') === self::SHARED_SCOPE;
 
         if ($folderId) {
-            $folder = Folder::with('users')->find($folderId);
-            if ($folder && ! $this->user->isActiveAdministrator() && ! $folder->users->contains($this->user->id)) {
+            $folder = Folder::query()->find($folderId);
+            if ($folder && ! $this->access()->canView($this->user, $folder)) {
                 abort(403, 'You do not have permission to access this folder.');
             }
             $this->currentFolder = $folder;
@@ -138,22 +155,68 @@ class ArchivedFilesModule extends Component
     public function updatedPermissionFilterType($type)
     {
         $this->permissionFilterValue = '';
-        $this->permissionFilterOptions = [];
+        $this->permissionFilterOptions = $type ? $this->groupOptionsFor((string) $type) : [];
+    }
 
-        if ($type) {
-            $collection = match ($type) {
-                'department' => Department::all(),
-                'program' => Program::all(),
-                'job_level' => JobLevel::all(),
-                'center' => Center::all(),
-                'city' => City::all(),
-                'mail_list' => MailList::query()->orderBy('position')->orderBy('name')->get(),
-                default => collect(),
-            };
+    /** "Share with a group": the second list follows the type chosen. */
+    public function updatedGroupType($type): void
+    {
+        $this->groupValue = '';
+        $this->groupOptions = in_array($type, FolderAccess::GROUP_TYPES, true) ? $this->groupOptionsFor((string) $type) : [];
+    }
 
-            $this->permissionFilterOptions = $collection
-                ->mapWithKeys(fn ($item) => [$item->id => ($item->name ?? $item->name_en ?? $item->name_ar ?? (string) $item->id)])
-                ->toArray();
+    /** Adds the chosen group to the dialog's list; nothing is saved until "Save". */
+    public function addGroupShare(): void
+    {
+        $this->authorizePermissionsFolder();
+
+        $type = $this->groupType;
+        $id = (int) $this->groupValue;
+        $options = in_array($type, FolderAccess::GROUP_TYPES, true) ? $this->groupOptionsFor($type) : [];
+
+        if (! isset($options[$id])) {
+            $this->addError('groupValue', __('folders.share.pick-group'));
+
+            return;
+        }
+
+        $role = in_array($this->groupRole, FolderAccess::SHARE_ROLES, true) ? $this->groupRole : FolderAccess::VIEWER;
+
+        $this->groupShares = collect($this->groupShares)
+            ->reject(fn (array $share) => $share['type'] === $type && (int) $share['id'] === $id)
+            ->push(['type' => $type, 'id' => $id, 'role' => $role, 'label' => $options[$id]])
+            ->values()->all();
+
+        $this->groupType = '';
+        $this->groupValue = '';
+        $this->groupOptions = [];
+        $this->groupRole = FolderAccess::VIEWER;
+        $this->resetErrorBag('groupValue');
+    }
+
+    public function removeGroupShare(int $index): void
+    {
+        $this->authorizePermissionsFolder();
+
+        unset($this->groupShares[$index]);
+        $this->groupShares = array_values($this->groupShares);
+    }
+
+    public function setGroupRole(int $index, string $role): void
+    {
+        $this->authorizePermissionsFolder();
+
+        if (isset($this->groupShares[$index]) && in_array($role, FolderAccess::SHARE_ROLES, true)) {
+            $this->groupShares[$index]['role'] = $role;
+        }
+    }
+
+    public function setUserRole(int $userId, string $role): void
+    {
+        $this->authorizePermissionsFolder();
+
+        if (in_array($userId, array_map('intval', $this->selectedUsers), true) && in_array($role, FolderAccess::SHARE_ROLES, true)) {
+            $this->userRoles[$userId] = $role;
         }
     }
 
@@ -196,25 +259,34 @@ class ArchivedFilesModule extends Component
 
     public function loadContent(): void
     {
-        $parentId = $this->currentFolder?->id;
-        $query = Folder::withCount('media as files_count');
-        $query->where('parent_id', $parentId);
+        $access = $this->access();
+        $with = ['creator.profile', 'groupShares'];
 
-        if ($this->isShared) {
-            $query->where(function ($q) {
-                $q->where('is_shared', true)->orWhere(function ($subQ) {
-                    $subQ->where('is_shared', false)->where('user_id', '!=', $this->user->id);
-                });
-            });
+        if ($this->currentFolder) {
+            // Inside a folder: its subfolders this person may open (most take the folder's access).
+            $folders = Folder::query()->withCount('media as files_count')->with($with)
+                ->where('parent_id', $this->currentFolder->id)
+                ->orderBy('name')->get()
+                ->filter(fn (Folder $folder) => $access->canView($this->user, $folder))
+                ->values();
+        } elseif (! $this->isShared) {
+            // My folders: the ones I own.
+            $folders = Folder::query()->withCount('media as files_count')->with($with)
+                ->whereNull('parent_id')->where('user_id', $this->user->id)
+                ->orderBy('name')->get();
+        } elseif ($this->user->isActiveAdministrator()) {
+            // An administrator sees every other person's folders here.
+            $folders = Folder::query()->withCount('media as files_count')->with($with)
+                ->whereNull('parent_id')
+                ->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $this->user->id))
+                ->orderBy('name')->get();
         } else {
-            $query->where('is_shared', false)->where('user_id', $this->user->id);
+            // Shared with me: shared by name or through a group I am in now, at any depth.
+            $folders = $access->sharedWith($this->user)->withCount('media as files_count')->with($with)
+                ->orderBy('name')->get();
         }
 
-        if (! $this->user->isActiveAdministrator()) {
-            $query->whereHas('users', fn ($q) => $q->where('user_id', $this->user->id));
-        }
-
-        $this->folders = $query->orderBy('name')->get();
+        $this->folders = $folders;
         $this->files = $this->currentFolder
             ? $this->currentFolder->getMedia('archived_files')->filter(fn (Media $media) => $this->isAllowedArchiveMedia($media))->values()
             : collect();
@@ -226,34 +298,46 @@ class ArchivedFilesModule extends Component
         $this->authorizeCurrentFolderManagement();
         $this->validate(['newFolderName' => 'required|string|max:255']);
 
+        // Whoever makes it owns it; inside another folder it takes that folder's access.
         $folder = Folder::create([
             'name' => $this->newFolderName,
             'parent_id' => $this->currentFolder?->id,
             'user_id' => $this->user->id,
-            'is_shared' => $this->isShared,
+            'is_shared' => false,
+            'inherits_access' => true,
         ]);
-
-        $inheritedUserIds = $this->currentFolder
-            ? $this->currentFolder->users()->pluck('users.id')
-            : collect();
-
-        $inheritedUserIds->push((int) $this->user->id);
-        $folder->users()->sync($inheritedUserIds->map(fn ($id) => (int) $id)->unique()->values());
 
         $this->showCreateFolderModal = false;
         $this->newFolderName = '';
         $this->loadContent();
-        $this->editPermissions($folder->id);
+
+        // A new top-level folder is shared at once; a subfolder already has its parent's people.
+        if (! $this->currentFolder) {
+            $this->editPermissions($folder->id);
+        }
     }
 
     public function editPermissions(int $folderId)
     {
-        $folder = Folder::findOrFail($folderId);
-        if ($folder->user_id !== $this->user->id && ! $this->user->isActiveAdministrator()) {
-            abort(403, 'Only the creator can manage permissions.');
-        }
+        $folder = Folder::query()->with(['users', 'groupShares'])->findOrFail($folderId);
+        abort_unless($this->access()->canEdit($this->user, $folder), 403, 'Only the owner or an editor can share this folder.');
+
         $this->folderForPermissions = $folder;
-        $this->selectedUsers = $folder->users->pluck('id')->toArray();
+        $owner = (int) $folder->user_id;
+        $people = $folder->users->reject(fn (User $user) => (int) $user->id === $owner);
+        $this->selectedUsers = $people->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $this->userRoles = $people->mapWithKeys(fn (User $user) => [(int) $user->id => $this->shareRole($user->pivot->role)])->all();
+        $options = [];
+        $this->groupShares = $folder->groupShares->map(function (FolderGroupShare $share) use (&$options) {
+            $options[$share->group_type] ??= $this->groupOptionsFor($share->group_type);
+
+            return [
+                'type' => $share->group_type,
+                'id' => (int) $share->group_id,
+                'role' => $this->shareRole($share->role),
+                'label' => $options[$share->group_type][$share->group_id] ?? '#'.$share->group_id,
+            ];
+        })->values()->all();
         $this->allUsers = null;
         $this->permissionUsersNeedRefresh = true;
         $this->showPermissionsModal = true;
@@ -261,28 +345,52 @@ class ArchivedFilesModule extends Component
 
     public function savePermissions()
     {
-        if ($this->folderForPermissions) {
-            if ($this->folderForPermissions->user_id !== $this->user->id && ! $this->user->isActiveAdministrator()) {
-                abort(403, 'Only the creator can manage permissions.');
+        $folder = $this->authorizePermissionsFolder();
+        $owner = (int) $folder->user_id;
+
+        // People, each with a role; the owner is the owner, not a share.
+        $people = collect($this->selectedUsers)->map(fn ($id) => (int) $id)->unique()
+            ->reject(fn (int $id) => $id === $owner)
+            ->mapWithKeys(fn (int $id) => [$id => ['role' => $this->shareRole($this->userRoles[$id] ?? null)]]);
+
+        $before = $folder->users()->pluck('users.id')->map(fn ($id) => (int) $id);
+        $folder->users()->sync($people->all());
+
+        // Groups, kept as groups: whoever is in one later has access too.
+        $wanted = collect($this->groupShares)
+            ->filter(fn (array $share) => in_array($share['type'] ?? null, FolderAccess::GROUP_TYPES, true))
+            ->keyBy(fn (array $share) => $share['type'].':'.(int) $share['id']);
+        $existing = $folder->groupShares()->get()->keyBy(fn (FolderGroupShare $share) => $share->group_type.':'.$share->group_id);
+
+        $existing->except($wanted->keys()->all())->each->delete();
+        $newGroups = [];
+
+        foreach ($wanted as $key => $share) {
+            if (! $existing->has($key)) {
+                $newGroups[] = $share;
             }
 
-            $newIds = collect($this->selectedUsers)->map(fn ($id) => (int) $id);
-            $newIds->push((int) $this->folderForPermissions->user_id);
-            $newIds = $newIds->unique();
+            FolderGroupShare::query()->updateOrCreate(
+                ['folder_id' => $folder->id, 'group_type' => $share['type'], 'group_id' => (int) $share['id']],
+                ['role' => $this->shareRole($share['role'] ?? null), 'shared_by_user_id' => $existing->get($key)?->shared_by_user_id ?? $this->user->id],
+            );
+        }
 
-            $existingIds = $this->folderForPermissions->users->pluck('id');
-            $addedUserIds = $newIds->diff($existingIds);
+        // Tell who was just given access: the people added, and who is in a group added now.
+        $told = $people->keys()->diff($before);
 
-            $this->folderForPermissions->users()->sync($newIds);
+        foreach ($newGroups as $share) {
+            $told = $told->merge($this->access()->members($share['type'], (int) $share['id'])->pluck('users.id'));
+        }
 
-            if ($addedUserIds->isNotEmpty()) {
-                $creatorName = $this->user->profile?->name ?? '-';
-                foreach (User::whereIn('id', $addedUserIds)->get() as $user) {
-                    $user->notify(new FolderShared($this->folderForPermissions, $creatorName));
-                }
+        $told = $told->map(fn ($id) => (int) $id)->unique()->reject(fn (int $id) => in_array($id, [$owner, (int) $this->user->id], true));
 
-                $this->dispatch('notification-created');
-            }
+        if ($told->isNotEmpty()) {
+            Notification::send(
+                User::query()->whereIn('id', $told->all())->get(),
+                new FolderShared($folder, $this->user->profile?->name ?? '-'),
+            );
+            $this->dispatch('notification-created');
         }
 
         $this->closePermissionsModal();
@@ -294,6 +402,12 @@ class ArchivedFilesModule extends Component
         $this->showPermissionsModal = false;
         $this->folderForPermissions = null;
         $this->selectedUsers = [];
+        $this->userRoles = [];
+        $this->groupShares = [];
+        $this->groupType = '';
+        $this->groupValue = '';
+        $this->groupOptions = [];
+        $this->groupRole = FolderAccess::VIEWER;
         $this->userSearch = '';
         $this->permissionFilterType = '';
         $this->permissionFilterValue = '';
@@ -393,7 +507,7 @@ class ArchivedFilesModule extends Component
     public function confirmFileDeletion($mediaId)
     {
         $folder = $this->folderForMedia((int) $mediaId);
-        $this->authorizeFolderManagement($folder);
+        $this->authorizeFolderDeletion($folder);
         $media = Media::findOrFail($mediaId);
         $this->confirmItemDeletion('file', (int) $mediaId, $media->name);
     }
@@ -401,7 +515,7 @@ class ArchivedFilesModule extends Component
     public function confirmFolderDeletion($folderId)
     {
         $folder = Folder::findOrFail($folderId);
-        $this->authorizeFolderManagement($folder);
+        $this->authorizeFolderDeletion($folder);
         $this->confirmItemDeletion('folder', (int) $folderId, $folder->name);
     }
 
@@ -415,11 +529,11 @@ class ArchivedFilesModule extends Component
 
         if (($payload['type'] ?? null) === 'file') {
             $folder = $this->folderForMedia($id);
-            $this->authorizeFolderManagement($folder);
+            $this->authorizeFolderDeletion($folder);
             Media::findOrFail($id)->delete();
         } elseif (($payload['type'] ?? null) === 'folder') {
             $folder = Folder::findOrFail($id);
-            $this->authorizeFolderManagement($folder);
+            $this->authorizeFolderDeletion($folder);
             $folder->delete();
         } else {
             return;
@@ -492,8 +606,10 @@ class ArchivedFilesModule extends Component
 
         if (in_array($userId, $selected, true)) {
             $selected = array_diff($selected, [$userId]);
+            unset($this->userRoles[$userId]);
         } else {
             $selected[] = $userId;
+            $this->userRoles[$userId] ??= FolderAccess::VIEWER;
         }
 
         // array_values keeps a sequential list so Livewire serializes it as a JSON array.
@@ -513,8 +629,14 @@ class ArchivedFilesModule extends Component
 
         if ($allAlreadySelected) {
             $this->selectedUsers = array_values(array_diff($current, $toggleableUserIds));
+            foreach ($toggleableUserIds as $id) {
+                unset($this->userRoles[$id]);
+            }
         } else {
             $this->selectedUsers = array_values(array_unique(array_merge($current, $toggleableUserIds)));
+            foreach ($toggleableUserIds as $id) {
+                $this->userRoles[$id] ??= FolderAccess::VIEWER;
+            }
         }
     }
 
@@ -569,6 +691,14 @@ class ArchivedFilesModule extends Component
             'hasAccessUsers' => $hasAccessUsers,
             'noAccessUsers' => $noAccessUsers,
             'canManageCurrentFolder' => $this->userCanManageFolder($this->currentFolder),
+            'canDeleteInCurrentFolder' => $this->currentFolder !== null && $this->access()->canDelete($this->user, $this->currentFolder),
+            // Each listed folder's role for this person: what its menu offers.
+            'folderRoles' => $this->folders->mapWithKeys(fn (Folder $folder) => [$folder->id => $this->access()->role($this->user, $folder)])->all(),
+            // How many people each group in the dialog holds now.
+            'groupCounts' => $this->showPermissionsModal
+                ? collect($this->groupShares)->mapWithKeys(fn (array $share, int $i) => [$i => $this->access()->members($share['type'], (int) $share['id'])->count()])->all()
+                : [],
+            'groupTypes' => $this->permissionFilterCategories,
             'previewFile' => $previewFile,
             'convertedOfficePdfUrl' => $this->convertedOfficePdfUrl($previewFile),
             'officePreviewData' => $this->officePreviewData($previewFile),
@@ -590,7 +720,9 @@ class ArchivedFilesModule extends Component
         $folderLinks = [];
         $folder = $this->currentFolder;
 
-        while ($folder) {
+        // Up to the highest folder this person may open: a folder shared on its own
+        // must not show the names of the folders above it.
+        while ($folder && $this->access()->canView($this->user, $folder)) {
             array_unshift($folderLinks, [
                 'label' => $folder->name,
                 'url' => self::folderUrl($folder->id, $this->isShared),
@@ -604,6 +736,44 @@ class ArchivedFilesModule extends Component
             $lastIndex = count($this->finalCrumbs) - 1;
             unset($this->finalCrumbs[$lastIndex]['url']);
         }
+    }
+
+    /** The groups of one type, by id, with their names (departments, cities, mailing lists ...). */
+    private function groupOptionsFor(string $type): array
+    {
+        $collection = match ($type) {
+            'department' => Department::all(),
+            'program' => Program::all(),
+            'job_level' => JobLevel::all(),
+            'center' => Center::all(),
+            'city' => City::all(),
+            'mail_list' => MailList::query()->orderBy('position')->orderBy('name')->get(),
+            default => collect(),
+        };
+
+        return $collection
+            ->mapWithKeys(fn ($item) => [$item->id => ($item->name ?? $item->name_en ?? $item->name_ar ?? (string) $item->id)])
+            ->toArray();
+    }
+
+    /** The folder whose sharing is open, re-read and re-checked on every change to it. */
+    private function authorizePermissionsFolder(): Folder
+    {
+        $folder = $this->folderForPermissions ? Folder::query()->find($this->folderForPermissions->id) : null;
+
+        abort_unless($folder && $this->access()->canEdit($this->user, $folder), 403, 'Only the owner or an editor can share this folder.');
+
+        return $folder;
+    }
+
+    private function shareRole(?string $role): string
+    {
+        return in_array($role, FolderAccess::SHARE_ROLES, true) ? $role : FolderAccess::VIEWER;
+    }
+
+    private function access(): FolderAccess
+    {
+        return app(FolderAccess::class);
     }
 
     private function confirmItemDeletion(string $type, int $id, string $name): void
@@ -620,65 +790,56 @@ class ArchivedFilesModule extends Component
             return $query;
         }
 
-        return $query->where(function ($q) {
-            foreach ($this->activeFilters as $filter) {
-                if ($filter['type'] === 'mail_list') {
-                    $q->whereIn($q->qualifyColumn('email'), MailListMember::query()->where('mail_list_id', (int) $filter['value'])->select('email'));
-
-                    continue;
-                }
-
-                $q->whereHas('profile.contracts.position', function ($positionQuery) use ($filter) {
-                    match ($filter['type']) {
-                        'department' => $positionQuery->where('department_id', $filter['value']),
-                        'job_level' => $positionQuery->where('job_level_id', $filter['value']),
-                        'program' => $positionQuery->where('program_id', $filter['value']),
-                        'center' => $positionQuery->where('center_id', $filter['value']),
-                        'city' => $positionQuery->where('city_id', $filter['value']),
-                        default => null,
-                    };
-                });
+        // Each filter is a group, read exactly as a group share reads it (FolderAccess::members):
+        // the people it narrows to are the people sharing with that group would reach. Several
+        // filters narrow together (in HR and in Aleppo).
+        foreach ($this->activeFilters as $filter) {
+            if (in_array($filter['type'], FolderAccess::GROUP_TYPES, true)) {
+                $query->whereIn($query->qualifyColumn('id'), $this->access()->members($filter['type'], (int) $filter['value'])->select('users.id'));
             }
-        });
+        }
+
+        return $query;
     }
 
     private function userCanAccessFolder(Folder $folder): bool
     {
-        return $this->user->isActiveAdministrator()
-            || $folder->users()->whereKey($this->user->id)->exists();
+        return $this->access()->canView($this->user, $folder);
     }
 
+    /**
+     * Upload, make a subfolder, rename (FolderAccess: editor or owner). At the top
+     * of My folders anyone may make a folder; at the top of "Shared with me" only
+     * an administrator (everyone else makes one in My folders and shares it).
+     */
     private function userCanManageFolder(?Folder $folder = null): bool
     {
-        if ($this->isShared && ! $this->user->isActiveAdministrator()) {
-            return false;
-        }
-
         if (! $folder) {
             return ! $this->isShared || $this->user->isActiveAdministrator();
         }
 
-        return $this->user->isActiveAdministrator() || (int) $folder->user_id === (int) $this->user->id;
-    }
-
-    private function authorizeSharedAction(): void
-    {
-        if ($this->isShared && ! $this->user->isActiveAdministrator()) {
-            abort(403, 'You are not authorized to perform this action in Shared Folders.');
-        }
+        return $this->access()->canEdit($this->user, $folder);
     }
 
     private function authorizeCurrentFolderManagement(): void
     {
         if (! $this->userCanManageFolder($this->currentFolder)) {
-            abort(403, 'Only the folder creator can manage this folder.');
+            abort(403, 'Only the owner or an editor can change this folder.');
         }
     }
 
     private function authorizeFolderManagement(Folder $folder): void
     {
         if (! $this->userCanManageFolder($folder)) {
-            abort(403, 'Only the folder creator can manage this folder.');
+            abort(403, 'Only the owner or an editor can change this folder.');
+        }
+    }
+
+    /** Deleting stays with the owner (and an administrator), as on Google Drive. */
+    private function authorizeFolderDeletion(Folder $folder): void
+    {
+        if (! $this->access()->canDelete($this->user, $folder)) {
+            abort(403, 'Only the owner can delete here.');
         }
     }
 
@@ -1348,7 +1509,8 @@ POWERSHELL;
 
     private function getVisibleUsersQuery(): Builder
     {
-        $query = User::query()->with('profile')->whereHas('profile');
+        // People who left cannot sign in; offering them only invites sharing by mistake.
+        $query = User::query()->with('profile')->whereHas('profile', fn ($q) => $q->where('is_active', true));
 
         if (trim($this->userSearch)) {
             $parts = array_filter(explode(' ', trim($this->userSearch)));

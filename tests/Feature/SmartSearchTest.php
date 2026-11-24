@@ -196,10 +196,13 @@ class SmartSearchTest extends TestCase
             ->assertSeeHtml('data-testid="search-template-action"');
 
         // The template menu is filled in on request, for that person.
-        $page->call('templatesFor', $mai->id)->assertReturned(fn (array $rows) => count($rows) === 1
+        // The saved template first, then (since 2026-11-20) the ready-made announcements
+        // about one person, which open in the composer with her name already in.
+        $page->call('templatesFor', $mai->id)->assertReturned(fn (array $rows) => count(array_filter($rows, fn ($r) => $r['channel'] !== 'announcement')) === 1
             && $rows[0]['name'] === 'Hello'
             && str_contains($rows[0]['url'], 'mailto:maya@hcsyria.org')
-            && str_contains($rows[0]['url'], 'subject=Hi%20Maya'));
+            && str_contains($rows[0]['url'], 'subject=Hi%20Maya')
+            && collect($rows)->where('channel', 'announcement')->pluck('compose.template')->all() === ['welcome', 'volunteer_resignation', 'administrative_change']);
 
         // Without message-templates.use there is no template action, and the call is refused.
         $plain = $this->makeUser($aleppo, 'employee', []);

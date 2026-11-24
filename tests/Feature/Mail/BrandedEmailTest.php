@@ -129,16 +129,24 @@ class BrandedEmailTest extends TestCase
         $this->assertStringContainsString(trans_choice('mail.code.expires', 10, [], 'ar'), $html);
     }
 
-    public function test_an_arabic_only_notification_is_framed_in_arabic_whatever_the_app_locale(): void
+    /**
+     * One language per email (decided 2026-10-21): the renewal warning, once
+     * Arabic-only, now follows the language it is sent in, frame included.
+     */
+    public function test_the_renewal_warning_is_framed_in_the_language_it_is_sent_in(): void
     {
-        app()->setLocale('en');
         $employee = (new Employee)->forceFill(['first_name_ar' => 'رنا', 'last_name_ar' => 'حداد', 'first_name_en' => 'Rana', 'last_name_en' => 'Haddad']);
         $contract = (new Contract)->forceFill(['id' => 7, 'end_date' => '2026-10-06'])->setRelation('employee', $employee);
 
+        app()->setLocale('ar');
         $html = $this->send(new ContractsExpiringAutoRenewWarning(collect([$contract])))->getHtmlBody();
-
         $this->assertStringContainsString('<html lang="ar" dir="rtl"', $html);
         $this->assertStringContainsString(__('mail.automated', ['app' => config('app.name')], 'ar'), $html);
+
+        app()->setLocale('en');
+        $html = $this->send(new ContractsExpiringAutoRenewWarning(collect([$contract])))->getHtmlBody();
+        $this->assertStringNotContainsString('dir="rtl"', $html);
+        $this->assertStringContainsString('Rana Haddad', $html);
     }
 
     public function test_english_and_arabic_mail_lang_files_have_the_same_keys(): void

@@ -171,6 +171,29 @@ class AnnouncementTemplatesTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_closing_the_composer_asks_before_throwing_away_what_was_typed(): void
+    {
+        $aleppo = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($aleppo, 'HR-ALP', ['message-templates.use']);
+
+        // Nothing typed: it closes at once.
+        Livewire::actingAs($hr)->test(AnnouncementComposer::class)
+            ->call('compose', 'holiday_closure')
+            ->call('requestClose', 'announcement-composer')
+            ->assertSet('open', false)
+            ->assertNotDispatched('confirm-dialog');
+
+        // Something typed: it asks, stays open, and only "Discard changes" closes it.
+        Livewire::actingAs($hr)->test(AnnouncementComposer::class)
+            ->call('compose', 'holiday_closure')
+            ->set('to', 'staff@example.test')
+            ->call('requestClose', 'announcement-composer')
+            ->assertSet('open', true)
+            ->assertDispatched('confirm-dialog')
+            ->call('discardChanges', 'announcement-composer')
+            ->assertSet('open', false);
+    }
+
     public function test_the_signature_ends_every_email_and_the_message_file(): void
     {
         $aleppo = $this->makeCity('ALP', '001');

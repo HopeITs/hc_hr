@@ -1071,13 +1071,13 @@ class DashboardLayout
     private function folderAllowed(User $user, Folder $folder): bool
     {
         return $user->hasActivePermission('archives.view')
-            && ($user->isActiveAdministrator() || $folder->users()->whereKey($user->getKey())->exists());
+            && app(\App\Services\Folders\FolderAccess::class)->canView($user, $folder);
     }
 
-    /** My folders for the viewer's own unshared folder, Shared folders otherwise (as the pages list them). */
+    /** My folders for the viewer's own folder, Shared with me otherwise (as the page lists them). */
     private function folderRoute(User $user, Folder $folder): string
     {
-        $mine = ! $folder->is_shared && (int) $folder->user_id === (int) $user->getKey();
+        $mine = (int) $folder->user_id === (int) $user->getKey();
 
         return route($mine ? 'my-folders.index' : 'shared-folders.index', ['folderId' => $folder->id]);
     }

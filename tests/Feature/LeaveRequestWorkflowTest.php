@@ -34,6 +34,22 @@ class LeaveRequestWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Numbers the cities a test makes, so their slugs never repeat. */
+    private int $citySequence = 0;
+
+    /**
+     * The fixtures date leave a week or two ahead. Run in late November, that
+     * lands in December, where leave must be marked exceptional, and the tests
+     * failed for the date alone. An ordinary Wednesday in October keeps them
+     * about what they test.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(Carbon::parse('2026-10-14 10:00:00'));
+    }
+
     public function test_employee_can_view_the_rejection_reason_for_their_own_leave(): void
     {
         [$user, $leaveRequest] = $this->createRejectedLeaveFixture('Operational coverage is unavailable.');
@@ -2337,7 +2353,9 @@ class LeaveRequestWorkflowTest extends TestCase
         $cityId = DB::table('cities')->insertGetId([
             'name_en' => 'Aleppo',
             'name_ar' => 'حلب',
-            'slug' => 'A'.substr(md5($suffix), 0, 2),
+            // Three characters, like the real ones (HR roles are "HR-XXX"). Taken from a hash
+            // they collided now and then (1 in 256) when one test made two cities.
+            'slug' => 'A'.str_pad((string) (++$this->citySequence), 2, '0', STR_PAD_LEFT),
             'code' => substr(md5('code_'.$suffix), 0, 3),
             'created_at' => now(),
             'updated_at' => now(),

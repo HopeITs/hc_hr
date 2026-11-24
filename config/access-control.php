@@ -295,7 +295,16 @@ return [
             'reopenMonth' => 'attendance.manage',
             'saveSigned' => 'attendance.manage',
             'removeSigned' => 'attendance.manage',
+            // Answers the open day and moves to the next one; it goes through saveDecision.
+            'answerDay' => 'attendance.view',
         ],
+        // The composer re-checks message-templates.use itself; these name the permission at the door too.
+        'messages.announcement-composer' => [
+            'compose' => 'message-templates.use',
+            'choose' => 'message-templates.use',
+            'downloadEml' => 'message-templates.use',
+        ],
+        'activity-log.activity-log-report' => ['export' => 'activity-log.view'],
         // HR's email and WhatsApp templates. The component re-checks the permission itself.
         'mail-lists.check' => [
             'editRule' => 'mail-lists.manage',
@@ -660,6 +669,12 @@ return [
             'saveEditedFile' => 'archives.update',
             'toggleUser' => 'archives.share',
             'toggleSelectAllVisible' => 'archives.share',
+            // Roles and groups (FolderAccess). The folder role is re-checked in each one
+            // (owner or editor); archives.share is the ceiling above it.
+            'setUserRole' => 'archives.share',
+            'addGroupShare' => 'archives.share',
+            'removeGroupShare' => 'archives.share',
+            'setGroupRole' => 'archives.share',
         ],
         'checklist-items.pending-items' => ['markDelivered' => 'checklists.deliver'],
         'checklist-items.pending-returns' => ['markReceived' => 'checklists.receive'],
@@ -832,6 +847,17 @@ return [
     */
 
     'livewire_exempt' => [
+        // Reports: each page is opened by mayView() (several permissions or a role, no single
+        // name), and export() asks mayView() again before building the file. Clearing filters
+        // writes nothing.
+        'reports.leave-report' => ['export'],
+        'reports.leaving-reasons' => ['export', 'clearFilters'],
+        'reports.position-vacancies' => ['export', 'clearFilters'],
+        'reports.profile-completeness' => ['export'],
+        'reports.recruitment-funnel' => ['export'],
+        'reports.training' => ['export'],
+        // UI-only: going back, closing, or a changed field in the composer; nothing is sent or saved.
+        'messages.announcement-composer' => ['back', 'close', 'updatedSignature', 'updatedValues', ...$closeGuard],
         // The probation review is gated by ProbationReviewPolicy (the direct manager, city HR when nobody runs the position), on mount, on send() and again in ProbationReviews::request(); there is no permission to name.
         'probation.review' => ['send'],
         // Track 7: the manager's session is gated by OnboardingJourneys::canRunManagerOrientation (direct manager, city HR as fallback) on mount and on every action, and again inside the service.
@@ -855,7 +881,8 @@ return [
         'chat.page' => ['select', 'startWith', 'onUpdated'],
         'chat.header-button' => ['onUpdated'],
         // UI-only: close the day dialog; the page itself needs attendance.view (route and mount).
-        'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup'],
+        // updatedMonth: a changed month re-reads the roster through Roster, which scopes it to the viewer.
+        'attendance.timesheets' => ['closeDay', 'closeMonth', 'shiftMonth', 'toggleGroup', 'updatedMonth'],
         // UI-only: forget the chosen file; the page itself needs attendance.manage (route and mount).
         'attendance.upload' => ['cancel'],
         // UI-only: clears the employees tab's search and filters; render() rechecks employees.view.
@@ -1224,6 +1251,8 @@ return [
             'loadContent', 'addFilter', 'removeFilter', 'clearFilters',
             'closePreviewModal', 'closePermissionsModal', 'updatedUserSearch',
             'updatedPermissionFilterType', 'updatedPermissionFilterValue',
+            // Fills the second list of "Share with a group"; reads names only, writes nothing.
+            'updatedGroupType',
         ],
         'badges.badges-module' => ['openBadgeModal'],
         // Neither contract.contract-create nor contract.contract-edit has any
@@ -1312,7 +1341,8 @@ return [
         // setActiveTab, not the mapped createDraftAndContinue/
         // positionOptionsForDraft/programOptionsForDraft/citiesForDraft/
         // canPickAnyDraftCity above.
-        'employee.employee-create' => ['setActiveTab', 'toggleBoardMember', 'skipDraft', 'updatedDraftCityId', 'updatedDraftProgramId',
+        // updatedInfoForm: a changed field on the form; saving is what needs employees.create.
+        'employee.employee-create' => ['setActiveTab', 'toggleBoardMember', 'skipDraft', 'updatedDraftCityId', 'updatedDraftProgramId', 'updatedInfoForm',
             'mountRemembersReturnTo', // C2 lifecycle hook (Livewire refuses direct calls to mount*): reads ?from through SafeReturn, writes nothing
         ],
         // C3 work inbox: no permission of its own, by design (approval-source-contract.md §5).

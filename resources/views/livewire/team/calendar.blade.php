@@ -109,7 +109,7 @@
 
     {{-- Period navigation and legend --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <button type="button" wire:click="move(-1)" class="{{ $iconBtn }}" aria-label="{{ __('team_calendar.nav_buttons.previous') }}">
                 <svg class="size-4 rtl:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12.5 4.5L7 10l5.5 5.5"/></svg>
             </button>

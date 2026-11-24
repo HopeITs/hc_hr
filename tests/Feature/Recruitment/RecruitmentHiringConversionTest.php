@@ -206,7 +206,7 @@ class RecruitmentHiringConversionTest extends TestCase
     public function test_add_employee_points_at_accepted_offers_waiting_to_be_converted(): void
     {
         Notification::fake();
-        [, $offer] = $this->accepted();
+        [, $offer, $conversion] = $this->accepted();
         $this->actingAs($this->hr);
         app()->setLocale('en');
 
@@ -220,9 +220,15 @@ class RecruitmentHiringConversionTest extends TestCase
         Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
             ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
 
-        // Once hired, it is no longer waiting.
-        $this->actingAs($this->hr);
-        Livewire::test(Convert::class, ['offerId' => $offer->id])->set('employee', $this->person())->call('save');
+        // Once hired, it is no longer waiting. without() took the right from the
+        // role itself, so it is given back first: otherwise the hire page answered
+        // 403 and the list was hidden for lack of the right, not because of the hire.
+        Role::findByName($this->hr->myRole(), 'web')->givePermissionTo('recruitment-applicants.convert-hires');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->actingAs($this->hr = $this->hr->fresh());
+        Livewire::test(Convert::class, ['offerId' => $offer->id])->set('employee', $this->person())->call('save')
+            ->assertHasNoErrors();
+        $this->assertTrue($conversion->fresh()->isConverted());
         Livewire::test(\App\Livewire\Employee\EmployeeCreate::class)
             ->assertDontSeeHtml('data-testid="offers-awaiting-conversion"');
     }

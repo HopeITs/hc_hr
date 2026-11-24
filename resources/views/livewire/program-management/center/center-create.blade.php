@@ -82,7 +82,7 @@
             <x-error-span>{{ $errors->first('item.programs') ?: $errors->first('item.programs.*') }}</x-error-span>
         </div>
 
-        <div class="md:col-span-full flex justify-end gap-2">
+        <div class="col-span-full flex flex-wrap justify-end gap-2">
             <x-button type="submit">
                 @lang('general.save')
             </x-button>

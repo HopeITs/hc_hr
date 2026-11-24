@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Throwable;
 
 #[Layout('components.layouts.auth.simple')]
@@ -95,9 +96,12 @@ class Login extends Component
         // tag. A wire:navigate fetch would send that stale token, get
         // rejected (419), and leave the loading bar spinning forever with
         // no visible error. A full redirect always picks up the new session.
-        $this->redirectIntended(
-            default: route('dashboard', absolute: false),
-        );
+        //
+        // Always the desk, in the current language: a page asked for while
+        // signed out is not resumed. It sent people to a page their starting
+        // role cannot open (403), without the locale prefix.
+        session()->forget('url.intended');
+        $this->redirect(LaravelLocalization::localizeUrl('/', app()->getLocale()));
     }
 
     /**

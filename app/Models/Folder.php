@@ -22,6 +22,7 @@ class Folder extends Model implements HasMedia
         'parent_id',
         'user_id',
         'is_shared',
+        'inherits_access',
     ];
 
     public function parent(): BelongsTo
@@ -39,9 +40,16 @@ class Folder extends Model implements HasMedia
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** People it is shared with one by one, each with a role (viewer / editor). */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class)->withPivot('role');
+    }
+
+    /** Groups it is shared with, each with a role (FolderAccess). */
+    public function groupShares(): HasMany
+    {
+        return $this->hasMany(FolderGroupShare::class);
     }
 
     public function registerMediaConversions(?Media $media = null): void
@@ -64,5 +72,10 @@ class Folder extends Model implements HasMedia
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    protected function casts(): array
+    {
+        return ['is_shared' => 'boolean', 'inherits_access' => 'boolean'];
     }
 }

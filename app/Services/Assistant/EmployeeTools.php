@@ -530,10 +530,10 @@ class EmployeeTools
             ]))->values()->all(),
         ];
 
-        // Only folders the user was explicitly given (folder_user), as on the
-        // shared-folders page, which itself needs archives.view.
+        // Only folders shared with the user, by name or through a group they are in now
+        // (FolderAccess::sharedWith), as on "Shared with me", which itself needs archives.view.
         if ($user->hasActivePermission('archives.view')) {
-            $result['shared_folders'] = $user->accessibleFolders()
+            $result['shared_folders'] = app(\App\Services\Folders\FolderAccess::class)->sharedWith($user)
                 ->with('media')
                 ->orderBy('name')
                 ->get()
