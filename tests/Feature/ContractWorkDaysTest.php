@@ -335,6 +335,27 @@ class ContractWorkDaysTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_the_dialog_shows_each_viewer_the_way_to_an_amendment(): void
+    {
+        $contract = $this->contract();
+        [$manager, $position] = $this->manager();
+        $contract->position->update(['direct_manager_id' => $position->id]);
+
+        // HR who may amend: a link to make one.
+        Livewire::actingAs($this->makeUser($this->city, 'HR-ALP', [...self::PERMISSIONS, 'contracts.amend']))
+            ->test(ContractWorkDays::class, ['contract' => $contract->fresh()])
+            ->call('openChange')
+            ->assertSee(__('contracts.work-days.make-amendment'))
+            ->assertSeeHtml('href="'.route('contracts.amend', $contract).'"');
+
+        // A manager makes none: who to ask instead.
+        Livewire::actingAs($manager)
+            ->test(ContractWorkDays::class, ['contract' => $contract->fresh()])
+            ->call('openChange')
+            ->assertSee(__('contracts.work-days.amend-ask-hr'))
+            ->assertDontSee(__('contracts.work-days.make-amendment'));
+    }
+
     /**
      * A manager (active role) holding a position today.
      *

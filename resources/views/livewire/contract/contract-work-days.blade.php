@@ -131,11 +131,18 @@
                                 <span x-text="@js(__('contracts.work-days.count-differs', ['expected' => $expected, 'count' => '__COUNT__'])).replace('__COUNT__', count)"></span>
                             </p>
                             <p class="mt-1 text-ink-2">@lang('contracts.work-days.count-differs-hint')</p>
-                            @if($amendUrl)
-                                <x-button variant="outline" size="sm" class="mt-2" :href="$amendUrl">
-                                    <x-ic name="plus" class="size-4" />
-                                    @lang('contracts.work-days.make-amendment')
-                                </x-button>
+                            @if($amendWay)
+                                {{-- A small link to the way out, in the box's own line: make an
+                                     amendment, open the waiting one, or who to ask. --}}
+                                @if($amendWay['href'])
+                                    <a href="{{ $amendWay['href'] }}" wire:navigate
+                                       class="mt-2 inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4 hover:text-ink-2 focus-visible:outline-2 focus-visible:outline-offset-2">
+                                        {{ $amendWay['label'] }}
+                                        <x-ic name="arrow" class="size-3.5 rtl:-scale-x-100" />
+                                    </a>
+                                @else
+                                    <p class="mt-2 text-ink-2">{{ $amendWay['label'] }}</p>
+                                @endif
                             @endif
                         </div>
                         <p x-show="! countDiffers" class="text-small text-ink-2">

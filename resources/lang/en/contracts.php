@@ -122,6 +122,9 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'work-days' => [
+        'open-waiting-amendment' => 'Open the waiting amendment',
+        'amend-ask-hr' => 'Only HR makes amendments: ask HR of the city to make one.',
+        'amend-not-now' => 'This contract cannot be amended right now (it has not started, or it has ended).',
         'none-stated' => 'This contract does not state its working days yet. Until they are set, leave counts every day except the center\'s weekend.',
         'set-days' => 'Set working days',
         'weekly-hours' => '{1} :count h a week|[2,*] :count h a week',

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractAmendmentStatus;
 use App\Enums\ScheduleMode;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
@@ -195,8 +196,9 @@ class ContractWorkDays extends Component
             // A day-range contract reads as a range, and is changed as one.
             'isRange' => $isRange = $this->isRange($contract),
             'rangeLabel' => $isRange ? $this->rangeLabel($this->daysInForce($contract)) : null,
-            // A different number of days is an amendment: where to make one.
-            'amendUrl' => $user?->can('amend', $contract) ? route('contracts.amend', $contract) : null,
+            // A different number of days is an amendment: where to make one,
+            // the one already waiting, or who to ask.
+            'amendWay' => $this->showChange ? $this->amendWay($contract) : null,
             'now' => $this->summary($this->daysInForce($contract), $place),
             'week' => $this->week($this->daysInForce($contract), $place),
             // The change the days shown come from (null: as signed, never moved).
@@ -430,6 +432,32 @@ class ContractWorkDays extends Component
         ]);
 
         return $parts === [] ? null : implode(' · ', $parts);
+    }
+
+    /**
+     * The way to an amendment from the dialog, for whoever is looking: make
+     * one; open the one already waiting (one at a time); or, for a role that
+     * makes none (a manager) or a contract not in force, what to do instead.
+     *
+     * @return array{href: ?string, label: string}
+     */
+    private function amendWay(Contract $contract): array
+    {
+        $user = auth()->user();
+
+        if ($user?->can('amend', $contract)) {
+            return ['href' => route('contracts.amend', $contract), 'label' => __('contracts.work-days.make-amendment')];
+        }
+
+        $waiting = $contract->amendments()
+            ->whereIn('status', [ContractAmendmentStatus::Draft, ContractAmendmentStatus::Approved])
+            ->exists();
+
+        if ($waiting && $user?->can('view', $contract)) {
+            return ['href' => route('contracts.show', $contract).'#amendments', 'label' => __('contracts.work-days.open-waiting-amendment')];
+        }
+
+        return ['href' => null, 'label' => __($user?->activeRoleIs('HR') ? 'contracts.work-days.amend-not-now' : 'contracts.work-days.amend-ask-hr')];
     }
 
     /** What set a row: its amendment, named in the viewer's language (never stored as words), else HR's note. */
