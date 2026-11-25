@@ -101,7 +101,7 @@
                     <span>@lang('general.my-account')</span>
                 </a>
 
-                <a href="{{ $localized }}"
+                <a href="{{ $localized }}" data-switch-locale
                    class="flex items-center gap-3 px-3 py-2 rounded-surface text-body font-medium
                       text-ink hover:bg-hover hover:shadow-e1 transition">
                     <svg class="size-4 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor"

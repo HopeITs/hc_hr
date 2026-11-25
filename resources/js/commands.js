@@ -51,7 +51,9 @@ window.addEventListener('hopehr-command', (event) => {
             break;
         case 'locale':
             // A full load, as the header's EN | AR links: the whole page changes language and direction.
-            if (href) window.location.assign(href);
+            if (href && window.dispatchEvent(new CustomEvent('hc-switch-locale', { detail: href, cancelable: true }))) {
+                window.location.assign(href);
+            }
             break;
         case 'open':
             if (href) Livewire.navigate(returns ? withReturn(href) : href);

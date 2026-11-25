@@ -5,6 +5,7 @@
     wire:ignore: the dashboard's own re-renders must never reload an open page.
 --}}
 <div x-data="hcWorkspace" data-home="{{ route('dashboard') }}" data-ws-panel wire:ignore
+     data-hidden-locale="{{ config('laravellocalization.hideDefaultLocaleInURL') ? LaravelLocalization::getDefaultLocale() : '' }}"
      class="hc-ws" x-show="open" x-cloak
      x-transition:enter="hc-ws-enter" x-transition:enter-start="hc-ws-from" x-transition:enter-end="hc-ws-to"
      x-transition:leave="hc-ws-leave" x-transition:leave-start="hc-ws-to" x-transition:leave-end="hc-ws-from"
