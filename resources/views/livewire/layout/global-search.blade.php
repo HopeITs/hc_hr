@@ -40,7 +40,7 @@
              {{-- Prompt 10: a command acts in the page (resources/js/commands.js); a page or person opens. --}}
              if (option.dataset.action) {
                  this.close();
-                 window.dispatchEvent(new CustomEvent('hopehr-command', { detail: { action: option.dataset.action, href: option.dataset.href ?? null, returns: 'returns' in option.dataset } }));
+                 window.dispatchEvent(new CustomEvent('hopehr-command', { detail: { action: option.dataset.action, href: option.dataset.href ?? null, topic: option.dataset.topic ?? null, returns: 'returns' in option.dataset } }));
                  return;
              }
              const href = option.dataset.href;
@@ -214,6 +214,7 @@
                     <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2" data-group="{{ $key }}">{{ __('smart_search.types.'.$key) }}</li>
                     @foreach ($results as $result)
                         <li id="global-search-option-{{ $i }}" role="option" data-href="{{ $result['href'] }}" data-testid="search-result" data-type="{{ $result['type'] }}"
+                            @if (isset($result['action'])) data-action="{{ $result['action'] }}" data-topic="{{ $result['topic'] ?? '' }}" @endif
                             :aria-selected="(active === {{ $i }}).toString()"
                             :class="active === {{ $i }} ? 'bg-hover' : ''"
                             x-on:mouseenter="active = {{ $i }}"
@@ -222,7 +223,7 @@
                             <span class="min-w-0">
                                 <span class="block font-semibold text-ink"><bdi>{{ $result['title'] }}</bdi></span>
                                 @if ($result['subtitle'] !== '')
-                                    <span class="block text-small text-ink-2"><bdi>{{ $result['subtitle'] }}</bdi></span>
+                                    <span class="block text-small text-ink-2"><bdi>@if (! empty($result['marks'])){!! \App\Support\Search\Highlight::html($result['subtitle'], $result['marks']) !!}@else{{ $result['subtitle'] }}@endif</bdi></span>
                                 @endif
                                 @include('livewire.layout.partials.search-actions', ['actions' => $result['actions']])
                             </span>

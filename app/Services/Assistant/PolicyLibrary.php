@@ -49,7 +49,11 @@ class PolicyLibrary
         'ايضا', 'ضمن', 'حول', 'منذ', 'حتي', 'انا', 'انت', 'نحن', 'هنا', 'هناك', 'كان', 'يكون', 'ليس',
     ];
 
-    public function contextFor(string $question): string
+    /**
+     * @param  bool  $withLinks  a "Link:" line with each policy (or each passage when only passages are
+     *                           sent): the assistant's answer can then point at the policy's own page
+     */
+    public function contextFor(string $question, bool $withLinks = false): string
     {
         $index = $this->index();
 
@@ -60,7 +64,14 @@ class PolicyLibrary
         $budget = max(0, (int) config('assistant.policy_char_budget', 12000));
 
         if ($index['whole_length'] <= $budget) {
-            return implode("\n\n", array_column($index['documents'], 'block'));
+            if (! $withLinks) {
+                return implode("\n\n", array_column($index['documents'], 'block'));
+            }
+
+            return implode("\n\n", array_map(
+                fn (array $document): string => $document['heading']."\nLink: ".$this->link($document['id'], null, $question).substr($document['block'], strlen($document['heading'])),
+                $index['documents'],
+            ));
         }
 
         $chosen = $this->bestPassages($index, $question, $budget);
@@ -75,12 +86,17 @@ class PolicyLibrary
         $body = $chosen
             ->sortBy([['document', 'asc'], ['position', 'asc']])
             ->groupBy('document')
-            ->map(function (Collection $passages) use ($index) {
+            ->map(function (Collection $passages) use ($index, $withLinks, $question) {
                 $text = $index['documents'][$passages->first()['document']]['heading'];
                 $previous = null;
 
                 foreach ($passages as $passage) {
                     $text .= ($previous !== null && $passage['position'] === $previous + 1 ? "\n" : "\n…\n").$passage['text'];
+
+                    if ($withLinks) {
+                        $text .= "\nLink: ".$this->link($index['documents'][$passage['document']]['id'], $passage['position'], $question);
+                    }
+
                     $previous = $passage['position'];
                 }
 
@@ -89,6 +105,16 @@ class PolicyLibrary
             ->implode("\n\n");
 
         return $titles."\n\n".$body;
+    }
+
+    /** The policy's page, at a passage when one is given, with the question's words to mark. */
+    private function link(int $document, ?int $position, string $question): string
+    {
+        return route('policies.show', array_filter([
+            'document' => $document,
+            'q' => mb_substr(trim($question), 0, 80),
+            'p' => $position,
+        ], fn ($value) => $value !== null && $value !== ''));
     }
 
     /**

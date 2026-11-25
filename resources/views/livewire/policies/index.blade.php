@@ -17,7 +17,7 @@
                     <a href="{{ route('policies.show', ['document' => $hit['id'], 'q' => $term, 'p' => $hit['position']]) }}" wire:navigate class="font-semibold text-ink hover:underline" data-testid="policy-hit">
                         <bdi>{{ $hit['title'] }}</bdi>
                     </a>
-                    <p class="mt-1 text-small text-ink-2"><bdi>{{ $hit['snippet'] }}</bdi></p>
+                    <p class="mt-1 text-small text-ink-2"><bdi>{!! \App\Support\Search\Highlight::html($hit['snippet'], $marks) !!}</bdi></p>
                 </x-card>
             @empty
                 <x-card><p class="text-body text-ink-2">{{ __('policies.no-results', ['term' => $term]) }}</p></x-card>

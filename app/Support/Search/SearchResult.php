@@ -14,11 +14,13 @@ final class SearchResult
 {
     /**
      * @param  list<array<string, mixed>>  $actions
-     * @return array{type: string, id: int|string, title: string, subtitle: string, href: string, actions: list<array<string, mixed>>}
+     * @param  array<string, mixed>  $extra  `marks` (words to mark inside the subtitle) and, for a result that
+     *                                       acts in the page instead of opening one, `action` and `topic`
+     * @return array<string, mixed>
      */
-    public static function make(string $type, int|string $id, string $title, string $subtitle, string $href, array $actions = []): array
+    public static function make(string $type, int|string $id, string $title, string $subtitle, string $href, array $actions = [], array $extra = []): array
     {
-        return compact('type', 'id', 'title', 'subtitle', 'href', 'actions');
+        return [...compact('type', 'id', 'title', 'subtitle', 'href', 'actions'), ...$extra];
     }
 
     /** "a · b · c" without the empty parts. */

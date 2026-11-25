@@ -65,7 +65,7 @@ class AssistantTest extends TestCase
             return str_contains($system, 'Christian Hope Center')
                 && str_contains($system, 'Test Person')
                 && str_contains($system, now()->format('Y-m-d'))
-                && str_contains($system, "### سياسة الإجازات\nيستحق الموظف ٢١ يوماً.")
+                && preg_match('/### سياسة الإجازات\nLink: \S+\/policies\/\d+\S*\nيستحق الموظف ٢١ يوماً\./u', $system) === 1
                 && $request['contents'] === [['role' => 'user', 'parts' => [['text' => 'How many leave days do I get?']]]]
                 && collect($request['tools'][0]['functionDeclarations'])->pluck('name')->contains('get_my_profile');
         });

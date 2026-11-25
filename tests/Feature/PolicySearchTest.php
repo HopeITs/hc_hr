@@ -82,7 +82,7 @@ class PolicySearchTest extends TestCase
             ->set('q', 'نقل الكترونيات')
             ->assertSeeHtml('data-group="policies"')
             ->assertSee('سياسة الأمن المعلوماتي')
-            ->assertSee('نقل الأجهزة الإلكترونية')
+            ->assertSee('الأجهزة')
             ->assertSeeHtml(htmlspecialchars($expected));
 
         // The chip narrows the box to the policies alone.
@@ -129,9 +129,57 @@ class PolicySearchTest extends TestCase
         Livewire::actingAs($employee)->test(Index::class)
             ->set('q', 'نقل الكترونيات')
             ->assertSeeHtml('data-testid="policy-hit"')
-            ->assertSee('نقل الأجهزة الإلكترونية')
+            ->assertSee('الأجهزة')
             ->set('q', 'زرافة فضائية')
             ->assertSee('زرافة فضائية');
+    }
+
+    public function test_the_excerpt_marks_the_typed_words_in_the_search_box(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $employee = $this->makeUser($city, 'employee', []);
+
+        Livewire::actingAs($employee)->test(GlobalSearch::class)
+            ->set('q', 'نقل الكترونيات')
+            ->assertSeeHtml('<mark class="policy-mark">نقل</mark>');
+    }
+
+    public function test_the_assistant_context_carries_a_link_to_the_passage(): void
+    {
+        $library = app(PolicyLibrary::class);
+
+        // Plain context is unchanged; with links each policy brings the address of its page.
+        $this->assertStringNotContainsString('Link:', $library->contextFor('نقل الأجهزة'));
+
+        $whole = $library->contextFor('نقل الأجهزة', withLinks: true);
+        $this->assertStringContainsString("### سياسة الأمن المعلوماتي
+Link: ".route('policies.show', ['document' => $this->security->id, 'q' => 'نقل الأجهزة']), $whole);
+
+        // Over the budget only passages go in, each followed by its own link.
+        config(['assistant.policy_char_budget' => 200]);
+        $partial = $library->contextFor('نقل الأجهزة الإلكترونية', withLinks: true);
+        $this->assertStringContainsString('Link: '.route('policies.show', ['document' => $this->security->id, 'q' => 'نقل الأجهزة الإلكترونية', 'p' => 0]), $partial);
+    }
+
+    public function test_help_topics_are_found_and_open_the_help_panel(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $employee = $this->makeUser($city, 'employee', []);
+        $topic = \App\Support\HelpTopics::topic('leave-units');
+
+        $this->assertContains('help', SmartSearch::types($employee));
+
+        Livewire::actingAs($employee)->test(GlobalSearch::class)
+            ->set('q', $topic['title'])
+            ->assertSeeHtml('data-group="help"')
+            ->assertSeeHtml('data-action="help"')
+            ->assertSeeHtml('data-topic="leave-units"');
+
+        // A topic of a page the role cannot use is not offered.
+        $this->assertSame([], array_values(array_filter(
+            app(\App\Support\Search\Providers\HelpProvider::class)->search($employee, \App\Support\HelpTopics::topic('contract-types')['title'], 8),
+            fn (array $row) => $row['id'] === 'contract-types',
+        )));
     }
 
     public function test_highlight_escapes_the_text_and_ignores_spelling_variants(): void

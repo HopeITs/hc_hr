@@ -40,7 +40,7 @@ function withReturn(href) {
 
 // A command picked in the Ctrl+K box (livewire/layout/global-search.blade.php).
 window.addEventListener('hopehr-command', (event) => {
-    const { action, href, returns } = event.detail ?? {};
+    const { action, href, returns, topic } = event.detail ?? {};
 
     switch (action) {
         case 'theme':
@@ -57,6 +57,10 @@ window.addEventListener('hopehr-command', (event) => {
             break;
         case 'open':
             if (href) Livewire.navigate(returns ? withReturn(href) : href);
+            break;
+        case 'help':
+            // The page's help panel (<x-help.panel>), straight at one topic.
+            window.dispatchEvent(new CustomEvent('help-open', { detail: { topic } }));
             break;
         case 'announcement':
             // App\Livewire\Messages\AnnouncementComposer, mounted in the layout for who may use it.

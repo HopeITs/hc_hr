@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\Search\Providers\ApplicantsProvider;
 use App\Support\Search\Providers\ContractsProvider;
 use App\Support\Search\Providers\FoldersProvider;
+use App\Support\Search\Providers\HelpProvider;
 use App\Support\Search\Providers\LeaveRequestsProvider;
 use App\Support\Search\Providers\MailListsProvider;
 use App\Support\Search\Providers\NewsProvider;
@@ -33,6 +34,7 @@ final class SmartSearch
         'folders' => FoldersProvider::class,
         'news' => NewsProvider::class,
         'policies' => PoliciesProvider::class,
+        'help' => HelpProvider::class,
     ];
 
     /**

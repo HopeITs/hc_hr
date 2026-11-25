@@ -23,6 +23,7 @@ class Index extends Component
 
         return view('livewire.policies.index', [
             'term' => $term,
+            'marks' => $library->highlightTerms($term),
             'hits' => mb_strlen($term) >= 2 ? $library->search($term, 12) : [],
             'documents' => PolicyDocument::query()->readable()->orderBy('title')->get(['id', 'title', 'source_modified_at', 'updated_at']),
         ])->title(__('policies.title'));

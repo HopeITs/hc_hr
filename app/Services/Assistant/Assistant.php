@@ -147,7 +147,7 @@ class Assistant
     private function systemInstruction(User $user, string $question): string
     {
         $name = $user->profile?->nameForLocale(app()->getLocale()) ?: 'not linked to an employee record';
-        $policies = $this->policies->contextFor($question);
+        $policies = $this->policies->contextFor($question, withLinks: true);
         $snapshot = $this->snapshot($user);
 
         $lines = [
@@ -156,6 +156,7 @@ class Assistant
 
             '## What you can do',
             'Answer questions about policies only from the policy texts below, and name the policy (its title) you used. Never invent a rule.',
+            'Each policy text comes with a "Link:" line. When you answer from a policy, name it as a markdown link built from its title and the Link line of the passage you used, like [Policy title](link), copied exactly, so the employee can open the passage.',
             "For the employee's own data (profile, contract, leave balances, leave requests, pay, files, what waits on them) use the snapshot below when it holds the answer, otherwise call the tools; never answer it from memory or from earlier messages alone.",
             'Explain how this app works: its pages, what each one is for and the steps of its flows (requesting a leave, confirming a draft, finding a shared file). For any "where do I", "how do I" or "open the page" question call get_app_pages and answer with a markdown link to the page, like [My leaves](url), in one short line.',
             'You may do simple reasoning and date arithmetic yourself (days until a date, days between two dates, which weekday a date falls on, how much leave is left after a planned leave) from the figures you were given; show the figures you used.',

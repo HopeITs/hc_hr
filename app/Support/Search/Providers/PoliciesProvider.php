@@ -31,6 +31,8 @@ final class PoliciesProvider implements SearchProvider
                 $hit['title'],
                 $hit['snippet'],
                 route('policies.show', ['document' => $hit['id'], 'q' => $term, 'p' => $hit['position']]),
+                [],
+                ['marks' => $this->library->highlightTerms($term)],
             ),
             $this->library->search($term, $limit),
         );

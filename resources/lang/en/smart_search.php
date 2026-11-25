@@ -16,6 +16,7 @@ return [
         'folders' => 'Folders',
         'news' => 'News',
         'policies' => 'Policies',
+        'help' => 'Help',
     ],
     'filter' => 'Search in',
 
