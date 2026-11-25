@@ -3,6 +3,7 @@
 namespace App\Services\Assistant;
 
 use App\Models\PolicyDocument;
+use App\Support\SearchText;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -91,6 +92,209 @@ class PolicyLibrary
     }
 
     /**
+     * The passages of one policy's text, in reading order: the same split the index uses, so a
+     * result's `position` is the passage to scroll to on the policy's page.
+     *
+     * @return list<string>
+     */
+    public function passagesOf(string $content): array
+    {
+        return $this->split($content);
+    }
+
+    /**
+     * Where the header search finds a typed term in the policies: for each policy at most one
+     * passage (its best), best first, with a short excerpt of the sentence that matches.
+     *
+     * A typed word counts when a passage holds it as a word (spelling variants meet, as for the
+     * assistant) or anywhere inside its text (so «الكترونيات» finds «الإلكترونيات»). A word no
+     * policy holds at all («بدي», «please») is left out instead of ruling everything out; of the
+     * rest a passage must hold about 60% (two of two, two of three). Rarer words weigh more, and
+     * words standing together as typed add a bonus.
+     *
+     * @return list<array{id: int, title: string, position: int, text: string, snippet: string}>
+     */
+    public function search(string $term, int $limit = 4): array
+    {
+        $index = $this->index();
+        $words = $this->searchWords($term);
+
+        if ($index === null || $words === [] || $limit < 1) {
+            return [];
+        }
+
+        $passages = $index['passages'];
+        $count = count($passages);
+        $holds = [];
+        $frequency = array_fill(0, count($words), 0);
+
+        foreach ($passages as $p => $passage) {
+            foreach ($words as $w => $word) {
+                if (isset($passage['words'][$word['stem']]) || str_contains($passage['norm'], $word['core'])) {
+                    $holds[$p][] = $w;
+                    $frequency[$w]++;
+                }
+            }
+        }
+
+        $weights = [];
+
+        foreach ($frequency as $w => $found) {
+            if ($found > 0) {
+                $weights[$w] = log(1 + $count / $found);
+            }
+        }
+
+        if ($weights === []) {
+            return [];
+        }
+
+        $needed = (int) ceil(count($weights) * 0.6);
+        $ranked = [];
+
+        foreach ($holds as $p => $held) {
+            if (count($held) < $needed) {
+                continue;
+            }
+
+            $score = array_sum(array_intersect_key($weights, array_flip($held)));
+
+            foreach ($words as $w => $word) {
+                $next = $words[$w + 1] ?? null;
+
+                if ($next !== null && isset($weights[$w], $weights[$w + 1]) && str_contains($passages[$p]['norm'], $word['raw'].' '.$next['raw'])) {
+                    $score += self::PAIR_BONUS * ($weights[$w] + $weights[$w + 1]);
+                }
+            }
+
+            $ranked[$p] = $score;
+        }
+
+        arsort($ranked, SORT_NUMERIC);
+
+        $results = [];
+        $seen = [];
+
+        foreach (array_keys($ranked) as $p) {
+            $passage = $passages[$p];
+
+            if (isset($seen[$passage['document']])) {
+                continue;
+            }
+
+            $seen[$passage['document']] = true;
+            $results[] = [
+                'id' => (int) $index['documents'][$passage['document']]['id'],
+                'title' => $index['documents'][$passage['document']]['title'],
+                'position' => $passage['position'],
+                'text' => $passage['text'],
+                'snippet' => $this->snippet($passage['text'], $words),
+            ];
+
+            if (count($results) >= $limit) {
+                break;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * The spellings of a typed term to mark in a policy's text: each word as typed (folded) and
+     * its stem, so «employees» also marks «employee».
+     *
+     * @return list<string>
+     */
+    public function highlightTerms(string $term): array
+    {
+        $terms = [];
+
+        foreach ($this->searchWords($term) as $word) {
+            $terms[] = $word['raw'];
+            $terms[] = $word['stem'];
+            $terms[] = $word['core'];
+        }
+
+        return array_values(array_unique($terms));
+    }
+
+    /**
+     * The typed words worth looking for, folded, each with its stem; a word too short or a
+     * function word is left out.
+     *
+     * @return list<array{raw: string, stem: string, core: string}>
+     */
+    private function searchWords(string $term): array
+    {
+        $words = [];
+
+        foreach (preg_split('/[^\p{L}\p{N}]+/u', SearchText::normalize($term), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $raw) {
+            $stem = $this->tokens($raw)[0] ?? null;
+
+            if ($stem !== null) {
+                $words[$raw] = ['raw' => $raw, 'stem' => $stem, 'core' => $this->core($raw, $stem)];
+            }
+        }
+
+        return array_slice(array_values($words), 0, 6);
+    }
+
+    /**
+     * The part of a typed word that stays the same when it is inflected, to look for inside the
+     * text: «الكترونيات» and «الإلكترونية» meet on «كترون», «leaves» and «leave» on «leave». The
+     * article and a plural or feminine ending come off Arabic, never below three letters.
+     */
+    private function core(string $raw, string $stem): string
+    {
+        if (preg_match('/^[a-z0-9]+$/', $raw)) {
+            return $stem;
+        }
+
+        if (str_starts_with($raw, 'ال') && mb_strlen($raw) - 2 >= 3) {
+            $raw = mb_substr($raw, 2);
+        }
+
+        foreach (['يات', 'ات', 'ية', 'يه', 'ون', 'ين', 'ها', 'ه', 'ي'] as $suffix) {
+            if (str_ends_with($raw, $suffix) && mb_strlen($raw) - mb_strlen($suffix) >= 3) {
+                return mb_substr($raw, 0, -mb_strlen($suffix));
+            }
+        }
+
+        return $raw;
+    }
+
+    /**
+     * The sentence of a passage that holds the most of the typed words, on one line and cut at
+     * about 200 characters.
+     *
+     * @param  list<array{raw: string, stem: string, core: string}>  $words
+     */
+    private function snippet(string $text, array $words): string
+    {
+        $best = '';
+        $bestScore = -1;
+
+        foreach (preg_split('/(?<=[.!?؟؛])\s+|\R+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $sentence) {
+            $folded = SearchText::normalize($sentence);
+            $stems = $this->words($sentence);
+            $score = 0;
+
+            foreach ($words as $word) {
+                $score += (isset($stems[$word['stem']]) || str_contains($folded, $word['core'])) ? 1 : 0;
+            }
+
+            if ($score > $bestScore) {
+                $best = trim($sentence);
+                $bestScore = $score;
+            }
+        }
+
+        $best = trim((string) preg_replace('/\s+/u', ' ', $best !== '' ? $best : $text));
+
+        return mb_strlen($best) > 200 ? rtrim(mb_substr($best, 0, 200)).'…' : $best;
+    }
+
+    /**
      * The parsed policies, from the cache while none of them changed.
      *
      * @return array{documents: list<array{title: string, heading: string, block: string, words: array<string, true>}>, whole_length: int, passages: list<array{document: int, position: int, text: string, words: array<string, true>, pairs: array<string, true>}>, frequency: array<string, int>}|null
@@ -110,7 +314,8 @@ class PolicyLibrary
 
         $fingerprint = md5($rows->map(fn (object $row) => $row->id.'|'.$row->updated_at.'|'.$row->size)->implode(';'));
 
-        return Cache::remember('assistant.policies.'.$fingerprint, self::CACHE_SECONDS, function () {
+        // "v2": the index now also carries each policy's id and the folded text of each passage (search).
+        return Cache::remember('assistant.policies.v2.'.$fingerprint, self::CACHE_SECONDS, function () {
             $documents = PolicyDocument::query()
                 ->readable()
                 ->orderBy('title')
@@ -134,7 +339,7 @@ class PolicyLibrary
             $block = $heading."\n".trim((string) $document->content);
             $titleWords = $this->words($title);
 
-            $index['documents'][$d] = ['title' => $title, 'heading' => $heading, 'block' => $block, 'words' => $titleWords];
+            $index['documents'][$d] = ['id' => $document->id, 'title' => $title, 'heading' => $heading, 'block' => $block, 'words' => $titleWords];
             $index['whole_length'] += mb_strlen($block) + 2;
 
             foreach ($this->split((string) $document->content) as $position => $text) {
@@ -150,6 +355,7 @@ class PolicyLibrary
                     'document' => $d,
                     'position' => $position,
                     'text' => $text,
+                    'norm' => SearchText::normalize($title.' '.$text),
                     'words' => $words,
                     'pairs' => $this->pairs($tokens),
                 ];

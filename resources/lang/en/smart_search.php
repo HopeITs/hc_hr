@@ -15,6 +15,7 @@ return [
         'lists' => 'Mail lists',
         'folders' => 'Folders',
         'news' => 'News',
+        'policies' => 'Policies',
     ],
     'filter' => 'Search in',
 

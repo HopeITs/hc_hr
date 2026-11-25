@@ -9,6 +9,7 @@ use App\Support\Search\Providers\FoldersProvider;
 use App\Support\Search\Providers\LeaveRequestsProvider;
 use App\Support\Search\Providers\MailListsProvider;
 use App\Support\Search\Providers\NewsProvider;
+use App\Support\Search\Providers\PoliciesProvider;
 use App\Support\Search\Providers\PositionsProvider;
 use App\Support\Search\Providers\RecruitmentRequestsProvider;
 use Throwable;
@@ -31,6 +32,7 @@ final class SmartSearch
         'lists' => MailListsProvider::class,
         'folders' => FoldersProvider::class,
         'news' => NewsProvider::class,
+        'policies' => PoliciesProvider::class,
     ];
 
     /**

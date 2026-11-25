@@ -679,3 +679,12 @@ label:has(> .hc-check--brand:focus-visible) {
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
 }
+
+/* The words a search found, inside a policy's text: a quiet neutral fill and bold type, never a hue. */
+mark.policy-mark {
+    background-color: var(--color-line);
+    color: var(--color-ink);
+    font-weight: 700;
+    border-radius: 3px;
+    padding-inline: 2px;
+}
