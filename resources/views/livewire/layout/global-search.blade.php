@@ -17,10 +17,11 @@
 @endphp
 {{-- From xl up the search is a bar in the very centre of the top bar (centred on the
      screen). At rest it is 70% of its full width (31.5% of the screen, at most 40.6rem);
-     while focus is in it (the field or its list) it widens back to the full 45%, at most
+     while the search is open it widens back to the full 45%, at most
      58rem, growing evenly on both sides; only the width changes. Below xl it is an icon
      that opens the same field in a panel. --}}
-<div class="relative shrink-0 xl:absolute xl:left-1/2 xl:top-1/2 xl:-translate-x-1/2 xl:-translate-y-1/2 xl:w-[calc(min(31.5vw,40.6rem)_-_5px)] xl:focus-within:w-[min(45vw,58rem)] xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
+<div class="relative shrink-0 xl:absolute xl:left-1/2 xl:top-1/2 xl:-translate-x-1/2 xl:-translate-y-1/2 xl:transition-[width] xl:duration-200 xl:ease-out motion-reduce:transition-none"
+     :class="open ? 'xl:w-[min(45vw,58rem)]' : 'xl:w-[calc(min(31.5vw,40.6rem)_-_5px)]'"
      x-data="{
          open: false,
          mobile: false,
@@ -42,7 +43,9 @@
                  window.dispatchEvent(new CustomEvent('hopehr-command', { detail: { action: option.dataset.action, href: option.dataset.href ?? null, returns: 'returns' in option.dataset } }));
                  return;
              }
-             Livewire.navigate(option.dataset.href);
+             const href = option.dataset.href;
+             this.close();
+             Livewire.navigate(href);
          },
          {{-- Prompt 9: an empty box shows recent pages and people, fetched the first time it opens. --}}
          recent() { if (!this.$wire.recents) this.$wire.showRecents(); },
@@ -52,6 +55,8 @@
      x-on:keydown.window.ctrl.k.prevent="focus()"
      x-on:keydown.window.meta.k.prevent="focus()"
      x-on:click.outside="close()"
+     x-on:hc-workspace-opened.window="close()"
+     x-on:hc-workspace-frame-click.window="close()"
      data-tour="header.search">
 
     {{-- Below xl: a button that opens the panel; the full box needs room the header lacks once the sidebar is beside it. --}}
@@ -127,7 +132,8 @@
                 </div>
             @endif
 
-            <ul id="global-search-list" x-ref="list" role="listbox" aria-label="{{ __('general.global-search.label') }}" wire:loading.class="opacity-60" wire:target="q,showRecents">
+            <ul id="global-search-list" x-ref="list" role="listbox" aria-label="{{ __('general.global-search.label') }}" wire:loading.class="opacity-60" wire:target="q,showRecents"
+                x-on:mousedown.prevent>
                 @php($i = 0)
                 @if (count($pages))
                     <li role="presentation" class="px-3 pt-2 pb-1 text-caption font-semibold text-ink-2">{{ $showingRecents ? __('navigation.recent.pages') : __('general.global-search.pages') }}</li>

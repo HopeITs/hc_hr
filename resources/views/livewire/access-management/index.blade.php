@@ -55,7 +55,7 @@
                             class="min-h-11 min-w-0 rounded-lg border-line-soft bg-card text-sm text-ink">
                             <option value="all">{{ __('access.all-roles') }}</option>
                             @foreach ($roles as $role)
-                                <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                <option value="{{ $role->id }}">{{ role_label($role->name) }}</option>
                             @endforeach
                         </select>
                         <select wire:model.live="statusFilter"
@@ -103,7 +103,7 @@
                                 <span class="mt-1 flex flex-wrap gap-1">
                                     @foreach ($user->roles->take(2) as $role)
                                         <span class="rounded-md border border-line-soft bg-card px-1.5 py-0.5 text-caption font-semibold leading-none text-ink-2">
-                                            {{ $role->name }}
+                                            {{ role_label($role->name) }}
                                         </span>
                                     @endforeach
                                 </span>
@@ -194,7 +194,7 @@
                                                 @disabled(! $canManageEmployees)
                                                 class="peer rounded border-line text-ink">
                                             <span class="min-w-0 truncate font-semibold text-ink peer-checked:text-ink">
-                                                {{ $role->name }}
+                                                {{ role_label($role->name) }}
                                             </span>
                                         </label>
                                     @endforeach
@@ -211,7 +211,7 @@
                                     class="min-h-11 w-full rounded-lg border-line-soft bg-card text-sm text-ink sm:max-w-sm">
                                     <option value="">—</option>
                                     @foreach ($roles->whereIn('id', array_map('intval', $employeeRoleIds)) as $role)
-                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                        <option value="{{ $role->id }}">{{ role_label($role->name) }}</option>
                                     @endforeach
                                 </select>
                                 <x-error-span>{{ $errors->first('employeeActiveRoleId') }}</x-error-span>
@@ -305,7 +305,7 @@
                             @if ($selectedRoleId === $role->id)
                                 <span class="absolute inset-y-2 start-0 w-0.5 rounded-full bg-primary" aria-hidden="true"></span>
                             @endif
-                            <span class="min-w-0 truncate text-sm font-bold">{{ $role->name }}</span>
+                            <span class="min-w-0 truncate text-sm font-bold">{{ role_label($role->name) }}</span>
                             <span class="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line-soft bg-card px-1.5 py-0.5 text-caption font-semibold text-ink-2">
                                 {{ $role->users_count }}
                             </span>

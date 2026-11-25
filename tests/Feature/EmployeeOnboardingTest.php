@@ -69,12 +69,27 @@ class EmployeeOnboardingTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_the_username_follows_the_english_name_until_hr_types_one(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+
+        Livewire::actingAs($this->hr($city))->test(EmployeeCreate::class)
+            ->set('infoForm.first_name_en', 'Rita')
+            ->set('infoForm.last_name_en', "Al-Sha'mi")
+            ->assertSet('infoForm.username', 'rita.al.sha.mi')
+            ->set('infoForm.username', 'rita.s')
+            ->set('infoForm.last_name_en', 'Shami')
+            ->assertSet('infoForm.username', 'rita.s');
+    }
+
     public function test_a_draft_needs_names_governorate_national_id_and_username(): void
     {
         $city = $this->makeCity('ALP', '001');
 
         Livewire::actingAs($this->hr($city))->test(EmployeeCreate::class)
             ->set('infoForm.first_name_en', 'Only')
+            // The username follows the English name until cleared; cleared, it is required again.
+            ->set('infoForm.username', '')
             ->call('saveDraftRecord')
             ->assertHasErrors(['infoForm.first_name_ar', 'infoForm.mother_name_en', 'infoForm.city_id', 'infoForm.national_number', 'infoForm.username'])
             ->assertHasNoErrors(['infoForm.gender', 'infoForm.marital_status']);

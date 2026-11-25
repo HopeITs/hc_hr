@@ -23,7 +23,8 @@ final class UnknownOutcome
 {
     /** @var array<class-string, list<string>> */
     public const WRITES = [
-        MyLeaveRequestModule::class => ['processSave'],
+        // confirmSave sends at once now (no confirm dialog), so a lost answer to it is a lost write too.
+        MyLeaveRequestModule::class => ['processSave', 'confirmSave'],
         AllLeaveRequestModule::class => ['submitDecision'],
         ContractCreate::class => ['submit'],
         ContractRenewModal::class => ['renewAsIs'],

@@ -86,8 +86,8 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width:13mm">{{ $t('day') }}</th><th style="width:21mm">{{ $t('date') }}</th><th style="width:34mm">{{ $t('leave-type') }}</th>
-                    <th style="width:19mm">{{ $t('leave-hours') }}</th><th style="width:17mm">{{ $t('overtime') }}</th><th style="width:18mm">{{ $t('working-days') }}</th><th>{{ $t('notes') }}</th>
+                    <th scope="col" style="width:13mm">{{ $t('day') }}</th><th scope="col" style="width:21mm">{{ $t('date') }}</th><th scope="col" style="width:34mm">{{ $t('leave-type') }}</th>
+                    <th scope="col" style="width:19mm">{{ $t('leave-hours') }}</th><th scope="col" style="width:17mm">{{ $t('overtime') }}</th><th scope="col" style="width:18mm">{{ $t('working-days') }}</th><th scope="col">{{ $t('notes') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -142,7 +142,7 @@
         <h2>Leave balances</h2>
         <table>
             <thead>
-                <tr><th>{{ $t('balance-type') }}</th><th>{{ $t('balance-entitled') }}</th><th>{{ $t('balance-month-hours') }}</th><th>{{ $t('balance-month-days') }}</th><th>{{ $t('balance-remaining') }}</th><th>{{ $t('balance-status') }}</th></tr>
+                <tr><th scope="col">{{ $t('balance-type') }}</th><th scope="col">{{ $t('balance-entitled') }}</th><th scope="col">{{ $t('balance-month-hours') }}</th><th scope="col">{{ $t('balance-month-days') }}</th><th scope="col">{{ $t('balance-remaining') }}</th><th scope="col">{{ $t('balance-status') }}</th></tr>
             </thead>
             <tbody>
                 @foreach($sheet['balances'] as $balance)

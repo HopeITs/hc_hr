@@ -53,7 +53,13 @@ if (! function_exists('role_label')) {
         }
 
         if (preg_match('/^HR-([A-Z]+)$/', $role, $m)) {
-            return __('general.role-labels.hr-city', ['city' => $m[1]]);
+            // The city's own name (حلب, Aleppo) rather than its scope code (ALP).
+            static $byLocale = [];
+            $cities = $byLocale[app()->getLocale()] ??= rescue(fn () => App\Models\City::query()->get()->mapWithKeys(
+                fn ($city) => [strtoupper((string) $city->slug) => $city->name],
+            )->all(), [], false);
+
+            return __('general.role-labels.hr-city', ['city' => $cities[$m[1]] ?? $m[1]]);
         }
 
         $key = 'general.role-labels.'.$role;

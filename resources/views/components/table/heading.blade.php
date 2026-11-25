@@ -7,7 +7,7 @@
     $clickAction = $attributes->get('wire:click');
 @endphp
 
-<th class="text-body px-4 py-2 bg-surface rtl:text-right text-left text-ink border-ink-2">
+<th scope="col" class="text-body px-4 py-2 bg-surface text-start text-ink border-ink-2">
     @if (! $sortable)
         <span class="text-small leading-4 font-medium text-ink-2 uppercase tracking-wider">
             {{ $slot }}

@@ -183,8 +183,6 @@ class LeaveRequestSubmitFlowTest extends TestCase
             ->set('form.reason', 'Edited without moving the dates.')
             ->call('confirmSave')
             ->assertHasNoErrors()
-            ->call('processSave')
-            ->assertHasNoErrors()
             ->assertSet('submittedLeaveId', $this->pending->id)
             ->assertSet('submittedKind', 'updated');
 

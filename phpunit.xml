@@ -33,6 +33,8 @@
         <env name="APP_LOCALE" value="en" force="true"/>
         <env name="APP_FALLBACK_LOCALE" value="en" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!-- A fixed test-only key, so the suite renders pages on a checkout with no .env. -->
+        <env name="APP_KEY" value="base64:dGVzdC1vbmx5LWtleS1ub3QtYS1zZWNyZXQtMTIzNDU="/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null" force="true"/>
         <env name="CACHE_STORE" value="array"/>

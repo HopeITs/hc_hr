@@ -8,7 +8,7 @@
     $copyJs = fn (string $text, string $done) => 'navigator.clipboard?.writeText('.\Illuminate\Support\Js::from($text).').then(() => window.dispatchEvent(new CustomEvent(\'toast\', { detail: { type: \'success\', message: '.\Illuminate\Support\Js::from($done).' } })))';
 @endphp
 <div>
-    <x-modal.dialog id="announcement-composer" max-width="6xl" wire:model="open"
+    <x-modal.dialog id="announcement-composer" max-width="6xl" wire:model="open" close-action="requestClose"
                     :title="$current ? $current->label() : __('messages.announcements.title')">
         @if (! $current)
             <p class="mb-4 text-small text-ink-2">@lang('messages.announcements.lead')</p>

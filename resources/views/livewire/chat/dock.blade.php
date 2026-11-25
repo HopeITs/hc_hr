@@ -37,7 +37,7 @@
             <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.2A8 8 0 1 1 21 12z"/></svg>
             <span class="flex-1 truncate text-start">{{ __('chat.ui.chats') }}</span>
             @if ($unreadChats > 0)
-                <span class="min-w-[18px] rounded-full bg-white px-1 text-center text-[11px] font-bold text-primary"
+                <span class="min-w-[18px] rounded-full bg-white px-1 text-center text-caption font-bold text-primary"
                       aria-label="{{ trans_choice('chat.ui.unread_chats', $unreadChats, ['count' => $unreadChats]) }}">{{ $unreadChats }}</span>
             @endif
         </button>
@@ -75,7 +75,7 @@
                             <x-chat.avatar :item="$item" size="size-7" />
                             <span class="min-w-0 flex-1 truncate text-small text-ink">{{ $item['title'] }}</span>
                             @if ($item['unread'] > 0)
-                                <span class="rounded-full px-1.5 text-[11px] font-semibold text-white {{ $item['muted'] ? 'bg-ink-3' : 'bg-primary' }}">{{ $item['unread'] }}</span>
+                                <span class="rounded-full px-1.5 text-caption font-semibold text-white {{ $item['muted'] ? 'bg-ink-3' : 'bg-primary' }}">{{ $item['unread'] }}</span>
                             @endif
                         </button>
                     @endforeach

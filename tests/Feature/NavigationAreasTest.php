@@ -91,8 +91,8 @@ class NavigationAreasTest extends TestCase
     {
         $employee = $this->sidebarHtml($this->userWithRole('employee'));
         $this->assertStringContainsString('data-nav-area="my-space"', $employee);
-        $this->assertStringNotContainsString('data-nav-area="my-team"', $employee);
-        $this->assertStringNotContainsString('data-nav-area="hr"', $employee);
+        $this->assertStringNotContainsString('data-nav-area="admin"', $employee);
+        $this->assertStringNotContainsString('data-nav-area="admin"', $employee);
         $this->assertStringNotContainsString('data-nav="nav.inbox"', $employee);
         // C0-Q4 (answer 2): an employee keeps the org chart only.
         $this->assertStringContainsString('data-nav="nav.org.chart"', $employee);
@@ -102,7 +102,7 @@ class NavigationAreasTest extends TestCase
         $manager = $this->sidebarHtml($this->userWithRole('manager'));
         $this->assertStringContainsString('data-nav="nav.my-team.leaves"', $manager);
         $this->assertStringContainsString('data-nav="nav.my-team.contracts"', $manager);
-        $this->assertStringNotContainsString('data-nav-area="hr"', $manager);
+        $this->assertStringNotContainsString('data-nav-area="admin"', $manager);
         $this->assertStringNotContainsString('data-nav="nav.inbox"', $manager);
         // A manager keeps centers and programs for the team; positions and basics leave the menu.
         $this->assertStringContainsString('data-nav="nav.centers"', $manager);
@@ -113,9 +113,8 @@ class NavigationAreasTest extends TestCase
         $hr = $this->sidebarHtml($this->userWithRole('HR-ALP'));
         $this->assertStringContainsString('data-nav="nav.hr.contracts"', $hr);
         $this->assertStringContainsString('data-nav="nav.hr.leaves"', $hr);
-        $this->assertStringNotContainsString('data-nav-area="my-team"', $hr);
-        // HR edits the basics, so they sit in Settings, not under Organisation.
-        $this->assertMatchesRegularExpression('/data-nav-area="settings".*data-nav="nav\.basics"/s', $hr);
+        // HR edits the basics, so they sit in Administration, not in People.
+        $this->assertMatchesRegularExpression('/data-nav-area="admin".*data-nav="nav\.basics"/s', $hr);
         $this->assertStringNotContainsString('data-nav="nav.settings.access"', $hr);
 
         $admin = $this->sidebarHtml($this->userWithRole('super-admin'));
@@ -164,13 +163,13 @@ class NavigationAreasTest extends TestCase
         $user->assignRole($hrRole);
 
         $before = $this->sidebarHtml($user->fresh());
-        $this->assertStringNotContainsString('data-nav-area="hr"', $before);
+        $this->assertStringNotContainsString('data-nav-area="admin"', $before);
 
         $user->fresh()->setActiveRole($hrRole->id);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $after = $this->sidebarHtml($user->fresh());
-        $this->assertStringContainsString('data-nav-area="hr"', $after);
+        $this->assertStringContainsString('data-nav-area="admin"', $after);
         $this->assertStringContainsString(e(role_label('HR-ALP')), $after);
     }
 
@@ -189,12 +188,12 @@ class NavigationAreasTest extends TestCase
         $this->actingAs($this->userWithRole('manager'))
             ->get(route('contracts.index'))
             ->assertOk()
-            ->assertSee(__('general.nav.area.my-team'));
+            ->assertSee(__('general.nav.area.people'));
 
         $this->actingAs($this->userWithRole('HR-ALP'))
             ->get(route('contracts.index'))
             ->assertOk()
-            ->assertSee(__('general.nav.area.hr'));
+            ->assertSee(__('general.nav.area.people'));
     }
 
     /** The current page stays highlighted when the drawer re-renders through Livewire's update route. */

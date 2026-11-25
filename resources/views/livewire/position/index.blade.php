@@ -10,7 +10,8 @@
         }
     @endphp
 
-    <div class="flex items-center justify-between mb-6">
+    {{-- Wraps on a phone: three actions beside the title pushed "Add New" off the screen. --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <livewire:layout.breadcrumbs
             :title="__('general.positions')"
             :crumbs="array_filter([
@@ -20,7 +21,7 @@
             :showButton="true"
         />
            @activerole('HR' , 'super-admin' ,'general-manager')
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             @if (auth()->user()?->hasActivePermission('positions.view-replacements'))
                 <x-button variant="outline" :href="route('positions.critical')">@lang('critical-positions.title')</x-button>
             @endif

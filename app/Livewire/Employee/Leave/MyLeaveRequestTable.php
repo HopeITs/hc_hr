@@ -152,7 +152,7 @@ class MyLeaveRequestTable extends LivewireTable
                 ->options(LeaveType::query()->pluck(transColumn('name'), transColumn('name'))->toArray())
                 ->sortable()
                 ->searchable(),
-            SelectColumn::make(trans_choice('general.type', 1), 'type')
+            SelectColumn::make(__('leaves.unit.column'), 'type')
                 ->options(['hour' => __('leaves.unit.hour'), 'day' => __('leaves.unit.day')])
                 ->displayUsing(fn ($v, Model $m) => __('leaves.unit.'.($m->type === 'hour' ? 'hour' : 'day')))
                 ->sortable()

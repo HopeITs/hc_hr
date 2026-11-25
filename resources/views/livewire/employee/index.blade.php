@@ -41,7 +41,7 @@
     @if($canSeeInactive)
         {{-- Named views (?view=): Active is the default; Inactive is HR / general manager only. --}}
         <div class="mb-3" x-data="{ view: @js($initialView) }" x-on:employee-view-changed.window="view = $event.detail.view">
-            <div role="group" aria-label="{{ __('general.emp-views') }}" class="inline-flex rounded-control border border-line bg-card p-0.5">
+            <div role="group" aria-label="{{ __('general.emp-views') }}" class="inline-flex max-w-full overflow-x-auto whitespace-nowrap rounded-control border border-line bg-card p-0.5">
                 @foreach ($views as $key => $label)
                     <button type="button" data-employee-view="{{ $key }}"
                         x-on:click="view = '{{ $key }}'; Livewire.dispatch('employee-set-view', { view: '{{ $key }}' })"

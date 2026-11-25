@@ -405,6 +405,24 @@
             },
             "port": 8410,
             "autoPort": false
+        },
+        {
+            "name": "hc-hr UX all-roles (synthetic SQLite)",
+            "runtimeExecutable": "php",
+            "runtimeArgs": [
+                "-S",
+                "127.0.0.1:8411",
+                "-t",
+                "public",
+                "tests/Usability/Baseline/router.php"
+            ],
+            "env": {
+                "X2_HOME": "C:/Users/ASUS/AppData/Local/Temp/hc-hr-ux2",
+                "X2_PORT": "8411",
+                "APP_KEY": "base64:Bu3lYAp6ihX+jw7Bqguh+Bcr0052HNDKudzBpS/phTs="
+            },
+            "port": 8411,
+            "autoPort": false
         }
     ]
 }

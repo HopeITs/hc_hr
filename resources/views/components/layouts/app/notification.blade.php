@@ -1,5 +1,6 @@
 <div
     x-data="{ open: false, ring: false }"
+    x-on:hc-workspace-opened.window="open = false"
     @keydown.escape.window="open = false"
     @notif-arrived.window="ring = false; $nextTick(() => { ring = true; setTimeout(() => ring = false, 850) })"
     class="relative">

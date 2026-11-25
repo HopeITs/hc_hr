@@ -80,11 +80,13 @@ class ItemCard extends Component
     /** Its folders the viewer may open (ArchivedFilesModule's rule) and its files of the types that page shows. */
     private function folder(User $user, Folder $folder, DashboardLayout $tiles): array
     {
+        $access = app(\App\Services\Folders\FolderAccess::class);
         $children = $folder->children()
-            ->when(! $user->isActiveAdministrator(), fn ($q) => $q->whereHas('users', fn ($q) => $q->whereKey($user->getKey())))
             ->orderBy('name')
-            ->limit(self::LIMIT)
-            ->get(['id', 'name', 'parent_id', 'user_id', 'is_shared']);
+            ->get()
+            ->filter(fn (Folder $child) => $access->canView($user, $child))
+            ->take(self::LIMIT)
+            ->values();
 
         $files = $folder->getMedia('archived_files')
             ->filter(fn (Media $media): bool => in_array(strtolower((string) $media->extension), ArchivedFilesModule::ALLOWED_UPLOAD_EXTENSIONS, true))

@@ -327,6 +327,8 @@ class MyLeaveRequestModule extends Component
     public function updatedLeaveCategory($key): void
     {
         $category = collect($this->leaveChoices['categories'])->firstWhere('key', $key);
+        // Choosing a type answers "type is required": the old message goes with it.
+        $this->form->resetErrorBag('leave_balance_id');
 
         if ($category === null) {
             $this->leaveCategory = null;
@@ -538,6 +540,10 @@ class MyLeaveRequestModule extends Component
 
         // A form whose token already created its request is a retry: its save
         // returns that request, so the request must not count as a clash with itself.
+        // Dates are checked as they are picked, not only on send: a past start
+        // or an end before the start says so at once. Last, so the resets above keep it.
+        $this->checkDatesNow();
+
         if (filled($this->form->leave_balance_id) && $this->form->consumedRequest() === null) {
             $this->form->ensureNoOwnOverlap();
         }
@@ -603,12 +609,12 @@ class MyLeaveRequestModule extends Component
         $this->form->ensureNoOwnOverlap();
         // So are the pricing errors (balance, December, working hours ...),
         // each on its own field, from the same service as the preview.
-        $quote = $this->form->checkedQuote();
+        $this->form->checkedQuote();
 
-        $html = $this->confirmationMessage($quote);
-
-        $this->confirm('processSave', title: __('general.confirmation'), html: $html, confirmLabel: $this->form->id ? __('leaves.modal.save-changes') : __('leaves.modal.submit'), danger: false);
-
+        // UX 2026-11-23: no second "are you sure" dialog. Step 5 of the form is
+        // already the summary (type, dates, effect on the balance) the dialog
+        // repeated word for word; the send button now sends.
+        $this->processSave();
     }
 
     public function processSave()
@@ -681,6 +687,24 @@ class MyLeaveRequestModule extends Component
 
         $this->finishSave($leaveRequest, 'sent');
         $this->keepConsumedToken($token);
+    }
+
+    protected function checkDatesNow(): void
+    {
+        if ($this->form->type === 'hour') {
+            return;
+        }
+
+        $start = rescue(fn () => filled($this->form->start_at) ? Carbon::parse($this->form->start_at)->startOfDay() : null, null, false);
+        $end = rescue(fn () => filled($this->form->end_at) ? Carbon::parse($this->form->end_at)->startOfDay() : null, null, false);
+
+        if ($start && $start->lt(today())) {
+            $this->form->addError('start_at', __('leaves.validation.start-in-past'));
+        }
+
+        if ($start && $end && $end->lt($start)) {
+            $this->form->addError('end_at', __('leaves.validation.end-before-start'));
+        }
     }
 
     /** The request dialog's entries, for the close guard. */

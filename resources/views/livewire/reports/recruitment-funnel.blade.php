@@ -53,11 +53,11 @@
                 <table class="w-full text-start text-small">
                     <thead class="text-ink-2">
                         <tr>
-                            <th class="py-2 text-start">{{ __('Position') }}</th>
-                            <th class="py-2 text-end">{{ __('Applications') }}</th>
-                            <th class="py-2 text-end">{{ __('Interviewed') }}</th>
-                            <th class="py-2 text-end">{{ __('Offer sent') }}</th>
-                            <th class="py-2 text-end">{{ __('Hired') }}</th>
+                            <th scope="col" class="py-2 text-start">{{ __('Position') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Applications') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Interviewed') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Offer sent') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Hired') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line-soft">

@@ -171,8 +171,9 @@ class LeaveRequestAccountingTest extends TestCase
         }
 
         // 2. What is stored.
-        $component->call('confirmSave')->assertHasNoErrors()->assertDispatched('confirm-dialog')
-            ->call('processSave')->assertHasNoErrors()->assertSet('showModal', false);
+        // Send writes at once: the form's own summary replaced the confirm dialog.
+        $component->call('confirmSave')->assertHasNoErrors()->assertNotDispatched('confirm-dialog')
+            ->assertSet('showModal', false);
 
         $created = LeaveRequest::query()->where('leave_balance_id', $balance->id)->latest('id')->firstOrFail();
         $this->assertSame($expected, $created->computed_hours);
@@ -312,8 +313,7 @@ class LeaveRequestAccountingTest extends TestCase
         $this->assertSame([], $impact['errors']);
         $this->assertContains(__('leave_quote.codes.exceeds_balance'), $impact['warnings']);
 
-        $component->call('confirmSave')->assertHasNoErrors()
-            ->call('processSave')->assertHasNoErrors();
+        $component->call('confirmSave')->assertHasNoErrors();
 
         $this->assertSame(16.0, LeaveRequest::query()->latest('id')->firstOrFail()->computed_hours);
     }
@@ -356,7 +356,6 @@ class LeaveRequestAccountingTest extends TestCase
 
         $component = $this->fill($user, $balance, ['start_at' => '2026-11-01', 'end_at' => '2026-11-05']);
         $this->assertSame([], $component->instance()->leaveImpact['errors']);
-        $component->call('confirmSave')->assertHasNoErrors();
 
         // Meanwhile another request on the same balance is sent and accepted.
         $other = $this->leaveRequest($balance, '2026-11-15', '2026-11-16', computedHours: 16.0);
@@ -365,7 +364,7 @@ class LeaveRequestAccountingTest extends TestCase
 
         // Back in the requester's session, the open form is sent.
         $this->actingAs($user);
-        $component->call('processSave')
+        $component->call('confirmSave')
             ->assertHasErrors(['form.leave_balance_id'])
             ->assertSet('showModal', true)
             ->assertSet('form.start_at', '2026-11-01');

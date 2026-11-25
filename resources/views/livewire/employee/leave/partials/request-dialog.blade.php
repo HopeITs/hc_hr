@@ -27,7 +27,8 @@
         $done = [
             'category' => $active !== null,
             'subtype' => $chosen,
-            'dates' => $ready,
+            // A date error (past start, end before start) means the step is not done.
+            'dates' => $ready && ! $errors->hasAny(['form.start_at', 'form.end_at', 'form.leave_date', 'form.start_hour', 'form.end_hour']),
             'details' => mb_strlen(trim((string) $form->reason)) >= 3,
             'summary' => $ready && ($impact['errors'] ?? []) === [],
         ];
@@ -184,12 +185,12 @@
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                             <div>
                                 <x-forms.input-label for="start_at" required>{{__('general.start-date')}}</x-forms.input-label>
-                                <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')"/>
+                                <x-forms.date-input id="start_at" wire:model.live="form.start_at" :label="__('general.start-date')" :min="today()->toDateString()"/>
                                 <x-error-span>{{ $errors->first('form.start_at') }}</x-error-span>
                             </div>
                             <div>
                                 <x-forms.input-label for="end_at" required>{{__('general.end-date')}}</x-forms.input-label>
-                                <x-forms.date-input id="end_at" wire:model.live="form.end_at" :label="__('general.end-date')"/>
+                                <x-forms.date-input id="end_at" wire:model.live="form.end_at" :label="__('general.end-date')" :min="$form->start_at ?: null"/>
                                 <x-error-span>{{ $errors->first('form.end_at') }}</x-error-span>
                             </div>
                         </div>
@@ -198,7 +199,7 @@
                     {{-- The computed duration, priced on the server (the same quote as the summary). --}}
                     <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-ink-2" data-testid="leave-duration">
                         <x-ic name="clock" class="size-4" />
-                        @if($ready)
+                        @if($ready && $done['dates'])
                             <span>@lang('leaves.request.duration'):</span>
                             <strong class="font-bold text-ink"><bdi>{{ $impact['requested'] }}</bdi></strong>
                         @else
@@ -243,7 +244,8 @@
                                     @lang('general.select')
                                 </option>
                                 @foreach($alternativeEmployees as $alternativeEmployee)
-                                    <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}</option>
+                                    @php($altTitle = $alternativeEmployee->relationLoaded('contracts') ? $alternativeEmployee->contracts->first()?->position?->title : null)
+                                    <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}{{ $altTitle ? ' · '.$altTitle : '' }}</option>
                                 @endforeach
                             </x-forms.select2-input>
                             <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>

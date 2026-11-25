@@ -16,13 +16,17 @@ class EmployeeContractSeeder extends Seeder
             ['employee' => 'sami.haddad', 'position' => 'Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
             ['employee' => 'nabil.khoury', 'position' => 'Deputy Chief Executive Officer', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
             ['employee' => 'rana.saad', 'position' => 'IT Manager', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'tarek.nassar', 'position' => 'Communication Manager / Syria', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
-            ['employee' => 'maya.azar', 'position' => 'HR Generalist', 'start_date' => '2025-02-01'],
-            ['employee' => 'omar.hilal', 'position' => 'Legal Affairs Consultant', 'start_date' => '2025-03-01'],
-            ['employee' => 'dina.sabbagh', 'position' => 'Second Deputy Chief Executive Officer', 'start_date' => '2025-09-01'],
-            ['employee' => 'hala.mansour', 'position' => 'Center Keeper', 'start_date' => '2025-11-16'],
-            ['employee' => 'rami.toma', 'position' => 'Senior Financial Manager', 'start_date' => '2025-02-01'],
-            ['employee' => 'fares.kassab', 'position' => 'Program Manager', 'start_date' => '2025-10-01'],
+            ['employee' => 'tarek.nassar', 'position' => 'Communication Manager', 'start_date' => '2018-01-01', 'end_date' => '2090-12-31'],
+            // One-year contracts are dated back from today, so they are still
+            // running whenever the database is seeded. Fixed dates had all
+            // expired, and sign-in (OrgRoleSync) then stood down every seeded
+            // account's role but the permanent ones.
+            ['employee' => 'maya.azar', 'position' => 'HR Generalist', 'months_ago' => 9],
+            ['employee' => 'omar.hilal', 'position' => 'Legal Affairs Consultant', 'months_ago' => 8],
+            ['employee' => 'dina.sabbagh', 'position' => 'Second Deputy Chief Executive Officer', 'months_ago' => 2],
+            ['employee' => 'hala.mansour', 'position' => 'Center Keeper', 'months_ago' => 0],
+            ['employee' => 'rami.toma', 'position' => 'Senior Financial Manager', 'months_ago' => 9],
+            ['employee' => 'fares.kassab', 'position' => 'Program Manager / Micro Projects', 'months_ago' => 1],
         ];
 
         foreach ($contracts as $data) {
@@ -30,6 +34,8 @@ class EmployeeContractSeeder extends Seeder
             $position = Position::where('title_en', $data['position'])->first();
 
             if (! $employee || ! $position) {
+                $this->command?->warn("No contract for {$data['employee']}: employee or position '{$data['position']}' not found.");
+
                 continue;
             }
 
@@ -37,8 +43,10 @@ class EmployeeContractSeeder extends Seeder
                 'employee_id' => $employee->id,
                 'position_id' => $position->id,
                 'contract_type_id' => 1, // تأكد من وجود نوع عقد بالمعرف 1
-                'start_date' => Carbon::parse($data['start_date']),
-                'end_date' => array_key_exists('end_date', $data) ? Carbon::parse($data['end_date']) : Carbon::parse($data['start_date'])->addYears(1),
+                'start_date' => $start = isset($data['months_ago'])
+                    ? now()->subMonths($data['months_ago'])->startOfMonth()
+                    : Carbon::parse($data['start_date']),
+                'end_date' => isset($data['end_date']) ? Carbon::parse($data['end_date']) : $start->copy()->addYear()->subDay(),
                 'terminated_at' => null,
                 'reason_of_termination' => null,
                 'salary' => 1000000.00, // مثال، يمكن تعديله حسب الحاجة

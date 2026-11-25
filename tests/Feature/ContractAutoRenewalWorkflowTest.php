@@ -68,7 +68,8 @@ class ContractAutoRenewalWorkflowTest extends TestCase
                     && str_contains($data['body']['ar'], 'خاصية التجديد التلقائي مفعّلة')
                     && str_contains($data['body']['ar'], 'إلغاء خاصية التجديد التلقائي')
                     && str_contains($data['body']['ar'], '2026-09-23')
-                    && ! array_key_exists('url', $data);
+                    // One contract: the "Don't renew" email to the city's HR (since 2026-11-16).
+                    && is_string($data['url'] ?? null);
             },
         );
     }
@@ -120,7 +121,8 @@ class ContractAutoRenewalWorkflowTest extends TestCase
                     && str_contains($data['body']['ar'], 'Batch Expiring One')
                     && str_contains($data['body']['ar'], 'Batch Expiring Two')
                     && str_contains($data['body']['ar'], '2026-09-23')
-                    && ! array_key_exists('url', $data);
+                    // Several contracts: no single "Don't renew" email to offer.
+                    && ($data['url'] ?? null) === null;
             },
         );
     }

@@ -1,7 +1,7 @@
 <x-livewire-table::button
     :title="__('Copy')"
     :aria-label="__('Copy')"
-    class="hidden !absolute top-1 right-1 z-20 group-hover/column:block cursor-pointer"
+    class="hidden !absolute top-1 end-1 z-20 group-hover/column:block cursor-pointer"
     x-on:click.stop="copy"
     x-data="{
         copied: false,

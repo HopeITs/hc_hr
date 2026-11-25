@@ -26,19 +26,19 @@
             <table class="min-w-full divide-y divide-line-soft">
                 <thead class="bg-soft">
                     <tr>
-                        <th class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
                             {{trans_choice('general.employee',2)}}
                         </th>
-                        <th class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
                             @lang('general.item')
                         </th>
-                        <th class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
                             @lang('general.status')
                         </th>
-                        <th class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
                             @lang('general.delivered_at')
                         </th>
-                        <th class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-start text-small font-semibold text-ink-2 uppercase tracking-wider">
                             @lang('general.notes')
                         </th>
                     </tr>

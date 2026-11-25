@@ -3,6 +3,7 @@
 namespace App\Livewire\Auth;
 
 use App\Models\User;
+use App\Services\Access\OrgRoleSync;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+use Throwable;
 
 #[Layout('components.layouts.auth.simple')]
 class Login extends Component
@@ -65,6 +68,14 @@ class Login extends Component
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
 
+        // Roles that follow the org chart and the contracts are brought up to date
+        // before one is picked, so a new team lead signs in as a manager at once.
+        try {
+            app(OrgRoleSync::class)->syncUser($user);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
         DB::transaction(function () use ($user) {
             $allIds = $user->roles()->pluck('roles.id')->all();
 
@@ -72,7 +83,7 @@ class Login extends Component
                 $user->roles()->updateExistingPivot($allIds, ['is_active' => false]);
             }
 
-            $roleIdToActivate = $user->roles()->pluck('roles.id')->sort()->first();
+            $roleIdToActivate = $user->defaultLoginRoleId();
 
             if ($roleIdToActivate) {
                 $user->roles()->updateExistingPivot($roleIdToActivate, ['is_active' => true]);
@@ -85,9 +96,12 @@ class Login extends Component
         // tag. A wire:navigate fetch would send that stale token, get
         // rejected (419), and leave the loading bar spinning forever with
         // no visible error. A full redirect always picks up the new session.
-        $this->redirectIntended(
-            default: route('dashboard', absolute: false),
-        );
+        //
+        // Always the desk, in the current language: a page asked for while
+        // signed out is not resumed. It sent people to a page their starting
+        // role cannot open (403), without the locale prefix.
+        session()->forget('url.intended');
+        $this->redirect(LaravelLocalization::localizeUrl('/', app()->getLocale()));
     }
 
     /**

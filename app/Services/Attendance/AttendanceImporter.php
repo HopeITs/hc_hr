@@ -74,9 +74,21 @@ class AttendanceImporter
                 'device_numbers' => count(array_unique(array_column($punches, 'device_no'))),
             ]);
 
+            // HR uploads the report month by month, and a file is the whole truth for the days it
+            // covers: what was stored before for the same device numbers on those days goes, and
+            // the file's punches take its place. A closed month is never touched.
+            $replaced = $this->clearPeriod($punches);
+
             $stored = $this->store($punches, $import);
 
+            // Punches kept from before may have been stored when their number matched no one
+            // (or someone else): tie every punch of the file's days to whom its number is now.
+            $this->relink($punches);
+
             $import->update(['punches_new' => $stored['new'], 'punches_locked' => $stored['locked']]);
+
+            // Not a column: only the message after the upload needs it.
+            $import->setAttribute('punches_replaced', $replaced);
 
             return $import;
         });
@@ -134,6 +146,7 @@ class AttendanceImporter
 
         return ['new' => $new, 'locked' => $skipped];
     }
+
     /** Tie a device number to an employee and give the punches already stored for it their owner. */
     public function link(string $deviceNo, Employee $employee, ?User $by): void
     {
@@ -179,6 +192,78 @@ class AttendanceImporter
     }
 
     /** @param  Collection<int, AttendancePunch>  $punches */
+    /**
+     * For the file's days and device numbers, set each stored punch's employee to whom the number
+     * stands for now. A closed month is left as it is.
+     *
+     * @param  list<array{device_no: string, at: CarbonImmutable}>  $punches
+     */
+    private function relink(array $punches): void
+    {
+        if ($punches === []) {
+            return;
+        }
+
+        $times = array_column($punches, 'at');
+        $from = min($times)->startOfDay()->format('Y-m-d H:i:s');
+        $to = max($times)->endOfDay()->format('Y-m-d H:i:s');
+        $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
+            ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
+
+        foreach ($this->employeesFor(array_values(array_unique(array_column($punches, 'device_no')))) as $number => $employee) {
+            $stale = AttendancePunch::query()
+                ->where('device_no', (string) $number)
+                ->whereBetween('punched_at', [$from, $to])
+                ->where(fn ($q) => $q->whereNull('employee_id')->orWhere('employee_id', '!=', $employee->id))
+                ->get(['id', 'punched_at'])
+                ->reject(fn (AttendancePunch $p) => isset($locked[$employee->id.'|'.$p->punched_at->format('Y-m')]));
+
+            foreach ($stale->pluck('id')->chunk(500) as $ids) {
+                AttendancePunch::query()->whereIn('id', $ids->all())->update(['employee_id' => $employee->id]);
+            }
+        }
+    }
+
+    /**
+     * Remove the punches already stored for the file's device numbers on the days the file covers
+     * (from its first day to its last), except in a closed month. Returns how many went.
+     *
+     * @param  list<array{device_no: string, at: CarbonImmutable}>  $punches
+     */
+    private function clearPeriod(array $punches): int
+    {
+        if ($punches === []) {
+            return 0;
+        }
+
+        $times = array_column($punches, 'at');
+        $numbers = array_values(array_unique(array_column($punches, 'device_no')));
+        $inFile = [];
+        foreach ($punches as $p) {
+            $inFile[$p['device_no'].'|'.$p['at']->format('Y-m-d H:i')] = true;
+        }
+
+        $locked = AttendanceMonth::query()->whereNotNull('locked_at')->get()
+            ->mapWithKeys(fn (AttendanceMonth $m) => [$m->employee_id.'|'.$m->month->format('Y-m') => true]);
+
+        $old = AttendancePunch::query()
+            ->whereIn('device_no', $numbers)
+            ->whereBetween('punched_at', [min($times)->startOfDay()->format('Y-m-d H:i:s'), max($times)->endOfDay()->format('Y-m-d H:i:s')])
+            ->get(['id', 'device_no', 'employee_id', 'punched_at'])
+            ->reject(fn (AttendancePunch $p) => $p->employee_id !== null && isset($locked[$p->employee_id.'|'.$p->punched_at->format('Y-m')]))
+            // What the file holds again stays as it is: the same file twice changes nothing.
+            ->reject(fn (AttendancePunch $p) => isset($inFile[$p->device_no.'|'.$p->punched_at->format('Y-m-d H:i')]));
+
+        foreach ($old->pluck('id')->chunk(500) as $ids) {
+            AttendancePunch::query()->whereIn('id', $ids->all())->delete();
+        }
+
+        // A month that lost punches is no longer what was approved.
+        $this->withdrawApprovals($old->whereNotNull('employee_id'));
+
+        return $old->count();
+    }
+
     private function withdrawApprovals(Collection $punches): void
     {
         $punches

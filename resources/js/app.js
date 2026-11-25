@@ -17,6 +17,8 @@ import select2 from 'select2';
 
 select2();
 
+import './mailto-links';
+
 // Back/forward under wire:navigate restores a saved copy of the page, select2's
 // box included, but not select2's link to it; starting select2 again on that
 // copy adds a second box beside the first (two stacked "15" per-page boxes,

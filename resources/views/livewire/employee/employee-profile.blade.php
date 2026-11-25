@@ -126,7 +126,8 @@
             @endforeach
         </section>
 
-        <div class="grid gap-4 xl:grid-cols-3">
+        {{-- grid-cols-1 (minmax(0, 1fr)): an implicit column grew to its widest content and pushed the page sideways on a phone. --}}
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <main class="space-y-4 xl:col-span-2">
                 {{-- D1 timeline (profile-contract.md section 4, Q1 = B): career and badges,
                      built on the server for this viewer; a Directory-only viewer gets none. --}}

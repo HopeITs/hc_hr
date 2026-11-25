@@ -121,7 +121,9 @@ class PwaInstallTest extends TestCase
 
     public function test_the_web_server_never_long_caches_the_worker_or_the_manifest(): void
     {
-        $htaccess = file_get_contents(public_path('.htaccess'));
+        // public/.htaccess is not tracked (the server keeps its own, WebGuard whitelist
+        // included); the rules live in the tracked template and are copied over by hand.
+        $htaccess = file_get_contents(public_path('.htaccess.example'));
 
         // The year-long immutable rule matches *.js; this override must come after it to win.
         $immutable = strpos($htaccess, 'immutable');

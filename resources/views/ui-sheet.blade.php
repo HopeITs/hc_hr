@@ -138,7 +138,7 @@
                     <thead class="border-b border-line-soft">
                         <tr>
                             @foreach (['name', 'city', 'state'] as $col)
-                                <th class="bg-soft p-0 text-start text-ink-2"><span class="flex whitespace-nowrap px-3 py-2.5 text-th font-bold">{{ __('ui.sheet.sample.'.$col) }}</span></th>
+                                <th scope="col" class="bg-soft p-0 text-start text-ink-2"><span class="flex whitespace-nowrap px-3 py-2.5 text-th font-bold">{{ __('ui.sheet.sample.'.$col) }}</span></th>
                             @endforeach
                         </tr>
                     </thead>

@@ -63,10 +63,35 @@ class EmployeeCreate extends Component
     #[Locked]
     public string $submissionToken = '';
 
+    /** The username last suggested from the English name; replaced only while HR has not typed their own. */
+    public string $suggestedUsername = '';
+
     public function mount()
     {
-        $this->title = __('general.add-new');
+        $this->title = __('employees.onboarding.page-title');
         $this->submissionToken = (string) Str::uuid();
+    }
+
+    /**
+     * UX 2026-11-23: the username was required but sat on another tab. It now
+     * follows the English first and last name (first.last), until HR types one.
+     */
+    public function updatedInfoForm($value, $key): void
+    {
+        if (! in_array($key, ['first_name_en', 'last_name_en'], true)) {
+            return;
+        }
+
+        $current = (string) ($this->infoForm->username ?? '');
+
+        if ($current !== '' && $current !== $this->suggestedUsername) {
+            return;
+        }
+
+        $suggestion = Str::of(trim($this->infoForm->first_name_en.' '.$this->infoForm->last_name_en))
+            ->ascii()->lower()->replaceMatches('/[^a-z0-9]+/', '.')->trim('.')->value();
+
+        $this->infoForm->username = $this->suggestedUsername = $suggestion;
     }
 
     public function setActiveTab($tab)

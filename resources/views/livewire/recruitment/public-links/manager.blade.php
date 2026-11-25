@@ -156,10 +156,10 @@
                 <table class="w-full text-start text-body">
                     <thead class="bg-secondary-soft/30 text-small text-secondary-medium">
                         <tr>
-                            <th class="px-3 py-2 text-start font-semibold">{{ __('recruitment.public_link.full_name') }}</th>
-                            <th class="px-3 py-2 text-start font-semibold">{{ __('recruitment.public_link.email') }}</th>
-                            <th class="px-3 py-2 text-start font-semibold">{{ __('recruitment.status') }}</th>
-                            <th class="px-3 py-2"><span class="sr-only">{{ __('recruitment.public_link.cancel_invite') }}</span></th>
+                            <th scope="col" class="px-3 py-2 text-start font-semibold">{{ __('recruitment.public_link.full_name') }}</th>
+                            <th scope="col" class="px-3 py-2 text-start font-semibold">{{ __('recruitment.public_link.email') }}</th>
+                            <th scope="col" class="px-3 py-2 text-start font-semibold">{{ __('recruitment.status') }}</th>
+                            <th scope="col" class="px-3 py-2"><span class="sr-only">{{ __('recruitment.public_link.cancel_invite') }}</span></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary-soft">

@@ -20,7 +20,7 @@
      "ملفي الشخصي") does not push its icon out of line with the others. Narrow phones get
      11px labels and less side padding, so a long single word ("Dashboard") is not cut. --}}
 @php
-    $place = 'relative flex min-h-14 w-full flex-col items-center justify-start gap-0.5 px-0.5 pt-2 pb-1.5 text-caption max-[379px]:text-[11px] font-semibold leading-tight focus-visible:outline-2';
+    $place = 'relative flex min-h-14 w-full flex-col items-center justify-start gap-0.5 px-0.5 pt-2 pb-1.5 text-caption max-[379px]:text-caption font-semibold leading-tight focus-visible:outline-2';
     $tile = 'flex min-h-11 items-center gap-3 rounded-control px-3 py-2 text-body font-semibold focus-visible:outline-2';
 @endphp
 <nav aria-label="{{ __('general.nav.bottom') }}" data-testid="bottom-nav"
@@ -50,6 +50,7 @@
      }"
      x-on:focusin.window="typing = sheet === null && isField($event.target)"
      x-on:focusout.window="typing = false"
+     x-on:hc-workspace-opened.window="close()"
      x-bind:data-typing="typing"
      class="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-base/95 backdrop-blur md:hidden"
      style="padding-bottom: env(safe-area-inset-bottom, 0px)">
@@ -140,7 +141,7 @@
                         @foreach ($actions as $action)
                             <li wire:key="bottom-new-{{ $action['id'] }}">
                                 <a href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}" @if ($action['returns']) data-returns @endif
-                                   x-on:click.prevent="go($event)"
+                                   data-ws-skip x-on:click.prevent="go($event)"
                                    class="{{ $tile }} min-h-12 text-ink hover:bg-hover">
                                     <span class="grid size-10 shrink-0 place-items-center rounded-control border border-line-soft bg-soft text-ink" aria-hidden="true">
                                         <x-icons.plus class="size-5" />

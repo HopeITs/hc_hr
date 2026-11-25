@@ -751,6 +751,7 @@ class LeaveRequestForm extends Form
     {
         return [
             'end_at.after_or_equal' => __('leaves.validation.end-before-start'),
+            'start_at.after_or_equal' => __('leaves.validation.start-in-past'),
         ];
     }
 

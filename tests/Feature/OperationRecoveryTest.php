@@ -33,7 +33,8 @@ class OperationRecoveryTest extends TestCase
     {
         $registry = UnknownOutcome::registry();
 
-        $this->assertSame(['processSave'], $registry['employee.leave.my-leave-request-module']);
+        // confirmSave writes too since 2026-11-23 (no second "are you sure" dialog).
+        $this->assertSame(['processSave', 'confirmSave'], $registry['employee.leave.my-leave-request-module']);
         $this->assertSame(['submitDecision'], $registry['employee.leave.all-leave-request-module']);
         $this->assertSame(['submit'], $registry['contract.contract-create']);
         $this->assertSame(['renewAsIs'], $registry['contract.contract-renew-modal']);

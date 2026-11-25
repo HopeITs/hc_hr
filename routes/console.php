@@ -68,6 +68,9 @@ Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');
 // volunteer whose last contract ended config('journeys.exit_grace_days') ago,
 // and warns city HR once when it ends.
 Schedule::command(DeactivateDepartedEmployees::class)->dailyAt('21:50')->withoutOverlapping();
+// After the contract runs: the employee and manager roles follow the org chart, and raised
+// roles without a running contract are suspended (OrgRoleSync, decided 2026-11-24).
+Schedule::command(App\Console\Commands\SyncOrgRoles::class)->dailyAt('21:55')->withoutOverlapping();
 // The weekly deactivate:employee sweep is no longer scheduled (product owner,
 // 2026-10-30): it deactivated anyone without a *currently* active contract,
 // cutting the exit grace period short and stopping people whose contract

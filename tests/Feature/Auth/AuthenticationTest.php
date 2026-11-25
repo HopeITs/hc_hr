@@ -31,9 +31,23 @@ class AuthenticationTest extends TestCase
 
         $response
             ->assertHasNoErrors()
-            ->assertRedirect(route('dashboard', absolute: false));
+            ->assertRedirect(LaravelLocalization::localizeUrl('/', 'en'));
 
         $this->assertAuthenticated();
+    }
+
+    public function test_sign_in_always_lands_on_the_desk_not_the_page_asked_for_before(): void
+    {
+        $user = User::factory()->create();
+        session(['url.intended' => url('/statistics/general')]);
+
+        Livewire::test(Login::class)
+            ->set('email', $user->email)
+            ->set('password', 'password')
+            ->call('login')
+            ->assertRedirect(LaravelLocalization::localizeUrl('/', 'en'));
+
+        $this->assertNull(session('url.intended'));
     }
 
     public function test_remember_me_queues_the_recaller_cookie(): void

@@ -64,10 +64,8 @@ class ArchiveFileController extends Controller
         $folder = Folder::findOrFail($media->model_id);
         $user = auth()->user();
 
-        abort_unless(
-            $user?->isActiveAdministrator() || $folder->users()->whereKey($user?->id)->exists(),
-            403,
-        );
+        // The folders page's own rule: by name, through a group, or from a parent folder.
+        abort_unless($user && app(\App\Services\Folders\FolderAccess::class)->canView($user, $folder), 403);
     }
 
     private function officePreviewFileName(Media $media): string

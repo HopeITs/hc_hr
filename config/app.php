@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'HopeHR'),
 
     'env' => env('APP_ENV', 'production'),
 

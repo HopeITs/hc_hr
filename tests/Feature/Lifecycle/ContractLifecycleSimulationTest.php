@@ -12,14 +12,17 @@ use App\Models\ContractType;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobLevel;
+use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use App\Models\OffboardingJourney;
 use App\Models\Position;
+use App\Models\ProbationReview;
 use App\Models\Program;
 use App\Models\RenewalJourney;
 use App\Notifications\ContractsAwaitingNewYearRenewal;
 use App\Services\ContractAmendmentService;
 use App\Services\ContractAutoRenewalService;
+use App\Services\LeaveBalanceService;
 use App\Services\RenewalJourneys;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
@@ -196,6 +199,114 @@ class ContractLifecycleSimulationTest extends TestCase
         $this->assertSame(0, DatabaseNotification::query()->where('type', ContractsAwaitingNewYearRenewal::class)->count());
     }
 
+    // ── a trial: probation review, no rollover, departure ────────────
+
+    public function test_a_trial_gets_one_probation_review_never_rolls_over_and_its_volunteer_leaves_after_the_grace_period(): void
+    {
+        config(['journeys.exit_grace_days' => 7]);
+        // 91 days: the last third starts on 2026-10-31 (see ProbationReviewTest).
+        $trial = $this->contract('trial', [
+            'contract_type_id' => 3, 'start_date' => '2026-09-01', 'end_date' => '2026-12-01', 'auto_renew' => false,
+        ]);
+        $employee = $trial->employee;
+
+        $this->runNights('2026-10-28', '2026-12-12', function (string $day) use ($trial, $employee): void {
+            $this->assertSeatsMatchRunningContracts($day);
+
+            $this->assertSame($day >= '2026-10-31' ? 1 : 0, ProbationReview::query()->where('contract_id', $trial->id)->count(), "{$day}: probation review");
+            $this->assertSame($day <= '2026-12-01', (bool) $trial->fresh()->is_active, "{$day}: trial running");
+            $this->assertSame($day < '2026-12-08', (bool) $employee->fresh()->is_active, "{$day}: volunteer active until the grace period ends");
+            $this->assertSame(0, RenewalJourney::query()->where('contract_id', $trial->id)->count(), "{$day}: a trial has no renewal journey");
+        });
+
+        $this->assertSame(1, Contract::query()->where('employee_id', $employee->id)->count(), 'A trial never renews by itself.');
+        $this->assertSame(1, OffboardingJourney::query()->where('employee_id', $employee->id)->count(), 'One exit journey.');
+        $this->assertSame(0, DatabaseNotification::query()->where('type', ContractsAwaitingNewYearRenewal::class)->count(), 'A trial is not "waiting for the new year".');
+    }
+
+    public function test_a_contract_signed_ahead_keeps_the_volunteer_in_post_through_the_gap(): void
+    {
+        $first = $this->contract('handover', ['end_date' => '2026-11-30', 'auto_renew' => false]);
+        $employee = $first->employee;
+        $second = $this->contract('handover-next', [
+            'employee_id' => $employee->id, 'start_date' => '2026-12-01', 'end_date' => '2027-06-30', 'auto_renew' => false,
+        ]);
+
+        $this->runNights('2026-11-28', '2026-12-15', function (string $day) use ($employee): void {
+            $this->assertTrue($employee->fresh()->is_active, "{$day}: a volunteer with a contract to come is never deactivated.");
+            $this->assertSame(0, OffboardingJourney::query()->where('employee_id', $employee->id)->count(), "{$day}: no exit journey");
+        });
+
+        $this->assertTrue($second->fresh()->is_active);
+        $this->assertSame(2, Contract::query()->where('employee_id', $employee->id)->count(), 'Nothing extra was created.');
+    }
+
+    // ── leave balances across an amendment and a renewal ─────────────
+
+    public function test_leave_taken_keeps_its_days_through_an_amendment_and_the_renewal_is_priced_on_the_new_day(): void
+    {
+        $contract = $this->contract('balances');
+        app(LeaveBalanceService::class)->create($contract);
+
+        $annual = fn (Contract $c): LeaveBalance => LeaveBalance::query()
+            ->where('contract_id', $c->id)->where('type_id', LeaveTypeCases::Annual)->sole();
+
+        // Two days taken on an 8-hour day.
+        $annual($contract)->update(['used' => 16]);
+        $daysLeft = fn (LeaveBalance $b, int $dailyHours): float => round(($b->deserved - $b->used) / $dailyHours, 2);
+        $before = $daysLeft($annual($contract), 8);
+        $this->assertGreaterThan(0, $before);
+
+        $service = app(ContractAmendmentService::class);
+        $service->approve($service->draft($contract, ['weekly_hours' => 30], '2026-11-20'));
+
+        $this->runNights('2026-11-18', '2026-11-22', function (string $day) use ($contract, $annual, $daysLeft, $before): void {
+            $hours = $day >= '2026-11-20' ? 6 : 8;
+            $this->assertSame($before, $daysLeft($annual($contract), $hours), "{$day}: the days left do not change when the working day does");
+        });
+
+        $this->runNights('2026-12-01', '2027-01-02');
+
+        $successor = Contract::query()->where('employee_id', $contract->employee_id)->whereKeyNot($contract->id)->sole();
+        $this->assertSame(0.0, (float) $annual($successor)->used, 'The renewal starts with nothing used.');
+        $this->assertGreaterThan(0, $annual($successor)->deserved, 'and its own entitlement.');
+        $this->assertSame(30, (int) $successor->weekly_hours);
+        $this->assertSame(1, LeaveBalance::query()->where('contract_id', $successor->id)->where('type_id', LeaveTypeCases::Annual)->count());
+        $this->assertSame(16.0, (float) LeaveBalance::query()->where('contract_id', $contract->id)->where('type_id', LeaveTypeCases::Annual)->sole()->used, 'The old contract keeps what was taken.');
+    }
+
+    // ── the whole daily schedule, morning and evening ─────────────────
+
+    public function test_every_daily_command_runs_for_seven_weeks_of_mixed_contracts_and_repeats_no_notice(): void
+    {
+        $this->nightFromHour = 0;
+        // Reaches out to Google Drive and Gemini: not a step of the people's lifecycle.
+        $this->nightSkips = ['policies:sync'];
+
+        $this->contract('soak-auto', ['end_date' => '2026-11-20']);
+        $this->contract('soak-year', ['end_date' => '2026-12-31']);
+        $this->contract('soak-off', ['end_date' => '2026-11-25', 'auto_renew' => false]);
+        $this->contract('soak-trial', ['contract_type_id' => 3, 'start_date' => '2026-09-15', 'end_date' => '2026-12-15', 'auto_renew' => false]);
+        $this->contract('soak-run', ['end_date' => '2027-06-30']);
+
+        $this->assertGreaterThan(5, $this->nightlyCommands()->count(), 'The morning commands are part of the run.');
+
+        $this->runNights('2026-11-10', '2027-01-05', fn (string $day) => $this->assertSeatsMatchRunningContracts($day));
+
+        $types = DatabaseNotification::query()->pluck('type')->map(fn ($t) => class_basename($t))->countBy()->all();
+        $this->assertArrayHasKey('ContractsAwaitingNewYearRenewal', $types, 'The run produced notices: '.json_encode($types));
+        fwrite(STDERR, '
+soak notices: '.json_encode($types).'
+');
+
+        // The same notice (type + recipient + body) is never delivered twice.
+        $duplicates = DatabaseNotification::query()->get()
+            ->groupBy(fn ($n) => $n->type.'|'.$n->notifiable_id.'|'.json_encode($n->data))
+            ->filter(fn ($group) => $group->count() > 1);
+
+        $this->assertCount(0, $duplicates, 'Repeated notices: '.$duplicates->keys()->implode(', '));
+    }
+
     // ── helpers ──────────────────────────────────────────────────────
 
     /** Position.exist_emp must equal the contracts actually holding a seat, every night. */
@@ -262,6 +373,12 @@ class ContractLifecycleSimulationTest extends TestCase
         $annualType = ContractType::query()->forceCreate(['id' => 1, 'name_en' => 'Volunteer Contract', 'name_ar' => 'عقد تطوّع']);
         ContractType::query()->forceCreate(['id' => 3, 'name_en' => 'Trial', 'name_ar' => 'تجريبي']);
         $hr = $this->makeUser($city, 'HR-ALP', ['contracts.update', 'contracts.view', 'contracts.create', 'employees.update']);
+        // HR works on a running contract: without one the nightly access:sync-org-roles suspends the role.
+        Contract::query()->create([
+            'employee_id' => $hr->employee_id, 'position_id' => $position->id, 'contract_type_id' => $annualType->id,
+            'start_date' => '2026-01-01', 'end_date' => '2027-12-31', 'currency' => 2, 'salary_per' => 1,
+            'salary' => 1500, 'weekly_hours' => 40, 'is_active' => true, 'auto_renew' => false,
+        ]);
 
         AnnualLeaveRule::query()->create(['days' => 14, 'day_per_month' => 1.5, 'years_of_volunteering' => 0]);
         foreach ([LeaveTypeCases::Annual, LeaveTypeCases::FullSick, LeaveTypeCases::HalfSick, LeaveTypeCases::Unpaid] as $id) {

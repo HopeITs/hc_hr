@@ -325,13 +325,12 @@ class AttendanceWorkflowTest extends TestCase
         file_put_contents($path, $response->streamedContent());
         $book = IOFactory::load($path);
 
-        // The boss sees himself and the report: an overview and a pair of sheets for each.
-        $this->assertSame(['Overview', 'TS '.$this->e['boss']->id, 'SUM '.$this->e['boss']->id, 'TS '.$this->e['report']->id, 'SUM '.$this->e['report']->id], $book->getSheetNames());
+        // The boss and the report are in scope, but only the report has punches in September: one
+        // pair of sheets, no overview for one person. The boss, with none, is left out like on the page.
+        $this->assertSame(['TS '.$this->e['report']->id, 'SUM '.$this->e['report']->id], $book->getSheetNames());
 
         $sheet = $book->getSheetByName('TS '.$this->e['report']->id);
-        // The boss's own September has nothing in it, so the whole selection prints as a draft.
         $this->assertStringStartsWith('Monthly TimeSheet', $sheet->getCell('A1')->getValue());
-        $this->assertStringContainsString('مسودة', $sheet->getCell('A1')->getValue());
         $this->assertSame('Dana Reporter', $sheet->getCell('B3')->getValue());
         $this->assertSame('الثلاثاء', $sheet->getCell('A7')->getValue()); // Tue 1 Sep
         $this->assertSame('01/09/2026', $sheet->getCell('B7')->getValue());

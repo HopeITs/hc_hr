@@ -146,6 +146,26 @@ class AttendanceAccessTest extends TestCase
         $this->staff('far', $damascus, 'Fay', 'Faraway');
     }
 
+    /** The page lists only people the uploaded reports hold punches for in the month. */
+    private function withPunch(\App\Models\Employee $employee, string $at = '2026-09-02 08:00'): \App\Models\Employee
+    {
+        \App\Models\AttendancePunch::query()->create([
+            'import_id' => \App\Models\AttendanceImport::query()->firstOrCreate(['file_name' => 'fixture.xls'])->id,
+            'device_no' => (string) $employee->id,
+            'employee_id' => $employee->id,
+            'punched_at' => $at,
+        ]);
+
+        // Every working day of September answered, so the paper may be printed (nothing waits).
+        for ($d = \Carbon\CarbonImmutable::create(2026, 9, 1); $d->month === 9; $d = $d->addDay()) {
+            if (! in_array($d->dayOfWeek, [0, 6], true)) {
+                \App\Models\AttendanceDayDecision::query()->updateOrCreate(['employee_id' => $employee->id, 'work_date' => $d->toDateString()], ['kind' => 'worked']);
+            }
+        }
+
+        return $employee;
+    }
+
     private function staff(string $key, City $city, string $first, string $last, ?Employee $manager = null): Employee
     {
         $position = $this->makePosition($city);
@@ -158,6 +178,7 @@ class AttendanceAccessTest extends TestCase
             'first_name_en' => $first, 'last_name_en' => $last, 'first_name_ar' => $first, 'last_name_ar' => $last,
         ]);
         $this->makeContractFor($employee, ['position_id' => $position->id]);
+        $this->withPunch($employee);
 
         return $this->e[$key] = $employee;
     }

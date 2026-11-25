@@ -130,7 +130,8 @@ class ActivityReport
             ->get()
             ->map(fn (User $u) => [
                 'name' => $u->profile?->name ?? $u->email,
-                'last_seen' => $u->last_seen_at,
+                // users.last_seen_at has no cast (Presence writes it raw), so it arrives as a string.
+                'last_seen' => $u->last_seen_at ? Carbon::parse($u->last_seen_at) : null,
             ]);
     }
 }

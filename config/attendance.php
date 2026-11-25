@@ -9,6 +9,20 @@ return [
     'device_number_is_employee_id' => true,
 
     /*
+     * The Devices page (devices that push punches by themselves, the LAN agent's keys). Hidden for
+     * now: HR uploads the report file and prints the timesheets. Turn on to show the page and its
+     * links again. The /iclock and agent endpoints are not affected.
+     */
+    'devices_page' => (bool) env('ATTENDANCE_DEVICES_PAGE', false),
+
+    /*
+     * Receiving punches from the devices themselves (/iclock, ADMS) and from the LAN agent. Off for
+     * now, planned for later: the report file is the only way in. While off, those addresses
+     * answer 404 and store nothing.
+     */
+    'device_push' => (bool) env('ATTENDANCE_DEVICE_PUSH', false),
+
+    /*
      * Weekend days when a center has none set: PHP day numbers, 0 = Sunday ... 6 = Saturday.
      * The printed form uses Saturday and Sunday.
      */

@@ -145,7 +145,7 @@
                             <div class="mt-3 grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <x-forms.input-label for="position-search" :value="__('entitlements.add_position')" />
-                                    <x-forms.input id="position-search" wire:model.live.debounce.300ms="positionSearch" :placeholder="__('entitlements.search_position')" />
+                                    <x-forms.input id="position-search" aria-label="{{ __('general.search') }}" wire:model.live.debounce.300ms="positionSearch" :placeholder="__('entitlements.search_position')" />
                                     @if ($matches->isNotEmpty())
                                         <ul class="mt-2 divide-y divide-line-soft rounded-control border border-line-soft">
                                             @foreach ($matches as $position)

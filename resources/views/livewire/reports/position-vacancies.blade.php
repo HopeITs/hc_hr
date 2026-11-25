@@ -83,12 +83,12 @@
                 <table class="w-full text-small" data-testid="vacancy-list">
                     <thead class="text-ink-2">
                         <tr>
-                            <th class="py-2 text-start">{{ __('Position') }}</th>
-                            <th class="py-2 text-start">{{ __('City') }}</th>
-                            <th class="py-2 text-start">{{ __('Department') }}</th>
-                            <th class="py-2 text-end">{{ __('In post') }}</th>
-                            <th class="py-2 text-end">{{ __('Capacity') }}</th>
-                            <th class="py-2 text-end">{{ __('Vacant') }}</th>
+                            <th scope="col" class="py-2 text-start">{{ __('Position') }}</th>
+                            <th scope="col" class="py-2 text-start">{{ __('City') }}</th>
+                            <th scope="col" class="py-2 text-start">{{ __('Department') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('In post') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Capacity') }}</th>
+                            <th scope="col" class="py-2 text-end">{{ __('Vacant') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line-soft">

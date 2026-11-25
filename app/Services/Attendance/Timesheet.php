@@ -49,6 +49,9 @@ class Timesheet
 
     public const NO_RECORD = 'no_record';
 
+    /** A working day still ahead: nothing to decide yet, and it counts for nothing. */
+    public const UPCOMING = 'upcoming';
+
     public const DECIDED_WORKED = 'decided_worked';
 
     public const DECIDED_ABSENT = 'decided_absent';
@@ -121,7 +124,8 @@ class Timesheet
 
         $leaves = LeaveRequest::query()
             ->with('leaveBalance.leaveType', 'leaveBalance.contract:id,employee_id')
-            ->where('status', LeaveRequestStatus::Accepted)
+            // A leave that is asked for (pending) already answers the day: HR never decides it; the print waits for its answer.
+            ->whereIn('status', [LeaveRequestStatus::Accepted, LeaveRequestStatus::Pending])
             ->whereHas('leaveBalance.contract', fn ($contract) => $contract->whereIn('employee_id', $ids))
             ->whereDate('start_at', '<=', $last)
             ->whereDate('end_at', '>=', $first)
@@ -216,14 +220,9 @@ class Timesheet
             $key = ($position?->program_id ?? 0).'-'.($position?->city_id ?? 0);
             $holidayCache[$key] ??= $this->holidaysFor($position?->program_id, $position?->city_id, $first, $last);
 
-            $weekends = array_map('intval', explode(',', (string) ($position?->center?->weekends ?: config('attendance.default_weekends'))));
-            // The contract's own days in force on this day (a Study Zone
-            // volunteer's day off, moved from a date on): the same days off
-            // leave is priced with — every day they do not list, plus the
-            // place's own (the program's centers when there is no center).
-            if ($contract->workWeekdaysOn($day) !== null) {
-                $weekends = ($this->pricing ??= app(LeaveRequestPricing::class))->weekendFor($contract, $day)[0];
-            }
+            // The days off in force on this day (Timesheet::daysOff): the same rule
+            // the calendar line and leave read.
+            $weekends = $this->daysOff($contract, $day)['days'];
             $block = max(1, (int) $overtime['block_minutes']);
 
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {
@@ -238,6 +237,32 @@ class Timesheet
                     $row['overtime_minutes'] = intdiv($workedMinutes, $block) * $block;
                 }
 
+                $rows[] = $row;
+
+                continue;
+            }
+
+            [$leaveHours, $leaveType, $leavePending] = $this->leaveOn($leaves, $day, $daily);
+
+            if ($leaveHours >= $daily) {
+                $row['kind'] = self::LEAVE;
+                $row['leave_type'] = $leaveType;
+                $row['leave_hours'] = $daily;
+                $row['working_days'] = 0.0;
+                $row['leave_pending'] = $leavePending;
+                $rows[] = $row;
+
+                continue;
+            }
+
+            if ($leaveHours > 0) {
+                // An hourly leave inside a working day: the rest of the day is worked.
+                $row['kind'] = self::WORKED;
+                $row['leave_pending'] = $leavePending;
+                $row['leave_type'] = $leaveType;
+                $row['leave_hours'] = $leaveHours;
+                $row['working_days'] = 1 - ($leaveHours / $daily);
+                $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
                 $rows[] = $row;
 
                 continue;
@@ -265,34 +290,13 @@ class Timesheet
                 continue;
             }
 
-            [$leaveHours, $leaveType] = $this->leaveOn($leaves, $day, $daily);
-
-            if ($leaveHours >= $daily) {
-                $row['kind'] = self::LEAVE;
-                $row['leave_type'] = $leaveType;
-                $row['leave_hours'] = $daily;
-                $row['working_days'] = 0.0;
-                $rows[] = $row;
-
-                continue;
-            }
-
-            if ($leaveHours > 0) {
-                // An hourly leave inside a working day: the rest of the day is worked.
-                $row['kind'] = self::WORKED;
-                $row['leave_type'] = $leaveType;
-                $row['leave_hours'] = $leaveHours;
-                $row['working_days'] = 1 - ($leaveHours / $daily);
-                $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
-                $rows[] = $row;
-
-                continue;
-            }
-
             if ($workedMinutes !== null) {
                 $row['kind'] = self::WORKED;
                 $row['working_days'] = 1.0;
                 $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
+            } elseif ($times === [] && $day->isAfter(CarbonImmutable::today())) {
+                // Not come yet: no one can answer for it, so it waits for nobody.
+                $row['kind'] = self::UPCOMING;
             } else {
                 // One punch, or none: nothing is assumed. HR decides, and until then it counts for nothing.
                 $row['kind'] = count($times) === 1 ? self::ONE_PUNCH : self::NO_RECORD;
@@ -306,7 +310,7 @@ class Timesheet
 
         return [
             'month' => $first,
-            'placement' => $this->placement($contracts),
+            'placement' => $this->placement($contracts, $last),
             'daily_hours' => $dailyHours,
             'rows' => $rows,
             'totals' => $this->totals($rows, $dailyHours),
@@ -324,9 +328,14 @@ class Timesheet
         $minutes = 0;
         $days = 0.0;
         $toDecide = 0;
+        $leavePending = 0;
         $workedDays = 0;
 
         foreach ($rows as $row) {
+            if (! empty($row['leave_pending'])) {
+                $leavePending++;
+            }
+
             if (empty($row['paid_off_day'])) {
                 $leave += $row['leave_hours'];
             }
@@ -352,6 +361,8 @@ class Timesheet
             'working_days' => round($days, 2),
             'worked_days' => $workedDays,
             'to_decide' => $toDecide,
+            // Days covered by a leave request nobody has answered yet: never HR's to decide, but the paper waits for it.
+            'leave_pending' => $leavePending,
         ];
     }
 
@@ -375,16 +386,50 @@ class Timesheet
      *
      * @return array{program_id: ?int, program: ?string, department_id: ?int, department: ?string, center: ?string}
      */
-    private function placement(Collection $contracts): array
+    private function placement(Collection $contracts, CarbonImmutable $last): array
     {
-        $position = $contracts->sortByDesc('start_date')->first()?->position;
+        $contract = $contracts->sortByDesc('start_date')->first();
+        $position = $contract?->position;
+        // The days off as the month ends, so a past month shows the days it had.
+        $off = $contract ? $this->daysOff($contract, $last) : ['days' => [], 'from' => null];
 
         return [
+            // The weekly days off of the latest contract in the month, and where they come from.
+            'days_off' => $off['days'],
+            'days_off_from' => $off['from'],
             'program_id' => $position?->program_id,
             'program' => $position?->program?->name,
             'department_id' => $position?->department_id,
             'department' => $position?->department?->name,
             'center' => $position?->center?->name,
+        ];
+    }
+
+    /**
+     * A contract's weekly days off on $on (0 = Sunday … 6 = Saturday), and where they come from:
+     *  - 'contract': the days the contract works then (Contract::workWeekdaysOn(): its picked days
+     *    or day range, a day off moved from a date, an amendment's) — every other day is off, plus
+     *    the place's own day off: the same days leave is priced with (LeaveRequestPricing::weekendFor);
+     *  - else the center of its position, else the configured default.
+     *
+     * @return array{days: list<int>, from: 'contract'|'center'|'default'}
+     */
+    private function daysOff(Contract $contract, CarbonImmutable $on): array
+    {
+        if ($contract->workWeekdaysOn($on) !== null) {
+            return [
+                'days' => ($this->pricing ??= app(LeaveRequestPricing::class))->weekendFor($contract, $on)[0],
+                'from' => 'contract',
+            ];
+        }
+
+        // "0" is Sunday, not "nothing set": only a missing or blank value falls back to the default.
+        $center = trim((string) $contract->position?->center?->weekends);
+        $set = $center !== '' && Contract::parseWeekdays($center) !== [];
+
+        return [
+            'days' => Contract::parseWeekdays($set ? $center : (string) config('attendance.default_weekends')),
+            'from' => $set ? 'center' : 'default',
         ];
     }
 
@@ -409,14 +454,15 @@ class Timesheet
     }
 
     /**
-     * Hours of accepted leave on a working day, and its type.
+     * Hours of leave on a working day (accepted or still asked for), its type, and whether any of it is still pending.
      *
-     * @return array{0: float, 1: ?LeaveType}
+     * @return array{0: float, 1: ?LeaveType, 2: bool}
      */
     private function leaveOn(Collection $leaves, CarbonImmutable $day, float $daily): array
     {
         $hours = 0.0;
         $type = null;
+        $pending = false;
 
         foreach ($leaves as $leave) {
             if ($leave->type === 'hour') {
@@ -432,9 +478,10 @@ class Timesheet
             }
 
             $type ??= $leave->leaveBalance?->leaveType;
+            $pending = $pending || (int) $leave->status === LeaveRequestStatus::Pending;
         }
 
-        return [min($hours, $daily), $type];
+        return [min($hours, $daily), $type, $pending];
     }
 
     /**

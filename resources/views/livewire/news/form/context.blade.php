@@ -222,7 +222,7 @@
                                 <label class="relative min-w-0 flex-1">
                                     <span class="sr-only">@lang('news.form.search')</span>
                                     <x-ic name="search" class="pointer-events-none absolute inset-y-0 start-3 my-auto text-ink-3" />
-                                    <input type="search" x-model.debounce.150ms="q" placeholder="{{ __('news.form.search') }}"
+                                    <input type="search" x-model.debounce.150ms="q" aria-label="{{ __('news.form.search') }}" placeholder="{{ __('news.form.search') }}"
                                            class="hc-field ps-9" autocomplete="off">
                                 </label>
                                 <span class="text-caption text-ink-2 num" aria-live="polite">

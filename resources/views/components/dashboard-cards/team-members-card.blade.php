@@ -11,7 +11,7 @@
     <x-dashboard-cards.card-header :title="__('general.contact-the-team')">
         <x-slot:actions>
             <div class="relative w-36 shrink-0">
-                <input x-model="search" type="text" placeholder="{{ __('general.search') }}"
+                <input x-model="search" type="text" aria-label="{{ __('general.search') }}" placeholder="{{ __('general.search') }}"
                     class="h-6 w-full rounded-full border border-line bg-card pe-3 ps-8 text-xs leading-none text-ink
                            placeholder-ink-3 transition hover:border-ink-2">
                 <div class="pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-ink-3">

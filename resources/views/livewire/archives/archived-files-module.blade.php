@@ -62,6 +62,11 @@
         @endif
     </div>
 
+    {{-- No "New folder" at the top of Shared with me: say where to make one instead. --}}
+    @if ($isShared && ! $currentFolder && ! $canManageCurrentFolder)
+        <p class="mt-3 text-small text-ink-2" data-testid="shared-root-hint">{{ __('folders.shared-root-hint') }}</p>
+    @endif
+
     <div
         @if ($currentFolder && $canManageCurrentFolder)
         x-data="{ dragging: false }"
@@ -97,10 +102,15 @@
                         <x-icons.folder class="w-10 h-10 text-ink-2 group-hover:text-on-ink" />
                     </span>
                     <span class="w-full mt-3 text-body font-semibold text-ink truncate">{{ $folder->name }}</span>
+                    @php $folderRole = $folderRoles[$folder->id] ?? null; @endphp
                     @if ($folder->user_id === auth()->id())
                         <span class="mt-1 text-small text-ink-2">{{ __('general.by_me') }}</span>
                     @else
-                        <span class="mt-1 text-small text-ink-2">{{ __('general.by') }}: {{ optional($folder->creator->profile)->name ?? __('general.unknown') }}</span>
+                        <span class="mt-1 text-small text-ink-2">{{ __('general.by') }}: {{ optional($folder->creator?->profile)->name ?? __('general.unknown') }}</span>
+                        {{-- What this person may do here, in words (status = words, not colour). --}}
+                        @if ($folderRole && $folderRole !== \App\Services\Folders\FolderAccess::OWNER)
+                            <span class="mt-0.5 text-caption text-ink-3" data-testid="folder-role">{{ __('folders.roles.'.$folderRole) }}</span>
+                        @endif
                     @endif
                 </a>
 
@@ -109,7 +119,8 @@
                     <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::itemKey('folder', $folder->id)" :compact="true" :key="'atd-folder-'.$folder->id" />
                 </div>
 
-                @if (!$isShared && ($folder->user_id === auth()->id() || auth()->user()->isActiveAdministrator()))
+                {{-- Editors share and rename; only the owner deletes (FolderAccess). --}}
+                @if (in_array($folderRole, [\App\Services\Folders\FolderAccess::EDITOR, \App\Services\Folders\FolderAccess::OWNER], true))
                 <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 end-2">
                     <button type="button" @click="open = !open" aria-label="{{ __('general.actions') }}" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover">
                         <svg class="w-5 h-5 text-ink-2"
@@ -131,22 +142,24 @@
                                 {{ __('general.files') }} <span class="text-ink">{{ $folder->files_count }}</span>
                             </div>
                             <div class="border-t border-line-soft"></div>
-                            <button wire:click.prevent="editPermissions({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            <button wire:click.prevent="editPermissions({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <x-icons.cog class="flex-shrink-0 text-current size-5" />
                                 <span>{{ __('general.permissions') }}</span>
                             </button>
-                            <button wire:click.prevent="startEditingFolder({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            <button wire:click.prevent="startEditingFolder({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <svg class="flex-shrink-0 text-current size-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
                                 </svg>
                                 <span>{{ __('general.edit') }}</span>
                             </button>
-                            <button wire:click.prevent="confirmFolderDeletion({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            @if ($folderRole === \App\Services\Folders\FolderAccess::OWNER)
+                            <button wire:click.prevent="confirmFolderDeletion({{ $folder->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <svg class="flex-shrink-0 text-current size-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
                                 </svg>
                                 <span>{{ __('general.delete') }}</span>
                             </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -188,11 +201,11 @@
                          @click="open = false">
 
                         <div class="py-2">
-                            <button wire:click.prevent="previewFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            <button wire:click.prevent="previewFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <x-icons.eye class="flex-shrink-0 text-current size-5" />
                                 <span>Preview</span>
                             </button>
-                            <button wire:click.prevent="downloadFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            <button wire:click.prevent="downloadFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <svg class="flex-shrink-0 text-current size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v11" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m7.5 9.5 4.5 4.5 4.5-4.5" />
@@ -202,13 +215,15 @@
                             </button>
                             @if ($canManageCurrentFolder)
                             <div class="my-1 border-t border-line-soft"></div>
-                            <button wire:click.prevent="startEditingFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            <button wire:click.prevent="startEditingFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <svg class="flex-shrink-0 text-current size-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
                                 </svg>
                                 <span>{{ __('general.edit_name') }}</span>
                             </button>
-                            <button wire:click.prevent="confirmFileDeletion({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-left text-ink transition hover:bg-hover hover:text-ink">
+                            @endif
+                            @if ($canDeleteInCurrentFolder)
+                            <button wire:click.prevent="confirmFileDeletion({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
                                 <svg class="flex-shrink-0 text-current size-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
                                 </svg>
@@ -224,7 +239,7 @@
     </div>
 
     @if ($showCreateFolderModal)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('showCreateFolderModal', false)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('showCreateFolderModal', false)" x-data x-on:keydown.escape.window="$wire.$set('showCreateFolderModal', false)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -248,7 +263,7 @@
     @endif
 
     @if ($editingFolderId)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('editingFolderId', null)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('editingFolderId', null)" x-data x-on:keydown.escape.window="$wire.$set('editingFolderId', null)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -270,7 +285,7 @@
     @endif
 
     @if ($editingFileId)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="$set('editingFileId', null)"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="$set('editingFileId', null)" x-data x-on:keydown.escape.window="$wire.$set('editingFileId', null)"></div>
     <div class="fixed z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="mx-4 bg-card rounded-surface shadow-e3">
             <div class="px-6 pt-6">
@@ -297,7 +312,7 @@
         $canPreviewInOffice = in_array($previewExtension, ['docx', 'xlsx', 'pptx'], true);
         $canExtractOfficeText = in_array($previewExtension, ['docx', 'xlsx'], true);
     @endphp
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="closePreviewModal"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="closePreviewModal" x-data x-on:keydown.escape.window="$wire.closePreviewModal()"></div>
     <div class="fixed z-50 w-full max-w-5xl -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div class="flex flex-col max-h-[88vh] mx-4 overflow-hidden bg-card border border-line-soft rounded-surface shadow-e3">
             <div class="flex items-center justify-between gap-4 px-4 py-4 border-b border-line-soft bg-soft">
@@ -401,21 +416,109 @@
     @endif
 
     @if ($showPermissionsModal)
-    <div class="fixed inset-0 z-40 bg-backdrop" wire:click="closePermissionsModal"></div>
+    <div class="fixed inset-0 z-40 bg-backdrop" aria-hidden="true" wire:click="closePermissionsModal" x-data x-on:keydown.escape.window="$wire.closePermissionsModal()"></div>
     <div class="fixed z-50 w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-        <div class="flex flex-col mx-4 overflow-hidden bg-card border border-line-soft rounded-surface shadow-e3">
+        {{-- Scrolls inside itself: with the group section it is taller than a phone screen. --}}
+        <div class="flex flex-col mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card border border-line-soft rounded-surface shadow-e3">
             <div class="px-6 py-4 border-b border-line-soft bg-soft">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <h3 class="text-h4 font-bold text-ink">{{ __('general.assign_permissions', ['folder' => $folderForPermissions?->name]) }}</h3>
-                        <p class="mt-1 text-body text-ink-2">{{ __('general.select_employees') }}</p>
+                        <p class="mt-1 text-small text-ink-2">{{ __('folders.roles-help') }}</p>
+                        @if ($folderForPermissions?->parent_id && $folderForPermissions?->inherits_access)
+                            <p class="mt-1 text-small text-ink-2">{{ __('folders.share.inherits') }}</p>
+                        @endif
                     </div>
                     <span class="inline-flex items-center justify-center flex-shrink-0 text-ink-2 bg-card border border-line-soft rounded-surface shadow-e1 size-10">
                         <x-icons.cog class="size-5" />
                     </span>
                 </div>
+
+                {{-- Share with a group: kept as the group, so later members have access too. --}}
+                <section class="p-4 mt-4 bg-card border border-line-soft rounded-surface shadow-e1" aria-labelledby="share-groups-title" data-testid="share-groups">
+                    <h4 id="share-groups-title" class="text-body font-bold text-ink">{{ __('folders.share.groups-title') }}</h4>
+                    <p class="mt-0.5 text-small text-ink-2">{{ __('folders.share.groups-hint') }}</p>
+
+                    @if ($groupShares)
+                        <ul class="mt-3 divide-y divide-line-soft border border-line-soft rounded-control">
+                            @foreach ($groupShares as $i => $share)
+                                @php $members = $groupMembers[$i] ?? []; @endphp
+                                <li class="flex flex-wrap items-center gap-2 px-3 py-2" wire:key="group-share-{{ $share['type'] }}-{{ $share['id'] }}">
+                                    <span class="flex-1 min-w-0">
+                                        <span class="block font-semibold text-ink truncate">{{ $groupTypes[$share['type']] ?? $share['type'] }}: {{ $share['label'] }}</span>
+                                        <span class="block text-caption text-ink-3 num">{{ trans_choice('folders.share.members-now', count($members), ['count' => count($members)]) }}</span>
+                                    </span>
+                                    <select aria-label="{{ __('folders.share.role-of', ['name' => $share['label']]) }}"
+                                            wire:change="setGroupRole({{ $i }}, $event.target.value)"
+                                            class="py-1.5 text-small border-line rounded-control">
+                                        @foreach (\App\Services\Folders\FolderAccess::SHARE_ROLES as $role)
+                                            <option value="{{ $role }}" @selected($share['role'] === $role)>{{ __('folders.roles.'.$role) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" wire:click="removeGroupShare({{ $i }})"
+                                            aria-label="{{ __('folders.share.remove-group', ['group' => $share['label']]) }}"
+                                            class="inline-flex items-center justify-center size-11 text-ink-2 rounded-control hover:bg-hover hover:text-ink">
+                                        <svg viewBox="0 0 14 14" class="size-3.5 stroke-current" aria-hidden="true"><path d="M4 4l6 6m0-6l-6 6" stroke-width="1.6"/></svg>
+                                    </button>
+                                    {{-- The people in it now, one click away: who a group share reaches. --}}
+                                    @if ($members)
+                                        <details class="w-full" data-testid="group-people">
+                                            <summary class="cursor-pointer text-small font-semibold text-ink-2 hover:text-ink">{{ __('folders.share.people-in-group', ['group' => $share['label']]) }}</summary>
+                                            <ul class="flex flex-wrap gap-1.5 pt-2">
+                                                @foreach ($members as $member)
+                                                    <li class="px-2.5 py-0.5 text-small border rounded-full bg-surface border-line-soft text-ink">{{ $member['name'] }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </details>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p class="mt-2 text-small text-ink-3">{{ __('folders.share.no-groups') }}</p>
+                    @endif
+
+                    <div class="flex flex-wrap items-end gap-2 mt-3">
+                        <label class="flex-1 min-w-[9rem]">
+                            <span class="block text-caption font-semibold text-ink-2">{{ __('folders.share.group-type') }}</span>
+                            <select wire:model.live="groupType" class="block w-full py-2 text-body border-line rounded-control">
+                                <option value="">{{ __('general.select_category') }}</option>
+                                @foreach ($groupTypes as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="flex-1 min-w-[9rem]">
+                            <span class="block text-caption font-semibold text-ink-2">{{ __('folders.share.group-value') }}</span>
+                            <select wire:model="groupValue" @disabled(! $groupOptions) class="block w-full py-2 text-body border-line rounded-control">
+                                <option value="">{{ __('general.select_value') }}</option>
+                                @foreach ($groupOptions as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="w-32">
+                            <span class="block text-caption font-semibold text-ink-2">{{ __('folders.share.role') }}</span>
+                            <select wire:model="groupRole" class="block w-full py-2 text-body border-line rounded-control">
+                                @foreach (\App\Services\Folders\FolderAccess::SHARE_ROLES as $role)
+                                    <option value="{{ $role }}">{{ __('folders.roles.'.$role) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <x-button variant="outline" wire:click="addGroupShare">{{ __('folders.share.add-group') }}</x-button>
+                    </div>
+                    @error('groupValue')
+                        <p class="hc-err mt-2">{{ $message }}</p>
+                    @enderror
+                </section>
+
+                {{-- Share with people: one by one, each with a role. --}}
+                <h4 class="mt-5 text-body font-bold text-ink">{{ __('folders.share.people-title') }}</h4>
+                <p class="mt-0.5 text-small text-ink-2">{{ __('folders.share.people-hint') }}</p>
+                <p class="mt-0.5 text-small text-ink-3">{{ __('folders.share.people-any') }}</p>
+
                 {{-- Search --}}
-                <div class="mt-4">
+                <div class="mt-3">
                     <div class="relative">
                         <span class="absolute inset-y-0 flex items-center text-ink-3 pointer-events-none start-0 ps-3">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -512,18 +615,30 @@
                             $isCreator = $user->id === $folderForPermissions?->user_id;
                             $uName     = optional($user->profile)->name ?? $user->email;
                         @endphp
-                        <button type="button"
-                                wire:key="perm-user-{{ $user->id }}"
-                                @if(!$isCreator) wire:click="toggleUser({{ $user->id }})" @endif
-                                class="flex items-center w-full gap-3 px-4 py-2 text-start border-s-[3px] border-ink transition-colors @if($isCreator) cursor-default bg-soft/60 @else hover:bg-hover bg-card @endif">
-                            <span class="flex-1 min-w-0">
-                                <span class="block text-body font-semibold text-ink truncate">{{ $uName }}</span>
-                                @if($isCreator)<span class="text-caption text-ink-3">{{ __('general.me_creator') }}</span>@endif
-                            </span>
-                            <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-ink border-ink text-on-ink">
-                                <svg class="size-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
-                            </span>
-                        </button>
+                        <div class="flex items-center border-s-[3px] border-ink @if($isCreator) bg-soft/60 @else bg-card @endif" wire:key="perm-user-{{ $user->id }}">
+                            <button type="button"
+                                    @if(!$isCreator) wire:click="toggleUser({{ $user->id }})" @else aria-disabled="true" @endif
+                                    aria-pressed="true"
+                                    class="flex items-center flex-1 min-w-0 gap-3 px-4 py-2 text-start transition-colors @if($isCreator) cursor-default @else hover:bg-hover @endif">
+                                <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-ink border-ink text-on-ink">
+                                    <svg class="size-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+                                </span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="block text-body font-semibold text-ink truncate">{{ $uName }}</span>
+                                    @isset($viaGroups[$user->id])<span class="block text-caption text-ink-3" data-testid="via-group">{{ __("folders.share.through-group", ["group" => implode(", ", $viaGroups[$user->id])]) }}</span>@endisset
+                                    @if($isCreator)<span class="text-caption text-ink-3">{{ __('folders.roles.owner') }}</span>@endif
+                                </span>
+                            </button>
+                            @unless ($isCreator)
+                                <select aria-label="{{ __('folders.share.role-of', ['name' => $uName]) }}"
+                                        wire:change="setUserRole({{ $user->id }}, $event.target.value)"
+                                        class="me-3 py-1.5 text-small border-line rounded-control">
+                                    @foreach (\App\Services\Folders\FolderAccess::SHARE_ROLES as $role)
+                                        <option value="{{ $role }}" @selected(($userRoles[$user->id] ?? 'viewer') === $role)>{{ __('folders.roles.'.$role) }}</option>
+                                    @endforeach
+                                </select>
+                            @endunless
+                        </div>
                     @endforeach
                     @endif
 
@@ -543,9 +658,11 @@
                         <button type="button"
                                 wire:key="perm-user-{{ $user->id }}"
                                 wire:click="toggleUser({{ $user->id }})"
+                                aria-pressed="false"
                                 class="flex items-center w-full gap-3 px-4 py-2 text-start transition-colors hover:bg-hover bg-card border-s-[3px] border-transparent">
                             <span class="flex-1 min-w-0">
                                 <span class="block text-body font-medium text-ink-2 truncate">{{ $uName }}</span>
+                                @isset($viaGroups[$user->id])<span class="block text-caption text-ink-3" data-testid="via-group">{{ __("folders.share.through-group", ["group" => implode(", ", $viaGroups[$user->id])]) }}</span>@endisset
                             </span>
                             <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded border bg-card border-line"></span>
                         </button>

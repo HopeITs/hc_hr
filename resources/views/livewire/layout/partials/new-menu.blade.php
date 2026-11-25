@@ -29,6 +29,7 @@
              },
          }"
          x-on:click.outside="hide(false)"
+         x-on:hc-workspace-opened.window="hide(false)"
          x-on:keydown.escape="hide()">
         {{-- The header's one primary action. x-bind:, not :, so Blade leaves it to Alpine. --}}
         <x-button size="sm" icon="plus" :loading="false" x-ref="trigger" data-testid="new-menu-button"
@@ -45,7 +46,7 @@
              class="absolute end-0 top-full z-50 mt-2 min-w-56 rounded-surface border border-line-soft bg-card p-1.5 shadow-e3">
             @foreach ($actions as $action)
                 <a role="menuitem" href="{{ route($action['route'], $action['params']) }}" data-new="{{ $action['id'] }}" @if ($action['returns']) data-returns @endif
-                   x-on:click.prevent="go($event)"
+                   data-ws-skip x-on:click.prevent="go($event)"
                    class="flex min-h-11 items-center rounded-control px-3 text-body font-medium text-ink hover:bg-hover focus-visible:bg-hover">
                     {{ $action['label'] }}
                 </a>

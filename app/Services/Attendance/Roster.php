@@ -53,6 +53,30 @@ class Roster
         return self::OWN;
     }
 
+    /**
+     * Of these people, the ones the uploaded reports hold punches for in the month. A report is one
+     * center's file, so someone whose center's report is not uploaded yet is not on the page, the
+     * print, the PDF or the Excel. The page and every export go through this.
+     *
+     * @param  Collection<int, Employee>  $employees
+     * @return Collection<int, Employee>
+     */
+    public function withPunches(Collection $employees, CarbonImmutable $month): Collection
+    {
+        if ($employees->isEmpty()) {
+            return $employees;
+        }
+
+        $with = \App\Models\AttendancePunch::query()
+            ->whereIn('employee_id', $employees->modelKeys())
+            ->whereBetween('punched_at', [$month->startOfMonth()->startOfDay(), $month->endOfMonth()->endOfDay()])
+            ->distinct()
+            ->pluck('employee_id')
+            ->all();
+
+        return $employees->filter(fn (Employee $e) => in_array($e->id, $with, true))->values();
+    }
+
     /** @return Collection<int, Employee> */
     public function employees(User $user, CarbonImmutable $month, ?int $cityId = null): Collection
     {

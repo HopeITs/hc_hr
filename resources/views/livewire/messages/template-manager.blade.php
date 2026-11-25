@@ -82,11 +82,11 @@
             <table class="w-full text-start text-body">
                 <thead class="bg-soft text-small text-ink-2">
                     <tr>
-                        <th class="px-4 py-2 text-start">@lang('messages.name')</th>
-                        <th class="px-4 py-2 text-start">@lang('messages.channel')</th>
-                        <th class="px-4 py-2 text-start">@lang('messages.language')</th>
-                        <th class="px-4 py-2 text-start">@lang('messages.active')</th>
-                        <th class="px-4 py-2"></th>
+                        <th scope="col" class="px-4 py-2 text-start">@lang('messages.name')</th>
+                        <th scope="col" class="px-4 py-2 text-start">@lang('messages.channel')</th>
+                        <th scope="col" class="px-4 py-2 text-start">@lang('messages.language')</th>
+                        <th scope="col" class="px-4 py-2 text-start">@lang('messages.active')</th>
+                        <th scope="col" class="px-4 py-2"></th>
                     </tr>
                 </thead>
                 <tbody>

@@ -20,10 +20,14 @@
  */
 
 const MAX_TABS = 8;
+const LOCALE_HANDOFF = 'hc-workspace-locale';
 // Paths that are files or actions, not pages: they keep their normal behaviour.
 const LEAVES = /\/(logout|download|export|export-preview)(\/|$|\?)|\.(pdf|xlsx?|csv|docx?|zip|png|jpe?g)(\?|$)/i;
 
 let seq = 0;
+
+// Clicks in an iframe do not bubble to the dashboard's outside-click handlers.
+const notifyFrameClick = () => window.dispatchEvent(new CustomEvent('hc-workspace-frame-click'));
 
 const workspace = () => ({
     tabs: [], // { id, url, title }
@@ -36,6 +40,10 @@ const workspace = () => ({
         this.home = this.$el.dataset.home || '/';
         const onClick = (e) => this.intercept(e);
         document.addEventListener('click', onClick, true);
+        const onLocale = (e) => {
+            if (this.switchLocale(e.detail)) e.preventDefault();
+        };
+        window.addEventListener('hc-switch-locale', onLocale);
         const onPop = () => this.fromAddress(false);
         window.addEventListener('popstate', onPop);
         const onKey = (e) => {
@@ -79,6 +87,7 @@ const workspace = () => ({
         document.addEventListener('livewire:navigating', leave, { once: true });
         this.teardown = () => {
             document.removeEventListener('click', onClick, true);
+            window.removeEventListener('hc-switch-locale', onLocale);
             window.removeEventListener('popstate', onPop);
             window.removeEventListener('keydown', onKey);
             window.removeEventListener('resize', place);
@@ -88,7 +97,7 @@ const workspace = () => ({
             this.restoreNavigate = null;
         };
 
-        this.fromAddress(true);
+        if (! this.restoreLocale()) this.fromAddress(true);
     },
     destroy() {
         this.teardown?.();
@@ -123,10 +132,64 @@ const workspace = () => ({
         if (a.target && a.target !== '_self') return;
         const href = a.getAttribute('href');
         if (! href || href.startsWith('#') || href.startsWith('javascript:')) return;
+        if (a.hasAttribute('data-switch-locale') && this.switchLocale(a.href)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+        }
         if (! this.wants(a.href)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
         this.visit(a.href);
+    },
+
+    switchLocale(href) {
+        const target = this.url(href);
+        if (! target || target.origin !== location.origin || ! this.isHome(target)) return false;
+        const locale = target.pathname.match(/^\/(en|ar)\/?$/)?.[1];
+        if (! locale) return false;
+
+        const prefix = locale === this.$el.dataset.hiddenLocale ? '' : '/' + locale;
+        const localize = (href) => {
+            const url = this.url(href);
+            url.pathname = prefix + url.pathname.replace(/^\/(en|ar)(?=\/|$)/, '');
+            return this.path(url);
+        };
+        const active = this.current();
+        target.searchParams.delete('ws');
+        if (active) {
+            const activeUrl = localize(active.url);
+            target.searchParams.set('ws', activeUrl);
+            const urls = [...new Set(this.tabs.map((tab) => localize(tab.url)))];
+            try {
+                sessionStorage.setItem(LOCALE_HANDOFF, JSON.stringify({ locale, activeUrl, urls }));
+            } catch {
+                // The active tab can still be restored from the URL.
+            }
+        }
+        window.location.assign(target.href);
+        return true;
+    },
+
+    restoreLocale() {
+        let saved;
+        try {
+            const handoff = sessionStorage.getItem(LOCALE_HANDOFF);
+            sessionStorage.removeItem(LOCALE_HANDOFF);
+            saved = JSON.parse(handoff);
+        } catch {
+            return false;
+        }
+        const activeUrl = new URL(location.href).searchParams.get('ws');
+        if (saved?.locale !== document.documentElement.lang || saved.activeUrl !== activeUrl || ! Array.isArray(saved.urls)) return false;
+
+        const urls = saved.urls.slice(0, MAX_TABS).filter((url) =>
+            typeof url === 'string' && url.startsWith('/') && ! url.startsWith('//') && this.wants(url));
+        if (! urls.includes(activeUrl)) return false;
+
+        this.tabs = urls.map((url) => ({ id: 'ws' + ++seq, url, title: '' }));
+        this.show(this.tabs.find((tab) => tab.url === activeUrl).id, false);
+        return true;
     },
 
     // ---- tabs ------------------------------------------------------------
@@ -151,6 +214,7 @@ const workspace = () => ({
     show(id, push = true) {
         this.active = id;
         this.open = true;
+        window.dispatchEvent(new CustomEvent('hc-workspace-opened'));
         if (push) this.address(true);
         this.$nextTick(() => this.$refs.panel?.focus({ preventScroll: true }));
     },
@@ -205,6 +269,7 @@ const workspace = () => ({
 
                 return;
             }
+            win.document.addEventListener('click', notifyFrameClick, true);
             tab.url = u.pathname + u.search + u.hash;
             tab.title = (win.document.title || '').replace(/\s+-\s+[^-]+$/, '').trim() || tab.title;
             if (tab.id === this.active) this.address(false);

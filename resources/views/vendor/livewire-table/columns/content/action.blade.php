@@ -17,7 +17,7 @@
                 @foreach($actions as $action)
                     @if($action->callback() === null)
                         <button
-                            class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
+                            class="px-3 py-1 text-start truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
                             x-data="{ selected: [item] }"
                             x-on:click="
                                 {{ $action->code() }}
@@ -28,7 +28,7 @@
                         </button>
                     @else
                         <button
-                            class="px-3 py-1 text-left truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
+                            class="px-3 py-1 text-start truncate hover:bg-neutral-100 disabled:hover:bg-white disabled:text-neutral-500"
                             wire:key="{{ $action->code() }}"
                             wire:click="executeItemAction('{{ $action->code() }}', item)"
                             x-on:click="show = false"
