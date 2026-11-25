@@ -111,7 +111,26 @@ class OnboardingJourneys
 
         $this->record($journey, 'onboarding_started', null, ['contract_id' => $contract->id]);
 
+        $this->assignElectronics($employee->unsetRelation('onboardingJourney'));
+
         return $journey;
+    }
+
+    /**
+     * Put every electronics item on its deliverer's list (the city's default for
+     * the item, the only IT person, or HR's pick). Items nobody is named for
+     * wait until HR picks someone; delivered ones are left alone.
+     */
+    public function assignElectronics(Employee $employee): void
+    {
+        $workflow = app(ChecklistWorkflow::class);
+
+        $this->deliveries->group($employee, ChecklistItem::GROUP_ELECTRONICS)['items']
+            ->each(function (array $item) use ($employee, $workflow): void {
+                if ($item['deliverer'] !== null && ! $item['delivered']) {
+                    $workflow->assignForDelivery($employee, $item['id'], $item['deliverer']);
+                }
+            });
     }
 
     public function scheduleOrientation(Employee $employee, CarbonInterface $date, User $actor): bool
@@ -252,11 +271,11 @@ class OnboardingJourneys
      */
     public function chooseElectronicsDeliverer(Employee $employee, int $deliverer, User $actor): bool
     {
-        if (! $this->deliveries->itStaff($employee)->contains('id', $deliverer)) {
+        if (! $this->deliveries->electronicsCandidates($employee)->contains('id', $deliverer)) {
             return false;
         }
 
-        return $this->change($employee, $actor, 'electronics_deliverer_chosen', function (OnboardingJourney $journey) use ($deliverer): ?array {
+        $changed = $this->change($employee, $actor, 'electronics_deliverer_chosen', function (OnboardingJourney $journey) use ($deliverer): ?array {
             if ((int) $journey->electronics_deliverer_id === $deliverer) {
                 return null;
             }
@@ -266,6 +285,12 @@ class OnboardingJourneys
 
             return ['from' => $from, 'to' => $deliverer];
         });
+
+        if ($changed) {
+            $this->assignElectronics($employee->fresh());
+        }
+
+        return $changed;
     }
 
     /** Only once the digital card works: the printed card carries its link. */
@@ -360,24 +385,25 @@ class OnboardingJourneys
         }, 'system', due: $accountDue, late: $lateAfter($accountDue, $hasAccount), blockedBy: $hasContract ? null : 'contract', note: ! $hasAccount && $hasContract ? 'account-missing' : null);
 
         $electronics = $this->deliveries->group($employee, ChecklistItem::GROUP_ELECTRONICS);
-        $itStaff = $this->deliveries->itStaff($employee);
         $itDeliverer = $this->deliveries->electronicsDeliverer($employee);
+        $candidates = $this->deliveries->electronicsCandidates($employee);
+        $unassigned = $electronics['items']->contains(fn (array $item) => $item['deliverer'] === null);
         $electronicsDue = $journey?->dueAfterStart(self::ELECTRONICS_DAYS);
         // IT of the city hands them over: one person is automatic, several wait for HR's pick, none is a problem.
         $steps[] = $this->step('electronics', match (true) {
             ! $journey => self::STATE_WAITING,
             $electronics['complete'] => self::STATE_DONE,
-            ! $electronics['configured'], $itStaff->isEmpty() => self::STATE_PROBLEM,
+            ! $electronics['configured'], $unassigned && $candidates->isEmpty() => self::STATE_PROBLEM,
             default => self::STATE_TODO,
-        }, $journey && $itStaff->count() > 1 && $itDeliverer === null ? 'hr' : 'deliverer', due: $electronicsDue, late: $lateAfter($electronicsDue, $electronics['complete']), blockedBy: $afterContract,
+        }, $journey && $unassigned && $candidates->count() > 1 ? 'hr' : 'deliverer', due: $electronicsDue, late: $lateAfter($electronicsDue, $electronics['complete']), blockedBy: $afterContract,
             note: match (true) {
                 ! $journey || $electronics['complete'] => null,
                 ! $electronics['configured'] => 'electronics-no-items',
-                $itStaff->isEmpty() => 'electronics-no-it',
-                $itDeliverer === null => 'electronics-choose-it',
+                $unassigned && $candidates->isEmpty() => 'electronics-no-it',
+                $unassigned => 'electronics-choose-it',
                 default => null,
             },
-            data: ['items' => $electronics['items'], 'missing' => $electronics['missing'], 'candidates' => $itStaff, 'deliverer' => $itDeliverer]);
+            data: ['items' => $electronics['items'], 'missing' => $electronics['missing'], 'candidates' => $candidates, 'deliverer' => $itDeliverer]);
 
         $card = $this->deliveries->group($employee, ChecklistItem::GROUP_CARD);
         $cardItemsDone = ! $card['configured'] || $card['complete'];

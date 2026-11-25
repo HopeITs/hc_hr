@@ -49,10 +49,13 @@ class WorkInboxChecklistTest extends TestCase
         $this->assertEqualsCanonicalizing(["checklist:{$mine->id}:deliver", "checklist:{$returned->id}:receive"], $keys);
         $this->assertSame(2, app(WorkInbox::class)->count($this->deliverer));
 
-        // Without the page permission the item is not listed (the inbox widens nothing).
+        // The inbox follows the hand-over page (User::canHandOutItems): with no permission,
+        // no IT position and nothing assigned there is nothing; once an item is put on
+        // their list they see it, as they now can on the page.
         $noPermission = $this->makeUser($this->city, 'manager', []);
-        $this->item('Desk', ['delivered_id' => $noPermission->employee_id]);
         $this->assertSame(0, app(WorkInbox::class)->count($noPermission));
+        $this->item('Desk', ['delivered_id' => $noPermission->employee_id]);
+        $this->assertSame(1, app(WorkInbox::class)->count($noPermission->fresh()));
 
         $this->assertNotNull($someoneElses);
         $this->assertNotNull($done);

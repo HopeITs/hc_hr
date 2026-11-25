@@ -73,6 +73,19 @@ class User extends Authenticatable implements HasLocalePreference
             : $this->requestMemo[$key] = $resolve();
     }
 
+    /**
+     * Whether this person may open the hand-over page and act on what is
+     * waiting for them: the `checklists.deliver` permission (HR), or being the
+     * one the delivery list names / IT of a city by position. The rows are
+     * scoped to the person when written (ChecklistWorkflow), so this widens who
+     * sees the page, never what they can touch.
+     */
+    public function canHandOutItems(): bool
+    {
+        return $this->remember('hand-out', fn (): bool => $this->hasActivePermission('checklists.deliver')
+            || ($this->employee_id !== null && app(\App\Services\OnboardingDeliveries::class)->mayHandOut((int) $this->employee_id)));
+    }
+
     public function forgetRemembered(): void
     {
         $this->requestMemo = [];

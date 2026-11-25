@@ -38,7 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         // The time-clock devices call /iclock/…: no language prefix, session or login (routes/iclock.php).
         then: function () {
-            \Illuminate\Support\Facades\Route::middleware(['api', 'throttle:iclock'])
+            Illuminate\Support\Facades\Route::middleware(['api', 'throttle:iclock'])
                 ->group(base_path('routes/iclock.php'));
         },
     )
@@ -71,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'active_permission' => ActivePermissionMiddleware::class,
+            'can_hand_out' => App\Http\Middleware\CanHandOutItemsMiddleware::class,
             'reference_page' => ReferencePageMiddleware::class,
         ]);
     })

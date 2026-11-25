@@ -125,8 +125,9 @@ final class WorkInbox
     /** Whether the user's active role has any inbox source at all (the menu item shows then). */
     public function hasSources(User $user): bool
     {
-        return collect(['leaves.decide', 'leaves.review', 'checklists.deliver', 'checklists.receive'])
+        return collect(['leaves.decide', 'leaves.review', 'checklists.receive'])
             ->contains(fn (string $permission) => $user->hasActivePermission($permission))
+            || $user->canHandOutItems()
             || ($this->isHr($user) && $user->hasActivePermission('employees.update'))
             || app(JourneyInbox::class)->hasSources($user)
             // A direct manager decides whatever their role (DEC-05 revision 2).
@@ -212,7 +213,7 @@ final class WorkInbox
         $total = 0;
 
         // The same permissions that open the pending-deliveries and pending-returns pages.
-        if ($user->hasActivePermission('checklists.deliver')) {
+        if ($user->canHandOutItems()) {
             $query = $this->checklistQuery()
                 ->where('delivered_id', $user->employee_id)
                 ->where('delivered_status', 'pending');

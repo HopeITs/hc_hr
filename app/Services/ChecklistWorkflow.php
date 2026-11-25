@@ -43,6 +43,52 @@ class ChecklistWorkflow
     private ?string $batchId = null;
 
     /**
+     * Put an item on a deliverer's list: a pending row for this volunteer and
+     * item. A row still pending moves to the new deliverer; one already
+     * delivered is never touched. Returns the row only when something changed,
+     * so the caller notifies once.
+     */
+    public function assignForDelivery(Employee $volunteer, int $itemId, Employee $deliverer): ?Checklist
+    {
+        $row = DB::transaction(function () use ($volunteer, $itemId, $deliverer): ?Checklist {
+            $checklist = Checklist::query()
+                ->where('employee_id', $volunteer->id)
+                ->where('item_id', $itemId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($checklist === null) {
+                $checklist = Checklist::query()->create([
+                    'employee_id' => $volunteer->id,
+                    'item_id' => $itemId,
+                    'delivered_id' => $deliverer->id,
+                    'delivered_status' => 'pending',
+                ]);
+
+                $this->record($checklist, 'checklist_assigned', 'delivered_id', null, (string) $deliverer->id);
+
+                return $checklist;
+            }
+
+            if ($checklist->delivered_status !== 'pending' || (int) $checklist->delivered_id === $deliverer->id) {
+                return null;
+            }
+
+            $from = $checklist->delivered_id;
+            $checklist->update(['delivered_id' => $deliverer->id]);
+            $this->record($checklist, 'checklist_reassigned', 'delivered_id', $from === null ? null : (string) $from, (string) $deliverer->id);
+
+            return $checklist;
+        });
+
+        if ($row !== null) {
+            User::query()->where('employee_id', $deliverer->id)->first()?->notify(new ChecklistAssigned($row->load(['employee', 'item']), 'deliver'));
+        }
+
+        return $row;
+    }
+
+    /**
      * The assignee confirms they handed the item over.
      */
     public function markDelivered(int $checklistId, int $actorEmployeeId, ?string $notes, ?string $batchId = null): Checklist

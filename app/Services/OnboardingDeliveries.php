@@ -36,11 +36,9 @@ class OnboardingDeliveries
     public function group(Employee $employee, string $group): array
     {
         $electronics = $group === ChecklistItem::GROUP_ELECTRONICS;
-        $deliverer = $electronics ? $this->electronicsDeliverer($employee) : null;
 
         $entries = $electronics
-            ? ChecklistItem::query()->where('onboarding_group', $group)->orderBy('id')->get()
-                ->map(fn (ChecklistItem $item) => ['id' => (int) $item->id, 'name' => (string) $item->name, 'deliverer' => $deliverer])
+            ? $this->electronicsEntries($employee)
             : $this->defaultEntries($employee, $group);
 
         $delivered = $entries->isEmpty()
@@ -88,19 +86,56 @@ class OnboardingDeliveries
     }
 
     /**
-     * The IT person who hands the electronics over: the one HR picked for this
-     * volunteer (while still IT of the city), or the only one there is.
+     * People HR may pick to hand the electronics over: IT of the volunteer's
+     * city, plus whoever the city's delivery list already names for them.
+     *
+     * @return Collection<int, Employee>
+     */
+    public function electronicsCandidates(Employee $volunteer): Collection
+    {
+        $named = $volunteer->city_id === null
+            ? collect()
+            : DefaultDeliverable::query()
+                ->where('city_id', $volunteer->city_id)
+                ->whereHas('item', fn ($item) => $item->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS))
+                ->with('employee.account')
+                ->get()
+                ->pluck('employee')
+                ->filter(fn (?Employee $employee) => $employee !== null && $employee->is_active && $employee->id !== $volunteer->id);
+
+        return $this->itStaff($volunteer)->concat($named)->unique('id')->sortBy('id')->values();
+    }
+
+    /**
+     * The single person handing every electronics item over, or null when it is
+     * several people (the city names different ones per item) or nobody.
      */
     public function electronicsDeliverer(Employee $volunteer): ?Employee
     {
-        $staff = $this->itStaff($volunteer);
-        $chosenId = $volunteer->onboardingJourney?->electronics_deliverer_id;
+        $people = $this->group($volunteer, ChecklistItem::GROUP_ELECTRONICS)['items']
+            ->pluck('deliverer')
+            ->filter()
+            ->unique('id');
 
-        if ($chosenId !== null && ($chosen = $staff->firstWhere('id', $chosenId))) {
-            return $chosen;
-        }
+        return $people->count() === 1 ? $people->first() : null;
+    }
 
-        return $staff->count() === 1 ? $staff->first() : null;
+    /**
+     * Whether a person may open the hand-over page: IT by position, anyone the
+     * delivery list names, anyone with something waiting for them. The rows
+     * themselves are scoped to the person (ChecklistWorkflow), so this only
+     * decides who sees the page, not what they can touch.
+     */
+    public function mayHandOut(int $employeeId): bool
+    {
+        return Employee::query()
+            ->whereKey($employeeId)
+            ->whereHas('contracts', fn ($contract) => $contract
+                ->activeNow()
+                ->whereHas('position.department', fn ($department) => $department->where('code', self::IT_DEPARTMENT_CODE)))
+            ->exists()
+            || DefaultDeliverable::query()->where('employee_id', $employeeId)->exists()
+            || Checklist::query()->where('delivered_id', $employeeId)->where('delivered_status', 'pending')->exists();
     }
 
     /**
@@ -145,6 +180,42 @@ class OnboardingDeliveries
             ->whereDate('start_date', '<=', $today->toDateString())
             ->get()
             ->contains(fn ($contract) => ! $contract->isTrial());
+    }
+
+    /** @return Collection<int, array{id: int, name: string, deliverer: ?Employee}> */
+    private function electronicsEntries(Employee $volunteer): Collection
+    {
+        $items = ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->orderBy('id')->get();
+
+        $defaults = $volunteer->city_id === null || $items->isEmpty()
+            ? collect()
+            : DefaultDeliverable::query()
+                ->where('city_id', $volunteer->city_id)
+                ->whereIn('item_id', $items->pluck('id'))
+                ->with('employee.account')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('item_id');
+
+        $staff = $this->itStaff($volunteer);
+        $chosenId = $volunteer->onboardingJourney?->electronics_deliverer_id;
+        $chosen = $chosenId !== null ? $this->electronicsCandidatesFor($volunteer, $staff, $defaults)->firstWhere('id', $chosenId) : null;
+        $only = $staff->count() === 1 ? $staff->first() : null;
+
+        return $items->map(function (ChecklistItem $item) use ($defaults, $chosen, $only): array {
+            $named = $defaults->get($item->id)?->pluck('employee')->first(fn (?Employee $e) => $e !== null && $e->is_active);
+
+            return ['id' => (int) $item->id, 'name' => (string) $item->name, 'deliverer' => $chosen ?? $named ?? $only];
+        })->values();
+    }
+
+    /** @param Collection<int, Employee> $staff */
+    private function electronicsCandidatesFor(Employee $volunteer, Collection $staff, Collection $defaults): Collection
+    {
+        return $staff
+            ->concat($defaults->flatten(1)->pluck('employee')->filter(fn (?Employee $e) => $e !== null && $e->is_active && $e->id !== $volunteer->id))
+            ->unique('id')
+            ->values();
     }
 
     /** @return Collection<int, array{id: int, name: string, deliverer: ?Employee}> */
