@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Enums\LeaveRequestStatus;
 use App\Exceptions\LeaveDecisionAlreadyMade;
+use App\Livewire\Employee\Leave\AllLeaveRequestModule;
 use App\Livewire\Employee\Leave\Concerns\FormatsLeaveDuration;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
@@ -163,7 +164,12 @@ class LeaveRequestForm extends Form
                 },
             ];
         } else {
-            $rules['start_at'] = ['required', 'date', 'after_or_equal:'.today()->format('d-m-Y')];
+            // HR recording a leave on All Leaves may date it in the past (a
+            // sick day filed afterwards); everywhere else it starts today at
+            // the earliest.
+            $rules['start_at'] = $this->mayBackdate()
+                ? ['required', 'date']
+                : ['required', 'date', 'after_or_equal:'.today()->format('d-m-Y')];
             $rules['end_at'] = [
                 'required',
                 'date',
@@ -1343,6 +1349,22 @@ class LeaveRequestForm extends Form
             : app(LeaveAlternativeEmployees::class)->query($requester)->find($keptId);
 
         return $kept ? $choices->prepend($kept)->values() : $choices;
+    }
+
+    /**
+     * May this daily request start before today? Only on All Leaves, and only
+     * for the roles that page lets file a request for someone else
+     * (AllLeaveRequestModule::create()). Read from the component and the
+     * active role, never from a property the browser could set.
+     */
+    private function mayBackdate(): bool
+    {
+        $user = auth()->user();
+
+        return $this->getComponent() instanceof AllLeaveRequestModule
+            && $user !== null
+            && $user->hasActivePermission('leaves.create')
+            && $user->activeRoleIs('HR', 'super-admin');
     }
 
     private function targetEmployee(): ?Employee

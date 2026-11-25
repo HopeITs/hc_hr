@@ -252,6 +252,9 @@ class ContractComposerScheduleTest extends TestCase
         $contract = Contract::first();
         $this->assertSame('0,1,3,4,6', $contract->work_weekdays);
         $this->assertSame([0, 1, 3, 4, 6], $contract->workWeekdays());
+        // ...and the contract's work pattern from its start date.
+        $this->assertSame([0, 1, 3, 4, 6], $contract->workWeekdaysOn($contract->start_date));
+        $this->assertSame([$contract->start_date->toDateString()], $contract->workPatterns->map(fn ($row) => $row->effective_from->toDateString())->all());
         // One way or the other, never both.
         $this->assertNull($contract->work_day_from);
         $this->assertNull($contract->work_day_to);

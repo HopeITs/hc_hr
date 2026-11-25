@@ -123,12 +123,11 @@ class LeaveAlternativeEmployees
         }
 
         $requesterContract->loadMissing(['position.center', 'employee']);
-        $weekend = $this->pricing->weekendFor($requesterContract)[0];
         $requesterOff = $this->pricing->officialHolidayDates($requesterContract, $from, $to);
         $workingDays = [];
 
         for ($day = $from; $day->lte($to); $day = $day->addDay()) {
-            if (! in_array($day->dayOfWeek, $weekend, true) && ! isset($requesterOff[$day->toDateString()])) {
+            if (! in_array($day->dayOfWeek, $this->pricing->weekendFor($requesterContract, $day)[0], true) && ! isset($requesterOff[$day->toDateString()])) {
                 $workingDays[$day->toDateString()] = true;
             }
         }

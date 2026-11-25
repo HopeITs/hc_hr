@@ -198,6 +198,7 @@ return [
         'rec-contact' => 'Contact · :name',
         'rec-overview' => 'Employment · :name',
         'rec-timeline' => 'Timeline · :name',
+        'rec-work-days' => 'Work days & hours · :name',
         'rec-education' => 'Education · :name',
         'rec-experience' => 'Experience · :name',
         'rec-skills' => 'Skills · :name',

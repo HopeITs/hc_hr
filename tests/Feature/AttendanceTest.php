@@ -236,10 +236,13 @@ class AttendanceTest extends TestCase
         $this->assertSame(Timesheet::WEEKEND, $rows['2026-09-13']['kind']);      // Sunday
         $this->assertNotSame(Timesheet::WEEKEND, $rows['2026-09-12']['kind']);   // Saturday is a working day
 
-        // Days picked on the contract win over the center: Sunday, Tuesday, Thursday worked.
-        $contract->update(['work_weekdays' => '0,2,4']);
+        // Days picked on the contract win over the center: Monday, Tuesday, Thursday worked, so
+        // Saturday (a center working day) is off too. The center's own closed day (Sunday) stays off
+        // whatever the contract lists — the pickers lock it, and leave never charges it either
+        // (LeaveRequestPricing::weekendFor).
+        $contract->update(['work_weekdays' => '1,2,4']);
         $placement = app(Timesheet::class)->forEmployee($employee->fresh(), $this->september())['placement'];
-        $this->assertSame([1, 3, 5, 6], $placement['days_off']);
+        $this->assertSame([0, 3, 5, 6], $placement['days_off']);
         $this->assertSame('contract', $placement['days_off_from']);
 
         Livewire::actingAs($hr)->test(Timesheets::class)

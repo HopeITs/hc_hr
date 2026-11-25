@@ -196,6 +196,17 @@
                     </dl>
                 </x-profile-section>
 
+                {{-- Work days & hours of the current contract: the week as it is
+                     worked (day range or picked days, the center's day off) and,
+                     for HR of the city / Syria and the direct or technical
+                     manager, the change from a date (ContractPolicy::changeWorkDays). --}}
+                @php
+                    $workContract = $employee->latestActiveContract();
+                @endphp
+                @if ($workContract && \Illuminate\Support\Facades\Gate::allows('viewWorkDays', $workContract))
+                    <livewire:contract.contract-work-days :contract="$workContract" variant="profile" :key="'work-days-'.$workContract->id" />
+                @endif
+
                 @if ($canViewRecords)
                     <x-profile-section data-tour="profile.career" :title="__('general.career-history')" :subtitle="__('general.contract-details')" icon="icons.contracts">
                         {{-- This person's contracts as a card on the viewer's dashboard (DashboardLayout::RECORDS). --}}

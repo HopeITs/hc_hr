@@ -7,6 +7,7 @@ use App\Models\Badge;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\EmployeeTimeline;
+use App\Services\LeaveRequestPricing;
 use App\Support\Dashboard\DashboardLayout;
 use App\Support\DirectoryAccess;
 use Illuminate\Contracts\View\View;
@@ -60,6 +61,7 @@ class EmployeeSectionCard extends Component
         return match ($this->section) {
             'overview' => $this->overview($user, $employee),
             'timeline' => ['events' => $this->timeline($user, $employee)],
+            'work-days' => $this->workDays($employee),
             'education' => ['items' => $employee->educations()->get()],
             'experience' => ['items' => $employee->experiences()->get()],
             'skills' => ['skills' => self::tags($employee->skills), 'interests' => self::tags($employee->interests)],
@@ -69,6 +71,43 @@ class EmployeeSectionCard extends Component
             'family' => ['items' => $employee->relatives()->get()],
             default => [],
         };
+    }
+
+    /**
+     * The current contract's week as the profile's section reads it: the days
+     * worked today, the person's own days off, the center's, and the hours.
+     *
+     * @return array{working: ?string, own: ?string, center: ?string, hours: ?string}
+     */
+    private function workDays(Employee $employee): array
+    {
+        $contract = $employee->latestActiveContract();
+
+        if ($contract === null) {
+            return ['working' => null, 'own' => null, 'center' => null, 'hours' => null];
+        }
+
+        [$closed, $source] = app(LeaveRequestPricing::class)->placeWeekendFor($contract->loadMissing('position.center'));
+        $closed = $source === 'default' ? [] : $closed;
+        $working = array_values(array_diff($contract->workWeekdaysOn(today()) ?? [], $closed));
+        $own = $working === [] ? [] : array_diff(range(0, 6), $working, $closed);
+        $names = fn (array $days) => $days === [] ? null : collect([6, 0, 1, 2, 3, 4, 5])
+            ->filter(fn (int $d) => in_array($d, $days, true))
+            ->map(fn (int $d) => now()->startOfWeek(0)->addDays($d)->translatedFormat('l'))
+            ->implode(app()->getLocale() === 'ar' ? '، ' : ', ');
+        $time = fn ($v) => filled($v) ? substr((string) $v, 0, 5) : null;
+        $shift = fn ($from, $to) => $time($from) && $time($to) ? "\u{2066}".$time($from).'–'.$time($to)."\u{2069}" : null;
+
+        return [
+            'working' => $names($working),
+            'own' => $names(array_values($own)),
+            'center' => $names($closed),
+            'hours' => collect([
+                $shift($contract->work_hours_from, $contract->work_hours_to),
+                $shift($contract->work_hours_2_from, $contract->work_hours_2_to),
+                $contract->weekly_hours ? trans_choice('contracts.work-days.weekly-hours', (int) $contract->weekly_hours, ['count' => (int) $contract->weekly_hours]) : null,
+            ])->filter()->implode(' · ') ?: null,
+        ];
     }
 
     /** The profile's employment overview: the current contract's position, read like the profile does. */

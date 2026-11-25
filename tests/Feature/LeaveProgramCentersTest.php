@@ -13,6 +13,7 @@ use App\Services\LeaveRequestPricing;
 use App\Support\Leave\LeaveQuote;
 use App\Support\Leave\LeaveWindow;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -94,7 +95,7 @@ class LeaveProgramCentersTest extends TestCase
     {
         $this->center($this->homs, '5', '08:00', '21:00', programs: [$this->studyZone]);
         [$contract, $balance] = $this->volunteer($this->studyZone, $this->homs);
-        $contract->update(['work_weekdays' => '6,0,1,3,4']);
+        $this->workDays($contract, '6,0,1,3,4');
 
         $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-02', '2026-11-04'));
 
@@ -109,7 +110,7 @@ class LeaveProgramCentersTest extends TestCase
     {
         $this->center($this->homs, '5', programs: [$this->studyZone]);
         [$contract, $balance] = $this->volunteer($this->studyZone, $this->homs);
-        $contract->update(['work_weekdays' => '0,1,2,3,4']);
+        $this->workDays($contract, '0,1,2,3,4');
 
         // Thursday 5 Nov → Sunday 8 Nov: Friday is the center's, Saturday hers.
         $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-05', '2026-11-08'));
@@ -121,11 +122,102 @@ class LeaveProgramCentersTest extends TestCase
         ], $quote->excludedDates);
     }
 
+    public function test_picked_working_days_apply_to_a_position_with_its_own_center_too(): void
+    {
+        // Any program, not only Study Zone: a Micro Project center closed on
+        // Friday and Saturday, and a part-timer who works three days of it.
+        $center = $this->center($this->homs, '5,6', programs: [$this->micro]);
+        [$contract, $balance] = $this->volunteer($this->micro, $this->homs, $center, weeklyHours: 24);
+        $this->workDays($contract, '0,2,4');
+
+        // Sunday 1 Nov → Thursday 5 Nov: Sunday, Tuesday and Thursday only.
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-01', '2026-11-05'));
+
+        $this->assertSame([[1, 3, 5, 6], 'contract'], $this->pricing->weekendFor($contract->fresh()));
+        $this->assertSame(3, $quote->countedDays);
+        $this->assertSame(8.0, $quote->hoursPerDay);
+    }
+
+    /**
+     * The day off moved on Sunday 15 Nov, from Saturday to Thursday. A leave
+     * from Thursday 12 to Saturday 21 Nov counts each side with its own days:
+     * Thu 12 (worked then), Sun 15–Wed 18, Sat 21 (worked now) — six days.
+     */
+    public function test_a_leave_across_a_moved_day_off_counts_each_side_with_its_own_days(): void
+    {
+        $this->center($this->homs, '5', programs: [$this->studyZone]);
+        [$contract, $balance] = $this->volunteer($this->studyZone, $this->homs);
+        $this->workDays($contract, '0,1,2,3,4');
+        $this->workDays($contract, '6,0,1,2,3', '2026-11-15');
+
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-12', '2026-11-21'));
+
+        $this->assertSame(6, $quote->countedDays);
+        $this->assertSame([
+            ['date' => '2026-11-13', 'reason' => 'weekend'],
+            ['date' => '2026-11-14', 'reason' => 'day_off'],
+            ['date' => '2026-11-19', 'reason' => 'day_off'],
+            ['date' => '2026-11-20', 'reason' => 'weekend'],
+        ], $quote->excludedDates);
+        $this->assertSame([[4, 5], 'contract'], $this->pricing->weekendFor($contract->fresh(), Carbon::parse('2026-11-16')));
+        $this->assertSame([[5, 6], 'contract'], $this->pricing->weekendFor($contract->fresh(), Carbon::parse('2026-11-10')));
+    }
+
+    public function test_a_day_the_center_closes_later_is_never_charged_whatever_the_pattern_says(): void
+    {
+        $center = $this->center($this->homs, '5', programs: [$this->micro]);
+        [$contract, $balance] = $this->volunteer($this->micro, $this->homs, $center);
+        $this->workDays($contract, '0,1,2,3,4');
+
+        // The center now also closes on Thursday.
+        DB::table('centers')->where('id', $center)->update(['weekends' => '4,5']);
+
+        $quote = $this->quote($contract->fresh(), $balance, LeaveWindow::days('2026-11-05', '2026-11-05'));
+
+        $this->assertSame([LeaveQuote::NO_COUNTABLE_DAYS], $quote->errors);
+        $this->assertSame([['date' => '2026-11-05', 'reason' => 'weekend']], $quote->excludedDates);
+    }
+
+    public function test_two_volunteers_of_one_center_keep_their_own_days_on_team_coverage(): void
+    {
+        $this->center($this->homs, '5', programs: [$this->studyZone]);
+        [$tuesdayOff] = $this->volunteer($this->studyZone, $this->homs);
+        [$thursdayOff] = $this->volunteer($this->studyZone, $this->homs);
+        $this->workDays($tuesdayOff, '6,0,1,3,4');
+        $this->workDays($thursdayOff, '6,0,1,2,3');
+
+        $coverage = app(\App\Services\TeamCoverage::class);
+        $from = CarbonImmutable::parse('2026-11-01');
+        $to = CarbonImmutable::parse('2026-11-07');
+        $working = fn (Contract $c) => (fn () => $this->workingDates($c->fresh(['position.center', 'employee']), $from, $to))->call($coverage);
+
+        $this->assertSame(['2026-11-01', '2026-11-02', '2026-11-04', '2026-11-05', '2026-11-07'], $working($tuesdayOff));
+        $this->assertSame(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-07'], $working($thursdayOff));
+    }
+
+    public function test_the_timesheet_follows_a_day_off_moved_in_the_middle_of_the_month(): void
+    {
+        $this->center($this->homs, '5', programs: [$this->studyZone]);
+        [$contract] = $this->volunteer($this->studyZone, $this->homs);
+        $this->workDays($contract, '0,1,2,3,4');
+        $this->workDays($contract, '6,0,1,2,3', '2026-11-15');
+
+        $rows = collect(app(\App\Services\Attendance\Timesheet::class)
+            ->forEmployee($contract->employee, CarbonImmutable::parse('2026-11-01'))['rows'])
+            ->mapWithKeys(fn (array $row) => [$row['date']->toDateString() => $row['kind']]);
+
+        $this->assertSame('weekend', $rows['2026-11-07']);   // Saturday, off before the move
+        $this->assertNotSame('weekend', $rows['2026-11-12']); // Thursday, worked before
+        $this->assertSame('weekend', $rows['2026-11-19']);   // Thursday, off after
+        $this->assertNotSame('weekend', $rows['2026-11-21']); // Saturday, worked after
+        $this->assertSame('weekend', $rows['2026-11-20']);   // Friday, the center's
+    }
+
     public function test_the_printed_weekend_clause_names_only_the_centers_day(): void
     {
         $this->center($this->homs, '5', programs: [$this->studyZone]);
         [$contract] = $this->volunteer($this->studyZone, $this->homs);
-        $contract->update(['work_weekdays' => '6,0,1,3,4']);
+        $this->workDays($contract, '6,0,1,3,4');
 
         $this->assertSame([[5], 'program'], $this->pricing->placeWeekendFor($contract->fresh()));
     }
@@ -288,6 +380,16 @@ class LeaveProgramCentersTest extends TestCase
     /**
      * @param  array<string, mixed>  $values
      */
+    /** The contract's own working days from its start (what the composer's picker saves). */
+    private function workDays(Contract $contract, string $days, string $from = '2026-01-01'): void
+    {
+        $contract->update(['work_weekdays' => $days]);
+        DB::table('contract_work_patterns')->insert([
+            'contract_id' => $contract->id, 'weekdays' => $days, 'effective_from' => $from,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
     private function insert(string $table, array $values): int
     {
         return DB::table($table)->insertGetId($values + ['created_at' => now(), 'updated_at' => now()]);

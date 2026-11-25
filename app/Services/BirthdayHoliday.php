@@ -82,7 +82,6 @@ class BirthdayHoliday
 
         $contractStart = $contract->start_date ? CarbonImmutable::parse($contract->start_date)->startOfDay() : null;
         $contractEnd = $this->contractEnd($contract);
-        $weekend = $this->pricing->weekendFor($contract)[0];
         $occurrences = [];
 
         foreach ($holidays as $holiday) {
@@ -102,7 +101,7 @@ class BirthdayHoliday
                     'holiday' => $holiday,
                     'year' => $year,
                     'date' => $date,
-                    'conflict' => ! $this->isWorkingDay($contract, $date, $weekend),
+                    'conflict' => ! $this->isWorkingDay($contract, $date, $this->pricing->weekendFor($contract, $date)[0]),
                     'choice' => $choice,
                     'approved' => $choice?->status === BirthdayHolidayChoice::APPROVED ? CarbonImmutable::parse($choice->chosen_date) : null,
                 ];
@@ -139,7 +138,7 @@ class BirthdayHoliday
             $fail('same-week');
         }
 
-        if (! $this->isWorkingDay($contract, $day, $this->pricing->weekendFor($contract)[0])) {
+        if (! $this->isWorkingDay($contract, $day, $this->pricing->weekendFor($contract, $day)[0])) {
             $fail('working-day');
         }
 

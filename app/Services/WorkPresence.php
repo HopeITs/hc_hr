@@ -156,6 +156,8 @@ final class WorkPresence
                 'position.center',
                 'position.jobLevel',
                 'position.department',
+                // The workday clock reads each one's own days (a moved day off).
+                'workPatterns',
             ])
             ->orderByDesc('start_date')
             ->orderByDesc('id')

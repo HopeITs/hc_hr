@@ -216,19 +216,23 @@ final class ContractAmendmentDescriber
 
     private function days(array $t): string
     {
-        // Days picked one by one are counted, never named: which ones (and
-        // so the volunteer's own day off) stays in the system.
+        $name = fn (int $d) => Carbon::now()->startOfWeek(Carbon::SUNDAY)->addDays($d)->translatedFormat('l');
+
+        // Days picked one by one are named here, on screen; the printed sheet
+        // (schedule-clause) only counts them, so the volunteer's own day off
+        // never reaches paper.
         $picked = Contract::parseWeekdays($t['work_weekdays'] ?? null);
 
         if ($picked !== []) {
-            return trans_choice('contracts.amendment.days-per-week', count($picked), ['count' => count($picked)]);
+            // Saturday first, the way the week is read here.
+            usort($picked, fn (int $a, int $b) => ($a + 1) % 7 <=> ($b + 1) % 7);
+
+            return collect($picked)->map($name)->implode(app()->getLocale() === 'ar' ? '، ' : ', ');
         }
 
         if (! is_numeric($t['work_day_from'] ?? null) || ! is_numeric($t['work_day_to'] ?? null)) {
             return '';
         }
-
-        $name = fn (int $d) => Carbon::now()->startOfWeek(Carbon::SUNDAY)->addDays($d)->translatedFormat('l');
 
         return (int) $t['work_day_from'] === (int) $t['work_day_to']
             ? $name((int) $t['work_day_from'])

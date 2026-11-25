@@ -187,6 +187,8 @@ class DashboardLayout
         // the section), each behind the same rule the profile uses to draw that section.
         'overview' => ['user', [3, 2], [8, 6], [4, 3], EmployeeSectionCard::class, 'viewDirectory'],
         'timeline' => ['clock', [3, 2], [8, 8], [4, 4], EmployeeSectionCard::class, 'viewRecords'],
+        // The current contract's working week and hours (ContractPolicy::viewWorkDays).
+        'work-days' => ['calendar', [3, 2], [8, 6], [3, 3], EmployeeSectionCard::class, 'viewWorkDays'],
         'education' => ['education', [3, 2], [8, 6], [3, 3], EmployeeSectionCard::class, 'viewRecords'],
         'experience' => ['experience', [3, 2], [8, 6], [3, 3], EmployeeSectionCard::class, 'viewRecords'],
         'skills' => ['statistics', [2, 2], [8, 6], [3, 2], EmployeeSectionCard::class, 'viewRecords'],

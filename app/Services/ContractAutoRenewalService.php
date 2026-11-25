@@ -166,7 +166,17 @@ class ContractAutoRenewalService
             $renewal->reason_of_termination = null;
             $renewal->is_active = true;
             $renewal->auto_renew = true;
+
+            // The days worked at the end of the old term, a day off moved since included.
+            if ($source->end_date !== null && ($lastDays = $source->workWeekdaysOn($source->end_date)) !== null) {
+                $renewal->work_weekdays = implode(',', $lastDays);
+                $renewal->work_day_from = null;
+                $renewal->work_day_to = null;
+            }
+
+            $renewal->unsetRelation('workPatterns');
             $renewal->save();
+            app(ContractWorkPatterns::class)->syncInitial($renewal);
 
             foreach ($source->payTiers as $tier) {
                 $renewal->payTiers()->create($tier->only([
