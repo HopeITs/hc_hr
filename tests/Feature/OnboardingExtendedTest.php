@@ -23,6 +23,7 @@ use App\Models\Position;
 use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\ChecklistAssigned;
 use App\Notifications\ManagerOrientationOverdue;
 use App\Notifications\OnboardingStepOverdue;
 use App\Services\Inbox\OnboardingOwnerInbox;
@@ -399,7 +400,8 @@ class OnboardingExtendedTest extends TestCase
         $this->item('Laptop', ChecklistItem::GROUP_ELECTRONICS, $this->it);
 
         $this->artisan('onboarding:send-step-reminders')->assertSuccessful();
-        Notification::assertNothingSent();
+        // The deliverer is told about the item at once (ChecklistAssigned); nothing is overdue yet.
+        Notification::assertSentTimes(OnboardingStepOverdue::class, 0);
 
         $this->travelTo(now()->addDays(3));
         $this->artisan('onboarding:send-step-reminders')->assertSuccessful();
@@ -645,6 +647,66 @@ class OnboardingExtendedTest extends TestCase
         app(OnboardingJourneys::class)->settle($volunteer);
 
         $this->assertNotNull(OnboardingJourney::query()->sole()->completed_at);
+    }
+
+    // ── Electronics: the city's defaults, HR may change ─────────────
+
+    public function test_electronics_go_to_the_default_of_the_city_and_land_on_their_list(): void
+    {
+        $other = $this->itPerson('it.two');
+        $laptop = ChecklistItem::query()->create(['name' => 'Laptop', 'order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
+        // The city names its default for every electronics item (the test database seeds more than the laptop).
+        ChecklistItem::query()->where('onboarding_group', ChecklistItem::GROUP_ELECTRONICS)->each(fn (ChecklistItem $item) => DefaultDeliverable::query()->create(['employee_id' => $other->id, 'city_id' => $this->city->id, 'item_id' => $item->id]));
+
+        $volunteer = $this->volunteer();
+
+        // Two IT people and none picked: the item's default still has an owner, and is told.
+        $row = Checklist::query()->where('employee_id', $volunteer->id)->where('item_id', $laptop->id)->first();
+        $this->assertNotNull($row);
+        $this->assertSame($other->id, (int) $row->delivered_id);
+        $this->assertSame('pending', $row->delivered_status);
+        Notification::assertSentTo($other->account, ChecklistAssigned::class);
+        Notification::assertNotSentTo($this->itUser, ChecklistAssigned::class);
+
+        $electronics = collect(app(OnboardingJourneys::class)->steps($volunteer->fresh()))->firstWhere('key', 'electronics');
+        $this->assertNull($electronics['note'], 'Nothing waits on HR: every item has its deliverer.');
+    }
+
+    public function test_an_item_nobody_is_named_for_waits_for_hr_and_hr_can_change_the_pick(): void
+    {
+        $second = $this->itPerson('it.two');
+        $laptop = ChecklistItem::query()->create(['name' => 'Laptop', 'order' => 1, 'onboarding_group' => ChecklistItem::GROUP_ELECTRONICS]);
+
+        $volunteer = $this->volunteer();
+        $this->assertFalse(Checklist::query()->where('employee_id', $volunteer->id)->exists(), 'Two IT people and no default: nothing is assigned until HR picks.');
+
+        $journeys = app(OnboardingJourneys::class);
+        $this->assertTrue($journeys->chooseElectronicsDeliverer($volunteer, $this->it->id, $this->hr));
+        $row = Checklist::query()->where('employee_id', $volunteer->id)->where('item_id', $laptop->id)->firstOrFail();
+        $this->assertSame($this->it->id, (int) $row->delivered_id);
+
+        // Still pending: HR changes their mind and the row moves.
+        $this->assertTrue($journeys->chooseElectronicsDeliverer($volunteer->fresh(), $second->id, $this->hr));
+        $this->assertSame($second->id, (int) $row->fresh()->delivered_id);
+
+        // Once handed over, it stays with whoever delivered it.
+        $row->update(['delivered_status' => 'delivered']);
+        $journeys->chooseElectronicsDeliverer($volunteer->fresh(), $this->it->id, $this->hr);
+        $this->assertSame($second->id, (int) $row->fresh()->delivered_id);
+    }
+
+    public function test_it_staff_open_the_hand_over_page_by_their_position_and_others_do_not(): void
+    {
+        $this->actingAs($this->itUser)->get(route('checklist-items.pending-delivers'))->assertOk();
+
+        $plain = User::factory()->create(['employee_id' => $this->makeEmployee($this->city, 'plain.person')->id]);
+        $plain->assignRole('employee');
+        $this->actingAs($plain)->get(route('checklist-items.pending-delivers'))->assertForbidden();
+
+        // Named in the city's delivery list, whatever the position.
+        $item = ChecklistItem::query()->create(['name' => 'Badge', 'order' => 1, 'onboarding_group' => ChecklistItem::GROUP_CARD]);
+        DefaultDeliverable::query()->create(['employee_id' => $plain->employee_id, 'city_id' => $this->city->id, 'item_id' => $item->id]);
+        $this->actingAs($plain->fresh())->get(route('checklist-items.pending-delivers'))->assertOk();
     }
 
     // ── fixtures ─────────────────────────────────────────────────────

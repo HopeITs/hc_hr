@@ -176,7 +176,7 @@ Route::group(
             Route::prefix('checklist-items')
                 ->name('checklist-items.')
                 ->group(function () {
-                    Route::get('/pending-delivers', PendingItems::class)->middleware('active_permission:checklists.deliver')->name('pending-delivers');
+                    Route::get('/pending-delivers', PendingItems::class)->middleware('can_hand_out')->name('pending-delivers');
                     Route::get('/pending-returns', PendingReturns::class)->middleware('active_permission:checklists.receive')->name('pending-returns');
                     Route::get('/done-requests', DoneRequests::class)->middleware('active_permission:checklists.manage')->name('done-requests');
                     Route::get('/all', AllItems::class)->middleware('active_permission:checklists.view-own')->name('index');

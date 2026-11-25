@@ -676,7 +676,6 @@ return [
             'removeGroupShare' => 'archives.share',
             'setGroupRole' => 'archives.share',
         ],
-        'checklist-items.pending-items' => ['markDelivered' => 'checklists.deliver'],
         'checklist-items.pending-returns' => ['markReceived' => 'checklists.receive'],
 
         // Project-basics lookup tables. create/edit open the modal and disclose
@@ -1187,7 +1186,11 @@ return [
         'employee.leave.emp-leave-balance-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView'],
         // B3: read-only lists of the caller's own checklist rows; retryLoad re-renders only.
         'checklist-items.all-items' => ['retryLoad'],
-        'checklist-items.pending-items' => ['retryLoad'],
+        // Hand-over page: opened by User::canHandOutItems (checklists.deliver, or IT by
+        // position, or named in the city's delivery list), not by one permission.
+        // markDelivered goes through ChecklistWorkflow, which only matches a row whose
+        // delivered_id is the signed-in person and still pending.
+        'checklist-items.pending-items' => ['retryLoad', 'markDelivered'],
         'checklist-items.pending-returns' => ['retryLoad'],
         'checklist-items.done-requests-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement'],
         // A record read, not a state toggle: it takes a caller-supplied

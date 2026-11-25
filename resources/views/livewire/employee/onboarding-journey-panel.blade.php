@@ -192,7 +192,7 @@
                                             wire:change="chooseElectronicsDeliverer($event.target.value)" data-testid="electronics-deliverer">
                                             <option value="">—</option>
                                             @foreach ($step['data']['candidates'] as $candidate)
-                                                <option value="{{ $candidate->id }}" @selected($step['data']['deliverer']?->id === $candidate->id)>{{ $candidate->name }}</option>
+                                                <option value="{{ $candidate->id }}" @selected((int) $journey->electronics_deliverer_id === $candidate->id)>{{ $candidate->name }}</option>
                                             @endforeach
                                         </select>
                                     </div>
