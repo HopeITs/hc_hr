@@ -101,7 +101,9 @@ return [
         'max_entries' => 1000,
         'max_total_uncompressed_bytes' => 100 * 1024 * 1024,
         'max_entry_uncompressed_bytes' => 20 * 1024 * 1024,
-        'max_compression_ratio' => 50,
+        // Word's own XML often packs 50-100:1 (a real policy .docx was 54:1);
+        // a zip bomb is in the thousands, and the byte limits above cap it anyway.
+        'max_compression_ratio' => 200,
         'max_preview_xml_bytes' => 10 * 1024 * 1024,
     ],
 

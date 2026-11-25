@@ -43,6 +43,17 @@ class OfficeArchiveSafetyTest extends TestCase
         $this->invokeValidator($path);
     }
 
+    public function test_ordinary_word_compression_passes_and_a_zip_bomb_ratio_is_rejected(): void
+    {
+        // Repetitive Word XML: ~100:1, like a long policy document.
+        $this->invokeValidator($this->docx('<w:document>'.str_repeat('<w:p><w:r><w:t>Policy clause '.'</w:t></w:r></w:p>', 2000).str_repeat(bin2hex(random_bytes(150)), 1).'</w:document>'));
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('exceeds safe expansion limits');
+
+        $this->invokeValidator($this->docx('<w:document>'.str_repeat('A', 2 * 1024 * 1024).'</w:document>'));
+    }
+
     public function test_native_office_conversion_is_disabled_by_default(): void
     {
         $this->assertFalse((bool) config('uploads.office.conversion_enabled'));
