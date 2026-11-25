@@ -9,12 +9,12 @@
     rtl: {{ app()->getLocale() === 'ar' ? 'true' : 'false' }},
     open: @entangle('open').live,
     {{-- Collapsed areas, per browser (localStorage). The area holding the current page ignores it.
-         Until someone chooses, only Settings starts closed. --}}
-    closedAreas: (() => { const rare = ['settings']; try { const stored = localStorage.getItem('nav-closed-areas'); return stored ? JSON.parse(stored) : rare; } catch (e) { return rare; } })(),
+         Until someone chooses, every group starts closed: the one holding the current page opens by itself. --}}
+    closedAreas: (() => { const rare = ['people', 'time', 'recruitment', 'reports', 'admin', 'my-space']; try { const stored = localStorage.getItem('nav-closed-areas-v2'); return stored ? JSON.parse(stored) : rare; } catch (e) { return rare; } })(),
     isClosed(id) { return this.closedAreas.includes(id); },
     toggleArea(id) {
         this.closedAreas = this.isClosed(id) ? this.closedAreas.filter((area) => area !== id) : [...this.closedAreas, id];
-        try { localStorage.setItem('nav-closed-areas', JSON.stringify(this.closedAreas)); } catch (e) {}
+        try { localStorage.setItem('nav-closed-areas-v2', JSON.stringify(this.closedAreas)); } catch (e) {}
     },
 }" x-cloak>
     <aside x-cloak data-tour="nav" @click.outside="open = false" x-on:hc-workspace-opened.window="open = false"
@@ -77,9 +77,10 @@
                         @php($holdsCurrent = $areaKey === $currentArea)
                         {{-- The icon rail keeps My space and favourites; the rest is on the dashboard's groups, or one toggle away. --}}
                         {{-- Areas the rail leaves out fold away (.nav-fold, app.css) rather than vanish, so My space below them glides up. --}}
-                        <li @class(['w-full', 'nav-fold' => $areaKey !== 'my-space']) data-tour="nav.area.{{ $areaKey }}" data-nav-area="{{ $areaKey }}">
+                        <li @class(['w-full', 'nav-fold' => ! in_array($areaKey, ['home', 'my-space'], true)]) data-tour="nav.area.{{ $areaKey }}" data-nav-area="{{ $areaKey }}">
                           <div>
                             {{-- The heading folds too: My space keeps its icons in the rail, not its title. --}}
+                            @unless ($area['bare'] ?? false)
                             <div class="nav-fold"><div class="pt-2">
                             @if ($holdsCurrent)
                                 {{-- The area holding the current page is always open, so it has no toggle. --}}
@@ -100,11 +101,12 @@
                                 </button>
                             @endif
                             </div></div>
+                            @endunless
                             {{-- In the collapsed icon rail there are no headings to reopen an area from, so My space shows every icon.
                                  The other areas are folded away in the rail: a closed one stays closed, or it would
                                  grow just as it starts to fold. --}}
                             <ul id="nav-area-{{ $areaKey }}" class="space-y-1"
-                                @unless ($holdsCurrent) x-show="!isClosed(@js($areaKey)){{ $areaKey === 'my-space' ? ' || (sidebarCollapsed && !open)' : '' }}" @endunless>
+                                @unless ($holdsCurrent || ($area['bare'] ?? false)) x-show="!isClosed(@js($areaKey)){{ $areaKey === 'my-space' ? ' || (sidebarCollapsed && !open)' : '' }}" @endunless>
                                 @include('livewire.layout.partials.nav-items', ['items' => $area['items']])
                             </ul>
                           </div>

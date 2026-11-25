@@ -1036,7 +1036,11 @@ return [
     // C1: the sidebar areas of C0 (docs/ux/interaction-contract.md §4, §8).
     'nav' => [
         'area' => [
-            'my-space' => 'My space',
+            'my-space' => 'My account',
+            'people' => 'People',
+            'time' => 'Leave and time',
+            'reports' => 'Reports',
+            'admin' => 'Administration',
             'my-team' => 'My team',
             'hr' => 'HR operations',
             'settings' => 'Settings',

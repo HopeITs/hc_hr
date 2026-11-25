@@ -18,6 +18,9 @@ final class HubGroups
 
     private const REPORTS = ['nav.hr.statistics.general', 'nav.hr.statistics.contracts', 'nav.news'];
 
+    /** Reference pages: the org chart, programs, centers, positions. */
+    private const STRUCTURE = ['nav.org.chart', 'nav.org.structure', 'nav.programs', 'nav.centers', 'nav.positions'];
+
     private const RAIL = ['nav.my-space.home', 'nav.my-space.files', 'nav.my-space.shared-files'];
 
     /** In the order they are shown: id => icon (resources/views/components/icons). */
@@ -83,8 +86,8 @@ final class HubGroups
             in_array($pageId, self::LEAVES, true) => 'leaves',
             in_array($pageId, self::REPORTS, true) => 'reports',
             $areaId === 'recruitment' => 'recruitment',
-            $areaId === 'organisation' => 'structure',
-            $areaId === 'settings' => 'settings',
+            in_array($pageId, self::STRUCTURE, true) => 'structure',
+            $areaId === 'admin' => 'settings',
             default => 'people',
         };
     }

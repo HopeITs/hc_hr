@@ -18,7 +18,7 @@
       {{-- UX walkthrough 2026-11-23: closed, the rail shows My space only, so HR could not find
            Employees, Contracts or Attendance. On a wide screen, for a role with work areas beyond
            My space, it now starts open; the arrow still closes it for the rest of the visit. --}}
-      x-data="{ sidebarCollapsed: ! (window.hcSidebarOpen ?? (window.innerWidth >= 1280 && !! document.querySelector('[data-nav-area]:not([data-nav-area=my-space])'))) }"
+      x-data="{ sidebarCollapsed: ! (window.hcSidebarOpen ?? (window.innerWidth >= 1280 && !! document.querySelector('[data-nav-area]:not([data-nav-area=my-space]):not([data-nav-area=home])'))) }"
       x-init="window.hcSidebarOpen = ! sidebarCollapsed; $el.classList.add('sb-init'); requestAnimationFrame(() => requestAnimationFrame(() => $el.classList.remove('sb-init')))"
       x-on:sidebar-collapse-toggle.window="
           sidebarCollapsed = !sidebarCollapsed;
