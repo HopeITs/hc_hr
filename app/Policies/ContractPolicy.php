@@ -77,18 +77,34 @@ class ContractPolicy
     }
 
     /**
-     * Move a contract's day off from a date on (ContractWorkPatterns): HR of
-     * the contract's city, HR Syria for every city — the people who edit the
-     * contract — while it is in force. Not an amendment: which days is not a
-     * printed term.
+     * See a contract's work days & hours card: whoever may read the contract,
+     * the employee it is for, and their direct or technical manager.
+     */
+    public function viewWorkDays(User $user, Contract $contract): bool
+    {
+        return $this->view($user, $contract)
+            || ($user->employee_id !== null && (int) $user->employee_id === (int) $contract->employee_id)
+            || $this->managesContract($user, $contract);
+    }
+
+    /**
+     * Move a contract's working days from a date on (ContractWorkPatterns),
+     * while it is in force: HR of the contract's city and HR Syria (who edit
+     * the contract), and the employee's direct or technical manager, who
+     * hears of the change first. Not an amendment: which days is not a
+     * printed term, and the number of days cannot change here.
      */
     public function changeWorkDays(User $user, Contract $contract): bool
     {
-        return $user->activeRoleIs('HR')
-            && $user->hasActivePermission('contracts.update')
-            && $contract->is_active
-            && ! $contract->isTerminated()
-            && $this->isVisibleTo($user, $contract);
+        if (! $contract->is_active || $contract->isTerminated()) {
+            return false;
+        }
+
+        if ($user->activeRoleIs('HR')) {
+            return $user->hasActivePermission('contracts.update') && $this->isVisibleTo($user, $contract);
+        }
+
+        return $this->managesContract($user, $contract);
     }
 
     /**
@@ -132,6 +148,25 @@ class ContractPolicy
         return $user->activeRoleIs('HR')
             && $user->hasActivePermission('contracts.amend')
             && $this->isVisibleTo($user, $contract);
+    }
+
+    /**
+     * The user, as a manager (active role), holds today a position the
+     * contract's position reports to, directly or technically. Never their
+     * own contract.
+     */
+    private function managesContract(User $user, Contract $contract): bool
+    {
+        if (! $user->activeRoleIs('manager') || ! $user->employee_id || (int) $user->employee_id === (int) $contract->employee_id) {
+            return false;
+        }
+
+        $held = Contract::query()->activeNow()->where('employee_id', $user->employee_id)->pluck('position_id')->all();
+        $position = $contract->position;
+
+        return $held !== [] && $position !== null
+            && (in_array((int) $position->direct_manager_id, array_map('intval', $held), true)
+                || in_array((int) $position->tech_manager_id, array_map('intval', $held), true));
     }
 
     /**

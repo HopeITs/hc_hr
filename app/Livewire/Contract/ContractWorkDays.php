@@ -7,6 +7,7 @@ use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Contract;
 use App\Models\ContractWorkPattern;
+use App\Models\Program;
 use App\Services\ContractWorkPatterns;
 use App\Services\LeaveRequestPricing;
 use Illuminate\Support\Carbon;
@@ -32,6 +33,10 @@ class ContractWorkDays extends Component
 
     #[Locked]
     public int $contractId;
+
+    /** 'card' on the contract page, 'profile' on the employee's profile. */
+    #[Locked]
+    public string $variant = 'card';
 
     public bool $showChange = false;
 
@@ -64,11 +69,13 @@ class ContractWorkDays extends Component
      */
     public bool $dateTaken = false;
 
-    public function mount(Contract $contract): void
+    public function mount(Contract $contract, string $variant = 'card'): void
     {
-        Gate::authorize('view', $contract);
+        // The contract's readers, the employee, and their direct / technical manager.
+        Gate::authorize('viewWorkDays', $contract);
 
         $this->contractId = $contract->id;
+        $this->variant = $variant === 'profile' ? 'profile' : 'card';
     }
 
     public function openChange(): void
@@ -79,7 +86,10 @@ class ContractWorkDays extends Component
         $this->resetErrorBag();
         $this->days = $this->daysInForce($contract);
         $this->seeded = $this->days;
-        $this->mode = $this->isRange($contract) ? 'range' : 'days';
+        // Its own way; with no days stated yet, a range — Study Zone picks them.
+        $this->mode = $this->isRange($contract)
+            || ($this->days === [] && (int) $contract->position?->program_id !== Program::STUDY_ZONE_ID)
+            ? 'range' : 'days';
         // Today, unless an amendment fixed the days on it: then the next free day.
         $this->effectiveFrom = $this->freeDateFrom($contract, today()->toDateString());
         $this->dateTaken = false;
@@ -176,9 +186,12 @@ class ContractWorkDays extends Component
 
         return view('livewire.contract.contract-work-days', [
             'contract' => $contract,
-            // Shown for a fixed schedule that has days of its own, or may get them.
-            'visible' => $fixed && ($patternRows->isNotEmpty() || $canChange),
+            // A fixed schedule whose days are stated (a range or picked days),
+            // changed since, or that this viewer may set.
+            'visible' => $fixed && ($patternRows->isNotEmpty() || $canChange || $this->daysInForce($contract) !== []),
             'canChange' => $canChange,
+            'hours' => $this->hoursLabel($contract),
+            'contractLabel' => $contract->position?->title,
             // A day-range contract reads as a range, and is changed as one.
             'isRange' => $isRange = $this->isRange($contract),
             'rangeLabel' => $isRange ? $this->rangeLabel($this->daysInForce($contract)) : null,
@@ -399,6 +412,24 @@ class ContractWorkDays extends Component
         return min($days) === max($days)
             ? $this->dayName(min($days))
             : $this->dayName(min($days)).' – '.$this->dayName(max($days));
+    }
+
+    /**
+     * "09:00–17:00 · 40 h a week": the shifts of a working day, then the week.
+     * Each range isolated left-to-right, or Arabic lays it out backwards.
+     */
+    private function hoursLabel(Contract $contract): ?string
+    {
+        $time = fn ($v) => filled($v) ? substr((string) $v, 0, 5) : null;
+        $shift = fn ($from, $to) => $time($from) && $time($to) ? "\u{2066}".$time($from).'–'.$time($to)."\u{2069}" : null;
+
+        $parts = array_filter([
+            $shift($contract->work_hours_from, $contract->work_hours_to),
+            $shift($contract->work_hours_2_from, $contract->work_hours_2_to),
+            $contract->weekly_hours ? trans_choice('contracts.work-days.weekly-hours', (int) $contract->weekly_hours, ['count' => (int) $contract->weekly_hours]) : null,
+        ]);
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     /** What set a row: its amendment, named in the viewer's language (never stored as words), else HR's note. */

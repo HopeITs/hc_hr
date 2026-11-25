@@ -487,15 +487,6 @@ return [
             'submit' => 'contracts.amend',
             'leavePreview' => 'contracts.amend', // returns null, reads nothing
         ],
-        // The working-days card. Each action re-runs ContractPolicy::changeWorkDays
-        // (HR role, contracts.update, the contract's city), the record control.
-        'contract.contract-work-days' => [
-            'openChange' => 'contracts.update',
-            'toggleDay' => 'contracts.update',
-            'updatedDays' => 'contracts.update',
-            'updatedEffectiveFrom' => 'contracts.update',
-            'save' => 'contracts.update',
-        ],
         'contract.contract-amendments' => [
             'askApprove' => 'contracts.amend',
             'approve' => 'contracts.amend',
@@ -1227,8 +1218,13 @@ return [
         // Dismisses the modal and clears its state. Writes nothing; the two
         // actions that do write are mapped to contracts.create above.
         'contract.contract-renew-modal' => ['close', ...$closeGuard],
-        // Hides the dialog; writes nothing.
-        'contract.contract-work-days' => ['close', ...$closeGuard],
+        // The work days & hours card (contract page and employee profile). The
+        // direct or technical manager may change the days too, and holds no
+        // contracts.* permission, so no permission name fits: every action
+        // re-runs ContractPolicy::changeWorkDays on the record (HR of the city
+        // or Syria with contracts.update, or that manager), and save() goes
+        // through ContractWorkPatterns::change()'s own checks. close() writes nothing.
+        'contract.contract-work-days' => ['openChange', 'toggleDay', 'updatedDays', 'updatedEffectiveFrom', 'save', 'close', ...$closeGuard],
         // B3: retryLoad re-renders read-only data; placeholder renders the lazy skeleton.
         // Every dashboard tile (prompt 4) is lazy, so each has placeholder
         // (IsDashboardTile: the card skeleton, reads nothing). The cards that were

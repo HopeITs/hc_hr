@@ -122,6 +122,9 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'work-days' => [
+        'none-stated' => 'This contract does not state its working days yet. Until they are set, leave counts every day except the center\'s weekend.',
+        'set-days' => 'Set working days',
+        'weekly-hours' => '{1} :count h a week|[2,*] :count h a week',
         'amendment-on-date' => 'Amendment :number set the working days on this date, so they can only change from another date (or with a new amendment).',
         'use-date' => 'Use :date',
         'working-days' => 'Working days',
@@ -145,7 +148,7 @@ return [
         'day-off' => 'Day off',
         'to' => 'to',
         'changes' => '{1} :count change|[2,*] :count changes',
-        'title' => 'Working days',
+        'title' => 'Work days & hours',
         'change' => 'Change days off',
         'history' => 'Changes',
         'from' => 'From :date',

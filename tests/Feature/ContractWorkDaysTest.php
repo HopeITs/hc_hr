@@ -279,6 +279,75 @@ class ContractWorkDaysTest extends TestCase
         $this->assertSame([0, 1, 2, 3, 6], $renewal->fresh()->workWeekdaysOn($renewal->start_date));
     }
 
+    public function test_the_direct_or_technical_manager_may_change_the_days_and_no_other_manager(): void
+    {
+        $contract = $this->contract();
+        [$direct, $directPosition] = $this->manager();
+        [$technical, $technicalPosition] = $this->manager();
+        [$other] = $this->manager();
+        $contract->position->update(['direct_manager_id' => $directPosition->id, 'tech_manager_id' => $technicalPosition->id]);
+        $contract = $contract->fresh();
+
+        $this->assertTrue($direct->can('changeWorkDays', $contract));
+        $this->assertTrue($technical->can('changeWorkDays', $contract));
+        $this->assertFalse($other->can('changeWorkDays', $contract));
+        $this->assertFalse($other->can('viewWorkDays', $contract));
+
+        // The same person with another role active is not acting as manager.
+        $this->assertFalse($this->makeUser($this->city, 'employee', [], $direct->profile)->can('changeWorkDays', $contract));
+    }
+
+    public function test_the_manager_moves_the_day_off_from_the_employees_profile(): void
+    {
+        $contract = $this->contract();
+        [$manager, $position] = $this->manager();
+        $contract->position->update(['tech_manager_id' => $position->id]);
+
+        Livewire::actingAs($manager)
+            ->test(ContractWorkDays::class, ['contract' => $contract->fresh(), 'variant' => 'profile'])
+            ->assertSee(__('contracts.work-days.title'))
+            ->assertSee(__('contracts.work-days.change'))
+            ->call('openChange')
+            ->call('toggleDay', 4)
+            ->call('toggleDay', 6)
+            ->set('effectiveFrom', '2026-11-15')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame([0, 1, 2, 3, 6], $contract->fresh()->workWeekdaysOn('2026-11-15'));
+    }
+
+    public function test_the_employee_sees_their_own_days_and_hours_but_cannot_change_them(): void
+    {
+        $contract = $this->contract(['work_hours_2_from' => '17:00:00', 'work_hours_2_to' => '19:00:00']);
+        $self = $this->makeUser($this->city, 'employee', [], $contract->employee);
+
+        $this->assertTrue($self->can('viewWorkDays', $contract));
+        $this->assertFalse($self->can('changeWorkDays', $contract));
+
+        Livewire::actingAs($self)
+            ->test(ContractWorkDays::class, ['contract' => $contract, 'variant' => 'profile'])
+            ->assertSee('09:00–17:00')
+            ->assertSee('17:00–19:00')
+            ->assertSee(trans_choice('contracts.work-days.weekly-hours', 40, ['count' => 40]))
+            ->assertDontSee(__('contracts.work-days.change'))
+            ->call('openChange')
+            ->assertForbidden();
+    }
+
+    /**
+     * A manager (active role) holding a position today.
+     *
+     * @return array{0: User, 1: \App\Models\Position}
+     */
+    private function manager(): array
+    {
+        $employee = $this->makeEmployee($this->city, 'manager-'.uniqid());
+        $contract = $this->makeContractFor($employee);
+
+        return [$this->makeUser($this->city, 'manager', [], $employee), $contract->position];
+    }
+
     private function hr(): User
     {
         return $this->makeUser($this->city, 'HR-ALP', self::PERMISSIONS);
