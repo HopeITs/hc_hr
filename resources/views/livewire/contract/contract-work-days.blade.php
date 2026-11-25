@@ -12,14 +12,18 @@
         @if($variant === 'profile')
             {{-- The employee profile: a section like its neighbours. Its body is
                  drawn twice (phone / wider), so the dialog stays outside it. --}}
-            <x-profile-section data-section="work-days" :title="__('contracts.work-days.title')" :subtitle="$contractLabel" icon="icons.clock">
+            <x-profile-section data-section="work-days" :title="__('contracts.work-days.title')" :subtitle="__('contracts.work-days.subtitle')" icon="icons.clock">
+                {{-- The same two compact buttons as the profile's other sections. --}}
                 <x-slot:action>
-                    @if($canChange)
-                        <x-button variant="outline" size="sm" wire:click="openChange">
-                            <x-ic name="calendar" class="size-4" />
-                            @lang($now['count'] === 0 ? 'contracts.work-days.set-days' : ($isRange ? 'contracts.work-days.change-range' : 'contracts.work-days.change'))
-                        </x-button>
-                    @endif
+                    <div class="flex items-center gap-2">
+                        <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('work-days', $contract->employee_id)" :compact="true" :key="'atd-work-days-'.$contract->employee_id" />
+                        @if($canChange)
+                            <x-button variant="outline" size="sm" wire:click="openChange" data-testid="edit-work-days">
+                                <x-icons.edit class="h-3.5 w-3.5" /> <span>@lang('general.edit')</span>
+                                <span class="sr-only">@lang($now['count'] === 0 ? 'contracts.work-days.set-days' : ($isRange ? 'contracts.work-days.change-range' : 'contracts.work-days.change'))</span>
+                            </x-button>
+                        @endif
+                    </div>
                 </x-slot:action>
                 @include('livewire.contract._work-days-body')
             </x-profile-section>

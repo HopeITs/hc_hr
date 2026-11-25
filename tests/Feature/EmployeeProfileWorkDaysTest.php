@@ -71,6 +71,39 @@ class EmployeeProfileWorkDaysTest extends TestCase
             ->assertDontSee(__('contracts.work-days.title'));
     }
 
+    public function test_the_header_has_add_to_dashboard_and_edit_like_the_other_sections(): void
+    {
+        $subject = $this->subject();
+        $hr = $this->makeUser($this->city, 'HR-ALP', ['employees.view', 'contracts.view', 'contracts.update']);
+
+        $this->profile($hr, $subject)
+            ->assertSee(__('contracts.work-days.subtitle'))
+            ->assertSeeHtml('data-testid="edit-work-days"')
+            ->assertSeeHtml('atd-work-days-'.$subject->id);
+
+        // The employee: the dashboard button, no Edit.
+        $this->profile($this->makeUser($this->city, 'employee', [], $subject), $subject)
+            ->assertDontSeeHtml('data-testid="edit-work-days"');
+    }
+
+    public function test_the_dashboard_card_shows_the_week_to_the_manager_and_nothing_to_a_colleague(): void
+    {
+        $subject = $this->subject();
+        [$manager, $position] = $this->manager();
+        $subject->latestActiveContract()->position->update(['direct_manager_id' => $position->id]);
+
+        Livewire::withoutLazyLoading()->actingAs($manager)
+            ->test(\App\Livewire\Dashboard\EmployeeSectionCard::class, ['employeeId' => $subject->id, 'section' => 'work-days'])
+            ->assertSee(__('dashboard.tiles.rec-work-days', ['name' => $subject->name]))
+            ->assertSee('Sunday, Monday, Tuesday, Wednesday, Thursday')
+            ->assertSee('09:00–17:00');
+
+        Livewire::withoutLazyLoading()->actingAs($this->makeUser($this->city, 'employee'))
+            ->test(\App\Livewire\Dashboard\EmployeeSectionCard::class, ['employeeId' => $subject->id, 'section' => 'work-days'])
+            ->assertSee(__('dashboard.record.gone'))
+            ->assertDontSee('09:00–17:00');
+    }
+
     private function profile($user, Employee $subject)
     {
         return Livewire::withoutLazyLoading()->actingAs($user)->test(EmployeeProfile::class, ['employee' => $subject]);

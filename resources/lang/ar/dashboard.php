@@ -198,6 +198,7 @@ return [
         'rec-contact' => 'التواصل · :name',
         'rec-overview' => 'الوظيفة · :name',
         'rec-timeline' => 'السجل الزمني · :name',
+        'rec-work-days' => 'أيام وساعات الدوام · :name',
         'rec-education' => 'التعليم · :name',
         'rec-experience' => 'الخبرات · :name',
         'rec-skills' => 'المهارات · :name',

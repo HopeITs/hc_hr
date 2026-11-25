@@ -122,6 +122,9 @@ return [
     'drawer-open-full' => 'Open full contract',
     'export-columns-shown' => 'Exports the columns shown',
     'work-days' => [
+        'subtitle' => 'Working week, hours and days off',
+        'hours' => 'Hours',
+        'not-stated' => 'Not stated',
         'open-waiting-amendment' => 'Open the waiting amendment',
         'amend-ask-hr' => 'Only HR makes amendments: ask HR of the city to make one.',
         'amend-not-now' => 'This contract cannot be amended right now (it has not started, or it has ended).',

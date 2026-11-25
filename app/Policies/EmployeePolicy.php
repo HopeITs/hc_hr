@@ -49,6 +49,19 @@ class EmployeePolicy
     }
 
     /**
+     * The work days & hours of the person's current contract: whoever may
+     * see them on the contract (ContractPolicy::viewWorkDays) — its readers,
+     * the person, their direct or technical manager. The profile section and
+     * its dashboard card (DashboardLayout::RECORDS) ask the same.
+     */
+    public function viewWorkDays(User $user, Employee $employee): bool
+    {
+        $contract = $employee->latestActiveContract();
+
+        return $contract !== null && Gate::forUser($user)->allows('viewWorkDays', $contract);
+    }
+
+    /**
      * The photo follows the Directory tier (access-policy.md §8, A2D-Q4): a
      * face is shown wherever the person is, so a regional HR officer sees an
      * active colleague's photo in another city like everyone else does, while

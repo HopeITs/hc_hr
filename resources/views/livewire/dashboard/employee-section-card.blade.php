@@ -38,6 +38,28 @@
                 </div>
                 @break
 
+            @case('work-days')
+                @if ($data['working'] === null && $data['hours'] === null)
+                    <p class="hc-nt-empty" data-tile-empty>{{ __('contracts.work-days.none-stated') }}</p>
+                @else
+                    <div class="hc-me-body">
+                        <dl class="hc-me-kv">
+                            @foreach ([
+                                [__('contracts.work-days.working-days'), $data['working'] ?? __('contracts.work-days.not-stated')],
+                                [__('contracts.work-days.tile.off'), $data['own']],
+                                [__('contracts.work-days.center-day-off'), $data['center']],
+                                [__('contracts.work-days.hours'), $data['hours']],
+                            ] as [$label, $value])
+                                @if ($value)
+                                    <dt>{{ $label }}</dt>
+                                    <dd class="font-semibold">{{ $value }}</dd>
+                                @endif
+                            @endforeach
+                        </dl>
+                    </div>
+                @endif
+                @break
+
             @case('timeline')
                 @if ($data['events'] === [])
                     <p class="hc-nt-empty" data-tile-empty>{{ __('employees.profile.timeline-empty') }}</p>
