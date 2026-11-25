@@ -6,6 +6,51 @@ import { runInNewContext } from 'node:vm';
 const view = (path) => readFileSync(new URL('../../resources/views/' + path + '.blade.php', import.meta.url), 'utf8');
 const data = (source, globals = {}) => runInNewContext('(' + source.match(/x-data="([\s\S]*?)"/)[1].replace(/\{\{--[\s\S]*?--\}\}/g, '') + ')', globals);
 
+test('switching languages restores workspace tabs in order with the same active page', () => {
+    const source = readFileSync(new URL('../../resources/js/dashboard/workspace.js', import.meta.url), 'utf8');
+    for (const [from, to, sourcePrefix, targetPrefix] of [['en', 'ar', '', '/ar'], ['ar', 'en', '/ar', '']]) {
+        const document = { documentElement: { lang: from } };
+        const location = { origin: 'https://hr.test', href: 'https://hr.test' + sourcePrefix + '/' };
+        const storage = new Map();
+        const sessionStorage = {
+            setItem: (key, value) => storage.set(key, value),
+            getItem: (key) => storage.get(key),
+            removeItem: (key) => storage.delete(key),
+        };
+        let workspace;
+        let destination;
+        const window = {
+            Alpine: { data: (_name, factory) => { workspace = factory; } },
+            location: { assign: (href) => { destination = new URL(href); } },
+            dispatchEvent() {},
+        };
+        runInNewContext(source, { window, document, location, sessionStorage, URL, CustomEvent: class {} });
+        const state = workspace();
+        state.$el = { dataset: { hiddenLocale: 'en' } };
+        state.$nextTick = () => {};
+        state.visit(sourcePrefix + '/employees?search=ann#results', false);
+        state.visit(sourcePrefix + '/leaves', false);
+        state.show(state.tabs[0].id, false);
+
+        assert.equal(state.switchLocale('/' + to + '?ws=/stale'), true);
+        assert.equal(destination.pathname, '/' + to);
+        assert.equal(destination.searchParams.get('ws'), targetPrefix + '/employees?search=ann#results');
+
+        destination.pathname = targetPrefix || '/'; // Laravel redirects away from the hidden default prefix.
+        location.href = destination.href;
+        document.documentElement.lang = to;
+        const restored = workspace();
+        restored.$nextTick = () => {};
+        assert.equal(restored.restoreLocale(), true);
+        assert.deepEqual(Array.from(restored.tabs, (tab) => tab.url), [
+            targetPrefix + '/employees?search=ann#results',
+            targetPrefix + '/leaves',
+        ]);
+        assert.equal(restored.current().url, targetPrefix + '/employees?search=ann#results');
+        assert.equal(restored.restoreLocale(), false);
+    }
+});
+
 test('choosing a search result opens it once and closes search before navigation', () => {
     let visits = 0;
     const state = data(view('livewire/layout/global-search'), {

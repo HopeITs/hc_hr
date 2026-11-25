@@ -41,7 +41,7 @@
             <livewire:layout.global-search />
 
             {{-- Language: only the other one, as a single button. --}}
-            <a href="{{ $curr === 'ar' ? $enUrl : $arUrl }}"
+            <a href="{{ $curr === 'ar' ? $enUrl : $arUrl }}" data-switch-locale
                 class="inline-flex items-center justify-center h-11 sm:h-9 min-w-11 sm:min-w-9 px-2 shrink-0 rounded-[14px] text-body font-semibold leading-none text-ink-2 transition hover:bg-hover hover:text-ink"
                 aria-label="{{ $curr === 'ar' ? 'English' : 'العربية' }}">{{ $curr === 'ar' ? 'EN' : 'AR' }}</a>
 
