@@ -159,7 +159,7 @@ class PolicyLibraryTest extends TestCase
 
     private function policy(string $title, string $content): PolicyDocument
     {
-        return PolicyDocument::query()->create(['source' => 'panel', 'title' => $title, 'content' => $content]);
+        return PolicyDocument::query()->create(['title' => $title, 'content' => $content]);
     }
 
     /** Thirty lines of one word, several passages' worth. */

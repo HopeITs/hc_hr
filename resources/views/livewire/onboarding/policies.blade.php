@@ -23,9 +23,6 @@
                         @endif
                     </div>
 
-                    @if ($document->source_url)
-                        <p class="mt-2"><x-button variant="link" size="sm" :href="$document->source_url" target="_blank" rel="noopener">@lang('onboarding.policies.open-source')</x-button></p>
-                    @endif
 
                     @if ($document->content)
                         <div class="mt-3 max-h-80 overflow-y-auto whitespace-pre-line rounded-control border border-line-soft bg-soft p-3 text-body text-ink">{{ $document->content }}</div>

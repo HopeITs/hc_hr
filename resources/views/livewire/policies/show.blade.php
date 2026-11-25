@@ -8,9 +8,6 @@
         </x-slot:crumb>
     </x-page-header>
 
-    @if ($document->source_url)
-        <p><x-button variant="link" size="sm" :href="$document->source_url" target="_blank" rel="noopener">@lang('policies.open-source')</x-button></p>
-    @endif
 
     <div class="space-y-3">
         @foreach ($passages as $i => $html)

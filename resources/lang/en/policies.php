@@ -10,7 +10,6 @@ return [
     'all' => 'All policies',
     'none' => 'No policy has been loaded yet.',
     'back' => 'All policies',
-    'open-source' => 'Open the original file',
     'match' => 'Matching passage',
     'no-text' => 'This policy has no text in the system; you can open the original file.',
     'updated' => 'Last updated :date',

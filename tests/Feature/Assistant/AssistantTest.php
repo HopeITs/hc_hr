@@ -49,7 +49,7 @@ class AssistantTest extends TestCase
 
     public function test_a_plain_answer_is_returned_with_the_policies_and_the_employee_in_the_instruction(): void
     {
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة الإجازات', 'content' => 'يستحق الموظف ٢١ يوماً.']);
+        PolicyDocument::query()->create(['title' => 'سياسة الإجازات', 'content' => 'يستحق الموظف ٢١ يوماً.']);
         $user = $this->employeeUser(['leaves.view-own']);
 
         Http::fake([self::GEMINI => Http::sequence()->push($this->textTurn('Twenty-one days.'))]);
@@ -241,9 +241,9 @@ class AssistantTest extends TestCase
 
     public function test_all_policies_go_in_when_they_fit(): void
     {
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'B policy', 'content' => 'Second.']);
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'A policy', 'content' => 'First.']);
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'Empty', 'content' => '']);
+        PolicyDocument::query()->create(['title' => 'B policy', 'content' => 'Second.']);
+        PolicyDocument::query()->create(['title' => 'A policy', 'content' => 'First.']);
+        PolicyDocument::query()->create(['title' => 'Empty', 'content' => '']);
 
         $this->assertSame("### A policy\nFirst.\n\n### B policy\nSecond.", app(PolicyLibrary::class)->contextFor('anything'));
 
@@ -255,8 +255,8 @@ class AssistantTest extends TestCase
     {
         $filler = fn (string $word) => implode("\n", array_fill(0, 30, str_repeat($word.' ', 60)));
 
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة السفر', 'content' => "بدل السفر اليومي عشرون دولاراً.\n".$filler('تنقل')]);
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة الإجازات', 'content' => $filler('نص')."\nإجازة الأمومة مدتها تسعون يوماً.\n".$filler('بند')]);
+        PolicyDocument::query()->create(['title' => 'سياسة السفر', 'content' => "بدل السفر اليومي عشرون دولاراً.\n".$filler('تنقل')]);
+        PolicyDocument::query()->create(['title' => 'سياسة الإجازات', 'content' => $filler('نص')."\nإجازة الأمومة مدتها تسعون يوماً.\n".$filler('بند')]);
 
         config(['assistant.policy_char_budget' => 3000]);
 
@@ -275,7 +275,7 @@ class AssistantTest extends TestCase
 
     public function test_a_question_matching_no_passage_gets_only_the_policy_titles(): void
     {
-        PolicyDocument::query()->create(['source' => 'panel', 'title' => 'سياسة السفر', 'content' => str_repeat("بدل السفر اليومي.\n", 400)]);
+        PolicyDocument::query()->create(['title' => 'سياسة السفر', 'content' => str_repeat("بدل السفر اليومي.\n", 400)]);
 
         config(['assistant.policy_char_budget' => 1000]);
 

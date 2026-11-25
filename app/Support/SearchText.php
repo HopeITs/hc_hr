@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\DB;
+
 /**
  * Text folded the way people type it, so a search finds what they meant
  * (prompt 10). Arabic letters typed interchangeably become one form, short
@@ -45,7 +47,8 @@ final class SearchText
      */
     public static function foldedColumn(string $column): string
     {
-        $sql = $column;
+        // Wrapped by the grammar so "news.title_ar" gets the table prefix (production uses one).
+        $sql = DB::connection()->getQueryGrammar()->wrap($column);
 
         foreach (self::FOLD as $from => $to) {
             $sql = "REPLACE({$sql}, '{$from}', '{$to}')";
