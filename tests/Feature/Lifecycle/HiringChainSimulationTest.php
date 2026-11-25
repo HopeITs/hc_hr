@@ -86,7 +86,6 @@ class HiringChainSimulationTest extends TestCase
     public function test_a_hired_candidate_is_onboarded_runs_their_contract_and_is_renewed_through_the_nightly_schedule(): void
     {
         $this->nightFromHour = 0;
-        $this->nightSkips = ['policies:sync'];
 
         $campaign = $this->makeCampaignIn($this->city);
         $position = $campaign->vacancy->position;

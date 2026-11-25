@@ -280,8 +280,6 @@ class ContractLifecycleSimulationTest extends TestCase
     public function test_every_daily_command_runs_for_seven_weeks_of_mixed_contracts_and_repeats_no_notice(): void
     {
         $this->nightFromHour = 0;
-        // Reaches out to Google Drive and Gemini: not a step of the people's lifecycle.
-        $this->nightSkips = ['policies:sync'];
 
         $this->contract('soak-auto', ['end_date' => '2026-11-20']);
         $this->contract('soak-year', ['end_date' => '2026-12-31']);

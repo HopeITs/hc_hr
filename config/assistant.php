@@ -100,7 +100,7 @@ return [
         ],
     ],
 
-    // Gemini also writes out the policy PDFs (policies:sync), which only it does.
+    // Gemini also reads the policy PDFs HR uploads, which only it does.
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
@@ -126,11 +126,5 @@ return [
     // that best match it. Every free tier counts tokens per minute, and the
     // whole set (~160k characters) made each question slow and over quota.
     'policy_char_budget' => (int) env('ASSISTANT_POLICY_CHARS', 12000),
-
-    'policies' => [
-        // The Drive folder holding the policies. Read with
-        // services.google.drive_api_key, so it must be shared by link.
-        'drive_folder_id' => env('POLICIES_DRIVE_FOLDER_ID'),
-    ],
 
 ];

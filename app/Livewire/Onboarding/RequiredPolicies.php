@@ -4,21 +4,100 @@ namespace App\Livewire\Onboarding;
 
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\PolicyDocument;
+use App\Services\Assistant\PolicyFileReader;
 use App\Services\PolicyAcknowledgements;
 use Illuminate\View\View;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
+use Throwable;
 
 /**
- * HR chooses which policy documents a new volunteer must read and agree to
- * (track 7), e.g. the Media guideline. HR roles and super-admin only.
+ * HR uploads the policy documents (PDF, Word or text; their text is what the
+ * assistant and the policies pages read), replaces or removes them, and
+ * chooses which ones a new volunteer must read and agree to (track 7).
+ * HR roles and super-admin only.
  */
 class RequiredPolicies extends Component
 {
-    use WithFeedback;
+    use WithFeedback, WithFileUploads;
+
+    /** @var TemporaryUploadedFile|null */
+    public $upload;
+
+    public string $uploadTitle = '';
+
+    /** The document the upload replaces, or null for a new one. */
+    public ?int $replacing = null;
 
     public function mount(): void
     {
         $this->authorizeHr();
+    }
+
+    public function startReplace(int $documentId): void
+    {
+        $this->authorizeHr();
+
+        $document = PolicyDocument::query()->findOrFail($documentId);
+        $this->replacing = $document->id;
+        $this->uploadTitle = $document->title;
+        $this->reset('upload');
+        $this->resetValidation();
+    }
+
+    public function cancelReplace(): void
+    {
+        $this->reset('upload', 'uploadTitle', 'replacing');
+        $this->resetValidation();
+    }
+
+    public function save(PolicyFileReader $reader): void
+    {
+        $this->authorizeHr();
+
+        $this->validate([
+            'upload' => ['required', 'file', 'mimes:'.implode(',', PolicyFileReader::EXTENSIONS), 'max:'.PolicyFileReader::MAX_KB],
+            'uploadTitle' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $extension = strtolower($this->upload->getClientOriginalExtension());
+
+        try {
+            $text = $reader->read($this->upload->getRealPath(), $extension);
+        } catch (Throwable $e) {
+            report($e);
+            $this->addError('upload', __('onboarding.required-policies.unreadable'));
+
+            return;
+        }
+
+        $document = $this->replacing
+            ? PolicyDocument::query()->findOrFail($this->replacing)
+            : new PolicyDocument;
+
+        $document->fill([
+            'title' => filled($this->uploadTitle) ? trim($this->uploadTitle) : $reader->title($this->upload->getClientOriginalName()),
+            'mime_type' => $reader->mimeType($extension),
+            'content' => $text,
+            'source_modified_at' => now(),
+        ])->save();
+
+        $this->reset('upload', 'uploadTitle', 'replacing');
+        $this->toast(__('onboarding.required-policies.uploaded'), 'success');
+    }
+
+    public function delete(int $documentId): void
+    {
+        $this->authorizeHr();
+
+        PolicyDocument::query()->findOrFail($documentId)->delete();
+
+        if ($this->replacing === $documentId) {
+            $this->cancelReplace();
+        }
+
+        $this->toast(__('onboarding.required-policies.deleted'), 'success');
     }
 
     public function setRequired(int $documentId, bool $required, PolicyAcknowledgements $policies): void

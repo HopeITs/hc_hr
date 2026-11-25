@@ -47,7 +47,6 @@ class LeaveChainSimulationTest extends TestCase
 
         $this->travelTo('2026-11-23 10:00:00');
         $this->nightFromHour = 0;
-        $this->nightSkips = ['policies:sync'];
 
         ContractType::query()->forceCreate(['id' => 1, 'name_en' => 'Volunteer Contract', 'name_ar' => 'عقد تطوّع']);
         AnnualLeaveRule::query()->create(['days' => 14, 'day_per_month' => 1.5, 'years_of_volunteering' => 0]);
