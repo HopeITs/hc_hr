@@ -62,7 +62,7 @@ class RequiredPolicies extends Component
 
         return view('livewire.onboarding.required-policies', [
             'documents' => PolicyDocument::query()->with('media')->orderBy('title')->get(),
-            'folderUrl' => ArchivedFilesModule::folderUrl($folder->library()->id),
+            'folderUrl' => ArchivedFilesModule::folderUrl($folder->library()->id, shared: true),
         ])->title(__('onboarding.required-policies.title'));
     }
 

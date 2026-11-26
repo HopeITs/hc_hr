@@ -124,7 +124,7 @@
                                     <x-tag class="ms-1" variant="late" data-testid="inbox-stale">{{ __('inbox.review-backlog.overdue') }}</x-tag>
                                 @endif
                                 @if ($startFlag = \App\Support\Dashboard\WaitingOnYou::startFlag($row))
-                                    <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
+                                    <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'leaves.status.overdue' : 'inbox.urgent') }}</x-tag>
                                 @endif
                             </p>
                             @if (($row['basis'] ?? null) === 'on_behalf')

@@ -26,7 +26,7 @@ Route::middleware('reference_page:project-basics')->group(function () {
     }
 });
 
-// National HR and program managers (team-coverage-contract §6.1); the
+// National HR, city HR (own city, HR-033) and program managers (team-coverage-contract §6.1); the
 // component checks who may set which holidays, so no reference-page gate here.
 Route::get('holidays', HolidayModule::class)->name('holidays.index');
 

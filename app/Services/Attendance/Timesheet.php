@@ -228,7 +228,9 @@ class Timesheet
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {
                 $isHoliday = ! in_array($day->dayOfWeek, $weekends, true);
                 $row['kind'] = $isHoliday ? self::HOLIDAY : self::WEEKEND;
-                $row['leave_hours'] = $daily;
+                // A weekly day off is not leave the employee took (HR-034): no leave hours.
+                // An official holiday keeps the day's hours. Both stay a paid day.
+                $row['leave_hours'] = $isHoliday ? $daily : 0.0;
                 $row['working_days'] = 1.0;
                 $row['note'] = $isHoliday ? $holidayCache[$key][$date] : null;
                 $row['paid_off_day'] = true;

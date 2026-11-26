@@ -63,6 +63,13 @@ class LeaveRequest extends Model
         };
     }
 
+    public function isOverdue(?DateTimeInterface $today = null): bool
+    {
+        return $this->status === LeaveRequestStatus::Pending
+            && $this->start_at !== null
+            && $this->start_at->lt($today ?? today());
+    }
+
     public function leaveBalance(): BelongsTo
     {
         return $this->belongsTo(LeaveBalance::class);

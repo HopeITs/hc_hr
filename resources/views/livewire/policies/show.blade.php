@@ -4,7 +4,7 @@
      @if ($target !== null) x-data x-init="$nextTick(() => document.getElementById('policy-passage-{{ $target }}')?.scrollIntoView({ block: 'center' }))" @endif>
     <x-page-header :title="$document->title">
         <x-slot:crumb>
-            <a href="{{ route('policies.index') }}" wire:navigate>← @lang('policies.back')</a>
+            <a href="{{ \App\Livewire\Policies\Index::canOpen(auth()->user()) ? route('policies.index') : route('policies.folder') }}" wire:navigate>← @lang('policies.back')</a>
         </x-slot:crumb>
         <x-slot:actions>
             @if ($document->media)

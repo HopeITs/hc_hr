@@ -2,11 +2,13 @@
 
 namespace App\Livewire\News;
 
+use App\Enums\News\AudienceType;
 use App\Enums\News\NewsState;
 use App\Enums\News\NewsStatus;
 use App\Livewire\Concerns\RemembersReturnTo;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\NewsForm;
+use App\Models\Employee;
 use App\Models\News;
 use App\Support\News\NewsAccess;
 use Carbon\Carbon;
@@ -44,6 +46,18 @@ class NewsCreate extends Component
             $this->form->fillFromNews($news);
         } else {
             abort_unless(NewsAccess::canCreate(auth()->user()), 403);
+
+            // HR-040: a manager writes to their own team unless they choose
+            // more (which then waits for HR's approval).
+            if (! NewsAccess::publishesDirectly(auth()->user())) {
+                $this->form->audience_type = AudienceType::Employees->value;
+                $this->form->audience_ids = Employee::query()
+                    ->whereKey(NewsAccess::teamEmployeeIds(auth()->user()))
+                    ->where('is_active', true)
+                    ->pluck('id')
+                    ->map(fn ($id) => (string) $id)
+                    ->all();
+            }
         }
 
         // The list's "Schedule" action opens the editor with ?mode=schedule:
@@ -112,6 +126,8 @@ class NewsCreate extends Component
             'tagSuggestions' => NewsForm::tagSuggestions(),
             'audienceOptions' => $this->form->audienceEnum()->needsTargets() ? $this->form->audienceOptions() : collect(),
             'currentState' => $this->news?->exists ? $this->news->state() : null,
+            // HR-040: tells a manager, before they press Publish, that this audience goes to HR first.
+            'needsApproval' => NewsAccess::needsApproval(auth()->user(), $this->form->audienceEnum(), $this->form->audience_ids),
             'preview' => $this->previewing ? $this->previewProps() : null,
         ]);
     }
@@ -125,6 +141,7 @@ class NewsCreate extends Component
 
         $this->toast(match (true) {
             $intent === NewsForm::INTENT_DRAFT => __('news.form.saved_draft'),
+            $this->news->status === NewsStatus::Pending => __('news.form.saved_pending'),
             $this->news->state() === NewsState::Scheduled => __('news.form.saved_scheduled', [
                 'date' => $this->news->published_at->translatedFormat('j F Y, H:i'),
             ]),
