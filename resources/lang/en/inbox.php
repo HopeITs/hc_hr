@@ -79,6 +79,15 @@ return [
             'not_allowed' => '{1} 1 not allowed|[2,*] :count not allowed',
         ],
     ],
+    'review-backlog' => [
+        'hint' => 'Mark all decisions waiting longer than:',
+        'older-than' => ':days days',
+        'overdue' => 'Unreviewed 2+ weeks',
+        'title' => 'Mark these as seen by HR?',
+        'preview' => '{1} 1 decision has waited more than :days days and will be marked as seen. The employee and manager are told, as with one "Seen".|[2,*] :count decisions have waited more than :days days and will be marked as seen. Each employee and manager is told, as with one "Seen".',
+        'nothing' => 'No decision has waited more than :days days.',
+        'done' => '{0} None marked as seen.|{1} 1 marked as seen.|[2,*] :count marked as seen.',
+    ],
     'outcome' => [
         'accepted' => 'Leave request accepted.',
         'rejected' => 'Leave request rejected.',

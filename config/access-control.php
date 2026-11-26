@@ -1440,7 +1440,10 @@ return [
         'team.calendar' => ['move', 'goToday', 'openDay', 'jumpTo'],
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
-        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
+        // previewSeenOlderThan writes nothing; applySeenOlderThan (T3) runs each row of
+        // WorkInbox::reviewsOlderThan (the S2 query, scoped to the caller) through
+        // LeaveRequestReview::markSeen, which authorizes `review` under the row lock.
+        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile', 'previewSeenOlderThan', 'applySeenOlderThan'],
         // AI assistant: every signed-in user may ask, so there is no permission to
         // check. send() answers only about the caller: EmployeeTools reads the
         // signed-in user's own record and takes no parameters, and each call is

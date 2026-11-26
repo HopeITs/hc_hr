@@ -42,6 +42,12 @@ final class WorkInbox
      */
     public const PER_SOURCE = 100;
 
+    /** A decision waiting this many days for "Seen by HR" is flagged as overdue (T3). */
+    public const REVIEW_STALE_DAYS = 14;
+
+    /** Thresholds offered for "mark all seen older than" (T3). */
+    public const REVIEW_BULK_THRESHOLDS = [30, 60, 90];
+
     /** @return Collection<int, array<string, mixed>> */
     public function rows(User $user): Collection
     {
@@ -140,6 +146,45 @@ final class WorkInbox
         return $leave->status.':'.$leave->updated_at?->format('Y-m-d H:i:s.u');
     }
 
+    /**
+     * S2 as a query: decided leave this user is to mark as seen, exceptional
+     * December leave first (T1), then the longest waiting since the decision,
+     * so the per-source cap never hides the oldest (T3). Null when the active
+     * role has no review source. The policy still re-checks each row.
+     */
+    public function reviewQuery(User $user): ?Builder
+    {
+        if (! $this->isHr($user) || ! $user->hasActivePermission('leaves.review')) {
+            return null;
+        }
+
+        // The query is the review policy (HR role, permission, scope, decided,
+        // not yet seen), so its count is exact; the policy re-checks what is listed.
+        return $this->leaveQuery($user)
+            ->reorder()
+            ->orderByDesc('leave_requests.is_exceptional')
+            ->orderByRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at)')
+            ->orderBy('leave_requests.id')
+            ->where('status', '!=', LeaveRequestStatus::Pending)
+            ->where('hr_approved', false)
+            // Not the reviewer's own decision (N-07), as the policy says.
+            ->when($user->employee_id !== null, fn (Builder $q) => $q->where(fn (Builder $by) => $by
+                ->whereNull('approved_by')
+                ->orWhere('approved_by', '!=', $user->employee_id)))
+            // Nor their own request.
+            ->when($user->employee_id !== null, fn (Builder $q) => $q->whereDoesntHave(
+                'leaveBalance.contract',
+                fn (Builder $contract) => $contract->where('employee_id', $user->employee_id),
+            ));
+    }
+
+    /** Reviews waiting longer than $days since the decision (T3 "mark all seen"). */
+    public function reviewsOlderThan(User $user, int $days): ?Builder
+    {
+        return $this->reviewQuery($user)
+            ?->whereRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at) < ?', [now()->subDays($days)]);
+    }
+
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */
     private function leaveDecisions(User $user, LeaveDecisionAuthority $authority): array
     {
@@ -172,24 +217,11 @@ final class WorkInbox
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */
     private function leaveReviews(User $user, LeaveDecisionAuthority $authority): array
     {
-        if (! $this->isHr($user) || ! $user->hasActivePermission('leaves.review')) {
+        $query = $this->reviewQuery($user);
+
+        if (! $query) {
             return [collect(), 0];
         }
-
-        // The query is the review policy (HR role, permission, scope, decided,
-        // not yet seen), so its count is exact; the policy re-checks what is listed.
-        $query = $this->leaveQuery($user)
-            ->where('status', '!=', LeaveRequestStatus::Pending)
-            ->where('hr_approved', false)
-            // Not the reviewer's own decision (N-07), as the policy says.
-            ->when($user->employee_id !== null, fn (Builder $q) => $q->where(fn (Builder $by) => $by
-                ->whereNull('approved_by')
-                ->orWhere('approved_by', '!=', $user->employee_id)))
-            // Nor their own request.
-            ->when($user->employee_id !== null, fn (Builder $q) => $q->whereDoesntHave(
-                'leaveBalance.contract',
-                fn (Builder $contract) => $contract->where('employee_id', $user->employee_id),
-            ));
 
         $listed = (clone $query)->limit(self::PER_SOURCE)->get();
         $authority->primeScope($user, $listed->modelKeys());
@@ -403,6 +435,8 @@ final class WorkInbox
             'waiting_since' => $action === 'review' ? ($leave->approved_at ?? $leave->updated_at) : $leave->created_at,
             // Leave starting within two days, or already started, and still waiting.
             'urgent' => $action === 'decide' && $leave->start_at !== null && $leave->start_at->lte(now()->addDays(2)->endOfDay()),
+            // A decision left without "Seen by HR" for two weeks or more (T3).
+            'stale' => $action === 'review' && ($leave->approved_at ?? $leave->updated_at)?->lte(now()->subDays(self::REVIEW_STALE_DAYS)) === true,
             'version' => $this->leaveVersion($leave),
             'bulk' => false,
         ];

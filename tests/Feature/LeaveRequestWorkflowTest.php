@@ -2417,6 +2417,96 @@ class LeaveRequestWorkflowTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    // --- T3: "Seen by HR" backlog ---
+
+    /** T3: review rows come exceptional first, then oldest decision first; two weeks or more is flagged. */
+    public function test_t3_review_rows_are_oldest_first_and_flag_overdue(): void
+    {
+        [$hr, $recent] = $this->createPendingDecisionFixture();
+        $recent->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()->subDays(2)]);
+        $old = $this->decidedCopyOf($recent, 60);
+        $exceptional = $this->decidedCopyOf($recent, 1);
+        $exceptional->forceFill(['is_exceptional' => true])->saveQuietly();
+
+        $rows = app(\App\Services\WorkInbox::class)->reviewQuery($hr)->pluck('leave_requests.id')->all();
+        $this->assertSame([$exceptional->id, $old->id, $recent->id], $rows);
+
+        $flags = app(\App\Services\WorkInbox::class)->rows($hr)->where('action', 'review')->pluck('stale', 'id');
+        $this->assertTrue($flags[$old->id]);
+        $this->assertFalse($flags[$recent->id]);
+    }
+
+    /** T3: "mark all seen older than" confirms first, then marks only what is old enough, notifying as one Seen does. */
+    public function test_t3_hr_marks_all_decisions_older_than_a_threshold_as_seen(): void
+    {
+        [$hr, $recent] = $this->createPendingDecisionFixture();
+        $recent->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()->subDays(5)]);
+        $old = $this->decidedCopyOf($recent, 45);
+        Notification::fake();
+
+        Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class)
+            ->assertSeeHtml('data-testid="inbox-review-backlog"')
+            ->call('previewSeenOlderThan', 30)
+            ->assertDispatched('confirm-dialog');
+        $this->assertFalse($old->fresh()->hr_approved, 'the preview writes nothing');
+
+        Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class)
+            ->call('applySeenOlderThan', ['days' => 30]);
+
+        $this->assertTrue($old->fresh()->hr_approved);
+        $this->assertFalse($recent->fresh()->hr_approved);
+        Notification::assertSentToTimes($old->leaveBalance->contract->employee->account, HRSawLeaveRequest::class, 1);
+    }
+
+    /** T3: an offered threshold only, and only what the caller may review. */
+    public function test_t3_bulk_seen_refuses_other_thresholds_and_other_cities(): void
+    {
+        [, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()->subDays(100)]);
+        [$outsider] = $this->createRejectedLeaveFixture(null, 'bulk.outsider@example.test', 'bulk-outsider');
+        $outsider->assignRole(Role::findOrCreate('HR-XXX', 'web'));
+        $outsider->givePermissionTo('leaves.review');
+
+        Livewire::actingAs($outsider->fresh())->test(\App\Livewire\Inbox\Index::class)
+            ->call('applySeenOlderThan', ['days' => 30]);
+        $this->assertFalse($leave->fresh()->hr_approved);
+
+        $hr = $this->createHrUserForLeave($leave, 'bulk.threshold@example.test');
+        Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class)
+            ->call('applySeenOlderThan', ['days' => 1]);
+        $this->assertFalse($leave->fresh()->hr_approved);
+    }
+
+    /** T3: the weekly digest tells city HR the backlog and the oldest's age, once a week, and nobody when nothing waits. */
+    public function test_t3_weekly_digest_reaches_city_hr_once(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()->subDays(20)]);
+        $this->decidedCopyOf($leave, 3);
+        [$outsider] = $this->createRejectedLeaveFixture(null, 'digest.outsider@example.test', 'digest-outsider');
+        $outsider->assignRole(Role::findOrCreate('HR-XXX', 'web'));
+
+        $this->artisan('leaves:review-digest')->assertSuccessful();
+
+        $sent = $hr->fresh()->notifications()->where('type', \App\Notifications\LeaveReviewBacklog::class)->get();
+        $this->assertCount(1, $sent);
+        $this->assertStringContainsString('2 decided', $sent->first()->data['body']['en']);
+        $this->assertStringContainsString('20 day', $sent->first()->data['body']['en']);
+        $this->assertSame(0, $outsider->fresh()->notifications()->count());
+
+        // A rerun within the week sends nothing more.
+        $this->artisan('leaves:review-digest')->assertSuccessful();
+        $this->assertSame(1, $hr->fresh()->notifications()->where('type', \App\Notifications\LeaveReviewBacklog::class)->count());
+    }
+
+    private function decidedCopyOf(LeaveRequest $leave, int $daysAgo): LeaveRequest
+    {
+        $copy = $leave->replicate();
+        $copy->forceFill(['approved_at' => now()->subDays($daysAgo), 'hr_approved' => false])->saveQuietly();
+
+        return $copy->fresh();
+    }
+
     /** An accepted leave starting in the future, with 16 hours deducted (HR-027). */
     private function acceptedFutureLeave(int $startsInDays = 5): array
     {

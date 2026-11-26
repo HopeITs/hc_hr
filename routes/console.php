@@ -21,6 +21,7 @@ use App\Console\Commands\SendAttendanceReminders;
 use App\Console\Commands\SendBoardMeetingReminders;
 use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
+use App\Console\Commands\SendLeaveReviewDigest;
 use App\Console\Commands\SendOrientationReminders;
 use App\Console\Commands\SendRecruitmentInterviewReminders;
 use App\Console\Commands\StartProbationReviews;
@@ -53,6 +54,8 @@ Schedule::command(DeactivateContract::class)->dailyAt('21:30');
 Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 // DEC-05 revision 2 (G-C-1): one reminder per pending leave request.
 Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
+// T3: Sunday morning, city HR hears how many decisions still wait for "Seen by HR" and the oldest's age.
+Schedule::command(SendLeaveReviewDigest::class)->weeklyOn(0, '08:10');
 // Attendance: in the first days of a month, remind managers to approve and HR to lock last month.
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
 // Board: the next meeting is opened at its usual slot, and the board is reminded the day before (once).
