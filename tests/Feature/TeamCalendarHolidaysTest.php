@@ -126,7 +126,8 @@ class TeamCalendarHolidaysTest extends TestCase
 
     public function test_the_embedded_dialog_still_refuses_people_who_set_no_holidays(): void
     {
-        Livewire::actingAs($this->makeUser($this->alp, 'HR-ALP'))
+        // City HR now sets its own city's holidays (HR-033); an employee sets none.
+        Livewire::actingAs($this->makeUser($this->alp, 'employee'))
             ->test(HolidayModule::class, ['embedded' => true])
             ->assertForbidden();
     }

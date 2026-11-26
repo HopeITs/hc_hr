@@ -50,8 +50,9 @@ class HolidayTable extends LivewireTable
     }
 
     /**
-     * National HR sees every holiday. A program manager sees the national
-     * ones (read only) and those linked to any of their projects.
+     * National HR sees every holiday; so does city HR, but it changes only
+     * its own city's (canChange). A program manager sees the national ones
+     * (read only) and those linked to any of their projects.
      */
     protected function query(): Builder
     {
@@ -61,7 +62,7 @@ class HolidayTable extends LivewireTable
 
         $query = Holiday::query()->with('projects.program', 'projects.city')->orderByDesc('start_date');
 
-        if ($projects->isNationalHr($user)) {
+        if ($projects->seesAll($user)) {
             return $query;
         }
 

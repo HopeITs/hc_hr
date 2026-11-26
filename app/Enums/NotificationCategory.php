@@ -19,13 +19,18 @@ use App\Notifications\FolderShared;
 use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\LeaveAlternativeChanged;
 use App\Notifications\LeaveDecisionReminder;
+use App\Notifications\LeaveRequestCancelled;
 use App\Notifications\LeaveRequestObjected;
 use App\Notifications\LeavingReasonsMissing;
 use App\Notifications\ManagerOrientationOverdue;
 use App\Notifications\NewCenterCreated;
 use App\Notifications\NewEmployeeWelcome;
 use App\Notifications\NewLeaveRequest;
+use App\Notifications\NewsApprovalDecided;
+use App\Notifications\NewsApprovalRequested;
+use App\Notifications\NewsPublishedByManager;
 use App\Notifications\OnboardingStepOverdue;
+use App\Notifications\OverdueLeaveDecision;
 use App\Notifications\ProbationFinalThird;
 use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
@@ -55,11 +60,13 @@ enum NotificationCategory: string
     private const MAP = [
         NewLeaveRequest::class => self::LeaveActions,
         LeaveDecisionReminder::class => self::LeaveActions,
+        OverdueLeaveDecision::class => self::LeaveActions,
         BirthdayChoiceNeeded::class => self::LeaveActions,
         BirthdayChoiceSubmitted::class => self::LeaveActions,
         ActionLeaveRequest::class => self::LeaveUpdates,
         HRSawLeaveRequest::class => self::LeaveUpdates,
         LeaveRequestObjected::class => self::LeaveUpdates,
+        LeaveRequestCancelled::class => self::LeaveUpdates,
         LeaveAlternativeChanged::class => self::LeaveUpdates,
         ActionLeaveBalance::class => self::LeaveUpdates,
         BirthdayChoiceDecided::class => self::LeaveUpdates,
@@ -80,6 +87,9 @@ enum NotificationCategory: string
         NewCenterCreated::class => self::Organization,
         CenterClosed::class => self::Organization,
         CriticalPositionNeedsReplacement::class => self::Organization,
+        NewsApprovalRequested::class => self::Organization,
+        NewsPublishedByManager::class => self::Organization,
+        NewsApprovalDecided::class => self::Organization,
         DigitalIdReportedLost::class => self::Security,
         RolesSuspendedForNoContract::class => self::Security,
         TestNotification::class => self::System,

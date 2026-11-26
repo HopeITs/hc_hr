@@ -27,8 +27,8 @@ class NavigationAreasTest extends TestCase
     // C5 added the team calendar to everyone's My space.
     // Attendance is on every role's menu, in a different place for each (My space, My team or HR): all open the same page.
     // The mailing lists are on every role's menu: every employee reads and emails them.
-    // The policies are on every role's menu: every signed-in employee reads and searches them.
-    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'attendance.timesheets', 'checklist-items.index', 'folders.index', 'mail-lists.index', 'policies.folder'];
+    // The Policies page is HR's and the general manager's; everyone else reads them in Folders / Shared with me.
+    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'attendance.timesheets', 'checklist-items.index', 'folders.index', 'mail-lists.index'];
 
     protected function setUp(): void
     {
@@ -57,11 +57,11 @@ class NavigationAreasTest extends TestCase
             'employee' => [...self::MY_SPACE, 'org.chart'],
             // The inbox is part of the dashboard now: no role has a menu link to it.
             'manager' => [...self::MY_SPACE, 'org.chart', 'centers.index', 'programs.index', 'leaves.all', 'contracts.index', 'news.index', ...$recruiting],
-            'general-manager' => [...self::MY_SPACE, ...$reference, ...self::BASICS, ...$hrWork, ...$recruiting],
-            'HR-ALP' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', ...$hrRecruiting],
-            'HR-SYR' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$hrRecruiting, 'recruitment.indicator-rules'],
+            'general-manager' => [...self::MY_SPACE, 'policies.index', ...$reference, ...self::BASICS, ...$hrWork, ...$recruiting],
+            'HR-ALP' => [...self::MY_SPACE, 'policies.index', $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', ...$hrRecruiting],
+            'HR-SYR' => [...self::MY_SPACE, 'policies.index', $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$hrRecruiting, 'recruitment.indicator-rules'],
             // The D3 feedback list follows an IT contract, not a role (InAppFeedbackTest).
-            'super-admin' => [...self::MY_SPACE, $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
+            'super-admin' => [...self::MY_SPACE, 'policies.index', $library, 'reports.index', ...$reference, ...self::BASICS, ...$hrWork, 'message-templates.index', 'leaves.balance', 'access-management.index', 'activity-log.index', ...$recruiting, 'recruitment.offers.index', 'recruitment.indicator-rules'],
         ];
 
         foreach ($expected as $role => $routes) {

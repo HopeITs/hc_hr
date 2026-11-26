@@ -131,6 +131,10 @@ class NewsLifecycleTest extends TestCase
         $this->makeNews(['published_at' => now()->subDay(), 'display_until' => now()->addDay()]);
         $this->makeNews(['published_at' => now()->subDays(4), 'display_until' => now()->subDays(2)]);
         $this->makeNews(['status' => NewsStatus::Archived, 'published_at' => now()->subDay()]);
+        // HR-040: a manager's item waiting for HR, or not approved, whatever its time.
+        $this->makeNews(['status' => NewsStatus::Pending, 'published_at' => now()->subDay()]);
+        $this->makeNews(['status' => NewsStatus::Pending, 'published_at' => now()->addDay()]);
+        $this->makeNews(['status' => NewsStatus::Rejected, 'published_at' => null]);
         $this->makeEvent(now()->addDays(3), null, ['published_at' => now()->addDay()]);
         $this->makeEvent(now()->subDays(3), null, ['published_at' => now()->subDays(10), 'display_until' => now()->subDays(2)]);
 

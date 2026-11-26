@@ -210,13 +210,138 @@ class HolidayManagementTest extends TestCase
             ->assertHasErrors(['item.end_date']);
     }
 
-    public function test_regional_hr_and_plain_employees_cannot_open_the_screen(): void
+    public function test_plain_employees_and_managers_without_projects_cannot_open_the_screen(): void
     {
-        Livewire::actingAs($this->makeUser($this->alp, 'HR-ALP', ['project-basics.view', 'project-basics.create']))
-            ->test(HolidayModule::class)->assertForbidden();
-
         Livewire::actingAs($this->makeUser($this->alp, 'employee'))
             ->test(HolidayModule::class)->assertForbidden();
+
+        Livewire::actingAs($this->makeUser($this->alp, 'general-manager'))
+            ->test(HolidayModule::class)->assertForbidden();
+    }
+
+    // --- City HR (HR-033): its own city's holidays only -----------------
+
+    public function test_city_hr_opens_the_page_and_picks_only_its_own_citys_projects(): void
+    {
+        $this->actingAs($this->cityHr())->get(route('holidays.index'))->assertOk();
+
+        $groups = Livewire::actingAs($this->cityHr())->test(HolidayModule::class)
+            ->call('create')
+            ->viewData('projectGroups');
+
+        $this->assertSame([$this->alp->id], array_column($groups, 'id'));
+        $this->assertEqualsCanonicalizing(
+            [$this->key($this->studyZone, $this->alp), $this->key($this->leap, $this->alp)],
+            array_column($groups[0]['options'], 'value'),
+        );
+    }
+
+    public function test_city_hr_adds_edits_and_deletes_a_holiday_of_its_own_city(): void
+    {
+        $hr = $this->cityHr();
+
+        Livewire::actingAs($hr)->test(HolidayModule::class)
+            ->call('create')
+            ->set('item.name_en', 'Aleppo Day')
+            ->set('item.name_ar', 'يوم حلب')
+            ->set('item.projects', [$this->key($this->studyZone, $this->alp), $this->key($this->leap, $this->alp)])
+            ->set('item.start_date', '2027-04-01')
+            ->set('item.end_date', '2027-04-01')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $holiday = Holiday::sole();
+        $this->assertSame(Holiday::SCOPE_PROJECTS, $holiday->scope);
+        $this->assertSame(2, $holiday->projects()->count());
+
+        Livewire::actingAs($hr)->test(HolidayModule::class)
+            ->call('edit', $holiday->id)
+            ->set('item.name_en', 'Aleppo Day (moved)')
+            ->set('item.start_date', '2027-04-02')
+            ->set('item.end_date', '2027-04-02')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Aleppo Day (moved)', $holiday->fresh()->name_en);
+
+        Livewire::actingAs($hr)->test(HolidayTable::class)->call('delete', ['id' => $holiday->id])->assertOk();
+        $this->assertNull($holiday->fresh());
+    }
+
+    public function test_city_hr_is_refused_another_city_even_by_a_forged_call(): void
+    {
+        $component = Livewire::actingAs($this->cityHr())->test(HolidayModule::class)
+            ->call('create')
+            ->set('item.name_en', 'X')
+            ->set('item.name_ar', 'X')
+            ->set('item.start_date', '2027-02-01')
+            ->set('item.end_date', '2027-02-01');
+
+        // A project of Homs posted by hand, alone or next to one of Aleppo.
+        $component->set('item.projects', [$this->key($this->studyZone, $this->hms)])->call('save')->assertHasErrors(['item.projects.0']);
+        $component->set('item.projects', [$this->key($this->leap, $this->alp), $this->key($this->studyZone, $this->hms)])
+            ->call('save')->assertHasErrors(['item.projects.1']);
+        // Nor a national holiday, nor the birthday holiday.
+        $component->set('item.scope', 'national')->set('item.projects', [])->call('save')->assertHasErrors(['item.scope']);
+        $component->set('item.scope', 'projects')->set('item.kind', 'birthday')
+            ->set('item.projects', [$this->key($this->leap, $this->alp)])->call('save')->assertHasErrors(['item.kind']);
+
+        $this->assertSame(0, Holiday::count());
+
+        // An existing Homs holiday: no edit, no save over it, no delete.
+        $homs = Holiday::query()->create(['name_en' => 'Homs Day', 'name_ar' => 'H', 'start_date' => '2027-05-01', 'end_date' => '2027-05-01', 'scope' => 'projects']);
+        $homs->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->hms->id]);
+
+        Livewire::actingAs($this->cityHr())->test(HolidayModule::class)->call('edit', $homs->id)->assertForbidden();
+        Livewire::actingAs($this->cityHr())->test(HolidayModule::class)
+            ->set('item.id', $homs->id)
+            ->set('item.name_en', 'Hijacked')
+            ->set('item.name_ar', 'X')
+            ->set('item.projects', [$this->key($this->leap, $this->alp)])
+            ->set('item.start_date', '2027-05-01')
+            ->set('item.end_date', '2027-05-01')
+            ->call('save')
+            ->assertForbidden();
+        Livewire::actingAs($this->cityHr())->test(HolidayTable::class)->call('confirmDelete', $homs->id)->assertForbidden();
+        Livewire::actingAs($this->cityHr())->test(HolidayTable::class)->call('delete', ['id' => $homs->id])->assertForbidden();
+
+        $this->assertSame('Homs Day', $homs->fresh()->name_en);
+    }
+
+    public function test_city_hr_reads_organisation_wide_and_other_city_holidays_but_cannot_change_them(): void
+    {
+        $national = Holiday::query()->create(['name_en' => 'Nationwide Day', 'name_ar' => 'N', 'start_date' => '2027-05-01', 'end_date' => '2027-05-01', 'scope' => 'national']);
+        $shared = Holiday::query()->create(['name_en' => 'Shared Day', 'name_ar' => 'S', 'start_date' => '2027-05-02', 'end_date' => '2027-05-02', 'scope' => 'projects']);
+        $shared->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->alp->id]);
+        $shared->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->hms->id]);
+        $homs = Holiday::query()->create(['name_en' => 'Homs Day', 'name_ar' => 'H', 'start_date' => '2027-05-03', 'end_date' => '2027-05-03', 'scope' => 'projects']);
+        $homs->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->hms->id]);
+
+        Livewire::actingAs($this->cityHr())->test(HolidayTable::class)
+            ->assertSee('Nationwide Day')
+            ->assertSee('Shared Day')
+            ->assertSee('Homs Day');
+
+        foreach ([$national, $shared, $homs] as $holiday) {
+            Livewire::actingAs($this->cityHr())->test(HolidayModule::class)->call('edit', $holiday->id)->assertForbidden();
+            Livewire::actingAs($this->cityHr())->test(HolidayTable::class)->call('delete', ['id' => $holiday->id])->assertForbidden();
+        }
+
+        $this->assertSame(3, Holiday::count());
+    }
+
+    public function test_national_hr_and_project_managers_keep_their_reach(): void
+    {
+        $homs = Holiday::query()->create(['name_en' => 'Homs Day', 'name_ar' => 'H', 'start_date' => '2027-05-03', 'end_date' => '2027-05-03', 'scope' => 'projects']);
+        $homs->projects()->create(['program_id' => $this->studyZone->id, 'city_id' => $this->hms->id]);
+
+        Livewire::actingAs($this->hr)->test(HolidayModule::class)->call('edit', $homs->id)->assertOk();
+        Livewire::actingAs($this->pm)->test(HolidayModule::class)->call('edit', $homs->id)->assertOk();
+    }
+
+    private function cityHr(): User
+    {
+        return $this->makeUser($this->alp, 'HR-ALP');
     }
 
     private function key(Program $program, City $city): string

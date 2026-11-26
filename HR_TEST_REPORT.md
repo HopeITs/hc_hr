@@ -730,3 +730,15 @@ Scope note: data available was 23 requests, 15 campaigns (Aleppo + Latakia), 16 
 | 12 | 2026-11-18 | system | — | `notifications` | 5 rows | New-request / decision notifications for #60 and #61 (to Celine, Adonis, HR) | Optional: delete notifications created 2026-11-18 14:40–15:00 that mention the QA tests |
 
 No other records created or changed. I didn't decide any existing leave request: the pending requests on the dashboards are real data and will stay untouched. Workflow tests will use leave requests I create and log here.
+
+## Decisions on the open questions (2026-11-26)
+
+| ID | Decision | Done |
+|---|---|---|
+| HR-027 (follow-up) | A cancelled leave notifies the direct manager and the city's HR (the employee too when HR cancels); the leave lists get a "Cancelled" tab | `LeaveRequestCancelled`, `LeaveNotificationService::sendCancellation` |
+| HR-033 | City HR manages the holidays of its own city; other cities' and national holidays are read-only for it | `HolidayProjects` (city HR scope), Holidays tab in Basic Settings |
+| HR-034 | A weekend prints as "عطلة أسبوعية" with no leave hours; it still counts 1 working day | `Timesheet`, `attendance.form.weekly-holiday` |
+| HR-035 | Keep as is: sick entitlement stays in hours as computed | — |
+| HR-039 | Keep the super-admin's support access to private folders; the folders page says so | `general.folders-admin-access-note` |
+| HR-040 | A manager publishes to their team by default and HR is informed; a wider audience waits for the approval of HR (the author's city, HR-SYR or super-admin) | `NewsApproval`, `NewsStatus::Pending/Rejected`, migration `add_review_to_news_table` (run `migrate` on deploy) |
+| HR-044 | Keep as is: every HR role may edit organisation-wide reference data | — |

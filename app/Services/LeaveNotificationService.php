@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\LeaveAlternativeChanged;
+use App\Notifications\LeaveRequestCancelled;
 use App\Notifications\LeaveRequestObjected;
 use App\Notifications\NewLeaveRequest;
 use Illuminate\Support\Collection;
@@ -116,6 +117,42 @@ class LeaveNotificationService
             [...$excludedIds, ...$managerRecipients->pluck('id')->all()],
         );
         Notification::send($employeeRecipients, new LeaveRequestObjected($leaveRequest, $note, 'employee'));
+    }
+
+    /**
+     * An accepted leave was cancelled before it started (HR-027). The direct
+     * manager is always told. The requester is told unless they cancelled it
+     * themselves. The city's HR is told when the employee cancelled; when one
+     * of that HR team cancelled it, the team was the source and is left out.
+     */
+    public function sendCancellation(LeaveRequest $leaveRequest, ?User $actor = null): void
+    {
+        $leaveRequest = $this->loadContext($leaveRequest);
+        $excludedIds = [$actor?->id];
+
+        $employeeRecipients = $this->eligibleUniqueUsers(
+            collect([$leaveRequest->leaveBalance->contract->employee->account]),
+            $excludedIds,
+        );
+        Notification::send($employeeRecipients, new LeaveRequestCancelled($leaveRequest, 'employee'));
+
+        $managerRecipients = $this->eligibleUniqueUsers(
+            $this->managerRecipients($leaveRequest),
+            [...$excludedIds, ...$employeeRecipients->pluck('id')->all()],
+        );
+        Notification::send($managerRecipients, new LeaveRequestCancelled($leaveRequest, 'manager'));
+
+        $hr = $this->hrRecipients($leaveRequest);
+
+        if ($actor !== null && $hr->contains('id', $actor->id)) {
+            return;
+        }
+
+        $hrRecipients = $this->eligibleUniqueUsers(
+            $hr,
+            [...$excludedIds, ...$employeeRecipients->pluck('id')->all(), ...$managerRecipients->pluck('id')->all()],
+        );
+        Notification::send($hrRecipients, new LeaveRequestCancelled($leaveRequest, 'hr'));
     }
 
     /**

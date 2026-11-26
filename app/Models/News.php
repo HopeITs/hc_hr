@@ -37,6 +37,14 @@ class News extends Model implements HasMedia
 {
     use InteractsWithMedia, LogsActivity;
 
+    // ------------------------------------------------------------------
+    // Tags (what the item is about; never who sees it)
+    // ------------------------------------------------------------------
+
+    public const MAX_TAGS = 10;
+
+    public const MAX_TAG_LENGTH = 60;
+
     protected $table = 'news';
 
     protected $fillable = [
@@ -63,32 +71,6 @@ class News extends Model implements HasMedia
         'status' => 'published',
         'audience_type' => 'all',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'type' => NewsType::class,
-            'status' => NewsStatus::class,
-            'audience_type' => AudienceType::class,
-            'published_at' => 'datetime',
-            'display_until' => 'datetime',
-            'archived_at' => 'datetime',
-            'event_date' => 'date',
-            'event_starts_at' => 'datetime',
-            'event_ends_at' => 'datetime',
-        ];
-    }
-
-    protected static function booted(): void
-    {
-        // event_date is the event's local day: kept for date-indexed queries
-        // and for the code that has always read it.
-        static::saving(function (News $news) {
-            if ($news->type === NewsType::Event && $news->event_starts_at) {
-                $news->event_date = $news->event_starts_at->copy()->startOfDay();
-            }
-        });
-    }
 
     // ------------------------------------------------------------------
     // Relations
@@ -140,6 +122,12 @@ class News extends Model implements HasMedia
         return $this->updater();
     }
 
+    /** The HR user who approved or rejected a manager's wide item (HR-040). */
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     // ------------------------------------------------------------------
     // Lifecycle scopes (the SQL twin of NewsState::of)
     // ------------------------------------------------------------------
@@ -178,6 +166,8 @@ class News extends Model implements HasMedia
         return match ($state) {
             NewsState::Draft => $query->where('news.status', NewsStatus::Draft->value),
             NewsState::Archived => $query->where('news.status', NewsStatus::Archived->value),
+            NewsState::Pending => $query->where('news.status', NewsStatus::Pending->value),
+            NewsState::Rejected => $query->where('news.status', NewsStatus::Rejected->value),
             NewsState::Scheduled => $query->where('news.status', NewsStatus::Published->value)
                 ->where(fn (Builder $q) => $q->whereNull('news.published_at')->orWhere('news.published_at', '>', $now)),
             NewsState::Expired => $query->released($now)
@@ -352,14 +342,6 @@ class News extends Model implements HasMedia
 
         return $usesArabic ? 'rtl' : 'ltr';
     }
-
-    // ------------------------------------------------------------------
-    // Tags (what the item is about; never who sees it)
-    // ------------------------------------------------------------------
-
-    public const MAX_TAGS = 10;
-
-    public const MAX_TAG_LENGTH = 60;
 
     /** @return list<string> the item's tags, in the order they were added */
     public function tagNames(): array
@@ -536,8 +518,38 @@ class News extends Model implements HasMedia
                 'newsable_id',
                 'newsable_type',
                 'audience_type',
+                'reviewed_by',
+                'reviewed_at',
+                'review_note',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'type' => NewsType::class,
+            'status' => NewsStatus::class,
+            'audience_type' => AudienceType::class,
+            'published_at' => 'datetime',
+            'display_until' => 'datetime',
+            'archived_at' => 'datetime',
+            'event_date' => 'date',
+            'event_starts_at' => 'datetime',
+            'event_ends_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        // event_date is the event's local day: kept for date-indexed queries
+        // and for the code that has always read it.
+        static::saving(function (News $news) {
+            if ($news->type === NewsType::Event && $news->event_starts_at) {
+                $news->event_date = $news->event_starts_at->copy()->startOfDay();
+            }
+        });
     }
 }

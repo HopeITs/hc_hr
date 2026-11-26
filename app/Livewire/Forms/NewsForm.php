@@ -12,6 +12,8 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\News;
 use App\Models\Program;
+use App\Services\News\NewsApproval;
+use App\Support\News\NewsAccess;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
@@ -291,7 +293,7 @@ class NewsForm extends Form
     public function fillFromNews(News $news): void
     {
         $scheduled = $news->published_at !== null && (
-            $news->published_at->isFuture() || $news->status === NewsStatus::Draft
+            $news->published_at->isFuture() || in_array($news->status, [NewsStatus::Draft, NewsStatus::Pending, NewsStatus::Rejected], true)
         );
 
         $this->fill([
@@ -331,17 +333,30 @@ class NewsForm extends Form
             $news->updated_by = auth()->id();
         }
 
+        $author = auth()->user();
+        $wasLive = ! $isNew
+            && $news->status === NewsStatus::Published
+            && $news->published_at !== null
+            && $news->published_at->lte(now());
+        $wasPending = ! $isNew && $news->status === NewsStatus::Pending;
+        $awaitsHr = false;
+
         if ($intent === self::INTENT_DRAFT) {
             $news->status = NewsStatus::Draft;
             $news->published_at = $publishAt;
+        } elseif (NewsAccess::needsApproval($author, $this->audienceEnum(), $this->audience_ids)) {
+            // HR-040: a manager publishes to their own team only. Anything wider
+            // waits for HR, whatever the browser sent: this is the one place
+            // that decides it (the page, a forged call and the assistant).
+            $news->status = NewsStatus::Pending;
+            $news->published_at = $publishAt;
+            $news->reviewed_by = null;
+            $news->reviewed_at = null;
+            $news->review_note = null;
+            $awaitsHr = true;
         } else {
-            $alreadyOut = ! $isNew
-                && $news->status === NewsStatus::Published
-                && $news->published_at !== null
-                && $news->published_at->lte(now());
-
             $news->status = NewsStatus::Published;
-            $news->published_at = $publishAt ?? ($alreadyOut ? $news->published_at : now());
+            $news->published_at = $publishAt ?? ($wasLive ? $news->published_at : now());
         }
 
         $isEvent = $this->typeEnum()->isEvent();
@@ -375,6 +390,16 @@ class NewsForm extends Form
         if ($this->photo instanceof TemporaryUploadedFile) {
             $news->clearMediaCollection('news-image');
             $news->addMedia($this->photo)->toMediaCollection('news-image');
+        }
+
+        if ($intent !== self::INTENT_DRAFT && ! NewsAccess::publishesDirectly($author)) {
+            $approval = app(NewsApproval::class);
+
+            if ($awaitsHr && ! $wasPending) {
+                $approval->requested($news);
+            } elseif (! $awaitsHr && ! $wasLive) {
+                $approval->publishedToTeam($news);
+            }
         }
 
         return $news;
@@ -416,7 +441,7 @@ class NewsForm extends Form
             return true;
         }
 
-        return in_array($this->subject->state(), [NewsState::Draft, NewsState::Scheduled], true);
+        return in_array($this->subject->state(), [NewsState::Draft, NewsState::Scheduled, NewsState::Pending, NewsState::Rejected], true);
     }
 
     /** Display until: after the publish moment, and for an event not before it starts. */

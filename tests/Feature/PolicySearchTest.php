@@ -70,12 +70,16 @@ class PolicySearchTest extends TestCase
         $this->assertSame([], $library->search('ا'));
     }
 
-    public function test_every_employee_finds_the_policies_page_in_the_menu(): void
+    public function test_hr_finds_the_policies_page_in_the_menu_and_employees_do_not(): void
     {
-        $employee = $this->makeUser($this->makeCity('ALP', '001'), 'employee', []);
+        $city = $this->makeCity('ALP', '001');
+        $hr = $this->makeUser($city, 'HR-ALP', []);
 
-        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.index', $employee));
-        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.show', $employee));
+        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.index', $hr));
+        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.show', $hr));
+
+        // Employees read the policies in Folders / Shared with me / Policies.
+        $this->assertNull(Navigation::areaFor('policies.index', $this->makeUser($city, 'employee', [])));
     }
 
     public function test_hr_finds_the_upload_page_from_the_policies_page_and_others_do_not(): void
@@ -92,7 +96,7 @@ class PolicySearchTest extends TestCase
         Livewire::actingAs($readOnlyHr)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
 
         $employee = $this->makeUser($city, 'employee', ['employees.update']);
-        Livewire::actingAs($employee)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
+        Livewire::actingAs($employee)->test(Index::class)->assertForbidden();
     }
 
     public function test_every_employee_sees_the_policies_group_in_the_header_search(): void
@@ -145,7 +149,7 @@ class PolicySearchTest extends TestCase
     public function test_the_list_page_searches_and_lists_only_readable_policies(): void
     {
         $city = $this->makeCity('ALP', '001');
-        $employee = $this->makeUser($city, 'employee', []);
+        $employee = $this->makeUser($city, 'HR-ALP', []);
 
         $this->actingAs($employee)->get(route('policies.index'))
             ->assertOk()

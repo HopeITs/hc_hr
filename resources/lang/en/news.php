@@ -22,6 +22,8 @@ return [
         'published' => 'Published',
         'expired' => 'Expired',
         'archived' => 'Archived',
+        'pending' => 'Awaiting HR approval',
+        'rejected' => 'Not approved',
     ],
 
     'audience' => [
@@ -85,6 +87,8 @@ return [
         'tabs_label' => 'Show items by state',
         'tabs' => [
             'all' => 'All',
+            'pending' => 'Awaiting approval',
+            'rejected' => 'Not approved',
             'draft' => 'Drafts',
             'scheduled' => 'Scheduled',
             'published' => 'Published',
@@ -137,6 +141,25 @@ return [
             'restored' => 'Restored.',
             'unavailable' => 'That action no longer applies to this item. The list has been refreshed.',
         ],
+    ],
+
+    // HR-040: HR approves a manager's item meant for more than their team.
+    'review' => [
+        'title' => 'Waiting for your approval',
+        'lead' => 'A manager wrote this for an audience wider than their team. Approve it to publish it, or reject it with a reason the author will see.',
+        'approve' => 'Approve and publish',
+        'reject' => 'Reject',
+        'approved' => 'Approved. It is published to its audience.',
+        'rejected' => 'Rejected. The author has been told why.',
+        'reason' => 'Reason for rejecting',
+        'reason_hint' => 'Required to reject. The author sees it.',
+        'reason_required' => 'Write why it is rejected, so the author knows what to change.',
+        'rejected_reason' => 'HR did not approve this item. Reason:',
+        'not_pending' => 'This item is no longer waiting for approval.',
+        'confirm_approve_title' => 'Approve and publish?',
+        'confirm_approve_message' => 'Its audience will see it at its publication time, and the author will be told.',
+        'confirm_reject_title' => 'Reject this item?',
+        'confirm_reject_message' => 'It stays unpublished, and the author is told the reason.',
     ],
 
     // Create / edit form (NewsCreate, NewsForm) and <x-news.article>.
@@ -210,6 +233,7 @@ return [
             'save_draft' => 'Save draft',
             'publish' => 'Publish',
             'schedule' => 'Schedule',
+            'send_for_approval' => 'Send to HR for approval',
         ],
         'preview' => [
             'title' => 'Preview',
@@ -220,6 +244,8 @@ return [
         'saved_draft' => 'Saved as a draft. It is not visible to anyone yet.',
         'saved_published' => 'Published.',
         'saved_scheduled' => 'Scheduled for :date.',
+        'saved_pending' => 'Sent to HR for approval. It is published once HR approves it.',
+        'needs_approval_hint' => 'This audience is wider than your team, so HR must approve it before it is published. To publish straight away, choose only members of your team.',
         'errors' => [
             'tags_max' => 'Add at most :max tags.',
             'tag_length' => 'A tag can be at most :max characters long.',
