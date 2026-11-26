@@ -4,15 +4,31 @@
     <x-page-header :title="__('policies.title')" :lead="__('policies.lead')">
         @if ($canManage)
             <x-slot:actions>
-                <x-button :href="$folderUrl" variant="primary" size="sm" data-testid="policies-manage">
+                <label class="inline-flex cursor-pointer items-center gap-2 rounded-control bg-primary px-3 py-1.5 text-small font-semibold text-white hover:bg-primary-hover focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink" data-testid="policies-manage">
                     <x-ic name="plus" /> @lang('policies.manage')
-                </x-button>
+                    <input type="file" wire:model="newPolicy" accept=".pdf,.docx,.txt" class="sr-only" data-testid="policies-upload">
+                </label>
                 <x-button :href="route('onboarding.required-policies')" variant="outline" size="sm" data-testid="policies-settings">
                     @lang('policies.settings')
                 </x-button>
             </x-slot:actions>
         @endif
     </x-page-header>
+
+    @if ($canManage)
+        <div wire:loading wire:target="newPolicy,replacement" class="text-small text-ink-2">@lang('policies.uploading')</div>
+        @error('newPolicy') <p class="text-small text-ink" role="alert" data-testid="policies-upload-error">{{ $message }}</p> @enderror
+        @if ($replacingId !== null)
+            <x-card data-testid="policy-replace">
+                <p class="text-small text-ink">{{ __('policies.replace-hint', ['name' => $documents->firstWhere('id', $replacingId)?->title]) }}</p>
+                <div class="mt-2 flex flex-wrap items-center gap-3">
+                    <input type="file" wire:model="replacement" accept=".pdf,.docx,.txt" class="text-small text-ink" data-testid="policy-replace-file">
+                    <x-button variant="quiet" size="sm" wire:click="cancelReplace">{{ __('general.cancel') }}</x-button>
+                </div>
+                @error('replacement') <p class="mt-2 text-small text-ink" role="alert">{{ $message }}</p> @enderror
+            </x-card>
+        @endif
+    @endif
 
     @if ($canManage && $unfinished->isNotEmpty())
         <x-card data-testid="policies-unfinished">
@@ -84,6 +100,14 @@
                     </div>
                     @if (in_array($document->id, $outdated, true))
                         <x-tag variant="act">@lang('policies.new-version')</x-tag>
+                    @endif
+                    @if ($canManage)
+                        <div class="flex items-center gap-1">
+                            @if ($document->media)
+                                <x-button variant="quiet" size="sm" wire:click="startReplace({{ $document->id }})" data-testid="policy-replace-{{ $document->id }}">@lang('policies.replace')</x-button>
+                            @endif
+                            <x-button variant="quiet" size="sm" wire:click="remove({{ $document->id }})" wire:confirm="{{ __('policies.remove-confirm') }}" data-testid="policy-remove-{{ $document->id }}">@lang('policies.remove')</x-button>
+                        </div>
                     @endif
                 </div>
             </x-card>

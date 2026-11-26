@@ -21,6 +21,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
@@ -144,7 +145,7 @@ class PolicyFolderTest extends TestCase
         $document->refresh();
         $this->assertSame(1, PolicyDocument::query()->count());
         $this->assertNotSame($oldMedia, $document->media_id);
-        $this->assertNull(\Spatie\MediaLibrary\MediaCollections\Models\Media::query()->find($oldMedia));
+        $this->assertNull(Media::query()->find($oldMedia));
         $this->assertStringContainsString('الإجازة الأبوية', $document->content);
         $this->assertSame('سياسة الإجازات 2026', $document->title);
 
@@ -202,12 +203,46 @@ class PolicyFolderTest extends TestCase
         Livewire::actingAs($this->employee)->test(Index::class)->assertDontSee('Travel policy');
     }
 
+    public function test_hr_adds_replaces_and_removes_policies_on_the_policies_page(): void
+    {
+        $page = Livewire::actingAs($this->hr)->test(Index::class)->set('newPolicy', $this->docx())->assertHasNoErrors();
+
+        $document = PolicyDocument::query()->firstOrFail();
+        $this->assertSame('سياسة الإجازات', $document->title);
+        $this->assertSame($this->library()->id, $document->media->model_id, 'the file lands in the Policies folder');
+        $this->assertSame(PolicyDocument::READY, $document->read_status);
+
+        $page->call('startReplace', $document->id)->set('replacement', $this->docx('سياسة الإجازات.docx'))->assertHasNoErrors();
+        $this->assertSame(1, PolicyDocument::query()->count());
+        $this->assertNull($page->get('replacingId'));
+
+        $page->call('remove', $document->id);
+        $this->assertSame(0, PolicyDocument::query()->count());
+        $this->assertSame(0, Media::query()->where('model_type', Folder::class)->count());
+    }
+
+    public function test_the_policies_page_refuses_other_file_types_and_other_people(): void
+    {
+        Livewire::actingAs($this->hr)->test(Index::class)
+            ->set('newPolicy', UploadedFile::fake()->create('pic.png', 5))
+            ->assertHasErrors('newPolicy');
+        $this->assertSame(0, PolicyDocument::query()->count());
+
+        $document = $this->upload($this->docx());
+
+        Livewire::actingAs($this->employee)->test(Index::class)
+            ->set('newPolicy', $this->docx())->assertForbidden();
+        Livewire::actingAs($this->employee)->test(Index::class)
+            ->call('remove', $document->id)->assertForbidden();
+        $this->assertSame(1, PolicyDocument::query()->count());
+    }
+
     public function test_hr_reaches_the_folder_and_the_settings_from_the_policies_page(): void
     {
         $folderUrl = ArchivedFilesModule::folderUrl($this->library()->id);
 
         Livewire::actingAs($this->hr)->test(Index::class)
-            ->assertSeeHtml('data-testid="policies-manage"')->assertSeeHtml($folderUrl)
+            ->assertSeeHtml('data-testid="policies-manage"')->assertSeeHtml('data-testid="policies-upload"')
             ->assertSeeHtml(route('onboarding.required-policies'));
         Livewire::actingAs($this->employee)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
 
@@ -231,7 +266,7 @@ class PolicyFolderTest extends TestCase
 
     public function test_indented_lines_read_as_text_not_as_code(): void
     {
-        $doc = PolicyDocument::query()->create(['title' => 'X', 'content' => "جمع المعلومات:
+        $doc = PolicyDocument::query()->create(['title' => 'X', 'content' => 'جمع المعلومات:
 	ما يتم جمعه من المتطوع يكون متناسباً.
     يتم توضيح الهدف من جمع المعلومات.
 
@@ -240,7 +275,7 @@ class PolicyFolderTest extends TestCase
 
 ```
 ليس شيفرة
-```"]);
+```']);
 
         Livewire::actingAs($this->employee)->test(Show::class, ['document' => $doc->id])
             ->assertDontSeeHtml('<pre>')->assertDontSeeHtml('<code>')

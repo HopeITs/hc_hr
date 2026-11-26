@@ -99,7 +99,7 @@ return [
         'uploaded' => 'The document was uploaded.',
         'unreadable' => 'No text could be read from this file.',
         'open-folder' => 'Open the Policies folder',
-        'folder-hint' => 'Policies are added, replaced and removed in the Policies folder under Folders. Here you choose what a new volunteer must read and agree to.',
+        'folder-hint' => 'Policies are added, replaced and removed on the Policies page. Here you choose what a new volunteer must read and agree to.',
         'text-only' => 'Kept as text only from before: upload its file to the Policies folder, then delete this one.',
         'pdf-busy' => 'The PDF reading service is busy. Try again in a few minutes, or upload the Word version of the file.',
         'pdf-unavailable' => 'Reading PDFs is not available on this server right now. Upload the Word version of the file and tell the IT team.',
