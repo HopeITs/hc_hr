@@ -39,7 +39,50 @@ class PolicyRenderer
     {
         $markdown = preg_replace('/^[ \t]+(?!(?:[-*+]|\d+[.)])[ \t])/mu', '', $markdown) ?? $markdown;
 
+        // Five or more spaces (or a tab) between a list marker and its text make the item's text an
+        // indented code block, however it was meant: one space is all a list item needs.
+        $markdown = preg_replace('/^([ \t]*(?:[-*+]|\d+[.)]))[ \t]+(?=\S)/mu', '$1 ', $markdown) ?? $markdown;
+
+        $markdown = self::steadyListIndent($markdown);
+
         return preg_replace('/^(\s*)(`{3,}|~{3,})/mu', '$1\\\\$2', $markdown) ?? $markdown;
+    }
+
+    /**
+     * A list marker indented four spaces or more (or a tab) is a code block unless it nests under an
+     * item above it. So each marker's indent is read as a depth against the items before it and
+     * written back as four spaces per level: Word's three, a tab, or a stray run of spaces all
+     * keep their nesting, and a marker with nothing above it starts the list.
+     */
+    private static function steadyListIndent(string $markdown): string
+    {
+        $stack = [];
+        $lines = explode("\n", $markdown);
+
+        foreach ($lines as $i => $line) {
+            if (! preg_match('/^([ \t]*)((?:[-*+]|\d+[.)]) .*)$/su', $line, $m)) {
+                if (trim($line) !== '') {
+                    $stack = [];
+                }
+
+                continue;
+            }
+
+            $width = strlen(str_replace("\t", '    ', $m[1]));
+
+            while ($stack !== [] && end($stack) >= $width) {
+                $popped = array_pop($stack);
+
+                if ($popped === $width) {
+                    break;
+                }
+            }
+
+            $stack[] = $width;
+            $lines[$i] = str_repeat('    ', count($stack) - 1).$m[2];
+        }
+
+        return implode("\n", $lines);
     }
 
     /** @param  list<string>  $terms */
