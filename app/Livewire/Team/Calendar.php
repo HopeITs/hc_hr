@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Team;
 
+use App\Models\BoardMeeting;
 use App\Models\City;
 use App\Models\Holiday;
+use App\Services\Board\BoardAccess;
 use App\Services\Dashboard\CalendarFeed;
 use App\Services\HolidayProjects;
 use App\Services\LeaveRequestPricing;
@@ -120,7 +122,7 @@ class Calendar extends Component
             $failed = true;
         }
 
-        $events = $this->showEvents ? $this->eventsByDay($user, $from, $to) : [];
+        $events = $this->showEvents ? $this->withBoardMeetings($this->eventsByDay($user, $from, $to), $user, $from, $to) : [];
 
         $holidayProjects = app(HolidayProjects::class);
         $canManageHolidays = $holidayProjects->canManage($user);
@@ -306,6 +308,45 @@ class Calendar extends Component
                     'last' => $day['last'],
                 ];
             }
+        }
+
+        return $byDay;
+    }
+
+    /**
+     * The board's meetings on their days, for the people on the board (members, chair, secretary) only: laid
+     * out like an organization event, with the time and a link to the meeting. A cancelled one is left off.
+     *
+     * @param  array<string, list<array<string, mixed>>>  $byDay
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function withBoardMeetings(array $byDay, $user, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        try {
+            if (! app(BoardAccess::class)->canView($user)) {
+                return $byDay;
+            }
+
+            $meetings = BoardMeeting::query()
+                ->where('status', BoardMeeting::SCHEDULED)
+                ->whereBetween('starts_at', [$from->startOfDay(), $to->endOfDay()])
+                ->orderBy('starts_at')
+                ->get();
+        } catch (Throwable $e) {
+            report($e);
+
+            return $byDay;
+        }
+
+        foreach ($meetings as $meeting) {
+            $byDay[$meeting->starts_at->toDateString()][] = [
+                'key' => 'board-'.$meeting->id,
+                'title' => __('board.meeting-number', ['number' => $meeting->number]),
+                'time' => $meeting->starts_at->format('H:i'),
+                'url' => route('board.meetings.show', $meeting->id),
+                'first' => true,
+                'last' => true,
+            ];
         }
 
         return $byDay;

@@ -263,6 +263,30 @@ class BoardMeetingsTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_board_meetings_show_on_the_team_calendar_for_the_board_only(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->startOfMonth()->addDays(9)->setTime(12, 0)], notify: false);
+        $cancelled = app(BoardMeetingService::class)->schedule(['starts_at' => now()->startOfMonth()->addDays(16)->setTime(12, 0)], notify: false);
+        $cancelled->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => 'x']);
+
+        $title = __('board.meeting-number', ['number' => $meeting->number]);
+
+        Livewire::actingAs($this->member)->test(\App\Livewire\Team\Calendar::class)->set('view', 'agenda')
+            ->assertSee($title)->assertDontSee(__('board.meeting-number', ['number' => $cancelled->number]));
+        Livewire::actingAs($this->outsider)->test(\App\Livewire\Team\Calendar::class)->set('view', 'agenda')
+            ->assertDontSee($title);
+    }
+
+    public function test_the_weekly_announcement_is_scheduled_on_the_meeting_day(): void
+    {
+        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+            ->filter(fn ($e) => str_contains((string) $e->command, 'board:ensure-next-meeting'));
+
+        // Thursday (day 4) at 14:00, plus the daily safety run at 07:30.
+        $this->assertContains('0 14 * * 4', $events->map->expression->all());
+        $this->assertContains('30 7 * * *', $events->map->expression->all());
+    }
+
     public function test_the_commands_are_registered(): void
     {
         $this->assertSame(0, Artisan::call(EnsureNextBoardMeeting::class));

@@ -11,6 +11,10 @@ return [
 
     'time' => '12:00',
 
+    // On the meeting's weekday, at this time (after the meeting), the next week's meeting is opened and the
+    // board is told about it: "next Thursday at 12". A daily run at 07:30 catches any week that was missed.
+    'announce_time' => '14:00',
+
     'duration_minutes' => 90,
 
     // 1 = every week; 2 = every other week (when the pressure is low).

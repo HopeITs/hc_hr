@@ -54,6 +54,8 @@ Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 // Attendance: in the first days of a month, remind managers to approve and HR to lock last month.
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
 // Board: the next meeting is opened at its usual slot, and the board is reminded the day before (once).
+// Every meeting day, after the meeting: announce the next one ("next Thursday at 12"). The daily run is the safety net.
+Schedule::command(EnsureNextBoardMeeting::class)->weeklyOn((int) config('board.weekday', 4), (string) config('board.announce_time', '14:00'));
 Schedule::command(EnsureNextBoardMeeting::class)->dailyAt('07:30');
 Schedule::command(SendBoardMeetingReminders::class)->dailyAt('08:18');
 // D4-I: one reminder to city HR per overdue orientation session.
