@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use RamonRietdijk\LivewireTables\Columns\BaseColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\DateColumn;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -142,6 +143,11 @@ class AllLeaveRequestTable extends LivewireTable
         return $this->rowClickAction($model);
     }
 
+    protected function isStickyColumn(BaseColumn $column): bool
+    {
+        return $column->label() === __('general.actions');
+    }
+
     /** HR and super-admin see and set "Seen by HR". */
     protected function showsHrReview(): bool
     {
@@ -157,14 +163,14 @@ class AllLeaveRequestTable extends LivewireTable
         $pending = $model->status === LeaveRequestStatus::Pending;
 
         $decisionBtn = $this->canDecide($model)
-            ? Blade::render('<x-table.decision-btn wire:click="$dispatch(\'openDecisionRequestLeave\', { id: '.$key.' })" />')
+            ? Blade::render('<x-table.decision-btn :title="__(\'general.leave-decision\')" wire:click="$dispatch(\'openDecisionRequestLeave\', { id: '.$key.' })" />')
             : '';
 
-        $showBtn = Blade::render('<x-table.show-btn wire:click="$dispatch(\'openShowRequestLeave\', { id: '.$key.' })" />');
+        $showBtn = Blade::render('<x-table.show-btn :title="__(\'general.a11y.view-details\')" wire:click="$dispatch(\'openShowRequestLeave\', { id: '.$key.' })" />');
 
         // Editing a decided request is deliberate: its own button, after View.
         $editBtn = ! $pending && (int) $model->status !== LeaveRequestStatus::Cancelled && auth()->user()?->hasActivePermission('leaves.update')
-            ? Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$key.' })" />')
+            ? Blade::render('<x-table.edit-btn :title="__(\'general.edit\')" wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$key.' })" />')
             : '';
 
         $cancelBtn = Gate::allows('cancel', $model)
@@ -271,10 +277,10 @@ class AllLeaveRequestTable extends LivewireTable
 
             SelectColumn::make(trans_choice('general.employee', 1), 'leaveBalance.contract.employee_id')
                 ->options($this->employeeFilterOptions())
-                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-person :id="$id" :name="$name" />', [
-                    'id' => $m->leaveBalance?->contract?->employee_id,
-                    'name' => $m->leaveBalance?->contract?->employee?->name ?? '—',
-                ]))
+                ->displayUsing(fn ($v, Model $m) => view('livewire.employee.leave.partials.open-request', [
+                    'name' => $m->leaveBalance?->contract?->employee?->name ?? __('general.na'),
+                    'action' => $this->rowOpenAction($m),
+                ])->render())
                 ->asHtml()
                 ->sortable()
                 ->searchable(),
@@ -289,7 +295,10 @@ class AllLeaveRequestTable extends LivewireTable
                 ->searchable(),
 
             Column::make(__('general.duration'), 'duration')->computed(),
-            Column::make(__('general.status'), fn (Model $model): string => view('livewire.employee.leave.partials.card-status', ['item' => $model])->render())
+            Column::make(__('general.status'), fn (Model $model): string => view('livewire.employee.leave.partials.card-status', [
+                'item' => $model,
+                'compact' => true,
+            ])->render())
                 ->asHtml(),
             DateColumn::make(__('general.request_date'), 'created_at')
                 ->format('d-m-Y H:i') // keep it; used for default/export/sort context

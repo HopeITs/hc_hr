@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
+use App\Livewire\Employee\Leave\AllLeaveRequestTable;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Models\Contract;
 use App\Models\ContractType;
@@ -220,6 +221,28 @@ class A4BilingualTest extends TestCase
             $this->assertSame($ar, LeaveRequestStatus::getLocalizedName($status)['value']);
             app()->setLocale('en');
             $this->assertSame($en, LeaveRequestStatus::getLocalizedName($status)['value']);
+        }
+    }
+
+    public function test_team_leave_request_controls_have_localized_accessible_names(): void
+    {
+        $balance = $this->makeAnnualBalance();
+        $leave = $this->requestOn($balance, 'day', today(), today());
+        $hr = $this->makeUser($balance->contract->employee->city, 'HR-ALP', ['leaves.view', 'leaves.decide']);
+
+        foreach (['en', 'ar'] as $locale) {
+            app()->setLocale($locale);
+            $name = $balance->contract->employee->name;
+
+            Livewire::actingAs($hr)
+                ->test(AllLeaveRequestTable::class)
+                ->assertSeeHtml('aria-label="'.e(__('general.a11y.open-leave-request-for', ['name' => $name])).'"')
+                ->assertSeeHtml('aria-label="'.e(__('general.a11y.view-details')).'"')
+                ->assertSeeHtml('aria-label="'.e(__('general.leave-decision')).'"')
+                ->assertSeeHtml('x-on:click.stop="'.e("\$dispatch('openDecisionRequestLeave', { id: {$leave->id} })").'"')
+                ->assertSeeHtml('x-on:click.prevent="'.e("\$dispatch('openDecisionRequestLeave', { id: {$leave->id} })").'"')
+                ->assertSeeHtml('sticky end-0 z-10 border-s whitespace-nowrap')
+                ->assertDontSeeHtml('data-person=');
         }
     }
 

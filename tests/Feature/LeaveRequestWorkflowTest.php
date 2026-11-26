@@ -1145,6 +1145,23 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertStringNotContainsString('x-on:click="'.e("\$dispatch('openRequestLeaveEdit', { id: {$decided->id} })").'"', $html);
     }
 
+    public function test_team_leaves_renders_only_the_active_dialog_submit_control(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+
+        Livewire::actingAs($hr)->test(AllLeaveRequestModule::class)
+            ->assertDontSeeHtml('wire:submit.prevent="confirmSave"')
+            ->assertDontSeeHtml('wire:submit.prevent="submitDecision"')
+            ->call('openDecision', $leave->id)
+            ->assertSeeHtml('wire:submit.prevent="submitDecision"')
+            ->assertDontSeeHtml('wire:submit.prevent="confirmSave"')
+            ->call('requestClose', 'decisionModal')
+            ->assertDontSeeHtml('wire:submit.prevent="submitDecision"')
+            ->call('create')
+            ->assertSeeHtml('wire:submit.prevent="confirmSave"')
+            ->assertDontSeeHtml('wire:submit.prevent="submitDecision"');
+    }
+
     /** G-B-4: My leaves has phone cards with the leave type first and the same actions. */
     public function test_gb4_my_leaves_cards_show_the_request_and_its_actions(): void
     {

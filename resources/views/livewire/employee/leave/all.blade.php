@@ -71,6 +71,7 @@ use App\Enums\LeaveRequestStatus;
         close-action="requestClose"
         wire:ignore.self
         class="flex items-center justify-center px-2">
+        @if($formModal)
         @php
             // The same numbered steps as the employee's own request form (index.blade.php), over HR's
             // fields: employee → leave type → unit (annual only) → dates → reason and cover.
@@ -268,6 +269,7 @@ use App\Enums\LeaveRequestStatus;
                 </x-modal.actions>
             </form>
         </div>
+        @endif
     </x-modal.dialog>
 
     <x-modal.dialog
@@ -371,7 +373,7 @@ use App\Enums\LeaveRequestStatus;
         wire:model.defer="decisionModal"
         close-action="requestClose"
         wire:ignore.self>
-        @if($decisionLeave)
+        @if($decisionModal && $decisionLeave)
             {{-- A real form, so Enter in the reason field submits (G-B-7). --}}
             <form wire:submit.prevent="submitDecision" class="space-y-6 sheet:flex-1 sheet:flex sheet:flex-col">
 

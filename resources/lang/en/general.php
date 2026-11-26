@@ -922,6 +922,7 @@ return [
         'toggle-password' => 'Show or hide password',
         'close-dialog' => 'Close dialog',
         'view-details' => 'View details',
+        'open-leave-request-for' => 'Open leave request for :name',
     ],
 
     // Default <meta> copy, overridden per page via $title / $description
