@@ -30,8 +30,8 @@ Route::get('onboarding/manager-session/{employee}', App\Livewire\Onboarding\Mana
 Route::get('onboarding/policies', App\Livewire\Onboarding\Policies::class)->name('onboarding.policies');
 // The policies themselves, read-only for every signed-in employee (the header search opens a passage of one).
 Route::get('policies', App\Livewire\Policies\Index::class)->name('policies.index');
-// The menu's Policies link: straight into My folders / Policies, whose files every employee reads.
-Route::get('policies/folder', fn () => redirect(App\Livewire\Archives\ArchivedFilesModule::folderUrl(app(App\Services\Policies\PolicyFolder::class)->library()->id)))->name('policies.folder');
+// Straight into Shared with me / Policies, whose files every employee reads.
+Route::get('policies/folder', fn () => redirect(App\Livewire\Archives\ArchivedFilesModule::folderUrl(app(App\Services\Policies\PolicyFolder::class)->library()->id, shared: true)))->name('policies.folder');
 Route::get('policies/{document}', App\Livewire\Policies\Show::class)->whereNumber('document')->name('policies.show');
 Route::get('policies/{document}/file', App\Http\Controllers\PolicyFileController::class)->whereNumber('document')->name('policies.file');
 // The volunteer's own journey, worded for them (MyFirstDays reads only the signed-in user's employee).

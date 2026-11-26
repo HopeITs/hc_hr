@@ -186,8 +186,11 @@ class PolicyFolderTest extends TestCase
             ->assertSee(route('policies.show', $document->id), false)
             ->assertDontSee(__('general.folder_empty'));
 
-        Livewire::actingAs($this->employee)->test(ArchivedFilesModule::class)
+        // Hope Center's folder, so under "Shared with me", not "My folders".
+        Livewire::withQueryParams(['scope' => ArchivedFilesModule::SHARED_SCOPE])->actingAs($this->employee)->test(ArchivedFilesModule::class)
             ->assertSee(__('policies.folder-owner'));
+        Livewire::withQueryParams([])->actingAs($this->employee)->test(ArchivedFilesModule::class)
+            ->assertDontSee(__('policies.folder-owner'));
     }
 
     public function test_other_files_and_other_folders_are_not_policies(): void
@@ -252,7 +255,7 @@ class PolicyFolderTest extends TestCase
 
     public function test_hr_reaches_the_folder_and_the_settings_from_the_policies_page(): void
     {
-        $folderUrl = ArchivedFilesModule::folderUrl($this->library()->id);
+        $folderUrl = ArchivedFilesModule::folderUrl($this->library()->id, shared: true);
 
         Livewire::actingAs($this->hr)->test(Index::class)
             ->assertSeeHtml('data-testid="policies-manage"')->assertSeeHtml('data-testid="policies-upload"')
