@@ -29,13 +29,47 @@
                     <x-button variant="outline" type="button" wire:click="setMode('view')">@lang('board.minutes.view-mode')</x-button>
                 @endif
             @endif
-            @if($minutesVisible && ! $meeting->isCancelled())
+            @if($meeting->isArchive())
+                <x-button variant="outline" :href="route('board.meetings.archive', ['meeting' => $meeting, 'download' => 1])">@lang('board.archive.download')</x-button>
+            @elseif($minutesVisible && ! $meeting->isCancelled())
                 <x-button variant="outline" :href="route('board.meetings.pdf', $meeting)">@lang('board.minutes.download-pdf')</x-button>
             @endif
         </x-slot:actions>
     </x-page-header>
 
-    @if($sheetMode)
+    @if($sheetMode && $meeting->isArchive())
+        {{-- Minutes from before the system: the signed original, shown as it is. --}}
+        <section class="mx-auto max-w-4xl space-y-3" data-testid="board-archive">
+            <div class="flex flex-wrap items-center gap-3 rounded-surface border border-line bg-card p-4">
+                <x-status tone="done" icon="check" :label="__('board.status.held')" />
+                <x-status tone="wait" icon="inbox" :label="__('board.archive.badge')" />
+                <span class="text-small text-ink-2">
+                    {{ $meeting->starts_at->translatedFormat('l j F Y') }}
+                    @if($meeting->starts_at->format('H:i') !== '00:00')
+                        · <bdi dir="ltr" class="num" style="direction:ltr;unicode-bidi:isolate">{{ $meeting->starts_at->format('H:i') }}@if($meeting->ends_at) – {{ $meeting->ends_at->format('H:i') }}@endif</bdi>
+                    @endif
+                    @if($meeting->location) · {{ $meeting->location }}@endif
+                    @if($meeting->led_by) · @lang('board.fields.led-by'): {{ $meeting->led_by }}@endif
+                </span>
+            </div>
+
+            @if($archiveIsPdf)
+                <iframe src="{{ route('board.meetings.archive', $meeting) }}" title="{{ __('board.meeting-number', ['number' => $meeting->number]) }}"
+                        class="w-full rounded-surface border border-line bg-white" style="height:80vh;min-height:32rem"></iframe>
+            @else
+                <div class="rounded-surface border border-line p-6 sm:p-10" dir="rtl" style="background:#FFFFFF;color:#414042;color-scheme:light">
+                    <p class="mb-4 text-small">@lang('board.archive.word-note')</p>
+                    <div class="whitespace-pre-line leading-relaxed">{{ $meeting->archive_text ?: '—' }}</div>
+                </div>
+            @endif
+
+            @if($canRemoveArchive)
+                <div class="flex justify-end">
+                    <x-button size="sm" variant="quiet" type="button" wire:click="removeArchive" wire:confirm="{{ __('board.archive.remove-confirm') }}">@lang('board.archive.remove')</x-button>
+                </div>
+            @endif
+        </section>
+    @elseif($sheetMode)
         {{-- The minutes as the printed sheet: what the PDF holds, read on the page. --}}
         {{-- Paper, in light and dark alike: white page, dark ink (never the theme's colours). --}}
         <div class="mx-auto max-w-3xl rounded-surface border border-line p-6 shadow-sm sm:p-10" data-testid="board-sheet" dir="rtl"

@@ -21,6 +21,7 @@ class BoardMeeting extends Model
         'number', 'starts_at', 'ends_at', 'location', 'room', 'purpose', 'led_by', 'status',
         'cancel_reason', 'reminded_at', 'published_at', 'prepared_by', 'created_by',
         'reopened_at', 'reopened_by', 'reopen_reason',
+        'source', 'archive_path', 'archive_name', 'archive_mime', 'archive_text',
     ];
 
     protected $casts = [
@@ -60,6 +61,12 @@ class BoardMeeting extends Model
     public function isPublished(): bool
     {
         return $this->published_at !== null;
+    }
+
+    /** Minutes of a meeting held before the system, kept as the original file. */
+    public function isArchive(): bool
+    {
+        return $this->source === 'archive';
     }
 
     /** Its time has come: the date can no longer move, and attendance can be taken. */

@@ -341,8 +341,10 @@ class Calendar extends Component
         foreach ($meetings as $meeting) {
             $byDay[$meeting->starts_at->toDateString()][] = [
                 'key' => 'board-'.$meeting->id,
-                'title' => __('board.meeting-number', ['number' => $meeting->number]),
-                'time' => $meeting->starts_at->format('H:i'),
+                // A meeting whose time has passed is shown as held (old ones from the archive included).
+                'title' => __('board.meeting-number', ['number' => $meeting->number])
+                    .($meeting->starts_at->isPast() ? ' · '.__('board.status.held') : ''),
+                'time' => $meeting->isArchive() && $meeting->starts_at->format('H:i') === '00:00' ? null : $meeting->starts_at->format('H:i'),
                 'url' => route('board.meetings.show', $meeting->id),
                 'first' => true,
                 'last' => true,

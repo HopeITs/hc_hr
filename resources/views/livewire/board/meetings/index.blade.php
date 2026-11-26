@@ -53,6 +53,10 @@
         </form>
     @endif
 
+    @if($canImport)
+        <livewire:board.meetings.archive-import />
+    @endif
+
     <div class="max-w-xl">
         <x-forms.input type="search" wire:model.live.debounce.400ms="search" :placeholder="__('board.search.placeholder')" aria-label="{{ __('board.search.label') }}" />
     </div>
@@ -101,7 +105,9 @@
                     <p class="text-small text-ink-2"><bdi class="num">{{ $meeting->starts_at->translatedFormat('l j F Y') }}</bdi></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    @if($meeting->isPublished())
+                    @if($meeting->isArchive())
+                        <x-status tone="wait" icon="inbox" :label="__('board.archive.badge')" />
+                    @elseif($meeting->isPublished())
                         <x-status tone="done" icon="check" :label="__('board.minutes.published-badge')" />
                     @elseif($seeDraft && ! $meeting->isCancelled())
                         <x-status tone="attn" icon="clock" :label="__('board.minutes.no-minutes')" />

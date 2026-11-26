@@ -161,6 +161,11 @@ class BoardMeetingService
     /** Every current member has a row; a member who joined after the meeting was opened gets one on the next call. */
     public function syncAttendees(BoardMeeting $meeting): void
     {
+        // Old minutes say who was there in their own file; the system does not guess.
+        if ($meeting->isArchive()) {
+            return;
+        }
+
         $have = $meeting->attendees()->pluck('employee_id');
 
         foreach ($this->access->currentMembers()->whereNotIn('employees.id', $have)->pluck('employees.id') as $employeeId) {

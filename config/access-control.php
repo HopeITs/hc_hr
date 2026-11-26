@@ -329,6 +329,14 @@ return [
             'useTemplate' => 'board-meetings.write-minutes',
             'carryFollowUp' => 'board-meetings.write-minutes',
             'reopenMinutes' => 'board-meetings.manage',
+            'removeArchive' => 'board-meetings.write-minutes',
+        ],
+        // Old minutes (before the system): the secretary uploads them. Each method checks it again inside.
+        'board.meetings.archive-import' => [
+            'updatedFiles' => 'board-meetings.write-minutes',
+            'saveRow' => 'board-meetings.write-minutes',
+            'saveAll' => 'board-meetings.write-minutes',
+            'dropRow' => 'board-meetings.write-minutes',
         ],
         // The composer re-checks message-templates.use itself; these name the permission at the door too.
         'messages.announcement-composer' => [

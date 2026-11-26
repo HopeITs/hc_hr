@@ -57,6 +57,7 @@ Route::prefix('board/meetings')->name('board.meetings.')->group(function () {
     Route::get('/', \App\Livewire\Board\Meetings\Index::class)->name('index');
     Route::get('/{meeting}', \App\Livewire\Board\Meetings\Show::class)->whereNumber('meeting')->name('show');
     Route::get('/{meeting}/pdf', \App\Http\Controllers\BoardMinutesPdfController::class)->whereNumber('meeting')->name('pdf');
+    Route::get('/{meeting}/original', \App\Http\Controllers\BoardArchiveFileController::class)->whereNumber('meeting')->name('archive');
     Route::get('/{meeting}/calendar.ics', \App\Http\Controllers\BoardMeetingIcsController::class)->whereNumber('meeting')->name('ics');
 });
 

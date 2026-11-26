@@ -374,6 +374,16 @@ class Show extends Component
         $this->toast(__('board.follow.carried'));
     }
 
+    /** A wrongly imported old meeting goes, with its file; the system's own meetings are never deleted. */
+    public function removeArchive(): void
+    {
+        abort_unless($this->access()->canWrite(auth()->user()), 403);
+
+        app(\App\Services\Board\BoardArchiveImporter::class)->remove($this->meeting());
+        $this->toast(__('board.archive.removed'));
+        $this->redirectRoute('board.meetings.index', navigate: true);
+    }
+
     public function publish(): void
     {
         $this->mustWrite();
@@ -407,7 +417,10 @@ class Show extends Component
         return view('livewire.board.meetings.show', [
             'sheetMode' => $sheetMode,
             'editLabel' => $access->canWrite($user) ? __('board.minutes.edit-mode') : __('board.manage-mode'),
-            'sheet' => $sheetMode ? BoardMinutesView::data($meeting) : null,
+            // Old minutes are their own signed file, not the system's sheet.
+            'sheet' => $sheetMode && ! $meeting->isArchive() ? BoardMinutesView::data($meeting) : null,
+            'archiveIsPdf' => $meeting->isArchive() && str_ends_with(strtolower((string) $meeting->archive_path), '.pdf'),
+            'canRemoveArchive' => $meeting->isArchive() && $access->canWrite($user),
             'canEdit' => $canEdit,
             'meeting' => $meeting,
             'attendees' => $attendees,
@@ -421,7 +434,7 @@ class Show extends Component
             // What the secretary closes or carries forward while writing this meeting's minutes.
             'earlier' => $canEdit && $access->canWrite($user) ? $this->service()->openFromEarlier($meeting) : collect(),
             'employeeNames' => $canEdit && $access->canWrite($user) && $this->mode === 'edit' ? $this->employeeNames() : [],
-            'canReopen' => $meeting->isPublished() && $access->canManage($user),
+            'canReopen' => $meeting->isPublished() && ! $meeting->isArchive() && $access->canManage($user),
             'canTrack' => $access->canWrite($user) || $access->canManage($user),
             'templates' => (array) config('board.section_templates', []),
         ]);

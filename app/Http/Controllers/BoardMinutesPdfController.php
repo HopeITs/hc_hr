@@ -23,6 +23,10 @@ class BoardMinutesPdfController extends Controller
         abort_unless($meeting->isPublished() || $access->canSeeDraft($user), 403);
         abort_if($meeting->isCancelled(), 404);
 
+        if ($meeting->isArchive()) {
+            return redirect()->route('board.meetings.archive', ['meeting' => $meeting, 'download' => 1]);
+        }
+
         try {
             $pdf = $renderer->renderHtml(view('pdf.board-minutes', BoardMinutesView::data($meeting, inlineAssets: true))->render());
         } catch (Throwable $exception) {
