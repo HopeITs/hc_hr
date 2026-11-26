@@ -72,8 +72,17 @@ class Show extends Component
         $this->service()->syncAttendees($meeting);
         $this->fillDetails($meeting);
 
-        // Whoever writes the minutes starts on the working page until they are published, then on the sheet.
-        $this->mode = ($this->access()->canWrite(auth()->user()) && ! $meeting->isPublished()) ? 'edit' : 'view';
+        $user = auth()->user();
+        $worksOnIt = $this->access()->canWrite($user) || $this->access()->canManage($user);
+
+        // The chair and the secretary start on the working page (absence requests, attendance, the minutes) until
+        // the minutes are published; then everyone reads the sheet.
+        $this->mode = $worksOnIt && ! $meeting->isPublished() ? 'edit' : 'view';
+
+        // The secretary writing from his own account is the one who prepares the minutes: his name, not typed.
+        if ($this->preparedBy === '' && $this->access()->canWrite($user)) {
+            $this->preparedBy = (string) $user->profile?->name;
+        }
     }
 
     /** Switch between the printed sheet and the working page. Only those who work on the meeting may edit. */
@@ -135,7 +144,7 @@ class Show extends Component
         $user = auth()->user();
         $meeting = $this->meeting();
 
-        abort_unless($this->access()->isMember($user) && $meeting->isUpcoming(), 403);
+        abort_unless($this->access()->isMember($user) && $meeting->isUpcoming() && ! $meeting->isPublished(), 403);
 
         $this->validate(['absenceReason' => ['required', 'string', 'max:2000']], [], ['absenceReason' => __('board.absence.reason')]);
 
@@ -155,6 +164,7 @@ class Show extends Component
     public function setAttendance(int $attendeeId, string $status): void
     {
         $this->mustWrite();
+        $this->claimPreparer();
 
         $this->service()->setAttendance($this->attendee($attendeeId), $status);
     }
@@ -162,6 +172,7 @@ class Show extends Component
     public function saveSection(): void
     {
         $this->mustWrite();
+        $this->claimPreparer();
 
         $this->validate([
             'sectionTitle' => ['required', 'string', 'max:255'],
@@ -206,6 +217,7 @@ class Show extends Component
     public function saveFollowUp(): void
     {
         $this->mustWrite();
+        $this->claimPreparer();
 
         $this->validate([
             'followUpTopic' => ['required', 'string', 'max:255'],
@@ -268,6 +280,8 @@ class Show extends Component
         abort_if($meeting->isCancelled(), 403);
 
         $this->service()->publish($meeting, auth()->user(), $this->sendEmail);
+        // Published is final: the page turns into the sheet at once, nothing editable left on it.
+        $this->mode = 'view';
         $this->toast($this->sendEmail ? __('board.minutes.published-emailed') : __('board.minutes.published'));
         $this->sendEmail = false;
     }
@@ -290,6 +304,7 @@ class Show extends Component
 
         return view('livewire.board.meetings.show', [
             'sheetMode' => $sheetMode,
+            'editLabel' => $access->canWrite($user) ? __('board.minutes.edit-mode') : __('board.manage-mode'),
             'sheet' => $sheetMode ? BoardMinutesView::data($meeting) : null,
             'canEdit' => $canEdit,
             'meeting' => $meeting,
@@ -337,6 +352,17 @@ class Show extends Component
     {
         abort_unless($this->access()->canWrite(auth()->user()), 403);
         $this->mustBeOpen();
+    }
+
+    /** The first thing the secretary writes records him as the one who prepares the minutes. */
+    private function claimPreparer(): void
+    {
+        $meeting = $this->meeting();
+
+        if (blank($meeting->prepared_by) && ($name = auth()->user()?->profile?->name)) {
+            $meeting->update(['prepared_by' => $name]);
+            $this->preparedBy = $name;
+        }
     }
 
     /** Publishing closes the meeting: its details, attendance and minutes are not changed afterwards. */

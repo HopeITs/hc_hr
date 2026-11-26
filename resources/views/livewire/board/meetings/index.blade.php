@@ -13,7 +13,7 @@
     <x-page-header :title="__('board.title')" :lead="__('board.lead')">
         @if($canManage)
             <x-slot:actions>
-                <x-button variant="primary" type="button" wire:click="$toggle('adding')">@lang('board.add-meeting')</x-button>
+                <x-button variant="primary" type="button" wire:click="openAdd">@lang('board.add-meeting')</x-button>
             </x-slot:actions>
         @endif
     </x-page-header>

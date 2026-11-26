@@ -33,7 +33,8 @@ class BoardMeetingService
                 'location' => $data['location'] ?? config('board.default_location'),
                 'room' => $data['room'] ?? null,
                 'purpose' => $data['purpose'] ?? null,
-                'led_by' => $data['led_by'] ?? null,
+                // The chair leads it unless told otherwise.
+                'led_by' => $data['led_by'] ?? $this->chairName(),
                 'status' => BoardMeeting::SCHEDULED,
                 'created_by' => $by?->id,
             ]);
@@ -170,6 +171,9 @@ class BoardMeetingService
     /** A member tells the chair they cannot come, and why. */
     public function requestAbsence(BoardMeeting $meeting, Employee $employee, string $reason): BoardMeetingAttendee
     {
+        $this->assertOpen($meeting);
+        abort_unless($meeting->isUpcoming(), 403);
+
         $reason = trim($reason);
 
         if ($reason === '') {
@@ -245,15 +249,42 @@ class BoardMeetingService
         return $to->count();
     }
 
+    /** The chair's name, as the minutes print who is responsible for the meeting. */
+    public function chairName(): ?string
+    {
+        return $this->access->holders(BoardAccess::MANAGE)
+            ->filter(fn (User $u) => $u->hasExplicitPermission(BoardAccess::MANAGE))
+            ->first()?->profile?->name;
+    }
+
+    /**
+     * What the chair is offered when adding a meeting: the next usual slot, and the place of the last one.
+     *
+     * @return array{starts_at: CarbonImmutable, ends_at: CarbonImmutable, location: ?string, room: ?string}
+     */
+    public function suggestion(?CarbonImmutable $now = null): array
+    {
+        $slot = $this->defaultSlot($now ?? CarbonImmutable::now());
+        $last = BoardMeeting::query()->whereNotNull('location')->orderByDesc('starts_at')->first();
+
+        return [
+            'starts_at' => $slot,
+            'ends_at' => $slot->addMinutes((int) config('board.duration_minutes', 90)),
+            'location' => $last?->location ?? config('board.default_location'),
+            'room' => $last?->room,
+        ];
+    }
+
     /** Once the minutes are published the meeting is closed: nothing about it changes any more. */
     private function assertOpen(BoardMeeting $meeting): void
     {
         abort_if($meeting->isPublished(), 403, __('board.minutes.final'));
     }
 
+    /** Tells everyone the meeting concerns, except whoever just did it: they know. */
     private function tell(BoardMeeting $meeting, string $kind, ?string $detail = null): void
     {
-        foreach ($this->access->audience() as $user) {
+        foreach ($this->access->audience()->reject(fn (User $u) => $u->id === auth()->id()) as $user) {
             $user->notify(BoardMeetingNotice::for($kind, $meeting, $detail));
         }
     }

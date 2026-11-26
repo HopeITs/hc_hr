@@ -28,7 +28,9 @@ class BoardMinutesPdfController extends Controller
         } catch (Throwable $exception) {
             Log::error('Board minutes PDF failed.', ['meeting_id' => $meeting->id, 'user_id' => $user->id]);
 
-            return response(__('board.minutes.pdf-failed'), 503);
+            // Back to the meeting with the reason as a toast, not a bare text page.
+            return redirect()->route('board.meetings.show', $meeting)
+                ->with('toasts', [['type' => 'error', 'message' => __('board.minutes.pdf-failed'), 'undo' => null]]);
         }
 
         return response($pdf, 200, [

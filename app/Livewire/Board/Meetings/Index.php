@@ -34,6 +34,20 @@ class Index extends Component
         abort_unless(app(BoardAccess::class)->canView(auth()->user()), 403);
     }
 
+    /** Opens the form with what the chair would type anyway: the next usual slot and the last meeting's place. */
+    public function openAdd(): void
+    {
+        abort_unless(app(BoardAccess::class)->canManage(auth()->user()), 403);
+
+        $s = app(BoardMeetingService::class)->suggestion();
+        $this->startsAt = $s['starts_at']->format('Y-m-d\TH:i');
+        $this->endsAt = $s['ends_at']->format('Y-m-d\TH:i');
+        $this->location = (string) $s['location'];
+        $this->room = (string) $s['room'];
+        $this->purpose = '';
+        $this->adding = true;
+    }
+
     public function saveMeeting(): void
     {
         abort_unless(app(BoardAccess::class)->canManage(auth()->user()), 403);

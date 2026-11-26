@@ -16,7 +16,7 @@
             <x-button variant="quiet" :href="route('board.meetings.index')" wire:navigate>@lang('board.back')</x-button>
             @if($canEdit && $minutesVisible && ! $meeting->isCancelled())
                 @if($sheetMode)
-                    <x-button variant="outline" type="button" wire:click="setMode('edit')">@lang('board.minutes.edit-mode')</x-button>
+                    <x-button variant="outline" type="button" wire:click="setMode('edit')">{{ $editLabel }}</x-button>
                 @else
                     <x-button variant="outline" type="button" wire:click="setMode('view')">@lang('board.minutes.view-mode')</x-button>
                 @endif
@@ -29,7 +29,9 @@
 
     @if($sheetMode)
         {{-- The minutes as the printed sheet: what the PDF holds, read on the page. --}}
-        <div class="mx-auto max-w-3xl rounded-surface border border-line bg-white p-6 shadow-sm sm:p-10" data-testid="board-sheet" dir="rtl">
+        {{-- Paper, in light and dark alike: white page, dark ink (never the theme's colours). --}}
+        <div class="mx-auto max-w-3xl rounded-surface border border-line p-6 shadow-sm sm:p-10" data-testid="board-sheet" dir="rtl"
+             style="background:#FFFFFF;color:#414042;color-scheme:light">
             @include('board.minutes-sheet', $sheet)
         </div>
     @else
@@ -94,7 +96,7 @@
     <section class="space-y-3 rounded-surface border border-line bg-card p-5" aria-labelledby="att-title">
         <h2 id="att-title" class="text-h4 font-bold text-ink">@lang('board.attendance.title')</h2>
 
-        @if($isMember && $meeting->isUpcoming() && ! ($mine?->absence_request === 'pending'))
+        @if($isMember && $meeting->isUpcoming() && ! $meeting->isPublished() && ! in_array($mine?->absence_request, ['pending', 'approved'], true))
             <form wire:submit.prevent="requestAbsence" class="space-y-2 rounded-surface border border-line-soft bg-soft p-4" data-testid="board-absence-form">
                 <x-forms.input-label :value="__('board.absence.ask')" />
                 <x-forms.textarea wire:model="absenceReason" rows="2" :placeholder="__('board.absence.reason')" />

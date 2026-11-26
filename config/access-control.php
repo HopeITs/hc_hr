@@ -307,6 +307,7 @@ return [
         ],
         // The board's meeting page: each action checks the chair / secretary permission inside too.
         'board.meetings.index' => [
+            'openAdd' => 'board-meetings.manage',
             'saveMeeting' => 'board-meetings.manage',
         ],
         'board.meetings.show' => [

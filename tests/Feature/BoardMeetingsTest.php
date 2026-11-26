@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\Concerns\CreatesHrFixtures;
 use Tests\TestCase;
 
@@ -357,6 +358,107 @@ class BoardMeetingsTest extends TestCase
         // The service refuses too, not only the page.
         $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
         $service->setAttendance($row->fresh(), 'present');
+    }
+
+    public function test_the_chair_starts_on_the_working_page_and_publishing_turns_it_into_the_sheet(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+
+        // A draft: the chair sees his working page (absence requests and all), labelled for him, not "edit the minutes".
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])
+            ->assertSet('mode', 'edit')
+            ->call('setMode', 'view')->assertSee(__('board.manage-mode'))->assertDontSee(__('board.minutes.edit-mode'));
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSet('mode', 'edit')
+            ->call('publish')
+            ->assertSet('mode', 'view')
+            ->assertSee('data-testid="board-sheet"', false);
+    }
+
+    public function test_the_secretary_is_recorded_as_preparing_the_minutes_without_typing_it(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $name = $this->secretary->profile->name;
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSet('preparedBy', $name)
+            ->set('sectionTitle', 'عرض')->call('saveSection');
+
+        $this->assertSame($name, $meeting->fresh()->prepared_by);
+
+        // The chair opening the page is not taken for the one who writes.
+        $other = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $other])->assertSet('preparedBy', '');
+    }
+
+    public function test_a_new_meeting_is_led_by_the_chair_and_the_form_comes_filled_in(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-07 09:00'));
+        $service = app(BoardMeetingService::class);
+        $service->schedule(['starts_at' => '2026-11-26 12:00', 'location' => 'المكتب الرئيسي', 'room' => '1'], notify: false);
+
+        $this->assertSame($this->chair->profile->name, BoardMeeting::query()->first()->led_by);
+
+        Livewire::actingAs($this->chair)->test(Index::class)
+            ->call('openAdd')
+            ->assertSet('adding', true)
+            ->assertSet('startsAt', '2026-12-10T12:00')
+            ->assertSet('endsAt', '2026-12-10T13:30')
+            ->assertSet('location', 'المكتب الرئيسي')
+            ->assertSet('room', '1');
+
+        Livewire::actingAs($this->member)->test(Index::class)->call('openAdd')->assertForbidden();
+    }
+
+    public function test_whoever_acts_is_not_notified_of_their_own_act(): void
+    {
+        Notification::fake();
+
+        Livewire::actingAs($this->chair)->test(Index::class)->set('startsAt', '2026-12-17T12:00')->call('saveMeeting');
+
+        Notification::assertNotSentTo($this->chair, BoardMeetingNotice::class);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::SCHEDULED);
+    }
+
+    public function test_no_absence_request_once_the_minutes_are_published_or_the_request_was_approved(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $row = $meeting->attendees()->where('employee_id', $this->member->employee_id)->firstOrFail();
+        $row->update(['absence_request' => 'approved', 'status' => 'absent']);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-absence-form"', false);
+
+        $meeting->update(['published_at' => now()]);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'x')->call('requestAbsence')->assertForbidden();
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(BoardMeetingService::class)->requestAbsence($meeting, $this->member->profile, 'x');
+    }
+
+    public function test_a_failed_pdf_goes_back_to_the_meeting_with_a_message(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        $meeting->update(['published_at' => now()]);
+
+        $this->mock(\App\Services\ContractPdfRenderer::class)
+            ->shouldReceive('renderHtml')->andThrow(new RuntimeException('Chrome did not write a PDF.'));
+
+        $this->actingAs($this->member)->get(route('board.meetings.pdf', $meeting))
+            ->assertRedirect(route('board.meetings.show', $meeting))
+            ->assertSessionHas('toasts');
+    }
+
+    public function test_the_sheet_is_paper_in_dark_mode_too(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        $meeting->update(['published_at' => now()]);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('background:#FFFFFF;color:#414042', false);
     }
 
     public function test_the_commands_are_registered(): void

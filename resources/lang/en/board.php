@@ -12,6 +12,7 @@ return [
     'back' => 'All meetings',
     'edit' => 'Edit',
     'remove' => 'Remove',
+    'manage-mode' => 'Manage the meeting',
     'details' => 'The meeting',
     'upcoming' => 'Coming up',
     'earlier' => 'Earlier meetings',
