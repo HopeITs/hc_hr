@@ -89,6 +89,28 @@ class AllLeaveRequestTable extends LivewireTable
         $this->toast();
     }
 
+    public function confirmCancel(int $id): void
+    {
+        Gate::authorize('cancel', LeaveRequest::findOrFail($id));
+
+        $this->confirm(
+            'cancelLeave',
+            ['id' => $id],
+            title: __('leaves.cancel.title'),
+            message: __('leaves.cancel.message'),
+            confirmLabel: __('leaves.cancel.confirm'),
+        );
+    }
+
+    /** An accepted leave that has not started is withdrawn, not deleted: its hours go back (HR-027). */
+    public function cancelLeave(array $payload): void
+    {
+        app(LeaveRequestReview::class)->cancel((int) $payload['id'], auth()->user());
+
+        $this->dispatch('leaveRequestSaved');
+        $this->toast(__('leaves.cancel.done'));
+    }
+
     public function confirmHrReview(int $id): void
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
@@ -141,11 +163,15 @@ class AllLeaveRequestTable extends LivewireTable
         $showBtn = Blade::render('<x-table.show-btn wire:click="$dispatch(\'openShowRequestLeave\', { id: '.$key.' })" />');
 
         // Editing a decided request is deliberate: its own button, after View.
-        $editBtn = ! $pending && auth()->user()?->hasActivePermission('leaves.update')
+        $editBtn = ! $pending && (int) $model->status !== LeaveRequestStatus::Cancelled && auth()->user()?->hasActivePermission('leaves.update')
             ? Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$key.' })" />')
             : '';
 
-        return $decisionBtn.$showBtn.$editBtn;
+        $cancelBtn = Gate::allows('cancel', $model)
+            ? Blade::render('<button type="button" wire:click="confirmCancel('.$key.')" aria-label="'.e(__('leaves.cancel.action')).'" title="'.e(__('leaves.cancel.action')).'" class="cursor-pointer text-ink-2 p-2 inline-flex items-center max-sm:min-h-11 max-sm:min-w-11 justify-center"><x-ic name="x" class="size-4.5" /></button>')
+            : '';
+
+        return $decisionBtn.$showBtn.$editBtn.$cancelBtn;
     }
 
     protected function emptyScreenState(): array

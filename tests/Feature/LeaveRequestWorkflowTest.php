@@ -351,6 +351,54 @@ class LeaveRequestWorkflowTest extends TestCase
         );
     }
 
+    public function test_hr_cannot_delete_an_accepted_leave_so_its_hours_are_never_lost(): void
+    {
+        [, $leaveRequest] = $this->acceptedFutureLeave();
+        $hr = $this->createHrUserForLeave($leaveRequest, 'hr.delete@example.test');
+        $hr->givePermissionTo(['leaves.view-all', 'leaves.update']);
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestTable::class)
+            ->call('delete', ['id' => $leaveRequest->id])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leaveRequest->id, 'status' => LeaveRequestStatus::Accepted]);
+        $this->assertEquals(16.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+    }
+
+    public function test_employee_cancels_an_accepted_leave_before_it_starts_and_gets_the_hours_back(): void
+    {
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave();
+
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leaveRequest->id, 'status' => LeaveRequestStatus::Cancelled]);
+        $this->assertEquals(0.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+
+        // A second cancel (double click, stale tab) must not give the hours back twice.
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertForbidden();
+        $this->assertEquals(0.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+    }
+
+    public function test_a_leave_that_has_already_started_cannot_be_cancelled(): void
+    {
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave(-1);
+
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leaveRequest->id, 'status' => LeaveRequestStatus::Accepted]);
+        $this->assertEquals(16.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+    }
+
     public function test_out_of_scope_hr_cannot_view_edit_or_decide_another_citys_leave(): void
     {
         [, $targetLeave] = $this->createPendingDecisionFixture();
@@ -2254,6 +2302,23 @@ class LeaveRequestWorkflowTest extends TestCase
         ]);
         $this->assertNotSame($other, $leave->fresh()->alternative_employee_id);
         Notification::assertNothingSent();
+    }
+
+    /** An accepted leave starting in the future, with 16 hours deducted (HR-027). */
+    private function acceptedFutureLeave(int $startsInDays = 5): array
+    {
+        [$employeeUser, $leaveRequest] = $this->createRejectedLeaveFixture(null);
+
+        $leaveRequest->update([
+            'status' => LeaveRequestStatus::Accepted,
+            'reject_reason' => null,
+            'start_at' => now()->addDays($startsInDays),
+            'end_at' => now()->addDays($startsInDays + 1),
+            'computed_hours' => 16,
+        ]);
+        DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->update(['used' => 16]);
+
+        return [$employeeUser->fresh(), $leaveRequest->fresh()];
     }
 
     /** A manager who holds the position the requester's position reports to, with the real manager permissions. */

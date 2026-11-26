@@ -17,6 +17,9 @@ final class LeaveRequestStatus extends Enum implements HasStatusTone
 
     const Rejected = 2;
 
+    /** Accepted, then withdrawn before it started: kept as a record, its hours given back. */
+    const Cancelled = 3;
+
     public static function getLocalizedName(int $value): array
     {
         return ['value' => __(self::labelKey($value))];
@@ -32,7 +35,7 @@ final class LeaveRequestStatus extends Enum implements HasStatusTone
     {
         return match ($this->value) {
             self::Accepted => StatusTone::Done,
-            self::Rejected => StatusTone::Stop,
+            self::Rejected, self::Cancelled => StatusTone::Stop,
             default => StatusTone::Wait,
         };
     }
@@ -42,6 +45,7 @@ final class LeaveRequestStatus extends Enum implements HasStatusTone
         return match ($this->value) {
             self::Accepted => 'check',
             self::Rejected => 'x',
+            self::Cancelled => 'ban',
             default => 'clock',
         };
     }
@@ -56,6 +60,7 @@ final class LeaveRequestStatus extends Enum implements HasStatusTone
         return match ($value) {
             self::Accepted => 'leaves.status.accepted',
             self::Rejected => 'leaves.status.rejected',
+            self::Cancelled => 'leaves.status.cancelled',
             default => 'leaves.status.pending',
         };
     }

@@ -93,6 +93,32 @@ final class LeaveRequestReview
         return $leaveRequest;
     }
 
+    /**
+     * Withdraw an accepted leave that has not started (HR-027). The request
+     * stays as a Cancelled record, and its deducted hours go back to the
+     * balance in the same transaction (request lock, then balance lock).
+     */
+    public function cancel(int $leaveRequestId, User $actor): LeaveRequest
+    {
+        return DB::transaction(function () use ($leaveRequestId, $actor): LeaveRequest {
+            $leaveRequest = LeaveRequest::query()->lockForUpdate()->findOrFail($leaveRequestId);
+
+            // After the lock: a second click sees the committed state and is refused.
+            Gate::forUser($actor)->authorize('cancel', $leaveRequest);
+
+            $balance = LeaveBalance::query()->lockForUpdate()->findOrFail($leaveRequest->leave_balance_id);
+            $hours = $leaveRequest->deductionHours();
+
+            if ($hours > 0) {
+                $balance->update(['used' => max(0, round((float) $balance->used - $hours, 2))]);
+            }
+
+            $leaveRequest->update(['status' => LeaveRequestStatus::Cancelled]);
+
+            return $leaveRequest;
+        });
+    }
+
     private function addNote(LeaveRequest $leaveRequest, User $actor, string $kind, ?string $body): void
     {
         if ($body === null) {

@@ -8,6 +8,7 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\LeaveRequestForm;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\LeaveRequestReview;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
@@ -65,10 +66,43 @@ class MyLeaveRequestTable extends LivewireTable
         $this->toast();
     }
 
+    public function confirmCancel(int $id): void
+    {
+        Gate::authorize('cancel', LeaveRequest::findOrFail($id));
+
+        $this->confirm(
+            'cancelLeave',
+            ['id' => $id],
+            title: __('leaves.cancel.title'),
+            message: __('leaves.cancel.message'),
+            confirmLabel: __('leaves.cancel.confirm'),
+        );
+    }
+
+    /** An accepted leave that has not started is withdrawn, not deleted: its hours go back (HR-027). */
+    public function cancelLeave(array $payload): void
+    {
+        app(LeaveRequestReview::class)->cancel((int) $payload['id'], auth()->user());
+
+        $this->dispatch('leaveRequestSaved');
+        $this->toast(__('leaves.cancel.done'));
+    }
+
     /** Below md each request becomes a card (B4-D §6, G-B-4). */
     public function cardView(): ?string
     {
         return 'livewire.employee.leave.partials.my-card';
+    }
+
+    protected function cancelButton(Model $model): string
+    {
+        if (! Gate::allows('cancel', $model)) {
+            return '';
+        }
+
+        return Blade::render(
+            '<button type="button" wire:click="confirmCancel('.$model->getKey().')" aria-label="'.e(__('leaves.cancel.action')).'" title="'.e(__('leaves.cancel.action')).'" class="cursor-pointer text-ink-2 p-2 inline-flex items-center max-sm:min-h-11 max-sm:min-w-11 justify-center"><x-ic name="x" class="size-4.5" /></button>',
+        );
     }
 
     protected function rowOpenAction(Model $model): string
@@ -84,7 +118,7 @@ class MyLeaveRequestTable extends LivewireTable
         );
 
         if ($model->status !== LeaveRequestStatus::Pending) {
-            return $showBtn;
+            return $showBtn.$this->cancelButton($model);
         }
 
         $editBtn = Blade::render('<x-table.edit-btn wire:click="$dispatch(\'openRequestLeaveEdit\', { id: '.$model->getKey().' })" />');

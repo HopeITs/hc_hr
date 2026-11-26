@@ -8,10 +8,19 @@ return [
     ],
 
     // Leave request workflow status: one term per status, used everywhere.
+    'cancel' => [
+        'action' => 'Cancel this leave',
+        'title' => 'Cancel this leave?',
+        'message' => 'The request stays in the list as cancelled and its hours go back to the balance.',
+        'confirm' => 'Cancel leave',
+        'done' => 'Leave cancelled and the balance restored.',
+    ],
+
     'status' => [
         'pending' => 'Pending',
         'accepted' => 'Accepted',
         'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled',
     ],
 
     // Unit of a leave request / balance adjustment (radio options, table type column).

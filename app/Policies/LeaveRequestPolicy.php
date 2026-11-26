@@ -21,16 +21,44 @@ class LeaveRequestPolicy
             return $leaveRequest->status === LeaveRequestStatus::Pending;
         }
 
-        return $this->canManage($user, $leaveRequest);
+        // A cancelled request is a closed record, like the deleted one it replaces.
+        return (int) $leaveRequest->status !== LeaveRequestStatus::Cancelled
+            && $this->canManage($user, $leaveRequest);
     }
 
+    /**
+     * Only an undecided request is deleted (HR-027): deleting a decided one
+     * would lose its deducted hours for good. A decided leave that will not be
+     * taken is withdrawn with cancel(), which keeps the record and gives them back.
+     */
     public function delete(User $user, LeaveRequest $leaveRequest): bool
     {
-        if ($this->owns($user, $leaveRequest)) {
-            return $leaveRequest->status === LeaveRequestStatus::Pending;
+        if ((int) $leaveRequest->status !== LeaveRequestStatus::Pending) {
+            return false;
         }
 
-        return $this->canManage($user, $leaveRequest);
+        return $this->owns($user, $leaveRequest) || $this->canManage($user, $leaveRequest);
+    }
+
+    /**
+     * Withdraw an accepted leave before it starts: its employee, or HR in scope
+     * (leaves.update, as editing a decided request). Never one already begun.
+     */
+    public function cancel(User $user, LeaveRequest $leaveRequest): bool
+    {
+        if ((int) $leaveRequest->status !== LeaveRequestStatus::Accepted
+            || $leaveRequest->start_at === null
+            || ! $leaveRequest->start_at->isFuture()) {
+            return false;
+        }
+
+        if ($this->owns($user, $leaveRequest)) {
+            return true;
+        }
+
+        return $this->isHr($user)
+            && $user->hasActivePermission('leaves.update')
+            && $this->canManage($user, $leaveRequest);
     }
 
     /**
@@ -53,7 +81,7 @@ class LeaveRequestPolicy
      */
     public function object(User $user, LeaveRequest $leaveRequest): bool
     {
-        return $leaveRequest->status !== LeaveRequestStatus::Pending
+        return in_array((int) $leaveRequest->status, [LeaveRequestStatus::Accepted, LeaveRequestStatus::Rejected], true)
             && $this->isHr($user)
             && $user->hasActivePermission('leaves.review')
             && $this->canManage($user, $leaveRequest);
@@ -65,7 +93,7 @@ class LeaveRequestPolicy
      */
     public function review(User $user, LeaveRequest $leaveRequest, ?LeaveDecisionAuthority $authority = null): bool
     {
-        return $leaveRequest->status !== LeaveRequestStatus::Pending
+        return in_array((int) $leaveRequest->status, [LeaveRequestStatus::Accepted, LeaveRequestStatus::Rejected], true)
             && ! $leaveRequest->hr_approved
             // Nobody marks their own decision as seen (N-07).
             && ! ($user->employee_id !== null && (int) $leaveRequest->approved_by === (int) $user->employee_id)
