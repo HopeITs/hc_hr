@@ -19,6 +19,9 @@ class DocxMarkdown
 {
     private const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
+    /** Stands for a line break inside a paragraph (Shift+Enter) until the caller knows where it ends up. */
+    private const BREAK = "\u{E000}";
+
     /** @var array<string, int> styleId => heading level */
     private array $headingStyles = [];
 
@@ -101,7 +104,8 @@ class DocxMarkdown
                 continue;
             }
 
-            $text = $this->runs($node, $xpath, true);
+            $raw = $this->runs($node, $xpath, true);
+            $text = $this->lineBreaks($raw, false);
 
             if (trim($text) === '') {
                 $flush();
@@ -133,13 +137,13 @@ class DocxMarkdown
                 }
 
                 $marker = $ordered ? $this->counters[$numId][$ilvl].'. ' : '- ';
-                $list[] = str_repeat('   ', min($ilvl, 3)).$marker.trim($text);
+                $list[] = str_repeat('   ', min($ilvl, 3)).$marker.trim($this->lineBreaks($raw, true));
 
                 continue;
             }
 
             $flush();
-            $blocks[] = $this->escapeStart(trim($text));
+            $blocks[] = $this->escapeStart(trim($this->lineBreaks($raw, true)));
         }
 
         $flush();
@@ -158,7 +162,7 @@ class DocxMarkdown
                 $parts = [];
 
                 foreach ($xpath->query('.//w:p', $tc) as $p) {
-                    $parts[] = trim($this->runs($p, $xpath, false));
+                    $parts[] = trim($this->lineBreaks($this->runs($p, $xpath, false), false));
                 }
 
                 $cells[] = str_replace('|', '\\|', trim(implode(' ', array_filter($parts, fn ($s) => $s !== ''))));
@@ -200,7 +204,7 @@ class DocxMarkdown
                 $text .= match ($child->localName) {
                     't' => $child->textContent,
                     'tab' => ' ',
-                    'br', 'cr' => ' ',
+                    'br', 'cr' => self::BREAK,
                     default => '',
                 };
             }
@@ -234,6 +238,18 @@ class DocxMarkdown
         }
 
         return $out;
+    }
+
+    /** A break is a Markdown hard break in a paragraph or list item; in a heading or table cell, a space. */
+    private function lineBreaks(string $text, bool $hard): string
+    {
+        $text = trim($text, " \t".self::BREAK);
+
+        if (! $hard) {
+            return preg_replace('/\s*'.self::BREAK.'+\s*/u', ' ', $text) ?? $text;
+        }
+
+        return preg_replace('/[ \t]*'.self::BREAK.'+[ \t]*/u', "\\\n", $text) ?? $text;
     }
 
     private function isBold(DOMElement $run, DOMXPath $xpath): bool
