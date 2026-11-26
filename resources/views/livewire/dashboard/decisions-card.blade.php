@@ -91,7 +91,7 @@
                                 <div class="hc-dcard-top">
                                     <span class="hc-dcard-what"><x-ic :name="$card['action'] === 'approve' ? 'user' : 'calendar'" aria-hidden="true" /><span class="hc-dcard-what-label">{{ __('inbox.action.'.$card['action']) }}</span></span>
                                     @if ($card['start_flag'])
-                                        <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
+                                        <x-tag :variant="$card['start_flag'] === 'started' ? 'late' : 'rush'">{{ __($card['start_flag'] === 'started' ? 'leaves.status.overdue' : 'inbox.urgent') }}</x-tag>
                                     @endif
                                 </div>
                                 <h4 class="hc-dcard-name" dir="auto">{{ $card['name'] }}</h4>

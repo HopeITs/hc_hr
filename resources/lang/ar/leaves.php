@@ -18,6 +18,7 @@ return [
 
     'status' => [
         'pending' => 'قيد المراجعة',
+        'overdue' => 'متأخر',
         'accepted' => 'مقبول',
         'rejected' => 'مرفوض',
         'cancelled' => 'ملغاة',

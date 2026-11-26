@@ -3,4 +3,8 @@
     icon + words + fill shape (LeaveRequestStatus::tone()), never colour.
     Receives $item (LeaveRequest).
 --}}
-<x-status :status="\App\Enums\LeaveRequestStatus::of($item->status)" />
+@if ($item->isOverdue())
+    <x-tag variant="late" :label="__('leaves.status.overdue')" />
+@else
+    <x-status :status="\App\Enums\LeaveRequestStatus::of($item->status)" />
+@endif
