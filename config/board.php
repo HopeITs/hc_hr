@@ -21,6 +21,12 @@ return [
 
     'default_location' => null,
 
+    // Who holds the two board permissions out of the box (granted by migration, when the account exists).
+    // Later changes are made from Access Management; the migration only ever adds.
+    'chair_email' => 'fredy.youssef@hcsyria.org',
+
+    'secretary_email' => 'fadi.dabbagh@hcsyria.org',
+
     // How far ahead the scheduler looks for the next meeting's week.
     'look_ahead_days' => 7,
 ];

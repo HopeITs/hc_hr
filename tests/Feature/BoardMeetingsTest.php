@@ -241,6 +241,28 @@ class BoardMeetingsTest extends TestCase
         Livewire::actingAs($this->outsider)->test(Index::class)->assertForbidden();
     }
 
+    public function test_the_migration_gives_the_chair_and_secretary_their_permissions_and_skips_missing_accounts(): void
+    {
+        $city = $this->makeCity('ALP', '001');
+        $chair = $this->makeUser($city, 'general-manager', []);
+        $secretary = $this->makeUser($city, 'manager', []);
+        config([
+            'board.chair_email' => $chair->email,
+            'board.secretary_email' => $secretary->email,
+        ]);
+
+        (require database_path('migrations/2026_12_02_000003_grant_board_permissions_to_chair_and_secretary.php'))->up();
+
+        $this->assertTrue($chair->fresh()->hasExplicitPermission('board-meetings.manage'));
+        $this->assertFalse($chair->fresh()->hasExplicitPermission('board-meetings.write-minutes'));
+        $this->assertTrue($secretary->fresh()->hasExplicitPermission('board-meetings.write-minutes'));
+
+        // No such account here (a fresh host): nothing breaks.
+        config(['board.chair_email' => 'nobody@example.test', 'board.secretary_email' => null]);
+        (require database_path('migrations/2026_12_02_000003_grant_board_permissions_to_chair_and_secretary.php'))->up();
+        $this->assertTrue(true);
+    }
+
     public function test_the_commands_are_registered(): void
     {
         $this->assertSame(0, Artisan::call(EnsureNextBoardMeeting::class));
