@@ -157,7 +157,7 @@ final class Navigation
             $user?->employee_id ? self::item('nav.my-space.mail-lists', __('mail_lists.title'), 'mail-lists.index', ['mail-lists.*'], 'envelope') : null,
             // Every employee reads the policies (and searches what they say); no permission.
             // An account with no employee record (a system account) is not an employee.
-            $user?->employee_id ? self::item('nav.my-space.policies', __('policies.title'), 'policies.index', ['policies.*'], 'guide-book') : null,
+            $user?->employee_id ? self::item('nav.my-space.policies', __('policies.title'), 'policies.folder', ['policies.*'], 'guide-book') : null,
             // One page for both: "My folders" / "Shared with me" is a toggle on it (?scope=).
             $can('archives.view') ? self::item('nav.my-space.files', __('general.folders'), 'folders.index', ['folders.*'], 'archived', 'nav.archives') : null,
             // The AI assistant is not a menu item: it opens from the floating

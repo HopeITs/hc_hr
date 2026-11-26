@@ -267,8 +267,8 @@ class ArchivedFilesModule extends Component
                 ->filter(fn (Folder $folder) => $access->canView($this->user, $folder))
                 ->values();
         } elseif (! $this->isShared) {
-            // My folders: the ones I own, and the Policies folder for whoever manages it.
-            $library = PolicyFolder::canManage($this->user) ? app(PolicyFolder::class)->library()->id : null;
+            // My folders: the ones I own, and the Policies folder, which every employee reads (HR manages it).
+            $library = app(PolicyFolder::class)->library()->id;
             $folders = Folder::query()->withCount('media as files_count')->with($with)
                 ->whereNull('parent_id')
                 ->where(fn (Builder $q) => $q->where('user_id', $this->user->id)->when($library, fn (Builder $q) => $q->orWhere('id', $library)))
