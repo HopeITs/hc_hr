@@ -688,3 +688,27 @@ mark.policy-mark {
     border-radius: 3px;
     padding-inline: 2px;
 }
+
+/* A policy's text as a page (policies/show): the Markdown read from its file. The direction
+   comes from the policy's own language (dir on the article), so start/end are logical. */
+.policy-body {
+    color: var(--color-ink);
+    line-height: 1.8;
+    text-align: start;
+}
+.policy-body h1 { font-size: 1.5rem; font-weight: 800; margin: 0 0 1rem; text-wrap: balance; }
+.policy-body h2 { font-size: 1.25rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+.policy-body h3, .policy-body h4 { font-size: 1.05rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+.policy-body p { margin: 0 0 0.85rem; }
+.policy-body strong { font-weight: 700; }
+.policy-body ol, .policy-body ul { margin: 0 0 0.85rem; padding-inline-start: 1.75rem; }
+.policy-body ol { list-style: decimal; }
+.policy-body ul { list-style: disc; }
+.policy-body li { margin-block: 0.3rem; }
+.policy-body li > ol, .policy-body li > ul { margin-block: 0.3rem 0; }
+.policy-body table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 15px; }
+.policy-body th, .policy-body td { overflow-wrap: anywhere; }
+.policy-body th, .policy-body td { border: 1px solid var(--color-line); padding: 0.5rem 0.75rem; text-align: start; vertical-align: top; }
+.policy-body th { background-color: var(--color-soft); font-weight: 700; font-size: 13px; }
+.policy-body > .policy-passage { border-radius: 6px; scroll-margin-top: 6rem; }
+.policy-body > .policy-passage--target { background-color: var(--color-soft); outline: 1px solid var(--color-ink); outline-offset: 8px; }

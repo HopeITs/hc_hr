@@ -14,6 +14,7 @@ use App\Models\Program;
 use App\Models\User;
 use App\Notifications\FolderShared;
 use App\Services\Folders\FolderAccess;
+use App\Services\Policies\PolicyFolder;
 use DOMDocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -122,6 +123,15 @@ class ArchivedFilesModule extends Component
 
     /** @var array<int|string, string> */
     public array $groupOptions = [];
+
+    /** The policy file being replaced with its new version (Policies folder only). */
+    #[Locked]
+    public ?int $replacingMediaId = null;
+
+    public string $replacingName = '';
+
+    /** @var TemporaryUploadedFile|null */
+    public $replacementFile = null;
 
     public function mount($folderId = null)
     {
@@ -270,10 +280,12 @@ class ArchivedFilesModule extends Component
                 ->filter(fn (Folder $folder) => $access->canView($this->user, $folder))
                 ->values();
         } elseif (! $this->isShared) {
-            // My folders: the ones I own.
+            // My folders: the ones I own, and the Policies folder for whoever manages it.
+            $library = PolicyFolder::canManage($this->user) ? app(PolicyFolder::class)->library()->id : null;
             $folders = Folder::query()->withCount('media as files_count')->with($with)
-                ->whereNull('parent_id')->where('user_id', $this->user->id)
-                ->orderBy('name')->get();
+                ->whereNull('parent_id')
+                ->where(fn (Builder $q) => $q->where('user_id', $this->user->id)->when($library, fn (Builder $q) => $q->orWhere('id', $library)))
+                ->orderByDesc('is_policy_library')->orderBy('name')->get();
         } elseif ($this->user->isActiveAdministrator()) {
             // An administrator sees every other person's folders here.
             $folders = Folder::query()->withCount('media as files_count')->with($with)
@@ -281,9 +293,12 @@ class ArchivedFilesModule extends Component
                 ->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $this->user->id))
                 ->orderBy('name')->get();
         } else {
-            // Shared with me: shared by name or through a group I am in now, at any depth.
-            $folders = $access->sharedWith($this->user)->withCount('media as files_count')->with($with)
-                ->orderBy('name')->get();
+            // Shared with me: shared by name or through a group I am in now, at any depth,
+            // and the Policies folder, which every employee reads.
+            $library = app(PolicyFolder::class)->library()->id;
+            $folders = Folder::query()->withCount('media as files_count')->with($with)
+                ->where(fn (Builder $q) => $q->whereIn('id', $access->sharedWith($this->user)->select('folders.id'))->orWhere('id', $library))
+                ->orderByDesc('is_policy_library')->orderBy('name')->get();
         }
 
         $this->folders = $folders;
@@ -534,6 +549,7 @@ class ArchivedFilesModule extends Component
         } elseif (($payload['type'] ?? null) === 'folder') {
             $folder = Folder::findOrFail($id);
             $this->authorizeFolderDeletion($folder);
+            abort_if(app(PolicyFolder::class)->isLibrary($folder), 403, 'The Policies folder is never deleted.');
             $folder->delete();
         } else {
             return;
@@ -541,6 +557,59 @@ class ArchivedFilesModule extends Component
 
         $this->toast();
         $this->loadContent();
+    }
+
+    public function startReplacePolicyFile(int $mediaId): void
+    {
+        $folder = $this->folderForMedia($mediaId);
+        $this->authorizeFolderManagement($folder);
+        abort_unless(\App\Models\PolicyDocument::query()->where('media_id', $mediaId)->exists(), 404);
+
+        $this->replacingMediaId = $mediaId;
+        $this->replacingName = (string) Media::query()->findOrFail($mediaId)->name;
+        $this->reset('replacementFile');
+        $this->resetValidation('replacementFile');
+    }
+
+    public function cancelReplacePolicyFile(): void
+    {
+        $this->reset('replacingMediaId', 'replacingName', 'replacementFile');
+    }
+
+    /**
+     * The new version goes into the same folder and takes over the policy
+     * (PolicySync::replace): its settings and agreements stay, the old file goes.
+     */
+    public function updatedReplacementFile(): void
+    {
+        if ($this->replacingMediaId === null) {
+            return;
+        }
+
+        $folder = $this->folderForMedia($this->replacingMediaId);
+        $this->authorizeFolderManagement($folder);
+        $document = \App\Models\PolicyDocument::query()->where('media_id', $this->replacingMediaId)->firstOrFail();
+
+        $this->validate(['replacementFile' => ['required', 'file', 'max:'.\App\Services\Assistant\PolicyFileReader::MAX_KB]]);
+        $safeFile = $this->validateArchiveUpload($this->replacementFile);
+
+        if (! PolicyFolder::isReadable($safeFile['extension'])) {
+            $this->addError('replacementFile', __('validation.mimes', ['attribute' => __('policies.replace'), 'values' => 'pdf, docx']));
+
+            return;
+        }
+
+        $new = $folder->addMedia($this->replacementFile->getRealPath())
+            ->usingName($safeFile['displayName'])
+            ->usingFileName($safeFile['storedName'])
+            ->withCustomProperties(['validated_upload' => true, 'replaces_policy' => $document->id])
+            ->toMediaCollection('archived_files', 'local');
+
+        app(\App\Services\Policies\PolicySync::class)->replace($document, $new);
+
+        $this->cancelReplacePolicyFile();
+        $this->loadContent();
+        $this->toast(__('policies.replaced'), 'success');
     }
 
     public function startEditingFolder(int $folderId)
@@ -710,6 +779,12 @@ class ArchivedFilesModule extends Component
             'hasAccessUsers' => $hasAccessUsers,
             'noAccessUsers' => $noAccessUsers,
             'canManageCurrentFolder' => $this->userCanManageFolder($this->currentFolder),
+            'inPolicyFolder' => $inPolicyFolder = app(PolicyFolder::class)->contains($this->currentFolder),
+            // Each file of the Policies folder with the policy read from it (status, link).
+            'policiesByMedia' => $inPolicyFolder
+                ? \App\Models\PolicyDocument::query()->whereIn('media_id', $this->files->pluck('id'))->get()->keyBy('media_id')
+                : collect(),
+            'policyFolderId' => app(PolicyFolder::class)->library()->id,
             'canDeleteInCurrentFolder' => $this->currentFolder !== null && $this->access()->canDelete($this->user, $this->currentFolder),
             // Each listed folder's role for this person: what its menu offers.
             'folderRoles' => $this->folders->mapWithKeys(fn (Folder $folder) => [$folder->id => $this->access()->role($this->user, $folder)])->all(),
@@ -780,6 +855,8 @@ class ArchivedFilesModule extends Component
         $folder = $this->folderForPermissions ? Folder::query()->find($this->folderForPermissions->id) : null;
 
         abort_unless($folder && $this->access()->canEdit($this->user, $folder), 403, 'Only the owner or an editor can share this folder.');
+        // Every employee reads the Policies folder already: it has no sharing of its own.
+        abort_if(app(PolicyFolder::class)->contains($folder), 403, 'The Policies folder is not shared by hand.');
 
         return $folder;
     }

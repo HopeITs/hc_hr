@@ -76,6 +76,6 @@ class Folder extends Model implements HasMedia
 
     protected function casts(): array
     {
-        return ['is_shared' => 'boolean', 'inherits_access' => 'boolean'];
+        return ['is_shared' => 'boolean', 'inherits_access' => 'boolean', 'is_policy_library' => 'boolean'];
     }
 }

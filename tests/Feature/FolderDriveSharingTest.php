@@ -45,7 +45,7 @@ class FolderDriveSharingTest extends TestCase
         $owner = $this->person();
         $member = $this->person($this->hr);
         $later = $this->person();
-        $folder = $this->folder($owner, 'Policies');
+        $folder = $this->folder($owner, 'HR handbook');
 
         Livewire::actingAs($owner)->test(ArchivedFilesModule::class)
             ->call('editPermissions', $folder->id)
@@ -58,12 +58,12 @@ class FolderDriveSharingTest extends TestCase
         $this->assertDatabaseHas('folder_group_shares', ['folder_id' => $folder->id, 'group_type' => 'department', 'group_id' => $this->hr->id, 'role' => 'viewer']);
         Notification::assertSentTo($member, FolderShared::class);
 
-        $this->sees($member, 'Policies');
-        $this->doesNotSee($later, 'Policies');
+        $this->sees($member, 'HR handbook');
+        $this->doesNotSee($later, 'HR handbook');
 
         // Joins HR next month: has access, with no new share.
         $this->makeContractFor($later->profile, ['position_id' => $this->makePosition($this->aleppo, ['department_id' => $this->hr->id])->id]);
-        $this->sees($later, 'Policies');
+        $this->sees($later, 'HR handbook');
 
         // Leaves HR (the contract ends): no access any more.
         $member->profile->contracts()->getQuery()->update(['end_date' => '2026-06-01']);

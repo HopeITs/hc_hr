@@ -31,6 +31,7 @@ Route::get('onboarding/policies', App\Livewire\Onboarding\Policies::class)->name
 // The policies themselves, read-only for every signed-in employee (the header search opens a passage of one).
 Route::get('policies', App\Livewire\Policies\Index::class)->name('policies.index');
 Route::get('policies/{document}', App\Livewire\Policies\Show::class)->whereNumber('document')->name('policies.show');
+Route::get('policies/{document}/file', App\Http\Controllers\PolicyFileController::class)->whereNumber('document')->name('policies.file');
 // The volunteer's own journey, worded for them (MyFirstDays reads only the signed-in user's employee).
 Route::get('onboarding/my-first-days', App\Livewire\Onboarding\MyFirstDays::class)->name('onboarding.my-first-days');
 Route::get('onboarding/required-policies', App\Livewire\Onboarding\RequiredPolicies::class)->middleware('active_permission:employees.update')->name('onboarding.required-policies');

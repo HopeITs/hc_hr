@@ -493,6 +493,8 @@ return [
         'onboarding.required-policies' => [
             'setRequired' => 'employees.update',
             'setKind' => 'employees.update',
+            // A policy kept as text from before the Policies folder (media_id null) only.
+            'deleteTextOnly' => 'employees.update',
         ],
         // Renewal journey (DEC-09 increment 2): HR's renew/stop decision and
         // its undo. contracts.update is the coarse gate; each method re-runs
@@ -699,6 +701,10 @@ return [
             'saveEditedFolder' => 'archives.update',
             'startEditingFile' => 'archives.update',
             'saveEditedFile' => 'archives.update',
+            // Replacing a policy's file with its new version (Policies folder only; the
+            // folder role is re-checked, and the file must be a policy's).
+            'startReplacePolicyFile' => 'archives.update',
+            'updatedReplacementFile' => 'archives.update',
             'toggleUser' => 'archives.share',
             'toggleSelectAllVisible' => 'archives.share',
             // Roles and groups (FolderAccess). The folder role is re-checked in each one
@@ -902,6 +908,10 @@ return [
         'entitlements.library' => ['newItem', 'edit', 'cancelEdit', 'open', 'close'],
         // Track 7: the volunteer acknowledges only for their own employee (never an id from the browser); the document must be one HR marked as required.
         'onboarding.policies' => ['acknowledge'],
+        // A policy's page: agree() writes only for the signed-in user's own employee, and only when an
+        // agreement is due (a required policy the employee agreed to an earlier version of, or a
+        // new volunteer's); every employee reads the policies, so no permission.
+        'policies.show' => ['agree'],
         // The chat: every signed-in employee may use it, so no permission. Each
         // action is self-scoped instead: ChatConversationPolicy (membership only,
         // no role exception) is checked on the conversation inside the action
@@ -1290,6 +1300,8 @@ return [
         'archives.archived-files-module' => [
             'loadContent', 'addFilter', 'removeFilter', 'clearFilters',
             'closePreviewModal', 'closePermissionsModal', 'updatedUserSearch',
+            // Closes the replace-a-policy box; writes nothing.
+            'cancelReplacePolicyFile',
             'updatedPermissionFilterType', 'updatedPermissionFilterValue',
             // Fills the second list of "Share with a group"; reads names only, writes nothing.
             'updatedGroupType',

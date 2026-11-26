@@ -349,6 +349,17 @@ class AppServiceProvider extends ServiceProvider
         Contract::observe(ContractObserver::class);
         Employee::observe(EmployeeObserver::class);
 
+        // The Policies folder: a file added, renamed or deleted there is a
+        // policy added, renamed or deleted (PolicySync). "Added" waits for
+        // the file itself to be stored, which MediaHasBeenAddedEvent marks.
+        Event::listen(fn (\Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent $event) => app(\App\Services\Policies\PolicySync::class)->added($event->media));
+        \Spatie\MediaLibrary\MediaCollections\Models\Media::updated(function (\Spatie\MediaLibrary\MediaCollections\Models\Media $media): void {
+            if ($media->wasChanged('name')) {
+                app(\App\Services\Policies\PolicySync::class)->renamed($media);
+            }
+        });
+        \Spatie\MediaLibrary\MediaCollections\Models\Media::deleted(fn (\Spatie\MediaLibrary\MediaCollections\Models\Media $media) => app(\App\Services\Policies\PolicySync::class)->deleted($media));
+
         // Team 2 (Phase 2): rules that must hold for every path that writes
         // these records — Team 1's public form included — without that code
         // being modified. Phone-duplicate hint; submission audit; a used

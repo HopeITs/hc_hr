@@ -124,8 +124,8 @@ class CommandPaletteTest extends TestCase
         $this->assertContains('search-page', $types);    // News
         $this->assertContains('search-person', $types);  // Newman
         $this->assertContains('search-command', $types); // New leave request, New news item
-        // Pages, then people, then commands.
-        $order = ['search-page' => 0, 'search-person' => 1, 'search-command' => 2];
+        // Pages, then people, then commands; the other groups (help topics, policies) come last.
+        $order = ['search-page' => 0, 'search-person' => 1, 'search-command' => 2, 'search-result' => 3];
         $ranks = array_map(fn (string $type) => $order[$type], $types);
         $sorted = $ranks;
         sort($sorted);

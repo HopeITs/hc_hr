@@ -62,6 +62,27 @@
         @endif
     </div>
 
+    {{-- The Policies folder: what its files become, and how to update one. --}}
+    @if ($inPolicyFolder)
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-line bg-soft p-4" data-testid="policy-folder-banner">
+            <p class="text-small text-ink">{{ __('policies.folder-banner') }}</p>
+            <x-button :href="route('policies.index')" variant="outline" size="sm">{{ __('policies.title') }}</x-button>
+        </div>
+    @endif
+
+    {{-- Replacing a policy's file with its new version. --}}
+    @if ($replacingMediaId)
+        <div class="mt-3 space-y-2 rounded-surface border border-ink bg-card p-4" data-testid="policy-replace">
+            <p class="text-small text-ink">{{ __('policies.replace-hint', ['name' => $replacingName]) }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <input type="file" wire:model="replacementFile" accept=".pdf,.docx" class="text-small text-ink" data-testid="policy-replace-file">
+                <x-button variant="quiet" size="sm" wire:click="cancelReplacePolicyFile">{{ __('general.cancel') }}</x-button>
+                <span class="text-small text-ink-2" wire:loading wire:target="replacementFile">…</span>
+            </div>
+            @error('replacementFile') <p class="hc-err">{{ $message }}</p> @enderror
+        </div>
+    @endif
+
     {{-- No "New folder" at the top of Shared with me: say where to make one instead. --}}
     @if ($isShared && ! $currentFolder && ! $canManageCurrentFolder)
         <p class="mt-3 text-small text-ink-2" data-testid="shared-root-hint">{{ __('folders.shared-root-hint') }}</p>
@@ -188,6 +209,19 @@
                     <span class="w-full mt-3 text-body font-semibold text-ink truncate">{{ $file->name }}</span>
                     <span class="mt-1 text-small text-ink-2">{{ strtoupper($file->extension) }} · {{ $file->size >= 1048576 ? number_format($file->size / 1048576, 1).' MB' : number_format($file->size / 1024, 1).' KB' }}</span>
                 </button>
+                @if ($policy = $policiesByMedia[$file->id] ?? null)
+                    <div class="mt-2 flex flex-wrap items-center justify-center gap-2 text-small" data-testid="policy-status-{{ $file->id }}">
+                        @if ($policy->read_status === \App\Models\PolicyDocument::READING)
+                            <x-status tone="work" icon="clock" :label="__('policies.status.reading')" />
+                        @elseif ($policy->read_status === \App\Models\PolicyDocument::FAILED)
+                            <x-status tone="stop" icon="warning" :label="__('policies.status.failed')" />
+                            <span class="w-full text-center text-ink-2">{{ __('policies.error.'.($policy->read_error ?? 'unreadable')) }}</span>
+                        @endif
+                        @if (filled($policy->content))
+                            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="text-ink underline">{{ __('policies.view-policy') }}</a>
+                        @endif
+                    </div>
+                @endif
 
                 <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 end-2">
                     <button type="button" @click="open = !open" aria-label="{{ __('general.actions') }}" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover">
@@ -221,6 +255,12 @@
                                 </svg>
                                 <span>{{ __('general.edit_name') }}</span>
                             </button>
+                            @if (isset($policiesByMedia[$file->id]))
+                            <button wire:click.prevent="startReplacePolicyFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink" data-testid="policy-replace-{{ $file->id }}">
+                                <x-icons.upload class="flex-shrink-0 text-current size-5" />
+                                <span>{{ __('policies.replace') }}</span>
+                            </button>
+                            @endif
                             @endif
                             @if ($canDeleteInCurrentFolder)
                             <button wire:click.prevent="confirmFileDeletion({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">

@@ -68,13 +68,13 @@ class GeminiClient implements ChatModel
      *
      * @throws GeminiException
      */
-    public function transcribe(string $bytes, string $mimeType): string
+    public function transcribe(string $bytes, string $mimeType, ?string $instruction = null): string
     {
         $contents = [[
             'role' => 'user',
             'parts' => [
                 ['inlineData' => ['mimeType' => $mimeType, 'data' => base64_encode($bytes)]],
-                ['text' => 'Transcribe the complete text of this document in its original language, in reading order. Keep headings, numbered clauses and tables (as plain text rows). Output only the text, with no commentary.'],
+                ['text' => $instruction ?? 'Transcribe the complete text of this document in its original language, in reading order. Keep headings, numbered clauses and tables (as plain text rows). Output only the text, with no commentary.'],
             ],
         ]];
 

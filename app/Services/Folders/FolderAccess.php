@@ -7,6 +7,7 @@ use App\Models\Folder;
 use App\Models\FolderGroupShare;
 use App\Models\MailListMember;
 use App\Models\User;
+use App\Services\Policies\PolicyFolder;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -24,6 +25,9 @@ use Illuminate\Database\Eloquent\Builder;
  * contract or a mailing list, has access. A subfolder also takes its parent's
  * access unless inherits_access is off (subfolders narrowed before this rule).
  * The best role wins. An active administrator role counts as owner everywhere.
+ *
+ * The Policies folder (PolicyFolder) is the exception: every employee views it,
+ * and HR holding employees.update owns it; its own sharing is not read.
  *
  * The folder role is the most a person may do; the role permissions (archives.*)
  * are a ceiling above it, checked on each Livewire action and on the download route.
@@ -50,6 +54,10 @@ final class FolderAccess
     {
         if ($user->isActiveAdministrator()) {
             return self::OWNER;
+        }
+
+        if (app(PolicyFolder::class)->contains($folder)) {
+            return PolicyFolder::canManage($user) ? self::OWNER : self::VIEWER;
         }
 
         $groups = $this->groupsOf($user);

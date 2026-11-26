@@ -31,7 +31,6 @@ use App\Services\OnboardingJourneys;
 use App\Services\PolicyAcknowledgements;
 use App\Services\WorkInbox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -538,41 +537,6 @@ class OnboardingExtendedTest extends TestCase
 
         $this->assertTrue($doc->fresh()->required_for_onboarding);
     }
-
-    public function test_hr_uploads_replaces_and_deletes_a_policy_document(): void
-    {
-        $file = UploadedFile::fake()->createWithContent('Travel policy.txt', "\xEF\xBB\xBFDaily allowance is 20 USD.\r\n\r\n\r\n\r\nReceipts are required.");
-
-        Livewire::actingAs($this->managerUser)->test(RequiredPolicies::class)->assertForbidden();
-
-        $page = Livewire::actingAs($this->hr)->test(RequiredPolicies::class)
-            ->set('upload', $file)
-            ->call('save')
-            ->assertHasNoErrors();
-
-        $doc = PolicyDocument::query()->sole();
-        $this->assertSame('Travel policy', $doc->title);
-        $this->assertSame("Daily allowance is 20 USD.\n\nReceipts are required.", $doc->content);
-
-        $page->call('startReplace', $doc->id)
-            ->set('upload', UploadedFile::fake()->createWithContent('v2.txt', 'Daily allowance is 25 USD.'))
-            ->set('uploadTitle', 'Travel policy v2')
-            ->call('save')
-            ->assertHasNoErrors();
-
-        $this->assertSame(1, PolicyDocument::query()->count());
-        $this->assertSame('Travel policy v2', $doc->fresh()->title);
-        $this->assertSame('Daily allowance is 25 USD.', $doc->fresh()->content);
-
-        $page->set('upload', UploadedFile::fake()->create('photo.png', 10))->call('save')->assertHasErrors('upload');
-        $page->set('upload', UploadedFile::fake()->createWithContent('empty.txt', "  \n "))->call('save')->assertHasErrors('upload');
-        $this->assertSame(1, PolicyDocument::query()->count());
-
-        $page->call('delete', $doc->id);
-        $this->assertSame(0, PolicyDocument::query()->count());
-    }
-
-    // ── The Media guideline: reviewed, made by another team ──────────
 
     public function test_the_media_guideline_is_its_own_review_step_apart_from_the_policies(): void
     {

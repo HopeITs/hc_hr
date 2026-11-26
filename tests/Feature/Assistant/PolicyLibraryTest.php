@@ -56,7 +56,8 @@ class PolicyLibraryTest extends TestCase
         $this->assertLessThanOrEqual(4000 + 200, mb_strlen($context));
 
         // The passages on either side of the clause come along, run on without a gap marker.
-        $this->assertStringContainsString("text\nMaternity leave lasts ninety days.\nclause clause", $context);
+        // Each line is its own block, kept apart by a blank line as Markdown reads it.
+        $this->assertMatchesRegularExpression('/text\n+Maternity leave lasts ninety days\.\n+clause clause/', $context);
     }
 
     public function test_the_policy_whose_title_matches_wins_over_a_stray_mention(): void

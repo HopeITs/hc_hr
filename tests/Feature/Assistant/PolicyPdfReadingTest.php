@@ -2,15 +2,11 @@
 
 namespace Tests\Feature\Assistant;
 
-use App\Livewire\Onboarding\RequiredPolicies;
-use App\Models\PolicyDocument;
 use App\Services\Assistant\GeminiClient;
 use App\Services\Assistant\GeminiException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Livewire\Livewire;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
 
@@ -34,11 +30,6 @@ class PolicyPdfReadingTest extends TestCase
             'assistant.gemini.fallback_models' => ['spare-model'],
             'assistant.gemini.retry_wait' => 0,
         ]);
-    }
-
-    private function turn(string $text, string $finish = 'STOP'): array
-    {
-        return ['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => $text]]], 'finishReason' => $finish]]];
     }
 
     public function test_a_long_pdf_is_read_on_from_where_the_answer_stopped(): void
@@ -123,44 +114,6 @@ class PolicyPdfReadingTest extends TestCase
         Http::assertSentCount(2);
     }
 
-    public function test_hr_is_told_why_a_pdf_was_not_taken(): void
-    {
-        $hr = $this->makeUser($this->makeCity('SYR', '000'), 'HR-SYR', ['employees.update']);
-        $pdf = fn () => UploadedFile::fake()->createWithContent('Leave policy.pdf', '%PDF-1.7');
-
-        Http::fake([self::GEMINI => Http::response(['error' => ['message' => 'high demand']], 503)]);
-        Livewire::actingAs($hr)->test(RequiredPolicies::class)
-            ->set('upload', $pdf())->call('save')
-            ->assertHasErrors('upload')
-            ->assertSee(__('onboarding.required-policies.pdf-busy'));
-
-        config(['assistant.gemini.key' => null]);
-        Livewire::actingAs($hr)->test(RequiredPolicies::class)
-            ->set('upload', $pdf())->call('save')
-            ->assertSee(__('onboarding.required-policies.pdf-unavailable'));
-
-        $this->assertSame(0, PolicyDocument::query()->count());
-    }
-
-    public function test_hr_uploads_a_pdf_and_its_whole_text_is_kept(): void
-    {
-        $hr = $this->makeUser($this->makeCity('SYR', '000'), 'HR-SYR', ['employees.update']);
-
-        Http::fake([self::GEMINI => Http::sequence()
-            ->push($this->turn('الإجازة السنوية واحد', 'MAX_TOKENS'))
-            ->push($this->turn(' وعشرون يوماً.'))]);
-
-        Livewire::actingAs($hr)->test(RequiredPolicies::class)
-            ->set('upload', UploadedFile::fake()->createWithContent('Leave policy.pdf', '%PDF-1.7'))
-            ->call('save')
-            ->assertHasNoErrors();
-
-        $document = PolicyDocument::query()->sole();
-        $this->assertSame('Leave policy', $document->title);
-        $this->assertSame('application/pdf', $document->mime_type);
-        $this->assertSame('الإجازة السنوية واحد وعشرون يوماً.', $document->content);
-    }
-
     public function test_the_check_command_reads_a_test_pdf(): void
     {
         Http::fake(function (Request $request) {
@@ -193,5 +146,10 @@ class PolicyPdfReadingTest extends TestCase
 
         $this->artisan('policies:pdf-check')->expectsOutputToContain('GEMINI_API_KEY is not set')->assertFailed();
         Http::assertNothingSent();
+    }
+
+    private function turn(string $text, string $finish = 'STOP'): array
+    {
+        return ['candidates' => [['content' => ['role' => 'model', 'parts' => [['text' => $text]]], 'finishReason' => $finish]]];
     }
 }

@@ -107,16 +107,6 @@ class PolicyLibrary
         return $titles."\n\n".$body;
     }
 
-    /** The policy's page, at a passage when one is given, with the question's words to mark. */
-    private function link(int $document, ?int $position, string $question): string
-    {
-        return route('policies.show', array_filter([
-            'document' => $document,
-            'q' => mb_substr(trim($question), 0, 80),
-            'p' => $position,
-        ], fn ($value) => $value !== null && $value !== ''));
-    }
-
     /**
      * The passages of one policy's text, in reading order: the same split the index uses, so a
      * result's `position` is the passage to scroll to on the policy's page.
@@ -138,9 +128,12 @@ class PolicyLibrary
      * rest a passage must hold about 60% (two of two, two of three). Rarer words weigh more, and
      * words standing together as typed add a bonus.
      *
-     * @return list<array{id: int, title: string, position: int, text: string, snippet: string}>
+     * With $perDocument above 1, a policy's next best passages come along in `more` (position
+     * and snippet each), for a results page grouped by policy.
+     *
+     * @return list<array{id: int, title: string, position: int, text: string, snippet: string, more: list<array{position: int, snippet: string}>}>
      */
-    public function search(string $term, int $limit = 4): array
+    public function search(string $term, int $limit = 4, int $perDocument = 1): array
     {
         $index = $this->index();
         $words = $this->searchWords($term);
@@ -205,19 +198,30 @@ class PolicyLibrary
             $passage = $passages[$p];
 
             if (isset($seen[$passage['document']])) {
+                $at = $seen[$passage['document']];
+
+                if (count($results[$at]['more']) < $perDocument - 1) {
+                    $results[$at]['more'][] = ['position' => $passage['position'], 'snippet' => $this->snippet($passage['text'], $words)];
+                }
+
                 continue;
             }
 
-            $seen[$passage['document']] = true;
+            if (count($results) >= $limit) {
+                continue;
+            }
+
+            $seen[$passage['document']] = count($results);
             $results[] = [
                 'id' => (int) $index['documents'][$passage['document']]['id'],
                 'title' => $index['documents'][$passage['document']]['title'],
                 'position' => $passage['position'],
                 'text' => $passage['text'],
                 'snippet' => $this->snippet($passage['text'], $words),
+                'more' => [],
             ];
 
-            if (count($results) >= $limit) {
+            if (count($results) >= $limit && $perDocument === 1) {
                 break;
             }
         }
@@ -242,6 +246,31 @@ class PolicyLibrary
         }
 
         return array_values(array_unique($terms));
+    }
+
+    /** Markdown without its markers, for an excerpt: «**المادة 3:**» reads «المادة 3:». */
+    public static function plain(string $markdown): string
+    {
+        $text = preg_replace([
+            '/^\s{0,3}#{1,6}\s+/mu',       // headings
+            '/^\s*(?:[-*+]|\d+[.)])\s+/mu', // list markers
+            '/^\s*\|?\s*:?-{3,}.*$/mu',    // a table's rule
+            '/\*\*|__/u',                  // bold
+        ], '', $markdown) ?? $markdown;
+
+        $text = str_replace('|', ' ', $text);
+
+        return preg_replace('/\\\\([\\\\`*_\[\]<>#.)|-])/u', '$1', $text) ?? $text;
+    }
+
+    /** The policy's page, at a passage when one is given, with the question's words to mark. */
+    private function link(int $document, ?int $position, string $question): string
+    {
+        return route('policies.show', array_filter([
+            'document' => $document,
+            'q' => mb_substr(trim($question), 0, 80),
+            'p' => $position,
+        ], fn ($value) => $value !== null && $value !== ''));
     }
 
     /**
@@ -309,13 +338,18 @@ class PolicyLibrary
                 $score += (isset($stems[$word['stem']]) || str_contains($folded, $word['core'])) ? 1 : 0;
             }
 
+            // A heading says less than the clause under it: it wins only when nothing else matches as well.
+            if (preg_match('/^\s*#/u', $sentence)) {
+                $score -= 0.5;
+            }
+
             if ($score > $bestScore) {
                 $best = trim($sentence);
                 $bestScore = $score;
             }
         }
 
-        $best = trim((string) preg_replace('/\s+/u', ' ', $best !== '' ? $best : $text));
+        $best = trim((string) preg_replace('/\s+/u', ' ', self::plain($best !== '' ? $best : $text)));
 
         return mb_strlen($best) > 200 ? rtrim(mb_substr($best, 0, 200)).'…' : $best;
     }
@@ -341,7 +375,7 @@ class PolicyLibrary
         $fingerprint = md5($rows->map(fn (object $row) => $row->id.'|'.$row->updated_at.'|'.$row->size)->implode(';'));
 
         // "v2": the index now also carries each policy's id and the folded text of each passage (search).
-        return Cache::remember('assistant.policies.v2.'.$fingerprint, self::CACHE_SECONDS, function () {
+        return Cache::remember('assistant.policies.v4.'.$fingerprint, self::CACHE_SECONDS, function () {
             $documents = PolicyDocument::query()
                 ->readable()
                 ->orderBy('title')
@@ -401,26 +435,27 @@ class PolicyLibrary
         $passages = [];
         $current = '';
 
-        foreach (preg_split('/\R+/u', trim($content)) ?: [] as $line) {
-            $line = trim($line);
-
-            while (mb_strlen($line) > self::PASSAGE_CHARS) {
-                $cut = mb_strrpos(mb_substr($line, 0, self::PASSAGE_CHARS), ' ') ?: self::PASSAGE_CHARS;
-                $passages[] = trim(($current !== '' ? $current."\n" : '').mb_substr($line, 0, $cut));
+        foreach ($this->units($content) as $unit) {
+            // A table or a list stays whole, however long: cut, a table's rows would lose their
+            // header. Only a long paragraph is cut, at a space.
+            while (! preg_match('/^(\||\s*(?:[-*+]|\d+[.)])\s)/u', $unit) && mb_strlen($unit) > self::PASSAGE_CHARS) {
+                $cut = mb_strrpos(mb_substr($unit, 0, self::PASSAGE_CHARS), ' ') ?: self::PASSAGE_CHARS;
+                $passages[] = trim(($current !== '' ? $current."\n\n" : '').mb_substr($unit, 0, $cut));
                 $current = '';
-                $line = trim(mb_substr($line, $cut));
+                $unit = trim(mb_substr($unit, $cut));
             }
 
-            if ($line === '') {
+            if ($unit === '') {
                 continue;
             }
 
-            if ($current !== '' && mb_strlen($current) + mb_strlen($line) + 1 > self::PASSAGE_CHARS) {
+            if ($current !== '' && mb_strlen($current) + mb_strlen($unit) + 2 > self::PASSAGE_CHARS) {
                 $passages[] = $current;
                 $current = '';
             }
 
-            $current = $current === '' ? $line : $current."\n".$line;
+            // Blank lines between blocks keep them apart when the passage is read as Markdown.
+            $current = $current === '' ? $unit : $current."\n\n".$unit;
         }
 
         if ($current !== '') {
@@ -428,6 +463,83 @@ class PolicyLibrary
         }
 
         return $passages;
+    }
+
+    /**
+     * The blocks of a policy's Markdown: what blank lines separate (a paragraph, a heading, a
+     * list, a table). A text with no blank lines at all (a policy kept as plain lines) gives one
+     * block per line. A list longer than a passage is split between its items, which keep their
+     * own numbers.
+     *
+     * @return list<string>
+     */
+    private function units(string $content): array
+    {
+        $content = trim(str_replace(["\r\n", "\r"], "\n", $content));
+        $blocks = preg_match('/\n[ \t]*\n/u', $content)
+            ? preg_split('/\n[ \t]*\n/u', $content)
+            : $this->lineBlocks($content);
+
+        $units = [];
+
+        foreach ($blocks ?: [] as $block) {
+            $block = trim($block);
+
+            if ($block === '') {
+                continue;
+            }
+
+            if (mb_strlen($block) > self::PASSAGE_CHARS && ! str_starts_with($block, '|') && str_contains($block, "\n")) {
+                $chunk = '';
+
+                foreach (explode("\n", $block) as $line) {
+                    if ($chunk !== '' && mb_strlen($chunk) + mb_strlen($line) + 1 > self::PASSAGE_CHARS) {
+                        $units[] = $chunk;
+                        $chunk = '';
+                    }
+
+                    $chunk = $chunk === '' ? $line : $chunk."\n".$line;
+                }
+
+                $units[] = $chunk;
+
+                continue;
+            }
+
+            $units[] = $block;
+        }
+
+        return $units;
+    }
+
+    /**
+     * Plain lines as blocks, with consecutive table rows (and list items) kept together.
+     *
+     * @return list<string>
+     */
+    private function lineBlocks(string $content): array
+    {
+        $blocks = [];
+        $kind = static fn (string $line): string => match (true) {
+            str_starts_with($line, '|') => 'table',
+            (bool) preg_match('/^\s*(?:[-*+]|\d+[.)])\s/u', $line) => 'list',
+            default => 'line',
+        };
+
+        foreach (preg_split('/\n+/u', $content) ?: [] as $line) {
+            $line = rtrim($line);
+            $last = array_key_last($blocks);
+
+            if ($line !== '' && $last !== null && $kind($line) !== 'line' && $kind($line) === $kind(strtok($blocks[$last], "\n") ?: '')) {
+                $blocks[$last] .= "\n".$line;
+
+                continue;
+            }
+
+            $blocks[] = trim($line);
+        }
+
+        return $blocks;
     }
 
     /**

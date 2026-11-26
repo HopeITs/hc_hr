@@ -2,112 +2,29 @@
 
 namespace App\Livewire\Onboarding;
 
+use App\Livewire\Archives\ArchivedFilesModule;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\PolicyDocument;
 use App\Models\User;
-use App\Services\Assistant\GeminiException;
-use App\Services\Assistant\PolicyFileReader;
+use App\Services\Policies\PolicyFolder;
 use App\Services\PolicyAcknowledgements;
 use Illuminate\View\View;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Livewire\WithFileUploads;
-use Throwable;
 
 /**
- * HR uploads the policy documents (PDF, Word or text; their text is what the
- * assistant and the policies pages read), replaces or removes them, and
- * chooses which ones a new volunteer must read and agree to (track 7).
- * HR roles and super-admin only.
+ * HR's settings for the policies: which ones a new volunteer must read and
+ * agree to, and of which kind (track 7), and where each one stands (being
+ * read, failed and why). The files themselves are added, replaced and removed
+ * in the Policies folder (PolicyFolder), the one place for them.
+ * HR roles and super-admin holding employees.update only.
  */
 class RequiredPolicies extends Component
 {
-    use WithFeedback, WithFileUploads;
-
-    /** @var TemporaryUploadedFile|null */
-    public $upload;
-
-    public string $uploadTitle = '';
-
-    /** The document the upload replaces, or null for a new one. */
-    public ?int $replacing = null;
+    use WithFeedback;
 
     public function mount(): void
     {
         $this->authorizeHr();
-    }
-
-    public function startReplace(int $documentId): void
-    {
-        $this->authorizeHr();
-
-        $document = PolicyDocument::query()->findOrFail($documentId);
-        $this->replacing = $document->id;
-        $this->uploadTitle = $document->title;
-        $this->reset('upload');
-        $this->resetValidation();
-    }
-
-    public function cancelReplace(): void
-    {
-        $this->reset('upload', 'uploadTitle', 'replacing');
-        $this->resetValidation();
-    }
-
-    public function save(PolicyFileReader $reader): void
-    {
-        $this->authorizeHr();
-
-        $this->validate([
-            'upload' => ['required', 'file', 'mimes:'.implode(',', PolicyFileReader::EXTENSIONS), 'max:'.PolicyFileReader::MAX_KB],
-            'uploadTitle' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $extension = strtolower($this->upload->getClientOriginalExtension());
-
-        // Gemini reads a long PDF in several answers, with retries when it is
-        // busy: that takes minutes, longer than PHP's default limit.
-        set_time_limit(0);
-
-        try {
-            $text = $reader->read($this->upload->getRealPath(), $extension);
-        } catch (Throwable $e) {
-            report($e);
-            $this->addError('upload', __('onboarding.required-policies.'.match (true) {
-                $e instanceof GeminiException && $e->isTemporary() => 'pdf-busy',
-                $e instanceof GeminiException && ($e->isUnavailableHere() || ! filled(config('assistant.gemini.key'))) => 'pdf-unavailable',
-                default => 'unreadable',
-            }));
-
-            return;
-        }
-
-        $document = $this->replacing
-            ? PolicyDocument::query()->findOrFail($this->replacing)
-            : new PolicyDocument;
-
-        $document->fill([
-            'title' => filled($this->uploadTitle) ? trim($this->uploadTitle) : $reader->title($this->upload->getClientOriginalName()),
-            'mime_type' => $reader->mimeType($extension),
-            'content' => $text,
-            'source_modified_at' => now(),
-        ])->save();
-
-        $this->reset('upload', 'uploadTitle', 'replacing');
-        $this->toast(__('onboarding.required-policies.uploaded'), 'success');
-    }
-
-    public function delete(int $documentId): void
-    {
-        $this->authorizeHr();
-
-        PolicyDocument::query()->findOrFail($documentId)->delete();
-
-        if ($this->replacing === $documentId) {
-            $this->cancelReplace();
-        }
-
-        $this->toast(__('onboarding.required-policies.deleted'), 'success');
     }
 
     public function setRequired(int $documentId, bool $required, PolicyAcknowledgements $policies): void
@@ -129,32 +46,34 @@ class RequiredPolicies extends Component
         $this->toast(__('onboarding.required-policies.saved'), 'success');
     }
 
-    public function render(): View
+    /** A policy from before the folder (text only, no file): HR removes it once its file is in the folder. */
+    public function deleteTextOnly(int $documentId): void
+    {
+        $this->authorizeHr();
+
+        PolicyDocument::query()->whereNull('media_id')->findOrFail($documentId)->delete();
+
+        $this->toast(__('onboarding.required-policies.deleted'), 'success');
+    }
+
+    public function render(PolicyFolder $folder): View
     {
         $this->authorizeHr();
 
         return view('livewire.onboarding.required-policies', [
-            'documents' => PolicyDocument::query()->orderBy('title')->get(),
+            'documents' => PolicyDocument::query()->with('media')->orderBy('title')->get(),
+            'folderUrl' => ArchivedFilesModule::folderUrl($folder->library()->id),
         ])->title(__('onboarding.required-policies.title'));
     }
 
-    /**
-     * Who may upload and manage the policies: an HR role (or super-admin)
-     * that holds employees.update, as the route and authorizeHr() demand.
-     * The Policies page shows its "Add policy" button by the same rule.
-     */
+    /** Kept for callers from before PolicyFolder::canManage. */
     public static function canManage(?User $user): bool
     {
-        $role = (string) $user?->myRole();
-
-        return ($role === 'super-admin' || str_starts_with($role, 'HR-'))
-            && $user->hasActivePermission('employees.update');
+        return PolicyFolder::canManage($user);
     }
 
     private function authorizeHr(): void
     {
-        $role = (string) auth()->user()?->myRole();
-
-        abort_unless($role === 'super-admin' || str_starts_with($role, 'HR-'), 403);
+        abort_unless(PolicyFolder::canManage(auth()->user()), 403);
     }
 }

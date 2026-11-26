@@ -2,13 +2,18 @@
 
 namespace App\Services\Assistant;
 
+use App\Services\Policies\DocxMarkdown;
 use RuntimeException;
-use ZipArchive;
 
 /**
- * Turns a policy file HR uploads into the plain text the assistant and the
- * policies pages read. PDFs are scanned Arabic more often than not, so their
- * text comes from Gemini rather than a PDF parser.
+ * Turns a policy file into the Markdown the policy page shows, the search
+ * looks through and the assistant reads: headings, numbered clauses, bold and
+ * tables kept.
+ *
+ *  - Word: from its own structure (DocxMarkdown), on this server.
+ *  - PDF: written out by Gemini. PDFs are scanned Arabic more often than not,
+ *    and no PDF parser keeps Arabic in order (tried 2026-11-26).
+ *  - Text: as it is.
  */
 class PolicyFileReader
 {
@@ -21,17 +26,20 @@ class PolicyFileReader
 
     public const EXTENSIONS = ['pdf', 'docx', 'txt'];
 
-    public function __construct(private GeminiClient $gemini) {}
+    private const PDF_INSTRUCTION = 'Transcribe the complete text of this document in its original language, in reading order, as Markdown: '
+        .'# for the title and ## / ### for section headings, numbered clauses as a numbered list ("1. ") and bullets as "- ", '
+        .'**bold** where the document is bold, and tables as Markdown tables. Never translate, summarise or leave anything out. '
+        .'Output only the Markdown, with no commentary and no code fence.';
+
+    public function __construct(private GeminiClient $gemini, private DocxMarkdown $docx) {}
 
     /** @throws RuntimeException|GeminiException when no text can be read */
     public function read(string $path, string $extension): string
     {
-        $bytes = (string) file_get_contents($path);
-
         $text = $this->normalize(match (strtolower($extension)) {
-            'pdf' => $this->gemini->transcribe($bytes, 'application/pdf'),
-            'docx' => $this->docxText($path),
-            'txt' => $bytes,
+            'pdf' => $this->unfence($this->gemini->transcribe((string) file_get_contents($path), 'application/pdf', self::PDF_INSTRUCTION)),
+            'docx' => $this->docx->convert($path),
+            'txt' => (string) file_get_contents($path),
             default => throw new RuntimeException('Unsupported file type.'),
         });
 
@@ -57,28 +65,10 @@ class PolicyFileReader
         return trim(preg_replace('/\.[A-Za-z0-9]{1,5}$/', '', $name) ?: $name);
     }
 
-    /** The paragraphs of a .docx, one per line. */
-    private function docxText(string $path): string
+    /** A model that wraps its answer in ```markdown fences anyway. */
+    private function unfence(string $text): string
     {
-        $zip = new ZipArchive;
-
-        if ($zip->open($path) !== true) {
-            throw new RuntimeException('Not a readable .docx file.');
-        }
-
-        $xml = $zip->getFromName('word/document.xml');
-        $zip->close();
-
-        if ($xml === false) {
-            throw new RuntimeException('Not a readable .docx file.');
-        }
-
-        preg_match_all('#<w:p[ >].*?</w:p>#s', $xml, $paragraphs);
-
-        return collect($paragraphs[0])
-            ->map(fn (string $p) => preg_replace(['#<w:tab/>#', '#<w:br/>#'], ["\t", "\n"], $p))
-            ->map(fn (string $p) => html_entity_decode(strip_tags($p), ENT_QUOTES | ENT_XML1, 'UTF-8'))
-            ->implode("\n");
+        return preg_replace('/^\s*```[a-z]*\s*\n(.*)\n\s*```\s*$/s', '$1', $text) ?? $text;
     }
 
     /** Unix line ends, no BOM, no runs of blank lines. */
