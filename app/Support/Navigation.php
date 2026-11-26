@@ -12,9 +12,10 @@ use App\Support\Reports\ReportCatalog;
 use Throwable;
 
 /**
- * The sidebar's structure (C0, docs/ux/interaction-contract.md §4): the work
- * inbox on top, then My space, My team, HR operations, Settings and, last,
- * Organisation (reference pages).
+ * The sidebar's structure (C0, docs/ux/interaction-contract.md §4): the
+ * dashboard on top, then My account (the person's own pages, open by default),
+ * People, Leave and time, Recruitment, Reports, Administration and, last,
+ * Reference (pages a role only reads).
  *
  * Every item is shown under the same permission check the old sidebar used;
  * the areas only decide *where* an item sits for the active role. Nothing
@@ -92,22 +93,23 @@ final class Navigation
             $isDeliverResponsible && $can('checklists.manage') ? self::item('nav.hr.done-requests', __('general.done_requests'), 'checklist-items.done-requests', ['checklist-items.done-requests'], 'check') : null,
             $isDeliverResponsible && $user->canHandOutItems() ? self::item('nav.my-team.hand-out', __('general.pending-delivers'), 'checklist-items.pending-delivers', ['checklist-items.pending-delivers'], 'items', 'nav.checklists', 'checklist-items.pending-delivers-counter') : null,
             $isDeliverResponsible && $can('checklists.receive') ? self::item('nav.my-team.take-back', __('general.pending_returns'), 'checklist-items.pending-returns', ['checklist-items.pending-returns'], 'items', null, 'checklist-items.pending-returns-counter') : null,
+        ]));
+
+        // Pages a role only reads sit apart from the people, in their own group.
+        $reference = array_values(array_filter([
             ! $editsStructure ? $structureItem : null,
             ! $showBasicsInAdmin && $opens('project-basics') ? $basics : null,
             ! $newsInAdmin && $can('news.view') ? $news : null,
         ]));
 
+        // The person's own leave and timesheet are in My account; this group is the team's and everyone's.
         $time = array_values(array_filter([
-            $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
             ! $isManager && $can('leaves.view-all') ? self::item('nav.hr.leaves', __('general.all-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $isManager && $can('leaves.view-all') ? self::item('nav.my-team.leaves', __('general.nav.team-leaves'), 'leaves.all', ['leaves.all'], 'calendar', 'nav.leaves-management') : null,
             $can('leaves.manage-balances') ? self::item('nav.hr.balances', __('general.balance'), 'leaves.balance', ['leaves.balance'], 'calendar') : null,
-            // An employee's own timesheet; managers and HR open the team's / everyone's.
-            $can('attendance.view-own') && ! $can('attendance.view') ? self::item('nav.my-space.attendance', __('attendance.nav-own'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             ! $isManager && $can('attendance.view') ? self::item('nav.hr.attendance', __('attendance.nav'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $isManager && $can('attendance.view') ? self::item('nav.my-team.attendance', __('attendance.nav-team'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
             $holidaysForProjects ? self::item('nav.my-team.holidays', __('holidays.title'), 'holidays.index', ['holidays.*'], 'calendar') : null,
-            $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
         ]));
 
         // Team 2: interview participants and offer viewers reach their pages
@@ -119,25 +121,24 @@ final class Navigation
             $user->can('viewAny', RecruitmentApplicant::class) ? self::item('nav.recruitment.applicants', __('recruitment.navigation_applicants'), 'recruitment.applicants.index', ['recruitment.applicants.*'], 'recruitment-applicant') : null,
             $user->can('viewAny', RecruitmentInterview::class) ? self::item('nav.recruitment.interviews', __('recruitment-applicant.interviews.title'), 'recruitment.interviews.index', ['recruitment.interviews.*'], 'recruitment-interview') : null,
             $user->can('viewAny', RecruitmentJobOffer::class) ? self::item('nav.recruitment.offers', __('recruitment-applicant.offers.title'), 'recruitment.offers.index', ['recruitment.offers.*'], 'recruitment-offer') : null,
+            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
         ]));
 
         $reports = array_values(array_filter([
             ReportCatalog::visibleTo($user) !== [] ? self::item('nav.settings.reports', __('Reports'), 'reports.index', ['reports.*'], 'activity-log') : null,
-            $can('statistics.view') ? self::group('nav.hr.statistics', __('general.statistics'), 'statistics', [
-                self::item('nav.hr.statistics.general', __('general.general-statistics'), 'statistics.general', ['statistics.general']),
-                self::item('nav.hr.statistics.contracts', __('general.contract-statistics'), 'statistics.contract', ['statistics.contract']),
-            ], 'nav.statistics') : null,
+            $can('statistics.view') ? self::item('nav.hr.statistics.general', __('general.general-statistics'), 'statistics.general', ['statistics.general'], 'statistics', 'nav.statistics') : null,
+            $can('statistics.view') ? self::item('nav.hr.statistics.contracts', __('general.contract-statistics'), 'statistics.contract', ['statistics.contract'], 'statistics') : null,
         ]));
 
+        // Structure first, then permissions, then content and templates, and the system's own records last.
         $admin = array_values(array_filter([
             $editsStructure ? $structureItem : null,
             $showBasicsInAdmin ? $basics : null,
             $can('entitlements.manage-library') && $user->activeRoleIs('HR', ...config('access-control.administrator_roles', [])) ? self::item('nav.settings.entitlements', __('entitlements.title'), 'entitlements.index', ['entitlements.*'], 'check-plus') : null,
+            $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
             $can('checklists.manage') ? self::item('nav.hr.deliverables', trans_choice('general.default-deliverables', 2), 'default-deliverables.index', ['default-deliverables.*'], 'checklist') : null,
-            $can('recruitment-indicators.manage') ? self::item('nav.recruitment.indicator-rules', __('recruitment-indicator-rules.navigation'), 'recruitment.indicator-rules', ['recruitment.indicator-rules'], 'recruitment-rules') : null,
             $can('message-templates.manage') ? self::item('nav.hr.message-templates', __('messages.title'), 'message-templates.index', ['message-templates.*'], 'clipboard-list') : null,
             $newsInAdmin ? $news : null,
-            $can('access-management.view') ? self::item('nav.settings.access', __('access.title'), 'access-management.index', ['access-management.*'], 'cog', 'nav.access') : null,
             $can('activity-log.view') ? self::item('nav.settings.activity', __('general.activity-log'), 'activity-log.index', ['activity-log.*'], 'activity-log', 'nav.activity-log') : null,
             // D3 / DEC-08: the IT team only; not a role permission (User::canReadFeedback()).
             $user->canReadFeedback() ? self::item('nav.settings.feedback', __('feedback.inbox.title'), 'feedback.index', ['feedback.*'], 'activity-log') : null,
@@ -146,6 +147,10 @@ final class Navigation
         $account = array_values(array_filter([
             // A new volunteer's own journey, while it is open (and two weeks after); staff who never had one never see it.
             \App\Livewire\Onboarding\MyFirstDays::inMenuFor($user) ? self::item('nav.my-space.first-days', __('onboarding.first-days.title'), 'onboarding.my-first-days', ['onboarding.my-first-days', 'onboarding.policies'], 'clipboard-list') : null,
+            $can('leaves.view-own') ? self::item('nav.my-space.leaves', __('general.my-leaves'), 'leaves.index', ['leaves.index'], 'my-leaves', 'nav.my-leaves') : null,
+            // An employee's own timesheet; managers and HR open the team's / everyone's under Leave and time.
+            $can('attendance.view-own') && ! $can('attendance.view') ? self::item('nav.my-space.attendance', __('attendance.nav-own'), 'attendance.timesheets', ['attendance.*'], 'calendar') : null,
+            $can('leaves.view-own') ? self::item('nav.my-space.team-calendar', __('team_calendar.nav'), 'team.calendar', ['team.calendar'], 'calendar') : null,
             $can('checklists.view-own') ? self::item('nav.my-space.items', __('general.my-items'), 'checklist-items.index', ['checklist-items.index'], 'clipboard-list', 'nav.my-items') : null,
             // Every employee reads the mailing lists and emails one; no permission to see it.
             // An account with no employee record (a system account) is not an employee.
@@ -159,16 +164,17 @@ final class Navigation
             // button on every page (<x-assistant.widget>).
         ]));
 
-        // The dashboard has no heading ('bare'); 'my-space' stays the id of the
-        // person's own group, which is the one the icon rail keeps.
+        // The dashboard has no heading ('bare'); 'my-space' is the person's own
+        // group, open by default and the one the icon rail keeps.
         $areas = array_values(array_filter([
             ['id' => 'home', 'label' => __('general.dashboard'), 'bare' => true, 'items' => $home],
+            $account !== [] ? ['id' => 'my-space', 'label' => __('general.nav.area.my-space'), 'items' => $account] : null,
             $people !== [] ? ['id' => 'people', 'label' => __('general.nav.area.people'), 'items' => $people] : null,
             $time !== [] ? ['id' => 'time', 'label' => __('general.nav.area.time'), 'items' => $time] : null,
             $recruitment !== [] ? ['id' => 'recruitment', 'label' => __('recruitment.navigation_section'), 'items' => $recruitment] : null,
             $reports !== [] ? ['id' => 'reports', 'label' => __('general.nav.area.reports'), 'items' => $reports] : null,
             $admin !== [] ? ['id' => 'admin', 'label' => __('general.nav.area.admin'), 'items' => $admin] : null,
-            $account !== [] ? ['id' => 'my-space', 'label' => __('general.nav.area.my-space'), 'items' => $account] : null,
+            $reference !== [] ? ['id' => 'reference', 'label' => __('general.nav.area.reference'), 'items' => $reference] : null,
         ]));
 
         return ['inbox' => self::inbox($user, $can, $countInbox), 'areas' => $areas];

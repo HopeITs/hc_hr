@@ -9,12 +9,12 @@
     rtl: {{ app()->getLocale() === 'ar' ? 'true' : 'false' }},
     open: @entangle('open').live,
     {{-- Collapsed areas, per browser (localStorage). The area holding the current page ignores it.
-         Until someone chooses, every group starts closed: the one holding the current page opens by itself. --}}
-    closedAreas: (() => { const rare = ['people', 'time', 'recruitment', 'reports', 'admin', 'my-space']; try { const stored = localStorage.getItem('nav-closed-areas-v2'); return stored ? JSON.parse(stored) : rare; } catch (e) { return rare; } })(),
+         Until someone chooses, only My account is open (the person's own pages); the group holding the current page opens by itself. --}}
+    closedAreas: (() => { const rare = ['people', 'time', 'recruitment', 'reports', 'admin', 'reference']; try { const stored = localStorage.getItem('nav-closed-areas-v3'); return stored ? JSON.parse(stored) : rare; } catch (e) { return rare; } })(),
     isClosed(id) { return this.closedAreas.includes(id); },
     toggleArea(id) {
         this.closedAreas = this.isClosed(id) ? this.closedAreas.filter((area) => area !== id) : [...this.closedAreas, id];
-        try { localStorage.setItem('nav-closed-areas-v2', JSON.stringify(this.closedAreas)); } catch (e) {}
+        try { localStorage.setItem('nav-closed-areas-v3', JSON.stringify(this.closedAreas)); } catch (e) {}
     },
 }" x-cloak>
     <aside x-cloak data-tour="nav" @click.outside="open = false" x-on:hc-workspace-opened.window="open = false"

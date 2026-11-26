@@ -1043,6 +1043,7 @@ return [
             'admin' => 'Administration',
             'my-team' => 'My team',
             'hr' => 'HR operations',
+            'reference' => 'Reference',
             'settings' => 'Settings',
         ],
         'organisation' => 'Organization',
