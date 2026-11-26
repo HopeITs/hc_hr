@@ -66,8 +66,12 @@ class Index extends Component
         $user = auth()->user();
         $seeDraft = $access->canSeeDraft($user);
 
-        $upcoming = BoardMeeting::query()->where('starts_at', '>=', now()->startOfDay())->orderBy('starts_at')->get();
-        $past = BoardMeeting::query()->where('starts_at', '<', now()->startOfDay())->orderByDesc('starts_at')->limit(50)->get();
+        // A meeting is "coming up" until it starts; one that has started, or whose minutes are published, is "earlier"
+        // (today's meeting must not hide among the coming ones once its minutes are out).
+        $upcoming = BoardMeeting::query()->where('starts_at', '>=', now())->whereNull('published_at')->orderBy('starts_at')->get();
+        $past = BoardMeeting::query()
+            ->where(fn ($q) => $q->where('starts_at', '<', now())->orWhereNotNull('published_at'))
+            ->orderByDesc('starts_at')->limit(50)->get();
 
         return view('livewire.board.meetings.index', [
             'upcoming' => $upcoming,
