@@ -127,7 +127,7 @@
                     @if ($folder->user_id === auth()->id())
                         <span class="mt-1 text-small text-ink-2">{{ __('general.by_me') }}</span>
                     @else
-                        <span class="mt-1 text-small text-ink-2">{{ __('general.by') }}: {{ optional($folder->creator?->profile)->name ?? __('general.unknown') }}</span>
+                        <span class="mt-1 text-small text-ink-2">{{ __('general.by') }}: {{ $folder->is_policy_library ? __('policies.folder-owner') : (optional($folder->creator?->profile)->name ?? __('general.unknown')) }}</span>
                         {{-- What this person may do here, in words (status = words, not colour). --}}
                         @if ($folderRole && $folderRole !== \App\Services\Folders\FolderAccess::OWNER)
                             <span class="mt-0.5 text-caption text-ink-3" data-testid="folder-role">{{ __('folders.roles.'.$folderRole) }}</span>
@@ -187,7 +187,7 @@
                 @endif
             </div>
             @empty
-                @if ($files->isEmpty())
+                @if ($files->isEmpty() && $filelessPolicies->isEmpty())
                     <p class="text-center text-ink-2 col-span-full">{{ __('general.folder_empty') }}</p>
                 @endif
             @endforelse
@@ -274,6 +274,17 @@
                     </div>
                 </div>
             </div>
+            @endforeach
+
+            {{-- Policies kept as text only (from before the folder): open on their own page. --}}
+            @foreach ($filelessPolicies as $policy)
+            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="group flex flex-col items-center justify-center h-40 p-4 text-center transition bg-card border border-line-soft rounded-surface shadow-e1 hover:-translate-y-0.5 hover:border-line hover:shadow-e3" data-testid="policy-text-{{ $policy->id }}">
+                <span class="flex items-center justify-center rounded-surface size-16 ring-1 ring-transparent group-hover:bg-ink group-hover:ring-ink">
+                    <x-icons.document-text class="w-10 h-10 text-ink-2 group-hover:text-on-ink" />
+                </span>
+                <span class="w-full mt-3 text-body font-semibold text-ink truncate">{{ $policy->title }}</span>
+                <span class="mt-1 text-small text-ink-2">{{ __('policies.view-policy') }}</span>
+            </a>
             @endforeach
         </div>
     </div>

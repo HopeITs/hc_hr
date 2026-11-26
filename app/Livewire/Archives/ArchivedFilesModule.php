@@ -771,6 +771,10 @@ class ArchivedFilesModule extends Component
             'policiesByMedia' => $inPolicyFolder
                 ? \App\Models\PolicyDocument::query()->whereIn('media_id', $this->files->pluck('id'))->get()->keyBy('media_id')
                 : collect(),
+            // Policies from before the folder have text but no file: listed here too, so the folder shows every policy.
+            'filelessPolicies' => app(PolicyFolder::class)->isLibrary($this->currentFolder)
+                ? \App\Models\PolicyDocument::query()->whereNull('media_id')->readable()->orderBy('title')->get(['id', 'title'])
+                : collect(),
             'policyFolderId' => app(PolicyFolder::class)->library()->id,
             'canDeleteInCurrentFolder' => $this->currentFolder !== null && $this->access()->canDelete($this->user, $this->currentFolder),
             // Each listed folder's role for this person: what its menu offers.

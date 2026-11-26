@@ -177,6 +177,19 @@ class PolicyFolderTest extends TestCase
         $this->assertSame(0, PolicyDocument::query()->count());
     }
 
+    public function test_the_folder_shows_policies_kept_as_text_only_and_belongs_to_hope_center(): void
+    {
+        $document = PolicyDocument::query()->create(['title' => 'Code of conduct', 'content' => 'Be kind.', 'read_status' => PolicyDocument::READY]);
+
+        Livewire::actingAs($this->employee)->test(ArchivedFilesModule::class, ['folderId' => $this->library()->id])
+            ->assertSee('Code of conduct')
+            ->assertSee(route('policies.show', $document->id), false)
+            ->assertDontSee(__('general.folder_empty'));
+
+        Livewire::actingAs($this->employee)->test(ArchivedFilesModule::class)
+            ->assertSee(__('policies.folder-owner'));
+    }
+
     public function test_other_files_and_other_folders_are_not_policies(): void
     {
         $other = Folder::query()->forceCreate(['name' => 'Mine', 'user_id' => $this->hr->id]);

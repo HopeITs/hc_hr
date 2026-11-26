@@ -5,6 +5,7 @@ return [
     'manage' => 'Add a policy',
     'settings' => 'Required policies',
     'folder-name' => 'Policies',
+    'folder-owner' => 'Hope Center',
     'folder-banner' => 'This is the Policies folder: every employee reads it, and each PDF, Word or text file in it is a policy. Add, replace and delete policies from the Policies page, which is the place for it.',
     'unfinished' => 'Policies not read yet',
     'status' => [
