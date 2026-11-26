@@ -82,7 +82,7 @@ return [
     'review-backlog' => [
         'hint' => 'Mark all decisions waiting longer than:',
         'older-than' => ':days days',
-        'overdue' => 'Overdue',
+        'overdue' => 'Unreviewed 2+ weeks',
         'title' => 'Mark these as seen by HR?',
         'preview' => '{1} 1 decision has waited more than :days days and will be marked as seen. The employee and manager are told, as with one "Seen".|[2,*] :count decisions have waited more than :days days and will be marked as seen. Each employee and manager is told, as with one "Seen".',
         'nothing' => 'No decision has waited more than :days days.',
