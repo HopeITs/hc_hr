@@ -20,6 +20,7 @@ class BoardMeeting extends Model
     protected $fillable = [
         'number', 'starts_at', 'ends_at', 'location', 'room', 'purpose', 'led_by', 'status',
         'cancel_reason', 'reminded_at', 'published_at', 'prepared_by', 'created_by',
+        'reopened_at', 'reopened_by', 'reopen_reason',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class BoardMeeting extends Model
         'ends_at' => 'datetime',
         'reminded_at' => 'datetime',
         'published_at' => 'datetime',
+        'reopened_at' => 'datetime',
     ];
 
     public function attendees(): HasMany
@@ -58,6 +60,12 @@ class BoardMeeting extends Model
     public function isPublished(): bool
     {
         return $this->published_at !== null;
+    }
+
+    /** Its time has come: the date can no longer move, and attendance can be taken. */
+    public function hasStarted(): bool
+    {
+        return $this->starts_at->lessThanOrEqualTo(now());
     }
 
     /** Still ahead of us and still on. */

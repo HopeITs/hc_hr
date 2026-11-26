@@ -2,10 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\BoardMeetingReminderMail;
 use App\Models\BoardMeeting;
+use App\Models\Employee;
 use App\Notifications\BoardMeetingNotice;
 use App\Services\Board\BoardAccess;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * One reminder, the day before a board meeting (config board.remind_days_before), to the members and
@@ -37,6 +41,19 @@ class SendBoardMeetingReminders extends Command
 
             foreach ($access->audience() as $user) {
                 $user->notify(BoardMeetingNotice::for(BoardMeetingNotice::REMINDER, $meeting));
+            }
+
+            // And by email, with the meeting as a calendar invitation: the board is used to email.
+            $emails = $access->currentMembers()->with('account')->get()
+                ->map(fn (Employee $e) => $e->account?->email)->filter()->unique();
+
+            foreach ($emails as $email) {
+                try {
+                    Mail::to($email)->send(new BoardMeetingReminderMail($meeting));
+                } catch (Throwable $e) {
+                    // One bad address must not stop the others' reminders.
+                    report($e);
+                }
             }
         }
 

@@ -188,6 +188,7 @@ return [
         'stats-salary' => 'Employees by pay basis',
         'who-is-out' => 'Out today',
         'next-holiday' => 'Next holiday',
+        'board-meeting' => 'Next board meeting',
         'leave-balance' => 'Leave balance',
         'birthdays' => 'Birthdays this week',
         'clock' => 'Clock',

@@ -16,6 +16,7 @@ use App\Services\Board\BoardMinutesView;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use RuntimeException;
@@ -459,6 +460,201 @@ class BoardMeetingsTest extends TestCase
 
         Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
             ->assertSee('background:#FFFFFF;color:#414042', false);
+    }
+
+    public function test_only_the_chair_reopens_published_minutes_with_a_reason_and_members_lose_them_until_republished(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        $meeting->update(['published_at' => now()]);
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->set('reopenReason', 'x')->call('reopenMinutes')->assertForbidden();
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-reopen"', false)
+            ->call('reopenMinutes')->assertHasErrors('reopenReason')
+            ->set('reopenReason', 'خطأ في اسم')->call('reopenMinutes')->assertHasNoErrors()
+            ->assertSet('mode', 'edit');
+
+        $meeting->refresh();
+        $this->assertNull($meeting->published_at);
+        $this->assertSame('خطأ في اسم', $meeting->reopen_reason);
+        $this->assertSame($this->chair->id, $meeting->reopened_by);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::REOPENED);
+
+        // A draft again: the member reads nothing, the secretary can write again.
+        $this->actingAs($this->member)->get(route('board.meetings.pdf', $meeting))->assertForbidden();
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->set('sectionTitle', 'تصحيح')->call('saveSection')->assertHasNoErrors();
+    }
+
+    public function test_follow_ups_link_a_picked_person_who_is_told_on_publishing_and_may_mark_it_done(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        $owner = $this->outsider; // anyone on the staff, not only the board
+        Employee::query()->whereKey($owner->employee_id)->update(['first_name_en' => 'Fares', 'first_name_ar' => 'فارس', 'last_name_en' => 'Badawi', 'last_name_ar' => 'بدوي']);
+        $ownerName = $owner->fresh()->profile->name;
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->set('followUpTopic', 'إدارة LinkedIn')->set('followUpParty', $ownerName)->call('saveFollowUp')
+            ->set('followUpTopic', 'مدة الأرشفة')->set('followUpParty', 'قسم العلاقات العامة')->call('saveFollowUp');
+
+        $linked = $meeting->followUps()->where('topic', 'إدارة LinkedIn')->firstOrFail();
+        $this->assertSame($owner->employee_id, $linked->employee_id);
+        $this->assertNull($meeting->followUps()->where('topic', 'مدة الأرشفة')->value('employee_id'));
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])->call('publish');
+        Notification::assertSentTo($owner, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::FOLLOW_UP);
+        $this->assertNotNull($linked->fresh()->notified_at);
+
+        // The owner (not on the board) marks his own row done; a member who is not the owner may not.
+        $this->app['auth']->forgetGuards();
+        app(BoardMeetingService::class)->setFollowUpDone($linked, $owner, true);
+        $this->assertSame('done', $linked->fresh()->status);
+
+        $other = $meeting->followUps()->where('topic', 'مدة الأرشفة')->firstOrFail();
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertForbidden();
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertHasNoErrors();
+        $this->assertSame('done', $other->fresh()->status);
+    }
+
+    public function test_open_rows_from_earlier_minutes_are_offered_and_carried_into_the_next_meeting(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $earlier = $service->schedule(['starts_at' => now()->subWeek()], notify: false);
+        $row = $earlier->followUps()->create(['topic' => 'حساب Google', 'party' => 'قسم التكنولوجيا', 'sort' => 1]);
+        $earlier->update(['published_at' => now()->subDays(6)]);
+        $now = $service->schedule(['starts_at' => now()->subHour()], notify: false);
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $now])
+            ->assertSee('data-testid="board-earlier-follow-ups"', false)->assertSee('حساب Google')
+            ->call('carryFollowUp', $row->id);
+
+        $this->assertSame('carried', $row->fresh()->status);
+        $copy = $now->followUps()->firstOrFail();
+        $this->assertSame('حساب Google', $copy->topic);
+        $this->assertSame($row->id, $copy->carried_from_id);
+
+        // Carried: no longer offered.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $now])
+            ->assertDontSee('data-testid="board-earlier-follow-ups"', false);
+    }
+
+    public function test_a_started_meeting_keeps_its_date_cannot_be_cancelled_and_attendance_waits_for_its_time(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $started = $service->schedule(['starts_at' => now()->subHour()], notify: false);
+        $ahead = $service->schedule(['starts_at' => now()->addDays(2)], notify: false);
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $started])
+            ->set('startsAt', now()->addDay()->format('Y-m-d\TH:i'))->call('saveDetails')->assertHasErrors('startsAt')
+            ->set('startsAt', $started->starts_at->format('Y-m-d\TH:i'))->set('location', 'قاعة')->call('saveDetails')->assertHasNoErrors()
+            ->set('cancelReason', 'x')->call('cancelMeeting')->assertHasErrors('cancelReason');
+
+        $this->assertSame('قاعة', $started->fresh()->location);
+        $this->assertFalse($started->fresh()->isCancelled());
+
+        $row = $ahead->attendees()->firstOrFail();
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $ahead])
+            ->call('setAttendance', $row->id, 'present')->assertHasErrors('status');
+        $this->assertSame('expected', $row->fresh()->status);
+    }
+
+    public function test_a_member_takes_back_a_pending_absence_request(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'سفر')->call('requestAbsence')
+            ->assertSee('data-testid="board-absence-pending"', false)
+            ->call('withdrawAbsence')
+            ->assertSee('data-testid="board-absence-form"', false);
+
+        $row = $meeting->attendees()->where('employee_id', $this->member->employee_id)->firstOrFail();
+        $this->assertNull($row->absence_request);
+        $this->assertNull($row->absence_reason);
+    }
+
+    public function test_the_chair_sees_a_count_of_absence_requests_waiting_on_him(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $meeting->attendees()->where('employee_id', $this->member->employee_id)->update(['absence_request' => 'pending', 'absence_reason' => 'x']);
+
+        Livewire::actingAs($this->chair)->test(\App\Livewire\Board\AbsenceCounter::class)->assertSeeHtml('title="'.__('board.absence.counter', ['count' => 1]).'"');
+        Livewire::actingAs($this->secretary)->test(\App\Livewire\Board\AbsenceCounter::class)->assertDontSeeHtml('rounded-full');
+
+        $item = collect(\App\Support\Navigation::for($this->chair->fresh())['areas'])->firstWhere('id', 'home')['items'][1];
+        $this->assertSame('board.absence-counter', $item['counter']);
+    }
+
+    public function test_the_dashboard_tile_is_for_the_board_and_shows_the_next_meeting_and_my_follow_ups(): void
+    {
+        $layout = app(\App\Support\Dashboard\DashboardLayout::class);
+        $this->assertTrue($layout->allowed($this->member, 'board-meeting'));
+        $this->assertFalse($layout->allowed($this->outsider, 'board-meeting'));
+
+        $service = app(BoardMeetingService::class);
+        $past = $service->schedule(['starts_at' => now()->subWeek()], notify: false);
+        $past->followUps()->create(['topic' => 'تقرير الربع', 'employee_id' => $this->member->employee_id, 'sort' => 1]);
+        $past->update(['published_at' => now()->subDays(6)]);
+        $next = $service->schedule(['starts_at' => now()->addDays(3)->setTime(12, 0)], notify: false);
+
+        Livewire::actingAs($this->member)->test(\App\Livewire\Dashboard\BoardMeetingCard::class)
+            ->assertSee(__('board.meeting-number', ['number' => $next->number]))
+            ->assertSee('تقرير الربع');
+    }
+
+    public function test_the_meeting_comes_as_a_calendar_invitation_and_the_reminder_email_carries_it(): void
+    {
+        Mail::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-12-09 08:00'));
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => CarbonImmutable::parse('2026-12-10 12:00'), 'location' => 'المكتب الرئيسي'], notify: false);
+
+        $ics = $this->actingAs($this->member)->get(route('board.meetings.ics', $meeting))->assertOk()->getContent();
+        $this->assertStringContainsString('BEGIN:VEVENT', $ics);
+        $this->assertStringContainsString('UID:board-meeting-'.$meeting->id.'@', $ics);
+        $this->assertStringContainsString('LOCATION:المكتب الرئيسي', $ics);
+        $this->actingAs($this->outsider)->get(route('board.meetings.ics', $meeting))->assertForbidden();
+
+        $this->app['auth']->forgetGuards();
+        Artisan::call(SendBoardMeetingReminders::class);
+
+        Mail::assertSent(\App\Mail\BoardMeetingReminderMail::class, fn ($mail) => $mail->hasTo($this->member->email));
+        Mail::assertSent(\App\Mail\BoardMeetingReminderMail::class, 3);
+    }
+
+    public function test_the_secretary_reorders_sections_uses_a_usual_title_and_an_edited_section_saves_as_he_types(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $a = $meeting->sections()->create(['title' => 'أ', 'sort' => 1]);
+        $b = $meeting->sections()->create(['title' => 'ب', 'sort' => 2]);
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->call('moveSection', $b->id, -1)
+            ->call('useTemplate', 0)->assertSet('sectionTitle', config('board.section_templates')[0])
+            ->call('editSection', $a->id)->set('sectionBody', 'نص يُحفظ وحده');
+
+        $this->assertSame(['ب', 'أ'], $meeting->sections()->pluck('title')->all());
+        $this->assertSame('نص يُحفظ وحده', $a->fresh()->body);
+    }
+
+    public function test_members_search_published_minutes_and_the_writers_search_drafts_too(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $published = $service->schedule(['starts_at' => now()->subWeek()], notify: false);
+        $published->sections()->create(['title' => 'الملفات التقنية', 'body' => 'حساب Google for Nonprofits', 'sort' => 1]);
+        $published->update(['published_at' => now()]);
+        $draft = $service->schedule(['starts_at' => now()->subDay()], notify: false);
+        $draft->followUps()->create(['topic' => 'Google Drive', 'sort' => 1]);
+
+        $member = Livewire::actingAs($this->member)->test(Index::class)->set('search', 'Google');
+        $this->assertSame([$published->id], $member->viewData('found')->pluck('id')->all());
+
+        $secretary = Livewire::actingAs($this->secretary)->test(Index::class)->set('search', 'Google');
+        $this->assertEqualsCanonicalizing([$published->id, $draft->id], $secretary->viewData('found')->pluck('id')->all());
     }
 
     public function test_the_commands_are_registered(): void

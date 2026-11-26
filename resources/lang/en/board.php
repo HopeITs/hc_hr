@@ -13,6 +13,7 @@ return [
     'edit' => 'Edit',
     'remove' => 'Remove',
     'manage-mode' => 'Manage the meeting',
+    'add-to-calendar' => 'Add to my calendar',
     'details' => 'The meeting',
     'upcoming' => 'Coming up',
     'earlier' => 'Earlier meetings',
@@ -30,6 +31,7 @@ return [
         'action' => 'Cancel the meeting', 'done' => 'The meeting is cancelled and the board is told.', 'restore' => 'Hold this meeting after all',
     ],
     'absence' => [
+        'withdraw' => 'Take back my request', 'withdrawn' => 'Your request was taken back.', 'counter' => ':count absence request(s) wait for you',
         'ask' => 'Can’t attend? Tell the chair why.', 'reason' => 'Reason', 'send' => 'Send the request',
         'reason-required' => 'Write the reason.', 'sent' => 'Your request was sent.',
         'waiting' => 'Your request waits for the chair.', 'pending' => 'Asks to be absent',
@@ -40,6 +42,7 @@ return [
         'expected' => 'Expected', 'present' => 'Present', 'online' => 'Online', 'absent' => 'Absent',
     ],
     'minutes' => [
+        'move-up' => 'Move up', 'move-down' => 'Move down', 'templates' => 'Usual sections', 'autosaved' => 'Saved as you type.', 'saving' => 'Saving…',
         'title' => 'Minutes', 'draft' => 'Draft', 'published-badge' => 'Published', 'no-minutes' => 'Minutes not published',
         'edit-mode' => 'Edit the minutes', 'view-mode' => 'View as the printed sheet', 'download-pdf' => 'Download PDF',
         'section-title' => 'Section title', 'section-title-example' => 'e.g. Presentation of the work',
@@ -52,5 +55,32 @@ return [
         'published' => 'The minutes are published and the board is told.',
         'published-emailed' => 'The minutes are published and emailed to the board.',
         'remove-confirm' => 'Remove it?', 'pdf-failed' => 'The PDF could not be made right now. Try again in a moment.',
+    ],
+    'locks' => [
+        'started-date' => 'The meeting has begun: its date stays as it was.',
+        'started-cancel' => 'A meeting that has begun cannot be cancelled.',
+        'attendance-before-start' => 'Attendance is recorded from the meeting’s time.',
+    ],
+    'reopen' => [
+        'title' => 'Reopen the minutes', 'help' => 'Takes the published minutes back to a draft to correct them. Members no longer see them until they are published again; the reason is kept.',
+        'reason' => 'Why they are reopened', 'reason-required' => 'Say why the minutes are reopened.', 'action' => 'Reopen the minutes',
+        'confirm' => 'Take the minutes back to a draft?', 'done' => 'The minutes are a draft again; the board is told.', 'badge' => 'Reopened after publishing',
+        'when' => 'Reopened on :date:',
+    ],
+    'follow' => [
+        'track-title' => 'Where the follow-ups stand', 'status-title' => 'Status',
+        'status' => ['open' => 'Open', 'done' => 'Done', 'carried' => 'Carried forward'],
+        'mark-done' => 'Mark done', 'reopen' => 'Open again', 'carry' => 'Carry into this meeting', 'carried' => 'Carried into this meeting.',
+        'earlier-title' => 'Still open from earlier meetings', 'earlier-help' => 'Close what is done, or carry it into this meeting’s table.',
+        'party-hint' => 'Pick a person from the list (they are told when the minutes come out), or type a department or body.',
+        'linked' => 'told by notification',
+    ],
+    'tile' => [
+        'none' => 'No board meeting is scheduled.', 'today' => 'Today',
+        'days-left' => '{1} day to go|[2,*] :count days to go', 'excused' => 'Excused', 'my-follow-ups' => 'Waiting on you',
+    ],
+    'search' => [
+        'label' => 'Search the minutes', 'placeholder' => 'Search the minutes: a word, a topic, a name…',
+        'results' => 'Found in :count meeting(s)', 'none' => 'Nothing found in the minutes.',
     ],
 ];

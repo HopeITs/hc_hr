@@ -67,7 +67,7 @@ final class Navigation
         // The board's meetings are pinned right under the dashboard for the board (members, chair, secretary).
         $home = array_values(array_filter([
             self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'inbox'], 'dashboard', 'nav.dashboard'),
-            app(\App\Services\Board\BoardAccess::class)->inMenu($user) ? self::item('nav.board.meetings', __('board.nav'), 'board.meetings.index', ['board.*'], 'calendar') : null,
+            app(\App\Services\Board\BoardAccess::class)->inMenu($user) ? self::item('nav.board.meetings', __('board.nav'), 'board.meetings.index', ['board.*'], 'calendar', null, app(\App\Services\Board\BoardAccess::class)->canManage($user) ? 'board.absence-counter' : null) : null,
         ]));
 
         $structure = array_values(array_filter([

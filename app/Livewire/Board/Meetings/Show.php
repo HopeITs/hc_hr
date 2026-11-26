@@ -5,6 +5,8 @@ namespace App\Livewire\Board\Meetings;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\BoardMeeting;
 use App\Models\BoardMeetingAttendee;
+use App\Models\BoardMeetingFollowUp;
+use App\Models\Employee;
 use App\Services\Board\BoardAccess;
 use App\Services\Board\BoardMeetingService;
 use App\Services\Board\BoardMinutesView;
@@ -60,6 +62,9 @@ class Show extends Component
     public string $preparedBy = '';
 
     public bool $sendEmail = false;
+
+    /** Why the chair takes published minutes back (kept on the meeting). */
+    public string $reopenReason = '';
 
     /** 'view' reads the minutes as the printed sheet; 'edit' is the working page (the chair and the secretary only). */
     public string $mode = 'view';
@@ -193,6 +198,7 @@ class Show extends Component
         }
 
         $this->reset(['sectionId', 'sectionTitle', 'sectionBody']);
+        $this->dispatch('board-section-saved');
         $this->toast(__('board.saved'));
     }
 
@@ -214,6 +220,47 @@ class Show extends Component
         $this->reset(['sectionId', 'sectionTitle', 'sectionBody']);
     }
 
+    /** While the secretary types into a section already saved, the text is kept as it goes (no lost paragraphs). */
+    public function updatedSectionBody(): void
+    {
+        if (! $this->sectionId) {
+            return;
+        }
+
+        $this->mustWrite();
+
+        $this->meeting()->sections()->whereKey($this->sectionId)->update(['body' => $this->sectionBody]);
+    }
+
+    /** Moves a section up (-1) or down (1); the sheet numbers them in this order. */
+    public function moveSection(int $id, int $step): void
+    {
+        $this->mustWrite();
+
+        $sections = $this->meeting()->sections()->get()->values();
+        $at = $sections->search(fn ($s) => $s->id === $id);
+        $to = $at === false ? false : $at + ($step < 0 ? -1 : 1);
+
+        if ($at === false || $to < 0 || $to >= $sections->count()) {
+            return;
+        }
+
+        $order = $sections->all();
+        [$order[$at], $order[$to]] = [$order[$to], $order[$at]];
+
+        foreach (array_values($order) as $i => $section) {
+            $section->update(['sort' => $i + 1]);
+        }
+    }
+
+    /** Fills the section title with one of the usual ones (config board.section_templates). */
+    public function useTemplate(int $index): void
+    {
+        $this->mustWrite();
+
+        $this->sectionTitle = (string) (config('board.section_templates')[$index] ?? $this->sectionTitle);
+    }
+
     public function saveFollowUp(): void
     {
         $this->mustWrite();
@@ -230,7 +277,15 @@ class Show extends Component
         ]);
 
         $meeting = $this->meeting();
-        $fields = ['topic' => $this->followUpTopic, 'required' => $this->followUpRequired ?: null, 'party' => $this->followUpParty ?: null];
+        $party = trim($this->followUpParty);
+        $fields = [
+            'topic' => $this->followUpTopic,
+            'required' => $this->followUpRequired ?: null,
+            'party' => $party ?: null,
+            // A name picked from the list is that employee (told when the minutes come out); anything else is a
+            // department or a body outside, kept as written.
+            'employee_id' => $party !== '' ? $this->employeeNamed($party) : null,
+        ];
 
         if ($this->followUpId) {
             $meeting->followUps()->findOrFail($this->followUpId)->update($fields);
@@ -270,6 +325,53 @@ class Show extends Component
 
         $this->meeting()->update(['prepared_by' => $this->preparedBy ?: null]);
         $this->toast(__('board.saved'));
+    }
+
+    /** A member takes back the request the chair has not answered yet. */
+    public function withdrawAbsence(): void
+    {
+        $user = auth()->user();
+        abort_unless($this->access()->isMember($user), 403);
+
+        $this->service()->withdrawAbsence($this->meeting(), $user->profile);
+        $this->toast(__('board.absence.withdrawn'));
+    }
+
+    /** The chair alone takes published minutes back to a draft, saying why. */
+    public function reopenMinutes(): void
+    {
+        abort_unless($this->access()->canManage(auth()->user()), 403);
+
+        $this->validate(['reopenReason' => ['required', 'string', 'max:2000']], [], ['reopenReason' => __('board.reopen.reason')]);
+
+        $this->service()->reopen($this->meeting(), auth()->user(), $this->reopenReason);
+        $this->reopenReason = '';
+        $this->mode = 'edit';
+        $this->toast(__('board.reopen.done'));
+    }
+
+    /** Done / open again: the secretary, the chair, or the person the row waits on. */
+    public function markFollowUp(int $id, bool $done): void
+    {
+        $row = BoardMeetingFollowUp::query()->findOrFail($id);
+        $user = auth()->user();
+
+        abort_unless(
+            $this->access()->canWrite($user) || $this->access()->canManage($user)
+                || ($row->employee_id !== null && $row->employee_id === $user->employee_id),
+            403,
+        );
+
+        $this->service()->setFollowUpDone($row, $user, $done);
+    }
+
+    /** Brings an open row from an earlier meeting into this meeting's table. */
+    public function carryFollowUp(int $id): void
+    {
+        $this->mustWrite();
+
+        $this->service()->carryFollowUp(BoardMeetingFollowUp::query()->findOrFail($id), $this->meeting());
+        $this->toast(__('board.follow.carried'));
     }
 
     public function publish(): void
@@ -315,8 +417,30 @@ class Show extends Component
             'isMember' => $access->isMember($user),
             'minutesVisible' => $minutesVisible,
             'sections' => $meeting->sections()->get(),
-            'followUps' => $meeting->followUps()->get(),
+            'followUps' => $meeting->followUps()->with('employee')->get(),
+            // What the secretary closes or carries forward while writing this meeting's minutes.
+            'earlier' => $canEdit && $access->canWrite($user) ? $this->service()->openFromEarlier($meeting) : collect(),
+            'employeeNames' => $canEdit && $access->canWrite($user) && $this->mode === 'edit' ? $this->employeeNames() : [],
+            'canReopen' => $meeting->isPublished() && $access->canManage($user),
+            'canTrack' => $access->canWrite($user) || $access->canManage($user),
+            'templates' => (array) config('board.section_templates', []),
         ]);
+    }
+
+    /** @return array<int, string> active employees' names, for the follow-up's "person or body" list */
+    private function employeeNames(): array
+    {
+        return Employee::query()->where('is_active', true)->get()
+            ->mapWithKeys(fn (Employee $e) => [$e->id => (string) $e->name])
+            ->filter()->sort()->all();
+    }
+
+    /** The one active employee with exactly this name; two people sharing it link nobody (kept as written). */
+    private function employeeNamed(string $name): ?int
+    {
+        $ids = array_keys($this->employeeNames(), $name, true);
+
+        return count($ids) === 1 ? (int) $ids[0] : null;
     }
 
     private function fillDetails(BoardMeeting $meeting): void

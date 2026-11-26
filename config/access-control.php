@@ -324,6 +324,11 @@ return [
             'removeFollowUp' => 'board-meetings.write-minutes',
             'saveMinutesHeader' => 'board-meetings.write-minutes',
             'publish' => 'board-meetings.write-minutes',
+            'updatedSectionBody' => 'board-meetings.write-minutes',
+            'moveSection' => 'board-meetings.write-minutes',
+            'useTemplate' => 'board-meetings.write-minutes',
+            'carryFollowUp' => 'board-meetings.write-minutes',
+            'reopenMinutes' => 'board-meetings.manage',
         ],
         // The composer re-checks message-templates.use itself; these name the permission at the door too.
         'messages.announcement-composer' => [
@@ -875,7 +880,9 @@ return [
     'livewire_exempt' => [
         // The board's meeting page: a member's request to be excused is checked inside (a current member,
         // on a meeting still ahead, for themselves only); there is no permission a member holds.
-        'board.meetings.show' => ['requestAbsence', 'setMode'],
+        // withdrawAbsence: the member's own pending request. markFollowUp: the secretary, the chair, or the person the row
+        // waits on, checked inside (the owner holds no permission).
+        'board.meetings.show' => ['requestAbsence', 'withdrawAbsence', 'setMode', 'markFollowUp'],
         // Reports: each page is opened by mayView() (several permissions or a role, no single
         // name), and export() asks mayView() again before building the file. Clearing filters
         // writes nothing.
@@ -1334,6 +1341,7 @@ return [
         // balance read the caller's own contract only.
         'dashboard.who-is-out-card' => ['retryLoad', 'placeholder'],
         'dashboard.next-holiday-card' => ['retryLoad', 'placeholder'],
+        'dashboard.board-meeting-card' => ['retryLoad', 'placeholder'],
         'dashboard.leave-balance-card' => ['retryLoad', 'placeholder'],
         'dashboard.birthdays-card' => ['retryLoad', 'placeholder'],
         // The clock reads only the caller's own active contract (its schedule) and the holidays that reach it.

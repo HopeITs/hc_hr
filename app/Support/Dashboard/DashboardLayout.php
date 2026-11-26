@@ -5,6 +5,7 @@ namespace App\Support\Dashboard;
 use App\Livewire\Archives\ArchivedFilesModule;
 use App\Livewire\Dashboard\AttentionCard;
 use App\Livewire\Dashboard\BadgesCard;
+use App\Livewire\Dashboard\BoardMeetingCard;
 use App\Livewire\Dashboard\BirthdaysCard;
 use App\Livewire\Dashboard\CalendarCard;
 use App\Livewire\Dashboard\ChecklistCard;
@@ -114,6 +115,8 @@ class DashboardLayout
         // Prompt 8. Shown by default for some role families only (FAMILY_WIDGETS), else in the gallery.
         'who-is-out' => ['users', [2, 1], [12, 6], [4, 3], false],
         'next-holiday' => ['calendar', [2, 1], [6, 3], [2, 2], false],
+        // The board's next meeting and the viewer's own follow-ups: on by default, for the board only (allowed()).
+        'board-meeting' => ['calendar', [3, 2], [8, 5], [4, 3], true],
         'leave-balance' => ['my-leaves', [2, 2], [6, 4], [2, 2], false],
         'birthdays' => ['cake', [2, 2], [12, 6], [3, 2], false],
         // Damascus time and the viewer's working day: for everyone, in the gallery (not on today's dashboard).
@@ -161,6 +164,7 @@ class DashboardLayout
         'stats-personnel' => EmployeeChartStatistics::class,
         'who-is-out' => WhoIsOutCard::class,
         'next-holiday' => NextHolidayCard::class,
+        'board-meeting' => BoardMeetingCard::class,
         'leave-balance' => LeaveBalanceCard::class,
         'birthdays' => BirthdaysCard::class,
         'clock' => ClockCard::class,
@@ -458,6 +462,8 @@ class DashboardLayout
             'who-is-out' => $this->family($user) !== 'employee',
             // Both read the viewer's own contract (its holidays, its annual balance).
             'next-holiday', 'leave-balance' => $user->employee_id !== null,
+            // Members, the chair and the secretary of the board (BoardAccess), nobody else.
+            'board-meeting' => app(\App\Services\Board\BoardAccess::class)->canView($user),
             // The viewer's own record (attention: their contract and leave; me: their profile).
             'attention', 'me' => $user->employee_id !== null,
             // The leave form's own rule (the New menu's): leaves.create and leaves.view-own.

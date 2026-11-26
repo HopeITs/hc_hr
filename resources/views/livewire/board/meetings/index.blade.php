@@ -53,6 +53,25 @@
         </form>
     @endif
 
+    <div class="max-w-xl">
+        <x-forms.input type="search" wire:model.live.debounce.400ms="search" :placeholder="__('board.search.placeholder')" aria-label="{{ __('board.search.label') }}" />
+    </div>
+
+    @if($found !== null)
+        <section class="space-y-3" aria-labelledby="found-title" data-testid="board-search-results">
+            <h2 id="found-title" class="text-h4 font-bold text-ink">@lang('board.search.results', ['count' => $found->count()])</h2>
+            @forelse($found as $meeting)
+                <a href="{{ route('board.meetings.show', $meeting) }}" wire:navigate wire:key="found-{{ $meeting->id }}"
+                   class="flex flex-wrap items-center justify-between gap-3 rounded-surface border border-line bg-card p-4 hover:bg-hover">
+                    <span class="font-bold text-ink">@lang('board.meeting-number', ['number' => $meeting->number])</span>
+                    <span class="text-small text-ink-2"><bdi class="num">{{ $meeting->starts_at->translatedFormat('l j F Y') }}</bdi></span>
+                </a>
+            @empty
+                <p class="rounded-surface border border-dashed border-line p-5 text-ink-2">@lang('board.search.none')</p>
+            @endforelse
+        </section>
+    @endif
+
     <section class="space-y-3" aria-labelledby="upcoming-title">
         <h2 id="upcoming-title" class="text-h4 font-bold text-ink">@lang('board.upcoming')</h2>
         @forelse($upcoming as $meeting)

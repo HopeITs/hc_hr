@@ -19,6 +19,10 @@ class Index extends Component
 
     public bool $adding = false;
 
+    /** Words looked for in the minutes (sections, follow-up rows, purpose). */
+    #[\Livewire\Attributes\Url(as: 'q', except: '')]
+    public string $search = '';
+
     public string $startsAt = '';
 
     public string $endsAt = '';
@@ -87,7 +91,22 @@ class Index extends Component
             ->where(fn ($q) => $q->where('starts_at', '<', now())->orWhereNotNull('published_at'))
             ->orderByDesc('starts_at')->limit(50)->get();
 
+        $found = null;
+        $term = trim($this->search);
+
+        if (mb_strlen($term) >= 2) {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $term).'%';
+            $found = BoardMeeting::query()
+                // Members search what they may read: published minutes. The chair and the secretary search drafts too.
+                ->when(! $seeDraft, fn ($q) => $q->whereNotNull('published_at'))
+                ->where(fn ($q) => $q->where('purpose', 'like', $like)
+                    ->orWhereHas('sections', fn ($s) => $s->where('title', 'like', $like)->orWhere('body', 'like', $like))
+                    ->orWhereHas('followUps', fn ($f) => $f->where('topic', 'like', $like)->orWhere('required', 'like', $like)->orWhere('party', 'like', $like)))
+                ->orderByDesc('starts_at')->limit(30)->get();
+        }
+
         return view('livewire.board.meetings.index', [
+            'found' => $found,
             'upcoming' => $upcoming,
             'past' => $past,
             'canManage' => $access->canManage($user),

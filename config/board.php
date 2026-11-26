@@ -31,6 +31,18 @@ return [
 
     'secretary_email' => 'fadi.dabbagh@hcsyria.org',
 
+    // The usual section titles of the minutes, offered to the secretary as one-click starts (the sheet numbers them).
+    'section_templates' => [
+        'عرض الأعمال',
+        'الملفات التقنية والحسابات الإلكترونية',
+        'المشاريع والبرامج',
+        'الموارد البشرية',
+        'الشؤون المالية',
+        'العلاقات العامة والتواصل',
+        'قرارات المجلس',
+        'ما يستجد من أعمال',
+    ],
+
     // How far ahead the scheduler looks for the next meeting's week.
     'look_ahead_days' => 7,
 ];

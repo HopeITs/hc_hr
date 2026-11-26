@@ -5,11 +5,13 @@ namespace App\Services\Board;
 use App\Mail\BoardMinutesMail;
 use App\Models\BoardMeeting;
 use App\Models\BoardMeetingAttendee;
+use App\Models\BoardMeetingFollowUp;
 use App\Models\Employee;
 use App\Models\User;
 use App\Notifications\BoardMeetingNotice;
 use App\Services\ContractPdfRenderer;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -105,7 +107,13 @@ class BoardMeetingService
     {
         $this->assertOpen($meeting);
 
-        $moved = ! $meeting->starts_at->equalTo(CarbonImmutable::parse($data['starts_at']));
+        // To the minute: the form's date-and-time field has no seconds.
+        $moved = $meeting->starts_at->format('Y-m-d H:i') !== CarbonImmutable::parse($data['starts_at'])->format('Y-m-d H:i');
+
+        // A meeting that has begun took place when it did: its date is history, not a plan.
+        if ($moved && $meeting->hasStarted()) {
+            throw ValidationException::withMessages(['startsAt' => __('board.locks.started-date')]);
+        }
 
         $meeting->fill(array_intersect_key($data, array_flip(['starts_at', 'ends_at', 'location', 'room', 'purpose', 'led_by'])));
 
@@ -133,12 +141,19 @@ class BoardMeetingService
             throw ValidationException::withMessages(['reason' => __('board.cancel.reason-required')]);
         }
 
+        if ($meeting->hasStarted()) {
+            throw ValidationException::withMessages(['cancelReason' => __('board.locks.started-cancel')]);
+        }
+
         $meeting->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => $reason]);
         $this->tell($meeting, BoardMeetingNotice::CANCELLED, $reason);
     }
 
     public function restore(BoardMeeting $meeting): void
     {
+        // Only a meeting still ahead can be held after all.
+        abort_if($meeting->hasStarted(), 403);
+
         $meeting->update(['status' => BoardMeeting::SCHEDULED, 'cancel_reason' => null, 'reminded_at' => null]);
         $this->tell($meeting, BoardMeetingNotice::RESCHEDULED);
     }
@@ -160,6 +175,11 @@ class BoardMeetingService
 
         if (! in_array($status, BoardMeetingAttendee::STATUSES, true)) {
             throw ValidationException::withMessages(['status' => __('board.attendance.invalid')]);
+        }
+
+        // Nobody is present at a meeting that has not begun: attendance is taken from its time on.
+        if (! $attendee->meeting->hasStarted()) {
+            throw ValidationException::withMessages(['status' => __('board.locks.attendance-before-start')]);
         }
 
         $attendee->update([
@@ -196,6 +216,17 @@ class BoardMeetingService
         return $attendee;
     }
 
+    /** A member takes back a request the chair has not answered yet. */
+    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): void
+    {
+        $this->assertOpen($meeting);
+
+        $meeting->attendees()
+            ->where('employee_id', $employee->id)
+            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
+            ->update(['absence_request' => null, 'absence_reason' => null]);
+    }
+
     /** The chair approves (the member is listed as absent) or turns the request down. */
     public function decideAbsence(BoardMeetingAttendee $attendee, bool $approve): void
     {
@@ -227,10 +258,82 @@ class BoardMeetingService
         ]);
 
         $this->tell($meeting, BoardMeetingNotice::MINUTES);
+        $this->tellFollowUpOwners($meeting);
 
         if ($email) {
             $this->emailMinutes($meeting);
         }
+    }
+
+    /**
+     * The chair takes published minutes back to a draft to correct them: members no longer read them until they are
+     * published again, and the reason is kept on the meeting. Nobody else can.
+     */
+    public function reopen(BoardMeeting $meeting, User $by, string $reason): void
+    {
+        abort_unless($meeting->isPublished(), 403);
+
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            throw ValidationException::withMessages(['reopenReason' => __('board.reopen.reason-required')]);
+        }
+
+        $meeting->update([
+            'published_at' => null,
+            'reopened_at' => now(),
+            'reopened_by' => $by->id,
+            'reopen_reason' => $reason,
+        ]);
+
+        $this->tell($meeting, BoardMeetingNotice::REOPENED, $reason);
+    }
+
+    /** Marks a follow-up done, or open again. */
+    public function setFollowUpDone(BoardMeetingFollowUp $row, User $by, bool $done): void
+    {
+        abort_if($row->status === BoardMeetingFollowUp::CARRIED, 403);
+
+        $row->update($done
+            ? ['status' => BoardMeetingFollowUp::DONE, 'done_at' => now(), 'done_by' => $by->id]
+            : ['status' => BoardMeetingFollowUp::OPEN, 'done_at' => null, 'done_by' => null]);
+    }
+
+    /** Carries an open row from an earlier meeting into this one's table; the old row points to its follow-on. */
+    public function carryFollowUp(BoardMeetingFollowUp $row, BoardMeeting $into): BoardMeetingFollowUp
+    {
+        $this->assertOpen($into);
+        abort_unless($row->isOpen() && $row->board_meeting_id !== $into->id, 403);
+
+        return DB::transaction(function () use ($row, $into) {
+            $row->update(['status' => BoardMeetingFollowUp::CARRIED]);
+
+            return $into->followUps()->create([
+                'topic' => $row->topic,
+                'required' => $row->required,
+                'party' => $row->party,
+                'employee_id' => $row->employee_id,
+                'carried_from_id' => $row->id,
+                'status' => BoardMeetingFollowUp::OPEN,
+                'sort' => ((int) $into->followUps()->max('sort')) + 1,
+            ]);
+        });
+    }
+
+    /**
+     * Rows still open from earlier, published meetings: what the secretary closes or carries forward.
+     *
+     * @return Collection<int, BoardMeetingFollowUp>
+     */
+    public function openFromEarlier(BoardMeeting $meeting): Collection
+    {
+        return BoardMeetingFollowUp::query()
+            ->where('status', BoardMeetingFollowUp::OPEN)
+            ->where('board_meeting_id', '!=', $meeting->id)
+            ->whereHas('meeting', fn ($q) => $q->whereNotNull('published_at')->where('starts_at', '<', $meeting->starts_at))
+            ->with('meeting')
+            ->orderBy('board_meeting_id')->orderBy('sort')
+            ->get();
     }
 
     public function emailMinutes(BoardMeeting $meeting): int
@@ -273,6 +376,17 @@ class BoardMeetingService
             'location' => $last?->location ?? config('board.default_location'),
             'room' => $last?->room,
         ];
+    }
+
+    /** Each person named on a follow-up row hears once, when the minutes come out, what waits on them. */
+    private function tellFollowUpOwners(BoardMeeting $meeting): void
+    {
+        $rows = $meeting->followUps()->whereNotNull('employee_id')->whereNull('notified_at')->with('employee.account')->get();
+
+        foreach ($rows as $row) {
+            $row->employee?->account?->notify(BoardMeetingNotice::for(BoardMeetingNotice::FOLLOW_UP, $meeting, $row->topic));
+            $row->update(['notified_at' => now()]);
+        }
     }
 
     /** Once the minutes are published the meeting is closed: nothing about it changes any more. */

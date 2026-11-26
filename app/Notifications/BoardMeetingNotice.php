@@ -28,6 +28,10 @@ class BoardMeetingNotice extends Notification
 
     public const MINUTES = 'minutes';
 
+    public const REOPENED = 'reopened';
+
+    public const FOLLOW_UP = 'follow-up';
+
     public function __construct(
         public string $kind,
         public int $meetingId,
@@ -79,6 +83,14 @@ class BoardMeetingNotice extends Notification
             self::ABSENCE_DECIDED => [
                 ['Your absence request', 'ردّ على طلب تغيّبك'],
                 ["Your request to miss meeting {$n}: {$d}.", "طلب تغيّبك عن اجتماع رقم {$n}: {$d}."],
+            ],
+            self::REOPENED => [
+                ['Board minutes reopened', 'أُعيد فتح محضر اجتماع البورد'],
+                ["The minutes of meeting {$n} were taken back for a correction: {$d}.", "أُعيد محضر اجتماع رقم {$n} للتصحيح: {$d}."],
+            ],
+            self::FOLLOW_UP => [
+                ['A follow-up waits on you', 'بند متابعة مُسند إليك'],
+                ["From the minutes of meeting {$n}: {$d}.", "من محضر اجتماع رقم {$n}: {$d}."],
             ],
             default => [
                 ['Board minutes published', 'تم نشر محضر اجتماع البورد'],
