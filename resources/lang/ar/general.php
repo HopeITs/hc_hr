@@ -920,6 +920,7 @@ return [
         'toggle-password' => 'إظهار أو إخفاء كلمة المرور',
         'close-dialog' => 'إغلاق النافذة',
         'view-details' => 'عرض التفاصيل',
+        'open-leave-request-for' => 'فتح طلب إجازة :name',
     ],
 
     // نصوص <meta> الافتراضية، ويمكن تجاوزها لكل صفحة عبر $title / $description

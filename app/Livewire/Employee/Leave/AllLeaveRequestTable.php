@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use RamonRietdijk\LivewireTables\Columns\BaseColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
 use RamonRietdijk\LivewireTables\Columns\DateColumn;
 use RamonRietdijk\LivewireTables\Columns\SelectColumn;
@@ -140,6 +141,11 @@ class AllLeaveRequestTable extends LivewireTable
     protected function rowOpenAction(Model $model): string
     {
         return $this->rowClickAction($model);
+    }
+
+    protected function isStickyColumn(BaseColumn $column): bool
+    {
+        return $column->label() === __('general.actions');
     }
 
     /** HR and super-admin see and set "Seen by HR". */
@@ -271,10 +277,10 @@ class AllLeaveRequestTable extends LivewireTable
 
             SelectColumn::make(trans_choice('general.employee', 1), 'leaveBalance.contract.employee_id')
                 ->options($this->employeeFilterOptions())
-                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-person :id="$id" :name="$name" />', [
-                    'id' => $m->leaveBalance?->contract?->employee_id,
-                    'name' => $m->leaveBalance?->contract?->employee?->name ?? '—',
-                ]))
+                ->displayUsing(fn ($v, Model $m) => view('livewire.employee.leave.partials.open-request', [
+                    'name' => $m->leaveBalance?->contract?->employee?->name ?? __('general.na'),
+                    'action' => $this->rowOpenAction($m),
+                ])->render())
                 ->asHtml()
                 ->sortable()
                 ->searchable(),

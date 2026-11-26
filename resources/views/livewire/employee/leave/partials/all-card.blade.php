@@ -12,6 +12,7 @@
     <button type="button"
         x-on:click="{{ $table->rowOpenAction($item) }}"
         aria-haspopup="dialog"
+        aria-label="{{ __('general.a11y.open-leave-request-for', ['name' => $name]) }}"
         class="block min-h-11 w-full min-w-0 text-start">
         <span class="block break-words font-semibold text-ink"><bdi>{{ $name }}</bdi></span>
         @include('livewire.employee.leave.partials.card-summary', ['item' => $item])
