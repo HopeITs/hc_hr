@@ -157,7 +157,7 @@ final class Navigation
             $user?->employee_id ? self::item('nav.my-space.mail-lists', __('mail_lists.title'), 'mail-lists.index', ['mail-lists.*'], 'envelope') : null,
             // The Policies page is HR's and the general manager's (decided 2026-11-26). Everyone
             // else reads the policies in Folders / Shared with me / Policies, download only.
-            $user?->activeRoleIs('HR', 'super-admin', 'general-manager') ? self::item('nav.my-space.policies', __('policies.title'), 'policies.index', ['policies.*'], 'guide-book') : null,
+            \App\Livewire\Policies\Index::canOpen($user) ? self::item('nav.my-space.policies', __('policies.title'), 'policies.index', ['policies.*'], 'guide-book') : null,
             // One page for both: "My folders" / "Shared with me" is a toggle on it (?scope=).
             $can('archives.view') ? self::item('nav.my-space.files', __('general.folders'), 'folders.index', ['folders.*'], 'archived', 'nav.archives') : null,
             // The AI assistant is not a menu item: it opens from the floating

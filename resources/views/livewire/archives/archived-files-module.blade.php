@@ -66,7 +66,9 @@
     @if ($inPolicyFolder)
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-line bg-soft p-4" data-testid="policy-folder-banner">
             <p class="text-small text-ink">{{ __('policies.folder-banner') }}</p>
-            <x-button :href="route('policies.index')" variant="outline" size="sm">{{ __('policies.title') }}</x-button>
+            @if (\App\Livewire\Policies\Index::canOpen(auth()->user()))
+                <x-button :href="route('policies.index')" variant="outline" size="sm">{{ __('policies.title') }}</x-button>
+            @endif
         </div>
     @endif
 
