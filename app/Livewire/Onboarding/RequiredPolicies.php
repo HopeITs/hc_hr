@@ -4,6 +4,7 @@ namespace App\Livewire\Onboarding;
 
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\PolicyDocument;
+use App\Models\User;
 use App\Services\Assistant\GeminiException;
 use App\Services\Assistant\PolicyFileReader;
 use App\Services\PolicyAcknowledgements;
@@ -135,6 +136,19 @@ class RequiredPolicies extends Component
         return view('livewire.onboarding.required-policies', [
             'documents' => PolicyDocument::query()->orderBy('title')->get(),
         ])->title(__('onboarding.required-policies.title'));
+    }
+
+    /**
+     * Who may upload and manage the policies: an HR role (or super-admin)
+     * that holds employees.update, as the route and authorizeHr() demand.
+     * The Policies page shows its "Add policy" button by the same rule.
+     */
+    public static function canManage(?User $user): bool
+    {
+        $role = (string) $user?->myRole();
+
+        return ($role === 'super-admin' || str_starts_with($role, 'HR-'))
+            && $user->hasActivePermission('employees.update');
     }
 
     private function authorizeHr(): void

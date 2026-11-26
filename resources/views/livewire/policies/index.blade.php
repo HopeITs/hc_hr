@@ -1,6 +1,14 @@
 {{-- The policies: a search over what they say, then the list. Open to every signed-in employee. --}}
 <div class="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8" data-testid="policies-index">
-    <x-page-header :title="__('policies.title')" :lead="__('policies.lead')" />
+    <x-page-header :title="__('policies.title')" :lead="__('policies.lead')">
+        @if (\App\Livewire\Onboarding\RequiredPolicies::canManage(auth()->user()))
+            <x-slot:actions>
+                <x-button :href="route('onboarding.required-policies')" variant="primary" size="sm" data-testid="policies-manage">
+                    <x-ic name="plus" /> @lang('policies.manage')
+                </x-button>
+            </x-slot:actions>
+        @endif
+    </x-page-header>
 
     <div>
         <label for="policies-search" class="sr-only">@lang('policies.search-label')</label>

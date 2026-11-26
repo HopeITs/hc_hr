@@ -78,6 +78,23 @@ class PolicySearchTest extends TestCase
         $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.show', $employee));
     }
 
+    public function test_hr_finds_the_upload_page_from_the_policies_page_and_others_do_not(): void
+    {
+        $city = $this->makeCity('SYR', '000');
+        $upload = route('onboarding.required-policies');
+
+        $hr = $this->makeUser($city, 'HR-SYR', ['employees.update']);
+        Livewire::actingAs($hr)->test(Index::class)->assertSeeHtml('data-testid="policies-manage"')->assertSeeHtml($upload);
+        $this->actingAs($hr)->get($upload)->assertOk()->assertSee(route('policies.index'));
+
+        // An HR role without employees.update cannot open the upload page, so is not sent there.
+        $readOnlyHr = $this->makeUser($city, 'HR-ALP', []);
+        Livewire::actingAs($readOnlyHr)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
+
+        $employee = $this->makeUser($city, 'employee', ['employees.update']);
+        Livewire::actingAs($employee)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
+    }
+
     public function test_every_employee_sees_the_policies_group_in_the_header_search(): void
     {
         $city = $this->makeCity('ALP', '001');

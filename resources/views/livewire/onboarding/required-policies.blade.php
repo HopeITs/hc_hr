@@ -1,6 +1,8 @@
 {{-- HR: upload the policy documents, and choose which ones a new volunteer must read and agree to (track 7). --}}
 <div class="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8" data-testid="required-policies">
-    <x-page-header :title="__('onboarding.required-policies.title')" :lead="__('onboarding.required-policies.lead')" />
+    <x-page-header :title="__('onboarding.required-policies.title')" :lead="__('onboarding.required-policies.lead')">
+        <x-slot:crumb><a href="{{ route('policies.index') }}" wire:navigate>← @lang('policies.back')</a></x-slot:crumb>
+    </x-page-header>
 
     <x-card>
         <form wire:submit="save" class="space-y-3" data-testid="policy-upload">
