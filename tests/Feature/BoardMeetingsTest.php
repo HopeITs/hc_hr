@@ -287,6 +287,17 @@ class BoardMeetingsTest extends TestCase
         $this->assertContains('30 7 * * *', $events->map->expression->all());
     }
 
+    public function test_the_board_meetings_are_pinned_under_the_dashboard_for_the_board_only(): void
+    {
+        $routes = fn (User $user) => collect(\App\Support\Navigation::for($user)['areas'])->firstWhere('id', 'home')['items'];
+
+        foreach ([$this->member, $this->chair, $this->secretary] as $user) {
+            $this->assertSame(['dashboard', 'board.meetings.index'], collect($routes($user->fresh()))->pluck('route')->all());
+        }
+
+        $this->assertSame(['dashboard'], collect($routes($this->outsider->fresh()))->pluck('route')->all());
+    }
+
     public function test_the_commands_are_registered(): void
     {
         $this->assertSame(0, Artisan::call(EnsureNextBoardMeeting::class));

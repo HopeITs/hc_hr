@@ -64,7 +64,11 @@ final class Navigation
         $holidaysForProjects = ! $user->activeRoleIs(...config('access-control.administrator_roles', []))
             && app(HolidayProjects::class)->managesAnyProject($user);
 
-        $home = [self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'inbox'], 'dashboard', 'nav.dashboard')];
+        // The board's meetings are pinned right under the dashboard for the board (members, chair, secretary).
+        $home = array_values(array_filter([
+            self::item('nav.my-space.home', __('general.dashboard'), 'dashboard', ['dashboard', 'inbox'], 'dashboard', 'nav.dashboard'),
+            app(\App\Services\Board\BoardAccess::class)->inMenu($user) ? self::item('nav.board.meetings', __('board.nav'), 'board.meetings.index', ['board.*'], 'calendar') : null,
+        ]));
 
         $structure = array_values(array_filter([
             ($editsCenters && $can('centers.view')) || $opens('centers') ? $centers : null,
@@ -84,7 +88,6 @@ final class Navigation
             ! $isManager && $can('contracts.view') ? self::item('nav.hr.contracts', trans_choice('general.contracts', 2), 'contracts.index', ['contracts.*'], 'contracts') : null,
             $isManager && $can('contracts.view') ? self::item('nav.my-team.contracts', __('general.nav.team-contracts'), 'contracts.index', ['contracts.*'], 'contracts') : null,
             $can('badges.view') ? self::item('nav.hr.badges', __('general.all-badges'), 'badges.index', ['badges.*'], 'badges', 'nav.badges') : null,
-            app(\App\Services\Board\BoardAccess::class)->inMenu($user) ? self::item('nav.board.meetings', __('board.nav'), 'board.meetings.index', ['board.*'], 'calendar') : null,
             $can('positions.view') ? self::item('nav.org.chart', __('general.orgn-chart'), 'org.chart', ['org.chart'], 'code-fork', 'nav.org-chart') : null,
             $isDeliverResponsible && $can('checklists.manage') ? self::item('nav.hr.done-requests', __('general.done_requests'), 'checklist-items.done-requests', ['checklist-items.done-requests'], 'check') : null,
             $isDeliverResponsible && $user->canHandOutItems() ? self::item('nav.my-team.hand-out', __('general.pending-delivers'), 'checklist-items.pending-delivers', ['checklist-items.pending-delivers'], 'items', 'nav.checklists', 'checklist-items.pending-delivers-counter') : null,
