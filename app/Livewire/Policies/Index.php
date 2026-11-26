@@ -34,6 +34,20 @@ class Index extends Component
     #[Url(as: 'q', except: '')]
     public string $q = '';
 
+    /**
+     * The Policies page is HR's and the general manager's (decided 2026-11-26);
+     * everyone else reads the policies in Folders / Shared with me / Policies.
+     */
+    public static function canOpen(?\App\Models\User $user): bool
+    {
+        return (bool) $user?->activeRoleIs('HR', 'super-admin', 'general-manager');
+    }
+
+    public function mount(): void
+    {
+        abort_unless(self::canOpen(auth()->user()), 403);
+    }
+
     public ?TemporaryUploadedFile $newPolicy = null;
 
     public ?TemporaryUploadedFile $replacement = null;

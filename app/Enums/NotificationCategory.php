@@ -30,6 +30,7 @@ use App\Notifications\NewsApprovalDecided;
 use App\Notifications\NewsApprovalRequested;
 use App\Notifications\NewsPublishedByManager;
 use App\Notifications\OnboardingStepOverdue;
+use App\Notifications\OverdueLeaveDecision;
 use App\Notifications\ProbationFinalThird;
 use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
@@ -59,6 +60,7 @@ enum NotificationCategory: string
     private const MAP = [
         NewLeaveRequest::class => self::LeaveActions,
         LeaveDecisionReminder::class => self::LeaveActions,
+        OverdueLeaveDecision::class => self::LeaveActions,
         BirthdayChoiceNeeded::class => self::LeaveActions,
         BirthdayChoiceSubmitted::class => self::LeaveActions,
         ActionLeaveRequest::class => self::LeaveUpdates,
