@@ -874,7 +874,7 @@ return [
     'livewire_exempt' => [
         // The board's meeting page: a member's request to be excused is checked inside (a current member,
         // on a meeting still ahead, for themselves only); there is no permission a member holds.
-        'board.meetings.show' => ['requestAbsence'],
+        'board.meetings.show' => ['requestAbsence', 'setMode'],
         // Reports: each page is opened by mayView() (several permissions or a role, no single
         // name), and export() asks mayView() again before building the file. Clearing filters
         // writes nothing.

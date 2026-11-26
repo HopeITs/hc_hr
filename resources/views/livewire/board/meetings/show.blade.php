@@ -14,12 +14,25 @@
                    :lead="$meeting->starts_at->translatedFormat('l j F Y').' · '.$meeting->starts_at->format('H:i')">
         <x-slot:actions>
             <x-button variant="quiet" :href="route('board.meetings.index')" wire:navigate>@lang('board.back')</x-button>
+            @if($canEdit && $minutesVisible && ! $meeting->isCancelled())
+                @if($sheetMode)
+                    <x-button variant="outline" type="button" wire:click="setMode('edit')">@lang('board.minutes.edit-mode')</x-button>
+                @else
+                    <x-button variant="outline" type="button" wire:click="setMode('view')">@lang('board.minutes.view-mode')</x-button>
+                @endif
+            @endif
             @if($minutesVisible && ! $meeting->isCancelled())
                 <x-button variant="outline" :href="route('board.meetings.pdf', $meeting)">@lang('board.minutes.download-pdf')</x-button>
             @endif
         </x-slot:actions>
     </x-page-header>
 
+    @if($sheetMode)
+        {{-- The minutes as the printed sheet: what the PDF holds, read on the page. --}}
+        <div class="mx-auto max-w-3xl rounded-surface border border-line bg-white p-6 shadow-sm sm:p-10" data-testid="board-sheet" dir="rtl">
+            @include('board.minutes-sheet', $sheet)
+        </div>
+    @else
     @if($meeting->isCancelled())
         <div class="rounded-surface border-2 border-dashed border-line bg-card p-5" data-testid="board-cancelled">
             <x-status tone="stop" icon="x" :label="__('board.status.cancelled')" />
@@ -234,5 +247,6 @@
                 </div>
             @endif
         </section>
+    @endif
     @endif
 </div>

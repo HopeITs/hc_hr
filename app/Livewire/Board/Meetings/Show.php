@@ -7,6 +7,7 @@ use App\Models\BoardMeeting;
 use App\Models\BoardMeetingAttendee;
 use App\Services\Board\BoardAccess;
 use App\Services\Board\BoardMeetingService;
+use App\Services\Board\BoardMinutesView;
 use Carbon\CarbonImmutable;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -60,6 +61,9 @@ class Show extends Component
 
     public bool $sendEmail = false;
 
+    /** 'view' reads the minutes as the printed sheet; 'edit' is the working page (the chair and the secretary only). */
+    public string $mode = 'view';
+
     public function mount(BoardMeeting $meeting): void
     {
         abort_unless($this->access()->canView(auth()->user()), 403);
@@ -67,6 +71,17 @@ class Show extends Component
         $this->meetingId = $meeting->id;
         $this->service()->syncAttendees($meeting);
         $this->fillDetails($meeting);
+
+        // Whoever writes the minutes starts on the working page until they are published, then on the sheet.
+        $this->mode = ($this->access()->canWrite(auth()->user()) && ! $meeting->isPublished()) ? 'edit' : 'view';
+    }
+
+    /** Switch between the printed sheet and the working page. Only those who work on the meeting may edit. */
+    public function setMode(string $mode): void
+    {
+        $this->mode = $mode === 'edit' && ($this->access()->canWrite(auth()->user()) || $this->access()->canManage(auth()->user()))
+            ? 'edit'
+            : 'view';
     }
 
     public function saveDetails(): void
@@ -266,14 +281,22 @@ class Show extends Component
         $attendees = $meeting->attendees()->with('employee')->get()
             ->sortBy(fn (BoardMeetingAttendee $a) => mb_strtolower((string) $a->employee?->name))->values();
 
+        $minutesVisible = $meeting->isPublished() || $seeDraft;
+        $canEdit = $access->canWrite($user) || $access->canManage($user);
+        // Readers see the minutes as the sheet. Writers see it too (a draft is marked as one) when they switch to it.
+        $sheetMode = ! $meeting->isCancelled() && $minutesVisible && $this->mode === 'view';
+
         return view('livewire.board.meetings.show', [
+            'sheetMode' => $sheetMode,
+            'sheet' => $sheetMode ? BoardMinutesView::data($meeting) : null,
+            'canEdit' => $canEdit,
             'meeting' => $meeting,
             'attendees' => $attendees,
             'mine' => $attendees->firstWhere('employee_id', $employeeId),
             'canManage' => $access->canManage($user),
             'canWrite' => $access->canWrite($user),
             'isMember' => $access->isMember($user),
-            'minutesVisible' => $meeting->isPublished() || $seeDraft,
+            'minutesVisible' => $minutesVisible,
             'sections' => $meeting->sections()->get(),
             'followUps' => $meeting->followUps()->get(),
         ]);

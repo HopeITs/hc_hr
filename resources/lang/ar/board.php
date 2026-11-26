@@ -40,8 +40,8 @@ return [
     ],
     'minutes' => [
         'title' => 'المحضر', 'draft' => 'مسودة', 'published-badge' => 'منشور', 'no-minutes' => 'المحضر غير منشور',
-        'download-pdf' => 'تحميل PDF',
-        'section-title' => 'عنوان الفقرة', 'section-title-example' => 'مثال: أولاً: عرض الأعمال',
+        'edit-mode' => 'تحرير المحضر', 'view-mode' => 'عرض المحضر كما سيُطبع', 'download-pdf' => 'تحميل PDF',
+        'section-title' => 'عنوان الفقرة', 'section-title-example' => 'مثال: عرض الأعمال',
         'section-body' => 'ما جرى في هذه الفقرة', 'add-section' => 'إضافة الفقرة',
         'follow-title' => 'جدول متابعة التكليفات والملفات', 'follow-topic' => 'الموضوع', 'follow-party' => 'الشخص أو الجهة المعنية',
         'follow-required' => 'المطلوب', 'no-follow-ups' => 'لا توجد بنود للمتابعة.', 'add-follow-up' => 'إضافة البند',

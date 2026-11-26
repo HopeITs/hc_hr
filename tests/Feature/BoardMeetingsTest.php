@@ -298,6 +298,34 @@ class BoardMeetingsTest extends TestCase
         $this->assertSame(['dashboard'], collect($routes($this->outsider->fresh()))->pluck('route')->all());
     }
 
+    public function test_published_minutes_read_as_the_printed_sheet_and_only_the_writers_can_switch_to_editing(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay(), 'location' => 'Main office', 'room' => '1'], notify: false);
+        $meeting->attendees()->where('employee_id', $this->member->employee_id)->update(['status' => 'present']);
+        $meeting->sections()->create(['title' => 'عرض الأعمال', 'body' => 'نص المحضر', 'sort' => 1]);
+        $meeting->followUps()->create(['topic' => 'ملف المتابعة', 'party' => 'قسم التكنولوجيا', 'sort' => 1]);
+
+        // Draft: the secretary starts on the working page; the member sees no sheet at all.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSet('mode', 'edit')->assertDontSee('data-testid="board-sheet"', false)
+            ->call('setMode', 'view')->assertSee('data-testid="board-sheet"', false)->assertSee('مسودة');
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])->assertDontSee('data-testid="board-sheet"', false);
+
+        $meeting->update(['published_at' => now(), 'prepared_by' => 'فادي دباغ']);
+
+        // Published: the member reads the sheet (header table, ordinal, follow-up table, who prepared it), not the fields.
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-sheet"', false)
+            ->assertSee('أولاً: عرض الأعمال')->assertSee('نص المحضر')->assertSee('قسم التكنولوجيا')->assertSee('أعدّ هذا المحضر: فادي دباغ')
+            ->assertDontSee('wire:submit.prevent="saveSection"', false)
+            ->call('setMode', 'edit')->assertSet('mode', 'view');
+
+        // The secretary opens on the sheet once published and can go back to editing.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSet('mode', 'view')->call('setMode', 'edit')->assertSet('mode', 'edit')
+            ->assertSee('wire:submit.prevent="saveSection"', false);
+    }
+
     public function test_the_commands_are_registered(): void
     {
         $this->assertSame(0, Artisan::call(EnsureNextBoardMeeting::class));

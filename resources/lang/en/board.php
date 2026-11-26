@@ -40,8 +40,8 @@ return [
     ],
     'minutes' => [
         'title' => 'Minutes', 'draft' => 'Draft', 'published-badge' => 'Published', 'no-minutes' => 'Minutes not published',
-        'download-pdf' => 'Download PDF',
-        'section-title' => 'Section title', 'section-title-example' => 'e.g. First: presentation of the work',
+        'edit-mode' => 'Edit the minutes', 'view-mode' => 'View as the printed sheet', 'download-pdf' => 'Download PDF',
+        'section-title' => 'Section title', 'section-title-example' => 'e.g. Presentation of the work',
         'section-body' => 'What was said', 'add-section' => 'Add the section',
         'follow-title' => 'Follow-up of assignments and files', 'follow-topic' => 'Subject', 'follow-party' => 'Person or body',
         'follow-required' => 'Required', 'no-follow-ups' => 'Nothing to follow up.', 'add-follow-up' => 'Add the row',
