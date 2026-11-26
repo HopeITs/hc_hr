@@ -11,7 +11,7 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="space-y-1 text-small text-ink-2">
                     <span>@lang('onboarding.required-policies.file')</span>
-                    <input type="file" wire:model="upload" accept=".docx,.txt"
+                    <input type="file" wire:model="upload" accept=".pdf,.docx,.txt"
                         class="block w-full text-small text-ink" data-testid="policy-file">
                 </label>
                 <label class="space-y-1 text-small text-ink-2">

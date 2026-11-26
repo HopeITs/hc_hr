@@ -565,7 +565,6 @@ class OnboardingExtendedTest extends TestCase
         $this->assertSame('Daily allowance is 25 USD.', $doc->fresh()->content);
 
         $page->set('upload', UploadedFile::fake()->create('photo.png', 10))->call('save')->assertHasErrors('upload');
-        $page->set('upload', UploadedFile::fake()->createWithContent('policy.pdf', '%PDF-1.7'))->call('save')->assertHasErrors('upload');
         $page->set('upload', UploadedFile::fake()->createWithContent('empty.txt', "  \n "))->call('save')->assertHasErrors('upload');
         $this->assertSame(1, PolicyDocument::query()->count());
 

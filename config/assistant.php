@@ -100,6 +100,7 @@ return [
         ],
     ],
 
+    // Gemini also reads the policy PDFs HR uploads, which only it does.
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
@@ -107,6 +108,15 @@ return [
         'fallback_models' => array_filter(explode(',', (string) env('GEMINI_FALLBACK_MODELS', 'gemini-3.5-flash-lite'))),
         'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
         'timeout' => (int) env('GEMINI_TIMEOUT', 60),
+        // Writing out a whole policy PDF takes minutes, not seconds.
+        'transcribe_timeout' => (int) env('GEMINI_TRANSCRIBE_TIMEOUT', 600),
+        // A busy model is tried this many times (waiting retry_wait seconds,
+        // then twice that, ...) before the next one; a long PDF is read in up
+        // to transcribe_rounds answers of transcribe_max_tokens each.
+        'transcribe_attempts' => (int) env('GEMINI_TRANSCRIBE_ATTEMPTS', 3),
+        'retry_wait' => (int) env('GEMINI_RETRY_WAIT', 3),
+        'transcribe_rounds' => (int) env('GEMINI_TRANSCRIBE_ROUNDS', 8),
+        'transcribe_max_tokens' => (int) env('GEMINI_TRANSCRIBE_MAX_TOKENS', 65536),
     ],
 
     // The employee's own pay figure may be read back to them. Off removes the

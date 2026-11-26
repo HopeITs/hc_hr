@@ -4,6 +4,7 @@ namespace App\Livewire\Onboarding;
 
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\PolicyDocument;
+use App\Services\Assistant\GeminiException;
 use App\Services\Assistant\PolicyFileReader;
 use App\Services\PolicyAcknowledgements;
 use Illuminate\View\View;
@@ -63,11 +64,19 @@ class RequiredPolicies extends Component
 
         $extension = strtolower($this->upload->getClientOriginalExtension());
 
+        // Gemini reads a long PDF in several answers, with retries when it is
+        // busy: that takes minutes, longer than PHP's default limit.
+        set_time_limit(0);
+
         try {
             $text = $reader->read($this->upload->getRealPath(), $extension);
         } catch (Throwable $e) {
             report($e);
-            $this->addError('upload', __('onboarding.required-policies.unreadable'));
+            $this->addError('upload', __('onboarding.required-policies.'.match (true) {
+                $e instanceof GeminiException && $e->isTemporary() => 'pdf-busy',
+                $e instanceof GeminiException && ($e->isUnavailableHere() || ! filled(config('assistant.gemini.key'))) => 'pdf-unavailable',
+                default => 'unreadable',
+            }));
 
             return;
         }

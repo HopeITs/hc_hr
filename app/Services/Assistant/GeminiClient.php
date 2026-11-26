@@ -30,43 +30,22 @@ class GeminiClient implements ChatModel
      */
     public function generate(array $contents, ?string $system = null, array $functionDeclarations = [], float $temperature = 0.2, ?int $timeout = null): array
     {
-        if (! $this->isConfigured()) {
-            throw new GeminiException('GEMINI_API_KEY is not set.');
-        }
+        $turn = $this->turn($contents, $system, $functionDeclarations, $temperature, $timeout);
+        unset($turn['finishReason']);
 
-        $body = array_filter([
-            'systemInstruction' => $system !== null ? ['parts' => [['text' => $system]]] : null,
-            'contents' => self::withObjects($contents),
-            'tools' => $functionDeclarations ? [['functionDeclarations' => $functionDeclarations]] : null,
-            'generationConfig' => ['temperature' => $temperature],
-        ]);
-
-        // The free tier answers "high demand" (503) for minutes at a time, one
-        // model at a time: the next model in the list usually still answers.
-        $models = array_values(array_unique(array_filter([
-            config('assistant.gemini.model'),
-            ...(array) config('assistant.gemini.fallback_models', []),
-        ])));
-
-        foreach ($models as $i => $model) {
-            try {
-                return $this->request($model, $body, $timeout);
-            } catch (GeminiException $e) {
-                if (! $e->isTemporary() || $i === count($models) - 1) {
-                    throw $e;
-                }
-            }
-        }
+        return $turn;
     }
 
     /** The text parts of a model turn, joined. */
-    public static function text(array $content): string
+    public static function text(array $content, bool $trim = true): string
     {
-        return trim(collect($content['parts'] ?? [])
+        $text = collect($content['parts'] ?? [])
             ->reject(fn (array $part) => $part['thought'] ?? false)
             ->pluck('text')
             ->filter()
-            ->implode(''));
+            ->implode('');
+
+        return $trim ? trim($text) : $text;
     }
 
     /** @return list<array{name: string, args: array<string, mixed>}> */
@@ -78,6 +57,104 @@ class GeminiClient implements ChatModel
             ->map(fn (array $call) => ['name' => $call['name'], 'args' => $call['args'] ?? []])
             ->values()
             ->all();
+    }
+
+    /**
+     * The full text of a document (PDF and other types Gemini reads), Arabic
+     * included. A long document runs past the answer's token limit: the
+     * model is then asked to go on from where it stopped, so a policy never
+     * comes back cut short. Any other stop (a refusal, a recitation block)
+     * fails loudly instead of keeping half a text.
+     *
+     * @throws GeminiException
+     */
+    public function transcribe(string $bytes, string $mimeType): string
+    {
+        $contents = [[
+            'role' => 'user',
+            'parts' => [
+                ['inlineData' => ['mimeType' => $mimeType, 'data' => base64_encode($bytes)]],
+                ['text' => 'Transcribe the complete text of this document in its original language, in reading order. Keep headings, numbered clauses and tables (as plain text rows). Output only the text, with no commentary.'],
+            ],
+        ]];
+
+        $text = '';
+        $rounds = max(1, (int) config('assistant.gemini.transcribe_rounds', 8));
+
+        for ($round = 1; $round <= $rounds; $round++) {
+            $turn = $this->turn(
+                $contents, null, [], 0.0,
+                (int) config('assistant.gemini.transcribe_timeout', 600),
+                attempts: max(1, (int) config('assistant.gemini.transcribe_attempts', 3)),
+                maxOutputTokens: (int) config('assistant.gemini.transcribe_max_tokens', 65536),
+            );
+
+            // Untrimmed: a part may end or start in the middle of a sentence,
+            // and the space between two words is then at its edge.
+            $text .= self::text($turn, trim: false);
+
+            if ($turn['finishReason'] === 'STOP') {
+                return trim($text);
+            }
+
+            if ($turn['finishReason'] !== 'MAX_TOKENS') {
+                throw new GeminiException('Gemini stopped reading the document ('.$turn['finishReason'].').', 422);
+            }
+
+            unset($turn['finishReason']);
+            $contents[] = $turn;
+            $contents[] = ['role' => 'user', 'parts' => [['text' => 'Continue the transcription exactly where you stopped, with no repetition and no commentary.']]];
+        }
+
+        throw new GeminiException('The document is too long to transcribe in '.$rounds.' parts.', 413);
+    }
+
+    /**
+     * generate(), plus why the model stopped (STOP, MAX_TOKENS, ...). Each
+     * model is tried $attempts times, waiting a little longer each time,
+     * before the next one in the list.
+     *
+     * @return array{role: string, parts: list<array<string, mixed>>, finishReason: string}
+     */
+    private function turn(array $contents, ?string $system, array $functionDeclarations, float $temperature, ?int $timeout, int $attempts = 1, ?int $maxOutputTokens = null): array
+    {
+        if (! $this->isConfigured()) {
+            throw new GeminiException('GEMINI_API_KEY is not set.');
+        }
+
+        $body = array_filter([
+            'systemInstruction' => $system !== null ? ['parts' => [['text' => $system]]] : null,
+            'contents' => self::withObjects($contents),
+            'tools' => $functionDeclarations ? [['functionDeclarations' => $functionDeclarations]] : null,
+            'generationConfig' => array_filter(['temperature' => $temperature, 'maxOutputTokens' => $maxOutputTokens], fn ($v) => $v !== null),
+        ]);
+
+        // The free tier answers "high demand" (503) for minutes at a time, one
+        // model at a time: the next model in the list usually still answers.
+        $models = array_values(array_unique(array_filter([
+            config('assistant.gemini.model'),
+            ...(array) config('assistant.gemini.fallback_models', []),
+        ])));
+
+        foreach ($models as $i => $model) {
+            for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+                try {
+                    return $this->request($model, $body, $timeout);
+                } catch (GeminiException $e) {
+                    $lastModel = $i === count($models) - 1;
+
+                    if (! $e->isTemporary() || ($lastModel && $attempt === $attempts)) {
+                        throw $e;
+                    }
+
+                    if ($attempt < $attempts) {
+                        sleep((int) config('assistant.gemini.retry_wait', 3) * $attempt);
+                    }
+                }
+            }
+        }
+
+        throw new GeminiException('No Gemini model is configured.');
     }
 
     /**
@@ -102,7 +179,7 @@ class GeminiClient implements ChatModel
         return $contents;
     }
 
-    /** @return array{role: string, parts: list<array<string, mixed>>} */
+    /** @return array{role: string, parts: list<array<string, mixed>>, finishReason: string} */
     private function request(string $model, array $body, ?int $timeout): array
     {
         $url = rtrim(config('assistant.gemini.base_url'), '/').'/models/'.$model.':generateContent';
@@ -127,6 +204,10 @@ class GeminiClient implements ChatModel
             throw new GeminiException('Gemini returned no answer ('.$response->json('candidates.0.finishReason', $response->json('promptFeedback.blockReason', 'empty')).').');
         }
 
-        return ['role' => $content['role'] ?? 'model', 'parts' => $content['parts']];
+        return [
+            'role' => $content['role'] ?? 'model',
+            'parts' => $content['parts'],
+            'finishReason' => (string) $response->json('candidates.0.finishReason', 'STOP'),
+        ];
     }
 }
