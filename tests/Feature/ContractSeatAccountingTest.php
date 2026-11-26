@@ -14,6 +14,7 @@ use App\Models\Program;
 use App\Models\TerminationReason;
 use App\Services\LeaveBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesHrFixtures;
@@ -259,6 +260,57 @@ class ContractSeatAccountingTest extends TestCase
             ->expectsOutputToContain('0 position')
             ->assertSuccessful();
         $this->assertSame(1, $drifted->fresh()->exist_emp);
+    }
+
+    public function test_check_is_silent_and_succeeds_when_every_seat_matches(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $position = $this->makePosition($fixtures, maxEmp: 2);
+        $this->makeContract($fixtures, $position, 'seated');
+
+        Log::shouldReceive('warning')->never();
+
+        $this->artisan('positions:recount-seats', ['--check' => true])
+            ->expectsOutputToContain('Every seat counter matches')
+            ->assertSuccessful();
+    }
+
+    public function test_check_fails_and_logs_a_drifted_counter_and_an_over_capacity_position_without_writing(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $drifted = $this->makePosition($fixtures, maxEmp: 3);
+        $crowded = $this->makePosition($fixtures, maxEmp: 3);
+        $this->makeContract($fixtures, $drifted, 'drifted-holder');
+        $this->makeContract($fixtures, $crowded, 'crowded-one');
+        $this->makeContract($fixtures, $crowded, 'crowded-two');
+
+        // What a bulk import leaves behind: a counter that never moved, and more holders than seats.
+        $drifted->fresh()->forceFill(['exist_emp' => 0])->saveQuietly();
+        $crowded->fresh()->forceFill(['max_emp' => 1])->saveQuietly();
+
+        $logged = null;
+        Log::shouldReceive('warning')->once()->andReturnUsing(function (string $message, array $context) use (&$logged): void {
+            $logged = $context;
+        });
+
+        $this->artisan('positions:recount-seats', ['--check' => true])
+            ->expectsOutputToContain('#'.$crowded->id)
+            ->expectsOutputToContain('over capacity')
+            ->assertFailed();
+
+        $this->assertSame([$drifted->id], array_column($logged['counter_off'], 'position'));
+        $this->assertSame([$crowded->id], array_column($logged['over_capacity'], 'position'));
+
+        $this->assertSame(0, $drifted->fresh()->exist_emp, '--check must not repair anything');
+        $this->assertSame(1, $crowded->fresh()->max_emp, '--check must not touch max_emp');
+    }
+
+    public function test_the_weekly_check_is_scheduled(): void
+    {
+        $scheduled = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+            ->contains(fn ($event) => str_contains($event->command, 'positions:recount-seats') && str_contains($event->command, '--check'));
+
+        $this->assertTrue($scheduled);
     }
 
     // ────────────────────────────────────────────────

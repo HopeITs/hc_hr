@@ -29,7 +29,7 @@ Do: reproduce by hand and with a Livewire test (`LeaveAlternativeEmployeesTest`)
 
 ## T6 — Seat counters and over-capacity positions
 **Priority:** high. **Depends on:** none.
-On `hr_db`: positions 62, 87, 88, 135, 154 have `exist_emp` different from the running contracts, and 62 ("Center keeper") has 6 holders for 3 seats, 88 has 4 for 1.
+On `hr_db`: positions 62 and 88 have `exist_emp` different from the running contracts (all their contracts were created in one minute by the 2026-06-10 import), and 62 ("Center keeper") has 6 holders for 3 seats, 88 has 4 for 1. (The first draft also listed 87, 135 and 154: wrong, measured by contract dates instead of the `is_active` flag the observer uses.)
 Do: run `php artisan positions:recount-seats` (check its output first), find why the counter drifted (imports skip the check; deactivation paths?), add a weekly check that exits non-zero and logs, and decide with HR what to do with imported over-capacity.
 
 ## T7 — Tell HR when a seat handover needs a decision

@@ -47,6 +47,8 @@ Schedule::command(NotifyCriticalPositions::class)->dailyAt('07:40')->withoutOver
 Schedule::command(ApplyContractAmendments::class)->dailyAt('21:25');
 // Weekly: an amendment deleted outside the app leaves the history broken; this logs it.
 Schedule::command(CheckContractAmendments::class)->weeklyOn(0, '06:00');
+// Weekly: a bulk import or raw query can leave a seat counter off or a position over max_emp; this logs it (exits 1).
+Schedule::command('positions:recount-seats', ['--check' => true])->weeklyOn(0, '06:05')->withoutOverlapping();
 Schedule::command(DeactivateContract::class)->dailyAt('21:30');
 Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 // DEC-05 revision 2 (G-C-1): one reminder per pending leave request.
