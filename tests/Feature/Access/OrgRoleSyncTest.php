@@ -155,6 +155,41 @@ class OrgRoleSyncTest extends TestCase
         $this->assertSame(['employee'], $user->fresh()->getRoleNames()->all());
     }
 
+    public function test_a_user_given_the_employee_role_by_the_sync_has_it_active(): void
+    {
+        $person = $this->makeEmployee($this->city, 't9.no-role');
+        $this->seatContract($person, $this->makePosition($this->city));
+        $user = $this->userFor($person);
+
+        app(OrgRoleSync::class)->syncUser($user);
+
+        $this->assertSame('employee', $user->fresh()->myRole());
+        $this->assertTrue($user->roles()->wherePivot('is_active', true)->exists());
+    }
+
+    public function test_a_user_whose_roles_are_all_inactive_gets_one_active_without_any_change(): void
+    {
+        $person = $this->makeEmployee($this->city, 't9.inactive-roles');
+        $this->seatContract($person, $this->makePosition($this->city));
+        $user = User::factory()->create(['employee_id' => $person->id]);
+        $user->assignRole('employee');
+
+        $changes = app(OrgRoleSync::class)->syncUser($user);
+
+        $this->assertSame([], array_filter($changes));
+        $this->assertTrue($user->roles()->wherePivot('is_active', true)->where('name', 'employee')->exists());
+    }
+
+    public function test_an_active_role_is_left_as_it_is(): void
+    {
+        [$hr] = $this->personOn(null, 't9.hr');
+        $user = $this->userFor($hr, ['HR-SYR', 'employee']);
+
+        app(OrgRoleSync::class)->syncUser($user);
+
+        $this->assertSame(['HR-SYR'], $user->roles()->wherePivot('is_active', true)->pluck('name')->all());
+    }
+
     /** @return array{0: Employee, 1: Position} */
     private function personOn(?Position $manager, string $username): array
     {
