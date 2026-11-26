@@ -229,6 +229,25 @@ class PolicyFolderTest extends TestCase
         $this->assertSame(0, PolicyDocument::query()->count());
     }
 
+    public function test_indented_lines_read_as_text_not_as_code(): void
+    {
+        $doc = PolicyDocument::query()->create(['title' => 'X', 'content' => "جمع المعلومات:
+	ما يتم جمعه من المتطوع يكون متناسباً.
+    يتم توضيح الهدف من جمع المعلومات.
+
+1. بند
+   - بند فرعي
+
+```
+ليس شيفرة
+```"]);
+
+        Livewire::actingAs($this->employee)->test(Show::class, ['document' => $doc->id])
+            ->assertDontSeeHtml('<pre>')->assertDontSeeHtml('<code>')
+            ->assertSee('ما يتم جمعه من المتطوع يكون متناسباً.')
+            ->assertSeeHtml('<ul>');
+    }
+
     public function test_html_in_a_policy_is_shown_as_text(): void
     {
         $doc = PolicyDocument::query()->create(['title' => 'X', 'content' => "<script>alert(1)</script>\n[link](javascript:alert(1))"]);

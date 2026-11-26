@@ -18,6 +18,12 @@ class PolicyRenderer
     /** @param  list<string>  $terms */
     public function html(string $markdown, array $terms = []): string
     {
+        // A policy has no code: a line indented by a tab or four spaces (Word's indentation, or a
+        // policy kept as text from before) would otherwise turn into a monospace, left-to-right code
+        // block. Indentation stays only in front of a list marker, where it nests the item.
+        $markdown = preg_replace('/^[ \t]+(?!(?:[-*+]|\d+[.)])[ \t])/mu', '', $markdown) ?? $markdown;
+        $markdown = preg_replace('/^(\s*)(`{3,}|~{3,})/mu', '$1\\\\$2', $markdown) ?? $markdown;
+
         $html = Str::markdown($markdown, [
             'html_input' => 'escape',
             'allow_unsafe_links' => false,
