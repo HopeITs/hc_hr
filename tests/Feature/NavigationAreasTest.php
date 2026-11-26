@@ -27,7 +27,8 @@ class NavigationAreasTest extends TestCase
     // C5 added the team calendar to everyone's My space.
     // Attendance is on every role's menu, in a different place for each (My space, My team or HR): all open the same page.
     // The mailing lists are on every role's menu: every employee reads and emails them.
-    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'attendance.timesheets', 'checklist-items.index', 'folders.index', 'mail-lists.index'];
+    // The policies are on every role's menu: every signed-in employee reads and searches them.
+    private const MY_SPACE = ['dashboard', 'leaves.index', 'team.calendar', 'attendance.timesheets', 'checklist-items.index', 'folders.index', 'mail-lists.index', 'policies.index'];
 
     protected function setUp(): void
     {

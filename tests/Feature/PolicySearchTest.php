@@ -6,6 +6,7 @@ use App\Livewire\Layout\GlobalSearch;
 use App\Livewire\Policies\Index;
 use App\Models\PolicyDocument;
 use App\Services\Assistant\PolicyLibrary;
+use App\Support\Navigation;
 use App\Support\Search\Highlight;
 use App\Support\Search\SmartSearch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,6 +68,14 @@ class PolicySearchTest extends TestCase
         $this->assertSame('Leave policy', $library->search('annual leaves')[0]['title']);
         $this->assertSame([], $library->search('زرافة فضائية'));
         $this->assertSame([], $library->search('ا'));
+    }
+
+    public function test_every_employee_finds_the_policies_page_in_the_menu(): void
+    {
+        $employee = $this->makeUser($this->makeCity('ALP', '001'), 'employee', []);
+
+        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.index', $employee));
+        $this->assertSame(__('general.nav.area.my-space'), Navigation::areaFor('policies.show', $employee));
     }
 
     public function test_every_employee_sees_the_policies_group_in_the_header_search(): void
@@ -152,8 +161,8 @@ class PolicySearchTest extends TestCase
         $this->assertStringNotContainsString('Link:', $library->contextFor('نقل الأجهزة'));
 
         $whole = $library->contextFor('نقل الأجهزة', withLinks: true);
-        $this->assertStringContainsString("### سياسة الأمن المعلوماتي
-Link: ".route('policies.show', ['document' => $this->security->id, 'q' => 'نقل الأجهزة']), $whole);
+        $this->assertStringContainsString('### سياسة الأمن المعلوماتي
+Link: '.route('policies.show', ['document' => $this->security->id, 'q' => 'نقل الأجهزة']), $whole);
 
         // Over the budget only passages go in, each followed by its own link.
         config(['assistant.policy_char_budget' => 200]);
