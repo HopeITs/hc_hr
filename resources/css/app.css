@@ -439,8 +439,9 @@
     }
 
     /* A page inside the dashboard's workspace (partials/head.blade.php marks it): the page
-       alone, without the site's sidebar, header, footer and phone bar, which the dashboard
-       around it already shows. */
+       alone, without the site's sidebar, header, footer, phone bar and assistant button,
+       which the dashboard around it already shows (one assistant per window, not one per tab). */
+    html.in-workspace [data-assistant-widget],
     html.in-workspace [wire\:name="layout.sidebar"],
     html.in-workspace #app-navbar,
     html.in-workspace .app-shell > footer,
