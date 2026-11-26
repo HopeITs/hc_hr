@@ -80,20 +80,6 @@ class GeminiClient implements ChatModel
             ->all();
     }
 
-    /** The full text of a document (PDF and other types Gemini reads), Arabic included. */
-    public function transcribe(string $bytes, string $mimeType): string
-    {
-        $content = $this->generate([[
-            'role' => 'user',
-            'parts' => [
-                ['inlineData' => ['mimeType' => $mimeType, 'data' => base64_encode($bytes)]],
-                ['text' => 'Transcribe the complete text of this document in its original language, in reading order. Keep headings, numbered clauses and tables (as plain text rows). Output only the text, with no commentary.'],
-            ],
-        ]], temperature: 0.0, timeout: config('assistant.gemini.transcribe_timeout', 600));
-
-        return self::text($content);
-    }
-
     /**
      * A call without arguments comes back as `"args": {}`, which PHP decodes
      * to [] and would send back as a JSON list; Gemini refuses that ("Proto

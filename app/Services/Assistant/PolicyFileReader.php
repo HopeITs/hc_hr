@@ -7,29 +7,24 @@ use ZipArchive;
 
 /**
  * Turns a policy file HR uploads into the plain text the assistant and the
- * policies pages read. PDFs are scanned Arabic more often than not, so their
- * text comes from Gemini rather than a PDF parser.
+ * policies pages read. Only Word and plain text: their text is in the file
+ * itself, so nothing leaves the server to read them. PDFs (mostly scanned
+ * Arabic) are not taken: HR uploads the Word original instead.
  */
 class PolicyFileReader
 {
     public const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-    // Gemini takes inline documents up to ~20 MB.
     public const MAX_KB = 20 * 1024;
 
-    public const EXTENSIONS = ['pdf', 'docx', 'txt'];
+    public const EXTENSIONS = ['docx', 'txt'];
 
-    public function __construct(private GeminiClient $gemini) {}
-
-    /** @throws RuntimeException|GeminiException when no text can be read */
+    /** @throws RuntimeException when no text can be read */
     public function read(string $path, string $extension): string
     {
-        $bytes = (string) file_get_contents($path);
-
         $text = $this->normalize(match (strtolower($extension)) {
-            'pdf' => $this->gemini->transcribe($bytes, 'application/pdf'),
             'docx' => $this->docxText($path),
-            'txt' => $bytes,
+            'txt' => (string) file_get_contents($path),
             default => throw new RuntimeException('Unsupported file type.'),
         });
 
@@ -43,7 +38,6 @@ class PolicyFileReader
     public function mimeType(string $extension): string
     {
         return match (strtolower($extension)) {
-            'pdf' => 'application/pdf',
             'docx' => self::DOCX,
             default => 'text/plain',
         };

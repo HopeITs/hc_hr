@@ -89,7 +89,7 @@ return [
         'none' => 'No policy documents yet. Upload the first one above.',
         'upload-heading' => 'Upload a policy',
         'replace-heading' => 'Replace the document',
-        'upload-hint' => 'PDF, Word (.docx) or text, up to 20 MB. Its text is what employees and the assistant read.',
+        'upload-hint' => 'Word (.docx) or text, up to 20 MB. Its text is what employees and the assistant read.',
         'file' => 'File',
         'doc-title' => 'Title',
         'doc-title-hint' => 'Defaults to the file name',
