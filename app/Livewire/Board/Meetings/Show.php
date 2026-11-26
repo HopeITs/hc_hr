@@ -79,7 +79,8 @@ class Show extends Component
     /** Switch between the printed sheet and the working page. Only those who work on the meeting may edit. */
     public function setMode(string $mode): void
     {
-        $this->mode = $mode === 'edit' && ($this->access()->canWrite(auth()->user()) || $this->access()->canManage(auth()->user()))
+        $this->mode = $mode === 'edit' && ! $this->meeting()->isPublished()
+            && ($this->access()->canWrite(auth()->user()) || $this->access()->canManage(auth()->user()))
             ? 'edit'
             : 'view';
     }
@@ -282,7 +283,8 @@ class Show extends Component
             ->sortBy(fn (BoardMeetingAttendee $a) => mb_strtolower((string) $a->employee?->name))->values();
 
         $minutesVisible = $meeting->isPublished() || $seeDraft;
-        $canEdit = $access->canWrite($user) || $access->canManage($user);
+        // Published minutes are final: nobody edits them (or the meeting) afterwards.
+        $canEdit = ! $meeting->isPublished() && ($access->canWrite($user) || $access->canManage($user));
         // Readers see the minutes as the sheet. Writers see it too (a draft is marked as one) when they switch to it.
         $sheetMode = ! $meeting->isCancelled() && $minutesVisible && $this->mode === 'view';
 
@@ -293,8 +295,8 @@ class Show extends Component
             'meeting' => $meeting,
             'attendees' => $attendees,
             'mine' => $attendees->firstWhere('employee_id', $employeeId),
-            'canManage' => $access->canManage($user),
-            'canWrite' => $access->canWrite($user),
+            'canManage' => ! $meeting->isPublished() && $access->canManage($user),
+            'canWrite' => ! $meeting->isPublished() && $access->canWrite($user),
             'isMember' => $access->isMember($user),
             'minutesVisible' => $minutesVisible,
             'sections' => $meeting->sections()->get(),
@@ -323,14 +325,24 @@ class Show extends Component
         return BoardMeetingAttendee::query()->where('board_meeting_id', $this->meetingId)->findOrFail($id);
     }
 
+    /** The chair's actions: his permission, and never once the minutes are published. */
     private function mustManage(): void
     {
         abort_unless($this->access()->canManage(auth()->user()), 403);
+        $this->mustBeOpen();
     }
 
+    /** The secretary's actions: his permission, and never once the minutes are published. */
     private function mustWrite(): void
     {
         abort_unless($this->access()->canWrite(auth()->user()), 403);
+        $this->mustBeOpen();
+    }
+
+    /** Publishing closes the meeting: its details, attendance and minutes are not changed afterwards. */
+    private function mustBeOpen(): void
+    {
+        abort_if($this->meeting()->isPublished(), 403);
     }
 
     private function access(): BoardAccess

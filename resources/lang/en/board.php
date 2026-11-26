@@ -47,7 +47,7 @@ return [
         'follow-required' => 'Required', 'no-follow-ups' => 'Nothing to follow up.', 'add-follow-up' => 'Add the row',
         'prepared-by' => 'Prepared by', 'send-email' => 'Also email the minutes (PDF attached) to the board',
         'publish' => 'Publish the minutes', 'publish-again' => 'Publish again',
-        'publish-help' => 'Publishing tells every board member to read the minutes.',
+        'publish-help' => 'Publishing is final: the minutes, the attendance and the meeting cannot be changed afterwards. Every board member is told to read them.', 'publish-confirm' => 'Publish the minutes? They cannot be edited afterwards.', 'final' => 'The minutes are published and can no longer be changed.',
         'published' => 'The minutes are published and the board is told.',
         'published-emailed' => 'The minutes are published and emailed to the board.',
         'remove-confirm' => 'Remove it?', 'pdf-failed' => 'The PDF could not be made right now. Try again in a moment.',

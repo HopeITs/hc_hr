@@ -320,10 +320,43 @@ class BoardMeetingsTest extends TestCase
             ->assertDontSee('wire:submit.prevent="saveSection"', false)
             ->call('setMode', 'edit')->assertSet('mode', 'view');
 
-        // The secretary opens on the sheet once published and can go back to editing.
+        // The secretary opens on the sheet, and published minutes cannot be taken back to editing.
         Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
-            ->assertSet('mode', 'view')->call('setMode', 'edit')->assertSet('mode', 'edit')
-            ->assertSee('wire:submit.prevent="saveSection"', false);
+            ->assertSet('mode', 'view')->call('setMode', 'edit')->assertSet('mode', 'view')
+            ->assertDontSee('wire:submit.prevent="saveSection"', false);
+    }
+
+    public function test_once_published_nothing_about_the_meeting_changes_for_anyone(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->subDay(), 'location' => 'Main office'], notify: false);
+        $row = $meeting->attendees()->firstOrFail();
+        $section = $meeting->sections()->create(['title' => 'عرض', 'body' => 'نص', 'sort' => 1]);
+        $follow = $meeting->followUps()->create(['topic' => 'ملف', 'sort' => 1]);
+        $meeting->update(['published_at' => now()]);
+
+        $secretary = fn () => Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting]);
+        $chair = fn () => Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting]);
+
+        $secretary()->set('sectionTitle', 'جديد')->call('saveSection')->assertForbidden();
+        $secretary()->call('editSection', $section->id)->assertForbidden();
+        $secretary()->call('removeSection', $section->id)->assertForbidden();
+        $secretary()->set('followUpTopic', 'جديد')->call('saveFollowUp')->assertForbidden();
+        $secretary()->call('removeFollowUp', $follow->id)->assertForbidden();
+        $secretary()->call('setAttendance', $row->id, 'absent')->assertForbidden();
+        $secretary()->set('preparedBy', 'x')->call('saveMinutesHeader')->assertForbidden();
+        $secretary()->call('publish')->assertForbidden();
+        $chair()->set('location', 'Elsewhere')->call('saveDetails')->assertForbidden();
+        $chair()->set('cancelReason', 'x')->call('cancelMeeting')->assertForbidden();
+
+        $this->assertSame('عرض', $section->fresh()->title);
+        $this->assertSame('ملف', $follow->fresh()->topic);
+        $this->assertSame('Main office', $meeting->fresh()->location);
+
+        // The service refuses too, not only the page.
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $service->setAttendance($row->fresh(), 'present');
     }
 
     public function test_the_commands_are_registered(): void

@@ -240,8 +240,8 @@
                         <input type="checkbox" wire:model="sendEmail" class="rounded border-line">
                         @lang('board.minutes.send-email')
                     </label>
-                    <x-button variant="primary" type="button" wire:click="publish">
-                        {{ $meeting->isPublished() ? __('board.minutes.publish-again') : __('board.minutes.publish') }}
+                    <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ __('board.minutes.publish-confirm') }}">
+                        @lang('board.minutes.publish')
                     </x-button>
                     <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>
                 </div>

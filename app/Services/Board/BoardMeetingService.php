@@ -102,6 +102,8 @@ class BoardMeetingService
     /** @param array{starts_at: mixed, ends_at?: mixed, location?: ?string, room?: ?string, purpose?: ?string, led_by?: ?string} $data */
     public function update(BoardMeeting $meeting, array $data): BoardMeeting
     {
+        $this->assertOpen($meeting);
+
         $moved = ! $meeting->starts_at->equalTo(CarbonImmutable::parse($data['starts_at']));
 
         $meeting->fill(array_intersect_key($data, array_flip(['starts_at', 'ends_at', 'location', 'room', 'purpose', 'led_by'])));
@@ -122,6 +124,8 @@ class BoardMeetingService
 
     public function cancel(BoardMeeting $meeting, string $reason): void
     {
+        $this->assertOpen($meeting);
+
         $reason = trim($reason);
 
         if ($reason === '') {
@@ -151,6 +155,8 @@ class BoardMeetingService
     /** The secretary's word on where a member is: present, online, absent or still expected. */
     public function setAttendance(BoardMeetingAttendee $attendee, string $status, ?string $reason = null): void
     {
+        $this->assertOpen($attendee->meeting);
+
         if (! in_array($status, BoardMeetingAttendee::STATUSES, true)) {
             throw ValidationException::withMessages(['status' => __('board.attendance.invalid')]);
         }
@@ -189,6 +195,8 @@ class BoardMeetingService
     /** The chair approves (the member is listed as absent) or turns the request down. */
     public function decideAbsence(BoardMeetingAttendee $attendee, bool $approve): void
     {
+        $this->assertOpen($attendee->meeting);
+
         $attendee->update([
             'absence_request' => $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
             'absence_decided_at' => now(),
@@ -207,6 +215,8 @@ class BoardMeetingService
     /** Publishes the minutes: the members are told, and (when asked) get them by email with the PDF. */
     public function publish(BoardMeeting $meeting, User $by, bool $email = false): void
     {
+        $this->assertOpen($meeting);
+
         $meeting->update([
             'published_at' => now(),
             'prepared_by' => $meeting->prepared_by ?: $by->profile?->name,
@@ -233,6 +243,12 @@ class BoardMeetingService
         }
 
         return $to->count();
+    }
+
+    /** Once the minutes are published the meeting is closed: nothing about it changes any more. */
+    private function assertOpen(BoardMeeting $meeting): void
+    {
+        abort_if($meeting->isPublished(), 403, __('board.minutes.final'));
     }
 
     private function tell(BoardMeeting $meeting, string $kind, ?string $detail = null): void
