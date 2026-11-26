@@ -12,7 +12,7 @@
 
 {{-- Intro Lines --}}
 @foreach ($introLines as $line)
-{{ $line }}
+{{ $line instanceof \Illuminate\Contracts\Support\Htmlable ? $line : \App\Services\Policies\PolicyRenderer::withoutCodeBlocks((string) $line) }}
 
 @endforeach
 
@@ -32,7 +32,7 @@
 
 {{-- Outro Lines --}}
 @foreach ($outroLines as $line)
-{{ $line }}
+{{ $line instanceof \Illuminate\Contracts\Support\Htmlable ? $line : \App\Services\Policies\PolicyRenderer::withoutCodeBlocks((string) $line) }}
 
 @endforeach
 

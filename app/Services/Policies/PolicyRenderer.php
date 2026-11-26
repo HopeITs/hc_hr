@@ -18,11 +18,7 @@ class PolicyRenderer
     /** @param  list<string>  $terms */
     public function html(string $markdown, array $terms = []): string
     {
-        // A policy has no code: a line indented by a tab or four spaces (Word's indentation, or a
-        // policy kept as text from before) would otherwise turn into a monospace, left-to-right code
-        // block. Indentation stays only in front of a list marker, where it nests the item.
-        $markdown = preg_replace('/^[ \t]+(?!(?:[-*+]|\d+[.)])[ \t])/mu', '', $markdown) ?? $markdown;
-        $markdown = preg_replace('/^(\s*)(`{3,}|~{3,})/mu', '$1\\\\$2', $markdown) ?? $markdown;
+        $markdown = self::withoutCodeBlocks($markdown);
 
         $html = Str::markdown($markdown, [
             'html_input' => 'escape',
@@ -31,6 +27,19 @@ class PolicyRenderer
         ]);
 
         return $terms === [] ? $html : $this->mark($html, $terms);
+    }
+
+    /**
+     * Text that never holds code, ready for Markdown: a line indented by a tab or four spaces (Word's
+     * indentation, or text kept as it was) would otherwise turn into a monospace, left-to-right code
+     * block. Indentation stays only in front of a list marker, where it nests the item, and a code
+     * fence is shown as text.
+     */
+    public static function withoutCodeBlocks(string $markdown): string
+    {
+        $markdown = preg_replace('/^[ \t]+(?!(?:[-*+]|\d+[.)])[ \t])/mu', '', $markdown) ?? $markdown;
+
+        return preg_replace('/^(\s*)(`{3,}|~{3,})/mu', '$1\\\\$2', $markdown) ?? $markdown;
     }
 
     /** @param  list<string>  $terms */

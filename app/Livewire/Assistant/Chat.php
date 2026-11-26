@@ -8,6 +8,7 @@ use App\Services\Assistant\Assistant;
 use App\Services\Assistant\AssistantReply;
 use App\Services\Assistant\Drafts\DraftRegistry;
 use App\Services\Assistant\GeminiException;
+use App\Services\Policies\PolicyRenderer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -395,6 +396,6 @@ class Chat extends Component
     /** The answer as HTML: raw HTML in it is stripped and unsafe links dropped. */
     protected function toHtml(string $text): string
     {
-        return Str::markdown($text, ['html_input' => 'strip', 'allow_unsafe_links' => false]);
+        return Str::markdown(PolicyRenderer::withoutCodeBlocks($text), ['html_input' => 'strip', 'allow_unsafe_links' => false]);
     }
 }
