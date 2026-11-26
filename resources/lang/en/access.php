@@ -78,6 +78,7 @@ return [
         'message-templates' => 'Message templates',
         'mail-lists' => 'Mail lists',
         'attendance' => 'Attendance',
+        'board-meetings' => 'Board meetings',
         'entitlements' => 'Permissions Library',
         'recruitment-requests' => 'Recruitment requests',
         'recruitment-vacancies' => 'Vacancies',
@@ -88,6 +89,7 @@ return [
         'recruitment-applicants' => 'Applicants',
     ],
     'actions' => [
+        'write-minutes' => 'Write the minutes',
         'view' => 'View', 'view-own' => 'View own', 'view-all' => 'View all',
         'manage-library' => 'Manage the library', 'assign' => 'Assign to people',
         'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete',

@@ -51,6 +51,14 @@ Route::prefix('attendance')->name('attendance.')->group(function () {
         ->whereNumber('month')->middleware('active_permission:attendance.view-own')->name('signed');
 });
 
+// The board's meetings and minutes: members read them, the chair and the secretary run them (each page and
+// action checks BoardAccess; there is no permission a member needs).
+Route::prefix('board/meetings')->name('board.meetings.')->group(function () {
+    Route::get('/', \App\Livewire\Board\Meetings\Index::class)->name('index');
+    Route::get('/{meeting}', \App\Livewire\Board\Meetings\Show::class)->whereNumber('meeting')->name('show');
+    Route::get('/{meeting}/pdf', \App\Http\Controllers\BoardMinutesPdfController::class)->whereNumber('meeting')->name('pdf');
+});
+
 // HR's email / WhatsApp templates; the picker on a person's card needs only message-templates.use.
 Route::get('/message-templates', \App\Livewire\Messages\TemplateManager::class)
     ->middleware('active_permission:message-templates.manage')->name('message-templates.index');

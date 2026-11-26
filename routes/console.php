@@ -6,6 +6,7 @@ use App\Console\Commands\CheckContractAmendments;
 use App\Console\Commands\DeactivateContract;
 use App\Console\Commands\DeactivateDepartedEmployees;
 use App\Console\Commands\DispatchDueNotifications;
+use App\Console\Commands\EnsureNextBoardMeeting;
 use App\Console\Commands\ExpireRecruitmentJobOffers;
 use App\Console\Commands\NotifyBirthdayConflicts;
 use App\Console\Commands\NotifyCriticalPositions;
@@ -17,6 +18,7 @@ use App\Console\Commands\RedispatchRecruitmentRejectionNotices;
 use App\Console\Commands\RemindMissingLeavingReasons;
 use App\Console\Commands\ScanRecruitmentFiles;
 use App\Console\Commands\SendAttendanceReminders;
+use App\Console\Commands\SendBoardMeetingReminders;
 use App\Console\Commands\SendContractExpirationWarnings;
 use App\Console\Commands\SendLeaveDecisionReminders;
 use App\Console\Commands\SendOrientationReminders;
@@ -51,6 +53,9 @@ Schedule::command(SendContractExpirationWarnings::class)->dailyAt('08:00');
 Schedule::command(SendLeaveDecisionReminders::class)->dailyAt('08:05');
 // Attendance: in the first days of a month, remind managers to approve and HR to lock last month.
 Schedule::command(SendAttendanceReminders::class)->dailyAt('08:15');
+// Board: the next meeting is opened at its usual slot, and the board is reminded the day before (once).
+Schedule::command(EnsureNextBoardMeeting::class)->dailyAt('07:30');
+Schedule::command(SendBoardMeetingReminders::class)->dailyAt('08:18');
 // D4-I: one reminder to city HR per overdue orientation session.
 Schedule::command(SendOrientationReminders::class)->dailyAt('08:10');
 // Track 7: weekly reminders to the owner of an overdue account, electronics, card or manager-session step.

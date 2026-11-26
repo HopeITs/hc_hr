@@ -57,6 +57,7 @@ return [
         'message-templates' => 'قوالب الرسائل',
         'mail-lists' => 'القوائم البريدية',
         'attendance' => 'الحضور والدوام',
+        'board-meetings' => 'اجتماعات البورد',
         'entitlements' => 'مكتبة الصلاحيات',
         'recruitment-requests' => 'طلبات التوظيف',
         'recruitment-vacancies' => 'الشواغر',
@@ -67,6 +68,7 @@ return [
         'recruitment-applicants' => 'المتقدمون',
     ],
     'actions' => [
+        'write-minutes' => 'كتابة المحضر',
         'view' => 'عرض', 'view-own' => 'عرض الخاص', 'view-all' => 'عرض الكل',
         'manage-library' => 'إدارة المكتبة', 'assign' => 'إسناد للأشخاص',
         'create' => 'إنشاء', 'update' => 'تعديل', 'delete' => 'حذف', 'export' => 'تصدير', 'amend' => 'ملحق عقد',

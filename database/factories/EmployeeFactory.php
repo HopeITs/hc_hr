@@ -46,7 +46,8 @@ class EmployeeFactory extends Factory
             // outright about a tenth of the time. Use the inactive() state when
             // a test actually wants a deactivated employee.
             'is_active' => true,
-            'is_board_member' => $this->faker->boolean(10),
+            // Deterministically off: board membership shows the board's pages in the menu and lists the person at its meetings.
+            'is_board_member' => false,
             'board_member_started_at' => null,
             'board_member_end_at' => null,
             'created_at' => now(),

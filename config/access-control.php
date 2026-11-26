@@ -46,6 +46,9 @@ return [
     */
 
     'never_granted_to_roles' => [
+        // The chair and the secretary of the board are two people, not two jobs any role holds.
+        'board-meetings.manage',
+        'board-meetings.write-minutes',
         'recruitment-requests.approve-finance',
         'recruitment-requests.submit-without-manager',
         // Whoever holds the mail provider's control panel confirms that people were added to the
@@ -186,6 +189,10 @@ return [
         // looks after (a manager: direct reports; an HR role: its city; HR Syria, the general manager and
         // the administrators: everyone); `manage` (HR) uploads the report, links numbers and decides days.
         'attendance' => ['view-own', 'view', 'manage'],
+        // The board's meetings. Members need none (a current board member on the employee record reads them);
+        // `manage` is the chair's (schedule, move, cancel, decide absence requests), `write-minutes` the
+        // secretary's (attendance, minutes, publishing). Person-level: see never_granted_to_roles.
+        'board-meetings' => ['manage', 'write-minutes'],
         // Permissions Library (meeting 19/11, track 5): professional access tracked outside the system,
         // never a Spatie permission of its own. `manage-library` edits the items and their position
         // defaults (HR, administrators); `assign` adds, marks done and revokes a person's items (HR in
@@ -297,6 +304,25 @@ return [
             'removeSigned' => 'attendance.manage',
             // Answers the open day and moves to the next one; it goes through saveDecision.
             'answerDay' => 'attendance.view',
+        ],
+        // The board's meeting page: each action checks the chair / secretary permission inside too.
+        'board.meetings.index' => [
+            'saveMeeting' => 'board-meetings.manage',
+        ],
+        'board.meetings.show' => [
+            'saveDetails' => 'board-meetings.manage',
+            'cancelMeeting' => 'board-meetings.manage',
+            'restoreMeeting' => 'board-meetings.manage',
+            'decideAbsence' => 'board-meetings.manage',
+            'setAttendance' => 'board-meetings.write-minutes',
+            'saveSection' => 'board-meetings.write-minutes',
+            'editSection' => 'board-meetings.write-minutes',
+            'removeSection' => 'board-meetings.write-minutes',
+            'saveFollowUp' => 'board-meetings.write-minutes',
+            'editFollowUp' => 'board-meetings.write-minutes',
+            'removeFollowUp' => 'board-meetings.write-minutes',
+            'saveMinutesHeader' => 'board-meetings.write-minutes',
+            'publish' => 'board-meetings.write-minutes',
         ],
         // The composer re-checks message-templates.use itself; these name the permission at the door too.
         'messages.announcement-composer' => [
@@ -846,6 +872,9 @@ return [
     */
 
     'livewire_exempt' => [
+        // The board's meeting page: a member's request to be excused is checked inside (a current member,
+        // on a meeting still ahead, for themselves only); there is no permission a member holds.
+        'board.meetings.show' => ['requestAbsence'],
         // Reports: each page is opened by mayView() (several permissions or a role, no single
         // name), and export() asks mayView() again before building the file. Clearing filters
         // writes nothing.
