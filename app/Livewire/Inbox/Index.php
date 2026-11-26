@@ -18,6 +18,7 @@ use App\Services\TeamCoverage;
 use App\Services\WorkInbox;
 use App\Services\WorkPresence;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -119,6 +120,76 @@ class Index extends Component
     public function markSeen(string $key): void
     {
         $this->review($key, fn (LeaveRequest $leave, ?string $note) => app(LeaveRequestReview::class)->markSeen($leave->id, auth()->user(), $note), 'inbox.outcome.seen');
+    }
+
+    /**
+     * T3 step 1: count the decisions waiting longer than the threshold and
+     * ask to confirm. Writes nothing.
+     */
+    public function previewSeenOlderThan(int $days): void
+    {
+        $query = $this->staleReviews($days);
+
+        if (! $query) {
+            $this->toast(__('inbox.outcome.not_allowed'), 'error');
+
+            return;
+        }
+
+        $count = $query->count();
+
+        if ($count === 0) {
+            $this->toast(__('inbox.review-backlog.nothing', ['days' => $days]), 'info');
+
+            return;
+        }
+
+        $this->confirm(
+            'applySeenOlderThan',
+            ['days' => $days],
+            title: __('inbox.review-backlog.title'),
+            message: trans_choice('inbox.review-backlog.preview', $count, ['count' => $count, 'days' => $days]),
+            confirmLabel: __('inbox.review.seen'),
+            danger: false,
+        );
+    }
+
+    /**
+     * T3 step 2: each decision through LeaveRequestReview::markSeen, which
+     * locks and re-authorizes it and notifies as one "Seen" does. Re-read here,
+     * so whatever was handled or left scope since the preview is skipped.
+     */
+    public function applySeenOlderThan(array $payload): void
+    {
+        $days = (int) ($payload['days'] ?? 0);
+        $query = $this->staleReviews($days);
+
+        if (! $query) {
+            $this->toast(__('inbox.outcome.not_allowed'), 'error');
+
+            return;
+        }
+
+        $user = auth()->user();
+        $done = 0;
+        $skipped = 0;
+
+        foreach ($query->pluck('leave_requests.id') as $id) {
+            try {
+                app(LeaveRequestReview::class)->markSeen((int) $id, $user);
+                $done++;
+            } catch (AuthorizationException) {
+                $skipped++;
+            }
+        }
+
+        $this->dispatch('notification-created');
+        $this->dispatch('inbox-changed');
+        $this->toast(
+            trans_choice('inbox.review-backlog.done', $done, ['count' => $done])
+                .($skipped > 0 ? ' '.trans_choice('inbox.batch.result.already_handled', $skipped, ['count' => $skipped]) : ''),
+            $done === 0 ? 'info' : 'success',
+        );
     }
 
     public function object(string $key): void
@@ -306,6 +377,8 @@ class Index extends Component
             // Fewer listed than counted: some source reached its cap.
             'capped' => $counts[$this->filter] > $shown ? ['shown' => $shown, 'total' => $counts[$this->filter]] : null,
             'failed' => $failed,
+            // T3: the "mark all seen older than" bar, for whoever has reviews waiting.
+            'reviewBacklog' => in_array($this->filter, ['all', 'review'], true) && $counts['review'] > 0,
             'showCity' => auth()->user()->activeCityIds() === null || count(auth()->user()->activeCityIds() ?? []) > 1,
         ]);
     }
@@ -373,6 +446,16 @@ class Index extends Component
     }
 
     // --- helpers ------------------------------------------------------------
+
+    /** Null when the threshold is not one offered or the active role reviews nothing. */
+    private function staleReviews(int $days): ?Builder
+    {
+        if (! in_array($days, WorkInbox::REVIEW_BULK_THRESHOLDS, true)) {
+            return null;
+        }
+
+        return app(WorkInbox::class)->reviewsOlderThan(auth()->user(), $days);
+    }
 
     /** done | already_handled | not_allowed */
     private function applyChecklist(string $key, ?string $note, ?string $batchId = null): string
