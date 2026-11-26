@@ -19,6 +19,9 @@
             open: false,
             onPage: false,
             check() {
+                // One launcher per page: a second copy (a persisted element morphed twice) removes itself.
+                const copies = document.querySelectorAll('[data-assistant-widget]');
+                if (copies.length > 1 && copies[0] !== this.$root) { this.$root.remove(); return; }
                 this.onPage = !! document.querySelector('[data-assistant-page]');
                 if (this.onPage) this.open = false;
             },
