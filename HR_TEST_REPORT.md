@@ -386,6 +386,20 @@ Cross-cutting issue found while testing this group (affects groups 1, 3, 4, 8):
 - Celine (8 h/day): Annual 96 h (12 days), but Full and Partial Sick and Unpaid each 94 h, shown as "11 days and 6 hours". It looks like a rounding of a prorated value.
 - Suggested fix: confirm the rule. If sick leave should be whole days, round to whole days at the end.
 
+**Re-test against the current code (2026-11-26, after 084–089, 085 and the UX pass 954822e0):**
+| ID | Status now | Evidence |
+|---|---|---|
+| HR-027 | **Still present** | `LeaveRequestPolicy::delete` still lets a manager or HR delete in any status, and `AllLeaveRequestTable::delete` still only calls `->delete()`. Nothing gives back `used` (the only decrements are the edit delta and `LeaveRequestReview`). Code unchanged since the proven repro. |
+| HR-028 | **Still present, now inconsistent** | 085 made backdating deliberate: `mayBackdate()` lets only HR on All Leaves date a **day** leave in the past. `leave_date` (**hourly**) is still only `required|date`. Reproduced as an employee on My Leaves: an hourly leave on 2026-11-10 was accepted and saved (#68, removed afterwards). |
+| HR-029 | **Still present** | `LeaveBalanceForm::updateAnnualLeaves` writes `deserved` directly; `reprice()` overwrites it; `EmployeeEdit:201` still uses `contracts()->whereHas('leaveBalances')->first()`. |
+| HR-030 | **Still present** | `amount` is still `required|numeric|min:0`, with no ceiling and no check against `used`. |
+| HR-031 | **Not a bug** (same as HR-024) | Day leave in the past: the field message is in view and the summary entry is off screen, so the user sees it once. The message is now clearer ("A leave cannot start on a day that has passed… for past sick [leave, ask HR]"). |
+| HR-032 | **Resolved by others** | The employee form no longer has the second confirmation dialog ("the send button now sends", 954822e0). HR's All Leaves still confirms, through the shared confirm dialog. |
+| HR-033 | **Unchanged** (question) | `HolidayProjects::canManage` = national HR or a project manager; city HR still can't manage holidays. |
+| HR-034 | **Intentional** (wording question) | `Timesheet` deliberately treats a weekend as a paid day off (`paid_off_day = true`, a full day's leave hours, 1 working day). The row reads "عطلة رسمية من المؤسسة" (key `weekly-holiday`), the note "عطلة أسبوعية". Only the wording is for HR to confirm. |
+| HR-035 | **Unchanged** (question) | Celine: Annual 96 h, Sick / Partial sick / Unpaid 94 h ("11 days and 6 hours"). |
+| Attendance workflow | **Still untestable here** | `hr_db` still has 0 punches and 0 attendance months. |
+
 **Not testable here:** the attendance month workflow (confirm → approve → lock → overtime credit → reopen) and the upload. `hr_db` has **no punches and no attendance months**, and uploading a device report would write punches for real employees. This needs a seeded copy, or your go-ahead to upload a test file.
 
 ### 5. What works well
@@ -712,6 +726,7 @@ Scope note: data available was 23 requests, 15 campaigns (Aleppo + Latakia), 16 
 | 16 | 2026-11-18 | adonis.mowas | News › New / Mail lists | — | — | Opened the create form (not saved). Forged mail-list writes (code re-checks permissions) | None |
 | 17 | 2026-11-18 | lina.sayegh (HR-LAT) | Positions / centers / programs / statistics | — | — | Read-only probes (pages and URLs); nothing saved | None |
 | 18 | 2026-11-18 | lina.sayegh, adonis.mowas | Recruitment | — | — | Read-only probes of campaigns, applicants, interviews, offers, requests, files; nothing saved | None |
+| 19 | 2026-11-26 | celine.khoury | My leaves (re-test HR-028) | `leave_requests` | 68 | Hourly leave 2026-11-10 saved (the form now sends without a confirmation step); removed from the DB with #60. A notification to Adonis remains and opens as "no longer available" | Done |
 | 12 | 2026-11-18 | system | — | `notifications` | 5 rows | New-request / decision notifications for #60 and #61 (to Celine, Adonis, HR) | Optional: delete notifications created 2026-11-18 14:40–15:00 that mention the QA tests |
 
 No other records created or changed. I didn't decide any existing leave request: the pending requests on the dashboards are real data and will stay untouched. Workflow tests will use leave requests I create and log here.
