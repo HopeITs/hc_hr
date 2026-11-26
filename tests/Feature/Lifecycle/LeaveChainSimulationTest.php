@@ -15,6 +15,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Notifications\LeaveDecisionReminder;
+use App\Notifications\OverdueLeaveDecision;
 use App\Services\ContractAmendmentService;
 use App\Services\LeaveBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -87,6 +88,7 @@ class LeaveChainSimulationTest extends TestCase
         });
 
         $this->assertSame(0, DatabaseNotification::query()->where('type', LeaveDecisionReminder::class)->count(), 'A decided request is never reminded.');
+        $this->assertSame(0, DatabaseNotification::query()->where('type', OverdueLeaveDecision::class)->count());
 
         // The renewal opens a new, untouched balance.
         $successor = Contract::query()->where('employee_id', $contract->employee_id)->whereKeyNot($contract->id)->sole();
@@ -95,17 +97,29 @@ class LeaveChainSimulationTest extends TestCase
         $this->assertSame(0, LeaveRequest::query()->where('leave_balance_id', $new->id)->count());
     }
 
-    public function test_a_request_left_pending_is_reminded_once_and_not_after_the_volunteer_leaves(): void
+    public function test_a_pending_leave_is_reminded_then_escalated_to_city_hr_without_changing_its_balance(): void
     {
         config(['journeys.exit_grace_days' => 7]);
         [$user, $contract, $balance] = $this->volunteer('pending', ['end_date' => '2026-12-05', 'auto_renew' => false]);
 
         $request = $this->submit($user, $balance, '2026-11-29', '2026-11-30');
+        $otherCity = $this->makeCity('HMS', '002');
+        $otherHr = $this->makeUser($otherCity, 'HR-HMS', ['leaves.view', 'leaves.decide']);
+        $this->makeContractFor($otherHr->profile, ['start_date' => '2026-01-01', 'end_date' => '2027-12-31']);
 
         $this->runNights('2026-11-23', '2026-12-20', function (string $day) use ($request, $balance): void {
             $this->assertSame(LeaveRequestStatus::Pending, $request->fresh()->status, "{$day}: nobody decided");
             $this->assertSame(0.0, (float) $balance->fresh()->used, "{$day}: nothing deducted");
+            $overdue = $day >= '2026-11-30';
+            $this->assertSame($overdue, $request->fresh()->isOverdue());
+            $this->assertSame($overdue ? 1 : 0, DatabaseNotification::query()->where('type', OverdueLeaveDecision::class)->count());
         });
+
+        $escalation = DatabaseNotification::query()->where('type', OverdueLeaveDecision::class)->sole();
+        $this->assertSame($this->hr->id, (int) $escalation->notifiable_id);
+        $this->assertSame($request->id, $escalation->data['subject']['id']);
+        $this->view('livewire.employee.leave.partials.card-status', ['item' => $request->fresh()])
+            ->assertSee(__('leaves.status.overdue'));
 
         $reminders = DatabaseNotification::query()->where('type', LeaveDecisionReminder::class)->get();
         $this->assertNotEmpty($reminders, 'The decider was reminded.');
