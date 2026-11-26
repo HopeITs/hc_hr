@@ -52,6 +52,11 @@
             </div>
         </div>
 
+        {{-- HR-039: private folders are not hidden from the system administrator (support access). --}}
+        @unless ($isShared)
+            <p class="mt-3 text-small text-ink-2">{{ __('general.folders-admin-access-note') }}</p>
+        @endunless
+
         @if ($currentFolder && $canManageCurrentFolder)
             <div x-show="uploading" x-cloak class="mt-3 w-full bg-surface rounded-full h-2.5">
                 <div class="bg-ink h-2.5 rounded-full" :style="`width: ${progress}%`"></div>

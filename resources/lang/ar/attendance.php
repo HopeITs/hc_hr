@@ -245,7 +245,7 @@ return [
         'working-days' => 'أيام العمل المأخوذة',
         'notes' => 'ملاحظات / وصف المهام',
         'none' => 'بدون إجازة',
-        'weekly-holiday' => 'عطلة رسمية من المؤسسة',
+        'weekly-holiday' => 'عطلة أسبوعية',
         'weekly-holiday-note' => 'عطلة أسبوعية',
         'official-holiday' => 'عطلة رسمية',
         'outside' => 'خارج مدة العقد',

@@ -3,8 +3,10 @@
 namespace App\Livewire\News;
 
 use App\Enums\News\NewsState;
+use App\Livewire\Concerns\WithFeedback;
 use App\Models\Employee;
 use App\Models\News;
+use App\Services\News\NewsApproval;
 use App\Services\News\NewsFeed;
 use App\Services\News\Publishing\ExternalPublishing;
 use App\Support\News\NewsAccess;
@@ -15,7 +17,8 @@ use Livewire\Component;
 
 /**
  * The details page of a News & Events item (news.show) and its preview for a
- * manager of the item (news.preview). Read-only: nothing here changes data.
+ * manager of the item (news.preview). Read-only, except HR's review of a
+ * manager's pending item (approve / reject with a reason, HR-040).
  *
  * $locale only chooses which language the article is shown in (the preview's
  * EN/AR switch); it never changes the app locale and grants nothing, because
@@ -23,6 +26,8 @@ use Livewire\Component;
  */
 class NewsShow extends Component
 {
+    use WithFeedback;
+
     #[Locked]
     public News $news;
 
@@ -34,6 +39,9 @@ class NewsShow extends Component
 
     /** The language the article is rendered in. */
     public string $locale = 'en';
+
+    /** HR-040: why HR rejects a manager's pending item (required to reject). */
+    public string $reviewNote = '';
 
     public function mount(News $news): void
     {
@@ -59,6 +67,52 @@ class NewsShow extends Component
         $this->locale = $this->normalizeLocale($this->locale);
     }
 
+    // ------------------------------------------------------------------
+    // HR-040: HR reviews a manager's item for more than their team
+    // ------------------------------------------------------------------
+
+    public function confirmApprove(): void
+    {
+        $this->approvableOrFail();
+
+        $this->confirm('approve', null,
+            title: __('news.review.confirm_approve_title'),
+            message: __('news.review.confirm_approve_message'),
+            confirmLabel: __('news.review.approve'),
+            danger: false,
+        );
+    }
+
+    public function approve(): void
+    {
+        $this->news = app(NewsApproval::class)->approve(auth()->user(), $this->approvableOrFail());
+        $this->reviewNote = '';
+        $this->toast(__('news.review.approved'));
+    }
+
+    public function confirmReject(): void
+    {
+        $this->approvableOrFail();
+        $this->validateReviewNote();
+
+        $this->confirm('reject', null,
+            title: __('news.review.confirm_reject_title'),
+            message: __('news.review.confirm_reject_message'),
+            confirmLabel: __('news.review.reject'),
+            danger: true,
+        );
+    }
+
+    public function reject(): void
+    {
+        $news = $this->approvableOrFail();
+        $this->validateReviewNote();
+
+        $this->news = app(NewsApproval::class)->reject(auth()->user(), $news, $this->reviewNote);
+        $this->reviewNote = '';
+        $this->toast(__('news.review.rejected'));
+    }
+
     public function render()
     {
         $this->locale = $this->normalizeLocale($this->locale);
@@ -71,6 +125,7 @@ class NewsShow extends Component
         return view('livewire.news.show', [
             'state' => $state,
             'showPreview' => $showPreview,
+            'canReview' => NewsAccess::canApprove(auth()->user(), $this->news),
             'article' => $this->article($this->locale),
             'related' => $this->related(),
             'audienceSummary' => $this->canManage ? $this->news->audienceSummary() : null,
@@ -82,6 +137,23 @@ class NewsShow extends Component
                 ? $this->news->published_at->copy()->locale(app()->getLocale())->translatedFormat('j F Y, H:i')
                 : null,
         ]);
+    }
+
+    private function approvableOrFail(): News
+    {
+        $news = $this->news->fresh() ?? abort(404);
+        abort_unless(NewsAccess::canApprove(auth()->user(), $news), 403);
+
+        return $news;
+    }
+
+    private function validateReviewNote(): void
+    {
+        $this->validate(
+            ['reviewNote' => ['required', 'string', 'max:2000']],
+            ['reviewNote.required' => __('news.review.reason_required')],
+            ['reviewNote' => __('news.review.reason')],
+        );
     }
 
     /** Everything the article shows, in $locale. */

@@ -31,6 +31,23 @@
         @include('livewire.news.form.context')
         @include('livewire.news.form.publishing')
 
+        {{-- HR-040: why HR turned the item down, and that a wide audience goes to HR first. --}}
+        @if ($news?->status === \App\Enums\News\NewsStatus::Rejected && filled($news->review_note))
+            <x-card>
+                <p class="flex items-start gap-2 text-ink" role="note">
+                    <x-ic name="x" class="mt-1 size-4 shrink-0 text-ink-2" />
+                    <span><strong>@lang('news.review.rejected_reason'):</strong> {{ $news->review_note }}</span>
+                </p>
+            </x-card>
+        @endif
+
+        @if ($needsApproval)
+            <p class="flex items-start gap-2 text-small text-ink-2" role="note" data-test="news-needs-approval">
+                <x-ic name="inbox" class="mt-0.5 size-4 shrink-0" />
+                <span>@lang('news.form.needs_approval_hint')</span>
+            </p>
+        @endif
+
         {{-- Sticky action bar. --}}
         <div class="sticky bottom-0 z-20 -mx-4 border-t border-line-soft bg-card/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:mx-0 sm:rounded-surface sm:border sm:shadow-e1">
             <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
@@ -39,8 +56,8 @@
                 <span class="hidden flex-1 sm:block" aria-hidden="true"></span>
                 <x-button variant="outline" icon="eye" wire:click="openPreview">@lang('news.form.actions.preview')</x-button>
                 <x-button variant="outline" icon="pen" wire:click="saveDraft">@lang('news.form.actions.save_draft')</x-button>
-                <x-button type="submit" :icon="$scheduledMode ? 'clock' : 'send'" target="publish">
-                    {{ $scheduledMode ? __('news.form.actions.schedule') : __('news.form.actions.publish') }}
+                <x-button type="submit" :icon="$needsApproval ? 'inbox' : ($scheduledMode ? 'clock' : 'send')" target="publish">
+                    {{ $needsApproval ? __('news.form.actions.send_for_approval') : ($scheduledMode ? __('news.form.actions.schedule') : __('news.form.actions.publish')) }}
                 </x-button>
             </div>
         </div>

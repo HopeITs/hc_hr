@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ActionLeaveRequest;
 use App\Notifications\HRSawLeaveRequest;
 use App\Notifications\LeaveAlternativeChanged;
+use App\Notifications\LeaveRequestCancelled;
 use App\Notifications\NewLeaveRequest;
 use App\Services\LeaveNotificationService;
 use App\Services\NotificationRequestState;
@@ -397,6 +398,101 @@ class LeaveRequestWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('leave_requests', ['id' => $leaveRequest->id, 'status' => LeaveRequestStatus::Accepted]);
         $this->assertEquals(16.0, (float) DB::table('leave_balances')->where('id', $leaveRequest->leave_balance_id)->value('used'));
+    }
+
+    public function test_an_employee_cancelling_tells_the_direct_manager_and_the_citys_hr_after_commit(): void
+    {
+        Notification::fake();
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave();
+        $manager = $this->makeDirectManagerOf($leaveRequest);
+        $hr = $this->createHrUserForLeave($leaveRequest, 'hr.cancel.notice@example.test');
+
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertHasNoErrors();
+
+        Notification::assertSentTo($manager, LeaveRequestCancelled::class, fn ($n) => $n->recipientType === 'manager');
+        Notification::assertSentTo($hr, LeaveRequestCancelled::class, fn ($n) => $n->recipientType === 'hr');
+        // The one who cancelled is not told about it.
+        Notification::assertNotSentTo($employeeUser, LeaveRequestCancelled::class);
+    }
+
+    public function test_hr_cancelling_tells_the_employee_and_the_manager_but_not_the_hr_team(): void
+    {
+        Notification::fake();
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave();
+        $manager = $this->makeDirectManagerOf($leaveRequest);
+        $hr = $this->createHrUserForLeave($leaveRequest, 'hr.cancel.actor@example.test');
+        $hr->givePermissionTo(['leaves.view-all', 'leaves.update']);
+        $otherHr = $this->createHrUserForLeave($leaveRequest, 'hr.cancel.colleague@example.test');
+
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', ['id' => $leaveRequest->id, 'status' => LeaveRequestStatus::Cancelled]);
+        Notification::assertSentTo($employeeUser, LeaveRequestCancelled::class, fn ($n) => $n->recipientType === 'employee');
+        Notification::assertSentTo($manager, LeaveRequestCancelled::class, fn ($n) => $n->recipientType === 'manager');
+        Notification::assertNotSentTo($hr, LeaveRequestCancelled::class);
+        Notification::assertNotSentTo($otherHr, LeaveRequestCancelled::class);
+
+        $employeeNotice = (new LeaveRequestCancelled($leaveRequest->fresh(), 'employee'))->toArray($employeeUser);
+        $this->assertSame('أُلغيت إجازتك', $employeeNotice['title']['ar']);
+        $this->assertSame('Your leave was cancelled', $employeeNotice['title']['en']);
+    }
+
+    public function test_a_refused_cancel_tells_nobody(): void
+    {
+        Notification::fake();
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave(-1);
+        $this->makeDirectManagerOf($leaveRequest);
+
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id])
+            ->assertForbidden();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_cancelled_leaves_have_their_own_tab_and_count(): void
+    {
+        Notification::fake();
+        [$employeeUser, $leaveRequest] = $this->acceptedFutureLeave();
+        $hr = $this->createHrUserForLeave($leaveRequest, 'hr.cancel.tab@example.test');
+        $hr->givePermissionTo(['leaves.view-all', 'leaves.update']);
+
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class)
+            ->call('cancelLeave', ['id' => $leaveRequest->id]);
+
+        Livewire::actingAs($employeeUser)->test(MyLeaveRequestModule::class)
+            ->call('refreshCounts')
+            ->assertSet('counts.cancelled', 1)
+            ->assertSet('counts.accepted', 0)
+            ->call('setActiveTab', (string) LeaveRequestStatus::Cancelled)
+            ->assertSet('statusFilter', (string) LeaveRequestStatus::Cancelled)
+            ->assertSee(__('leaves.status.cancelled'));
+
+        Livewire::actingAs($hr)->test(AllLeaveRequestModule::class)
+            ->call('refreshCounts')
+            ->assertSet('counts.cancelled', 1)
+            ->assertSet('counts.accepted', 0)
+            ->assertSee(__('leaves.status.cancelled'));
+
+        // The cancelled tab lists the request; the accepted tab no longer does.
+        $empty = __('states.leave-tab-empty-title');
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class, ['statusFilter' => (string) LeaveRequestStatus::Cancelled])
+            ->assertDontSee($empty);
+        Livewire::actingAs($employeeUser)
+            ->test(MyLeaveRequestTable::class, ['statusFilter' => (string) LeaveRequestStatus::Accepted])
+            ->assertSee($empty);
+        Livewire::actingAs($hr)
+            ->test(AllLeaveRequestTable::class, ['statusFilter' => (string) LeaveRequestStatus::Cancelled])
+            ->assertDontSee($empty);
     }
 
     public function test_out_of_scope_hr_cannot_view_edit_or_decide_another_citys_leave(): void

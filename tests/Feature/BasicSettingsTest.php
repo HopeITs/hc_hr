@@ -62,14 +62,17 @@ class BasicSettingsTest extends TestCase
         $this->actingAs($this->userWithRole('employee'))->get(route('cities.index'))->assertForbidden();
     }
 
-    public function test_holidays_tab_is_for_national_hr_only(): void
+    public function test_holidays_tab_is_for_national_and_city_hr(): void
     {
+        // HR-033: city HR sets its own city's holidays, so it gets the tab too.
         $alp = Livewire::actingAs($this->userWithRole('HR-ALP'))->test(BasicSettings::class);
-        $this->assertArrayNotHasKey('holidays', $alp->instance()->tabs());
-        $alp->set('tab', 'holidays')->assertSet('tab', 'cities');
+        $this->assertArrayHasKey('holidays', $alp->instance()->tabs());
 
         $syr = Livewire::actingAs($this->userWithRole('HR-SYR'))->test(BasicSettings::class);
         $this->assertArrayHasKey('holidays', $syr->instance()->tabs());
+
+        $gm = Livewire::actingAs($this->userWithRole('general-manager'))->test(BasicSettings::class);
+        $this->assertArrayNotHasKey('holidays', $gm->instance()->tabs());
     }
 
     private function userWithRole(string $roleName): User

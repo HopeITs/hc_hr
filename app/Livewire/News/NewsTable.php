@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasListStates;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\News;
 use App\Models\User;
+use App\Services\News\NewsApproval;
 use App\Support\News\NewsAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,12 +39,13 @@ class NewsTable extends LivewireTable
     public const STATE_ALL = 'all';
 
     /** Tabs that need a manager's view of the list (drafts and the like are never released). */
-    private const MANAGER_TABS = ['draft', 'scheduled', 'published', 'expired', 'archived'];
+    private const MANAGER_TABS = ['pending', 'rejected', 'draft', 'scheduled', 'published', 'expired', 'archived'];
 
     /** How many of the most used tags the tag filter offers. */
     private const TAG_FILTER_OPTIONS = 50;
 
-    private const TABS = ['all', 'draft', 'scheduled', 'published', 'expired', 'archived', 'upcoming', 'today', 'past'];
+    /** "pending" is HR's approval queue for managers' wide items (HR-040). */
+    private const TABS = ['all', 'pending', 'draft', 'scheduled', 'published', 'expired', 'archived', 'rejected', 'upcoming', 'today', 'past'];
 
     public string $sortColumn = 'published_at';
 
@@ -124,8 +126,53 @@ class NewsTable extends LivewireTable
             return;
         }
 
+        $user = auth()->user();
+
+        // HR-040: a manager's item for more than their team waits for HR.
+        if (NewsAccess::needsApproval($user, $news->audience_type, $news->audienceTargets()->pluck('target_id')->all())) {
+            $this->persist($news, [
+                'status' => NewsStatus::Pending,
+                'published_at' => null,
+                'archived_at' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'review_note' => null,
+            ]);
+            app(NewsApproval::class)->requested($news);
+            $this->toast(__('news.form.saved_pending'));
+
+            return;
+        }
+
         $this->persist($news, ['status' => NewsStatus::Published, 'published_at' => now(), 'archived_at' => null]);
+
+        if (! NewsAccess::publishesDirectly($user)) {
+            app(NewsApproval::class)->publishedToTeam($news);
+        }
+
         $this->toast(__('news.list.toast.published'));
+    }
+
+    public function confirmApprove(int $id): void
+    {
+        $news = $this->approvableOrFail($id);
+
+        $this->confirm('approve', ['id' => $news->getKey()],
+            title: __('news.review.confirm_approve_title'),
+            message: __('news.review.confirm_approve_message'),
+            confirmLabel: __('news.review.approve'),
+            danger: false,
+        );
+    }
+
+    /** HR-040: HR publishes a manager's pending item (rejecting needs a reason: the preview page). */
+    public function approve(array $payload): void
+    {
+        $news = $this->approvableOrFail((int) ($payload['id'] ?? 0));
+
+        app(NewsApproval::class)->approve(auth()->user(), $news);
+        $this->toast(__('news.review.approved'));
+        $this->dispatch('refreshNewsTable');
     }
 
     public function confirmUnpublish(int $id): void
@@ -309,7 +356,7 @@ class NewsTable extends LivewireTable
     protected function applyStateFilter(Builder $query, string $tab): void
     {
         match ($tab) {
-            'draft', 'scheduled', 'published', 'expired', 'archived' => $query->inState($tab),
+            'draft', 'scheduled', 'published', 'expired', 'archived', 'pending', 'rejected' => $query->inState($tab),
             'upcoming' => $query->live()->upcomingEvents(),
             'today' => $query->live()->todayEvents(),
             'past' => $query->released()->pastEvents(),
@@ -374,13 +421,13 @@ class NewsTable extends LivewireTable
 
     protected function viewUrl(News $news): ?string
     {
-        $unreleased = in_array($news->state(), [NewsState::Draft, NewsState::Scheduled], true);
+        $unreleased = in_array($news->state(), [NewsState::Draft, NewsState::Scheduled, NewsState::Pending, NewsState::Rejected], true);
 
         if (! $unreleased) {
             return route('news.show', ['news' => $news->getKey()]);
         }
 
-        return NewsAccess::canManage(auth()->user(), $news)
+        return NewsAccess::canManage(auth()->user(), $news) || NewsAccess::canApprove(auth()->user(), $news)
             ? route('news.preview', ['news' => $news->getKey()])
             : null;
     }
@@ -445,6 +492,7 @@ class NewsTable extends LivewireTable
             'context' => $context,
             'state' => $news->state(),
             'canManage' => NewsAccess::canManage(auth()->user(), $news),
+            'canApprove' => NewsAccess::canApprove(auth()->user(), $news),
             'viewUrl' => $this->viewUrl($news),
         ])->render();
     }
@@ -453,6 +501,14 @@ class NewsTable extends LivewireTable
     {
         $news = News::query()->findOrFail($id);
         abort_unless(NewsAccess::canManage(auth()->user(), $news), 403);
+
+        return $news;
+    }
+
+    private function approvableOrFail(int $id): News
+    {
+        $news = News::query()->findOrFail($id);
+        abort_unless(NewsAccess::canApprove(auth()->user(), $news), 403);
 
         return $news;
     }
@@ -473,7 +529,8 @@ class NewsTable extends LivewireTable
 
     private function persist(News $news, array $attributes): void
     {
-        $news->fill($attributes);
+        // Every attribute here is set by this class, never by the browser.
+        $news->forceFill($attributes);
         $news->updated_by = auth()->id();
         $news->save();
 

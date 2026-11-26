@@ -132,6 +132,12 @@
             :active-tab="LeaveRequestStatus::Rejected">
             {{ LeaveRequestStatus::getLocalizedName(2)['value'] }} ({{ $counts['rejected'] ?? 0 }})
         </x-tabs-list-item>
+
+        <x-tabs-list-item
+            :active="$statusFilter === (string) LeaveRequestStatus::Cancelled"
+            :active-tab="LeaveRequestStatus::Cancelled">
+            {{ LeaveRequestStatus::getLocalizedName(LeaveRequestStatus::Cancelled)['value'] }} ({{ $counts['cancelled'] ?? 0 }})
+        </x-tabs-list-item>
     </x-tabs-list>
 
     {{-- Table --}}

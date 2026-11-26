@@ -14,7 +14,9 @@ use Illuminate\Support\Collection;
  *
  * A project is a program in one governorate, headed by a project-manager
  * position (config team-coverage.project_manager_grade). National HR
- * (HR-SYR, super-admin) sets any holiday. A program manager sets project
+ * (HR-SYR, super-admin) sets any holiday. City HR (HR-ALP, HR-LAT…) sets
+ * project holidays for the projects of its own cities and reads the rest
+ * (HR-033). A program manager sets project
  * holidays and one-off grants only for the projects whose project-manager
  * position reports to one of their own positions — responsibility follows
  * direct_manager_id, not program_id. The picker and the validation both read
@@ -34,7 +36,34 @@ class HolidayProjects
 
     public function canManage(?User $user): bool
     {
-        return $this->isNationalHr($user) || $this->managesAnyProject($user);
+        return $this->isNationalHr($user) || $this->isCityHr($user) || $this->managesAnyProject($user);
+    }
+
+    /**
+     * The cities a city HR role (HR-LAT, HR-ALP…) looks after, or null for
+     * every other role (HR-033). City HR sets the holidays of the projects in
+     * those cities only; it reads every other holiday but cannot change it.
+     *
+     * @return array<int, int>|null
+     */
+    public function hrCityIds(?User $user): ?array
+    {
+        if (! $user || $this->isNationalHr($user) || ! $user->activeRoleIs('HR')) {
+            return null;
+        }
+
+        return $user->activeCityIds();
+    }
+
+    public function isCityHr(?User $user): bool
+    {
+        return $this->hrCityIds($user) !== null;
+    }
+
+    /** Who reads every holiday (city HR only changes its own city's ones). */
+    public function seesAll(?User $user): bool
+    {
+        return $this->isNationalHr($user) || $this->isCityHr($user);
     }
 
     /** One cheap query, for the menu: does a project-manager position report to one of $user's positions? */
@@ -60,7 +89,8 @@ class HolidayProjects
     }
 
     /**
-     * The projects $user may set holidays for: all of them for national HR.
+     * The projects $user may set holidays for: all of them for national HR,
+     * those in its cities for city HR, those they head for a program manager.
      *
      * @return Collection<string, array{program_id: int, city_id: int, program: string, city: string, label: string}>
      */
@@ -84,9 +114,21 @@ class HolidayProjects
             ? Contract::query()->activeNow()->where('employee_id', $user->employee_id)->pluck('position_id')->filter()->unique()->all()
             : [];
 
-        return $this->managed[$key] = $ownPositionIds === []
+        $asManager = $ownPositionIds === []
             ? collect()
             : $this->toProjects($this->projectManagerPositions()->whereIn('direct_manager_id', $ownPositionIds)->get());
+
+        // City HR: every project in its cities, on top of any it heads as a manager.
+        $cityIds = $this->hrCityIds($user);
+
+        if ($cityIds !== null) {
+            $asManager = $this->all()
+                ->filter(fn ($p) => in_array($p['city_id'], $cityIds, true))
+                ->union($asManager)
+                ->sortBy('label');
+        }
+
+        return $this->managed[$key] = $asManager;
     }
 
     /** May $user change this existing holiday? Every one of its projects must be theirs. */
