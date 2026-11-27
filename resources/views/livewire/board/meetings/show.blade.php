@@ -186,7 +186,7 @@
     <section class="space-y-3 rounded-surface border border-line bg-card p-5" aria-labelledby="att-title">
         <h2 id="att-title" class="text-h4 font-bold text-ink">@lang('board.attendance.title')</h2>
 
-        @if($isMember && $meeting->isUpcoming() && ! $meeting->isPublished() && ! in_array($mine?->absence_request, ['pending', 'approved'], true))
+        @if($mayAskAbsence && $meeting->isUpcoming() && ! $meeting->isPublished() && ! in_array($mine?->absence_request, ['pending', 'approved'], true))
             <form wire:submit.prevent="requestAbsence" class="space-y-2 rounded-surface border border-line-soft bg-soft p-4" data-testid="board-absence-form">
                 <x-forms.input-label :value="__('board.absence.ask')" />
                 <x-forms.textarea wire:model="absenceReason" rows="2" :placeholder="__('board.absence.reason')" />
