@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'shared-seat-report' => 'وظائف فيها أكثر من شاغل',
+    'running-seat-holders' => 'الشاغلون الحاليون',
+    'view-running-seat-holders' => 'عرض الشاغلين (:count)',
+    'no-running-seat-holders' => 'لا يوجد شاغلون حاليون.',
     'first_name' => 'الاسم',
     'last_name' => 'الكنية',
     'termination_reasons' => 'أسباب إنهاء الخدمة',
