@@ -104,9 +104,11 @@ class AttendanceTest extends TestCase
         $this->punch($employee, '2026-09-08 17:00:00');
         // Wed 9 Sep: a single punch. Thu 10 Sep: nothing.
         $this->punch($employee, '2026-09-09 09:05:00');
-        // Sat 12 Sep: a weekend, worked for 2 hours.
+        // Sat 12 Sep: a weekend, worked for 2 hours. Sun 13 Sep: a weekend, worked for 2 hours.
         $this->punch($employee, '2026-09-12 10:00:00');
         $this->punch($employee, '2026-09-12 12:00:00');
+        $this->punch($employee, '2026-09-13 10:00:00');
+        $this->punch($employee, '2026-09-13 12:00:00');
 
         // Fri 11 Sep: accepted annual leave for the whole day.
         LeaveType::query()->forceCreate(['id' => 1, 'name_en' => 'Annual leave', 'name_ar' => 'إجازة سنوية', 'base_days' => 12]);
@@ -129,7 +131,9 @@ class AttendanceTest extends TestCase
         $this->assertSame(Timesheet::LEAVE, $rows['2026-09-11']['kind']);
         $this->assertSame(8.0, $rows['2026-09-11']['leave_hours']);
         $this->assertSame(Timesheet::WEEKEND, $rows['2026-09-12']['kind']);
-        $this->assertSame(120, $rows['2026-09-12']['overtime_minutes'], 'weekend work counts in full');
+        // Saturday of a Saturday + Sunday center is a plain working day when called in: no overtime.
+        $this->assertSame(0, $rows['2026-09-12']['overtime_minutes'], 'Saturday work is not overtime');
+        $this->assertSame(120, $rows['2026-09-13']['overtime_minutes'], 'Sunday work counts in full');
         $this->assertSame(1.0, $rows['2026-09-12']['working_days'], 'a weekend is a paid day on the form');
         $this->assertSame(0.0, $rows['2026-09-12']['leave_hours'], 'a weekly day off is not leave taken (HR-034)');
 
@@ -213,6 +217,24 @@ class AttendanceTest extends TestCase
         foreach (['2026-09-15', '2026-09-16', '2026-09-17'] as $date) {
             $this->assertSame(Timesheet::HOLIDAY, $rows[$date]['kind']);
             $this->assertFalse($rows[$date]['decidable']);
+            $this->assertSame(0.0, $rows[$date]['leave_hours'], 'an official holiday is not leave');
+        }
+
+        // A leave that happens to cover the feast is not counted as leave on those days.
+        LeaveType::query()->forceCreate(['id' => 1, 'name_en' => 'Annual leave', 'name_ar' => 'إجازة سنوية', 'base_days' => 12]);
+        $balance = LeaveBalance::query()->create(['contract_id' => $employee->contracts()->first()->id, 'type_id' => 1, 'deserved' => 96, 'used' => 0]);
+        LeaveRequest::query()->create([
+            'leave_balance_id' => $balance->id, 'type' => 'day', 'status' => 1, 'reason' => 'x',
+            'start_at' => '2026-09-15 00:00:00', 'end_at' => '2026-09-17 23:59:59',
+        ]);
+
+        $withLeave = collect(app(Timesheet::class)->forEmployee($employee, $this->september())['rows'])
+            ->keyBy(fn (array $row) => $row['date']->toDateString());
+
+        foreach (['2026-09-15', '2026-09-16', '2026-09-17'] as $date) {
+            $this->assertSame(Timesheet::HOLIDAY, $withLeave[$date]['kind']);
+            $this->assertSame(0.0, $withLeave[$date]['leave_hours']);
+            $this->assertNull($withLeave[$date]['leave_type']);
         }
 
         // The person's calendar shows the feast by name, and the day cannot be opened as a question.

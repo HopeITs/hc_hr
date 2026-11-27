@@ -228,14 +228,21 @@ class Timesheet
             if (in_array($day->dayOfWeek, $weekends, true) || isset($holidayCache[$key][$date])) {
                 $isHoliday = ! in_array($day->dayOfWeek, $weekends, true);
                 $row['kind'] = $isHoliday ? self::HOLIDAY : self::WEEKEND;
-                // A weekly day off is not leave the employee took (HR-034): no leave hours.
-                // An official holiday keeps the day's hours. Both stay a paid day.
-                $row['leave_hours'] = $isHoliday ? $daily : 0.0;
+                // Neither a weekly day off nor an official holiday is leave the employee took
+                // (HR-034): no leave hours, and a leave that falls on one is not counted as leave
+                // (this branch answers the day before any leave is read). Both stay a paid day.
+                $row['leave_hours'] = 0.0;
                 $row['working_days'] = 1.0;
                 $row['note'] = $isHoliday ? $holidayCache[$key][$date] : null;
                 $row['paid_off_day'] = true;
 
-                if ($overtime['weekend_counts_fully'] && $workedMinutes !== null) {
+                // Saturday of a Saturday + Sunday center is the sixth day the policy lets a
+                // center call in when needed: worked, it is a plain working day, not overtime.
+                $saturdayOfTwoDayWeekend = $day->dayOfWeek === 6 && in_array(0, $weekends, true);
+
+                if ($saturdayOfTwoDayWeekend && $workedMinutes !== null) {
+                    $row['overtime_minutes'] = $this->overtimeMinutes($workedMinutes, $daily, $overtime);
+                } elseif ($overtime['weekend_counts_fully'] && $workedMinutes !== null) {
                     $row['overtime_minutes'] = intdiv($workedMinutes, $block) * $block;
                 }
 
