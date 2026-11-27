@@ -142,7 +142,11 @@ class BoardMeetingService
             throw ValidationException::withMessages(['cancelReason' => __('board.locks.started-cancel')]);
         }
 
-        $meeting->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => $reason]);
+        DB::transaction(function () use ($meeting, $reason) {
+            $meeting->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => $reason]);
+            $this->returnCarriedIn($meeting);
+        });
+
         $this->tell($meeting, BoardMeetingNotice::CANCELLED, $reason);
     }
 
@@ -436,6 +440,23 @@ class BoardMeetingService
             ->whereBetween('starts_at', [$at->startOfMinute(), $at->endOfMinute()])
             ->where('status', '!=', BoardMeeting::CANCELLED)
             ->first();
+    }
+
+    /**
+     * A cancelled meeting's minutes are never published, so rows carried into it would drop out of
+     * openFromEarlier(): each open copy is removed and its source is open again, offered to the next meeting.
+     */
+    private function returnCarriedIn(BoardMeeting $meeting): void
+    {
+        $meeting->followUps()
+            ->whereNotNull('carried_from_id')
+            ->where('status', BoardMeetingFollowUp::OPEN)
+            ->with('carriedFrom')
+            ->get()
+            ->each(function (BoardMeetingFollowUp $copy) {
+                $copy->carriedFrom?->update(['status' => BoardMeetingFollowUp::OPEN]);
+                $copy->delete();
+            });
     }
 
     /** Each board member named on a follow-up row hears once, when the minutes come out, what waits on them. */
