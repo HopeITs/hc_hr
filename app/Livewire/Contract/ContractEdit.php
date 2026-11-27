@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Contract;
 
+use App\Enums\ContractType as ContractTypeEnum;
 use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Contract\Concerns\DrivesContractComposer;
 use App\Livewire\Contract\Concerns\ResolvesContractLocationOptions;
@@ -9,6 +10,7 @@ use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Contract;
 use App\Models\TerminationReason;
+use App\Services\EmployeeActivation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -97,6 +99,9 @@ class ContractEdit extends Component
             return null;
         }
 
+        // Read before the save: the form's type is the one being written.
+        $wasDraft = (int) $this->contract->type === ContractTypeEnum::Draft;
+
         $this->form->update($this->contract);
 
         // All contract types receive annual leave balances.
@@ -106,7 +111,20 @@ class ContractEdit extends Component
             $this->balanceForm->store($this->contract->id);
         }
 
+        // A reservation filled in here is a first real contract, exactly as
+        // the same upgrade through ContractCreate (B5, T13). Any other edit
+        // leaves accounts alone (B5D-Q8: never for an edit).
+        $activation = $wasDraft
+            ? app(EmployeeActivation::class)->activateForContract($this->contract)
+            : EmployeeActivation::RESULT_NONE;
+
         $this->toast();
+
+        if ($activation === EmployeeActivation::RESULT_ACCOUNT_CREATED) {
+            $this->toast(__('employees.onboarding.account-created'), type: 'info');
+        } elseif ($activation === EmployeeActivation::RESULT_EMAIL_TAKEN) {
+            $this->toast(__('employees.onboarding.account-email-taken'), type: 'error');
+        }
 
         return $this->redirectRoute('contracts.show', $this->contract->id, navigate: true);
     }

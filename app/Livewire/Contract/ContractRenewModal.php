@@ -7,6 +7,7 @@ use App\Livewire\Concerns\WithFeedback;
 use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Contract;
+use App\Services\EmployeeActivation;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -197,9 +198,19 @@ class ContractRenewModal extends Component
 
         Cache::put($key, $renewal->id, now()->addDay());
 
+        // After the commit, as ContractCreate: a renewal is the next contract,
+        // where staff without a login get one (B5D-Q8, T13).
+        $activation = app(EmployeeActivation::class)->activateForContract($renewal);
+
         $this->show = false;
 
         $this->toast();
+
+        if ($activation === EmployeeActivation::RESULT_ACCOUNT_CREATED) {
+            $this->toast(__('employees.onboarding.account-created'), type: 'info');
+        } elseif ($activation === EmployeeActivation::RESULT_EMAIL_TAKEN) {
+            $this->toast(__('employees.onboarding.account-email-taken'), type: 'error');
+        }
 
         return $this->redirectRoute('contracts.show', $renewal->id, navigate: true);
     }
