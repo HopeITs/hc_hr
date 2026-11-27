@@ -420,7 +420,13 @@
                         @lang('board.minutes.send-email')
                     </label>
                     @if($started)
-                        <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ __('board.minutes.publish-confirm') }}">
+                        @if($unmarkedWarning)
+                            <p class="flex items-start gap-2 text-small font-semibold text-ink" role="status" data-testid="board-unmarked-warning">
+                                <x-ic name="warning" class="mt-0.5 size-4 shrink-0" />
+                                <span>{{ $unmarkedWarning }}</span>
+                            </p>
+                        @endif
+                        <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ $publishConfirm }}">
                             @lang('board.minutes.publish')
                         </x-button>
                         <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>

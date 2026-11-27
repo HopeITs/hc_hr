@@ -414,7 +414,16 @@ class Show extends Component
         // Readers see the minutes as the sheet. Writers see it too (a draft is marked as one) when they switch to it.
         $sheetMode = ! $meeting->isCancelled() && $minutesVisible && $this->mode === 'view';
 
+        // Whoever is still "expected" when the minutes go out stays so for good: the publish step says who, by name.
+        $unmarked = $attendees->where('status', BoardMeetingAttendee::EXPECTED)
+            ->map(fn (BoardMeetingAttendee $a) => (string) $a->employee?->name)->values();
+        $unmarkedNames = $unmarked->implode(app()->getLocale() === 'ar' ? '، ' : ', ');
+
         return view('livewire.board.meetings.show', [
+            'unmarkedWarning' => $unmarked->isEmpty() ? null
+                : trans_choice('board.minutes.unmarked-warning', $unmarked->count(), ['names' => $unmarkedNames]),
+            'publishConfirm' => $unmarked->isEmpty() ? __('board.minutes.publish-confirm')
+                : trans_choice('board.minutes.unmarked-confirm', $unmarked->count(), ['names' => $unmarkedNames]),
             'sheetMode' => $sheetMode,
             'editLabel' => $access->canWrite($user) ? __('board.minutes.edit-mode') : __('board.manage-mode'),
             // Old minutes are their own signed file, not the system's sheet.
