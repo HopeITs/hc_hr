@@ -229,7 +229,7 @@
                                                 @endif
                                             </p>
                                         </div>
-                                        <x-status class="shrink-0" :status="$contract->is_active && ! $contract->terminated_at ? \App\Enums\ContractStatus::Active : \App\Enums\ContractStatus::Inactive" />
+                                        <x-status class="shrink-0" :status="! $contract->is_active || $contract->hasEndedByTermination() ? \App\Enums\ContractStatus::Inactive : ($contract->hasPendingTermination() ? \App\Enums\ContractStatus::Ending : \App\Enums\ContractStatus::Active)" :label="$contract->is_active && $contract->hasPendingTermination() ? \App\Enums\ContractStatus::labelFor($contract) : null" />
                                     </div>
                                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-small text-ink-2">
                                         <span><bdi>{{ $formatDate($contract->start_date) }}</bdi> –

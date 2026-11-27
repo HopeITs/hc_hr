@@ -18,7 +18,7 @@
         <span class="block break-words font-semibold" dir="auto">{{ $name }}</span>
         <span class="block break-words text-small text-ink-2" dir="auto">{{ $item->contractType?->name }} · <bdi><span class="num whitespace-nowrap">{{ $item->start_date?->format('d-m-Y') }}</span> – <span class="num whitespace-nowrap">{{ $item->end_date?->format('d-m-Y') ?? __('general.present') }}</span></bdi></span>
         <span class="mt-1 flex flex-wrap items-center gap-2">
-            <x-status :status="$contractStatus" />
+            <x-status :status="$contractStatus" :label="\App\Enums\ContractStatus::labelFor($item)" />
             @if($days !== null)
                 <x-tag variant="rush">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</x-tag>
             @endif

@@ -50,7 +50,7 @@
 
                 <div class="flex flex-col gap-4 p-4">
                     <div class="flex flex-wrap items-center gap-2">
-                        <x-status :status="$contractStatus" />
+                        <x-status :status="$contractStatus" :label="\App\Enums\ContractStatus::labelFor($contract)" />
                         @if($days !== null)
                             <x-tag variant="rush">{{ trans_choice('contracts.ends-in-days', $days, ['count' => $days]) }}</x-tag>
                         @endif

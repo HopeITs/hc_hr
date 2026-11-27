@@ -545,6 +545,24 @@ class Contract extends Model
     }
 
     /**
+     * A termination recorded for a later date (R2-3): the contract still runs
+     * until that night, when deactivate:contract ends it (R2-3b decisions,
+     * 2026-11-27: shown as running with its end date, its days off can still
+     * move up to that date, and it counts down to it).
+     */
+    public function hasPendingTermination(): bool
+    {
+        return filled($this->terminated_at)
+            && Carbon::parse($this->terminated_at)->toDateString() > today()->toDateString();
+    }
+
+    /** Terminated and already past it: a pending termination does not count. */
+    public function hasEndedByTermination(): bool
+    {
+        return $this->isTerminated() && ! $this->hasPendingTermination();
+    }
+
+    /**
      * A trial is meant to end and be evaluated, never roll over silently.
      * Keyed off config('contracts.map_by_id'), the same source as
      * ContractType::$category, without loading the type row.

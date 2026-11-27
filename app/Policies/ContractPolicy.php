@@ -96,7 +96,8 @@ class ContractPolicy
      */
     public function changeWorkDays(User $user, Contract $contract): bool
     {
-        if (! $contract->is_active || $contract->isTerminated()) {
+        // A termination dated later leaves it in force until then (R2-3b).
+        if (! $contract->is_active || $contract->hasEndedByTermination()) {
             return false;
         }
 

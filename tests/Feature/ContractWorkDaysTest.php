@@ -357,6 +357,41 @@ class ContractWorkDaysTest extends TestCase
     }
 
     /**
+     * R2-3b (decision 2026-11-27): a termination dated later leaves the
+     * contract in force, so its days off still move, up to that date only.
+     */
+    public function test_a_contract_terminated_for_a_later_date_still_moves_its_days_up_to_that_date(): void
+    {
+        $contract = $this->contract(['terminated_at' => '2026-11-20']);
+        Contract::query()->whereKey($contract->id)->update(['is_active' => true]);
+        $contract = $contract->fresh();
+        $hr = $this->hr();
+
+        $this->assertTrue($hr->can('changeWorkDays', $contract));
+
+        app(ContractWorkPatterns::class)->change($contract, [0, 1, 2, 3, 6], '2026-11-15', by: $hr);
+        $this->assertSame([0, 1, 2, 3, 6], $contract->fresh()->workWeekdaysOn('2026-11-15'));
+
+        try {
+            app(ContractWorkPatterns::class)->change($contract->fresh(), [0, 1, 2, 3, 4], '2026-11-22', by: $hr);
+            $this->fail('A date past the termination must be refused.');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('contracts.work-days.errors.after-termination', ['date' => '20-11-2026']),
+                $e->errors()['effective_from'][0],
+            );
+        }
+    }
+
+    public function test_a_contract_whose_termination_date_has_come_takes_no_change(): void
+    {
+        $contract = $this->contract(['terminated_at' => '2026-11-10']);
+        Contract::query()->whereKey($contract->id)->update(['is_active' => true]);
+
+        $this->assertFalse($this->hr()->can('changeWorkDays', $contract->fresh()));
+    }
+
+    /**
      * A manager (active role) holding a position today.
      *
      * @return array{0: User, 1: \App\Models\Position}

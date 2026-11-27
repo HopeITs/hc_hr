@@ -213,11 +213,16 @@ class ContractsTable extends LivewireTable
      */
     public static function endsInDays(Model $contract): ?int
     {
-        if (! $contract->is_active || $contract->isTerminated() || (int) $contract->type === ContractTypeEnum::Draft || ! $contract->end_date) {
+        if (! $contract->is_active || $contract->hasEndedByTermination() || (int) $contract->type === ContractTypeEnum::Draft || ! $contract->end_date) {
             return null;
         }
 
-        $days = (int) today()->diffInDays($contract->end_date->copy()->startOfDay(), false);
+        // A pending termination ends it first (R2-3b): count to that date.
+        $endsOn = $contract->hasPendingTermination() && $contract->terminated_at->lt($contract->end_date)
+            ? $contract->terminated_at
+            : $contract->end_date;
+
+        $days = (int) today()->diffInDays($endsOn->copy()->startOfDay(), false);
 
         return $days >= 0 && $days <= self::ENDING_SOON_DAYS ? $days : null;
     }
@@ -561,8 +566,9 @@ class ContractsTable extends LivewireTable
                     1 => __('general.active'),
                     0 => __('general.inactive'),
                 ])
-                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-status :status="$status" />', [
+                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-status :status="$status" :label="$label" />', [
                     'status' => ContractStatus::for($m),
+                    'label' => ContractStatus::labelFor($m),
                 ]))
                 ->sortable()
                 ->searchable()

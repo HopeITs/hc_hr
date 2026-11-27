@@ -250,7 +250,7 @@ class HrTools
                 'end_date' => $contract->end_date?->format('Y-m-d'),
                 'weekly_hours' => $contract->weekly_hours,
                 'auto_renew' => (bool) $contract->auto_renew,
-                'status' => ContractStatus::for($contract)->label(),
+                'status' => ContractStatus::labelFor($contract),
             ], fn ($value) => filled($value) || $value === false))->values()->all(),
             'leave_balances' => $this->leaveBalances($employee),
             'recent_leave_requests' => $requests->map(fn (LeaveRequest $request) => $this->leaveRequestRow($request, $locale))->values()->all(),
