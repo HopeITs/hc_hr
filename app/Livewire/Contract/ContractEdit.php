@@ -182,8 +182,9 @@ class ContractEdit extends Component
     }
 
     /**
-     * The termination trio is editable here, and recording one deactivates the
-     * contract — the same rule ContractForm::saveTerms() has always applied.
+     * The termination trio is editable here, and recording one dated today or
+     * earlier deactivates the contract; a future date keeps it running until
+     * that night (Contract::terminationEndsNow, the rule saveTerms() applies).
      * Clearing the date again does not reactivate, and does not switch
      * auto-renew back on either: both are decisions for the contract list,
      * not side effects of tidying up a field.
@@ -200,7 +201,11 @@ class ContractEdit extends Component
 
         $isTerminated = filled($this->form->terminated_at) || filled($this->form->termination_reason_id);
 
-        $this->form->is_active = $isTerminated ? false : (bool) $this->contract->is_active;
+        // Dated today or earlier (or a reason only): the contract ends now. A
+        // future date keeps it running until deactivate:contract that night (R2-3).
+        $this->form->is_active = Contract::terminationEndsNow($this->form->terminated_at, $this->form->termination_reason_id)
+            ? false
+            : (bool) $this->contract->is_active;
 
         // A terminated or trial contract never rolls over.
         // ContractObserver::saving() enforces this on every write; mirroring

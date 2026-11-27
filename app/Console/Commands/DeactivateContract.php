@@ -27,9 +27,14 @@ class DeactivateContract extends Command
     public function handle(): void
     {
 
+        // Past its end date, or terminated with a date that has come: a
+        // future-dated termination keeps the contract running until the
+        // night of that date (R2-3), and this run ends it then.
         $contracts = Contract::query()
             ->where('is_active', true)
-            ->whereDate('end_date', '<', today())
+            ->where(fn ($query) => $query
+                ->whereDate('end_date', '<', today())
+                ->orWhereDate('terminated_at', '<=', today()))
             ->get();
 
         // ContractObserver::updated() frees the seat (exist_emp - 1) when
