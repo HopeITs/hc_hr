@@ -57,6 +57,20 @@
             </div>
         @endif
 
+        {{-- T3: clear a "Seen by HR" backlog in one confirmed step; each item still goes through LeaveRequestReview. --}}
+        @if ($reviewBacklog)
+            <div class="mb-3 flex flex-wrap items-center gap-2 rounded-surface border border-line-soft bg-card px-4 py-2" data-testid="inbox-review-backlog">
+                <span class="text-small text-ink-2">{{ __('inbox.review-backlog.hint') }}</span>
+                <div class="ms-auto flex flex-wrap gap-2">
+                    @foreach (\App\Services\WorkInbox::REVIEW_BULK_THRESHOLDS as $days)
+                        <x-button variant="outline" wire:click="previewSeenOlderThan({{ $days }})" data-testid="inbox-review-older-{{ $days }}">
+                            {{ __('inbox.review-backlog.older-than', ['days' => $days]) }}
+                        </x-button>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         @if ($capped)
             <p class="mb-3 text-small text-ink-2" data-testid="inbox-capped">{{ __('inbox.capped', $capped) }}</p>
         @endif
@@ -106,8 +120,11 @@
                                 {{-- A length ("3 days"), not "3 days ago": the sentence around it says since when. --}}
                                 {{ __('inbox.waiting-since', ['when' => $row['waiting_since']?->diffForHumans(null, \Carbon\CarbonInterface::DIFF_ABSOLUTE)]) }}
                                 {{-- G-C-5: an undecided leave already under way is not "starts soon"; the home block uses the same rule. --}}
+                                @if ($row['stale'] ?? false)
+                                    <x-tag class="ms-1" variant="late" data-testid="inbox-stale">{{ __('inbox.review-backlog.overdue') }}</x-tag>
+                                @endif
                                 @if ($startFlag = \App\Support\Dashboard\WaitingOnYou::startFlag($row))
-                                    <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'inbox.started' : 'inbox.urgent') }}</x-tag>
+                                    <x-tag class="ms-1" :variant="$startFlag === 'started' ? 'late' : 'rush'">{{ __($startFlag === 'started' ? 'leaves.status.overdue' : 'inbox.urgent') }}</x-tag>
                                 @endif
                             </p>
                             @if (($row['basis'] ?? null) === 'on_behalf')

@@ -672,6 +672,12 @@ return [
             'unpublish' => 'news.update',
             'archive' => 'news.update',
             'restore' => 'news.update',
+            'approve' => 'news.update', // HR-040: NewsAccess::canApprove re-checked inside
+        ],
+        // HR-040: HR approves / rejects a manager's pending item (NewsAccess::canApprove inside).
+        'news.news-show' => [
+            'approve' => 'news.update',
+            'reject' => 'news.update',
         ],
         'employee.leave.all-leave-request-module' => [
             'create' => 'leaves.create', 'delete' => 'leaves.delete',
@@ -920,6 +926,9 @@ return [
         // agreement is due (a required policy the employee agreed to an earlier version of, or a
         // new volunteer's); every employee reads the policies, so no permission.
         'policies.show' => ['agree'],
+        // The Policies folder page: each action re-checks PolicyFolder::canManage (authorizeManage);
+        // cancelReplace only clears the open form.
+        'policies.index' => ['updatedNewPolicy', 'startReplace', 'cancelReplace', 'updatedReplacement', 'remove'],
         // The chat: every signed-in employee may use it, so no permission. Each
         // action is self-scoped instead: ChatConversationPolicy (membership only,
         // no role exception) is checked on the conversation inside the action
@@ -1108,7 +1117,7 @@ return [
         // narrow query(); renderEmptyState / stateAnnouncement / cardView render text;
         // retryLoad re-renders. No writes.
         'news.news-table' => [
-            'confirmDelete', 'confirmPublishNow', 'confirmUnpublish', 'confirmArchive',
+            'confirmDelete', 'confirmPublishNow', 'confirmUnpublish', 'confirmArchive', 'confirmApprove',
             'setStateFilter', 'clearAllFilters', 'renderEmptyState', 'stateAnnouncement', 'cardView', 'retryLoad',
         ],
         'position.position-table' => ['confirmDelete', 'confirmToggleItemStatus'],
@@ -1180,7 +1189,8 @@ return [
         // The details page / preview is read-only. updatedLocale() is UI-only:
         // it clamps the article language to en|ar for the preview switch; the
         // item was authorized in mount() (NewsAccess) and is #[Locked].
-        'news.news-show' => ['updatedLocale'],
+        // confirmApprove / confirmReject only open the confirmation (HR-040).
+        'news.news-show' => ['updatedLocale', 'confirmApprove', 'confirmReject'],
         // Also runs assertCityIsAuthorized() and a Gate check on the city.
         'program-management.center.centers-module' => ['save', ...$closeGuard],
         'program-management.default-deliverable.default-deliverables-module' => ['save', ...$closeGuard],
@@ -1233,11 +1243,15 @@ return [
         // B3 HasScreenListStates: clearAllFilters resets search/filters/tab (view state only),
         // renderEmptyState and stateAnnouncement render text, retryLoad re-renders. No writes.
         // G-B-4: cardView only names the phone card's Blade view; rows still come from query().
+        // confirmCancel / cancelLeave (HR-027): LeaveRequestPolicy::cancel (the employee, or HR in
+        // scope holding leaves.update) is checked in confirmCancel and again under the row lock in
+        // LeaveRequestReview::cancel(); an employee holds no permission to name.
         'employee.leave.all-leave-request-table' => [
             'edit', 'confirmDelete', 'confirmHrReview', 'refreshTable', 'setStatusFilter',
             'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView',
+            'confirmCancel', 'cancelLeave',
         ],
-        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter', 'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView'],
+        'employee.leave.my-leave-request-table' => ['edit', 'confirmDelete', 'setStatusFilter', 'clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView', 'confirmCancel', 'cancelLeave'],
         'employee.leave.emp-leave-balance-table' => ['clearAllFilters', 'renderEmptyState', 'retryLoad', 'stateAnnouncement', 'cardView'],
         // B3: read-only lists of the caller's own checklist rows; retryLoad re-renders only.
         'checklist-items.all-items' => ['retryLoad'],
@@ -1426,7 +1440,10 @@ return [
         'team.calendar' => ['move', 'goToday', 'openDay', 'jumpTo'],
         // approveProfile/rejectProfile (D1): ProfileChangeRequests::canDecide, i.e.
         // HR of the employee's city through EmployeePolicy::update, under a row lock.
-        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile'],
+        // previewSeenOlderThan writes nothing; applySeenOlderThan (T3) runs each row of
+        // WorkInbox::reviewsOlderThan (the S2 query, scoped to the caller) through
+        // LeaveRequestReview::markSeen, which authorizes `review` under the row lock.
+        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile', 'previewSeenOlderThan', 'applySeenOlderThan'],
         // AI assistant: every signed-in user may ask, so there is no permission to
         // check. send() answers only about the caller: EmployeeTools reads the
         // signed-in user's own record and takes no parameters, and each call is

@@ -12,6 +12,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Services\Attendance\AttendanceImporter;
 use App\Services\Attendance\DeviceReportReader;
+use App\Services\Attendance\FormRows;
 use App\Services\Attendance\Timesheet;
 use App\Services\Attendance\UnreadableReport;
 use Carbon\CarbonImmutable;
@@ -130,6 +131,13 @@ class AttendanceTest extends TestCase
         $this->assertSame(Timesheet::WEEKEND, $rows['2026-09-12']['kind']);
         $this->assertSame(120, $rows['2026-09-12']['overtime_minutes'], 'weekend work counts in full');
         $this->assertSame(1.0, $rows['2026-09-12']['working_days'], 'a weekend is a paid day on the form');
+        $this->assertSame(0.0, $rows['2026-09-12']['leave_hours'], 'a weekly day off is not leave taken (HR-034)');
+
+        // The form (page, print, PDF and Excel) words it as a weekly day off with no leave hours.
+        $form = collect(FormRows::for($sheet))->keyBy('date');
+        $this->assertSame('عطلة أسبوعية', $form['12/09/2026']['type']);
+        $this->assertSame(0.0, $form['12/09/2026']['leave_hours']);
+        $this->assertSame(1.0, $form['12/09/2026']['working_days']);
 
         $this->assertSame(3.0, $sheet['totals']['overtime_hours']);
         $this->assertSame(0.38, $sheet['totals']['overtime_days']);

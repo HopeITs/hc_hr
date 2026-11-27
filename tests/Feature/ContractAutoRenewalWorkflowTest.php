@@ -11,13 +11,16 @@ use App\Models\Center;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\TerminationReason;
 use App\Models\User;
 use App\Notifications\ContractsAutoRenewedSummary;
+use App\Notifications\ContractsAwaitingNewYearRenewal;
 use App\Notifications\ContractsExpiringAutoRenewWarning;
+use App\Services\ContractAutoRenewalService;
 use App\Services\LeaveBalanceService;
 use App\Services\NotificationDeliveryLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -463,6 +466,38 @@ class ContractAutoRenewalWorkflowTest extends TestCase
         Artisan::call(ProcessContractAutoRenewals::class);
 
         $this->assertSame(1, Contract::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_process_auto_renewals_skips_contracts_of_an_inactive_employee(): void
+    {
+        $this->travelTo('2026-09-16 09:00:00');
+        Notification::fake();
+
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'inactive-expired');
+        $this->makeContract($fixtures, $employee, $this->makePosition($fixtures, 'Inactive Employee Position'), [
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-09-15',
+            'is_active' => false,
+            'auto_renew' => true,
+        ]);
+        $waiting = $this->makeContract($fixtures, $employee, $this->makePosition($fixtures, 'Inactive Employee New Year Position'), [
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-10-15',
+            'is_active' => false,
+            'auto_renew' => true,
+        ]);
+
+        // Deactivated after the contracts ended (left, or deactivated by hand).
+        Employee::query()->whereKey($employee->id)->update(['is_active' => false]);
+
+        $this->travelTo('2026-10-16 09:00:00');
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $this->assertSame(2, Contract::query()->where('employee_id', $employee->id)->count());
+        $this->assertFalse(app(ContractAutoRenewalService::class)->waitingForNewYear()->contains('id', $waiting->id));
+        Notification::assertNotSentTo($fixtures['hr'], ContractsAutoRenewedSummary::class);
+        Notification::assertNotSentTo($fixtures['hr'], ContractsAwaitingNewYearRenewal::class);
     }
 
     public function test_contracts_table_refuses_the_auto_renew_toggle_on_a_trial_contract(): void

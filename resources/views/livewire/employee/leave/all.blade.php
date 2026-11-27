@@ -49,6 +49,12 @@ use App\Enums\LeaveRequestStatus;
             :active-tab="LeaveRequestStatus::Rejected">
             {{ LeaveRequestStatus::getLocalizedName(2)['value'] }} ({{ $counts['rejected'] ?? 0 }})
         </x-tabs-list-item>
+
+        <x-tabs-list-item
+            :active="$statusFilter === (string) LeaveRequestStatus::Cancelled"
+            :active-tab="LeaveRequestStatus::Cancelled">
+            {{ LeaveRequestStatus::getLocalizedName(LeaveRequestStatus::Cancelled)['value'] }} ({{ $counts['cancelled'] ?? 0 }})
+        </x-tabs-list-item>
     </x-tabs-list>
 
     {{-- Table --}}
@@ -65,6 +71,7 @@ use App\Enums\LeaveRequestStatus;
         close-action="requestClose"
         wire:ignore.self
         class="flex items-center justify-center px-2">
+        @if($formModal)
         @php
             // The same numbered steps as the employee's own request form (index.blade.php), over HR's
             // fields: employee → leave type → unit (annual only) → dates → reason and cover.
@@ -236,19 +243,17 @@ use App\Enums\LeaveRequestStatus;
                                 :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                             <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                         </div>
-                        {{-- The select2 keeps its options under wire:ignore: the period in the key rebuilds it when the list follows new dates. --}}
-                        <div class="md:col-span-2" wire:key="container-alt-emp-{{ $form->employee_id }}-{{ $form->leaveRequest ? 'edit' : 'create' }}-{{ md5(json_encode([$form->type, $form->start_at, $form->end_at, $form->leave_date, $form->start_hour, $form->end_hour])) }}">
+                        {{-- T5: a native select (see the employee dialog): reachable by keyboard and screen readers, and its value is kept. --}}
+                        <div class="md:col-span-2" wire:key="container-alt-emp-{{ $form->employee_id }}-{{ $form->leaveRequest ? 'edit' : 'create' }}">
                             <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
-                            <x-forms.select2-input wire:model.live="form.alternative_employee" id="alternative_employee">
-                                <option
-                                    class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
-                                    @lang('general.select')..
-                                </option>
+                            <x-forms.select-input wire:model="form.alternative_employee" id="alternative_employee" class="w-full"
+                                                  aria-describedby="alternative_employee_hint">
+                                <option value="">@lang('general.select')</option>
                                 @foreach($alternativeEmployees as $emp)
-                                    <option value="{{ $emp->id }}" @selected($form->alternative_employee === $emp->id)>{{ $emp->name }}</option>
+                                    <option value="{{ $emp->id }}" wire:key="alt-{{ $emp->id }}">{{ $emp->name }}</option>
                                 @endforeach
-                            </x-forms.select2-input>
-                            <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
+                            </x-forms.select-input>
+                            <p id="alternative_employee_hint" class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
                             <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
                         </div>
                     </div>
@@ -262,6 +267,7 @@ use App\Enums\LeaveRequestStatus;
                 </x-modal.actions>
             </form>
         </div>
+        @endif
     </x-modal.dialog>
 
     <x-modal.dialog
@@ -365,7 +371,7 @@ use App\Enums\LeaveRequestStatus;
         wire:model.defer="decisionModal"
         close-action="requestClose"
         wire:ignore.self>
-        @if($decisionLeave)
+        @if($decisionModal && $decisionLeave)
             {{-- A real form, so Enter in the reason field submits (G-B-7). --}}
             <form wire:submit.prevent="submitDecision" class="space-y-6 sheet:flex-1 sheet:flex sheet:flex-col">
 

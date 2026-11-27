@@ -9,7 +9,11 @@
         <div class="rounded-surface border border-line-soft bg-soft p-4">
             <dt class="text-small text-ink-2">@lang('general.status')</dt>
             <dd class="mt-1">
-                <x-status :status="$status" />
+                @if ($leaveRequest->isOverdue())
+                    <x-tag variant="late" :label="__('leaves.status.overdue')" />
+                @else
+                    <x-status :status="$status" />
+                @endif
             </dd>
         </div>
 

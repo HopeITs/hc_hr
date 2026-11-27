@@ -81,11 +81,8 @@ class BoardMeetingService
         }
 
         $weekStart = $slot->startOfWeek();
-        $thisWeek = BoardMeeting::query()
-            ->whereBetween('starts_at', [$weekStart, $weekStart->endOfWeek()])
-            ->exists();
 
-        if ($thisWeek) {
+        if ($this->meetingInWeek($slot)) {
             return null;
         }
 
@@ -373,6 +370,12 @@ class BoardMeetingService
     public function suggestion(?CarbonImmutable $now = null): array
     {
         $slot = $this->defaultSlot($now ?? CarbonImmutable::now());
+
+        // A week that already has its meeting (held, coming or cancelled: the chair decided that week) is not
+        // offered again; the next free week is. A year ahead is far enough to stop looking.
+        for ($i = 0; $i < 52 && $this->meetingInWeek($slot); $i++) {
+            $slot = $slot->addWeek();
+        }
         $last = BoardMeeting::query()->whereNotNull('location')->orderByDesc('starts_at')->first();
 
         return [
@@ -381,6 +384,24 @@ class BoardMeetingService
             'location' => $last?->location ?? config('board.default_location'),
             'room' => $last?->room,
         ];
+    }
+
+    /** The meeting already set for the week of $at, cancelled ones included, if there is one. */
+    public function meetingInWeek(CarbonImmutable $at): ?BoardMeeting
+    {
+        return BoardMeeting::query()
+            ->whereBetween('starts_at', [$at->startOfWeek(), $at->endOfWeek()])
+            ->orderBy('starts_at')
+            ->first();
+    }
+
+    /** A meeting still standing (not cancelled) that starts in the same minute as $at. */
+    public function meetingStartingAt(CarbonImmutable $at): ?BoardMeeting
+    {
+        return BoardMeeting::query()
+            ->whereBetween('starts_at', [$at->startOfMinute(), $at->endOfMinute()])
+            ->where('status', '!=', BoardMeeting::CANCELLED)
+            ->first();
     }
 
     /** Each person named on a follow-up row hears once, when the minutes come out, what waits on them. */

@@ -383,6 +383,8 @@ return [
     'folders-scope' => 'مجلدات مَن',
     'folders-mine' => 'مجلداتي',
     'folders-shared-with-me' => 'مشاركة معي',
+    // HR-039: the system administrator can open private folders for support.
+    'folders-admin-access-note' => 'يستطيع مدير النظام فتح هذه المجلدات عند تقديم الدعم الفني.',
     'folders-new-mine' => 'سيكون هذا مجلدك الخاص في «مجلداتي»، ولا يراه غيرك حتى تمنح الآخرين الوصول من الصلاحيات.',
     'folders-new-shared' => 'سيكون هذا مجلداً مشتركاً في «مشاركة معي»، ويراه هناك كل من تمنحه الوصول.',
 
@@ -921,6 +923,7 @@ return [
         'toggle-password' => 'إظهار أو إخفاء كلمة المرور',
         'close-dialog' => 'إغلاق النافذة',
         'view-details' => 'عرض التفاصيل',
+        'open-leave-request-for' => 'فتح طلب إجازة :name',
     ],
 
     // نصوص <meta> الافتراضية، ويمكن تجاوزها لكل صفحة عبر $title / $description

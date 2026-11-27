@@ -61,6 +61,16 @@ class PolicyDocument extends Model
     }
 
     /**
+     * Whether there is text to read: only then can a policy be required for
+     * onboarding or agreed to. A replaced file that is still being read, or
+     * failed to read, keeps its earlier text, so it still has text.
+     */
+    public function hasText(): bool
+    {
+        return trim((string) $this->content) !== '';
+    }
+
+    /**
      * rtl when most of the letters are Arabic: the page lays the policy out by
      * its own language, whatever the language of the interface.
      */

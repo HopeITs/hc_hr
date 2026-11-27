@@ -52,6 +52,11 @@
             </div>
         </div>
 
+        {{-- HR-039: private folders are not hidden from the system administrator (support access). --}}
+        @unless ($isShared)
+            <p class="mt-3 text-small text-ink-2">{{ __('general.folders-admin-access-note') }}</p>
+        @endunless
+
         @if ($currentFolder && $canManageCurrentFolder)
             <div x-show="uploading" x-cloak class="mt-3 w-full bg-surface rounded-full h-2.5">
                 <div class="bg-ink h-2.5 rounded-full" :style="`width: ${progress}%`"></div>
@@ -66,7 +71,9 @@
     @if ($inPolicyFolder)
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-surface border border-line bg-soft p-4" data-testid="policy-folder-banner">
             <p class="text-small text-ink">{{ __('policies.folder-banner') }}</p>
-            <x-button :href="route('policies.index')" variant="outline" size="sm">{{ __('policies.title') }}</x-button>
+            @if (\App\Livewire\Policies\Index::canOpen(auth()->user()))
+                <x-button :href="route('policies.index')" variant="outline" size="sm">{{ __('policies.title') }}</x-button>
+            @endif
         </div>
     @endif
 

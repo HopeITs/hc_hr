@@ -1,4 +1,5 @@
 @php($columns = $this->resolveColumns())
+@php($isSticky = fn ($column) => method_exists($this, 'isStickyColumn') && $this->isStickyColumn($column))
 
 <table @class(['w-full relative text-table', 'hc-tbl' => ! ($cardView ?? null)]) x-data="{ selected: @entangle('selected') }">
     <thead class="border-b border-line-soft">
@@ -10,7 +11,7 @@
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" @class(['p-0 text-start text-ink-2 bg-soft', 'sticky end-0 z-20 border-s border-line-soft' => $isSticky($column)])>
                 {{ $column->renderHeader() }}
             </th>
         @endforeach
@@ -21,7 +22,7 @@
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" @class(['p-0 text-start text-ink-2 bg-soft', 'sticky end-0 z-20 border-s border-line-soft' => $isSticky($column)])>
                 @if($column->isSearchable())
                     {{ $column->renderSearch() }}
                 @endif
@@ -75,7 +76,9 @@
                         data-label="{{ $column->label() }}"
                         x-data=""
                         @class([
-                            'p-0 group/column relative border-t border-line-soft' => true,
+                            'p-0 group/column border-t border-line-soft' => true,
+                            'relative' => ! $isSticky($column),
+                            'sticky end-0 z-10 border-s whitespace-nowrap' => $isSticky($column),
                             'select-none cursor-pointer' => $column->isClickable() || $this->isReordering(),
                         ])
                         @if($column->isClickable() && ! $this->isReordering())
@@ -121,7 +124,7 @@
         @endif
         @foreach($columns as $column)
             @continue(! in_array($column->code(), $this->columns))
-            <th scope="col" wire:key="{{ $column->code() }}" class="p-0 text-start text-ink-2 bg-soft">
+            <th scope="col" wire:key="{{ $column->code() }}" @class(['p-0 text-start text-ink-2 bg-soft', 'sticky end-0 z-20 border-s border-line-soft' => $isSticky($column)])>
                 {{ $column->renderFooter() }}
             </th>
         @endforeach

@@ -14,6 +14,10 @@
         @include('livewire.news.show._preview-banner')
     @endif
 
+    @if ($canReview)
+        @include('livewire.news.show._review')
+    @endif
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
         <div class="min-w-0 lg:col-span-2">
             @include('livewire.news.show._article')

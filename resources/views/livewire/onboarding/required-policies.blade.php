@@ -45,12 +45,18 @@
                                 <option value="{{ $kind }}" @selected($document->onboarding_kind === $kind)>@lang('onboarding.required-policies.kind-'.$kind)</option>
                             @endforeach
                         </select>
-                        <label class="flex items-center gap-2 text-small text-ink-2">
-                            <input type="checkbox" class="rounded border-line" @checked($document->required_for_onboarding)
+                        {{-- A policy with no text cannot be required (nothing to agree to); one already required stays tickable so HR can untick it. --}}
+                        @php $canRequire = $document->hasText() || $document->required_for_onboarding; @endphp
+                        <label class="flex items-center gap-2 text-small {{ $canRequire ? 'text-ink-2' : 'text-ink-3' }}">
+                            <input type="checkbox" class="rounded border-line" @checked($document->required_for_onboarding) @disabled(! $canRequire)
                                 wire:change="setRequired({{ $document->id }}, $event.target.checked)"
+                                @unless ($document->hasText()) aria-describedby="needs-text-{{ $document->id }}" @endunless
                                 data-testid="required-{{ $document->id }}">
                             @lang('onboarding.required-policies.required')
                         </label>
+                        @unless ($document->hasText())
+                            <p class="w-full text-small text-ink-2" id="needs-text-{{ $document->id }}" data-testid="needs-text-{{ $document->id }}">@lang('onboarding.required-policies.needs-text')</p>
+                        @endunless
                     </div>
                 </li>
             @empty

@@ -16,9 +16,10 @@ use Livewire\Component;
  * Official holidays, one-off grants and the birthday holiday
  * (team-coverage-contract §6.1).
  *
- * National HR (HR-SYR, super-admin) sets anything. A program manager sets
- * project holidays and grants for their own projects only, never national
- * and never the birthday holiday (H-6). Every check goes through
+ * National HR (HR-SYR, super-admin) sets anything. City HR (HR-033) sets
+ * project holidays and grants for the projects of its own city, and a
+ * program manager for their own projects; neither sets national ones or
+ * the birthday holiday (H-6). Every check goes through
  * HolidayProjects, which also builds the project picker.
  */
 class HolidayModule extends Component

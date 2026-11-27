@@ -5,7 +5,7 @@
     the item). Same WAI-ARIA menu button as the contracts list; `fixed` so the
     table's horizontal scroll cannot clip it.
 
-    Receives $news, $context, $state (NewsState), $canManage, $viewUrl.
+    Receives $news, $context, $state (NewsState), $canManage, $canApprove, $viewUrl.
 --}}
 @php
     use App\Enums\News\NewsState;
@@ -68,6 +68,16 @@
             <a role="menuitem" href="{{ route('news.preview', ['news' => $id]) }}" wire:navigate class="{{ $itemClass }}">
                 <x-ic name="eye" class="size-4" />{{ __('news.list.actions.preview') }}
             </a>
+            @if($state === NewsState::Pending && ($canApprove ?? false))
+                {{-- HR-040: approve here; rejecting needs a reason, given on the preview page. --}}
+                <button type="button" role="menuitem" class="{{ $itemClass }}"
+                    wire:click="confirmApprove({{ $id }})" x-on:click="hide(false)">
+                    <x-ic name="check" class="size-4" />{{ __('news.review.approve') }}
+                </button>
+                <a role="menuitem" href="{{ route('news.preview', ['news' => $id]) }}" wire:navigate class="{{ $itemClass }}">
+                    <x-ic name="x" class="size-4" />{{ __('news.review.reject') }}
+                </a>
+            @endif
             @if(in_array($state, [NewsState::Draft, NewsState::Scheduled], true))
                 <button type="button" role="menuitem" class="{{ $itemClass }}"
                     wire:click="confirmPublishNow({{ $id }})" x-on:click="hide(false)">

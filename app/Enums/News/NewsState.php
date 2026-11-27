@@ -19,6 +19,8 @@ enum NewsState: string implements HasStatusTone
     case Published = 'published';
     case Expired = 'expired';
     case Archived = 'archived';
+    case Pending = 'pending';
+    case Rejected = 'rejected';
 
     public static function of(News $news, ?CarbonInterface $now = null): self
     {
@@ -26,6 +28,8 @@ enum NewsState: string implements HasStatusTone
 
         return match (true) {
             $news->status === NewsStatus::Archived => self::Archived,
+            $news->status === NewsStatus::Pending => self::Pending,
+            $news->status === NewsStatus::Rejected => self::Rejected,
             $news->status === NewsStatus::Draft => self::Draft,
             $news->published_at === null || $news->published_at->gt($now) => self::Scheduled,
             $news->display_until !== null && $news->display_until->lte($now) => self::Expired,
@@ -41,6 +45,8 @@ enum NewsState: string implements HasStatusTone
             self::Published => StatusTone::Work,
             self::Expired => StatusTone::Done,
             self::Archived => StatusTone::Stop,
+            self::Pending => StatusTone::Attn,
+            self::Rejected => StatusTone::Stop,
         };
     }
 
@@ -52,6 +58,8 @@ enum NewsState: string implements HasStatusTone
             self::Published => 'check',
             self::Expired => 'ban',
             self::Archived => 'folder',
+            self::Pending => 'inbox',
+            self::Rejected => 'x',
         };
     }
 

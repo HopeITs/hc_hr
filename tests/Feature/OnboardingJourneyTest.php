@@ -502,9 +502,9 @@ class OnboardingJourneyTest extends TestCase
             fn (ChecklistItem $item) => Checklist::query()->create(['item_id' => $item->id, 'employee_id' => $volunteer->id, 'delivered_id' => $deliverer->id, 'receiver_id' => $volunteer->id, 'delivered_status' => 'delivered']),
         );
 
-        $policy = PolicyDocument::query()->create(['title' => 'Code of conduct', 'required_for_onboarding' => true]);
+        $policy = PolicyDocument::query()->create(['title' => 'Code of conduct', 'content' => 'Be kind.', 'required_for_onboarding' => true]);
         app(PolicyAcknowledgements::class)->acknowledge($volunteer, $policy);
-        $guide = PolicyDocument::query()->create(['title' => 'Media guideline', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_REVIEW]);
+        $guide = PolicyDocument::query()->create(['title' => 'Media guideline', 'content' => 'Ask the Media Team first.', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_REVIEW]);
         app(PolicyAcknowledgements::class)->acknowledge($volunteer, $guide);
 
         $journeys = app(OnboardingJourneys::class);

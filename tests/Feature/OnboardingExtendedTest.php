@@ -526,6 +526,45 @@ class OnboardingExtendedTest extends TestCase
         $this->assertSame('todo', $this->stepState($other, 'policies'));
     }
 
+    public function test_the_policies_page_renders_each_text_collapses_long_ones_and_flags_a_new_version(): void
+    {
+        $volunteer = $this->volunteer();
+        $user = $volunteer->account;
+
+        $short = PolicyDocument::query()->create([
+            'title' => 'Code of conduct', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_POLICY,
+            'content' => '## Respect
+
+Be **kind**. <script>alert(1)</script>', 'source_modified_at' => now()->subMonth(),
+        ]);
+        $long = PolicyDocument::query()->create([
+            'title' => 'Safeguarding', 'required_for_onboarding' => true, 'onboarding_kind' => PolicyDocument::KIND_POLICY,
+            'content' => str_repeat('A long safeguarding paragraph. ', 60), 'source_modified_at' => now()->subMonth(),
+        ]);
+
+        $page = Livewire::actingAs($user)->test(Policies::class)
+            ->assertSeeHtml('<h2>Respect</h2>')
+            ->assertSeeHtml('<strong>kind</strong>')
+            ->assertDontSeeHtml('<script>alert(1)</script>')
+            ->assertSeeHtml('&lt;script&gt;')
+            ->assertSeeHtml('data-testid="read-whole-'.$long->id.'"')
+            ->assertSeeHtml('href="'.route('policies.show', $long->id).'"')
+            ->assertDontSeeHtml('data-testid="read-whole-'.$short->id.'"')
+            ->assertDontSeeHtml('data-testid="new-version-'.$short->id.'"');
+
+        $page->call('acknowledge', $short->id);
+
+        // The policy is replaced after the volunteer agreed: a new version waits for them.
+        $newVersion = now()->addDay()->startOfDay();
+        $short->forceFill(['source_modified_at' => $newVersion])->save();
+
+        Livewire::actingAs($user)->test(Policies::class)
+            ->assertSeeHtml('data-testid="new-version-'.$short->id.'"')
+            ->assertSee(__('onboarding.policies.new-version', ['date' => $newVersion->translatedFormat('j F Y')]))
+            ->assertDontSeeHtml('data-testid="new-version-'.$long->id.'"')
+            ->assertSeeHtml('data-testid="acknowledge-'.$short->id.'"');
+    }
+
     public function test_hr_marks_the_required_documents_and_nobody_else_may(): void
     {
         $doc = $this->policy('Media guideline', false);
@@ -777,7 +816,7 @@ class OnboardingExtendedTest extends TestCase
 
     private function policy(string $title, bool $required, string $kind = PolicyDocument::KIND_POLICY): PolicyDocument
     {
-        return PolicyDocument::query()->create(['title' => $title, 'required_for_onboarding' => $required, 'onboarding_kind' => $kind]);
+        return PolicyDocument::query()->create(['title' => $title, 'content' => 'The text of '.$title.'.', 'required_for_onboarding' => $required, 'onboarding_kind' => $kind]);
     }
 
     /** An active IT volunteer of the city: a running contract on a position of the IT department, with a login account. */

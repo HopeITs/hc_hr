@@ -18,6 +18,7 @@ return [
 
     'status' => [
         'pending' => 'Pending',
+        'overdue' => 'Overdue',
         'accepted' => 'Accepted',
         'rejected' => 'Rejected',
         'cancelled' => 'Cancelled',

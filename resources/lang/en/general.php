@@ -399,6 +399,8 @@ return [
     'folders-scope' => 'Whose folders',
     'folders-mine' => 'My folders',
     'folders-shared-with-me' => 'Shared with me',
+    // HR-039: the system administrator can open private folders for support.
+    'folders-admin-access-note' => 'The system administrator can open these folders when giving support.',
     'folders-new-mine' => 'This will be your own folder, under My folders. Only you see it until you give others access from Permissions.',
     'folders-new-shared' => 'This will be a shared folder, under Shared with me. Everyone you give access to will see it there.',
     'graduation_year' => 'Graduation Year',
@@ -921,6 +923,7 @@ return [
         'toggle-password' => 'Show or hide password',
         'close-dialog' => 'Close dialog',
         'view-details' => 'View details',
+        'open-leave-request-for' => 'Open leave request for :name',
     ],
 
     // Default <meta> copy, overridden per page via $title / $description

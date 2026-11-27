@@ -153,7 +153,8 @@ class PolicyFolderTest extends TestCase
         $this->assertSame([$document->id], $acks->outdatedFor($this->employee->profile)->all());
         Notification::assertSentTo($this->employee, PolicyUpdated::class);
 
-        Livewire::actingAs($this->employee)->test(Index::class)->assertSee(__('policies.new-version'));
+        // The Policies page is closed to employees: they read them in the folder.
+        Livewire::actingAs($this->employee)->test(Index::class)->assertForbidden();
 
         Livewire::actingAs($this->employee)->test(Show::class, ['document' => $document->id])
             ->assertSee(__('policies.agree-again-lead'))
@@ -216,7 +217,57 @@ class PolicyFolderTest extends TestCase
 
         Livewire::actingAs($this->hr)->test(Index::class)->assertSee(__('policies.error.unavailable'));
         Livewire::actingAs($this->hr)->test(RequiredPolicies::class)->assertSee(__('policies.error.unavailable'));
-        Livewire::actingAs($this->employee)->test(Index::class)->assertDontSee('Travel policy');
+        Livewire::actingAs($this->employee)->test(Index::class)->assertForbidden();
+    }
+
+    public function test_a_policy_with_no_text_cannot_be_required_nor_agreed_to(): void
+    {
+        config(['assistant.gemini.key' => null]);
+        $media = $this->library()->addMediaFromString('%PDF-1.7')->usingFileName('policy.pdf')->usingName('Travel policy.pdf')->toMediaCollection('archived_files', 'local');
+        $document = PolicyDocument::query()->where('media_id', $media->id)->sole();
+        $this->assertSame(PolicyDocument::FAILED, $document->read_status);
+
+        // HR cannot tick it: the box is disabled with the reason, and the action refuses.
+        Livewire::actingAs($this->hr)->test(RequiredPolicies::class)
+            ->assertSeeHtml('data-testid="needs-text-'.$document->id.'"')
+            ->assertSee(__('onboarding.required-policies.needs-text'))
+            ->call('setRequired', $document->id, true);
+        $this->assertFalse($document->fresh()->required_for_onboarding);
+
+        // One marked required before this rule (as on hr_db) is not asked of anyone and cannot be agreed to.
+        $document->forceFill(['required_for_onboarding' => true])->save();
+        $acks = app(PolicyAcknowledgements::class);
+        $this->assertTrue($acks->required()->isEmpty());
+        $this->assertFalse($acks->acknowledge($this->employee->profile, $document->fresh()));
+        $this->assertSame(0, PolicyAcknowledgement::query()->count());
+
+        Livewire::actingAs($this->employee)->test(\App\Livewire\Onboarding\Policies::class)
+            ->assertDontSeeHtml('data-testid="acknowledge-'.$document->id.'"')
+            ->call('acknowledge', $document->id);
+        $this->assertSame(0, PolicyAcknowledgement::query()->count());
+
+        // HR can still untick it.
+        Livewire::actingAs($this->hr)->test(RequiredPolicies::class)->call('setRequired', $document->id, false);
+        $this->assertFalse($document->fresh()->required_for_onboarding);
+    }
+
+    public function test_a_required_policy_whose_replacement_fails_to_read_stays_required_with_its_earlier_text(): void
+    {
+        $document = $this->upload($this->docx());
+        $acks = app(PolicyAcknowledgements::class);
+        $this->assertTrue($acks->setRequired($document, true));
+        $oldText = $document->fresh()->content;
+
+        // The new file failed to read: the earlier text is kept.
+        $document->forceFill(['read_status' => PolicyDocument::FAILED, 'read_error' => 'unreadable'])->save();
+        $document->refresh();
+
+        $this->assertSame($oldText, $document->content);
+        $this->assertSame([$document->id], $acks->required()->pluck('id')->all());
+        $this->assertTrue($acks->acknowledge($this->employee->profile, $document));
+
+        Livewire::actingAs($this->hr)->test(RequiredPolicies::class)
+            ->assertDontSeeHtml('data-testid="needs-text-'.$document->id.'"');
     }
 
     public function test_hr_adds_replaces_and_removes_policies_on_the_policies_page(): void
@@ -246,10 +297,8 @@ class PolicyFolderTest extends TestCase
 
         $document = $this->upload($this->docx());
 
-        Livewire::actingAs($this->employee)->test(Index::class)
-            ->set('newPolicy', $this->docx())->assertForbidden();
-        Livewire::actingAs($this->employee)->test(Index::class)
-            ->call('remove', $document->id)->assertForbidden();
+        Livewire::actingAs($this->employee)->test(Index::class)->assertForbidden();
+        $this->actingAs($this->employee)->get(route('policies.index'))->assertForbidden();
         $this->assertSame(1, PolicyDocument::query()->count());
     }
 
@@ -260,7 +309,7 @@ class PolicyFolderTest extends TestCase
         Livewire::actingAs($this->hr)->test(Index::class)
             ->assertSeeHtml('data-testid="policies-manage"')->assertSeeHtml('data-testid="policies-upload"')
             ->assertSeeHtml(route('onboarding.required-policies'));
-        Livewire::actingAs($this->employee)->test(Index::class)->assertDontSeeHtml('data-testid="policies-manage"');
+        Livewire::actingAs($this->employee)->test(Index::class)->assertForbidden();
 
         Livewire::actingAs($this->employee)->test(RequiredPolicies::class)->assertForbidden();
         Livewire::actingAs($this->hr)->test(RequiredPolicies::class)->assertSeeHtml($folderUrl);

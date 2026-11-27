@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Basics;
 
+use App\Services\HolidayProjects;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -37,8 +38,8 @@ class BasicSettings extends Component
         $tabs = [];
 
         foreach (self::TABS as $key => [, $label, $plural]) {
-            // Holidays are set by national HR only (D-4); program managers keep their own page.
-            if ($key === 'holidays' && ! auth()->user()?->activeRoleIs(...config('access-control.administrator_roles', []))) {
+            // Holidays: national HR (D-4) and city HR for its own city (HR-033); program managers keep their own page.
+            if ($key === 'holidays' && ! app(HolidayProjects::class)->seesAll(auth()->user())) {
                 continue;
             }
 
