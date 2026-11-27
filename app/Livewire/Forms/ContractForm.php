@@ -540,7 +540,9 @@ class ContractForm extends Form
             return;
         }
 
-        $isTerminated = filled($this->terminated_at) || filled($this->termination_reason_id);
+        // A termination dated today or earlier ends the contract now; a future
+        // one leaves it running until the nightly run on that date (R2-3).
+        $endsNow = Contract::terminationEndsNow($this->terminated_at, $this->termination_reason_id);
 
         $this->contract->update([
             'start_date' => $this->start_date,
@@ -553,8 +555,7 @@ class ContractForm extends Form
             'work_days_en' => $this->work_days_en,
             'work_hours_from' => $this->work_hours_from,
             'work_hours_to' => $this->work_hours_to,
-            // Automatically deactivate when a termination is recorded
-            'is_active' => $isTerminated ? false : $this->is_active,
+            'is_active' => $endsNow ? false : $this->is_active,
         ]);
 
         $this->syncWorkPatterns($this->contract);

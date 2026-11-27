@@ -12,6 +12,7 @@ use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\TerminationReason;
+use App\Services\ContractAmendmentService;
 use App\Services\LeaveBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
@@ -55,6 +56,74 @@ class ContractSeatAccountingTest extends TestCase
         $this->assertSame(0, $position->fresh()->exist_emp);
         $this->assertTrue($position->fresh()->canAssign());
         $this->assertSame($this->activeRealContracts($position), $position->fresh()->exist_emp);
+    }
+
+    public function test_a_future_dated_termination_keeps_the_seat_until_the_night_of_that_date(): void
+    {
+        $this->travelTo('2026-06-10 10:00:00');
+        $fixtures = $this->makeFixtures();
+        $position = $this->makePosition($fixtures, maxEmp: 1);
+        $contract = $this->makeContract($fixtures, $position, 'terminated-ahead', ['auto_renew' => true]);
+        $reason = TerminationReason::query()->create(['title_en' => 'Resigned', 'title_ar' => 'استقالة']);
+
+        $amendments = app(ContractAmendmentService::class);
+        $late = $amendments->approve($amendments->draft($contract, ['weekly_hours' => 30], '2026-07-15'));
+
+        $this->mock(LeaveBalanceService::class)->shouldReceive('create');
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractEdit::class, ['contract' => $contract])
+            ->call('submit', $this->composerPayload($fixtures, $contract, [
+                'terminatedAt' => '2026-06-30',
+                'terminationReasonId' => $reason->id,
+            ]))
+            ->assertHasNoErrors();
+
+        $fresh = $contract->fresh();
+        $this->assertTrue($fresh->is_active, 'Runs until its termination date.');
+        $this->assertSame('2026-06-30', $fresh->terminated_at->toDateString());
+        $this->assertFalse($fresh->auto_renew, 'A terminated contract never rolls over.');
+        $this->assertSame(1, $position->fresh()->exist_emp, 'The seat stays held.');
+        // An amendment dated after the termination is cancelled at once, as before.
+        $this->assertNull($late->fresh());
+
+        // The nights before the date change nothing.
+        $this->travelTo('2026-06-29 21:30:00');
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->assertTrue($contract->fresh()->is_active);
+        $this->assertSame(1, $position->fresh()->exist_emp);
+
+        // The night of the termination date ends it and frees the seat, once.
+        $this->travelTo('2026-06-30 21:30:00');
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->assertFalse($contract->fresh()->is_active);
+        $this->assertSame(0, $position->fresh()->exist_emp);
+        $this->assertSame($this->activeRealContracts($position), $position->fresh()->exist_emp);
+    }
+
+    public function test_a_termination_dated_today_or_by_reason_only_frees_the_seat_at_once(): void
+    {
+        $this->travelTo('2026-06-10 10:00:00');
+        $fixtures = $this->makeFixtures();
+        $position = $this->makePosition($fixtures, maxEmp: 2);
+        $today = $this->makeContract($fixtures, $position, 'terminated-today');
+        $byReason = $this->makeContract($fixtures, $position, 'terminated-by-reason');
+        $reason = TerminationReason::query()->create(['title_en' => 'Resigned', 'title_ar' => 'استقالة']);
+        $this->mock(LeaveBalanceService::class)->shouldReceive('create');
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractEdit::class, ['contract' => $today])
+            ->call('submit', $this->composerPayload($fixtures, $today, ['terminatedAt' => '2026-06-10']))
+            ->assertHasNoErrors();
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractEdit::class, ['contract' => $byReason])
+            ->call('submit', $this->composerPayload($fixtures, $byReason, ['terminationReasonId' => $reason->id]))
+            ->assertHasNoErrors();
+
+        $this->assertFalse($today->fresh()->is_active);
+        $this->assertFalse($byReason->fresh()->is_active);
+        $this->assertSame(0, $position->fresh()->exist_emp);
     }
 
     public function test_saving_a_terminated_contract_again_does_not_free_the_seat_twice(): void

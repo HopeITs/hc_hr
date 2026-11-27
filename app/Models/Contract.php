@@ -520,8 +520,24 @@ class Contract extends Model
     }
 
     /**
+     * Does a termination recorded with this date and reason end the contract
+     * at once? Yes when its date is today or past, or when only a reason is
+     * given. A future-dated one keeps the contract running (seat, card, roles)
+     * until that date; deactivate:contract ends it that night (R2-3, decided
+     * by HR). The rule ContractForm::saveTerms() and ContractEdit apply on save.
+     */
+    public static function terminationEndsNow(mixed $terminatedAt, mixed $terminationReasonId): bool
+    {
+        if (filled($terminatedAt)) {
+            return Carbon::parse($terminatedAt)->toDateString() <= today()->toDateString();
+        }
+
+        return filled($terminationReasonId);
+    }
+
+    /**
      * A termination is recorded by either half of it: the date, or the reason.
-     * Same rule ContractForm and ContractEdit use to deactivate on save.
+     * Whether it ends the contract today: terminationEndsNow().
      */
     public function isTerminated(): bool
     {

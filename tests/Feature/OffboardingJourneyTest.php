@@ -244,6 +244,51 @@ class OffboardingJourneyTest extends TestCase
         $this->assertSame(1, OffboardingJourney::query()->count());
     }
 
+    public function test_a_future_dated_termination_starts_the_journey_but_the_contract_runs_until_that_date(): void
+    {
+        $fixtures = $this->fixtures();
+        $volunteer = $this->volunteer($fixtures, 'exit.e4-ahead');
+        $contract = $this->contract($volunteer, $fixtures, today()->subMonths(3), today()->addMonths(3), ['auto_renew' => true]);
+        $terminatesOn = today()->addDays(10);
+
+        $this->actingAs($fixtures['hr']);
+        // What ContractForm / ContractEdit now write for a future date (R2-3).
+        $this->assertFalse(Contract::terminationEndsNow($terminatesOn->toDateString(), null));
+        $contract->update(['terminated_at' => $terminatesOn->toDateString()]);
+
+        $this->assertSame(OffboardingJourney::TRIGGER_TERMINATED, OffboardingJourney::query()->sole()->trigger);
+        $this->assertTrue($contract->fresh()->is_active, 'Still running until the termination date.');
+        $this->assertSame($terminatesOn->toDateString(), app(OffboardingJourneys::class)->departure($volunteer->fresh())['ended_on']->toDateString());
+
+        // The run the night before leaves everything in place.
+        $this->travelTo($terminatesOn->copy()->subDay()->setTime(21, 50));
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->artisan('employees:deactivate-departed')->assertSuccessful();
+        $this->assertTrue($contract->fresh()->is_active);
+        $this->assertTrue($volunteer->fresh()->is_active);
+
+        // The night of the date ends the contract; the volunteer leaves after the grace period, as before.
+        $this->travelTo($terminatesOn->copy()->setTime(21, 50));
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->artisan('employees:deactivate-departed')->assertSuccessful();
+        $this->assertFalse($contract->fresh()->is_active);
+        $this->assertTrue($volunteer->fresh()->is_active);
+
+        $this->travelTo($terminatesOn->copy()->addDays(7)->setTime(21, 50));
+        $this->artisan('employees:deactivate-departed')->assertSuccessful();
+        $this->assertFalse($volunteer->fresh()->is_active);
+        $this->assertSame(1, OffboardingJourney::query()->count());
+    }
+
+    public function test_a_termination_dated_today_or_by_reason_only_ends_the_contract_at_once(): void
+    {
+        $this->assertTrue(Contract::terminationEndsNow(today()->toDateString(), null));
+        $this->assertTrue(Contract::terminationEndsNow(today()->subDay()->toDateString(), 5));
+        $this->assertTrue(Contract::terminationEndsNow(null, 5));
+        $this->assertFalse(Contract::terminationEndsNow(today()->addDay()->toDateString(), 5));
+        $this->assertFalse(Contract::terminationEndsNow(null, null));
+    }
+
     public function test_a_contract_that_is_not_the_last_starts_no_journey(): void
     {
         $fixtures = $this->fixtures();
