@@ -1594,7 +1594,7 @@ document.addEventListener('alpine:init', () => {
         schedulePreview(lang) {
             const isAr = lang === 'ar';
             const dayNames = isAr ? DAY_NAMES_AR : DAY_NAMES_EN;
-            const emptyText = isAr ? 'لم يتم تحديد تفاصيل الدوام بعد.' : 'No schedule details selected yet.';
+            const emptyText = this.amending && lang !== this.locale ? '' : this.labels.schedulePreviewEmpty[lang];
 
             if (this.scheduleMode === '1') {
                 if (this.dayPickMode === 'days' ? this.pickedWorkdays.length === 0 : (this.workDayFrom === '' || this.workDayTo === '')) {
@@ -1877,7 +1877,7 @@ document.addEventListener('alpine:init', () => {
 
             return this.salary === '' || this.salaryError
                 ? this.labels.empty
-                : `${this.formatNumber(this.salary)} ${this.currencyLabel} ${this.salaryPerLabel}`;
+                : `${this.formatNumber(this.salary)} ${config.amendmentCurrencyLabels?.[this.currency] ?? this.currencyLabel} ${this.salaryPerLabel}`;
         },
 
         get cardLeave() {
