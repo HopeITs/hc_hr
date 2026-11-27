@@ -185,8 +185,9 @@
 {{-- Served as immutable for a year: the mtime query is what makes an edit reach browsers. --}}
 <script src="{{ asset('js/custom-scrollbar.js') }}?v={{ filemtime(public_path('js/custom-scrollbar.js')) }}" defer></script>
 {{-- A page open in the dashboard's workspace panel is an iframe: its "inbox changed" would never
-     reach the menu badge around it. Relay it to the parent page (same origin only). --}}
-<script>
+     reach the menu badge around it. Relay it to the parent page (same origin only).
+     The nonce is required: production enforces the CSP, and without it this never ran. --}}
+<script nonce="{{ Vite::cspNonce() }}">
     document.addEventListener('livewire:init', () => {
         const relayed = ['inbox-changed', 'notification-created'];
         if (window.parent !== window) {

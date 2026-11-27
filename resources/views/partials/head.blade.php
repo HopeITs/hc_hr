@@ -173,9 +173,12 @@
 @php($pwaSession = auth()->check() ? hash('sha256', auth()->id().'|'.auth()->user()->myRole().'|'.config('app.key')) : 'signed-out')
 {{-- The CSP allows inline scripts only with its nonce (SecurityHeaders).
      updateViaCache 'none' makes the browser fetch sw.js past its HTTP cache, and
-     update() checks for a new worker on every full load instead of once a day. --}}
+     update() checks for a new worker on every full load instead of once a day.
+     Only the top window registers: a page in the dashboard's workspace panel is a
+     same-origin iframe the parent's worker already controls, and each one fetching
+     sw.js again piled up "unknown error when fetching the script" on a slow server. --}}
 <script nonce="{{ Vite::cspNonce() }}">
-    if ('serviceWorker' in navigator && window.isSecureContext) {
+    if ('serviceWorker' in navigator && window.isSecureContext && window.self === window.top) {
         navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
             if (!window.__hopehrSwChecked) {
                 window.__hopehrSwChecked = true;
