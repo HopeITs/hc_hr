@@ -62,6 +62,51 @@ Do: show a one-line hint on the empty inbox ("You have HR work under the role HR
 "An unknown error occurred when fetching the script" appeared 3 times when opening the leave dialog. `docs/دليل-الاستخدام.md` (June) lacks attendance, recruitment, board, policies, journeys, amendments.
 Do: find the failing script requests (network tab), then update the guide module by module.
 
+## T13 — An unread policy can be required and agreed to
+**Priority:** high. **Depends on:** none.
+From R4 (docs/scenario-run-report-2026-11-26-policies-ar.md, finding 1): a PDF that failed to read was marked required and an employee agreed to it with no text shown. `PolicyAcknowledgements::required()` ignores `read_status`.
+Do: only `ready` documents with content are required or can be agreed to; disable the checkbox for the others; cover in PolicyFolderTest.
+
+## T14 — Onboarding policies page shows raw Markdown
+**Priority:** medium. **Depends on:** none.
+From R4 (findings 2, 4): `onboarding/policies` prints Markdown as text, and a replaced policy returns to "waiting" with no "new version" hint.
+Do: render with `PolicyRenderer` and the document direction; show "New version of {date}" when the last agreement is older than `source_modified_at`.
+
+## T15 — Policies folder: text files hidden, names with extension, no actions on failed policies
+**Priority:** medium. **Depends on:** none.
+From R4 (findings 3, 5, 6): `txt` is missing from `ArchivedFilesModule::ALLOWED_UPLOAD_EXTENSIONS`, renaming keeps the extension, failed policies have no Replace/Delete on the Policies page.
+Do: allow `txt` in the policy library, strip the extension on rename, add HR actions for failed policies.
+
+## T16 — Folders and policies: English labels and unnamed buttons
+**Priority:** low. **Depends on:** none.
+From R4 (finding 7): "Preview"/"Download" untranslated; icon buttons and policy card links have no accessible name.
+Do: translate, add `aria-label`s and link names, extend the bilingual/accessibility tests.
+
+## T17 — Gemini key on the server, and the PDF stories
+**Priority:** medium. **Depends on:** none.
+From R4 (finding 8): no `GEMINI_API_KEY` on the test host, so every PDF fails "unavailable"; the scanned-PDF story was not walked.
+Do: confirm the key on production with IT, then walk a text PDF and a scanned PDF where it is set.
+
+## T18 — Default application form is written for an IT post
+**Priority:** medium. **Depends on:** none.
+From R1 (docs/scenario-run-report-2026-11-26-hiring-ar.md, finding 1): `defaultFields()` asks "experience field: IT / programming / both" for every campaign.
+Do: a generic default, decided with HR; published versions stay frozen.
+
+## T19 — Login account for a new hire: contradictory hints, hidden control
+**Priority:** medium. **Depends on:** T9.
+From R1 (findings 2, 3): the conversion page and the journey point to different places (one of which cannot create accounts); the control is in the employee edit form's Contact tab; the new account's role is not active.
+Do: one "Create login account" action on the account step (conversion page and journey) through `EmployeeActivation::ensureAccount`, one correct text, an active role.
+
+## T20 — Conversion does not prefill the applicant's answers; profile before the start date reads "inactive"
+**Priority:** low. **Depends on:** none.
+From R1 (findings 4, 9): marital status and date of birth are typed again; a hire whose contract starts later shows "Contract status: inactive" and no department/center.
+Do: map both answers in `prefill`; show "Starts on {date}" with the signed contract's department/center.
+
+## T21 — Recruitment screens: too many confirmations, misplaced links, long people pickers
+**Priority:** low. **Depends on:** none.
+From R1 (findings 5–8, 10): three steps per status move; "Create offer"/"Schedule interview" second link jumps to an anchor; campaign application count is not a link; pickers list all staff with duplicates; time zone shown as Europe/Istanbul; offer draft save ~7 s.
+Do: one confirmation, correct links, a searchable picker, Damascus time zone, profile the save.
+
 ## R3 — Run the board-meeting stories live (14)
 **Depends on:** none. Chair, secretary, member and non-member; open/move/cancel, absence, minutes, follow-ups, archive upload, reminders, .ics, PDF.
 
