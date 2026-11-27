@@ -760,6 +760,7 @@ return [
     'collapse-sidebar' => 'Collapse sidebar',
     'expand-sidebar' => 'Expand sidebar',
     'contract-status' => 'Contract Status',
+    'contract-starts-on' => 'Starts on :date',
     'professional-information' => 'Role, team, reporting lines, and workplace details',
     'career-history' => 'Career History',
     'personal-information' => 'Personal Information',

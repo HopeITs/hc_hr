@@ -238,7 +238,7 @@ class RecruitmentHiringConversionTest extends TestCase
     {
         Notification::fake();
         [$application, , $conversion] = $this->accepted();
-        foreach (\Tests\Concerns\ApplicantNames::answers('Rami Haddad') as $key => $value) {
+        foreach ([...\Tests\Concerns\ApplicantNames::answers('Rami Haddad'), 'marital_status' => 'married', 'date_of_birth' => '1994-02-18'] as $key => $value) {
             $application->answers()->create(['form_version_id' => $application->form_version_id, 'field_key' => $key, 'answer_json' => ['value' => $value]]);
         }
 
@@ -252,6 +252,8 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertSame('جورج', $prefill['fatherNameAr']);
         $this->assertSame('ماري', $prefill['motherNameAr']);
         $this->assertNotSame('', $prefill['username']);
+        $this->assertSame((string) \App\Enums\MaritalStatus::Married, $prefill['maritalStatus']);
+        $this->assertSame('1994-02-18', $prefill['dob']);
     }
 
     /** An application made before the names were asked keeps the old split of the full name. */
@@ -265,6 +267,8 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertSame('Candidate', $prefill['firstNameEn']);
         $this->assertSame('One', $prefill['lastNameEn']);
         $this->assertSame('', $prefill['fatherNameAr']);
+        $this->assertSame('', $prefill['maritalStatus']);
+        $this->assertSame('', $prefill['dob']);
     }
 
     /** rules + avoid: the contract is built from the accepted version — never an earlier one, never the live offer. */
