@@ -184,6 +184,82 @@ class LeaveRequestWorkflowTest extends TestCase
         ]);
     }
 
+    /** T5: through the open dialog, in the order a person fills it, the chosen alternative is stored. */
+    #[DataProvider('t5FillOrders')]
+    public function test_t5_the_alternative_chosen_in_the_dialog_is_stored(string $order): void
+    {
+        [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
+        $alternativeEmployeeId = $this->createColleagueForLeave($existingLeave);
+        Notification::fake();
+
+        $dialog = Livewire::actingAs($employee)
+            ->test(MyLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
+            ->set('form.type', 'day');
+
+        $dates = fn ($c) => $c
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString());
+
+        $dialog = match ($order) {
+            'dates-then-alternative' => $dates($dialog)->set('form.alternative_employee', $alternativeEmployeeId),
+            // Deferred wire:model: the choice travels with the next request, as a string from the DOM.
+            'alternative-as-string' => $dates($dialog)->set('form.alternative_employee', (string) $alternativeEmployeeId),
+            // Chosen first, then the period typed: the list follows the period and must keep a free colleague.
+            'alternative-then-dates' => $dates($dialog->set('form.alternative_employee', $alternativeEmployeeId)),
+        };
+
+        $dialog->set('form.reason', 'Verify the stored alternative employee.')
+            ->call('confirmSave')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'leave_balance_id' => $existingLeave->leave_balance_id,
+            'reason' => 'Verify the stored alternative employee.',
+            'alternative_employee_id' => $alternativeEmployeeId,
+        ]);
+    }
+
+    /** T5: the control is a plain, labelled select (keyboard, screen readers, automation), and "none" stores null. */
+    public function test_t5_the_alternative_is_a_reachable_native_select_and_none_stores_null(): void
+    {
+        [$employee, $existingLeave] = $this->createRejectedLeaveFixture(null);
+        $alternativeEmployeeId = $this->createColleagueForLeave($existingLeave);
+        Notification::fake();
+
+        $dialog = Livewire::actingAs($employee)
+            ->test(MyLeaveRequestModule::class)
+            ->call('create')
+            ->set('form.leave_balance_id', $existingLeave->leave_balance_id)
+            ->set('form.type', 'day')
+            ->set('form.start_at', self::workingMonday()->toDateString())
+            ->set('form.end_at', self::workingMonday()->addDay()->toDateString());
+
+        $html = $dialog->html();
+        $this->assertMatchesRegularExpression('/<select[^>]*wire:model="form.alternative_employee"[^>]*id="alternative_employee"/', $html);
+        $this->assertMatchesRegularExpression('/<label[^>]*for="alternative_employee"/', $html);
+        $this->assertStringContainsString('<option value="">', $html);
+        $this->assertStringContainsString('<option value="'.$alternativeEmployeeId.'"', $html);
+        $this->assertStringNotContainsString('select2', substr($html, strpos($html, 'id="alternative_employee"') - 400, 800));
+
+        $dialog->set('form.alternative_employee', '')
+            ->set('form.reason', 'No cover needed.')
+            ->call('confirmSave')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', ['reason' => 'No cover needed.', 'alternative_employee_id' => null]);
+    }
+
+    public static function t5FillOrders(): array
+    {
+        return [
+            'dates then alternative' => ['dates-then-alternative'],
+            'alternative as a string' => ['alternative-as-string'],
+            'alternative then dates' => ['alternative-then-dates'],
+        ];
+    }
+
     public function test_employee_cannot_submit_leave_against_another_employees_balance(): void
     {
         [$employee] = $this->createRejectedLeaveFixture(

@@ -705,7 +705,7 @@ class LeaveRequestForm extends Form
             'start_at' => $this->start_at,
             'end_at' => $this->end_at,
             'reason' => $this->reason,
-            'alternative_employee_id' => $this->alternative_employee,
+            'alternative_employee_id' => $this->alternativeId(),
         ];
     }
 
@@ -753,6 +753,15 @@ class LeaveRequestForm extends Form
             'end_at.after_or_equal' => __('leaves.validation.end-before-start'),
             'start_at.after_or_equal' => __('leaves.validation.start-in-past'),
         ];
+    }
+
+    /**
+     * The alternative as stored: an id, or null for "none" (T5). A native
+     * select sends '' for its "Select" option and the id as a string.
+     */
+    private function alternativeId(): ?int
+    {
+        return filled($this->alternative_employee) ? (int) $this->alternative_employee : null;
     }
 
     /**
@@ -817,7 +826,7 @@ class LeaveRequestForm extends Form
                 'start_at' => $this->start_at ?? $this->combineDateTime($this->leave_date, $this->start_hour),
                 'end_at' => $this->end_at ?? $this->combineDateTime($this->leave_date, $this->end_hour),
                 'reason' => $this->reason,
-                'alternative_employee_id' => $this->alternative_employee,
+                'alternative_employee_id' => $this->alternativeId(),
                 'approved_by' => null,
                 'approved_at' => null,
                 'reject_reason' => null,
@@ -1409,7 +1418,7 @@ class LeaveRequestForm extends Form
             'start_at' => $this->start_at,
             'end_at' => $this->end_at,
             'reason' => $this->reason,
-            'alternative_employee_id' => $this->alternative_employee,
+            'alternative_employee_id' => $this->alternativeId(),
         ];
     }
 }

@@ -235,20 +235,19 @@
                                 :hint="__('examples.hints.leave_reason')" :hint-always="false"/>
                             <x-error-span>{{ $errors->first('form.reason') }}</x-error-span>
                         </div>
-                        {{-- The select2 keeps its options under wire:ignore: the period in the key rebuilds it when the list follows new dates. --}}
-                        <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}-{{ md5(json_encode([$form->type, $form->start_at, $form->end_at, $form->leave_date, $form->start_hour, $form->end_hour])) }}">
+                        {{-- T5: a native select, not select2 — select2 hid the real control from the keyboard,
+                             screen readers and automation, and its value was lost. The list is short (who is free). --}}
+                        <div class="md:col-span-2" wire:key="container-alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
                             <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
-                            <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
-                                <option
-                                    class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
-                                    @lang('general.select')
-                                </option>
+                            <x-forms.select-input wire:model="form.alternative_employee" id="alternative_employee" class="w-full"
+                                                  aria-describedby="alternative_employee_hint">
+                                <option value="">@lang('general.select')</option>
                                 @foreach($alternativeEmployees as $alternativeEmployee)
                                     @php($altTitle = $alternativeEmployee->relationLoaded('contracts') ? $alternativeEmployee->contracts->first()?->position?->title : null)
-                                    <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}{{ $altTitle ? ' · '.$altTitle : '' }}</option>
+                                    <option value="{{$alternativeEmployee->id}}" wire:key="alt-{{ $alternativeEmployee->id }}">{{$alternativeEmployee->name}}{{ $altTitle ? ' · '.$altTitle : '' }}</option>
                                 @endforeach
-                            </x-forms.select2-input>
-                            <p class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
+                            </x-forms.select-input>
+                            <p id="alternative_employee_hint" class="mt-1 text-small text-ink-2">{{ __('leaves.alternative.available-hint') }}</p>
                             <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
                         </div>
                     </div>

@@ -21,15 +21,13 @@
             </div>
             <div class="md:col-span-1" wire:key="alt-employee-{{ $form->leaveRequest ? 'edit' : 'new' }}">
                 <x-forms.input-label for="alternative_employee">{{__('general.alternative-employee')}}</x-forms.input-label>
-                <x-forms.select2-input wire:model="form.alternative_employee" id="alternative_employee">
-                    <option
-                        class="text-ink-3" @disabled($form->leaveRequest !== null) @selected($form->leaveRequest === null)>
-                        @lang('general.select')..
-                    </option>
+                {{-- T5: a native select, reachable by keyboard and screen readers (select2 hid it). --}}
+                <x-forms.select-input wire:model="form.alternative_employee" id="alternative_employee" class="w-full">
+                    <option value="">@lang('general.select')</option>
                     @foreach($alternativeEmployees as $alternativeEmployee)
-                        <option value="{{$alternativeEmployee->id}}">{{$alternativeEmployee->name}}</option>
+                        <option value="{{$alternativeEmployee->id}}" wire:key="alt-{{ $alternativeEmployee->id }}">{{$alternativeEmployee->name}}</option>
                     @endforeach
-                </x-forms.select2-input>
+                </x-forms.select-input>
                 <x-error-span>{{ $errors->first('form.alternative_employee') }}</x-error-span>
             </div>
 
