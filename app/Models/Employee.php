@@ -657,9 +657,20 @@ class Employee extends Model implements HasMedia
                 'is_active',
                 'is_board_member',
                 // D1: the owner edits these themself (profile-contract.md §5.1), so who
-                // changed them is kept. Not sensitive; contact fields are logged by name only.
+                // changed them is kept. Not sensitive.
                 'skills',
                 'interests',
+                // The owner edits their own contact too, so a change to one of
+                // these alone must still write an entry. They are in
+                // $sensitiveLogAttributes: the entry names the field, the value
+                // is written as [redacted].
+                'personal_phone',
+                'personal_email',
+                'address_ar',
+                'address_en',
+                'work_phone',
+                'whatsapp_work',
+                'telegram_work',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
