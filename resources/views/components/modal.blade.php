@@ -179,7 +179,7 @@
             let target = this.opener?.isConnected && ! this.opener.disabled
                 ? this.opener
                 : document.getElementById('main-content');
-            target?.focus();
+            target?.focus({ preventScroll: true });
         },
     }"
     x-trap.inert.noscroll.noautofocus="show"

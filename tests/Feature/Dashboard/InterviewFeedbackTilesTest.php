@@ -101,7 +101,7 @@ class InterviewFeedbackTilesTest extends TestCase
             ->assertSeeHtml('atd-feedback-'.$item->id);
     }
 
-    public function test_the_profile_drawer_offers_the_persons_contact_card(): void
+    public function test_the_profile_drawer_omits_the_add_to_dashboard_action(): void
     {
         $viewer = $this->makeUser($this->homs, 'employee', ['leaves.view-own']);
         $colleague = $this->makeEmployee($this->homs, 'colleague', ['is_active' => true]);
@@ -109,7 +109,7 @@ class InterviewFeedbackTilesTest extends TestCase
 
         Livewire::actingAs($viewer)->test(ProfileDrawer::class)
             ->call('openProfile', $colleague->id)
-            ->assertSeeHtml('atd-drawer-'.$colleague->id);
+            ->assertDontSeeLivewire(\App\Livewire\Dashboard\AddToDashboard::class);
 
         foreach (['tiles.item-interview', 'tiles.item-feedback', 'item.where'] as $text) {
             foreach (['en', 'ar'] as $locale) {
