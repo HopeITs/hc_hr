@@ -17,6 +17,8 @@ class BoardMeeting extends Model
 
     public const CANCELLED = 'cancelled';
 
+    public const NUMBER_LOCK = 'board-meetings:number';
+
     protected $fillable = [
         'number', 'starts_at', 'ends_at', 'location', 'room', 'purpose', 'led_by', 'status',
         'cancel_reason', 'reminded_at', 'published_at', 'prepared_by', 'created_by',

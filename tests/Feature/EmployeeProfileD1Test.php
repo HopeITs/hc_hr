@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BadgeType;
+use App\Enums\ContractType;
 use App\Enums\MaritalStatus;
 use App\Livewire\Employee\EmployeeProfile;
 use App\Models\City;
@@ -66,6 +67,27 @@ class EmployeeProfileD1Test extends TestCase
     }
 
     // ── AC-D1-01: photographs ────────────────────────────────────────────
+
+    public function test_hr_sees_the_next_signed_contract_and_its_assignment_before_it_starts(): void
+    {
+        $hr = $this->makeUser($this->aleppo, 'HR-ALP');
+        $hire = $this->makeEmployee($this->aleppo, 'upcoming-hire');
+        $position = $this->makePosition($this->aleppo);
+        $this->makeContractFor($hire, ['type' => ContractType::Draft, 'start_date' => '2026-10-28']);
+        $this->makeContractFor($hire, [
+            'position_id' => $position->id,
+            'type' => ContractType::FullTime,
+            'start_date' => '2026-11-02',
+        ]);
+
+        $this->profileAs($hr, $hire)
+            ->assertSee('Starts on 02 Nov 2026')
+            ->assertSee($position->department->name)
+            ->assertSee($position->center->name);
+
+        $colleague = $this->makeUser($this->aleppo, 'employee');
+        $this->profileAs($colleague, $hire)->assertDontSee('Starts on 02 Nov 2026');
+    }
 
     public function test_the_photo_uses_the_authorized_route_with_a_fallback(): void
     {
@@ -165,6 +187,41 @@ class EmployeeProfileD1Test extends TestCase
         $log = Activity::query()->where('subject_id', $fresh->id)->where('causer_id', $self->id)->latest('id')->first();
         $this->assertNotNull($log);
         $this->assertStringNotContainsString('0966666666', json_encode($log->properties));
+    }
+
+    public function test_a_self_edit_of_contact_alone_writes_a_redacted_entry(): void
+    {
+        $self = $this->makeUser($this->aleppo, 'employee', [], $this->lina);
+        $before = Activity::query()->where('subject_id', $this->lina->id)->where('causer_id', $self->id)->max('id') ?? 0;
+
+        $this->profileAs($self, $this->lina)->call('openSection', 'personal-contact')
+            ->set('sectionFields.personal_phone', '0966666666')
+            ->set('sectionFields.personal_email', 'lina.home@example.test')
+            ->call('saveSection')->assertHasNoErrors();
+
+        $this->profileAs($self, $this->lina->fresh())->call('openSection', 'work-contact')
+            ->set('sectionFields.telegram_work', '@lina_new')
+            ->call('saveSection')->assertHasNoErrors();
+
+        $logs = Activity::query()
+            ->where('subject_type', $this->lina->getMorphClass())->where('subject_id', $this->lina->id)
+            ->where('causer_id', $self->id)->where('id', '>', $before)
+            ->orderBy('id')->get();
+
+        $this->assertCount(2, $logs);
+
+        [$personal, $work] = $logs;
+        $this->assertSame('updated', $personal->event);
+        $this->assertSame(['personal_phone', 'personal_email'], $personal->properties['sensitive_fields_changed']);
+        $this->assertSame(['personal_phone' => '[redacted]', 'personal_email' => '[redacted]'], $personal->properties['attributes']);
+        // The old value is withheld too.
+        $this->assertSame('[redacted]', $personal->properties['old']['personal_phone']);
+        $this->assertSame(['telegram_work'], $work->properties['sensitive_fields_changed']);
+
+        $json = json_encode($logs->pluck('properties'));
+        foreach (['0966666666', '0922222222', 'lina.home@example.test', '@lina_new'] as $value) {
+            $this->assertStringNotContainsString($value, $json);
+        }
     }
 
     public function test_who_may_edit_which_section(): void

@@ -38,6 +38,7 @@ use App\Services\RecruitmentApplicationStatusService;
 use App\Services\RecruitmentHiringConversionService as Conversions;
 use App\Services\RecruitmentJobOfferService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -185,17 +186,28 @@ class RecruitmentHiringConversionTest extends TestCase
         // Colleagues are welcomed, as for any first contract.
         Notification::assertSentTo($this->hr, NewEmployeeWelcome::class);
 
-        // Point 4: the message says what is next — a login account on the
-        // employee page, or the contract — and its buttons open them.
+        // Point 4: the account step creates the login here instead of sending
+        // HR to another page and a hidden control.
         $page->assertDispatched('toast');
         // The guided flow after the hire: login account, ID card and welcome message are listed.
         $page->assertSee(__('recruitment-applicant.conversions.onboarding.title'))
             ->assertSeeHtml('data-step="account" data-done="0"')
+            ->assertSeeHtml('data-testid="create-login-account"')
             ->assertSeeHtml('data-step="card"')
             ->assertSeeHtml('data-step="welcome"');
-        $page->assertSee(route('employees.edit', $employee->id))
-            ->assertSee(__('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]))
-            ->call('openEmployee')
+        $page->call('createLoginAccount')
+            ->assertHasNoErrors()
+            ->assertSeeHtml('data-step="account" data-done="1"')
+            ->assertDontSeeHtml('data-testid="create-login-account"');
+
+        $account = $employee->fresh()->account;
+        $this->assertNotNull($account);
+        $this->assertSame('candidate.one@hcsyria.org', $account->email);
+        $this->assertSame('employee', $account->myRole());
+        $this->assertSame(1, $account->roles()->wherePivot('is_active', true)->count());
+        Notification::assertSentTo($account, ResetPassword::class);
+
+        $page->call('openEmployee')
             ->assertRedirect(route('employees.edit', $employee->id));
         Livewire::test(Convert::class, ['offerId' => $offer->id])
             ->call('openContract')
@@ -238,7 +250,7 @@ class RecruitmentHiringConversionTest extends TestCase
     {
         Notification::fake();
         [$application, , $conversion] = $this->accepted();
-        foreach (\Tests\Concerns\ApplicantNames::answers('Rami Haddad') as $key => $value) {
+        foreach ([...\Tests\Concerns\ApplicantNames::answers('Rami Haddad'), 'marital_status' => 'married', 'date_of_birth' => '1994-02-18'] as $key => $value) {
             $application->answers()->create(['form_version_id' => $application->form_version_id, 'field_key' => $key, 'answer_json' => ['value' => $value]]);
         }
 
@@ -252,6 +264,8 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertSame('جورج', $prefill['fatherNameAr']);
         $this->assertSame('ماري', $prefill['motherNameAr']);
         $this->assertNotSame('', $prefill['username']);
+        $this->assertSame((string) \App\Enums\MaritalStatus::Married, $prefill['maritalStatus']);
+        $this->assertSame('1994-02-18', $prefill['dob']);
     }
 
     /** An application made before the names were asked keeps the old split of the full name. */
@@ -265,6 +279,8 @@ class RecruitmentHiringConversionTest extends TestCase
         $this->assertSame('Candidate', $prefill['firstNameEn']);
         $this->assertSame('One', $prefill['lastNameEn']);
         $this->assertSame('', $prefill['fatherNameAr']);
+        $this->assertSame('', $prefill['maritalStatus']);
+        $this->assertSame('', $prefill['dob']);
     }
 
     /** rules + avoid: the contract is built from the accepted version — never an earlier one, never the live offer. */

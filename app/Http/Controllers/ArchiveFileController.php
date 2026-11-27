@@ -9,8 +9,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ArchiveFileController extends Controller
 {
-    private const ALLOWED_DOWNLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx'];
-
     public function preview(Media $media): BinaryFileResponse
     {
         $this->authorizeMediaAccess($media);
@@ -80,7 +78,7 @@ class ArchiveFileController extends Controller
 
     private function isAllowedStoredFile(Media $media): bool
     {
-        return in_array(strtolower($media->extension ?? ''), self::ALLOWED_DOWNLOAD_EXTENSIONS, true);
+        return in_array(strtolower($media->extension ?? ''), \App\Livewire\Archives\ArchivedFilesModule::ALLOWED_UPLOAD_EXTENSIONS, true);
     }
 
     private function safeContentType(Media $media): string

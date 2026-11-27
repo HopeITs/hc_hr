@@ -15,6 +15,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
+use Throwable;
 
 /**
  * The organisation's policies, for every signed-in employee: a box that
@@ -34,6 +35,12 @@ class Index extends Component
     #[Url(as: 'q', except: '')]
     public string $q = '';
 
+    public ?TemporaryUploadedFile $newPolicy = null;
+
+    public ?TemporaryUploadedFile $replacement = null;
+
+    public ?int $replacingId = null;
+
     /**
      * The Policies page is HR's and the general manager's (decided 2026-11-26);
      * everyone else reads the policies in Folders / Shared with me / Policies.
@@ -47,12 +54,6 @@ class Index extends Component
     {
         abort_unless(self::canOpen(auth()->user()), 403);
     }
-
-    public ?TemporaryUploadedFile $newPolicy = null;
-
-    public ?TemporaryUploadedFile $replacement = null;
-
-    public ?int $replacingId = null;
 
     public function updatedNewPolicy(PolicyFolder $folder): void
     {
@@ -116,7 +117,16 @@ class Index extends Component
             ->withCustomProperties(['validated_upload' => true, 'replaces_policy' => $document->id])
             ->toMediaCollection('archived_files', 'local');
 
-        $sync->replace($document, $new);
+        try {
+            $sync->replace($document, $new);
+        } catch (Throwable $e) {
+            // The policy still points at its old file: drop the one just stored so nothing is orphaned.
+            $new->delete();
+            report($e);
+            $this->addError('replacement', __('policies.replace-failed'));
+
+            return;
+        }
 
         $this->cancelReplace();
         $this->toast(__('policies.replaced'), 'success');
@@ -148,8 +158,9 @@ class Index extends Component
                 ->get(['id', 'media_id', 'title', 'mime_type', 'required_for_onboarding', 'source_modified_at', 'updated_at']),
             'outdated' => $employee ? $acknowledgements->outdatedFor($employee)->all() : [],
             'canManage' => $canManage,
+            'replacingTitle' => $this->replacingId !== null ? PolicyDocument::query()->whereKey($this->replacingId)->value('title') : null,
             'unfinished' => $canManage
-                ? PolicyDocument::query()->whereIn('read_status', [PolicyDocument::READING, PolicyDocument::FAILED])->orderBy('title')->get(['id', 'title', 'read_status', 'read_error'])
+                ? PolicyDocument::query()->whereIn('read_status', [PolicyDocument::READING, PolicyDocument::FAILED])->orderBy('title')->get(['id', 'media_id', 'title', 'read_status', 'read_error'])
                 : collect(),
         ])->title(__('policies.title'));
     }

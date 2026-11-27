@@ -36,7 +36,7 @@ class ArchivedFilesModule extends Component
     use ValidatesArchiveUploads, WithFeedback, WithFileUploads;
 
     /** Also read by DashboardLayout: a file card is only for a type this page shows. */
-    public const ALLOWED_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx'];
+    public const ALLOWED_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png', 'svg', 'pdf', 'docx', 'xlsx', 'pptx', 'txt'];
 
     /** The ?scope= value of "Shared with me"; anything else is "My folders". */
     public const SHARED_SCOPE = 'shared';
@@ -581,7 +581,7 @@ class ArchivedFilesModule extends Component
         $safeFile = $this->validateArchiveUpload($this->replacementFile);
 
         if (! PolicyFolder::isReadable($safeFile['extension'])) {
-            $this->addError('replacementFile', __('validation.mimes', ['attribute' => __('policies.replace'), 'values' => 'pdf, docx']));
+            $this->addError('replacementFile', __('validation.mimes', ['attribute' => __('policies.replace'), 'values' => implode(', ', PolicyFolder::READABLE)]));
 
             return;
         }
@@ -634,7 +634,7 @@ class ArchivedFilesModule extends Component
         $folder = $this->folderForMedia((int) $file->id);
         $this->authorizeFolderManagement($folder);
 
-        $newFileName = $this->safeDisplayFileName($this->editingFileName.'.'.$file->extension, $file->extension);
+        $newFileName = $this->renamedDisplayFileName($this->editingFileName, (string) $file->extension);
         $file->name = $newFileName;
         $file->save();
 

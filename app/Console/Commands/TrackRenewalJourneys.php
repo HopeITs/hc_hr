@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 /**
  * Renewal journey (DEC-09 increment 2, docs/ux/journeys.md §3.2): starts one
- * journey per contract that ends within 30 days and can renew, then settles
+ * journey per contract that ends within 30 days and needs a decision, then settles
  * the open ones the system finished since (an auto-renewal with its leave
  * balances, a termination). Runs after the evening auto-renewal so a renewal
  * made tonight completes its journey tonight. Idempotent: the unique contract
@@ -18,7 +18,7 @@ class TrackRenewalJourneys extends Command
 {
     protected $signature = 'renewals:track-journeys';
 
-    protected $description = 'Start renewal journeys 30 days before a contract ends, and settle the ones the system finished';
+    protected $description = 'Start journeys for contracts ending within 30 days that need a renewal decision, and settle finished journeys';
 
     public function handle(RenewalJourneys $journeys): int
     {

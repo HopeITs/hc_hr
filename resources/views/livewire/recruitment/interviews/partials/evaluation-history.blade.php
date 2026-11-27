@@ -7,7 +7,7 @@
                 <span class="font-normal text-secondary-medium">
                     &middot; v{{ $revision->version }}
                     &middot; {{ $revision->changedBy?->profile?->name ?? $revision->changedBy?->email ?? '—' }}
-                    &middot; {{ $revision->changed_at?->copy()->setTimezone($timezone ?? config('app.timezone'))->format('Y-m-d H:i') }}
+                    &middot; {{ $revision->changed_at?->copy()->setTimezone($timezone ?? \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE)->format('Y-m-d H:i') }}
                 </span>
             </p>
             @if ($revision->reason)

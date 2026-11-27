@@ -8,7 +8,7 @@
     $eyebrow = 'text-caption font-semibold uppercase tracking-wider text-secondary-medium';
     $countPill = 'inline-flex min-w-6 items-center justify-center rounded-full border border-neutral-200 bg-card px-2 py-0.5 text-caption font-semibold tabular-nums text-secondary-dark';
     $showUrl = fn ($id) => route('recruitment.interviews.show', ['interviewId' => $id]);
-    $zoned = fn ($interview, $date) => $date?->copy()->setTimezone($interview->timezone ?: $timezone);
+    $zoned = fn ($interview, $date) => $date?->copy()->setTimezone($timezone);
     $personName = fn ($participant) => $participant->user?->profile?->name ?? $participant->user?->email;
 
     if ($next) {
@@ -104,7 +104,7 @@
                                 <dd>
                                     <span class="sr-only">{{ $start->translatedFormat('l j F Y') }}</span>
                                     <time datetime="{{ $start->toIso8601String() }}" class="font-semibold tabular-nums">{{ $start->format('H:i') }}</time>@if ($end)&ndash;<time datetime="{{ $end->toIso8601String() }}" class="font-semibold tabular-nums">{{ $end->format('H:i') }}</time>@endif
-                                    <span class="mt-1 block text-caption text-secondary-medium">{{ __($t.'times_in', ['timezone' => $next->timezone ?: $timezone]) }}</span>
+                                    <span class="mt-1 block text-caption text-secondary-medium">{{ __($t.'times_in', ['timezone' => $timezone]) }}</span>
                                 </dd>
                             </div>
                             <div class="flex items-start gap-2">

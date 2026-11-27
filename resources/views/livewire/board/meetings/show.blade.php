@@ -186,7 +186,7 @@
     <section class="space-y-3 rounded-surface border border-line bg-card p-5" aria-labelledby="att-title">
         <h2 id="att-title" class="text-h4 font-bold text-ink">@lang('board.attendance.title')</h2>
 
-        @if($isMember && $meeting->isUpcoming() && ! $meeting->isPublished() && ! in_array($mine?->absence_request, ['pending', 'approved'], true))
+        @if($mayAskAbsence && $meeting->isUpcoming() && ! $meeting->isPublished() && ! in_array($mine?->absence_request, ['pending', 'approved'], true))
             <form wire:submit.prevent="requestAbsence" class="space-y-2 rounded-surface border border-line-soft bg-soft p-4" data-testid="board-absence-form">
                 <x-forms.input-label :value="__('board.absence.ask')" />
                 <x-forms.textarea wire:model="absenceReason" rows="2" :placeholder="__('board.absence.reason')" />
@@ -199,7 +199,14 @@
                 <span class="text-small text-ink-2">{{ $mine->absence_reason }}</span>
                 <x-button size="sm" variant="quiet" type="button" wire:click="withdrawAbsence">@lang('board.absence.withdraw')</x-button>
             </div>
+        @elseif($mine?->absence_request === 'approved' && $meeting->isUpcoming() && ! $meeting->isPublished())
+            <div class="flex flex-wrap items-center gap-3 rounded-surface border border-line-soft bg-soft p-4" data-testid="board-absence-approved">
+                <x-status tone="done" icon="check" :label="__('board.absence.approved')" />
+                <span class="text-small text-ink-2">{{ $mine->absence_reason }}</span>
+                <x-button size="sm" variant="quiet" type="button" wire:click="withdrawAbsence" wire:confirm="{{ __('board.absence.take-back-confirm') }}">@lang('board.absence.take-back')</x-button>
+            </div>
         @endif
+        @error('absence') <p class="text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
 
         @if($canWrite && ! $started)
             <p class="text-small text-ink-2">@lang('board.locks.attendance-before-start')</p>
@@ -391,7 +398,7 @@
                         </div>
                         <div>
                             <x-forms.input-label :value="__('board.minutes.follow-party')" />
-                            {{-- Pick a person from the list (they are told when the minutes come out), or type a department or body. --}}
+                            {{-- Pick a board member from the list (they are told when the minutes come out), or type a department, person or body. --}}
                             <input type="text" wire:model="followUpParty" list="board-people-{{ $meeting->id }}" autocomplete="off"
                                    class="w-full rounded-control border border-line bg-card px-3 py-2 text-ink" />
                             <datalist id="board-people-{{ $meeting->id }}">
@@ -419,10 +426,21 @@
                         <input type="checkbox" wire:model="sendEmail" class="rounded border-line">
                         @lang('board.minutes.send-email')
                     </label>
-                    <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ __('board.minutes.publish-confirm') }}">
-                        @lang('board.minutes.publish')
-                    </x-button>
-                    <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>
+                    @if($started)
+                        @if($unmarkedWarning)
+                            <p class="flex items-start gap-2 text-small font-semibold text-ink" role="status" data-testid="board-unmarked-warning">
+                                <x-ic name="warning" class="mt-0.5 size-4 shrink-0" />
+                                <span>{{ $unmarkedWarning }}</span>
+                            </p>
+                        @endif
+                        <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ $publishConfirm }}">
+                            @lang('board.minutes.publish')
+                        </x-button>
+                        <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>
+                        @error('publish') <p class="text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
+                    @else
+                        <p class="text-small text-ink-2" data-testid="board-publish-not-yet">@lang('board.locks.publish-before-start')</p>
+                    @endif
                 </div>
             @endif
         </section>

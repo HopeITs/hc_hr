@@ -64,8 +64,8 @@ class RenewalJourneys
     ) {}
 
     /**
-     * Start a journey for every contract that ends within START_DAYS days and
-     * could renew. A missed day is caught up on the next run. Returns how many
+     * Start a journey for every renewable contract that ends within START_DAYS
+     * days and needs an HR decision. A missed day is caught up on the next run. Returns how many
      * journeys were started.
      */
     public function startDue(?CarbonInterface $today = null): int
@@ -89,7 +89,7 @@ class RenewalJourneys
     /**
      * Contracts that need a journey: running, real (not a Draft reservation),
      * ending within the window, able to renew (not a trial, not terminated:
-     * Contract::canAutoRenew), with no journey yet and no successor already in
+     * Contract::canAutoRenew), auto-renewal off, with no journey yet and no successor already in
      * place (renewed early by hand: nothing left to decide).
      *
      * @return Builder<Contract>
@@ -103,6 +103,7 @@ class RenewalJourneys
 
         return Contract::query()
             ->where('contracts.is_active', true)
+            ->where('contracts.auto_renew', false)
             ->where(fn (Builder $q) => $q->whereNull('contracts.type')->orWhere('contracts.type', '!=', ContractTypeEnum::Draft))
             ->whereNull('contracts.terminated_at')
             ->whereNull('contracts.termination_reason_id')
@@ -130,7 +131,7 @@ class RenewalJourneys
      */
     public function startForContract(Contract $contract): ?RenewalJourney
     {
-        if (! $contract->canAutoRenew() || (int) $contract->type === ContractTypeEnum::Draft) {
+        if ($contract->auto_renew || ! $contract->canAutoRenew() || (int) $contract->type === ContractTypeEnum::Draft) {
             return null;
         }
 

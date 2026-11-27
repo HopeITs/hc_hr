@@ -194,6 +194,7 @@ class ContractAmend extends Component
     {
         $contract = $this->contract;
         $locale = app()->getLocale();
+        $weeklyHours = (int) $contract->weekly_hours;
         $digits = fn (string $s) => $locale === 'ar' ? ar_digits($s) : $s;
         $dayName = fn (int $d) => Carbon::now()->startOfWeek(Carbon::SUNDAY)->addDays($d)->translatedFormat('l');
 
@@ -222,7 +223,7 @@ class ContractAmend extends Component
         return [
             'type' => ContractTypeEnum::getLocalizedName((int) $contract->type)['value'],
             'workDays' => $workDays,
-            'hours' => (int) $contract->weekly_hours > 0 ? $digits(__('contracts.hours-short', ['count' => (int) $contract->weekly_hours])) : '—',
+            'hours' => $weeklyHours > 0 ? $digits(trans_choice('contracts.hours-short', $weeklyHours)) : '—',
             'salary' => $salary,
         ];
     }

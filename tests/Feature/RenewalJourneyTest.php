@@ -6,6 +6,7 @@ use App\Console\Commands\SendContractExpirationWarnings;
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Enums\LeaveTypeCases;
 use App\Livewire\Employee\RenewalJourneyPanel;
+use App\Livewire\Inbox\Index as Inbox;
 use App\Models\AnnualLeaveRule;
 use App\Models\Center;
 use App\Models\Contract;
@@ -60,8 +61,8 @@ class RenewalJourneyTest extends TestCase
 
     public function test_the_journey_starts_once_thirty_days_before_the_end_and_not_for_trial_terminated_or_draft(): void
     {
-        $due = $this->contract('due', ['end_date' => '2026-10-25']);
-        $later = $this->contract('later', ['end_date' => '2026-11-01']); // 31 days out today
+        $due = $this->contract('due', ['end_date' => '2026-10-25', 'auto_renew' => false]);
+        $later = $this->contract('later', ['end_date' => '2026-11-01', 'auto_renew' => false]); // 31 days out today
         $trial = $this->contract('trial', ['end_date' => '2026-10-20', 'contract_type_id' => $this->f['trialType']->id]);
         $terminated = $this->contract('terminated', ['end_date' => '2026-10-20', 'terminated_at' => '2026-09-30']);
         $draft = $this->contract('draft', ['end_date' => '2026-10-20', 'type' => ContractTypeEnum::Draft]);
@@ -89,7 +90,7 @@ class RenewalJourneyTest extends TestCase
 
     public function test_a_contract_already_renewed_by_hand_gets_no_journey(): void
     {
-        $source = $this->contract('early', ['end_date' => '2026-10-25']);
+        $source = $this->contract('early', ['end_date' => '2026-10-25', 'auto_renew' => false]);
         $this->successor($source);
 
         $this->artisan('renewals:track-journeys')->assertSuccessful();
@@ -191,8 +192,7 @@ class RenewalJourneyTest extends TestCase
     {
         $this->seedLeaveConfiguration();
         $contract = $this->contract('renew', ['end_date' => '2026-10-25']);
-        $this->artisan('renewals:track-journeys')->assertSuccessful();
-        $journey = RenewalJourney::query()->sole();
+        $journey = $this->journey($contract);
 
         $this->panel($this->f['hr'], $journey->employee)->call('decideRenew', $journey->id);
 
@@ -472,7 +472,7 @@ class RenewalJourneyTest extends TestCase
 
     public function test_an_undecided_renewal_waits_in_the_city_hr_work_inbox(): void
     {
-        $contract = $this->contract('inbox', ['end_date' => '2026-10-05']);
+        $contract = $this->contract('inbox', ['end_date' => '2026-10-05', 'auto_renew' => false]);
         $this->artisan('renewals:track-journeys')->assertSuccessful();
         $journey = RenewalJourney::query()->sole();
 
@@ -492,6 +492,57 @@ class RenewalJourneyTest extends TestCase
         $this->assertSame($contract->id, $journey->contract_id);
     }
 
+    public function test_year_end_batch_opens_and_lists_only_contracts_requiring_a_decision(): void
+    {
+        $this->travelTo('2026-12-01 21:45:00');
+        $this->f['position']->forceFill(['max_emp' => 236])->save();
+
+        for ($number = 1; $number <= 236; $number++) {
+            $this->contract("year-end-{$number}", ['auto_renew' => $number < 236]);
+        }
+
+        $this->artisan('renewals:track-journeys')
+            ->expectsOutput('Started 1 renewal journey(s); settled 0.')
+            ->assertSuccessful();
+
+        $journey = RenewalJourney::query()->sole();
+        $this->assertFalse($journey->contract->auto_renew);
+
+        Livewire::actingAs($this->f['hr'])->test(Inbox::class)
+            ->call('setFilter', 'journey')
+            ->assertViewHas('counts', fn (array $counts): bool => $counts['journey'] === 1)
+            ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 1 && $rows->every(
+                fn (array $row): bool => $row['source'] === 'renewal' && $row['due']->toDateString() === '2026-12-31',
+            ))
+            ->assertDontSeeHtml('data-testid="inbox-capped"');
+    }
+
+    public function test_existing_journey_waits_in_hr_inbox_only_while_auto_renewal_is_off(): void
+    {
+        $contract = $this->contract('existing-auto', ['end_date' => '2026-10-25']);
+        $journey = $this->journey($contract);
+        $inbox = app(WorkInbox::class);
+
+        $this->assertSame(0, $inbox->snapshot($this->f['hr'])['counts']['journey']);
+        $this->assertModelExists($journey);
+
+        app(ContractAutoRenewalService::class)->setAutoRenew($contract->fresh(), false, $this->f['hr']);
+
+        $this->assertSame($journey->id, $inbox->rows($this->f['hr'])->sole('source', 'renewal')['id']);
+    }
+
+    public function test_turning_off_auto_renewal_in_the_window_makes_a_contract_eligible_for_a_journey(): void
+    {
+        $contract = $this->contract('switch-to-manual', ['end_date' => '2026-10-25']);
+        $journeys = app(RenewalJourneys::class);
+        $this->assertNull($journeys->startForContract($contract->fresh()));
+
+        app(ContractAutoRenewalService::class)->setAutoRenew($contract->fresh(), false, $this->f['hr']);
+        $this->artisan('renewals:track-journeys')->assertSuccessful();
+
+        $this->assertSame($contract->id, RenewalJourney::query()->sole()->contract_id);
+    }
+
     private function panel(User $user, Employee $employee): Testable
     {
         return Livewire::actingAs($user)->test(RenewalJourneyPanel::class, ['employee' => $employee]);
@@ -499,10 +550,12 @@ class RenewalJourneyTest extends TestCase
 
     private function journey(Contract $contract): RenewalJourney
     {
-        $journey = app(RenewalJourneys::class)->startForContract($contract->fresh());
-        $this->assertNotNull($journey);
-
-        return $journey->load('employee', 'contract');
+        // Existing records can predate the automatic-renewal exclusion.
+        return RenewalJourney::query()->forceCreate([
+            'contract_id' => $contract->id,
+            'employee_id' => $contract->employee_id,
+            'started_at' => now(),
+        ])->load('employee', 'contract');
     }
 
     /** @return array<string, string> step key => state */

@@ -9,7 +9,7 @@
     $status = $interview->status;
     $showUrl = route('recruitment.interviews.show', ['interviewId' => $interview->id]);
 
-    $zone = $interview->timezone ?: $timezone;
+    $zone = $timezone;
     $start = $interview->scheduled_at->copy()->setTimezone($zone);
     $end = $interview->ends_at?->copy()->setTimezone($zone);
     $underWay = $lane === 'upcoming' && $end !== null && $interview->scheduled_at->lte(now()) && $interview->ends_at->isFuture();

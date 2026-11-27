@@ -46,6 +46,8 @@ class ArchiveImport extends Component
     {
         abort_unless($this->allowed(), 403);
 
+        app(BoardArchiveImporter::class)->ensureOpen();
+
         $this->validate(['files' => ['required', 'array', 'max:20'], 'files.*' => ['file', 'mimes:pdf,docx,doc', 'max:20480']], [], [
             'files.*' => __('board.archive.file'),
         ]);
@@ -111,7 +113,7 @@ class ArchiveImport extends Component
             ], auth()->user());
         } catch (ValidationException $e) {
             foreach ($e->errors() as $field => $messages) {
-                $this->addError("rows.$i.$field", $messages[0]);
+                $this->addError($field === 'archive' ? $field : "rows.$i.$field", $messages[0]);
             }
 
             return;
@@ -149,9 +151,11 @@ class ArchiveImport extends Component
         unset($this->rows[$i], $this->files[$i], $this->texts[$i]);
     }
 
-    public function render()
+    public function render(): \Illuminate\View\View
     {
-        return view('livewire.board.meetings.archive-import');
+        return view('livewire.board.meetings.archive-import', [
+            'archiveOpen' => app(BoardArchiveImporter::class)->isOpen(),
+        ]);
     }
 
     /** The secretary keeps the minutes, old ones included. */

@@ -46,7 +46,7 @@
                     <label for="file-upload" class="hc-btn hc-btn--outline cursor-pointer max-sm:min-w-11 max-sm:px-3">
                         <x-icons.upload class="size-5" />
                         <span class="max-sm:sr-only">{{ __('general.upload_files') }}</span>
-                        <input x-ref="fileInput" id="file-upload" wire:model.live="filesToUpload" type="file" class="sr-only" multiple accept=".jpg,.jpeg,.png,.svg,.pdf,.docx,.xlsx,.pptx">
+                        <input x-ref="fileInput" id="file-upload" wire:model.live="filesToUpload" type="file" class="sr-only" multiple accept=".jpg,.jpeg,.png,.svg,.pdf,.docx,.xlsx,.pptx,.txt">
                     </label>
                 @endif
             </div>
@@ -82,7 +82,7 @@
         <div class="mt-3 space-y-2 rounded-surface border border-ink bg-card p-4" data-testid="policy-replace">
             <p class="text-small text-ink">{{ __('policies.replace-hint', ['name' => $replacingName]) }}</p>
             <div class="flex flex-wrap items-center gap-2">
-                <input type="file" wire:model="replacementFile" accept=".pdf,.docx" class="text-small text-ink" data-testid="policy-replace-file">
+                <input type="file" wire:model="replacementFile" accept=".pdf,.docx,.txt" class="text-small text-ink" data-testid="policy-replace-file">
                 <x-button variant="quiet" size="sm" wire:click="cancelReplacePolicyFile">{{ __('general.cancel') }}</x-button>
                 <span class="text-small text-ink-2" wire:loading wire:target="replacementFile">…</span>
             </div>
@@ -117,7 +117,7 @@
                 <div class="text-center">
                     <x-icons.upload class="mx-auto size-10 text-ink-3" />
                     <p class="mt-2 text-body font-semibold text-ink">Drop files here to upload</p>
-                    <p class="text-small text-ink-2">JPG, PNG, SVG, PDF, DOCX, XLSX and PPTX files are supported</p>
+                    <p class="text-small text-ink-2">JPG, PNG, SVG, PDF, DOCX, XLSX, PPTX and TXT files are supported</p>
                 </div>
             </div>
         @endif

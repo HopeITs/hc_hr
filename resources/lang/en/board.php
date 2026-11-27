@@ -44,6 +44,11 @@ return [
         'ask' => 'Can’t attend? Tell the chair why.', 'reason' => 'Reason', 'send' => 'Send the request',
         'reason-required' => 'Write the reason.', 'sent' => 'Your request was sent.',
         'waiting' => 'Your request waits for the chair.', 'pending' => 'Asks to be absent',
+        'approved' => 'The chair approved your absence.', 'take-back' => 'I can attend after all',
+        'take-back-confirm' => 'Take back your approved absence? You will be expected at the meeting and the chair is told.',
+        'taken-back' => 'You are expected at the meeting again; the chair is told.',
+        'too-late' => 'The meeting has begun: an approved absence can no longer be taken back.',
+        'not-pending' => 'This member has no absence request waiting for a decision.',
         'approve' => 'Approve', 'reject' => 'Decline',
     ],
     'attendance' => [
@@ -60,7 +65,9 @@ return [
         'follow-required' => 'Required', 'no-follow-ups' => 'Nothing to follow up.', 'add-follow-up' => 'Add the row',
         'prepared-by' => 'Prepared by', 'send-email' => 'Also email the minutes (PDF attached) to the board',
         'publish' => 'Publish the minutes', 'publish-again' => 'Publish again',
-        'publish-help' => 'Publishing is final: the minutes, the attendance and the meeting cannot be changed afterwards. Every board member is told to read them.', 'publish-confirm' => 'Publish the minutes? They cannot be edited afterwards.', 'final' => 'The minutes are published and can no longer be changed.',
+        'publish-help' => 'Publishing is final: the minutes, the attendance and the meeting cannot be changed afterwards. Every board member is told to read them.', 'publish-confirm' => 'Publish the minutes? They cannot be edited afterwards.',
+        'unmarked-warning' => ':count attendee has no attendance marked yet: :names.|:count attendees have no attendance marked yet: :names.',
+        'unmarked-confirm' => ':count attendee has no attendance marked (:names) and will stay "expected" in the minutes. Publish anyway? They cannot be edited afterwards.|:count attendees have no attendance marked (:names) and will stay "expected" in the minutes. Publish anyway? They cannot be edited afterwards.', 'final' => 'The minutes are published and can no longer be changed.',
         'published' => 'The minutes are published and the board is told.',
         'published-emailed' => 'The minutes are published and emailed to the board.',
         'remove-confirm' => 'Remove it?', 'pdf-failed' => 'The PDF could not be made right now. Try again in a moment.',
@@ -69,6 +76,7 @@ return [
         'started-date' => 'The meeting has begun: its date stays as it was.',
         'started-cancel' => 'A meeting that has begun cannot be cancelled.',
         'attendance-before-start' => 'Attendance is recorded from the meeting’s time.',
+        'publish-before-start' => 'The minutes can be published once the meeting has been held.',
     ],
     'reopen' => [
         'title' => 'Reopen the minutes', 'help' => 'Takes the published minutes back to a draft to correct them. Members no longer see them until they are published again; the reason is kept.',
@@ -81,7 +89,7 @@ return [
         'status' => ['open' => 'Open', 'done' => 'Done', 'carried' => 'Carried forward'],
         'mark-done' => 'Mark done', 'reopen' => 'Open again', 'carry' => 'Carry into this meeting', 'carried' => 'Carried into this meeting.',
         'earlier-title' => 'Still open from earlier meetings', 'earlier-help' => 'Close what is done, or carry it into this meeting’s table.',
-        'party-hint' => 'Pick a board member from the list (they are told when the minutes come out), or type a department, body or anyone else (kept as written, not told).',
+        'party-hint' => 'Pick a board member from the list (they are told when the minutes come out), or type a department, person or body as written.',
         'linked' => 'told by notification',
     ],
     'tile' => [
@@ -93,6 +101,7 @@ return [
         'results' => 'Found in :count meeting(s)', 'none' => 'Nothing found in the minutes.',
     ],
     'archive' => [
+        'closed' => 'Archive uploads close once the first board meeting is scheduled in the system.',
         'open' => 'Upload earlier minutes', 'title' => 'Minutes from before the system',
         'help' => 'Upload the minutes of meetings held before the system (PDF or Word). Each file is read on the server for its number, date and times; check them, then save. Nobody is notified.',
         'choose' => 'Choose the files', 'types' => 'PDF or Word, up to 20 files at a time', 'file' => 'Minutes file', 'reading' => 'Reading the files…',
@@ -105,7 +114,7 @@ return [
         'duplicate' => 'Meeting :number is already in the archive.',
         'badge' => 'From the archive', 'download' => 'Download the original',
         'word-note' => 'The original is a Word file; its text is shown below and the file can be downloaded.',
-        'remove' => 'Remove this upload', 'remove-confirm' => 'Remove these minutes and their file? Upload them again if needed.',
+        'remove' => 'Remove this upload', 'remove-confirm' => 'Remove these minutes and their file?',
         'removed' => 'The upload was removed.',
     ],
 ];

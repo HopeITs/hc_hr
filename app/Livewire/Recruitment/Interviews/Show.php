@@ -219,22 +219,6 @@ class Show extends Component
         ]);
     }
 
-    private function openPanel(string $panel): void
-    {
-        $interview = $this->resolveInterview();
-        Gate::authorize('manage', $interview);
-        abort_unless($interview->isOpen(), 403);
-
-        $this->closePanel();
-        $this->panel = $panel;
-        $this->panelOpen = true;
-        $this->expectedStatus = $interview->status;
-        $this->expectedStartsAt = $interview->scheduled_at->toIso8601String();
-        $this->markClean('interviewActionModal');
-
-        $this->dispatch('focus-element', id: 'interview-panel-title');
-    }
-
     /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
     protected function guardedDialogs(): array
     {
@@ -255,6 +239,22 @@ class Show extends Component
     protected function closeGuardedDialog(string $dialog): void
     {
         $this->dismissPanel();
+    }
+
+    private function openPanel(string $panel): void
+    {
+        $interview = $this->resolveInterview();
+        Gate::authorize('manage', $interview);
+        abort_unless($interview->isOpen(), 403);
+
+        $this->closePanel();
+        $this->panel = $panel;
+        $this->panelOpen = true;
+        $this->expectedStatus = $interview->status;
+        $this->expectedStartsAt = $interview->scheduled_at->toIso8601String();
+        $this->markClean('interviewActionModal');
+
+        $this->dispatch('focus-element', id: 'interview-panel-title');
     }
 
     private function closePanel(): void

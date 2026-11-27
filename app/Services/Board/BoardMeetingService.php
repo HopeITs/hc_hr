@@ -12,6 +12,7 @@ use App\Notifications\BoardMeetingNotice;
 use App\Services\ContractPdfRenderer;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -27,23 +28,25 @@ class BoardMeetingService
     /** @param array{starts_at: mixed, ends_at?: mixed, location?: ?string, room?: ?string, purpose?: ?string, led_by?: ?string} $data */
     public function schedule(array $data, ?User $by = null, bool $notify = true): BoardMeeting
     {
-        $meeting = DB::transaction(function () use ($data, $by) {
-            $meeting = BoardMeeting::create([
-                'number' => BoardMeeting::nextNumber(),
-                'starts_at' => $data['starts_at'],
-                'ends_at' => $data['ends_at'] ?? null,
-                'location' => $data['location'] ?? config('board.default_location'),
-                'room' => $data['room'] ?? null,
-                'purpose' => $data['purpose'] ?? null,
-                // The chair leads it unless told otherwise.
-                'led_by' => $data['led_by'] ?? $this->chairName(),
-                'status' => BoardMeeting::SCHEDULED,
-                'created_by' => $by?->id,
-            ]);
+        $meeting = Cache::lock(BoardMeeting::NUMBER_LOCK, 60)->block(10, function () use ($data, $by): BoardMeeting {
+            return DB::transaction(function () use ($data, $by): BoardMeeting {
+                $meeting = BoardMeeting::create([
+                    'number' => BoardMeeting::nextNumber(),
+                    'starts_at' => $data['starts_at'],
+                    'ends_at' => $data['ends_at'] ?? null,
+                    'location' => $data['location'] ?? config('board.default_location'),
+                    'room' => $data['room'] ?? null,
+                    'purpose' => $data['purpose'] ?? null,
+                    // The chair leads it unless told otherwise.
+                    'led_by' => $data['led_by'] ?? $this->chairName(),
+                    'status' => BoardMeeting::SCHEDULED,
+                    'created_by' => $by?->id,
+                ]);
 
-            $this->syncAttendees($meeting);
+                $this->syncAttendees($meeting);
 
-            return $meeting;
+                return $meeting;
+            });
         });
 
         if ($notify) {
@@ -142,7 +145,11 @@ class BoardMeetingService
             throw ValidationException::withMessages(['cancelReason' => __('board.locks.started-cancel')]);
         }
 
-        $meeting->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => $reason]);
+        DB::transaction(function () use ($meeting, $reason) {
+            $meeting->update(['status' => BoardMeeting::CANCELLED, 'cancel_reason' => $reason]);
+            $this->returnCarriedIn($meeting);
+        });
+
         $this->tell($meeting, BoardMeetingNotice::CANCELLED, $reason);
     }
 
@@ -218,34 +225,76 @@ class BoardMeetingService
         return $attendee;
     }
 
-    /** A member takes back a request the chair has not answered yet. */
-    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): void
+    /**
+     * A member takes back their absence request: one the chair has not answered yet, or an approved one while the
+     * meeting is still ahead (they are expected again). Either way the chair is told.
+     *
+     * @return string|null the request that was taken back (pending / approved), or null when there was none
+     */
+    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): ?string
     {
         $this->assertOpen($meeting);
 
-        $meeting->attendees()
+        $attendee = $meeting->attendees()
             ->where('employee_id', $employee->id)
-            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
-            ->update(['absence_request' => null, 'absence_reason' => null]);
+            ->whereIn('absence_request', [BoardMeetingAttendee::REQUEST_PENDING, BoardMeetingAttendee::REQUEST_APPROVED])
+            ->first();
+
+        if (! $attendee) {
+            return null;
+        }
+
+        $was = $attendee->absence_request;
+
+        if ($was === BoardMeetingAttendee::REQUEST_APPROVED) {
+            // Once the meeting has begun the secretary's record stands: an approved absence is taken back only before.
+            if (! $meeting->isUpcoming()) {
+                throw ValidationException::withMessages(['absence' => __('board.absence.too-late')]);
+            }
+
+            $attendee->status = BoardMeetingAttendee::EXPECTED;
+        }
+
+        $attendee->fill(['absence_request' => null, 'absence_reason' => null, 'absence_decided_at' => null])->save();
+
+        foreach ($this->access->holders(BoardAccess::MANAGE) as $chair) {
+            $chair->notify(BoardMeetingNotice::for(BoardMeetingNotice::ABSENCE_WITHDRAWN, $meeting, $employee->name));
+        }
+
+        return $was;
     }
 
-    /** The chair approves (the member is listed as absent) or turns the request down. */
+    /**
+     * The chair approves (the member is listed as absent) or turns the request down. Only a request still waiting
+     * can be decided: none at all, one already answered or one the member took back is refused, so a stale page or a
+     * hand-made call cannot mark someone absent who never asked, or flip an earlier answer.
+     */
     public function decideAbsence(BoardMeetingAttendee $attendee, bool $approve): void
     {
         $this->assertOpen($attendee->meeting);
 
-        $attendee->update([
-            'absence_request' => $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
-            'absence_decided_at' => now(),
-            'status' => $approve ? BoardMeetingAttendee::ABSENT : $attendee->status,
-        ]);
+        $decided = $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED;
+        $changes = ['absence_request' => $decided, 'absence_decided_at' => now()]
+            + ($approve ? ['status' => BoardMeetingAttendee::ABSENT] : []);
+
+        // Conditional on the row still being pending, so two decisions racing each other cannot both land.
+        $updated = BoardMeetingAttendee::query()
+            ->whereKey($attendee->getKey())
+            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
+            ->update($changes);
+
+        if ($updated === 0) {
+            throw ValidationException::withMessages(['absence' => __('board.absence.not-pending')]);
+        }
+
+        $attendee->refresh();
 
         $attendee->loadMissing('employee.account', 'meeting');
 
         $attendee->employee?->account?->notify(BoardMeetingNotice::for(
             BoardMeetingNotice::ABSENCE_DECIDED,
             $attendee->meeting,
-            $approve ? 'approved / تمت الموافقة' : 'not approved / لم تتم الموافقة',
+            $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
         ));
     }
 
@@ -253,6 +302,12 @@ class BoardMeetingService
     public function publish(BoardMeeting $meeting, User $by, bool $email = false): void
     {
         $this->assertOpen($meeting);
+
+        // Minutes record a meeting that took place: before its time there is nothing to minute, and publishing would
+        // lock a meeting the chair may still need to move or cancel (same rule as attendance).
+        if (! $meeting->hasStarted()) {
+            throw ValidationException::withMessages(['publish' => __('board.locks.publish-before-start')]);
+        }
 
         $meeting->update([
             'published_at' => now(),
@@ -404,12 +459,35 @@ class BoardMeetingService
             ->first();
     }
 
-    /** Each person named on a follow-up row hears once, when the minutes come out, what waits on them. */
+    /**
+     * A cancelled meeting's minutes are never published, so rows carried into it would drop out of
+     * openFromEarlier(): each open copy is removed and its source is open again, offered to the next meeting.
+     */
+    private function returnCarriedIn(BoardMeeting $meeting): void
+    {
+        $meeting->followUps()
+            ->whereNotNull('carried_from_id')
+            ->where('status', BoardMeetingFollowUp::OPEN)
+            ->with('carriedFrom')
+            ->get()
+            ->each(function (BoardMeetingFollowUp $copy) {
+                $copy->carriedFrom?->update(['status' => BoardMeetingFollowUp::OPEN]);
+                $copy->delete();
+            });
+    }
+
+    /** Each board member named on a follow-up row hears once, when the minutes come out, what waits on them. */
     private function tellFollowUpOwners(BoardMeeting $meeting): void
     {
         $rows = $meeting->followUps()->whereNotNull('employee_id')->whereNull('notified_at')->with('employee.account')->get();
+        $members = $this->access->currentMembers()->pluck('employees.id')->map(fn ($id) => (int) $id)->all();
 
         foreach ($rows as $row) {
+            // Linked while on the board but no longer on it: the notice would point at minutes they cannot open.
+            if (! in_array((int) $row->employee_id, $members, true)) {
+                continue;
+            }
+
             $row->employee?->account?->notify(BoardMeetingNotice::for(BoardMeetingNotice::FOLLOW_UP, $meeting, $row->topic));
             $row->update(['notified_at' => now()]);
         }

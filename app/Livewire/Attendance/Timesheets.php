@@ -6,7 +6,6 @@ use App\Livewire\Concerns\AuthorizesActivePermissions;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\AttendanceDayDecision;
 use App\Models\AttendanceMonth;
-use App\Models\AttendancePunch;
 use App\Models\Employee;
 use App\Models\MailList;
 use App\Services\Attendance\Grouping;

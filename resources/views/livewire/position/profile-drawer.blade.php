@@ -212,12 +212,8 @@
                 </div>
             </div>
 
-            {{-- Footer actions stay visible while the details scroll: this person's work contact on the
-                 viewer's dashboard (rec.contact.<id>; the org chart's cards open this drawer), and the profile. --}}
+            {{-- Footer actions stay visible while the details scroll. --}}
             <div class="shrink-0 space-y-2 border-t border-line-soft bg-card/95 px-4 py-4 shadow-e2 backdrop-blur sm:px-6">
-                <div class="flex justify-center">
-                    <livewire:dashboard.add-to-dashboard :tile="\App\Support\Dashboard\DashboardLayout::recordKey('contact', $employee->id)" :key="'atd-drawer-'.$employee->id" />
-                </div>
                 <div class="flex justify-center">
                     <x-message-template-menu :employee="$employee" />
                 </div>

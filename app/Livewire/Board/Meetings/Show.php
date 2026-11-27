@@ -7,6 +7,7 @@ use App\Models\BoardMeeting;
 use App\Models\BoardMeetingAttendee;
 use App\Models\BoardMeetingFollowUp;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\Board\BoardAccess;
 use App\Services\Board\BoardMeetingService;
 use App\Services\Board\BoardMinutesView;
@@ -143,13 +144,16 @@ class Show extends Component
         $this->toast(__('board.saved'));
     }
 
-    /** A member asks the chair to excuse them (self only; the meeting must still be ahead). */
+    /**
+     * A member asks the chair to excuse them (self only; the meeting must still be ahead). The chair is a member
+     * too, but would be asking themself: they record their own absence like anyone else's.
+     */
     public function requestAbsence(): void
     {
         $user = auth()->user();
         $meeting = $this->meeting();
 
-        abort_unless($this->access()->isMember($user) && $meeting->isUpcoming() && ! $meeting->isPublished(), 403);
+        abort_unless($this->mayAskAbsence($user) && $meeting->isUpcoming() && ! $meeting->isPublished(), 403);
 
         $this->validate(['absenceReason' => ['required', 'string', 'max:2000']], [], ['absenceReason' => __('board.absence.reason')]);
 
@@ -282,8 +286,8 @@ class Show extends Component
             'topic' => $this->followUpTopic,
             'required' => $this->followUpRequired ?: null,
             'party' => $party ?: null,
-            // A name picked from the list is that employee (told when the minutes come out); anything else is a
-            // department or a body outside, kept as written.
+            // A name picked from the list is that board member (told when the minutes come out); anything else
+            // (a department, someone off the board, a body outside) is kept as written.
             'employee_id' => $party !== '' ? $this->employeeNamed($party) : null,
         ];
 
@@ -327,14 +331,17 @@ class Show extends Component
         $this->toast(__('board.saved'));
     }
 
-    /** A member takes back the request the chair has not answered yet. */
+    /** A member takes back their absence request: a pending one, or an approved one before the meeting. */
     public function withdrawAbsence(): void
     {
         $user = auth()->user();
         abort_unless($this->access()->isMember($user), 403);
 
-        $this->service()->withdrawAbsence($this->meeting(), $user->profile);
-        $this->toast(__('board.absence.withdrawn'));
+        $was = $this->service()->withdrawAbsence($this->meeting(), $user->profile);
+
+        if ($was !== null) {
+            $this->toast(__($was === BoardMeetingAttendee::REQUEST_APPROVED ? 'board.absence.taken-back' : 'board.absence.withdrawn'));
+        }
     }
 
     /** The chair alone takes published minutes back to a draft, saying why. */
@@ -414,7 +421,16 @@ class Show extends Component
         // Readers see the minutes as the sheet. Writers see it too (a draft is marked as one) when they switch to it.
         $sheetMode = ! $meeting->isCancelled() && $minutesVisible && $this->mode === 'view';
 
+        // Whoever is still "expected" when the minutes go out stays so for good: the publish step says who, by name.
+        $unmarked = $attendees->where('status', BoardMeetingAttendee::EXPECTED)
+            ->map(fn (BoardMeetingAttendee $a) => (string) $a->employee?->name)->values();
+        $unmarkedNames = $unmarked->implode(app()->getLocale() === 'ar' ? '، ' : ', ');
+
         return view('livewire.board.meetings.show', [
+            'unmarkedWarning' => $unmarked->isEmpty() ? null
+                : trans_choice('board.minutes.unmarked-warning', $unmarked->count(), ['names' => $unmarkedNames]),
+            'publishConfirm' => $unmarked->isEmpty() ? __('board.minutes.publish-confirm')
+                : trans_choice('board.minutes.unmarked-confirm', $unmarked->count(), ['names' => $unmarkedNames]),
             'sheetMode' => $sheetMode,
             'editLabel' => $access->canWrite($user) ? __('board.minutes.edit-mode') : __('board.manage-mode'),
             // Old minutes are their own signed file, not the system's sheet.
@@ -428,6 +444,7 @@ class Show extends Component
             'canManage' => ! $meeting->isPublished() && $access->canManage($user),
             'canWrite' => ! $meeting->isPublished() && $access->canWrite($user),
             'isMember' => $access->isMember($user),
+            'mayAskAbsence' => $this->mayAskAbsence($user),
             'minutesVisible' => $minutesVisible,
             'sections' => $meeting->sections()->get(),
             'followUps' => $meeting->followUps()->with('employee')->get(),
@@ -440,20 +457,17 @@ class Show extends Component
         ]);
     }
 
-    /**
-     * The current board members' names, for the follow-up's "person or body" list. Only a member is linked (and told):
-     * the link opens the meeting, which nobody off the board may read. Anyone else is kept as written.
-     *
-     * @return array<int, string>
-     */
+    /** @return array<int, string> current board members' names, for the follow-up's "person or body" list */
     private function employeeNames(): array
     {
-        return app(BoardAccess::class)->currentMembers()->get()
+        // Only the board: a follow-up row is read on the minutes, which nobody else can open. Anyone else
+        // (a department, a staff member, a body outside) is kept as written and nobody is notified.
+        return $this->access()->currentMembers()->get()
             ->mapWithKeys(fn (Employee $e) => [$e->id => (string) $e->name])
             ->filter()->sort()->all();
     }
 
-    /** The one current member with exactly this name; two people sharing it link nobody (kept as written). */
+    /** The one current board member with exactly this name; two people sharing it link nobody (kept as written). */
     private function employeeNamed(string $name): ?int
     {
         $ids = array_keys($this->employeeNames(), $name, true);
@@ -470,6 +484,12 @@ class Show extends Component
         $this->purpose = (string) $meeting->purpose;
         $this->ledBy = (string) $meeting->led_by;
         $this->preparedBy = (string) $meeting->prepared_by;
+    }
+
+    /** A member who is not the chair: the chair is the one who answers these requests. */
+    private function mayAskAbsence(?User $user): bool
+    {
+        return $this->access()->isMember($user) && ! $this->access()->canManage($user);
     }
 
     private function meeting(): BoardMeeting

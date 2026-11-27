@@ -10,6 +10,7 @@ use App\Services\RecruitmentApplicationFilters;
 use App\Services\RecruitmentFinalistService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Index extends Component
@@ -18,6 +19,7 @@ class Index extends Component
 
     public ?string $activeStatus = null;
 
+    #[Url(as: 'campaign')]
     public int|string|null $activeCampaignId = null;
 
     /** 'preferred' | 'alternative' | 'unvoted' | null (null = no group filter) */

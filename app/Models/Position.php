@@ -55,6 +55,11 @@ class Position extends Model
             ->with('employee');
     }
 
+    public function runningSeatContracts(): HasMany
+    {
+        return $this->contracts()->activeNow()->where('type', '!=', \App\Enums\ContractType::Draft);
+    }
+
     public function center(): BelongsTo
     {
         return $this->belongsTo(Center::class, 'center_id');

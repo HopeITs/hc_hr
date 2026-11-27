@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'shared-seat-report' => 'Seats with several holders',
+    'running-seat-holders' => 'Current holders',
+    'view-running-seat-holders' => 'View holders (:count)',
+    'no-running-seat-holders' => 'No current holders.',
     'first_name' => 'First Name',
     'last_name' => 'Last Name',
     'new_folder' => 'New Folder',
@@ -756,6 +760,7 @@ return [
     'collapse-sidebar' => 'Collapse sidebar',
     'expand-sidebar' => 'Expand sidebar',
     'contract-status' => 'Contract Status',
+    'contract-starts-on' => 'Starts on :date',
     'professional-information' => 'Role, team, reporting lines, and workplace details',
     'career-history' => 'Career History',
     'personal-information' => 'Personal Information',
@@ -841,7 +846,10 @@ return [
         'schedule-flexible' => 'Flexible',
         'schedule-flexible-hint' => 'Tick whichever of the following apply. They can be combined.',
         'schedule-preview-title' => 'Printed wording preview',
+        'schedule-preview-empty' => 'No schedule details selected yet.',
         'schedule-hint-day-range' => 'Select a day range above to continue.',
+        'closed-day-range-warning-title' => 'Work schedule overlaps center closure',
+        'closed-day-range-warning' => 'The center is closed on :days. You can still continue.',
         'day-pick-mode' => 'How the working days are set',
         'day-pick-range' => 'A day range',
         'day-pick-days' => 'Pick the days',

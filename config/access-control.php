@@ -765,7 +765,6 @@ return [
             'archiveCv' => 'recruitment-applicants.archive-cv',
             // Second step of beginStatusChange: raises the confirmation for
             // the decision already authorized there.
-            'openStatusConfirmation' => 'recruitment-applicants.change-status',
         ],
         // Tagging one application. Each method re-resolves it through
         // visibleTo() and asks the tag policy; a new name also needs
@@ -1443,7 +1442,9 @@ return [
         // previewSeenOlderThan writes nothing; applySeenOlderThan (T3) runs each row of
         // WorkInbox::reviewsOlderThan (the S2 query, scoped to the caller) through
         // LeaveRequestReview::markSeen, which authorizes `review` under the row lock.
-        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile', 'previewSeenOlderThan', 'applySeenOlderThan'],
+        // switchRole (T11) calls User::setActiveRole(), which aborts unless the
+        // role is already assigned to this user, like auth.role-switcher's switchTo.
+        'inbox.index' => ['setFilter', 'decide', 'markSeen', 'object', 'confirmItem', 'finalizeItem', 'previewBatch', 'applyBatch', 'approveProfile', 'rejectProfile', 'previewSeenOlderThan', 'applySeenOlderThan', 'switchRole'],
         // AI assistant: every signed-in user may ask, so there is no permission to
         // check. send() answers only about the caller: EmployeeTools reads the
         // signed-in user's own record and takes no parameters, and each call is

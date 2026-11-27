@@ -3,10 +3,12 @@
 namespace App\Observers;
 
 use App\Enums\ContractType as ContractTypeEnum;
+use App\Models\City;
 use App\Models\Contract;
 use App\Models\OffboardingJourney;
 use App\Models\Position;
 use App\Models\User;
+use App\Notifications\SharedSeatDeparture;
 use App\Services\ChecklistWorkflow;
 use App\Services\ContractAmendmentService;
 use App\Services\Entitlements;
@@ -186,6 +188,9 @@ class ContractObserver
         if ($claimId !== null) {
             $locked->get($claimId)?->inc();
         }
+        if ($releaseId !== null) {
+            $this->notifySharedSeatDeparture($contract, $locked->get($releaseId));
+        }
     }
 
     /**
@@ -212,6 +217,7 @@ class ContractObserver
                 ->first();
 
             $pos?->dec();
+            $this->notifySharedSeatDeparture($contract, $pos);
         });
 
         StatisticsCache::flush();
@@ -229,6 +235,35 @@ class ContractObserver
     public function saved(Contract $contract): void
     {
         StatisticsCache::flush();
+    }
+
+    private function notifySharedSeatDeparture(Contract $contract, ?Position $position): void
+    {
+        if ($position === null || $contract->getOriginal('start_date')?->gt(today())) {
+            return;
+        }
+
+        $employeeId = (int) $contract->getOriginal('employee_id');
+        $holders = $position->runningSeatContracts()->distinct()->pluck('employee_id');
+
+        if ($holders->isEmpty() || $holders->contains($employeeId)) {
+            return;
+        }
+
+        $slug = ($position->center?->city ?? $position->city)?->slug;
+        if ($slug === null) {
+            return;
+        }
+
+        $contractId = $contract->getKey();
+        DB::afterCommit(function () use ($position, $contractId, $employeeId, $slug): void {
+            $notification = new SharedSeatDeparture($position, $contractId, $employeeId);
+
+            User::query()
+                ->whereHas('roles', fn ($roles) => $roles->whereIn('name', City::hrRolesForSlug($slug)))
+                ->whereHas('profile', fn ($profile) => $profile->where('is_active', true))
+                ->each(fn (User $user) => $user->notify($notification));
+        });
     }
 
     /** Did the write that just completed terminate $contract (E4) or stop its auto-renewal (E1)? */

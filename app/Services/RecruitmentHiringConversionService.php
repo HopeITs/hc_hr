@@ -35,6 +35,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -231,7 +232,8 @@ class RecruitmentHiringConversionService
         // The application form asks for the eight names (Form::NAME_FIELDS), so
         // HR retypes none. An application made before it did has only the full
         // name, split as it always was: first word, then the rest, in its script.
-        $names = $this->namesFromApplication($conversion);
+        $answers = $this->prefillAnswers($conversion);
+        $names = array_intersect_key($answers, array_flip(RecruitmentApplicationFormService::NAME_FIELDS));
 
         if ($names === []) {
             $name = trim((string) ($payload['full_name'] ?? ''));
@@ -241,6 +243,12 @@ class RecruitmentHiringConversionService
         }
 
         $name = fn (string $key): string => (string) ($names[$key] ?? '');
+        $maritalStatus = match ($answers['marital_status'] ?? null) {
+            'single' => (string) MaritalStatus::Single,
+            'married' => (string) MaritalStatus::Married,
+            default => '',
+        };
+        $dob = $answers['date_of_birth'] ?? '';
 
         return [
             'firstNameEn' => $name('first_name_en'),
@@ -254,8 +262,8 @@ class RecruitmentHiringConversionService
             'nationality' => (string) Nationality::Syrian,
             'nationalNumber' => '',
             'gender' => '',
-            'maritalStatus' => '',
-            'dob' => '',
+            'maritalStatus' => $maritalStatus,
+            'dob' => Validator::make(['dob' => $dob], ['dob' => ['required', 'date_format:Y-m-d', 'before:today']])->passes() ? $dob : '',
             'personalPhone' => $this->localPhone($payload['phone'] ?? null) ?? '',
             'personalEmail' => (string) ($payload['email'] ?? ''),
             'username' => $name('first_name_en') !== '' ? $this->suggestUsername($name('first_name_en'), $name('last_name_en')) : '',
@@ -318,7 +326,7 @@ class RecruitmentHiringConversionService
      *
      * @return array<string, string>
      */
-    private function namesFromApplication(Conversion $conversion): array
+    private function prefillAnswers(Conversion $conversion): array
     {
         $application = $conversion->jobOffer?->application;
 
@@ -327,9 +335,13 @@ class RecruitmentHiringConversionService
         }
 
         return $application->answers()
-            ->whereIn('field_key', RecruitmentApplicationFormService::NAME_FIELDS)
+            ->whereIn('field_key', [...RecruitmentApplicationFormService::NAME_FIELDS, 'marital_status', 'date_of_birth'])
             ->get()
-            ->mapWithKeys(fn ($answer): array => [$answer->field_key => trim((string) ($answer->answer_json['value'] ?? ''))])
+            ->mapWithKeys(function ($answer): array {
+                $value = $answer->answer_json['value'] ?? null;
+
+                return [$answer->field_key => is_string($value) ? trim($value) : ''];
+            })
             ->filter(fn (string $value): bool => $value !== '')
             ->all();
     }

@@ -87,7 +87,7 @@ class EvaluationForm extends Component
         return view('livewire.recruitment.interviews.evaluation-form', [
             'canEvaluate' => $canEvaluate,
             'closedReason' => $canEvaluate ? $evaluations->closedReason($interview) : null,
-            'timezone' => $interview->timezone ?: config('app.timezone'),
+            'timezone' => \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE,
             'maxLength' => (int) config('recruitment.evaluations.max_text_length', 5000),
             'own' => $canEvaluate ? $this->own()?->load(['revisions' => fn ($r) => $r->latest('version'), 'revisions.changedBy.profile']) : null,
         ]);

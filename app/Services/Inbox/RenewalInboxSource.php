@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Renewal decisions waiting on HR (DEC-09 increment 2): a contract ends
- * within 30 days and nobody has recorded "renew" or "stop" yet. Due on the
+ * within 30 days, auto-renewal is off and nobody has recorded "renew" or "stop" yet. Due on the
  * contract's end date, Late from RenewalJourney::decisionIsLate().
  *
  * Narrower than the other journey sources: the decision is a contract write
@@ -35,6 +35,7 @@ class RenewalInboxSource extends JourneyInboxSource
         return RenewalJourney::query()
             ->whereNull('completed_at')
             ->whereNull('decision')
+            ->whereRelation('contract', 'auto_renew', false)
             ->with(['employee.city', 'contract'])
             ->orderBy('started_at')
             ->orderBy('id');

@@ -51,6 +51,20 @@ class RecruitmentApplicantProfileTest extends TestCase
 
     private City $damascus;
 
+    public function test_applicants_can_open_with_a_campaign_filter(): void
+    {
+        $hr = $this->hr($this->homs);
+        $campaign = $this->makeCampaignIn($this->homs);
+        $other = $this->makeCampaignIn($this->homs);
+        $this->applyTo($campaign, $this->makeApplicant('Filtered Candidate'));
+        $this->applyTo($other, $this->makeApplicant('Other Campaign Candidate'));
+        $this->actingAs($hr);
+
+        Livewire::withQueryParams(['campaign' => (string) $campaign->id])->test(Index::class)
+            ->assertSee('Filtered Candidate')
+            ->assertDontSee('Other Campaign Candidate');
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

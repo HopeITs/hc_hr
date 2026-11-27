@@ -20,7 +20,7 @@
         @error('newPolicy') <p class="text-small text-ink" role="alert" data-testid="policies-upload-error">{{ $message }}</p> @enderror
         @if ($replacingId !== null)
             <x-card data-testid="policy-replace">
-                <p class="text-small text-ink">{{ __('policies.replace-hint', ['name' => $documents->firstWhere('id', $replacingId)?->title]) }}</p>
+                <p class="text-small text-ink">{{ __('policies.replace-hint', ['name' => $replacingTitle]) }}</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
                     <input type="file" wire:model="replacement" accept=".pdf,.docx,.txt" class="text-small text-ink" data-testid="policy-replace-file">
                     <x-button variant="quiet" size="sm" wire:click="cancelReplace">{{ __('general.cancel') }}</x-button>
@@ -35,13 +35,19 @@
             <h2 class="font-semibold text-ink">@lang('policies.unfinished')</h2>
             <ul class="mt-2 space-y-1 text-small">
                 @foreach ($unfinished as $pending)
-                    <li class="flex flex-wrap items-center gap-2" wire:key="pending-{{ $pending->id }}">
+                    <li class="flex flex-wrap items-center gap-x-2 gap-y-1" wire:key="pending-{{ $pending->id }}">
                         <bdi class="text-ink">{{ $pending->title }}</bdi>
                         @if ($pending->read_status === \App\Models\PolicyDocument::READING)
                             <x-status tone="work" icon="clock" :label="__('policies.status.reading')" />
                         @else
                             <x-status tone="stop" icon="warning" :label="__('policies.status.failed')" />
                             <span class="text-ink-2">{{ __('policies.error.'.($pending->read_error ?? 'unreadable')) }}</span>
+                            <span class="flex w-full flex-wrap items-center gap-1 sm:ms-auto sm:w-auto">
+                                @if ($pending->media_id)
+                                    <x-button variant="quiet" size="sm" wire:click="startReplace({{ $pending->id }})" data-testid="policy-replace-{{ $pending->id }}">@lang('policies.replace')</x-button>
+                                @endif
+                                <x-button variant="quiet" size="sm" wire:click="remove({{ $pending->id }})" wire:confirm="{{ __('policies.remove-confirm') }}" data-testid="policy-remove-{{ $pending->id }}">@lang('policies.remove')</x-button>
+                            </span>
                         @endif
                     </li>
                 @endforeach

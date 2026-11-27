@@ -79,7 +79,7 @@ class BadgesTable extends LivewireTable
         return [
             SelectColumn::make(trans_choice('general.employee', 1), 'employee_id')
                 ->options($this->employeeOptions())
-                ->displayUsing(fn ($v, Model $m) => \Illuminate\Support\Facades\Blade::render('<x-person :id="$id" :name="$name" />', [
+                ->displayUsing(fn ($v, Model $m) => Blade::render('<x-person :id="$id" :name="$name" />', [
                     'id' => $m->employee_id,
                     'name' => $m->employee?->name ?? '—',
                 ]))

@@ -1,9 +1,9 @@
 @php
-    $row = function ($meeting) use ($seeDraft) {
-        $tone = $meeting->isCancelled() ? ['stop', 'x', __('board.status.cancelled')]
-            : ($meeting->starts_at->isPast() ? ['done', 'check', __('board.status.held')] : ['work', 'clock', __('board.status.scheduled')]);
-
-        return $tone;
+    // Minutes that are out (published, or uploaded from the archive) mean the meeting was held, whatever its clock says.
+    $row = fn ($meeting) => match (true) {
+        $meeting->isCancelled() => ['stop', 'x', __('board.status.cancelled')],
+        $meeting->hasStarted() || $meeting->isPublished() || $meeting->isArchive() => ['done', 'check', __('board.status.held')],
+        default => ['work', 'clock', __('board.status.scheduled')],
     };
 @endphp
 

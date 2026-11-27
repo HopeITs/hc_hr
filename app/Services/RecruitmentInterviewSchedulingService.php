@@ -37,7 +37,7 @@ use Throwable;
  *   decision panel (rejected -> under review -> shortlisted).
  * - HR may choose any date and time, a past one included (recording an
  *   interview already held); the candidate is emailed only about a slot
- *   still ahead. Times are read in the application timezone, from a strict
+ *   still ahead. Times are read in the Damascus timezone, from a strict
  *   Y-m-d H:i format, and the timezone is stored on the interview and
  *   written in every email.
  * - A participant must be an active user (active employee record); one who
@@ -63,6 +63,8 @@ use Throwable;
 class RecruitmentInterviewSchedulingService
 {
     public const AUDIT_LOG = 'recruitment-interview';
+
+    public const TIMEZONE = 'Asia/Damascus';
 
     /** The system's own cancellation, when the application closes. HR cannot pick it. */
     public const REASON_APPLICATION_CLOSED = 'application_closed';
@@ -107,7 +109,7 @@ class RecruitmentInterviewSchedulingService
 
     public function timezone(): string
     {
-        return (string) config('app.timezone');
+        return self::TIMEZONE;
     }
 
     /**
@@ -668,7 +670,7 @@ class RecruitmentInterviewSchedulingService
         return $assignments;
     }
 
-    /** A local wall-clock time in the application timezone, strictly formatted. */
+    /** Parse Damascus wall-clock time and convert it to the timezone used by the database casts. */
     public function parseLocal(mixed $value): ?Carbon
     {
         if (! is_string($value) || ($value = trim($value)) === '') {
@@ -685,7 +687,7 @@ class RecruitmentInterviewSchedulingService
             // Rejects overflow such as 2026-02-30 or 25:00, which PHP would
             // otherwise roll into the next day.
             if ($parsed !== null && $parsed->format($format) === $value) {
-                return $parsed->second(0);
+                return $parsed->second(0)->setTimezone(config('app.timezone'));
             }
         }
 

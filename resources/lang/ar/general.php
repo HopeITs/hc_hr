@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'shared-seat-report' => 'وظائف فيها أكثر من شاغل',
+    'running-seat-holders' => 'الشاغلون الحاليون',
+    'view-running-seat-holders' => 'عرض الشاغلين (:count)',
+    'no-running-seat-holders' => 'لا يوجد شاغلون حاليون.',
     'first_name' => 'الاسم',
     'last_name' => 'الكنية',
     'termination_reasons' => 'أسباب إنهاء الخدمة',
@@ -756,6 +760,7 @@ return [
     'collapse-sidebar' => 'طي القائمة الجانبية',
     'expand-sidebar' => 'توسيع القائمة الجانبية',
     'contract-status' => 'حالة العقد',
+    'contract-starts-on' => 'يبدأ في :date',
     'professional-information' => 'الدور والفريق وخطوط الإشراف ومعلومات مكان العمل',
     'career-history' => 'المسيرة المهنية',
     'personal-information' => 'المعلومات الشخصية',
@@ -841,7 +846,10 @@ return [
         'schedule-flexible' => 'مرن',
         'schedule-flexible-hint' => 'حدّد ما ينطبق مما يلي. يمكن الجمع بين أكثر من خيار.',
         'schedule-preview-title' => 'معاينة نص العقد المطبوع',
+        'schedule-preview-empty' => 'لم يتم تحديد تفاصيل الدوام بعد.',
         'schedule-hint-day-range' => 'اختر نطاق الأيام أعلاه للمتابعة.',
+        'closed-day-range-warning-title' => 'الدوام يتداخل مع أيام إغلاق المركز',
+        'closed-day-range-warning' => 'المركز مغلق في الأيام التالية: :days. يمكنك المتابعة.',
         'day-pick-mode' => 'طريقة تحديد أيام الدوام',
         'day-pick-range' => 'من يوم إلى يوم',
         'day-pick-days' => 'تحديد الأيام',

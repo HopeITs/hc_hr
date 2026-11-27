@@ -38,6 +38,7 @@ return [
     'uploading' => 'Uploading…',
     'file-types' => 'Only a PDF, Word (docx) or text (txt) file is accepted.',
     'replaced' => 'File replaced. The new version shows once it has been read.',
+    'replace-failed' => 'The file could not be replaced. The current file was kept.',
     'view-policy' => 'View the policy',
     'view-policy-named' => 'View the policy: :title',
     'lead' => 'The organisation\'s policies and guidelines. Type what you are looking for, such as "moving electronic devices", and the passage that covers it shows up.',

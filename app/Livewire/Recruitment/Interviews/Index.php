@@ -36,7 +36,7 @@ class Index extends Component
     {
         Gate::authorize('viewAny', RecruitmentInterview::class);
         $user = auth()->user();
-        $timezone = config('app.timezone');
+        $timezone = \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE;
 
         // The user's own next interview first; HR with nothing of their own
         // sees the next one in their scope instead, and the heading says so.

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use App\Enums\ContractType;
 use App\Enums\MaritalStatus;
 use App\Livewire\Concerns\GuardsModalClose;
 use App\Livewire\Concerns\WithFeedback;
@@ -295,7 +296,7 @@ class EmployeeProfile extends Component
         // Contract type, termination reason and weekly hours are career
         // history; the header only needs the current position.
         if ($this->canViewRecords) {
-            array_push($contractColumns, 'contract_type_id', 'termination_reason_id', 'weekly_hours');
+            array_push($contractColumns, 'type', 'contract_type_id', 'termination_reason_id', 'weekly_hours');
         }
 
         if ($this->canViewFinancial) {
@@ -361,7 +362,15 @@ class EmployeeProfile extends Component
             && $contract->start_date?->lte(today())
             && $contract->end_date?->gte(today())
             && ! $contract->terminated_at);
-        $currentPosition = $currentContract?->position;
+        $upcomingContract = $currentContract === null && $this->canViewRecords
+            ? $contracts->filter(fn ($contract) => $contract->is_active
+                && (int) $contract->type !== ContractType::Draft
+                && ! $contract->isTerminated()
+                && $contract->start_date?->gt(today())
+                && $contract->end_date?->gte($contract->start_date))
+                ->sortBy('start_date')->first()
+            : null;
+        $currentPosition = ($currentContract ?? $upcomingContract)?->position;
 
         return view('livewire.employee.employee-profile', [
             'employee' => $employee,
@@ -376,6 +385,7 @@ class EmployeeProfile extends Component
             'proposals' => $this->isSelf ? $this->ownProposals() : [],
             'contracts' => $contracts,
             'currentContract' => $currentContract,
+            'upcomingContract' => $upcomingContract,
             'currentPosition' => $currentPosition,
             'isOnLeave' => $employee->is_active && $employee->isOnLeaveToday(),
             'presence' => app(WorkPresence::class)->forOne(Auth::user(), $employee),

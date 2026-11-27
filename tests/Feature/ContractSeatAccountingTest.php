@@ -4,6 +4,10 @@ namespace Tests\Feature;
 
 use App\Enums\ContractType as ContractTypeEnum;
 use App\Livewire\Contract\ContractEdit;
+use App\Livewire\Position\CurrentHolders;
+use App\Livewire\Position\PositionsModule;
+use App\Livewire\Position\PositionTable;
+use App\Livewire\Position\ProfileDrawer;
 use App\Models\Center;
 use App\Models\Contract;
 use App\Models\ContractType;
@@ -12,10 +16,12 @@ use App\Models\JobLevel;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\TerminationReason;
+use App\Notifications\SharedSeatDeparture;
 use App\Services\ContractAmendmentService;
 use App\Services\LeaveBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesHrFixtures;
@@ -31,6 +37,71 @@ use Tests\TestCase;
 class ContractSeatAccountingTest extends TestCase
 {
     use CreatesHrFixtures, RefreshDatabase;
+
+    public function test_city_hr_can_review_shared_seats_and_is_notified_when_a_holder_leaves(): void
+    {
+        $this->travelTo('2026-11-26 10:00:00');
+        $fixtures = $this->makeFixtures();
+        $shared = $this->makePosition($fixtures, maxEmp: 2);
+        $single = $this->makePosition($fixtures, maxEmp: 1);
+        $otherCity = $this->makeCity('HMS', '002');
+        $otherHr = $this->makeUser($otherCity, 'HR-HMS', ['positions.view'], null);
+        $otherShared = $this->makePosition($fixtures, maxEmp: 2);
+        $otherShared->update(['city_id' => $otherCity->id, 'center_id' => null]);
+        $this->makeContract($fixtures, $otherShared, 'other-first');
+        $this->makeContract($fixtures, $otherShared, 'other-second');
+        $departing = $this->makeContract($fixtures, $shared, 'departing');
+        $remaining = $this->makeContract($fixtures, $shared, 'remaining');
+        $solo = $this->makeContract($fixtures, $single, 'solo');
+
+        $fixtures['hr']->givePermissionTo('positions.view');
+
+        Livewire::actingAs($fixtures['hr']->fresh())->test(PositionTable::class, ['sharedSeats' => true])
+            ->assertSeeHtml('wire:key="row-'.$shared->id.'"')
+            ->assertSee(__('general.view-running-seat-holders', ['count' => 2]))
+            ->assertDontSeeHtml('wire:key="row-'.$single->id.'"')
+            ->assertDontSeeHtml('wire:key="row-'.$otherShared->id.'"');
+
+        Livewire::actingAs($fixtures['hr']->fresh())->withQueryParams(['shared' => 1])->test(PositionsModule::class)
+            ->assertSeeLivewire(CurrentHolders::class);
+
+        Livewire::actingAs($fixtures['hr']->fresh())->test(CurrentHolders::class)
+            ->call('openCurrentHolders', $shared->id)
+            ->assertSet('showCurrentHolders', true)
+            ->assertSeeHtml('src="'.e($departing->employee->avatar_url).'"')
+            ->assertSeeHtml('employeeId: '.$departing->employee_id)
+            ->assertDontSeeHtml(route('employees.show', $departing->employee->username))
+            ->assertSee($departing->employee->name)
+            ->assertSee($remaining->employee->name)
+            ->call('openCurrentHolders', $otherShared->id)
+            ->assertNotFound();
+
+        Livewire::actingAs($fixtures['hr']->fresh())->test(ProfileDrawer::class)
+            ->call('openProfile', $departing->employee_id)
+            ->assertSeeHtml(route('employees.show', $departing->employee->username));
+
+        $remaining->employee->update(['username' => '']);
+        $fixtures['hr']->givePermissionTo('positions.update');
+
+        Livewire::actingAs($fixtures['hr']->fresh())->test(ProfileDrawer::class)
+            ->call('openProfile', $remaining->employee_id)
+            ->assertSee($remaining->employee->name)
+            ->assertDontSee(__('general.view-full-profile'))
+            ->assertSeeHtml(route('positions.edit', ['position' => $shared->id]))
+            ->assertDontSeeLivewire(\App\Livewire\Dashboard\AddToDashboard::class);
+
+        Notification::fake();
+        $departing->update(['is_active' => false]);
+        $departing->refresh()->update(['is_active' => false]);
+        $solo->update(['is_active' => false]);
+
+        Notification::assertSentToTimes($fixtures['hr'], SharedSeatDeparture::class, 1);
+        Notification::assertNotSentTo($otherHr, SharedSeatDeparture::class);
+        $this->assertSame(1, $shared->fresh()->exist_emp);
+
+        Livewire::actingAs($fixtures['hr'])->test(PositionTable::class, ['sharedSeats' => true])
+            ->assertDontSeeHtml('wire:key="row-'.$shared->id.'"');
+    }
 
     public function test_terminating_a_contract_through_the_edit_screen_frees_its_seat(): void
     {
