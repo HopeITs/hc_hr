@@ -21,6 +21,7 @@ use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\RolesSuspendedForNoContract;
+use App\Notifications\SharedSeatDeparture;
 use App\Services\OnboardingDeliveries;
 use App\Services\OnboardingJourneys;
 use Carbon\CarbonInterface;
@@ -183,6 +184,29 @@ class SeatHandoverSimulationTest extends TestCase
         $this->artisan('access:sync-org-roles')->assertSuccessful();
 
         $this->assertSame($oldIt->id, (int) $open->fresh()->delivered_id, 'Two people hold the seat: which one is HR\'s call.');
+    }
+
+    public function test_expiring_a_shared_seat_contract_notifies_city_hr_once(): void
+    {
+        $hr = $this->makeUser($this->city, 'HR-ALP');
+        $position = $this->position('IT', 'Shared seat', seats: 2);
+        $end = now()->addDay()->startOfDay();
+        [, , $departing] = $this->person('departing', $position, now()->subYear(), $end);
+        [$remaining] = $this->person('remaining', $position, now()->subYear(), now()->addYear());
+
+        $this->travelTo($end->copy()->setTime(21, 30));
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        Notification::assertNotSentTo($hr, SharedSeatDeparture::class);
+
+        $this->travelTo($end->copy()->addDay()->setTime(21, 30));
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->artisan('deactivate:contract')->assertSuccessful();
+
+        $this->assertFalse($departing->fresh()->is_active);
+        $this->assertSame([$remaining->id], $position->runningSeatContracts()->pluck('employee_id')->all());
+        $this->assertSame(1, $position->fresh()->exist_emp);
+        Notification::assertSentToTimes($hr, SharedSeatDeparture::class, 1);
+        Notification::assertSentTo($hr, SharedSeatDeparture::class, fn (SharedSeatDeparture $notice) => $notice->contractId === $departing->id);
     }
 
     // ── helpers ───────────────────────────────────────────────────────

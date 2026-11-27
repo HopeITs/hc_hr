@@ -7,6 +7,9 @@ return [
     'empty' => [
         'title' => 'Nothing is waiting for you.',
         'body' => 'New requests and items to confirm will appear here.',
+        // T11: shown when another role of the user has work waiting.
+        'other-role' => '{1} You have :count item waiting under the role :role.|[2,*] You have :count items waiting under the role :role.',
+        'switch' => 'Switch to :role',
     ],
     'filter' => [
         'label' => 'Show',

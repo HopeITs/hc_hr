@@ -69,6 +69,47 @@ class ApplicationFormBuilderTest extends TestCase
         $this->assertSame('Legal full name', $draft->fields_json[0]['label']['en']);
     }
 
+    public function test_generic_defaults_and_published_experience_choices_can_coexist(): void
+    {
+        [$campaign, $hr] = $this->makeCampaign();
+        $service = app(RecruitmentApplicationFormService::class);
+        $state = $service->openEditor($campaign, $hr);
+        $experience = collect($state['fields'])->firstWhere('key', 'experience_field');
+        $this->assertSame('text', $experience['type']);
+        $this->assertSame([], $experience['options']);
+
+        $locked = collect($state['fields'])->where('locked', true)->values()->all();
+        $legacy = [
+            ...$experience,
+            'type' => 'radio',
+            'label' => ['en' => 'Experience field', 'ar' => 'مجال الخبرة'],
+            'options' => [
+                ['value' => 'it', 'label' => ['en' => 'IT', 'ar' => 'تقنية المعلومات']],
+                ['value' => 'programming', 'label' => ['en' => 'Programming', 'ar' => 'البرمجة']],
+            ],
+        ];
+        $published = $service->publish(
+            $state['application_form'], [...$locked, $legacy], 'v1', $hr, $state['version']->id, $state['fingerprint'],
+        );
+        $answers = [
+            ...ApplicantNames::answers('Applicant Name'), 'email' => 'applicant@example.com', 'phone' => '0944123456',
+            'cv' => UploadedFile::fake()->create('cv.pdf', 100, 'application/pdf'), 'privacy_consent' => 'yes',
+        ];
+        $state = $service->openEditor($campaign->fresh(), $hr);
+        $generic = $service->publish(
+            $state['application_form'], [...$locked, $experience], 'v1', $hr, $state['version']->id, $state['fingerprint'],
+        );
+
+        $oldField = collect($service->publicSchema($campaign->fresh(), $published->id)['fields'])->firstWhere('key', 'experience_field');
+        $this->assertSame('radio', $oldField['type']);
+        $this->assertSame($legacy['options'], $oldField['options']);
+        $this->assertSame('it', $service->validateSubmission($published->fresh(), [...$answers, 'experience_field' => 'it'])['experience_field']);
+        $this->assertSame('Community outreach', $service->validateSubmission($generic, [...$answers, 'experience_field' => 'Community outreach'])['experience_field']);
+
+        $this->expectException(ValidationException::class);
+        $service->validateSubmission($published, [...$answers, 'experience_field' => 'Community outreach']);
+    }
+
     /** The eight names replace "Full name" on every form, published ones included, where it was: before the email. */
     public function test_every_form_asks_for_the_eight_names_where_full_name_was(): void
     {

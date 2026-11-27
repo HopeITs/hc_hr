@@ -160,13 +160,9 @@ class RecruitmentApplicationFormService
             ],
         ],
         'experience_field' => [
-            'type' => 'radio', 'required' => true, 'locked' => false, 'section' => 'education',
-            'label' => ['en' => 'You have experience working in the field of', 'ar' => 'لديك خبرة في مجال'], 'help' => ['en' => '', 'ar' => ''],
-            'options' => [
-                ['value' => 'it', 'label' => ['en' => 'IT', 'ar' => 'تقنية المعلومات']],
-                ['value' => 'programming', 'label' => ['en' => 'Programming', 'ar' => 'البرمجة']],
-                ['value' => 'both', 'label' => ['en' => 'Both', 'ar' => 'كلاهما']],
-            ],
+            'type' => 'text', 'required' => true, 'locked' => false, 'section' => 'education',
+            'label' => ['en' => 'What field is your experience in?', 'ar' => 'ما مجال خبرتك؟'],
+            'help' => ['en' => 'If you have no experience yet, enter None.', 'ar' => 'إذا لم تكن لديك خبرة بعد، اكتب لا توجد خبرة.'],
         ],
         'experience_years' => [
             'type' => 'radio', 'required' => true, 'locked' => false, 'section' => 'education',
@@ -585,6 +581,11 @@ class RecruitmentApplicationFormService
             }
 
             $type = $catalog['type'] ?? (string) ($field['type'] ?? 'text');
+            // Published forms and their copies can still use the original experience choices.
+            if ($key === 'experience_field' && ($field['type'] ?? null) === 'radio') {
+                $type = 'radio';
+            }
+
             $type = isset(self::TYPE_CATALOG[$type]) ? $type : 'text';
             $section = (string) ($field['section'] ?? ($catalog['section'] ?? 'personal'));
             $section = isset(self::SECTION_CATALOG[$section]) ? $section : 'personal';

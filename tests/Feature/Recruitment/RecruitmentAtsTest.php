@@ -383,11 +383,11 @@ class RecruitmentAtsTest extends TestCase
         $this->assertSame(Outcome::Met, $set->get('experience')->outcome);
         $this->assertSame(Outcome::Met, $set->get('qualification')->outcome);
         $this->assertSame('bachelor', $set->get('qualification')->params['keyword']);
-        $this->assertSame(Outcome::Met, $set->get('industry_experience')->outcome);
+        $this->assertSame(Outcome::Partial, $set->get('industry_experience')->outcome);
         $this->assertSame(Outcome::Met, $set->get('cv_availability')->outcome);
         $this->assertSame(Outcome::Info, $set->get('previous_applicant')->outcome);
         $this->assertFalse($set->get('previous_applicant')->scored);
-        $this->assertSame([5, 5], [$set->metCount(), $set->assessedCount()]);
+        $this->assertSame([4, 5], [$set->metCount(), $set->assessedCount()]);
 
         foreach ($set->indicators as $indicator) {
             $this->assertNotSame('recruitment-applicant.indicators.reasons.'.$indicator->reason, $indicator->explanation());
