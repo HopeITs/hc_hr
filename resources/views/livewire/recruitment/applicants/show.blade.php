@@ -148,9 +148,9 @@
                         <div class="mt-2">
                             {{-- The page's single red button: the one move that keeps this application going. --}}
                             @if ($currentApplication->status === ApplicationStatus::Shortlisted && Gate::allows('schedule', [\App\Models\RecruitmentInterview::class, $currentApplication]))
-                                <a href="#application-{{ $currentApplication->id }}-interviews" class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 hover:opacity-90 {{ $focus }}">{{ __('recruitment-applicant.interviews.schedule') }}<flux:icon.arrow-right variant="micro" class="size-4 rtl:rotate-180" aria-hidden="true" /></a>
+                                <a href="{ route('recruitment.interviews.create', ['applicationId' => $currentApplication->id]) }" wire:navigate class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 hover:opacity-90 {{ $focus }}">{{ __('recruitment-applicant.interviews.schedule') }}<flux:icon.arrow-right variant="micro" class="size-4 rtl:rotate-180" aria-hidden="true" /></a>
                             @elseif ($currentApplication->status === ApplicationStatus::Selected && Gate::allows('create', [\App\Models\RecruitmentJobOffer::class, $currentApplication]))
-                                <a href="#application-{{ $currentApplication->id }}-interviews" class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 hover:opacity-90 {{ $focus }}">{{ __('recruitment-applicant.offers.create') }}<flux:icon.arrow-right variant="micro" class="size-4 rtl:rotate-180" aria-hidden="true" /></a>
+                                <a href="{ route('recruitment.offers.create', ['applicationId' => $currentApplication->id]) }" wire:navigate class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-small font-semibold text-white shadow-e1 hover:opacity-90 {{ $focus }}">{{ __('recruitment-applicant.offers.create') }}<flux:icon.arrow-right variant="micro" class="size-4 rtl:rotate-180" aria-hidden="true" /></a>
                             @elseif ($currentApplication->status === ApplicationStatus::InterviewScheduled)
                                 <p class="flex items-center gap-2 text-small text-secondary-dark"><flux:icon.clock variant="mini" class="size-4 text-secondary-medium" aria-hidden="true" />{{ __('recruitment-applicant.profile.awaiting_interview') }}</p>
                             @elseif ($nextTarget)
@@ -334,7 +334,7 @@
                                                     @endif
                                                 </div>
                                                 <div class="mt-4 flex flex-wrap gap-2">
-                                                    <x-button type="button" wire:click="openStatusConfirmation" wire:target="openStatusConfirmation">
+                                                    <x-button type="button" wire:click="changeStatus" wire:target="changeStatus">
                                                         {{ __('recruitment-applicant.decisions.confirm.'.$statusTarget) }}
                                                     </x-button>
                                                     <x-button variant="quiet" wire:click="cancelStatusChange">

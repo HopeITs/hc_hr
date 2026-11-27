@@ -125,7 +125,7 @@ class EvaluationSummary extends Component
                 && $interview->status === \App\Enums\RecruitmentInterviewStatus::Completed
                 && $interview->evaluations_closed_at === null,
             'closedReason' => $evaluations->closedReason($interview),
-            'timezone' => $interview->timezone ?: config('app.timezone'),
+            'timezone' => \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE,
         ]);
     }
 

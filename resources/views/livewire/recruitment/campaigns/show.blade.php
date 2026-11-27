@@ -73,7 +73,14 @@
                     <div class="flex items-center gap-2 [&>svg]:size-4">
                         <dt class="sr-only">{{ __('recruitment-campaign.page.applications') }}</dt>
                         <svg class="size-5 text-secondary-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg>
-                        <dd>{{ trans_choice('recruitment-campaign.page.applications_count', $applicationsCount, ['count' => $applicationsCount]) }}</dd>
+                        <dd>
+                            @php $countLabel = trans_choice('recruitment-campaign.page.applications_count', $applicationsCount, ['count' => $applicationsCount]); @endphp
+                            @can('viewAny', \App\Models\RecruitmentApplicant::class)
+                                <a href="{{ route('recruitment.applicants.index', ['campaign' => $campaign->id]) }}" wire:navigate class="underline hover:text-primary">{{ $countLabel }}</a>
+                            @else
+                                {{ $countLabel }}
+                            @endcan
+                        </dd>
                     </div>
                 </dl>
             </div>

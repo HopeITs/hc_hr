@@ -136,7 +136,7 @@ class ApplicationReviewPanel extends Component
                 ->whereHas('profile', fn ($profile) => $profile->where('is_active', true))
                 ->when($applicantEmployeeId !== null, fn ($candidates) => $candidates->where('employee_id', '!=', $applicantEmployeeId))
                 ->whereKeyNot(($participants ?? collect())->pluck('user_id'))
-                ->with('profile')
+                ->with('profile.contracts.position.jobLevel')
                 ->get()
                 ->sortBy(fn (User $candidate) => $candidate->profile?->name)
                 ->values() : collect(),

@@ -121,25 +121,6 @@ class Show extends Component
         $this->dispatch('focus-element', id: 'application-'.$application->getKey().'-title');
     }
 
-    /** Opens the shared recruitment confirmation popup after the note is validated. */
-    public function openStatusConfirmation(): void
-    {
-        abort_if($this->statusApplicationId === null || $this->statusFrom === null || $this->statusTarget === '', 404);
-
-        if (! $this->hasInternalNote()) {
-            return;
-        }
-
-        $this->dispatch('open-recruitment-confirmation',
-            scope: 'applicant-profile',
-            action: 'changeStatus',
-            title: __('recruitment-applicant.status_change.change_title'),
-            message: __('recruitment-applicant.status_change.confirm'),
-            confirmLabel: __('recruitment-applicant.decisions.confirm.'.$this->statusTarget),
-            tone: $this->statusTarget === \App\Enums\RecruitmentApplicationStatus::Rejected ? 'danger' : 'primary',
-        );
-    }
-
     /** Back to the decision button that opened the panel. */
     public function cancelStatusChange(): void
     {

@@ -68,6 +68,7 @@ class RecruitmentDecisionTest extends TestCase
 
         Livewire::test(Show::class, ['applicantId' => $applicant->id])
             ->call('beginStatusChange', $application->id, Status::Shortlisted)
+            ->assertSeeHtml('wire:click="changeStatus"')
             ->set('statusReason', 'Candidate meets the requirements for an interview.')
             ->call('changeStatus')
             ->assertHasNoErrors()

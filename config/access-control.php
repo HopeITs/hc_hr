@@ -765,7 +765,6 @@ return [
             'archiveCv' => 'recruitment-applicants.archive-cv',
             // Second step of beginStatusChange: raises the confirmation for
             // the decision already authorized there.
-            'openStatusConfirmation' => 'recruitment-applicants.change-status',
         ],
         // Tagging one application. Each method re-resolves it through
         // visibleTo() and asks the tag policy; a new name also needs

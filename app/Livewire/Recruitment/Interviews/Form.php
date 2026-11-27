@@ -87,7 +87,7 @@ class Form extends Component
             Gate::authorize('manage', $interview);
             abort_unless($interview->isOpen(), 404);
 
-            $timezone = config('app.timezone');
+            $timezone = $scheduling->timezone();
             $this->interviewId = $interview->getKey();
             $this->applicationId = $interview->application_id;
             $this->expectedStatus = $interview->status;
@@ -213,7 +213,7 @@ class Form extends Component
         $chosen = User::query()->whereKey(array_keys($this->participants))->with('profile')->get()->keyBy('id');
         $activeUsers = User::query()
             ->whereHas('profile', fn ($query) => $query->where('is_active', true))
-            ->with('profile')
+            ->with('profile.contracts.position.jobLevel')
             ->get()
             ->sortBy(fn (User $user) => $user->profile?->name)
             ->values();

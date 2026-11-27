@@ -4,7 +4,7 @@
     use App\Services\RecruitmentInterviewSchedulingService;
     use Illuminate\Support\Facades\Lang;
 
-    $timezone = $interview->timezone ?: config('app.timezone');
+    $timezone = RecruitmentInterviewSchedulingService::TIMEZONE;
     $starts = $interview->scheduled_at->copy()->setTimezone($timezone);
     $ends = $interview->ends_at?->copy()->setTimezone($timezone);
     $application = $interview->application;

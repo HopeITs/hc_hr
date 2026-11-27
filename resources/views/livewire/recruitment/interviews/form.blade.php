@@ -123,16 +123,9 @@
                                     · {{ __('recruitment-applicant.interviews.attending_on_behalf', ['name' => $attendee->profile?->name ?? $attendee->email]) }}
                                 @endif
                             </p>
-                            <x-forms.select2-input id="requiredParticipant-{{ $seat }}" wire:model="requiredParticipants.{{ $seat }}">
-                                @foreach ($substituteCandidates as $user)
-                                    <option value="{{ $user->id }}">
-                                        {{ $user->profile?->name }} — {{ $user->email }}
-                                        @if ($user->id === (int) $requiredParticipantOwners[$seat])
-                                            ({{ __('recruitment-applicant.interviews.attends_self') }})
-                                        @endif
-                                    </option>
-                                @endforeach
-                            </x-forms.select2-input>
+                            <x-recruitment.staff-picker id="requiredParticipant-{{ $seat }}" wire:model="requiredParticipants.{{ $seat }}"
+                                :candidates="$substituteCandidates" :seat-owner="(int) $requiredParticipantOwners[$seat]"
+                                :selected-id="(int) ($requiredParticipants[$seat] ?? 0)" />
                         </div>
                     @endforeach
                 </div>
@@ -142,12 +135,7 @@
             <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-[1fr_12rem_auto]" wire:key="participant-picker">
                 <div>
                     <x-forms.input-label for="newParticipantId" :value="__('recruitment-applicant.interviews.add_participant')" />
-                    <x-forms.select2-input wire:model="newParticipantId" id="newParticipantId">
-                        <option value="">{{ __('recruitment.choose') }}</option>
-                        @foreach ($candidates as $user)
-                            <option value="{{ $user->id }}">{{ $user->profile?->name }} — {{ $user->email }}</option>
-                        @endforeach
-                    </x-forms.select2-input>
+                    <x-recruitment.staff-picker id="newParticipantId" wire:model="newParticipantId" :candidates="$candidates" />
                 </div>
                 <div>
                     <x-forms.input-label for="newParticipantRole" :value="__('recruitment-applicant.interviews.participant_role')" />
