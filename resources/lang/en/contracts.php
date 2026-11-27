@@ -19,6 +19,8 @@ return [
 
     // List table status column.
     'status-terminated' => 'Terminated',
+    'status-ending' => 'Active — ending',
+    'status-ending-on' => 'Active — ends on :date',
     'status-expired' => 'Expired',
 
     // Counts. Decimal variants are used for fractional values (e.g. 2.5 months).
@@ -172,6 +174,7 @@ return [
             'center-day-off' => 'The center\'s day off cannot be a working day.',
             'count' => 'Keep :count working days. To change how many, make a contract amendment.',
             'outside-term' => 'The date must fall within the contract\'s term.',
+            'after-termination' => 'The date must be on or before the contract\'s termination date (:date).',
             'amendment-date' => 'An amendment set the days on this date. Pick another date, or make a new amendment.',
             'month-locked' => 'Attendance for :month is locked. Reopen it first, or pick a later date.',
         ],

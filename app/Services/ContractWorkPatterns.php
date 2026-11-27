@@ -212,7 +212,7 @@ class ContractWorkPatterns
             $field => __('contracts.work-days.errors.'.$key, $params),
         ]);
 
-        if (! $contract->is_active || $contract->isTerminated() || (int) $contract->type === ContractTypeEnum::Draft) {
+        if (! $contract->is_active || $contract->hasEndedByTermination() || (int) $contract->type === ContractTypeEnum::Draft) {
             $fail('days', 'contract-not-in-force');
         }
 
@@ -235,6 +235,11 @@ class ContractWorkPatterns
         if ($contract->start_date === null || $date->lt($contract->start_date->copy()->startOfDay())
             || ($contract->end_date !== null && $date->gt($contract->end_date->copy()->startOfDay()))) {
             $fail('effective_from', 'outside-term');
+        }
+
+        // In force until a termination dated later (R2-3b), not past it.
+        if ($contract->hasPendingTermination() && $date->gt($contract->terminated_at->copy()->startOfDay())) {
+            $fail('effective_from', 'after-termination', ['date' => $contract->terminated_at->format('d-m-Y')]);
         }
 
         // The days an amendment set on its date are the signed terms: a change

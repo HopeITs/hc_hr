@@ -89,9 +89,10 @@ class CheckEmployeeIntegrity extends Command
     {
         $today = today()->toDateString();
 
+        // A termination dated later leaves the contract running (R2-3b).
         $running = fn (Builder $q): Builder => $q
             ->where('type', '!=', ContractType::Draft)
-            ->whereNull('terminated_at')
+            ->where(fn (Builder $q) => $q->whereNull('terminated_at')->orWhereDate('terminated_at', '>', $today))
             ->activeNow();
 
         $roles = User::query()

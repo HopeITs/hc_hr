@@ -57,7 +57,7 @@ class Entitlements
             ->whereKeyNot($contract->id)
             ->where('is_active', true)
             ->where('type', '!=', ContractType::Draft)
-            ->whereNull('terminated_at')
+            ->where(fn (Builder $q) => $q->whereNull('terminated_at')->orWhereDate('terminated_at', '>', today()))
             ->whereNull('termination_reason_id')
             ->get(['id', 'position_id', 'start_date', 'end_date']);
 
@@ -285,7 +285,7 @@ class Entitlements
     {
         return (int) $contract->type !== ContractType::Draft
             && ($contract->is_active === null || (bool) $contract->is_active)
-            && ! $contract->isTerminated();
+            && ! $contract->hasEndedByTermination();
     }
 
     private function authorize(User $actor, Employee $employee): void
