@@ -273,7 +273,7 @@ class BoardMeetingService
         $attendee->employee?->account?->notify(BoardMeetingNotice::for(
             BoardMeetingNotice::ABSENCE_DECIDED,
             $attendee->meeting,
-            $approve ? 'approved / تمت الموافقة' : 'not approved / لم تتم الموافقة',
+            $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
         ));
     }
 
