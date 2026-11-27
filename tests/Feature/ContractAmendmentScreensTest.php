@@ -142,9 +142,12 @@ class ContractAmendmentScreensTest extends TestCase
     public function test_submitting_drafts_the_amendment_and_leaves_the_contract_alone(): void
     {
         $contract = $this->contract();
+        $contract->position->center->update(['weekends' => '0,6']);
 
         Livewire::actingAs($this->hr())
             ->test(ContractAmend::class, ['contract' => $contract])
+            ->assertViewHas('seed', fn (array $seed): bool => $seed['placeWeekend'] === [0, 6])
+            ->assertSeeHtml('x-text="closedDayRangeWarning"')
             ->call('submit', $this->payload())
             ->assertHasNoErrors()
             ->assertRedirect(route('contracts.show', $contract));

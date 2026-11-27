@@ -174,6 +174,15 @@
             </div>
         </div>
 
+        <div x-cloak x-show="closedDayRangeWarning" role="status"
+             class="flex items-start gap-3 rounded-control border border-ink border-s-4 border-s-primary bg-soft px-4 py-3 text-ink">
+            <x-ic name="warning" class="mt-0.5 size-5" />
+            <div>
+                <p class="text-body font-bold">@lang('general.composer.closed-day-range-warning-title')</p>
+                <p class="mt-1 text-small" x-text="closedDayRangeWarning"></p>
+            </div>
+        </div>
+
         {{--
             Every figure here is computed from the ranges above, never typed
             in — each checkbox only controls whether its own piece is stated

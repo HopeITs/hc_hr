@@ -848,6 +848,8 @@ return [
         'schedule-preview-title' => 'Printed wording preview',
         'schedule-preview-empty' => 'No schedule details selected yet.',
         'schedule-hint-day-range' => 'Select a day range above to continue.',
+        'closed-day-range-warning-title' => 'Work schedule overlaps center closure',
+        'closed-day-range-warning' => 'The center is closed on :days. You can still continue.',
         'day-pick-mode' => 'How the working days are set',
         'day-pick-range' => 'A day range',
         'day-pick-days' => 'Pick the days',
