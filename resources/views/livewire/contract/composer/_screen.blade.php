@@ -52,6 +52,15 @@
         'allowDraftUpgrade' => ! $isEdit && ! $isAmend,
         'mode' => $mode,
         'frozenSections' => $frozenSections,
+        // A contract imported from Excel carries its working days only as
+        // prose (work_days_en/ar); it has no day range and no picked days.
+        // Editing it must not force HR to invent a schedule (R2-4), so the
+        // composer accepts an empty day range for such a contract — the
+        // server already does (work_day_from/to are nullable).
+        'legacySchedule' => $isEdit
+            && ($seed['workDayFrom'] ?? null) === null
+            && ($seed['workDayTo'] ?? null) === null
+            && empty($seed['workWeekdays'] ?? null),
         'cityId' => $lockedCity?->id ?? ($seed['cityId'] ?? null),
         'cities' => $cities->map(fn ($city) => ['value' => $city->id, 'label' => $city->name])->values(),
         'sections' => $sections,

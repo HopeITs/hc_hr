@@ -122,7 +122,7 @@ class ContractAutoRenewalService
 
     public function renewIfNeeded(Contract $contract, CarbonInterface $asOf): ?Contract
     {
-        return DB::transaction(function () use ($contract, $asOf): ?Contract {
+        $renewal = DB::transaction(function () use ($contract, $asOf): ?Contract {
             $source = Contract::query()
                 ->with(['position', 'payTiers', 'employee'])
                 ->whereKey($contract->id)
@@ -203,6 +203,14 @@ class ContractAutoRenewalService
 
             return $renewal->refresh();
         });
+
+        // T13: the next contract is where staff without a login get one
+        // (B5D-Q8). After the commit; a failure is reported, the renewal stands.
+        if ($renewal !== null) {
+            rescue(fn () => app(EmployeeActivation::class)->activateForContract($renewal));
+        }
+
+        return $renewal;
     }
 
     /**
