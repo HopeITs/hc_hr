@@ -771,6 +771,47 @@ class BoardMeetingsTest extends TestCase
         $this->assertEqualsCanonicalizing([$published->id, $draft->id], $secretary->viewData('found')->pluck('id')->all());
     }
 
+    public function test_a_meeting_whose_minutes_are_out_reads_as_held_never_as_scheduled(): void
+    {
+        $service = app(BoardMeetingService::class);
+        // Published before its clock came round (data from before publishing waited for the meeting's time).
+        $early = $service->schedule(['starts_at' => now()->addDays(2)], notify: false);
+        $early->update(['published_at' => now()]);
+
+        $list = Livewire::actingAs($this->member)->test(Index::class);
+
+        $this->assertSame([$early->id], $list->viewData('past')->pluck('id')->all());
+        $list->assertSee(__('board.minutes.published-badge'))
+            ->assertSee(__('board.status.held'))
+            ->assertDontSee(__('board.status.scheduled'));
+    }
+
+    public function test_cancelled_meetings_come_after_the_ones_still_on_in_the_coming_list(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $cancelled = $service->schedule(['starts_at' => now()->addDays(2)], notify: false);
+        $service->cancel($cancelled, 'No quorum');
+        $on = $service->schedule(['starts_at' => now()->addDays(9)], notify: false);
+        $later = $service->schedule(['starts_at' => now()->addDays(16)], notify: false);
+
+        $list = Livewire::actingAs($this->member)->test(Index::class);
+
+        $this->assertSame([$on->id, $later->id, $cancelled->id], $list->viewData('upcoming')->pluck('id')->all());
+    }
+
+    public function test_the_chair_is_not_offered_to_ask_themself_to_be_excused(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-absence-form"', false)
+            ->set('absenceReason', 'Travelling')->call('requestAbsence')->assertForbidden();
+
+        // Another member still is.
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-absence-form"', false);
+    }
+
     public function test_the_commands_are_registered(): void
     {
         $this->assertSame(0, Artisan::call(EnsureNextBoardMeeting::class));

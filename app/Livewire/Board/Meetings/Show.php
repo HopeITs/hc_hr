@@ -7,6 +7,7 @@ use App\Models\BoardMeeting;
 use App\Models\BoardMeetingAttendee;
 use App\Models\BoardMeetingFollowUp;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\Board\BoardAccess;
 use App\Services\Board\BoardMeetingService;
 use App\Services\Board\BoardMinutesView;
@@ -143,13 +144,16 @@ class Show extends Component
         $this->toast(__('board.saved'));
     }
 
-    /** A member asks the chair to excuse them (self only; the meeting must still be ahead). */
+    /**
+     * A member asks the chair to excuse them (self only; the meeting must still be ahead). The chair is a member
+     * too, but would be asking themself: they record their own absence like anyone else's.
+     */
     public function requestAbsence(): void
     {
         $user = auth()->user();
         $meeting = $this->meeting();
 
-        abort_unless($this->access()->isMember($user) && $meeting->isUpcoming() && ! $meeting->isPublished(), 403);
+        abort_unless($this->mayAskAbsence($user) && $meeting->isUpcoming() && ! $meeting->isPublished(), 403);
 
         $this->validate(['absenceReason' => ['required', 'string', 'max:2000']], [], ['absenceReason' => __('board.absence.reason')]);
 
@@ -428,6 +432,7 @@ class Show extends Component
             'canManage' => ! $meeting->isPublished() && $access->canManage($user),
             'canWrite' => ! $meeting->isPublished() && $access->canWrite($user),
             'isMember' => $access->isMember($user),
+            'mayAskAbsence' => $this->mayAskAbsence($user),
             'minutesVisible' => $minutesVisible,
             'sections' => $meeting->sections()->get(),
             'followUps' => $meeting->followUps()->with('employee')->get(),
@@ -465,6 +470,12 @@ class Show extends Component
         $this->purpose = (string) $meeting->purpose;
         $this->ledBy = (string) $meeting->led_by;
         $this->preparedBy = (string) $meeting->prepared_by;
+    }
+
+    /** A member who is not the chair: the chair is the one who answers these requests. */
+    private function mayAskAbsence(?User $user): bool
+    {
+        return $this->access()->isMember($user) && ! $this->access()->canManage($user);
     }
 
     private function meeting(): BoardMeeting
