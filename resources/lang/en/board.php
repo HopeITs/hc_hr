@@ -81,7 +81,7 @@ return [
         'status' => ['open' => 'Open', 'done' => 'Done', 'carried' => 'Carried forward'],
         'mark-done' => 'Mark done', 'reopen' => 'Open again', 'carry' => 'Carry into this meeting', 'carried' => 'Carried into this meeting.',
         'earlier-title' => 'Still open from earlier meetings', 'earlier-help' => 'Close what is done, or carry it into this meeting’s table.',
-        'party-hint' => 'Pick a person from the list (they are told when the minutes come out), or type a department or body.',
+        'party-hint' => 'Pick a board member from the list (they are told when the minutes come out), or type a department, body or anyone else (kept as written, not told).',
         'linked' => 'told by notification',
     ],
     'tile' => [
