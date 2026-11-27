@@ -52,7 +52,8 @@
                 <span class="text-small text-ink">
                     {{ trans_choice('inbox.empty.other-role', $other['count'], ['count' => $other['count'], 'role' => role_label($other['name'])]) }}
                 </span>
-                <x-button variant="outline" wire:click="switchRole({{ $other['id'] }})" data-testid="inbox-switch-role-{{ $other['id'] }}">
+                {{-- Wraps on a phone: the Arabic role names are long. --}}
+                <x-button variant="outline" class="max-w-full whitespace-normal text-center" wire:click="switchRole({{ $other['id'] }})" data-testid="inbox-switch-role-{{ $other['id'] }}">
                     {{ __('inbox.empty.switch', ['role' => role_label($other['name'])]) }}
                 </x-button>
             </div>
