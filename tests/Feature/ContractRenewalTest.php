@@ -432,6 +432,57 @@ class ContractRenewalTest extends TestCase
         $this->assertSame('2027-01-01', $renewal->start_date->toDateString());
     }
 
+    public function test_nightly_run_preserves_the_manual_renewal_on_a_new_position(): void
+    {
+        $this->travelTo('2026-12-31 12:00:00');
+        $fixtures = $this->makeFixtures();
+        $this->seedLeaveConfiguration();
+        $source = $this->makeContract($fixtures, ['auto_renew' => true]);
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractCreate::class, ['contract' => $source])
+            ->call('submit', [
+                'cityId' => $fixtures['city']->id,
+                'employeeId' => $source->employee_id,
+                'programId' => $fixtures['program']->id,
+                'centerId' => $fixtures['center']->id,
+                'positionId' => $fixtures['otherPosition']->id,
+                'contractTypeId' => $source->contract_type_id,
+                'startDate' => '2027-01-01',
+                'endDate' => '2027-12-31',
+                'workHoursFrom' => $source->work_hours_from,
+                'workHoursTo' => $source->work_hours_to,
+                'weeklyHours' => $source->weekly_hours,
+                'salary' => $source->salary,
+                'currency' => $source->currency,
+                'salaryPer' => $source->salary_per,
+            ])
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $contracts = $fixtures['employee']->allContracts();
+        $manual = (clone $contracts)->whereKeyNot($source->id)->sole();
+        $this->assertSame($fixtures['otherPosition']->id, $manual->position_id);
+        $this->assertSame('2027-01-01', $manual->start_date->toDateString());
+        $this->assertTrue($source->fresh()->auto_renew);
+
+        $this->travelTo('2026-12-31 21:30:00');
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->travelTo('2026-12-31 21:35:00');
+        $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
+        $this->assertSame(2, $contracts->count());
+
+        $this->travelTo('2027-01-01 21:30:00');
+        $this->artisan('deactivate:contract')->assertSuccessful();
+        $this->assertFalse($source->fresh()->is_active);
+        $this->travelTo('2027-01-01 21:35:00');
+        $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
+        $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
+
+        $this->assertSame(2, $contracts->count());
+        $this->assertSame($manual->id, $fixtures['employee']->contracts()->sole()->id);
+    }
+
     public function test_renewing_into_a_different_full_position_is_still_rejected(): void
     {
         $fixtures = $this->makeFixtures();

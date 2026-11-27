@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ContractType;
 use App\Models\Contract;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -150,7 +151,7 @@ class ContractAutoRenewalService
                 return null;
             }
 
-            if ($this->successorExists($source, $start->toDateString())) {
+            if ($this->successorExists($source)) {
                 return null;
             }
 
@@ -229,13 +230,13 @@ class ContractAutoRenewalService
         }
     }
 
-    private function successorExists(Contract $source, string $startDate): bool
+    private function successorExists(Contract $source): bool
     {
         return Contract::query()
             ->where('id', '!=', $source->id)
             ->where('employee_id', $source->employee_id)
-            ->where('position_id', $source->position_id)
-            ->whereDate('start_date', $startDate)
+            ->where('type', '!=', ContractType::Draft)
+            ->whereDate('start_date', '>', $source->end_date)
             ->exists();
     }
 }

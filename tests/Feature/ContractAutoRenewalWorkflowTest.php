@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Console\Commands\ProcessContractAutoRenewals;
 use App\Console\Commands\SendContractExpirationWarnings;
+use App\Enums\ContractType as EmploymentType;
 use App\Livewire\Contract\ContractCreate;
 use App\Livewire\Contract\ContractEdit;
 use App\Livewire\Contract\ContractsTable;
@@ -31,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Spatie\Permission\Models\Role;
 use stdClass;
@@ -257,6 +259,39 @@ class ContractAutoRenewalWorkflowTest extends TestCase
         $this->assertSame(1, Contract::query()->where('employee_id', $activeExpired->employee_id)->count());
 
         Notification::assertSentTo($fixtures['hr'], ContractsAutoRenewedSummary::class);
+    }
+
+    public static function manualContractCases(): array
+    {
+        return [
+            'later contract on another position' => [EmploymentType::FullTime, '2026-09-20', true],
+            'later draft reservation' => [EmploymentType::Draft, '2026-09-20', false],
+            'contract starting on the original end date' => [EmploymentType::FullTime, '2026-09-15', false],
+        ];
+    }
+
+    #[DataProvider('manualContractCases')]
+    public function test_only_a_later_real_contract_blocks_auto_renewal(int $type, string $startDate, bool $blocksRenewal): void
+    {
+        $this->travelTo('2026-09-16 00:05:00');
+        Notification::fake();
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'manual-renewal');
+        $position = $this->makePosition($fixtures, 'Original Position');
+        $this->makeContract($fixtures, $employee, $position, [
+            'end_date' => '2026-09-15',
+            'is_active' => false,
+            'auto_renew' => true,
+        ]);
+        $this->makeContract($fixtures, $employee, $this->makePosition($fixtures, 'New Position'), [
+            'type' => $type,
+            'start_date' => $startDate,
+            'auto_renew' => false,
+        ]);
+
+        $this->artisan('contracts:process-auto-renewals')->assertSuccessful();
+
+        $this->assertSame($blocksRenewal ? 2 : 3, $employee->allContracts()->count());
     }
 
     public function test_contracts_table_auto_renew_toggle_is_hr_only(): void
