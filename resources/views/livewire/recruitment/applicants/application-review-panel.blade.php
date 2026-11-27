@@ -18,12 +18,7 @@
         <div class="mt-4 grid items-end gap-3 md:grid-cols-[1fr_12rem_auto]">
             <div>
                 <x-forms.input-label for="application-review-participant-{{ $application->id }}" :value="__('recruitment-applicant.profile_reviews.person')" />
-                <x-forms.select2-input wire:model="newParticipantId" id="application-review-participant-{{ $application->id }}">
-                    <option value="">{{ __('recruitment.choose') }}</option>
-                    @foreach ($candidates as $candidate)
-                        <option value="{{ $candidate->id }}">{{ $candidate->profile?->name }} — {{ $candidate->email }}</option>
-                    @endforeach
-                </x-forms.select2-input>
+                <x-recruitment.staff-picker id="application-review-participant-{{ $application->id }}" wire:model="newParticipantId" :candidates="$candidates" />
                 <x-forms.input-error field="newParticipantId" :input-id="'application-review-participant-'.$application->id" />
             </div>
             <div>

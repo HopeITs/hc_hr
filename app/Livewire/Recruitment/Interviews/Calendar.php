@@ -133,7 +133,7 @@ class Calendar extends Component
             'first' => $first,
             'weeks' => $weeks,
             'weekdays' => collect(range(0, 6))->map(fn (int $offset) => $gridStart->copy()->addDays($offset)->translatedFormat('D')),
-            'timezone' => config('app.timezone'),
+            'timezone' => RecruitmentInterviewSchedulingService::TIMEZONE,
             'canSchedule' => $this->canSchedule(),
             'schedulingOptions' => $options,
         ]);

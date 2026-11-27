@@ -22,7 +22,7 @@
     @else
         <ul class="mt-2 divide-y divide-secondary-soft">
             @foreach ($interviews as $interview)
-                @php $timezone = $interview->timezone ?: config('app.timezone'); @endphp
+                @php $timezone = \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE; @endphp
                 <li class="flex flex-wrap items-center justify-between gap-2 py-2" wire:key="application-interview-{{ $interview->id }}">
                     <a href="{{ route('recruitment.interviews.show', ['interviewId' => $interview->id]) }}" wire:navigate class="hover:underline">
                         <span class="font-medium">{{ __('recruitment-applicant.interviews.types.'.$interview->interview_type) }}</span>

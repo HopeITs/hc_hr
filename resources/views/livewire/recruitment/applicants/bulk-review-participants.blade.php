@@ -13,12 +13,7 @@
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                     <x-forms.input-label for="bulkParticipantId" required>{{ __('recruitment-applicant.profile_reviews.person') }}</x-forms.input-label>
-                    <x-forms.select2-input id="bulkParticipantId" wire:model="userId">
-                        <option value="">{{ __('recruitment.choose') }}</option>
-                        @foreach ($candidates as $candidate)
-                            <option value="{{ $candidate->id }}">{{ $candidate->profile?->name ?? $candidate->email }} — {{ $candidate->email }}</option>
-                        @endforeach
-                    </x-forms.select2-input>
+                    <x-recruitment.staff-picker id="bulkParticipantId" wire:model="userId" :candidates="$candidates" />
                     <x-forms.input-error field="bulkParticipantId" input-id="bulkParticipantId" />
                 </div>
                 <div>

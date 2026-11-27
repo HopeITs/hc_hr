@@ -64,7 +64,7 @@ class BulkReviewParticipants extends Component
     public function render()
     {
         return view('livewire.recruitment.applicants.bulk-review-participants', [
-            'candidates' => $this->open ? User::query()->whereHas('profile', fn ($profile) => $profile->where('is_active', true))->with('profile')->get()->sortBy(fn (User $user) => $user->profile?->name)->values() : collect(),
+            'candidates' => $this->open ? User::query()->whereHas('profile', fn ($profile) => $profile->where('is_active', true))->with('profile.contracts.position.jobLevel')->get()->sortBy(fn (User $user) => $user->profile?->name)->values() : collect(),
         ]);
     }
 }

@@ -152,7 +152,7 @@ class Board extends Component
                 $this->dateFrom,
                 $this->dateTo,
             ])->contains(fn (string $value): bool => $value !== '') || $this->mine,
-            'timezone' => config('app.timezone'),
+            'timezone' => \App\Services\RecruitmentInterviewSchedulingService::TIMEZONE,
         ]);
     }
 

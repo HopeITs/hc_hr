@@ -871,8 +871,8 @@ class RecruitmentInterviewTest extends TestCase
         $this->assertSame(AppStatus::Interviewed, $application->fresh()->status);
     }
 
-    /** [19] Invalid dates and formats are refused; times are stored and shown in Europe/Istanbul. */
-    public function test_dates_are_strict_and_times_follow_the_application_timezone(): void
+    /** [19] Invalid dates and formats are refused; times are shown in Asia/Damascus. */
+    public function test_dates_are_strict_and_times_follow_the_damascus_timezone(): void
     {
         $application = $this->shortlisted();
 
@@ -884,17 +884,17 @@ class RecruitmentInterviewTest extends TestCase
         Mail::fake();
         $interview = $this->schedule($application, ['startsAt' => '2026-10-10 18:45']);
 
-        $this->assertSame('Europe/Istanbul', $interview->timezone);
+        $this->assertSame('Asia/Damascus', $interview->timezone);
         $this->assertSame('2026-10-10 18:45:00', DB::table('recruitment_interviews')->where('id', $interview->id)->value('scheduled_at'));
 
         $this->actingAs($this->hr);
         Livewire::test(Show::class, ['interviewId' => $interview->id])
             ->assertSee('2026-10-10 18:45')
-            ->assertSee('Europe/Istanbul (UTC+03:00)');
+            ->assertSee('Asia/Damascus (UTC+03:00)');
         Livewire::test(Form::class, ['interviewId' => $interview->id])->assertSet('startsAt', '2026-10-10T18:45');
 
         Mail::assertSent(RecruitmentInterviewMail::class, fn (RecruitmentInterviewMail $mail) => str_contains($mail->render(), '2026-10-10 18:45')
-            && str_contains($mail->render(), 'Europe/Istanbul (UTC+03:00)'));
+            && str_contains($mail->render(), 'Asia/Damascus (UTC+03:00)'));
     }
 
     // ------------------------------------------------------------------

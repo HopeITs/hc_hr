@@ -77,7 +77,7 @@ class ApplicantProfileAccess extends Component
                     ->whereHas('profile', fn ($profile) => $profile->where('is_active', true))
                     ->when($employeeId !== null, fn ($query) => $query->where('employee_id', '!=', $employeeId))
                     ->whereKeyNot($participants->pluck('user_id'))
-                    ->with('profile')
+                    ->with('profile.contracts.position.jobLevel')
                     ->get()
                     ->sortBy(fn (User $candidate) => $candidate->profile?->name)
                     ->values()
