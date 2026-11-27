@@ -7,6 +7,7 @@ use App\Models\BoardMeeting;
 use App\Services\Board\BoardAccess;
 use App\Services\Board\BoardMeetingService;
 use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 /**
@@ -33,6 +34,17 @@ class Index extends Component
 
     public string $purpose = '';
 
+    /**
+     * The week of the chosen date already has a meeting: the chair is asked once whether this one is an extra
+     * (urgent) meeting before it is added. Holds that meeting's number and date, or null.
+     *
+     * @var array{number: int, date: string, cancelled: bool}|null
+     */
+    public ?array $sameWeek = null;
+
+    /** The chair said yes to an extra meeting in that week. */
+    public bool $sameWeekConfirmed = false;
+
     /** An old meeting was brought in: redraw the lists. */
     protected $listeners = ['board-archive-imported' => '$refresh'];
 
@@ -52,7 +64,21 @@ class Index extends Component
         $this->location = (string) $s['location'];
         $this->room = (string) $s['room'];
         $this->purpose = '';
+        $this->resetSameWeek();
         $this->adding = true;
+    }
+
+    /** Another date is another question: the earlier yes was for that week only. */
+    public function updatedStartsAt(): void
+    {
+        $this->resetSameWeek();
+    }
+
+    /** "Yes, add it as an extra meeting." */
+    public function confirmSameWeek(): void
+    {
+        $this->sameWeekConfirmed = true;
+        $this->saveMeeting();
     }
 
     public function saveMeeting(): void
@@ -67,15 +93,38 @@ class Index extends Component
             'purpose' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $meeting = app(BoardMeetingService::class)->schedule([
-            'starts_at' => CarbonImmutable::parse($this->startsAt),
+        $service = app(BoardMeetingService::class);
+        $startsAt = CarbonImmutable::parse($this->startsAt);
+
+        // Two meetings at the same minute are one meeting typed twice.
+        if ($taken = $service->meetingStartingAt($startsAt)) {
+            $this->resetSameWeek();
+
+            throw ValidationException::withMessages([
+                'startsAt' => __('board.same-start', ['number' => $taken->number]),
+            ]);
+        }
+
+        // An extra meeting in a week that has one is possible, but only once the chair says so.
+        if (! $this->sameWeekConfirmed && ($other = $service->meetingInWeek($startsAt))) {
+            $this->sameWeek = [
+                'number' => $other->number,
+                'date' => $other->starts_at->translatedFormat('l j F Y H:i'),
+                'cancelled' => $other->isCancelled(),
+            ];
+
+            return;
+        }
+
+        $meeting = $service->schedule([
+            'starts_at' => $startsAt,
             'ends_at' => $this->endsAt !== '' ? CarbonImmutable::parse($this->endsAt) : null,
             'location' => $this->location ?: null,
             'room' => $this->room ?: null,
             'purpose' => $this->purpose ?: null,
         ], auth()->user());
 
-        $this->reset(['adding', 'startsAt', 'endsAt', 'location', 'room', 'purpose']);
+        $this->reset(['adding', 'startsAt', 'endsAt', 'location', 'room', 'purpose', 'sameWeek', 'sameWeekConfirmed']);
         $this->toast(__('board.saved'));
 
         $this->redirectRoute('board.meetings.show', ['meeting' => $meeting->id], navigate: true);
@@ -117,5 +166,11 @@ class Index extends Component
             'seeDraft' => $seeDraft,
             'canImport' => $access->canWrite($user),
         ]);
+    }
+
+    private function resetSameWeek(): void
+    {
+        $this->sameWeek = null;
+        $this->sameWeekConfirmed = false;
     }
 }
