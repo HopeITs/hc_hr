@@ -71,6 +71,9 @@ Schedule::command(App\Console\Commands\SendOnboardingStepReminders::class)->dail
 Schedule::command(QueueMailListStarters::class)->dailyAt('08:20');
 // Meeting 19/11 (track 3): a birthday on a weekend or holiday in the coming days asks the volunteer, once, to pick another day.
 Schedule::command(NotifyBirthdayConflicts::class)->dailyAt('08:25');
+// R2-2: the renewal is made on the source's last night, dated the next day, so
+// it is running when its first day begins; deactivate:contract closes the source
+// the following night. A contract ending 31 December is renewed on 31 December.
 Schedule::command(ProcessContractAutoRenewals::class)->dailyAt('21:35');
 // Renewal journey: start at 30 days before the end, settle after tonight's renewals.
 Schedule::command(TrackRenewalJourneys::class)->dailyAt('21:45');
