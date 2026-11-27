@@ -14,9 +14,12 @@ use Spatie\Activitylog\Contracts\Activity;
  * satisfies that; the value does not, and the current value is one join away
  * for anyone actually authorized to see it.
  *
- * Usage: list the field names in $sensitiveLogAttributes and keep them out of
- * logOnly(). Their names then appear under the `sensitive_fields_changed`
- * property on the activity record.
+ * Usage: list the field names in $sensitiveLogAttributes. Their names then
+ * appear under the `sensitive_fields_changed` property on the activity record.
+ * A sensitive field may also be in logOnly() — needed when a change to it
+ * alone must still write an entry (logOnlyDirty + dontSubmitEmptyLogs would
+ * otherwise drop it): its value under `attributes` / `old` is replaced with
+ * the same marker `security:purge-activity-log` writes.
  */
 trait RedactsSensitiveActivityLog
 {
@@ -24,18 +27,36 @@ trait RedactsSensitiveActivityLog
     {
         $sensitive = $this->sensitiveLogAttributes ?? [];
 
-        if ($sensitive === [] || $eventName === 'deleted') {
-            return;
-        }
-
-        $changed = array_values(array_intersect($sensitive, array_keys($this->getDirty())));
-
-        if ($changed === []) {
+        if ($sensitive === []) {
             return;
         }
 
         $properties = $activity->properties ?? collect();
 
-        $activity->properties = $properties->put('sensitive_fields_changed', $changed);
+        foreach (['attributes', 'old'] as $bucket) {
+            $values = $properties->get($bucket);
+
+            if (! is_array($values)) {
+                continue;
+            }
+
+            foreach ($sensitive as $field) {
+                if (array_key_exists($field, $values) && $values[$field] !== null) {
+                    $values[$field] = '[redacted]';
+                }
+            }
+
+            $properties = $properties->put($bucket, $values);
+        }
+
+        if ($eventName !== 'deleted') {
+            $changed = array_values(array_intersect($sensitive, array_keys($this->getDirty())));
+
+            if ($changed !== []) {
+                $properties = $properties->put('sensitive_fields_changed', $changed);
+            }
+        }
+
+        $activity->properties = $properties;
     }
 }
