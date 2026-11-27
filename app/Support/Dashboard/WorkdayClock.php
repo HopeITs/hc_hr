@@ -194,14 +194,14 @@ class WorkdayClock
 
     /**
      * "From Monday Till Friday" → [1, 5]; "From Saturday Till Thursday" → [6, 4]
-     * (a range that wraps). Null for anything else, so an unknown phrasing is
-     * no schedule rather than a guess.
+     * (a range that wraps); "Sunday Till Thursday" (no "From") → [0, 4]. Null
+     * for anything else, so an unknown phrasing is no schedule rather than a guess.
      *
      * @return array{0: int, 1: int}|null
      */
     public static function dayRangeFromText(?string $text): ?array
     {
-        if (! is_string($text) || ! preg_match('/^\s*from\s+([a-z]+)\s+(?:till|to|until)\s+([a-z]+)\s*$/i', $text, $m)) {
+        if (! is_string($text) || ! preg_match('/^\s*(?:from\s+)?([a-z]+)\s+(?:till|to|until)\s+([a-z]+)\s*$/i', $text, $m)) {
             return null;
         }
 
