@@ -286,8 +286,8 @@ class Show extends Component
             'topic' => $this->followUpTopic,
             'required' => $this->followUpRequired ?: null,
             'party' => $party ?: null,
-            // A name picked from the list is that employee (told when the minutes come out); anything else is a
-            // department or a body outside, kept as written.
+            // A name picked from the list is that board member (told when the minutes come out); anything else
+            // (a department, someone off the board, a body outside) is kept as written.
             'employee_id' => $party !== '' ? $this->employeeNamed($party) : null,
         ];
 
@@ -457,15 +457,17 @@ class Show extends Component
         ]);
     }
 
-    /** @return array<int, string> active employees' names, for the follow-up's "person or body" list */
+    /** @return array<int, string> current board members' names, for the follow-up's "person or body" list */
     private function employeeNames(): array
     {
-        return Employee::query()->where('is_active', true)->get()
+        // Only the board: a follow-up row is read on the minutes, which nobody else can open. Anyone else
+        // (a department, a staff member, a body outside) is kept as written and nobody is notified.
+        return $this->access()->currentMembers()->get()
             ->mapWithKeys(fn (Employee $e) => [$e->id => (string) $e->name])
             ->filter()->sort()->all();
     }
 
-    /** The one active employee with exactly this name; two people sharing it link nobody (kept as written). */
+    /** The one current board member with exactly this name; two people sharing it link nobody (kept as written). */
     private function employeeNamed(string $name): ?int
     {
         $ids = array_keys($this->employeeNames(), $name, true);
