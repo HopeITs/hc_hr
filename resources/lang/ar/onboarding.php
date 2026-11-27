@@ -68,6 +68,8 @@ return [
         'pending' => 'بانتظارك',
         'acknowledge' => 'قرأت وأوافق',
         'acknowledged' => 'شكراً، تم تسجيل موافقتك.',
+        'read-whole' => 'اقرأ السياسة كاملة',
+        'new-version' => 'نسخة جديدة بتاريخ :date',
         'none' => 'لا توجد وثيقة مطلوبة حالياً.',
         'section-policy' => 'السياسات',
         'section-policy-hint' => 'اقرأ كل سياسة ثم أكّد موافقتك.',

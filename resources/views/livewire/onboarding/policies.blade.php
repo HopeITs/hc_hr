@@ -23,9 +23,26 @@
                         @endif
                     </div>
 
+                    @if (! $agreed && $outdated->contains($document->id) && $document->source_modified_at)
+                        <p class="mt-2 text-small text-ink-2" data-testid="new-version-{{ $document->id }}">
+                            <x-tag variant="act">{{ __('onboarding.policies.new-version', ['date' => $document->source_modified_at->translatedFormat('j F Y')]) }}</x-tag>
+                        </p>
+                    @endif
 
-                    @if ($document->content)
-                        <div class="mt-3 max-h-80 overflow-y-auto whitespace-pre-line rounded-control border border-line-soft bg-soft p-3 text-body text-ink">{{ $document->content }}</div>
+                    @if (filled($document->content))
+                        @php $text = $texts[$document->id]; @endphp
+                        <div class="relative mt-3">
+                            <article dir="{{ $document->direction() }}" lang="{{ $document->direction() === 'rtl' ? 'ar' : 'en' }}"
+                                     @class(['policy-body rounded-control border border-line-soft bg-card p-4', 'max-h-80 overflow-hidden' => $text['long']])
+                                     data-testid="policy-text-{{ $document->id }}" @if ($text['long']) data-collapsed @endif>{!! $text['html'] !!}</article>
+                            @if ($text['long'])
+                                <div class="pointer-events-none absolute inset-x-px bottom-px h-16 rounded-b-control bg-gradient-to-t from-card to-transparent" aria-hidden="true"></div>
+                            @endif
+                        </div>
+                        @if ($text['long'])
+                            <a href="{{ route('policies.show', $document->id) }}" wire:navigate class="mt-2 inline-block text-small font-medium text-ink underline"
+                               data-testid="read-whole-{{ $document->id }}">@lang('onboarding.policies.read-whole')</a>
+                        @endif
                     @endif
 
                     @unless ($agreed)
