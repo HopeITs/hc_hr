@@ -297,6 +297,11 @@ class RecruitmentMatchingIndicators
         [$fieldState, $field] = $this->answer($application, 'experience_field');
 
         if ($fieldState === 'answered') {
+            $fieldKey = (string) $this->rules->get('fields.experience_field', 'experience_field');
+            if (($this->formField($application, $fieldKey)['type'] ?? null) === 'text') {
+                return new MatchingIndicator($key, Outcome::Partial, 'industry_described_only');
+            }
+
             $label = $this->optionLabel($application, 'experience_field', $field);
 
             return in_array($field, $this->rules->get('no_experience_answers', []), true)
