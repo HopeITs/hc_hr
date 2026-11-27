@@ -96,6 +96,34 @@ class EmployeeIntegrityCheckTest extends TestCase
         $this->assertTrue($late->fresh()->is_active);
     }
 
+    /**
+     * R2-3c: a future-dated termination keeps the contract active until its
+     * date (R2-3), so one still active after that date means the nightly
+     * deactivation did not run. The termination day itself is not late yet.
+     */
+    public function test_a_contract_still_active_after_its_termination_date_is_listed(): void
+    {
+        $missed = $this->makeContractFor($this->makeEmployee($this->city, 'r23c.missed'), [
+            'end_date' => '2027-06-30', 'terminated_at' => '2026-11-25',
+        ]);
+        $tonight = $this->makeContractFor($this->makeEmployee($this->city, 'r23c.tonight'), [
+            'end_date' => '2027-06-30', 'terminated_at' => '2026-11-26',
+        ]);
+        $later = $this->makeContractFor($this->makeEmployee($this->city, 'r23c.later'), [
+            'end_date' => '2027-06-30', 'terminated_at' => '2026-12-15',
+        ]);
+        // makeContractFor saves through the observer; keep all three active as
+        // a missed nightly run would leave them.
+        $ids = [$missed->id, $tonight->id, $later->id];
+        \App\Models\Contract::query()->whereKey($ids)->update(['is_active' => true]);
+
+        $ended = app(CheckEmployeeIntegrity::class)->findings()['ended'];
+
+        $this->assertContains($missed->id, $ended);
+        $this->assertNotContains($tonight->id, $ended);
+        $this->assertNotContains($later->id, $ended);
+    }
+
     public function test_hr_syria_is_told_once_per_list_not_every_night(): void
     {
         Notification::fake();
