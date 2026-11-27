@@ -37,7 +37,7 @@ class SendLeaveReviewDigest extends Command
                 }
 
                 $waiting = $query->reorder()
-                    ->selectRaw('COUNT(*) AS total, MIN(COALESCE(leave_requests.approved_at, leave_requests.updated_at)) AS oldest')
+                    ->selectRaw('COUNT(*) AS total, MIN('.WorkInbox::decidedAtSql().') AS oldest')
                     ->toBase()
                     ->first();
 

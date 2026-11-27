@@ -2575,6 +2575,23 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertSame(1, $hr->fresh()->notifications()->where('type', \App\Notifications\LeaveReviewBacklog::class)->count());
     }
 
+    /** T3: the decision-date SQL carries the table prefix (hr_db's `hchr_`), unlike a raw `leave_requests.` name. */
+    public function test_t3_decided_at_sql_uses_the_table_prefix(): void
+    {
+        $connection = DB::connection();
+        $prefix = $connection->getTablePrefix();
+        $connection->setTablePrefix('hchr_');
+
+        try {
+            $sql = \App\Services\WorkInbox::decidedAtSql();
+        } finally {
+            $connection->setTablePrefix($prefix);
+        }
+
+        $this->assertStringContainsString('hchr_leave_requests', $sql);
+        $this->assertStringNotContainsString('(leave_requests.', $sql);
+    }
+
     // --- T11: work waiting under another role ---
 
     /** T11: an empty inbox names the other role that has work waiting, without switching, and switches on request. */

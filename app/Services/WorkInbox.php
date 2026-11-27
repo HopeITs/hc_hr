@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Inbox\JourneyInbox;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -196,7 +197,7 @@ final class WorkInbox
         return $this->leaveQuery($user)
             ->reorder()
             ->orderByDesc('leave_requests.is_exceptional')
-            ->orderByRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at)')
+            ->orderByRaw(self::decidedAtSql())
             ->orderBy('leave_requests.id')
             ->where('status', '!=', LeaveRequestStatus::Pending)
             ->where('hr_approved', false)
@@ -215,7 +216,19 @@ final class WorkInbox
     public function reviewsOlderThan(User $user, int $days): ?Builder
     {
         return $this->reviewQuery($user)
-            ?->whereRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at) < ?', [now()->subDays($days)]);
+            ?->whereRaw(self::decidedAtSql().' < ?', [now()->subDays($days)]);
+    }
+
+    /**
+     * When a review's decision was made, as SQL: wrapped by the grammar so
+     * the table prefix applies (hr_db's tables are `hchr_`; a raw
+     * `leave_requests.` name failed there while SQLite tests passed).
+     */
+    public static function decidedAtSql(): string
+    {
+        $grammar = DB::connection()->getQueryGrammar();
+
+        return 'COALESCE('.$grammar->wrap('leave_requests.approved_at').', '.$grammar->wrap('leave_requests.updated_at').')';
     }
 
     /** A copy of $user operating under $role, in memory only. */
