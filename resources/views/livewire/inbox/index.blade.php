@@ -45,6 +45,18 @@
         <x-center-empty-state data-testid="inbox-empty" :title="__('inbox.empty.title')" :description="__('inbox.empty.body')">
             <x-slot:icon><x-ic name="inbox" class="size-9" /></x-slot:icon>
         </x-center-empty-state>
+        {{-- T11: work waits under another role of the user (e.g. HR Syria signed in as manager). --}}
+        @foreach ($otherRoles as $other)
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-3 rounded-surface border border-line-soft bg-card px-4 py-3"
+                 role="status" data-testid="inbox-other-role" wire:key="other-role-{{ $other['id'] }}">
+                <span class="text-small text-ink">
+                    {{ trans_choice('inbox.empty.other-role', $other['count'], ['count' => $other['count'], 'role' => role_label($other['name'])]) }}
+                </span>
+                <x-button variant="outline" wire:click="switchRole({{ $other['id'] }})" data-testid="inbox-switch-role-{{ $other['id'] }}">
+                    {{ __('inbox.empty.switch', ['role' => role_label($other['name'])]) }}
+                </x-button>
+            </div>
+        @endforeach
     @else
         {{-- Batch: only checklist confirmations (C3D-Q4). --}}
         @if ($rows->where('bulk', true)->isNotEmpty())

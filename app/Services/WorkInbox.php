@@ -7,6 +7,7 @@ use App\Models\Checklist;
 use App\Models\LeaveRequest;
 use App\Models\ProbationReview;
 use App\Models\ProfileChangeRequest;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Inbox\JourneyInbox;
 use Illuminate\Database\Eloquent\Builder;
@@ -128,6 +129,38 @@ final class WorkInbox
         ];
     }
 
+    /**
+     * What waits on the user's other roles (T11): HR Syria signs in as manager
+     * (login_role_order) and meets an empty inbox while its HR work waits.
+     * Each role is counted on an in-memory copy of the user with that role
+     * flagged active, through the same snapshot, so the number is the one the
+     * inbox would show after a switch. Nothing is written; the session keeps
+     * its role.
+     *
+     * @return list<array{id: int, name: string, count: int}>
+     */
+    public function waitingUnderOtherRoles(User $user): array
+    {
+        $active = $user->activeRole();
+        $roles = $user->roles;
+
+        if ($roles->count() < 2) {
+            return [];
+        }
+
+        return $roles
+            ->reject(fn (Role $role) => $role->is($active))
+            ->map(fn (Role $role) => [
+                'id' => (int) $role->getKey(),
+                'name' => (string) $role->name,
+                'count' => $this->snapshot($this->asRole($user, $role))['counts']['all'],
+            ])
+            ->filter(fn (array $role) => $role['count'] > 0)
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
     /** Whether the user's active role has any inbox source at all (the menu item shows then). */
     public function hasSources(User $user): bool
     {
@@ -183,6 +216,21 @@ final class WorkInbox
     {
         return $this->reviewQuery($user)
             ?->whereRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at) < ?', [now()->subDays($days)]);
+    }
+
+    /** A copy of $user operating under $role, in memory only. */
+    private function asRole(User $user, Role $role): User
+    {
+        $copy = clone $user;
+        $copy->setRelation('roles', $user->roles->map(function (Role $held) use ($role) {
+            $held = clone $held;
+            $pivot = clone $held->pivot;
+            $pivot->is_active = (int) $held->is($role);
+
+            return $held->setRelation('pivot', $pivot);
+        }));
+
+        return $copy;
     }
 
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */

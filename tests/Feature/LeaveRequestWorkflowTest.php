@@ -2575,6 +2575,51 @@ class LeaveRequestWorkflowTest extends TestCase
         $this->assertSame(1, $hr->fresh()->notifications()->where('type', \App\Notifications\LeaveReviewBacklog::class)->count());
     }
 
+    // --- T11: work waiting under another role ---
+
+    /** T11: an empty inbox names the other role that has work waiting, without switching, and switches on request. */
+    public function test_t11_empty_inbox_points_to_the_role_with_work_waiting(): void
+    {
+        [$hr, $leave] = $this->createPendingDecisionFixture();
+        $leave->update(['status' => LeaveRequestStatus::Accepted, 'approved_at' => now()->subDays(3)]);
+        $hrRole = $hr->roles->first(fn ($role) => str_starts_with($role->name, 'HR-'));
+        $employeeRole = Role::findOrCreate('employee', 'web');
+        $hr->assignRole($employeeRole);
+        $hr->setActiveRole($employeeRole->id);
+        $hr = $hr->fresh();
+
+        $component = Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class)
+            ->assertSeeHtml('data-testid="inbox-empty"')
+            ->assertSeeHtml('data-testid="inbox-other-role"')
+            ->assertSeeHtml('data-testid="inbox-switch-role-'.$hrRole->id.'"')
+            ->assertSee('1 item waiting under the role');
+
+        $this->assertSame('employee', $hr->fresh()->myRole(), 'counting another role switches nothing');
+
+        $component->call('switchRole', $hrRole->id)->assertRedirect();
+        $this->assertSame($hrRole->name, $hr->fresh()->myRole());
+    }
+
+    /** T11: no hint when the other roles have nothing waiting, and no switch to a role the user does not hold. */
+    public function test_t11_no_hint_without_waiting_work_and_no_switch_to_a_role_not_held(): void
+    {
+        [$hr] = $this->createPendingDecisionFixture();
+        LeaveRequest::query()->delete();
+        $employeeRole = Role::findOrCreate('employee', 'web');
+        $hr->assignRole($employeeRole);
+        $hr->setActiveRole($employeeRole->id);
+        $hr = $hr->fresh();
+        $foreign = Role::findOrCreate('HR-XXX', 'web');
+
+        Livewire::actingAs($hr)->test(\App\Livewire\Inbox\Index::class)
+            ->assertSeeHtml('data-testid="inbox-empty"')
+            ->assertDontSeeHtml('data-testid="inbox-other-role"')
+            ->call('switchRole', $foreign->id)
+            ->assertForbidden();
+
+        $this->assertSame('employee', $hr->fresh()->myRole());
+    }
+
     private function decidedCopyOf(LeaveRequest $leave, int $daysAgo): LeaveRequest
     {
         $copy = $leave->replicate();
