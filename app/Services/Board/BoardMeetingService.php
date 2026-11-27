@@ -254,6 +254,12 @@ class BoardMeetingService
     {
         $this->assertOpen($meeting);
 
+        // Minutes record a meeting that took place: before its time there is nothing to minute, and publishing would
+        // lock a meeting the chair may still need to move or cancel (same rule as attendance).
+        if (! $meeting->hasStarted()) {
+            throw ValidationException::withMessages(['publish' => __('board.locks.publish-before-start')]);
+        }
+
         $meeting->update([
             'published_at' => now(),
             'prepared_by' => $meeting->prepared_by ?: $by->profile?->name,

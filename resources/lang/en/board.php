@@ -69,6 +69,7 @@ return [
         'started-date' => 'The meeting has begun: its date stays as it was.',
         'started-cancel' => 'A meeting that has begun cannot be cancelled.',
         'attendance-before-start' => 'Attendance is recorded from the meeting’s time.',
+        'publish-before-start' => 'The minutes can be published once the meeting has been held.',
     ],
     'reopen' => [
         'title' => 'Reopen the minutes', 'help' => 'Takes the published minutes back to a draft to correct them. Members no longer see them until they are published again; the reason is kept.',
