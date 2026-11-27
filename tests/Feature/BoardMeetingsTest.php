@@ -975,6 +975,35 @@ class BoardMeetingsTest extends TestCase
         Mail::assertSent(\App\Mail\BoardMeetingReminderMail::class, 3);
     }
 
+    public function test_the_cancelled_calendar_export_keeps_the_meeting_uid_and_advances_the_sequence(): void
+    {
+        Notification::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-12-09 08:00'));
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => CarbonImmutable::parse('2026-12-10 12:00')], notify: false);
+        $url = route('board.meetings.ics', $meeting);
+
+        $scheduled = $this->actingAs($this->member)->get($url)->assertOk()->getContent();
+
+        $this->travel(1)->minutes();
+        $service->cancel($meeting, 'Holiday');
+        $cancelled = $this->get($url)->assertOk()->getContent();
+
+        $scheduledLines = explode("\r\n", $scheduled);
+        $cancelledLines = explode("\r\n", $cancelled);
+        $uid = 'UID:board-meeting-'.$meeting->id.'@'.(parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'hope-hr');
+
+        $this->assertContains('METHOD:PUBLISH', $scheduledLines);
+        $this->assertContains('STATUS:CONFIRMED', $scheduledLines);
+        $this->assertContains($uid, $scheduledLines);
+        $this->assertContains('SEQUENCE:'.now()->subMinute()->timestamp, $scheduledLines);
+
+        $this->assertContains('METHOD:CANCEL', $cancelledLines);
+        $this->assertContains('STATUS:CANCELLED', $cancelledLines);
+        $this->assertContains($uid, $cancelledLines);
+        $this->assertContains('SEQUENCE:'.now()->timestamp, $cancelledLines);
+    }
+
     public function test_the_secretary_reorders_sections_uses_a_usual_title_and_an_edited_section_saves_as_he_types(): void
     {
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
