@@ -10,6 +10,8 @@ use App\Livewire\Forms\ContractForm;
 use App\Livewire\Forms\LeaveBalanceForm;
 use App\Models\Contract;
 use App\Models\TerminationReason;
+use App\Models\User;
+use App\Notifications\NewEmployeeWelcome;
 use App\Services\EmployeeActivation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -117,6 +119,12 @@ class ContractEdit extends Component
         $activation = $wasDraft
             ? app(EmployeeActivation::class)->activateForContract($this->contract)
             : EmployeeActivation::RESULT_NONE;
+
+        // The colleagues' welcome follows the same upgrade (T13d), as in
+        // ContractCreate::notifyIfFirstContract: only a first contract.
+        if ($wasDraft && (int) $this->contract->type !== ContractTypeEnum::Draft) {
+            $this->notifyIfFirstContract();
+        }
 
         $this->toast();
 
@@ -236,6 +244,18 @@ class ContractEdit extends Component
     protected function contractTermAnchor(): ?string
     {
         return $this->form->start_date;
+    }
+
+    private function notifyIfFirstContract(): void
+    {
+        $employee = $this->contract->employee;
+
+        if ($employee->allContracts()->count() !== 1) {
+            return;
+        }
+
+        // Queued notifications to active colleagues in the employee's city.
+        User::sendBroadcast(new NewEmployeeWelcome($employee), $employee->city_id);
     }
 
     private function guardAutoRenewPayload(array $payload): void

@@ -15,6 +15,7 @@ use App\Models\Position;
 use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\NewEmployeeWelcome;
 use App\Services\ContractAutoRenewalService;
 use App\Services\LeaveBalanceService;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -66,6 +67,8 @@ class ContractActivationPathsTest extends TestCase
         $this->assertSame('t13.reserved@hcsyria.org', $account->email);
         $this->assertSame('employee', $account->myRole());
         Notification::assertSentTo($account, ResetPassword::class);
+        // T13d: colleagues are welcomed as for a first contract made on the create screen.
+        Notification::assertSentTo($fixtures['hr'], NewEmployeeWelcome::class);
     }
 
     public function test_editing_a_contract_that_was_already_real_creates_no_account(): void
