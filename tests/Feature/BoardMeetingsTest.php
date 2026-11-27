@@ -361,6 +361,32 @@ class BoardMeetingsTest extends TestCase
         $service->setAttendance($row->fresh(), 'present');
     }
 
+    public function test_the_minutes_of_a_meeting_not_yet_held_cannot_be_published(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addWeeks(2)], notify: false);
+
+        // The page offers no publish button before the meeting's time, and says why.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-publish-not-yet"', false)
+            ->assertDontSee(__('board.minutes.publish-confirm'))
+            // The server refuses it too: the meeting stays open, movable and cancellable, and nobody is told.
+            ->call('publish')
+            ->assertHasErrors('publish');
+
+        $this->assertNull($meeting->fresh()->published_at);
+        Notification::assertNothingSent();
+
+        // Once its time has come, the same minutes publish.
+        $this->travelTo($meeting->starts_at->addMinute());
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-publish-not-yet"', false)
+            ->call('publish')
+            ->assertHasNoErrors();
+
+        $this->assertNotNull($meeting->fresh()->published_at);
+    }
+
     public function test_the_chair_starts_on_the_working_page_and_publishing_turns_it_into_the_sheet(): void
     {
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);

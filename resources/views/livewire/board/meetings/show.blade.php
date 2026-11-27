@@ -419,10 +419,15 @@
                         <input type="checkbox" wire:model="sendEmail" class="rounded border-line">
                         @lang('board.minutes.send-email')
                     </label>
-                    <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ __('board.minutes.publish-confirm') }}">
-                        @lang('board.minutes.publish')
-                    </x-button>
-                    <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>
+                    @if($started)
+                        <x-button variant="primary" type="button" wire:click="publish" wire:confirm="{{ __('board.minutes.publish-confirm') }}">
+                            @lang('board.minutes.publish')
+                        </x-button>
+                        <p class="text-small text-ink-2">@lang('board.minutes.publish-help')</p>
+                        @error('publish') <p class="text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
+                    @else
+                        <p class="text-small text-ink-2" data-testid="board-publish-not-yet">@lang('board.locks.publish-before-start')</p>
+                    @endif
                 </div>
             @endif
         </section>
