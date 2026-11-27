@@ -170,6 +170,8 @@ class PwaInstallTest extends TestCase
         // Past the HTTP cache, with an update check on load, so a new worker arrives promptly.
         $this->assertStringContainsString("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })", $login);
         $this->assertStringContainsString('registration.update()', $login);
+        // Only the top window: a page in the dashboard's workspace iframe is already controlled.
+        $this->assertStringContainsString("if ('serviceWorker' in navigator && window.isSecureContext && window.self === window.top) {", $login);
         // With the CSP nonce, or the browser refuses to run it (found in the browser check).
         $this->assertMatchesRegularExpression('/<script nonce="[^"]+">\s*if \(\'serviceWorker\' in navigator/', $login);
         // Signed out: the worker is told to drop anything it holds.
