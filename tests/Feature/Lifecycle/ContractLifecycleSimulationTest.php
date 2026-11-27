@@ -23,7 +23,6 @@ use App\Notifications\ContractsAwaitingNewYearRenewal;
 use App\Services\ContractAmendmentService;
 use App\Services\ContractAutoRenewalService;
 use App\Services\LeaveBalanceService;
-use App\Services\RenewalJourneys;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Spatie\Activitylog\Models\Activity;
@@ -90,14 +89,8 @@ class ContractLifecycleSimulationTest extends TestCase
             $this->assertSame($expected, (int) $contract->fresh()->weekly_hours, "{$day}: hours");
 
             $journeys = RenewalJourney::query()->where('contract_id', $contract->id)->count();
-            $this->assertSame($day >= '2026-12-01' ? 1 : 0, $journeys, "{$day}: one renewal journey, from 30 days before the end");
+            $this->assertSame(0, $journeys, "{$day}: an automatic renewal needs no decision journey");
         });
-
-        // HR records "renew" on the journey the run opened. (With no decision
-        // the journey stays open and late after the renewal: open point 2 of
-        // docs/ux/renewal-journey-implementation.md, for the product owner.)
-        $this->travelTo('2026-12-05 10:00:00');
-        $this->assertTrue(app(RenewalJourneys::class)->decide(RenewalJourney::query()->sole(), RenewalJourney::DECISION_RENEW, $this->f['hr']));
 
         $this->runNights('2026-12-05', '2027-01-03', $check);
 
@@ -112,8 +105,6 @@ class ContractLifecycleSimulationTest extends TestCase
         $this->assertTrue($successor->is_active);
         $this->assertSame(30, (int) $successor->weekly_hours, 'The renewal carries the amended terms.');
         $this->assertTrue($successor->leaveBalances()->exists(), 'The renewal gets its own leave balances.');
-
-        $this->assertNotNull(RenewalJourney::query()->sole()->completed_at);
     }
 
     public function test_running_an_evening_twice_changes_nothing_the_second_time(): void
@@ -154,6 +145,11 @@ class ContractLifecycleSimulationTest extends TestCase
         // Before: a contract ending on 15 November renewed 16 Nov → 31 Dec.
         $contract = $this->contract('autumn', ['end_date' => '2026-11-15']);
         $employee = $contract->employee;
+        RenewalJourney::query()->forceCreate([
+            'contract_id' => $contract->id,
+            'employee_id' => $employee->id,
+            'started_at' => '2026-10-16 21:45:00',
+        ]);
 
         $this->runNights('2026-11-14', '2027-01-02', function (string $day) use ($contract, $employee): void {
             $this->assertSeatsMatchRunningContracts($day);
