@@ -61,7 +61,7 @@ class EmployeeActivation
                 app(OnboardingJourneys::class)->startForContract($employee, $contract);
             }
 
-            return $this->ensureAccount($employee);
+            return $this->createAccountFor($employee);
         });
 
         [$outcome, $email] = $result;
@@ -74,8 +74,30 @@ class EmployeeActivation
         return $outcome;
     }
 
+    public function ensureAccount(Employee $employee): string
+    {
+        $result = DB::transaction(function () use ($employee): array {
+            $lockedEmployee = Employee::query()->lockForUpdate()->find($employee->getKey());
+
+            if (! $lockedEmployee || $lockedEmployee->isDraft()) {
+                return [self::RESULT_NONE, null];
+            }
+
+            return $this->createAccountFor($lockedEmployee);
+        });
+
+        [$outcome, $email] = $result;
+
+        if ($outcome === self::RESULT_ACCOUNT_CREATED) {
+            Password::sendResetLink(['email' => $email]);
+            app(OnboardingJourneys::class)->settle($employee->fresh());
+        }
+
+        return $outcome;
+    }
+
     /** @return array{0: string, 1: ?string} */
-    private function ensureAccount(Employee $employee): array
+    private function createAccountFor(Employee $employee): array
     {
         if ($employee->account()->exists()) {
             return [self::RESULT_NONE, null];

@@ -26,8 +26,10 @@ use App\Services\EmployeeActivation;
 use App\Services\LeaveBalanceService;
 use App\Services\OnboardingJourneys;
 use App\Services\PolicyAcknowledgements;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -107,7 +109,10 @@ class OnboardingJourneyTest extends TestCase
             ->assertSee(__('employees.journey.title'))
             ->assertViewHas('steps', fn ($steps) => $this->states($steps) === self::STEPS_FOR_AN_AWAITING_VOLUNTEER)
             ->assertViewHas('steps', fn ($steps) => $this->byKey($steps)['card']['blocked_by'] === 'contract')
-            ->assertSee(__('employees.onboarding.create-contract'));
+            ->assertSee(__('employees.onboarding.create-contract'))
+            ->assertDontSeeHtml('data-testid="create-login-account"')
+            ->call('createLoginAccount')
+            ->assertForbidden();
     }
 
     public function test_existing_active_staff_without_a_journey_see_nothing(): void
@@ -137,6 +142,28 @@ class OnboardingJourneyTest extends TestCase
             ->assertViewHas('steps', fn ($steps) => $this->byKey($steps)['orientation']['due']->toDateString() === now()->addDays(14)->toDateString())
             ->assertSee('data-testid="card-handed-over"', false)
             ->assertDontSee('data-testid="orientation-done"', false);
+    }
+
+    public function test_hr_creates_the_missing_login_account_from_the_account_step(): void
+    {
+        $fixtures = $this->contractFixtures();
+        $volunteer = $this->startedJourney($fixtures, 'd4.account');
+        $volunteer->account()->delete();
+        DB::table('password_reset_tokens')->where('email', 'd4.account@hcsyria.org')->delete();
+        Notification::fake();
+
+        $this->panel($fixtures['hr'], $volunteer->fresh())
+            ->assertSeeHtml('data-testid="create-login-account"')
+            ->call('createLoginAccount')
+            ->assertHasNoErrors()
+            ->assertDontSeeHtml('data-testid="create-login-account"');
+
+        $account = $volunteer->fresh()->account;
+        $this->assertNotNull($account);
+        $this->assertSame('d4.account@hcsyria.org', $account->email);
+        $this->assertSame('employee', $account->myRole());
+        $this->assertSame(1, $account->roles()->wherePivot('is_active', true)->count());
+        Notification::assertSentTo($account, ResetPassword::class);
     }
 
     public function test_card_handed_over_and_orientation_held_completes_the_journey_and_an_undo_reopens_it(): void
@@ -282,6 +309,7 @@ class OnboardingJourneyTest extends TestCase
 
         // Nor an action on a panel that was opened before (a role or city switch since).
         $calls = [
+            ['createLoginAccount'],
             ['markCardHandedOver'],
             ['scheduleOrientation'],
             ['completeOrientation'],
