@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\BoardMeeting;
+use App\Models\BoardMeetingAttendee;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -82,10 +83,16 @@ class BoardMeetingNotice extends Notification
                 ['Absence request', 'طلب تغيّب عن اجتماع'],
                 ["{$d} asks to miss meeting {$n} ({$en}).", "{$d} يطلب التغيّب عن اجتماع رقم {$n} ({$ar})."],
             ],
-            self::ABSENCE_DECIDED => [
-                ['Your absence request', 'ردّ على طلب تغيّبك'],
-                ["Your request to miss meeting {$n}: {$d}.", "طلب تغيّبك عن اجتماع رقم {$n}: {$d}."],
-            ],
+            // The detail is the decision (BoardMeetingAttendee::REQUEST_APPROVED / REQUEST_REJECTED), worded here per language.
+            self::ABSENCE_DECIDED => $d === BoardMeetingAttendee::REQUEST_APPROVED
+                ? [
+                    ['Your absence request was approved', 'تمت الموافقة على طلب تغيّبك'],
+                    ["You are excused from meeting {$n} ({$en}).", "أنت معذور من حضور اجتماع رقم {$n} ({$ar})."],
+                ]
+                : [
+                    ['Your absence request was not approved', 'لم تتم الموافقة على طلب تغيّبك'],
+                    ["You are still expected at meeting {$n} ({$en}).", "حضورك لاجتماع رقم {$n} ({$ar}) ما زال متوقَّعاً."],
+                ],
             self::ABSENCE_WITHDRAWN => [
                 ['Absence request taken back', 'سحب طلب تغيّب'],
                 ["{$d} took back the request to miss meeting {$n} ({$en}) and is expected to attend.", "سحب {$d} طلب التغيّب عن اجتماع رقم {$n} ({$ar})، وحضوره متوقَّع."],

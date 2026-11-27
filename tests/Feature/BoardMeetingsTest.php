@@ -148,7 +148,37 @@ class BoardMeetingsTest extends TestCase
         Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('decideAbsence', $row->id, true);
 
         $this->assertSame(BoardMeetingAttendee::ABSENT, $row->fresh()->status);
-        Notification::assertSentTo($this->member, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_DECIDED);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, function ($n) {
+            $text = $n->toArray($this->member);
+
+            // Each language gets its own wording, never both side by side.
+            return $n->kind === BoardMeetingNotice::ABSENCE_DECIDED
+                && $text['title'] === ['en' => 'Your absence request was approved', 'ar' => 'تمت الموافقة على طلب تغيّبك']
+                && ! str_contains($text['body']['en'], 'الموافقة')
+                && ! str_contains($text['body']['ar'], 'approved');
+        });
+    }
+
+    public function test_a_turned_down_absence_request_is_worded_as_not_approved_in_each_language(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'Travelling')->call('requestAbsence');
+        $row = BoardMeetingAttendee::query()->where('employee_id', $this->member->employee_id)->firstOrFail();
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('decideAbsence', $row->id, false);
+
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $row->fresh()->status);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, function ($n) {
+            $text = $n->toArray($this->member);
+
+            return $n->kind === BoardMeetingNotice::ABSENCE_DECIDED
+                && $text['title'] === ['en' => 'Your absence request was not approved', 'ar' => 'لم تتم الموافقة على طلب تغيّبك']
+                && str_contains($text['body']['en'], 'still expected')
+                && str_contains($text['body']['ar'], 'متوقَّع');
+        });
     }
 
     public function test_only_a_current_member_can_ask_to_be_absent_and_only_before_the_meeting(): void
