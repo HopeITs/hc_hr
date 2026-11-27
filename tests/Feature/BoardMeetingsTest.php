@@ -159,6 +159,35 @@ class BoardMeetingsTest extends TestCase
         });
     }
 
+    public function test_the_chair_decides_only_a_pending_absence_request(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $show = fn () => Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting]);
+
+        // A member who never asked cannot be marked absent through the decision.
+        $silent = $meeting->attendees()->where('employee_id', $this->member->employee_id)->firstOrFail();
+        $show()->call('decideAbsence', $silent->id, true)->assertHasErrors('absence');
+        $this->assertNull($silent->fresh()->absence_request);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $silent->fresh()->status);
+
+        // Once answered, the answer is not flipped by a second call (a stale page, a double click).
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $show()->call('decideAbsence', $row->id, false)->assertHasNoErrors();
+        $show()->call('decideAbsence', $row->id, true)->assertHasErrors('absence');
+        $this->assertSame(BoardMeetingAttendee::REQUEST_REJECTED, $row->fresh()->absence_request);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $row->fresh()->status);
+
+        // A request the member took back is gone too.
+        $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->withdrawAbsence($meeting, $this->member->profile);
+        $show()->call('decideAbsence', $row->id, true)->assertHasErrors('absence');
+        $this->assertNull($row->fresh()->absence_request);
+
+        Notification::assertSentToTimes($this->member, BoardMeetingNotice::class, 1);
+    }
+
     public function test_a_turned_down_absence_request_is_worded_as_not_approved_in_each_language(): void
     {
         Notification::fake();
@@ -944,6 +973,35 @@ class BoardMeetingsTest extends TestCase
 
         Mail::assertSent(\App\Mail\BoardMeetingReminderMail::class, fn ($mail) => $mail->hasTo($this->member->email));
         Mail::assertSent(\App\Mail\BoardMeetingReminderMail::class, 3);
+    }
+
+    public function test_the_cancelled_calendar_export_keeps_the_meeting_uid_and_advances_the_sequence(): void
+    {
+        Notification::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-12-09 08:00'));
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => CarbonImmutable::parse('2026-12-10 12:00')], notify: false);
+        $url = route('board.meetings.ics', $meeting);
+
+        $scheduled = $this->actingAs($this->member)->get($url)->assertOk()->getContent();
+
+        $this->travel(1)->minutes();
+        $service->cancel($meeting, 'Holiday');
+        $cancelled = $this->get($url)->assertOk()->getContent();
+
+        $scheduledLines = explode("\r\n", $scheduled);
+        $cancelledLines = explode("\r\n", $cancelled);
+        $uid = 'UID:board-meeting-'.$meeting->id.'@'.(parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'hope-hr');
+
+        $this->assertContains('METHOD:PUBLISH', $scheduledLines);
+        $this->assertContains('STATUS:CONFIRMED', $scheduledLines);
+        $this->assertContains($uid, $scheduledLines);
+        $this->assertContains('SEQUENCE:'.now()->subMinute()->timestamp, $scheduledLines);
+
+        $this->assertContains('METHOD:CANCEL', $cancelledLines);
+        $this->assertContains('STATUS:CANCELLED', $cancelledLines);
+        $this->assertContains($uid, $cancelledLines);
+        $this->assertContains('SEQUENCE:'.now()->timestamp, $cancelledLines);
     }
 
     public function test_the_secretary_reorders_sections_uses_a_usual_title_and_an_edited_section_saves_as_he_types(): void
