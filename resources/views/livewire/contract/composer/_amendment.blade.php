@@ -47,7 +47,7 @@
                 <div class="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-label="@lang('general.type')">
                     @foreach ($typeOptions as $value => $label)
                         <label class="cursor-pointer">
-                            <input type="radio" class="sr-only peer" name="composer_type" value="{{ $value }}" x-model="type" />
+                            <input type="radio" class="sr-only peer" name="composer_type" value="{{ $value }}" x-model="type" aria-label="{{ $label }}" />
                             <span class="flex min-h-[2.625rem] items-center justify-center rounded-control
                                          border-2 border-line-soft bg-card px-2 py-2 text-body text-ink
                                          shadow-e1 transition hover:border-ink-3

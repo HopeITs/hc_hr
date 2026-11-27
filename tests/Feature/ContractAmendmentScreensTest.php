@@ -100,6 +100,19 @@ class ContractAmendmentScreensTest extends TestCase
         $this->actingAs($hms)->get(route('contracts.amend', $contract))->assertForbidden();
     }
 
+    public function test_the_arabic_amendment_page_localizes_current_terms_and_work_type_labels(): void
+    {
+        app()->setLocale('ar');
+        $contract = $this->contract();
+
+        Livewire::actingAs($this->hr())
+            ->test(ContractAmend::class, ['contract' => $contract])
+            ->assertViewHas('nowCard', fn (array $card): bool => $card['hours'] === '٢٠ ساعة'
+                && str_contains($card['salary'], 'دولار أمريكي'))
+            ->assertSeeHtml('aria-label="دوام كامل"')
+            ->assertSeeHtml('aria-label="دوام جزئي"');
+    }
+
     public function test_the_page_warns_when_the_contract_was_already_amended(): void
     {
         $contract = $this->contract();
