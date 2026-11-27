@@ -756,6 +756,7 @@ return [
     'collapse-sidebar' => 'طي القائمة الجانبية',
     'expand-sidebar' => 'توسيع القائمة الجانبية',
     'contract-status' => 'حالة العقد',
+    'contract-starts-on' => 'يبدأ في :date',
     'professional-information' => 'الدور والفريق وخطوط الإشراف ومعلومات مكان العمل',
     'career-history' => 'المسيرة المهنية',
     'personal-information' => 'المعلومات الشخصية',

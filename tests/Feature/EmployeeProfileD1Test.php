@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\BadgeType;
+use App\Enums\ContractType;
 use App\Enums\MaritalStatus;
 use App\Livewire\Employee\EmployeeProfile;
 use App\Models\City;
@@ -66,6 +67,27 @@ class EmployeeProfileD1Test extends TestCase
     }
 
     // ── AC-D1-01: photographs ────────────────────────────────────────────
+
+    public function test_hr_sees_the_next_signed_contract_and_its_assignment_before_it_starts(): void
+    {
+        $hr = $this->makeUser($this->aleppo, 'HR-ALP');
+        $hire = $this->makeEmployee($this->aleppo, 'upcoming-hire');
+        $position = $this->makePosition($this->aleppo);
+        $this->makeContractFor($hire, ['type' => ContractType::Draft, 'start_date' => '2026-10-28']);
+        $this->makeContractFor($hire, [
+            'position_id' => $position->id,
+            'type' => ContractType::FullTime,
+            'start_date' => '2026-11-02',
+        ]);
+
+        $this->profileAs($hr, $hire)
+            ->assertSee('Starts on 02 Nov 2026')
+            ->assertSee($position->department->name)
+            ->assertSee($position->center->name);
+
+        $colleague = $this->makeUser($this->aleppo, 'employee');
+        $this->profileAs($colleague, $hire)->assertDontSee('Starts on 02 Nov 2026');
+    }
 
     public function test_the_photo_uses_the_authorized_route_with_a_fallback(): void
     {

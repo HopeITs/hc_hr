@@ -108,7 +108,9 @@
                 $yearsOfService !== null ? [__('general.years-of-service'), $yearsOfService, 'icons.clock'] : null,
                 [trans_choice('general.department', 1), $currentPosition?->department?->name ?? $notSpecified, 'icons.homepage'],
                 [trans_choice('general.center', 1), $currentPosition?->center?->name ?? $notSpecified, 'icons.map-pin'],
-                [__('general.contract-status'), $currentContract ? __('general.active') : __('general.inactive'), 'icons.contracts'],
+                [__('general.contract-status'), $upcomingContract
+                    ? __('general.contract-starts-on', ['date' => $formatDate($upcomingContract->start_date)])
+                    : ($currentContract ? __('general.active') : __('general.inactive')), 'icons.contracts'],
             ]));
         @endphp
         <section data-tour="profile.summary" @class(['grid grid-cols-2 gap-2 sm:gap-3', 'lg:grid-cols-4' => count($summary) === 4, 'lg:grid-cols-3' => count($summary) === 3])>
