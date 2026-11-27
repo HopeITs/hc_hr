@@ -31,7 +31,11 @@ class RequiredPolicies extends Component
     {
         $this->authorizeHr();
 
-        $policies->setRequired(PolicyDocument::query()->findOrFail($documentId), $required);
+        if (! $policies->setRequired(PolicyDocument::query()->findOrFail($documentId), $required)) {
+            $this->toast(__('onboarding.required-policies.needs-text'), 'error');
+
+            return;
+        }
 
         $this->toast(__('onboarding.required-policies.saved'), 'success');
     }

@@ -82,6 +82,7 @@ return [
         'title' => 'Required policies',
         'lead' => 'Mark the documents every new volunteer must read and agree to (for example the Media guideline, made by the Media Team, as a guideline to review).',
         'required' => 'Required for onboarding',
+        'needs-text' => 'This file has not been read yet, so there is no text to agree to. It can be made required once its text is in.',
         'kind' => 'Kind',
         'kind-policy' => 'Policy (read and agree)',
         'kind-review' => 'Guideline (review only)',

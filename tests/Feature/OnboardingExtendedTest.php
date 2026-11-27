@@ -777,7 +777,7 @@ class OnboardingExtendedTest extends TestCase
 
     private function policy(string $title, bool $required, string $kind = PolicyDocument::KIND_POLICY): PolicyDocument
     {
-        return PolicyDocument::query()->create(['title' => $title, 'required_for_onboarding' => $required, 'onboarding_kind' => $kind]);
+        return PolicyDocument::query()->create(['title' => $title, 'content' => 'The text of '.$title.'.', 'required_for_onboarding' => $required, 'onboarding_kind' => $kind]);
     }
 
     /** An active IT volunteer of the city: a running contract on a position of the IT department, with a login account. */

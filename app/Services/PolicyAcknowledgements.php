@@ -26,6 +26,11 @@ use Illuminate\Support\Facades\Notification;
  * replaced and its new text is in, an older agreement no longer counts: the
  * document is pending again for that employee, who is told (PolicyUpdated).
  *
+ * Only a document with text counts (PolicyDocument::hasText): a file that was
+ * never read cannot be required nor agreed to, so nobody agrees to an empty
+ * page. A replaced file that fails to read keeps its earlier text, and that
+ * version stays required.
+ *
  * The caller authorizes: acknowledge() only ever writes for the employee it is
  * given, and the page passes the signed-in user's own employee.
  */
@@ -37,6 +42,7 @@ class PolicyAcknowledgements
         return PolicyDocument::query()
             ->where('required_for_onboarding', true)
             ->where('onboarding_kind', $kind)
+            ->readable()
             ->orderBy('title')
             ->get();
     }
@@ -57,10 +63,10 @@ class PolicyAcknowledgements
         ];
     }
 
-    /** False when the document is not required or was already acknowledged. */
+    /** False when the document is not required, has no text, or was already acknowledged. */
     public function acknowledge(Employee $employee, PolicyDocument $document): bool
     {
-        if (! $document->required_for_onboarding) {
+        if (! $document->required_for_onboarding || ! $document->hasText()) {
             return false;
         }
 
@@ -137,13 +143,18 @@ class PolicyAcknowledgements
         }
     }
 
-    public function setRequired(PolicyDocument $document, bool $required): void
+    /** False when a document with no text is to be made required: it is left as it is. */
+    public function setRequired(PolicyDocument $document, bool $required): bool
     {
-        if ($document->required_for_onboarding === $required) {
-            return;
+        if ($required && ! $document->hasText()) {
+            return false;
         }
 
-        $document->forceFill(['required_for_onboarding' => $required])->save();
+        if ($document->required_for_onboarding !== $required) {
+            $document->forceFill(['required_for_onboarding' => $required])->save();
+        }
+
+        return true;
     }
 
     public function setKind(PolicyDocument $document, string $kind): void
