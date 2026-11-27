@@ -18,6 +18,8 @@ return [
     'delete' => 'حذف',
     'edit_name' => 'تعديل الاسم',
     'delete_file' => 'حذف الملف',
+    'preview_file' => 'معاينة',
+    'download_file' => 'تنزيل',
     'create_new_folder' => 'إنشاء مجلد جديد',
     'folder_name' => 'اسم المجلد',
     'create' => 'إنشاء',
@@ -923,6 +925,9 @@ return [
         'close-dialog' => 'إغلاق النافذة',
         'view-details' => 'عرض التفاصيل',
         'open-leave-request-for' => 'فتح طلب إجازة :name',
+        'preview-file' => 'معاينة :name',
+        'download-file' => 'تنزيل :name',
+        'file-actions' => 'إجراءات :name',
     ],
 
     // نصوص <meta> الافتراضية، ويمكن تجاوزها لكل صفحة عبر $title / $description

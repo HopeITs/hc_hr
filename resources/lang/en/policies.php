@@ -39,6 +39,7 @@ return [
     'file-types' => 'Only a PDF, Word (docx) or text (txt) file is accepted.',
     'replaced' => 'File replaced. The new version shows once it has been read.',
     'view-policy' => 'View the policy',
+    'view-policy-named' => 'View the policy: :title',
     'lead' => 'The organisation\'s policies and guidelines. Type what you are looking for, such as "moving electronic devices", and the passage that covers it shows up.',
     'search-label' => 'Search the text of the policies',
     'search-placeholder' => 'e.g. moving electronic devices, accounting, leave…',

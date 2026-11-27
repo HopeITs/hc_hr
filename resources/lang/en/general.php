@@ -17,6 +17,8 @@ return [
     'delete' => 'Delete',
     'edit_name' => 'Edit Name',
     'delete_file' => 'Delete File',
+    'preview_file' => 'Preview',
+    'download_file' => 'Download',
     'create_new_folder' => 'Create New Folder',
     'folder_name' => 'Folder Name',
     'create' => 'Create',
@@ -923,6 +925,9 @@ return [
         'close-dialog' => 'Close dialog',
         'view-details' => 'View details',
         'open-leave-request-for' => 'Open leave request for :name',
+        'preview-file' => 'Preview :name',
+        'download-file' => 'Download :name',
+        'file-actions' => 'Actions for :name',
     ],
 
     // Default <meta> copy, overridden per page via $title / $description
