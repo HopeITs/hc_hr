@@ -670,6 +670,58 @@ class ContractAutoRenewalWorkflowTest extends TestCase
     }
 
     /**
+     * R2-4: a contract imported from Excel has its working days only as prose
+     * (no day range, no picked days). Recording a termination on it must save
+     * without forcing HR to invent a schedule, and leaves the days as they were.
+     */
+    public function test_a_termination_saves_on_an_imported_contract_with_no_structured_schedule(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'imported-terminate');
+        $position = $this->makePosition($fixtures, 'Imported Terminate Position');
+        $contract = $this->makeContract($fixtures, $employee, $position, [
+            'work_days_en' => 'Monday to Friday',
+            'work_days_ar' => 'من الاثنين إلى الجمعة',
+        ]);
+        $this->assertNull($contract->work_day_from);
+        $this->assertNull($contract->work_weekdays);
+        $reason = TerminationReason::query()->create(['title_en' => 'Resigned', 'title_ar' => 'استقالة']);
+
+        $this->mock(LeaveBalanceService::class)->shouldReceive('create');
+
+        // The edit screen tells the composer this is such a contract, so it
+        // does not demand a day range before Save.
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractEdit::class, ['contract' => $contract])
+            ->assertSeeHtml('legacySchedule\u0022:true')
+            ->call('submit', $this->composerPayload($fixtures, $contract, [
+                'terminatedAt' => '2026-06-30',
+                'terminationReasonId' => $reason->id,
+            ]))
+            ->assertHasNoErrors();
+
+        $contract->refresh();
+        $this->assertSame('2026-06-30', $contract->terminated_at->toDateString());
+        $this->assertSame($reason->id, (int) $contract->termination_reason_id);
+        $this->assertNull($contract->work_day_from);
+        $this->assertNull($contract->work_day_to);
+        $this->assertNull($contract->work_weekdays);
+        $this->assertSame('Monday to Friday', $contract->work_days_en);
+    }
+
+    public function test_a_contract_with_a_day_range_is_not_treated_as_imported(): void
+    {
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'ranged');
+        $position = $this->makePosition($fixtures, 'Ranged Position');
+        $contract = $this->makeContract($fixtures, $employee, $position, ['work_day_from' => 0, 'work_day_to' => 4]);
+
+        Livewire::actingAs($fixtures['hr'])
+            ->test(ContractEdit::class, ['contract' => $contract])
+            ->assertSeeHtml('legacySchedule\u0022:false');
+    }
+
+    /**
      * @return array{0: User, 1: Contract, 2: Contract}
      */
     private function twoExpiringContractsForOneManager(): array
@@ -741,58 +793,6 @@ class ContractAutoRenewalWorkflowTest extends TestCase
             'exist_emp' => 0,
             'is_active' => true,
         ]);
-    }
-
-    /**
-     * R2-4: a contract imported from Excel has its working days only as prose
-     * (no day range, no picked days). Recording a termination on it must save
-     * without forcing HR to invent a schedule, and leaves the days as they were.
-     */
-    public function test_a_termination_saves_on_an_imported_contract_with_no_structured_schedule(): void
-    {
-        $fixtures = $this->makeFixtures();
-        $employee = $this->makeEmployee($fixtures['city'], 'imported-terminate');
-        $position = $this->makePosition($fixtures, 'Imported Terminate Position');
-        $contract = $this->makeContract($fixtures, $employee, $position, [
-            'work_days_en' => 'Monday to Friday',
-            'work_days_ar' => 'من الاثنين إلى الجمعة',
-        ]);
-        $this->assertNull($contract->work_day_from);
-        $this->assertNull($contract->work_weekdays);
-        $reason = TerminationReason::query()->create(['title_en' => 'Resigned', 'title_ar' => 'استقالة']);
-
-        $this->mock(LeaveBalanceService::class)->shouldReceive('create');
-
-        // The edit screen tells the composer this is such a contract, so it
-        // does not demand a day range before Save.
-        Livewire::actingAs($fixtures['hr'])
-            ->test(ContractEdit::class, ['contract' => $contract])
-            ->assertSeeHtml('legacySchedule\u0022:true')
-            ->call('submit', $this->composerPayload($fixtures, $contract, [
-                'terminatedAt' => '2026-06-30',
-                'terminationReasonId' => $reason->id,
-            ]))
-            ->assertHasNoErrors();
-
-        $contract->refresh();
-        $this->assertSame('2026-06-30', $contract->terminated_at->toDateString());
-        $this->assertSame($reason->id, (int) $contract->termination_reason_id);
-        $this->assertNull($contract->work_day_from);
-        $this->assertNull($contract->work_day_to);
-        $this->assertNull($contract->work_weekdays);
-        $this->assertSame('Monday to Friday', $contract->work_days_en);
-    }
-
-    public function test_a_contract_with_a_day_range_is_not_treated_as_imported(): void
-    {
-        $fixtures = $this->makeFixtures();
-        $employee = $this->makeEmployee($fixtures['city'], 'ranged');
-        $position = $this->makePosition($fixtures, 'Ranged Position');
-        $contract = $this->makeContract($fixtures, $employee, $position, ['work_day_from' => 0, 'work_day_to' => 4]);
-
-        Livewire::actingAs($fixtures['hr'])
-            ->test(ContractEdit::class, ['contract' => $contract])
-            ->assertSeeHtml('legacySchedule\u0022:false');
     }
 
     private function makeContract(array $fixtures, $employee, Position $position, array $overrides = []): Contract
