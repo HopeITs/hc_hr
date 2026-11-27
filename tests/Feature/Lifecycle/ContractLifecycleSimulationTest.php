@@ -332,7 +332,7 @@ class ContractLifecycleSimulationTest extends TestCase
     {
         $this->nightFromHour = 0;
 
-        $this->contract('soak-auto', ['end_date' => '2027-03-20']);
+        $this->contract('soak-auto', ['end_date' => '2026-11-20']);
         $this->contract('soak-year', ['end_date' => '2026-12-31']);
         $this->contract('soak-off', ['end_date' => '2026-11-25', 'auto_renew' => false]);
         $this->contract('soak-trial', ['contract_type_id' => 3, 'start_date' => '2026-09-15', 'end_date' => '2026-12-15', 'auto_renew' => false]);
