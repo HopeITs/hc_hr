@@ -29,8 +29,10 @@ use Spatie\Activitylog\Facades\Activity;
  *    user_role_suspensions, and given back when a contract runs again. HR
  *    Syria is told either way.
  *
- * HR, general-manager and administrator roles are still granted by hand from
- * Access Management; this only stands them down and back up.
+ * HR, general-manager and administrator roles are granted by hand from
+ * Access Management; this stands them down and back up, and (SeatSuccession)
+ * gives the HR and general-manager ones of a position's last holder to whoever
+ * holds it next.
  *
  * Runs for one user at sign-in and for everyone nightly (access:sync-org-roles).
  * A user without an employee record, or whose employee is inactive, is left
@@ -42,11 +44,11 @@ class OrgRoleSync
     private ?array $roleIds = null;
 
     /**
-     * @return array{added: list<string>, removed: list<string>, suspended: list<string>, restored: list<string>}
+     * @return array{added: list<string>, removed: list<string>, suspended: list<string>, restored: list<string>, inherited: list<string>}
      */
     public function syncUser(User $user, bool $notify = true): array
     {
-        $changes = ['added' => [], 'removed' => [], 'suspended' => [], 'restored' => []];
+        $changes = ['added' => [], 'removed' => [], 'suspended' => [], 'restored' => [], 'inherited' => []];
         $employee = $user->profile;
 
         if ($employee === null || ! $employee->is_active) {
@@ -94,11 +96,15 @@ class OrgRoleSync
                         }
                         $suspension->delete();
                     });
+
+                // The raised roles of whoever held these positions before (SeatSuccession).
+                $changes['inherited'] = app(SeatSuccession::class)->inheritRoles($user);
             }
 
-            if ($changes['removed'] !== [] || $changes['suspended'] !== []) {
-                $this->keepOneRoleActive($user);
-            }
+            // Every time, not only after a removal: a role given here (or by
+            // hand, or by an import) is inactive by default, and a user left
+            // with none active has no permission until they sign in (T9).
+            $this->keepOneRoleActive($user);
         });
 
         $user->unsetRelation('roles');
@@ -111,8 +117,8 @@ class OrgRoleSync
                 ->log('roles_synced_with_org_chart');
         }
 
-        if ($notify && ($changes['suspended'] !== [] || $changes['restored'] !== [])) {
-            $this->notifyHrSyria($user, $changes['suspended'], $changes['restored']);
+        if ($notify && ($changes['suspended'] !== [] || $changes['restored'] !== [] || $changes['inherited'] !== [])) {
+            $this->notifyHrSyria($user, $changes['suspended'], $changes['restored'], $changes['inherited']);
         }
 
         return $changes;
@@ -123,7 +129,7 @@ class OrgRoleSync
      */
     public function syncAll(): array
     {
-        $totals = ['added' => 0, 'removed' => 0, 'suspended' => 0, 'restored' => 0];
+        $totals = ['added' => 0, 'removed' => 0, 'suspended' => 0, 'restored' => 0, 'inherited' => 0];
 
         User::query()
             ->whereNotNull('employee_id')
@@ -180,7 +186,7 @@ class OrgRoleSync
         return false;
     }
 
-    /** After a role was taken away, make sure one of the remaining ones is the active one. */
+    /** Make sure one of the user's roles is the active one: the narrowest working role (User::defaultLoginRoleId). */
     private function keepOneRoleActive(User $user): void
     {
         $user->unsetRelation('roles');
@@ -197,8 +203,9 @@ class OrgRoleSync
     /**
      * @param  list<string>  $suspended
      * @param  list<string>  $restored
+     * @param  list<string>  $inherited
      */
-    private function notifyHrSyria(User $user, array $suspended, array $restored): void
+    private function notifyHrSyria(User $user, array $suspended, array $restored, array $inherited = []): void
     {
         $recipients = User::query()
             ->whereKeyNot($user->id)
@@ -207,7 +214,7 @@ class OrgRoleSync
             ->get();
 
         if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new RolesSuspendedForNoContract($user->profile, $suspended, $restored));
+            Notification::send($recipients, new RolesSuspendedForNoContract($user->profile, $suspended, $restored, $inherited));
         }
     }
 

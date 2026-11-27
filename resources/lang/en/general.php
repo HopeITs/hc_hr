@@ -17,6 +17,8 @@ return [
     'delete' => 'Delete',
     'edit_name' => 'Edit Name',
     'delete_file' => 'Delete File',
+    'preview_file' => 'Preview',
+    'download_file' => 'Download',
     'create_new_folder' => 'Create New Folder',
     'folder_name' => 'Folder Name',
     'create' => 'Create',
@@ -131,6 +133,7 @@ return [
     'on-leave' => 'On Leave',
     'toggle-status' => 'Toggle Status',
     'confirm-status-change' => 'Are you sure you want to change the status?',
+    'deactivate-running-contract' => 'This person still has a running contract. End the contract first (with its reason and date), then deactivate.',
     'confirm-delete-item' => 'Are you sure you want to permanently delete the item?',
     'delete-item' => 'Delete Item',
     'status-updated' => 'Status updated successfully.',
@@ -923,6 +926,9 @@ return [
         'close-dialog' => 'Close dialog',
         'view-details' => 'View details',
         'open-leave-request-for' => 'Open leave request for :name',
+        'preview-file' => 'Preview :name',
+        'download-file' => 'Download :name',
+        'file-actions' => 'Actions for :name',
     ],
 
     // Default <meta> copy, overridden per page via $title / $description

@@ -46,8 +46,23 @@
                 <x-forms.input-label :value="__('board.fields.purpose')" />
                 <x-forms.textarea wire:model="purpose" rows="2" />
             </div>
+            @if($sameWeek)
+                <div class="space-y-3 rounded-surface border border-ink p-4" role="alert" data-testid="board-same-week">
+                    <p class="font-bold text-ink">@lang('board.same-week.title')</p>
+                    <p class="text-ink-2">
+                        {{ __($sameWeek['cancelled'] ? 'board.same-week.body-cancelled' : 'board.same-week.body', ['number' => $sameWeek['number'], 'date' => $sameWeek['date']]) }}
+                        @lang('board.same-week.ask')
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <x-button variant="primary" type="button" wire:click="confirmSameWeek">@lang('board.same-week.confirm')</x-button>
+                        <x-button variant="outline" type="button" wire:click="$set('sameWeek', null)">@lang('board.same-week.change')</x-button>
+                    </div>
+                </div>
+            @endif
             <div class="flex gap-2">
-                <x-button variant="primary" type="submit">@lang('board.save')</x-button>
+                @unless($sameWeek)
+                    <x-button variant="primary" type="submit">@lang('board.save')</x-button>
+                @endunless
                 <x-button variant="quiet" type="button" wire:click="$set('adding', false)">@lang('board.close')</x-button>
             </div>
         </form>

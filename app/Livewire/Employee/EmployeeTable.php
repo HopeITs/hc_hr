@@ -104,6 +104,15 @@ class EmployeeTable extends LivewireTable
         // 2026-10-23, which also covers older inactive records that never
         // had a contract). Former staff keep today's toggle.
         abort_if($item->isDraft() || $item->isAwaitingContract(), 403);
+
+        // A running contract is ended first (T8, HR decision 2026-11-26):
+        // otherwise it keeps its seat for someone who has left.
+        if ($item->is_active && $item->hasRunningContract()) {
+            $this->toast(__('general.deactivate-running-contract'), 'error');
+
+            return;
+        }
+
         $item->is_active = ! $item->is_active;
         $item->save();
 

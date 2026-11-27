@@ -423,6 +423,24 @@
             },
             "port": 8411,
             "autoPort": false
+        },
+        {
+            "name": "hc-hr scenario runs (hr_db)",
+            "runtimeExecutable": "C:/laragon/bin/php/php-8.5.11/php.exe",
+            "runtimeArgs": [
+                "artisan",
+                "serve",
+                "--host=127.0.0.1",
+                "--port=8420"
+            ],
+            "env": {
+                "PHP_CLI_SERVER_WORKERS": "4",
+                "MAIL_MAILER": "array",
+                "DB_DATABASE": "hr_db",
+                "QUEUE_CONNECTION": "sync"
+            },
+            "port": 8420,
+            "autoPort": false
         }
     ]
 }

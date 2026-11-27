@@ -4,13 +4,17 @@ namespace Tests\Feature;
 
 use App\Enums\LeaveRequestStatus;
 use App\Enums\LeaveTypeCases;
+use App\Livewire\Archives\ArchivedFilesModule;
 use App\Livewire\Employee\Leave\AllLeaveRequestTable;
 use App\Livewire\Employee\Leave\MyLeaveRequestModule;
 use App\Models\Contract;
 use App\Models\ContractType;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Models\PolicyDocument;
+use App\Services\Policies\PolicyFolder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -243,6 +247,40 @@ class A4BilingualTest extends TestCase
                 ->assertSeeHtml('x-on:click.prevent="'.e("\$dispatch('openDecisionRequestLeave', { id: {$leave->id} })").'"')
                 ->assertSeeHtml('sticky end-0 z-10 border-s whitespace-nowrap')
                 ->assertDontSeeHtml('data-person=');
+        }
+    }
+
+    public function test_the_policy_folder_cards_name_their_file_and_policy_in_both_languages(): void
+    {
+        $this->withoutVite();
+        $city = $this->makeCity('SYR', '000');
+        $hr = $this->makeUser($city, 'HR-SYR', ['employees.update', 'archives.view', 'archives.create', 'archives.update', 'archives.delete', 'archives.download']);
+        $library = app(PolicyFolder::class)->library();
+
+        Livewire::actingAs($hr)->test(ArchivedFilesModule::class, ['folderId' => $library->id])
+            ->set('filesToUpload', [UploadedFile::fake()->createWithContent('Leave policy.pdf', "%PDF-1.4\n%%EOF\n")->mimeType('application/pdf')])
+            ->assertHasNoErrors();
+        // Whatever the reader made of the stub PDF, give the policy its text so the card links to it.
+        $policy = PolicyDocument::query()->whereNotNull('media_id')->latest('id')->firstOrFail();
+        $policy->update(['title' => 'Leave policy', 'content' => 'Everyone gets twenty days.', 'read_status' => PolicyDocument::READY]);
+        $file = $policy->media;
+        $textOnly = PolicyDocument::query()->create(['title' => 'Code of conduct', 'content' => 'Be kind.', 'read_status' => PolicyDocument::READY]);
+
+        foreach (['en' => ['Preview', 'Download', 'معاينة'], 'ar' => ['معاينة', 'تنزيل', 'Preview']] as $locale => [$preview, $download, $other]) {
+            app()->setLocale($locale);
+            $this->assertSame($preview, __('general.preview_file'));
+            $this->assertSame($download, __('general.download_file'));
+
+            Livewire::actingAs($hr)->test(ArchivedFilesModule::class, ['folderId' => $library->id])
+                ->assertSeeHtml('<span>'.e($preview).'</span>')
+                ->assertSeeHtml('<span>'.e($download).'</span>')
+                ->assertDontSeeHtml('<span>'.e($other).'</span>')
+                ->assertSeeHtml('aria-label="'.e(__('general.a11y.preview-file', ['name' => $file->name])).'"')
+                ->assertSeeHtml('aria-label="'.e(__('general.a11y.download-file', ['name' => $file->name])).'"')
+                ->assertSeeHtml('aria-label="'.e(__('general.a11y.file-actions', ['name' => $file->name])).'"')
+                // The link under the file card and the text-only card both say which policy they open.
+                ->assertSeeHtml('aria-label="'.e(__('policies.view-policy-named', ['title' => $policy->title])).'" data-testid="policy-view-'.$file->id.'"')
+                ->assertSeeHtml('aria-label="'.e(__('policies.view-policy-named', ['title' => 'Code of conduct'])).'" data-testid="policy-text-'.$textOnly->id.'"');
         }
     }
 

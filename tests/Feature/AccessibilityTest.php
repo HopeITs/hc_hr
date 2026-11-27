@@ -119,7 +119,7 @@ class AccessibilityTest extends TestCase
 
     public function test_accessibility_strings_are_translated_in_every_locale(): void
     {
-        $keys = ['skip-to-content', 'main-content', 'required-field', 'error-prefix', 'close-dialog', 'open-leave-request-for'];
+        $keys = ['skip-to-content', 'main-content', 'required-field', 'error-prefix', 'close-dialog', 'open-leave-request-for', 'preview-file', 'download-file', 'file-actions'];
 
         foreach (['en', 'ar'] as $locale) {
             $strings = require resource_path("lang/{$locale}/general.php");

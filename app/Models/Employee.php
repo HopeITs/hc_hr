@@ -195,6 +195,16 @@ class Employee extends Model implements HasMedia
         return ! $hasRealContract;
     }
 
+    /**
+     * A real contract in force today. Deactivation is refused while one is
+     * (HR decision 2026-11-26, T8): the contract is ended first, with its
+     * reason and date, so its seat is freed and the record holds together.
+     */
+    public function hasRunningContract(): bool
+    {
+        return $this->realContracts()->activeNow()->whereNull('terminated_at')->exists();
+    }
+
     /** Contracts other than Draft-type position reservations. */
     public function realContracts(): HasMany
     {

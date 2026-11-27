@@ -68,6 +68,8 @@ return [
         'pending' => 'Waiting for you',
         'acknowledge' => 'I have read it and agree',
         'acknowledged' => 'Thank you, your agreement is recorded.',
+        'read-whole' => 'Read the whole policy',
+        'new-version' => 'New version of :date',
         'none' => 'No document is required yet.',
         'section-policy' => 'Policies',
         'section-policy-hint' => 'Read each one, then confirm that you agree.',

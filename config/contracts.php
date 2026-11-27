@@ -15,4 +15,11 @@ return [
      * on 31 December renews on 1 January either way.
      */
     'renew_at_new_year_months' => [10, 11, 12],
+
+    /*
+     * Active positions allowed to report to no one (English title). Every
+     * other active position without a direct manager is reported by
+     * employees:integrity-check (HR decision 2026-11-26, T8: only the CEO).
+     */
+    'top_positions' => ['Chief Executive Officer'],
 ];

@@ -18,11 +18,13 @@ class RolesSuspendedForNoContract extends Notification
     /**
      * @param  list<string>  $suspended
      * @param  list<string>  $restored
+     * @param  list<string>  $inherited  given with the position its last holder left
      */
     public function __construct(
         public Employee $employee,
         public array $suspended,
         public array $restored,
+        public array $inherited = [],
     ) {}
 
     /** @return array<int, string> */
@@ -50,10 +52,24 @@ class RolesSuspendedForNoContract extends Notification
             $body['ar'][] = "عاد عقد {$ar} سارياً، فأُعيدت هذه الأدوار: {$roles}.";
         }
 
+        if ($this->inherited !== []) {
+            $roles = implode(', ', $this->inherited);
+            $body['en'][] = "{$en} took over a position whose previous holder had these roles, so they were given: {$roles}. Take them away from Access Management if they should not have them.";
+            $body['ar'][] = "استلم {$ar} منصباً كان لشاغله السابق هذه الأدوار، فأُعطيت له: {$roles}. يمكن سحبها من إدارة الصلاحيات إن لم تكن مناسبة.";
+        }
+
         return [
             'title' => [
-                'en' => $this->suspended !== [] ? 'Roles suspended' : 'Roles restored',
-                'ar' => $this->suspended !== [] ? 'إيقاف أدوار' : 'إعادة أدوار',
+                'en' => match (true) {
+                    $this->suspended !== [] => 'Roles suspended',
+                    $this->restored !== [] => 'Roles restored',
+                    default => 'Roles given with a position',
+                },
+                'ar' => match (true) {
+                    $this->suspended !== [] => 'إيقاف أدوار',
+                    $this->restored !== [] => 'إعادة أدوار',
+                    default => 'أدوار مع المنصب',
+                },
             ],
             'body' => ['en' => implode(' ', $body['en']), 'ar' => implode(' ', $body['ar'])],
             'url' => route('employees.edit', $this->employee),

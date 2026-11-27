@@ -173,6 +173,37 @@ class ChecklistWorkflow
     }
 
     /**
+     * A return still waiting goes to someone else (the one who was to take it
+     * back left: Access\SeatSuccession). Returns the row only when it moved.
+     */
+    public function reassignReturn(int $checklistId, Employee $receiver): ?Checklist
+    {
+        $row = DB::transaction(function () use ($checklistId, $receiver): ?Checklist {
+            $checklist = Checklist::query()
+                ->whereKey($checklistId)
+                ->where('returned_status', 'pending')
+                ->lockForUpdate()
+                ->first();
+
+            if ($checklist === null || (int) $checklist->receiver_id === $receiver->id) {
+                return null;
+            }
+
+            $from = $checklist->receiver_id;
+            $checklist->update(['receiver_id' => $receiver->id]);
+            $this->record($checklist, 'checklist_return_reassigned', 'receiver_id', $from === null ? null : (string) $from, (string) $receiver->id);
+
+            return $checklist;
+        });
+
+        if ($row !== null) {
+            User::query()->where('employee_id', $receiver->id)->first()?->notify(new ChecklistAssigned($row->load(['employee', 'item']), 'receive'));
+        }
+
+        return $row;
+    }
+
+    /**
      * A volunteer's contract just stopped auto-renewing: start the return
      * cycle for whatever of their equipment is still out, and remind whoever
      * is meant to collect it.
@@ -203,6 +234,8 @@ class ChecklistWorkflow
 
         foreach ($checklists as $checklist) {
             $receiverId = $defaultReceivers->get($checklist->item_id);
+            // Someone who left is replaced by whoever holds their position now.
+            $receiverId = $receiverId ? app(Access\SeatSuccession::class)->current(Employee::query()->find($receiverId))?->id : null;
 
             if (! $receiverId) {
                 continue;

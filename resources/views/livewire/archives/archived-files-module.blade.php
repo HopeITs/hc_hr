@@ -225,14 +225,14 @@
                             <span class="w-full text-center text-ink-2">{{ __('policies.error.'.($policy->read_error ?? 'unreadable')) }}</span>
                         @endif
                         @if (filled($policy->content))
-                            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="text-ink underline">{{ __('policies.view-policy') }}</a>
+                            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="text-ink underline" aria-label="{{ __('policies.view-policy-named', ['title' => $policy->title]) }}" data-testid="policy-view-{{ $file->id }}">{{ __('policies.view-policy') }}</a>
                         @endif
                     </div>
                 @endif
 
                 <div x-data="{ open: false }" @click.away="open = false" class="absolute top-2 end-2">
-                    <button type="button" @click="open = !open" aria-label="{{ __('general.actions') }}" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover">
-                        <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 8a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                    <button type="button" @click="open = !open" aria-label="{{ __('general.a11y.file-actions', ['name' => $file->name]) }}" aria-haspopup="true" :aria-expanded="open.toString()" class="inline-flex items-center justify-center transition rounded-control size-11 text-ink-2 hover:text-ink hover:bg-hover" data-testid="file-actions-{{ $file->id }}">
+                        <svg class="w-5 h-5 text-current" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 8a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                     </button>
 
                     <div x-show="open"
@@ -242,17 +242,17 @@
                          @click="open = false">
 
                         <div class="py-2">
-                            <button wire:click.prevent="previewFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
-                                <x-icons.eye class="flex-shrink-0 text-current size-5" />
-                                <span>Preview</span>
+                            <button type="button" wire:click.prevent="previewFile({{ $file->id }})" aria-label="{{ __('general.a11y.preview-file', ['name' => $file->name]) }}" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
+                                <x-icons.eye class="flex-shrink-0 text-current size-5" aria-hidden="true" />
+                                <span>{{ __('general.preview_file') }}</span>
                             </button>
-                            <button wire:click.prevent="downloadFile({{ $file->id }})" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
-                                <svg class="flex-shrink-0 text-current size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <button type="button" wire:click.prevent="downloadFile({{ $file->id }})" aria-label="{{ __('general.a11y.download-file', ['name' => $file->name]) }}" class="flex items-center w-full gap-3 px-4 py-2 text-body font-medium text-start text-ink transition hover:bg-hover hover:text-ink">
+                                <svg class="flex-shrink-0 text-current size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v11" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m7.5 9.5 4.5 4.5 4.5-4.5" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 19h14" />
                                 </svg>
-                                <span>Download</span>
+                                <span>{{ __('general.download_file') }}</span>
                             </button>
                             @if ($canManageCurrentFolder)
                             <div class="my-1 border-t border-line-soft"></div>
@@ -285,7 +285,7 @@
 
             {{-- Policies kept as text only (from before the folder): open on their own page. --}}
             @foreach ($filelessPolicies as $policy)
-            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="group flex flex-col items-center justify-center h-40 p-4 text-center transition bg-card border border-line-soft rounded-surface shadow-e1 hover:-translate-y-0.5 hover:border-line hover:shadow-e3" data-testid="policy-text-{{ $policy->id }}">
+            <a href="{{ route('policies.show', $policy->id) }}" wire:navigate class="group flex flex-col items-center justify-center h-40 p-4 text-center transition bg-card border border-line-soft rounded-surface shadow-e1 hover:-translate-y-0.5 hover:border-line hover:shadow-e3" aria-label="{{ __('policies.view-policy-named', ['title' => $policy->title]) }}" data-testid="policy-text-{{ $policy->id }}">
                 <span class="flex items-center justify-center rounded-surface size-16 ring-1 ring-transparent group-hover:bg-ink group-hover:ring-ink">
                     <x-icons.document-text class="w-10 h-10 text-ink-2 group-hover:text-on-ink" />
                 </span>
