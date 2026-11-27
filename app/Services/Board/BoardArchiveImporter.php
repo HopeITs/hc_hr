@@ -6,7 +6,7 @@ use App\Models\BoardMeeting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,14 +23,28 @@ class BoardArchiveImporter
 
     public const DIR = 'board-archive';
 
+    public function isOpen(): bool
+    {
+        return ! BoardMeeting::query()->where('source', 'system')->exists();
+    }
+
+    public function ensureOpen(): void
+    {
+        if (! $this->isOpen()) {
+            throw ValidationException::withMessages(['archive' => __('board.archive.closed')]);
+        }
+    }
+
     /**
      * @param  array{number: int, date: string, from?: ?string, to?: ?string, location?: ?string, room?: ?string, led_by?: ?string, purpose?: ?string, text?: ?string}  $data
      */
     public function import(UploadedFile $file, array $data, User $by): BoardMeeting
     {
+        $this->ensureOpen();
+
         $number = (int) $data['number'];
         $date = CarbonImmutable::parse($data['date']);
-        $startsAt = $date->setTimeFromTimeString($data['from'] ?: '00:00');
+        $startsAt = $date->setTimeFromTimeString(($data['from'] ?? null) ?: '00:00');
 
         if ($number < 1) {
             throw ValidationException::withMessages(['number' => __('board.archive.number-required')]);
@@ -40,19 +54,18 @@ class BoardArchiveImporter
             throw ValidationException::withMessages(['date' => __('board.archive.future')]);
         }
 
-        if (BoardMeeting::query()->where('number', $number)->where('source', 'archive')->exists()) {
-            throw ValidationException::withMessages(['number' => __('board.archive.duplicate', ['number' => $number])]);
-        }
-
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'pdf');
         $path = $file->storeAs(self::DIR, Str::uuid().'.'.$extension, self::DISK);
 
         try {
-            return DB::transaction(function () use ($number, $startsAt, $date, $data, $file, $path, $by) {
-                // A meeting the system opened under this number moves on: the archive holds the real one.
-                $this->makeRoomFor($number);
+            return Cache::lock(BoardMeeting::NUMBER_LOCK, 60)->block(10, function () use ($number, $startsAt, $date, $data, $file, $path, $by): BoardMeeting {
+                $this->ensureOpen();
 
-                $meeting = BoardMeeting::create([
+                if (BoardMeeting::query()->where('number', $number)->where('source', 'archive')->exists()) {
+                    throw ValidationException::withMessages(['number' => __('board.archive.duplicate', ['number' => $number])]);
+                }
+
+                return BoardMeeting::create([
                     'number' => $number,
                     'starts_at' => $startsAt,
                     'ends_at' => ! empty($data['to']) ? $date->setTimeFromTimeString($data['to']) : null,
@@ -71,10 +84,6 @@ class BoardArchiveImporter
                     'published_at' => now(),
                     'created_by' => $by->id,
                 ]);
-
-                $this->renumberSystemMeetings();
-
-                return $meeting;
             });
         } catch (Throwable $e) {
             Storage::disk(self::DISK)->delete($path);
@@ -94,47 +103,5 @@ class BoardArchiveImporter
         if ($path) {
             Storage::disk(self::DISK)->delete($path);
         }
-
-        $this->renumberSystemMeetings();
-    }
-
-    /**
-     * The system's own meetings are numbered on from the last meeting held before them: after the latest archived
-     * number, in date order. Archived numbers are the real ones and never change.
-     */
-    public function renumberSystemMeetings(): void
-    {
-        $lastArchive = BoardMeeting::query()->where('source', 'archive')->orderByDesc('starts_at')->first();
-        $base = (int) BoardMeeting::query()->where('source', 'archive')->max('number');
-
-        $system = BoardMeeting::query()->where('source', 'system')
-            ->when($lastArchive, fn ($q) => $q->where(fn ($w) => $w->where('starts_at', '>', $lastArchive->starts_at)->orWhere('number', '>=', 1_000_000)))
-            ->orderBy('starts_at')->orderBy('id')->get();
-
-        if ($system->isEmpty()) {
-            return;
-        }
-
-        $wanted = $system->values()->mapWithKeys(fn (BoardMeeting $m, int $i) => [$m->id => $base + $i + 1]);
-
-        if ($system->every(fn (BoardMeeting $m) => $m->number === $wanted[$m->id])) {
-            return;
-        }
-
-        // Two passes so the unique number never collides half way.
-        foreach ($system as $m) {
-            BoardMeeting::query()->whereKey($m->id)->update(['number' => 1_000_000 + $m->id]);
-        }
-
-        foreach ($system as $m) {
-            BoardMeeting::query()->whereKey($m->id)->update(['number' => $wanted[$m->id]]);
-        }
-    }
-
-    private function makeRoomFor(int $number): void
-    {
-        $taken = BoardMeeting::query()->where('number', $number)->where('source', 'system')->first();
-
-        $taken?->update(['number' => 1_000_000 + $taken->id]);
     }
 }

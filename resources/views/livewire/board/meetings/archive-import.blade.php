@@ -3,7 +3,9 @@
     meeting that was held, with its own number and date, and the signed file kept as it is.
 --}}
 <div>
-    @if (! $open)
+    @if (! $archiveOpen)
+        <p class="text-small text-ink-2" role="status">@lang('board.archive.closed')</p>
+    @elseif (! $open)
         <x-button variant="outline" type="button" wire:click="$set('open', true)">@lang('board.archive.open')</x-button>
     @else
         <section class="space-y-4 rounded-surface border border-line bg-card p-5" data-testid="board-archive-import" aria-labelledby="archive-title">

@@ -100,6 +100,7 @@ return [
         'results' => 'Found in :count meeting(s)', 'none' => 'Nothing found in the minutes.',
     ],
     'archive' => [
+        'closed' => 'Archive uploads close once the first board meeting is scheduled in the system.',
         'open' => 'Upload earlier minutes', 'title' => 'Minutes from before the system',
         'help' => 'Upload the minutes of meetings held before the system (PDF or Word). Each file is read on the server for its number, date and times; check them, then save. Nobody is notified.',
         'choose' => 'Choose the files', 'types' => 'PDF or Word, up to 20 files at a time', 'file' => 'Minutes file', 'reading' => 'Reading the files…',
@@ -112,7 +113,7 @@ return [
         'duplicate' => 'Meeting :number is already in the archive.',
         'badge' => 'From the archive', 'download' => 'Download the original',
         'word-note' => 'The original is a Word file; its text is shown below and the file can be downloaded.',
-        'remove' => 'Remove this upload', 'remove-confirm' => 'Remove these minutes and their file? Upload them again if needed.',
+        'remove' => 'Remove this upload', 'remove-confirm' => 'Remove these minutes and their file?',
         'removed' => 'The upload was removed.',
     ],
 ];

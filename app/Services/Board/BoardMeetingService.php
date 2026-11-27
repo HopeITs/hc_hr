@@ -12,6 +12,7 @@ use App\Notifications\BoardMeetingNotice;
 use App\Services\ContractPdfRenderer;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -27,23 +28,25 @@ class BoardMeetingService
     /** @param array{starts_at: mixed, ends_at?: mixed, location?: ?string, room?: ?string, purpose?: ?string, led_by?: ?string} $data */
     public function schedule(array $data, ?User $by = null, bool $notify = true): BoardMeeting
     {
-        $meeting = DB::transaction(function () use ($data, $by) {
-            $meeting = BoardMeeting::create([
-                'number' => BoardMeeting::nextNumber(),
-                'starts_at' => $data['starts_at'],
-                'ends_at' => $data['ends_at'] ?? null,
-                'location' => $data['location'] ?? config('board.default_location'),
-                'room' => $data['room'] ?? null,
-                'purpose' => $data['purpose'] ?? null,
-                // The chair leads it unless told otherwise.
-                'led_by' => $data['led_by'] ?? $this->chairName(),
-                'status' => BoardMeeting::SCHEDULED,
-                'created_by' => $by?->id,
-            ]);
+        $meeting = Cache::lock(BoardMeeting::NUMBER_LOCK, 60)->block(10, function () use ($data, $by): BoardMeeting {
+            return DB::transaction(function () use ($data, $by): BoardMeeting {
+                $meeting = BoardMeeting::create([
+                    'number' => BoardMeeting::nextNumber(),
+                    'starts_at' => $data['starts_at'],
+                    'ends_at' => $data['ends_at'] ?? null,
+                    'location' => $data['location'] ?? config('board.default_location'),
+                    'room' => $data['room'] ?? null,
+                    'purpose' => $data['purpose'] ?? null,
+                    // The chair leads it unless told otherwise.
+                    'led_by' => $data['led_by'] ?? $this->chairName(),
+                    'status' => BoardMeeting::SCHEDULED,
+                    'created_by' => $by?->id,
+                ]);
 
-            $this->syncAttendees($meeting);
+                $this->syncAttendees($meeting);
 
-            return $meeting;
+                return $meeting;
+            });
         });
 
         if ($notify) {

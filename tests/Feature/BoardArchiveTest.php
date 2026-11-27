@@ -109,16 +109,31 @@ class BoardArchiveTest extends TestCase
 
     public function test_the_system_numbers_its_meetings_on_after_the_last_held_one(): void
     {
-        $service = app(BoardMeetingService::class);
-        // Opened by the scheduler before the archive was brought in: number 1, next week.
-        $opened = $service->schedule(['starts_at' => CarbonImmutable::parse('2026-12-03 12:00')], notify: false);
-        $this->assertSame(1, $opened->number);
-
-        $this->import(45, '2026-11-09');
         $this->import(46, '2026-11-16');
+        $this->import(45, '2026-11-09');
 
-        $this->assertSame(47, $opened->fresh()->number);
+        $service = app(BoardMeetingService::class);
+        $this->assertSame(47, $service->schedule(['starts_at' => CarbonImmutable::parse('2026-12-03 12:00')], notify: false)->number);
         $this->assertSame(48, $service->schedule(['starts_at' => CarbonImmutable::parse('2026-12-10 12:00')], notify: false)->number);
+    }
+
+    public function test_an_archive_upload_already_in_review_is_refused_after_the_first_system_meeting_is_scheduled(): void
+    {
+        $page = Livewire::actingAs($this->secretary)->test(ArchiveImport::class)
+            ->set('open', true)
+            ->set('files', [$this->docx('minutes-046.docx', self::HEADER_046)]);
+        $meeting = app(BoardMeetingService::class)->schedule([
+            'starts_at' => CarbonImmutable::parse('2026-12-03 12:00'),
+        ], notify: false);
+
+        $page->call('saveAll')
+            ->assertHasErrors('archive')
+            ->assertSee(__('board.archive.closed'))
+            ->assertDontSee(__('board.archive.open'));
+
+        $this->assertSame(1, $meeting->fresh()->number);
+        $this->assertDatabaseCount('board_meetings', 1);
+        $this->assertSame([], Storage::disk(BoardArchiveImporter::DISK)->allFiles(BoardArchiveImporter::DIR));
     }
 
     public function test_a_number_already_in_the_archive_or_a_future_date_is_refused(): void
@@ -175,6 +190,9 @@ class BoardArchiveTest extends TestCase
     {
         $meeting = $this->import(46, '2026-11-16');
         $path = $meeting->archive_path;
+        $systemMeeting = app(BoardMeetingService::class)->schedule([
+            'starts_at' => CarbonImmutable::parse('2026-12-03 12:00'),
+        ], notify: false);
 
         Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])->call('removeArchive')->assertForbidden();
 
@@ -183,6 +201,7 @@ class BoardArchiveTest extends TestCase
 
         $this->assertNull(BoardMeeting::query()->find($meeting->id));
         Storage::disk(BoardArchiveImporter::DISK)->assertMissing($path);
+        $this->assertSame(47, $systemMeeting->fresh()->number);
     }
 
     private function import(int $number, string $date, string $extension = 'docx'): BoardMeeting
