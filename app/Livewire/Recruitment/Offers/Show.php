@@ -197,6 +197,28 @@ class Show extends Component
         ]);
     }
 
+    /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
+    protected function guardedDialogs(): array
+    {
+        return ['offerActionModal'];
+    }
+
+    protected function guardedDialogIsOpen(string $dialog): bool
+    {
+        return $this->panelOpen;
+    }
+
+    /** What the user can change in the popup. */
+    protected function guardedEntries(string $dialog): array
+    {
+        return ['expiresOn' => $this->expiresOn, 'responseNote' => $this->responseNote, 'responseEvidence' => $this->responseEvidence, 'cancelReason' => $this->cancelReason, 'cancelNote' => $this->cancelNote];
+    }
+
+    protected function closeGuardedDialog(string $dialog): void
+    {
+        $this->closePanel();
+    }
+
     /**
      * Task 10: campaigns on a filled vacancy that still take — or may yet
      * take — applications, which the hire did not close for HR.
@@ -226,28 +248,6 @@ class Show extends Component
         $this->panelOpen = true;
         $this->expectedVersionId = (int) $offer->current_version_id;
         $this->markClean('offerActionModal');
-    }
-
-    /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
-    protected function guardedDialogs(): array
-    {
-        return ['offerActionModal'];
-    }
-
-    protected function guardedDialogIsOpen(string $dialog): bool
-    {
-        return $this->panelOpen;
-    }
-
-    /** What the user can change in the popup. */
-    protected function guardedEntries(string $dialog): array
-    {
-        return ['expiresOn' => $this->expiresOn, 'responseNote' => $this->responseNote, 'responseEvidence' => $this->responseEvidence, 'cancelReason' => $this->cancelReason, 'cancelNote' => $this->cancelNote];
-    }
-
-    protected function closeGuardedDialog(string $dialog): void
-    {
-        $this->closePanel();
     }
 
     private function attempt(callable $action, string $messageKey): void

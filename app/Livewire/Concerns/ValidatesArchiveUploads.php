@@ -48,7 +48,7 @@ trait ValidatesArchiveUploads
         }
 
         if (! in_array($extension, ArchivedFilesModule::ALLOWED_UPLOAD_EXTENSIONS, true)) {
-            $this->rejectUpload($originalName, 'Only JPG, JPEG, PNG, SVG, PDF, DOCX, XLSX, and PPTX files are allowed.');
+            $this->rejectUpload($originalName, 'Only JPG, JPEG, PNG, SVG, PDF, DOCX, XLSX, PPTX, and TXT files are allowed.');
         }
 
         $this->rejectSuspiciousFileName($originalName);
@@ -59,6 +59,7 @@ trait ValidatesArchiveUploads
             'png' => $this->validatePng($path, $originalName),
             'svg' => $svg = $this->sanitizeSvg($path, $originalName),
             'pdf' => $this->validatePdf($path, $originalName),
+            'txt' => $this->validatePlainText($path, $originalName),
             'docx', 'xlsx', 'pptx' => $this->validateOfficeOpenXml($path, $extension, $originalName),
             default => $this->rejectUpload($originalName, 'This file type is not allowed.'),
         };
@@ -193,6 +194,32 @@ trait ValidatesArchiveUploads
         if (! in_array($mime, ['application/pdf', 'application/octet-stream'], true) || $signature !== '%PDF-') {
             $this->rejectUpload($originalName, 'The file is not a valid PDF document.');
         }
+    }
+
+    /** A text file is text: no NUL bytes (binary), and valid UTF-8 (BOM allowed). */
+    private function validatePlainText(string $path, string $originalName): void
+    {
+        $contents = (string) file_get_contents($path);
+
+        if (str_contains($contents, "\0") || ! mb_check_encoding($contents, 'UTF-8')) {
+            $this->rejectUpload($originalName, 'The file is not a valid UTF-8 text document.');
+        }
+    }
+
+    /**
+     * The name a user types when renaming: without the extension, which the file
+     * keeps. A typed copy of it ("Travel.pdf") is not added a second time.
+     */
+    private function renamedDisplayFileName(string $typed, string $extension): string
+    {
+        $typed = trim($typed);
+        $suffix = '.'.strtolower($extension);
+
+        while ($extension !== '' && str_ends_with(mb_strtolower($typed), $suffix)) {
+            $typed = rtrim(mb_substr($typed, 0, mb_strlen($typed) - mb_strlen($suffix)));
+        }
+
+        return $this->safeDisplayFileName($typed.'.'.$extension, $extension);
     }
 
     private function validateOfficeOpenXml(string $path, string $extension, string $originalName): void

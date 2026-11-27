@@ -129,17 +129,6 @@ class EvaluationSummary extends Component
         ]);
     }
 
-    private function openPanel(RecruitmentInterviewEvaluation $evaluation): void
-    {
-        $this->cancelPanel();
-        $this->panel = 'note';
-        $this->panelOpen = true;
-        $this->evaluationId = $evaluation->getKey();
-        $this->markClean('evaluationActionModal');
-
-        $this->dispatch('focus-element', id: 'evaluation-panel-title');
-    }
-
     /** A5-M: the popup's close guard. Its dialog id; it is shown by $panelOpen. */
     protected function guardedDialogs(): array
     {
@@ -160,6 +149,17 @@ class EvaluationSummary extends Component
     protected function closeGuardedDialog(string $dialog): void
     {
         $this->dismissPanel();
+    }
+
+    private function openPanel(RecruitmentInterviewEvaluation $evaluation): void
+    {
+        $this->cancelPanel();
+        $this->panel = 'note';
+        $this->panelOpen = true;
+        $this->evaluationId = $evaluation->getKey();
+        $this->markClean('evaluationActionModal');
+
+        $this->dispatch('focus-element', id: 'evaluation-panel-title');
     }
 
     private function cancelPanel(): void
