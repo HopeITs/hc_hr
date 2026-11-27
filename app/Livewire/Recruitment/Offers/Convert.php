@@ -6,6 +6,7 @@ use App\Enums\SalaryPer;
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\RecruitmentHiringConversion;
 use App\Models\RecruitmentJobOffer;
+use App\Services\EmployeeActivation;
 use App\Services\OnboardingChecklist;
 use App\Services\RecruitmentHiringConversionService as Conversions;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -135,15 +136,14 @@ class Convert extends Component
             return null;
         }
 
-        // Stay here — the page now shows the hire — and say what comes next:
-        // a login account is made on the employee page (PersonalInfoForm).
+        // Stay here — the page now shows the hire and its guided account step.
         $conversion = $this->resolveConversion()->load(['employee.account']);
 
         $this->toast(__('recruitment-applicant.conversions.converted').'. '
             .__('recruitment-applicant.conversions.converted_next', ['name' => (string) $conversion->employee?->name, 'contract' => $conversion->contract_id])
                 .' '.($conversion->employee?->account
                     ? __('recruitment-applicant.conversions.has_account')
-                    : __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')])));
+                    : __('recruitment-applicant.conversions.no_account')));
 
         return null;
     }
@@ -155,6 +155,26 @@ class Convert extends Component
         abort_unless($conversion->isConverted() && $conversion->employee_id !== null, 404);
 
         return $this->redirectRoute('employees.edit', ['employee' => $conversion->employee_id], navigate: true);
+    }
+
+    public function createLoginAccount(EmployeeActivation $activation): void
+    {
+        abort_unless(auth()->user()?->activeRoleIs('HR'), 403);
+
+        $conversion = $this->resolveConversion()->load('employee');
+        abort_unless($conversion->isConverted() && $conversion->employee !== null, 404);
+        Gate::authorize('update', $conversion->employee);
+
+        $result = $activation->ensureAccount($conversion->employee);
+
+        $this->toast(
+            match ($result) {
+                EmployeeActivation::RESULT_ACCOUNT_CREATED => __('employees.onboarding.account-created'),
+                EmployeeActivation::RESULT_EMAIL_TAKEN => __('employees.onboarding.account-email-taken'),
+                default => __('employees.journey.nothing-changed'),
+            },
+            $result === EmployeeActivation::RESULT_EMAIL_TAKEN ? 'error' : 'info',
+        );
     }
 
     public function openContract()
@@ -188,6 +208,8 @@ class Convert extends Component
             'blockers' => $converted ? [] : $conversions->blockers($conversion),
             'matches' => $converted ? collect() : $conversions->matches($conversion, $this->employee['nationalNumber'] ?? null),
             'onboarding' => $converted ? app(OnboardingChecklist::class)->for($conversion, auth()->user()) : [],
+            'canCreateLoginAccount' => $converted && $conversion->employee !== null
+                && (auth()->user()?->activeRoleIs('HR') ?? false) && Gate::allows('update', $conversion->employee),
             'needsSessionDuration' => (int) $conversion->jobOfferVersion?->salary_per === SalaryPer::Session,
         ]);
     }

@@ -1,7 +1,7 @@
 {{--
     The guided flow after a hire: what is done and what is left around the new
     employee (OnboardingChecklist). $steps: key, done, url, problem. Reads and
-    links only; each link's page checks its own permission.
+    links and account action; every action and destination checks permission.
 --}}
 @if ($steps !== [])
     <section class="space-y-3 rounded-surface border border-line-soft bg-card p-6" data-testid="onboarding">
@@ -20,8 +20,8 @@
                             {{ __($t.$step['key'], $step['params']) }}
                             <span class="text-caption font-normal text-ink-2">{{ $step['done'] ? __($t.'done') : __($t.'todo') }}</span>
                         </p>
-                        @if ($step['key'] === 'account' && ! $step['done'])
-                            <p class="text-small text-ink-2">{{ __($t.'account_hint') }}</p>
+                        @if ($step['key'] === 'account' && ! $step['done'] && $canCreateLoginAccount)
+                            <p class="text-small text-ink-2">@lang('employees.journey.account-missing')</p>
                         @elseif ($step['key'] === 'previous')
                             <p class="text-small text-ink-2">{{ __($t.'previous_hint') }}</p>
                         @elseif ($step['key'] === 'card')
@@ -34,6 +34,12 @@
                     <div class="shrink-0">
                         @if (in_array($step['key'], ['welcome', 'announce'], true))
                             <x-message-template-menu :employee="$conversion->employee" />
+                        @elseif ($step['key'] === 'account')
+                            @if (! $step['done'] && $canCreateLoginAccount)
+                                <x-button size="sm" wire:click="createLoginAccount" data-testid="create-login-account">
+                                    @lang('employees.journey.create-account')
+                                </x-button>
+                            @endif
                         @elseif ($step['url'])
                             <x-button variant="outline" size="sm" :href="$step['url']" :wire:navigate="false">
                                 {{ $step['done'] ? __($t.'open') : __($t.'fix') }}

@@ -382,7 +382,7 @@ class OnboardingJourneys
             $hasAccount => self::STATE_DONE,
             $hasContract => self::STATE_PROBLEM,
             default => self::STATE_WAITING,
-        }, 'system', due: $accountDue, late: $lateAfter($accountDue, $hasAccount), blockedBy: $hasContract ? null : 'contract', note: ! $hasAccount && $hasContract ? 'account-missing' : null);
+        }, $hasContract && ! $hasAccount ? 'hr' : 'system', due: $accountDue, late: $lateAfter($accountDue, $hasAccount), blockedBy: $hasContract ? null : 'contract', note: ! $hasAccount && $hasContract ? 'account-missing' : null);
 
         $electronics = $this->deliveries->group($employee, ChecklistItem::GROUP_ELECTRONICS);
         $itDeliverer = $this->deliveries->electronicsDeliverer($employee);

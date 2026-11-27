@@ -47,9 +47,6 @@
                     <a href="{{ route('employees.edit', $conversion->employee->id) }}" wire:navigate class="font-medium text-primary hover:underline">{{ __('recruitment-applicant.conversions.open_employee_edit') }}</a>
                 @endif
             </div>
-            @if ($conversion->employee && ! $conversion->employee->account)
-                <p>{{ __('recruitment-applicant.conversions.no_account', ['label' => __('general.create_login_account')]) }}</p>
-            @endif
         </section>
 
         {{-- The guided flow: what is left around the new employee. --}}

@@ -4,6 +4,7 @@ namespace App\Livewire\Employee;
 
 use App\Livewire\Concerns\WithFeedback;
 use App\Models\Employee;
+use App\Services\EmployeeActivation;
 use App\Services\OnboardingJourneys;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -57,6 +58,25 @@ class OnboardingJourneyPanel extends Component
         $changed = $journeys->completeOrientation($this->authorizedEmployee(), auth()->user());
 
         $this->toast($changed ? __('employees.journey.orientation-done') : __('employees.journey.nothing-changed'), $changed ? 'success' : 'info');
+    }
+
+    public function createLoginAccount(EmployeeActivation $activation): void
+    {
+        abort_unless(auth()->user()?->activeRoleIs('HR'), 403);
+
+        $employee = $this->authorizedEmployee();
+        abort_unless(! $employee->isDraft() && $employee->realContracts()->exists(), 403);
+
+        $result = $activation->ensureAccount($employee);
+
+        $this->toast(
+            match ($result) {
+                EmployeeActivation::RESULT_ACCOUNT_CREATED => __('employees.onboarding.account-created'),
+                EmployeeActivation::RESULT_EMAIL_TAKEN => __('employees.onboarding.account-email-taken'),
+                default => __('employees.journey.nothing-changed'),
+            },
+            $result === EmployeeActivation::RESULT_EMAIL_TAKEN ? 'error' : 'info',
+        );
     }
 
     /** HR standing in for the manager (the manager has their own page, which uses the same service calls). */
@@ -134,6 +154,7 @@ class OnboardingJourneyPanel extends Component
             'journey' => $employee->onboardingJourney,
             'steps' => $journeys->steps($employee),
             'mug' => $employee->onboardingJourney ? $journeys->mug($employee) : null,
+            'canCreateLoginAccount' => (auth()->user()?->activeRoleIs('HR') ?? false) && Gate::allows('update', $employee),
             'canViewContracts' => auth()->user()?->hasActivePermission('contracts.view') ?? false,
             'canCreateContracts' => auth()->user()?->hasActivePermission('contracts.create') ?? false,
         ]);
