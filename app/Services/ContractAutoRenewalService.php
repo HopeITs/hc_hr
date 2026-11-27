@@ -123,7 +123,7 @@ class ContractAutoRenewalService
     {
         return DB::transaction(function () use ($contract, $asOf): ?Contract {
             $source = Contract::query()
-                ->with(['position', 'payTiers'])
+                ->with(['position', 'payTiers', 'employee'])
                 ->whereKey($contract->id)
                 ->lockForUpdate()
                 ->first();
@@ -137,6 +137,8 @@ class ContractAutoRenewalService
                 || $source->is_active
                 || ! $source->end_date
                 || $source->end_date->gte($asOf)
+                // A deactivated employee has left: no new contract for them.
+                || ! $source->employee?->is_active
             ) {
                 return null;
             }
@@ -193,7 +195,11 @@ class ContractAutoRenewalService
         });
     }
 
-    /** Ended before $asOf, inactive, auto-renew on and never terminated. */
+    /**
+     * Ended before $asOf, inactive, auto-renew on, never terminated, and the
+     * employee still active: a deactivated employee has left, so neither the
+     * renewal nor the new-year notice is for them.
+     */
     private function renewable(CarbonInterface $asOf): \Illuminate\Database\Eloquent\Builder
     {
         return Contract::query()
@@ -201,7 +207,8 @@ class ContractAutoRenewalService
             ->where('is_active', false)
             ->whereNull('terminated_at')
             ->whereNull('termination_reason_id')
-            ->whereDate('end_date', '<', $asOf->toDateString());
+            ->whereDate('end_date', '<', $asOf->toDateString())
+            ->whereHas('employee', fn ($employee) => $employee->where('employees.is_active', true));
     }
 
     /**
