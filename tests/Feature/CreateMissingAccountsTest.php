@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\City;
+use App\Models\RecruitmentHiringConversion;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\EmployeeActivation;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\CreatesContractFixtures;
 use Tests\TestCase;
@@ -76,5 +78,53 @@ class CreateMissingAccountsTest extends TestCase
 
         $this->assertFalse(User::query()->where('employee_id', $noContract->id)->exists());
         $this->assertFalse(User::query()->where('employee_id', $noUsername->id)->exists());
+    }
+
+    /**
+     * T13c (decision 2026-11-27): HR creates a recruitment hire's account by
+     * hand, so --apply leaves them out. A conversion that never completed does
+     * not count as a hire.
+     */
+    public function test_apply_leaves_recruitment_hires_to_hr(): void
+    {
+        $hired = $this->makeEmployee($this->city, 't13c.hired');
+        $hiredContract = $this->makeContractFor($hired, ['start_date' => now()->subDay(), 'end_date' => now()->addYear()]);
+        $this->recordConversion($hired->id, $hiredContract->id, RecruitmentHiringConversion::STATUS_CONVERTED, 1);
+
+        $failed = $this->makeEmployee($this->city, 't13c.failed');
+        $this->makeContractFor($failed, ['start_date' => now()->subDay(), 'end_date' => now()->addYear()]);
+        $this->recordConversion($failed->id, null, RecruitmentHiringConversion::STATUS_FAILED, 2);
+
+        $this->artisan('employees:create-missing-accounts')
+            ->expectsOutputToContain('t13c.hired: skipped, hired through recruitment')
+            ->assertSuccessful();
+
+        $this->artisan('employees:create-missing-accounts', ['--apply' => true])->assertSuccessful();
+
+        $this->assertFalse(User::query()->where('employee_id', $hired->id)->exists());
+        $this->assertTrue(User::query()->where('employee_id', $failed->id)->exists());
+    }
+
+    private function recordConversion(int $employeeId, ?int $contractId, string $status, int $offerId): void
+    {
+        // Offers, applicants and their versions are beside the point here.
+        // The test runs inside a transaction that is rolled back, so deferred
+        // foreign keys are never checked (foreign_keys itself cannot be
+        // switched off inside a transaction on SQLite).
+        DB::statement('PRAGMA defer_foreign_keys = ON');
+        DB::table('recruitment_hiring_conversions')->insert([
+            'job_offer_id' => $offerId,
+            'job_offer_version_id' => $offerId,
+            'applicant_id' => $offerId,
+            'employee_id' => $employeeId,
+            'contract_id' => $contractId,
+            'employee_payload_json' => '{}',
+            'status' => $status,
+            'started_at' => now(),
+            'converted_by_user_id' => 1,
+            'converted_at' => $status === RecruitmentHiringConversion::STATUS_CONVERTED ? now() : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

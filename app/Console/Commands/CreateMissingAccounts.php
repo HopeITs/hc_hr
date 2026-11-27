@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ContractType;
 use App\Models\Contract;
 use App\Models\Employee;
+use App\Models\RecruitmentHiringConversion;
 use App\Services\EmployeeActivation;
 use Illuminate\Console\Command;
 
@@ -21,6 +22,10 @@ use Illuminate\Console\Command;
  * Someone without a username or a running contract is only listed: the first
  * has no work email to log in with, the second gets an account at their
  * contract.
+ *
+ * A hire through recruitment is only listed too (decision 2026-11-27, T13c):
+ * HR creates that account by hand from the hire page, so `--apply` must not
+ * make it for them.
  */
 class CreateMissingAccounts extends Command
 {
@@ -41,6 +46,11 @@ class CreateMissingAccounts extends Command
             ->orderBy('id')
             ->get();
 
+        $recruitmentHires = RecruitmentHiringConversion::query()
+            ->where('status', RecruitmentHiringConversion::STATUS_CONVERTED)
+            ->whereIn('employee_id', $employees->modelKeys())
+            ->pluck('employee_id');
+
         foreach ($employees as $employee) {
             $contract = Contract::query()
                 ->activeNow()
@@ -54,6 +64,12 @@ class CreateMissingAccounts extends Command
 
             if (blank($employee->username)) {
                 $this->line("{$label}: skipped, no username to make a work email from");
+
+                continue;
+            }
+
+            if ($recruitmentHires->contains($employee->id)) {
+                $this->line("{$label}: skipped, hired through recruitment (HR creates this account by hand)");
 
                 continue;
             }
