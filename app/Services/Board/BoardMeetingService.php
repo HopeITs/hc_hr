@@ -218,15 +218,43 @@ class BoardMeetingService
         return $attendee;
     }
 
-    /** A member takes back a request the chair has not answered yet. */
-    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): void
+    /**
+     * A member takes back their absence request: one the chair has not answered yet, or an approved one while the
+     * meeting is still ahead (they are expected again). Either way the chair is told.
+     *
+     * @return string|null the request that was taken back (pending / approved), or null when there was none
+     */
+    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): ?string
     {
         $this->assertOpen($meeting);
 
-        $meeting->attendees()
+        $attendee = $meeting->attendees()
             ->where('employee_id', $employee->id)
-            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
-            ->update(['absence_request' => null, 'absence_reason' => null]);
+            ->whereIn('absence_request', [BoardMeetingAttendee::REQUEST_PENDING, BoardMeetingAttendee::REQUEST_APPROVED])
+            ->first();
+
+        if (! $attendee) {
+            return null;
+        }
+
+        $was = $attendee->absence_request;
+
+        if ($was === BoardMeetingAttendee::REQUEST_APPROVED) {
+            // Once the meeting has begun the secretary's record stands: an approved absence is taken back only before.
+            if (! $meeting->isUpcoming()) {
+                throw ValidationException::withMessages(['absence' => __('board.absence.too-late')]);
+            }
+
+            $attendee->status = BoardMeetingAttendee::EXPECTED;
+        }
+
+        $attendee->fill(['absence_request' => null, 'absence_reason' => null, 'absence_decided_at' => null])->save();
+
+        foreach ($this->access->holders(BoardAccess::MANAGE) as $chair) {
+            $chair->notify(BoardMeetingNotice::for(BoardMeetingNotice::ABSENCE_WITHDRAWN, $meeting, $employee->name));
+        }
+
+        return $was;
     }
 
     /** The chair approves (the member is listed as absent) or turns the request down. */

@@ -331,14 +331,17 @@ class Show extends Component
         $this->toast(__('board.saved'));
     }
 
-    /** A member takes back the request the chair has not answered yet. */
+    /** A member takes back their absence request: a pending one, or an approved one before the meeting. */
     public function withdrawAbsence(): void
     {
         $user = auth()->user();
         abort_unless($this->access()->isMember($user), 403);
 
-        $this->service()->withdrawAbsence($this->meeting(), $user->profile);
-        $this->toast(__('board.absence.withdrawn'));
+        $was = $this->service()->withdrawAbsence($this->meeting(), $user->profile);
+
+        if ($was !== null) {
+            $this->toast(__($was === BoardMeetingAttendee::REQUEST_APPROVED ? 'board.absence.taken-back' : 'board.absence.withdrawn'));
+        }
     }
 
     /** The chair alone takes published minutes back to a draft, saying why. */
