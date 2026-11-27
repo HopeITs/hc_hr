@@ -48,6 +48,7 @@ return [
         'take-back-confirm' => 'Take back your approved absence? You will be expected at the meeting and the chair is told.',
         'taken-back' => 'You are expected at the meeting again; the chair is told.',
         'too-late' => 'The meeting has begun: an approved absence can no longer be taken back.',
+        'not-pending' => 'This member has no absence request waiting for a decision.',
         'approve' => 'Approve', 'reject' => 'Decline',
     ],
     'attendance' => [

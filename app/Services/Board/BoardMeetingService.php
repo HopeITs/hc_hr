@@ -261,16 +261,30 @@ class BoardMeetingService
         return $was;
     }
 
-    /** The chair approves (the member is listed as absent) or turns the request down. */
+    /**
+     * The chair approves (the member is listed as absent) or turns the request down. Only a request still waiting
+     * can be decided: none at all, one already answered or one the member took back is refused, so a stale page or a
+     * hand-made call cannot mark someone absent who never asked, or flip an earlier answer.
+     */
     public function decideAbsence(BoardMeetingAttendee $attendee, bool $approve): void
     {
         $this->assertOpen($attendee->meeting);
 
-        $attendee->update([
-            'absence_request' => $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
-            'absence_decided_at' => now(),
-            'status' => $approve ? BoardMeetingAttendee::ABSENT : $attendee->status,
-        ]);
+        $decided = $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED;
+        $changes = ['absence_request' => $decided, 'absence_decided_at' => now()]
+            + ($approve ? ['status' => BoardMeetingAttendee::ABSENT] : []);
+
+        // Conditional on the row still being pending, so two decisions racing each other cannot both land.
+        $updated = BoardMeetingAttendee::query()
+            ->whereKey($attendee->getKey())
+            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
+            ->update($changes);
+
+        if ($updated === 0) {
+            throw ValidationException::withMessages(['absence' => __('board.absence.not-pending')]);
+        }
+
+        $attendee->refresh();
 
         $attendee->loadMissing('employee.account', 'meeting');
 

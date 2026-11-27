@@ -159,6 +159,35 @@ class BoardMeetingsTest extends TestCase
         });
     }
 
+    public function test_the_chair_decides_only_a_pending_absence_request(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $show = fn () => Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting]);
+
+        // A member who never asked cannot be marked absent through the decision.
+        $silent = $meeting->attendees()->where('employee_id', $this->member->employee_id)->firstOrFail();
+        $show()->call('decideAbsence', $silent->id, true)->assertHasErrors('absence');
+        $this->assertNull($silent->fresh()->absence_request);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $silent->fresh()->status);
+
+        // Once answered, the answer is not flipped by a second call (a stale page, a double click).
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $show()->call('decideAbsence', $row->id, false)->assertHasNoErrors();
+        $show()->call('decideAbsence', $row->id, true)->assertHasErrors('absence');
+        $this->assertSame(BoardMeetingAttendee::REQUEST_REJECTED, $row->fresh()->absence_request);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $row->fresh()->status);
+
+        // A request the member took back is gone too.
+        $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->withdrawAbsence($meeting, $this->member->profile);
+        $show()->call('decideAbsence', $row->id, true)->assertHasErrors('absence');
+        $this->assertNull($row->fresh()->absence_request);
+
+        Notification::assertSentToTimes($this->member, BoardMeetingNotice::class, 1);
+    }
+
     public function test_a_turned_down_absence_request_is_worded_as_not_approved_in_each_language(): void
     {
         Notification::fake();
