@@ -734,6 +734,81 @@ class BoardMeetingsTest extends TestCase
         $this->assertNull($row->absence_reason);
     }
 
+    public function test_the_chair_is_told_when_a_pending_absence_request_is_taken_back(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'سفر')->call('requestAbsence')
+            ->call('withdrawAbsence');
+
+        Notification::assertSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN
+            && $n->detail === $this->member->fresh()->profile->name);
+        Notification::assertNotSentTo($this->outsider, BoardMeetingNotice::class);
+
+        $body = (new BoardMeetingNotice(BoardMeetingNotice::ABSENCE_WITHDRAWN, $meeting->id, $meeting->number, $meeting->starts_at->toIso8601String(), 'سامر'))
+            ->toArray($this->chair)['body'];
+        $this->assertStringContainsString('سامر', $body['ar']);
+        $this->assertStringContainsString('took back', $body['en']);
+    }
+
+    public function test_a_member_takes_back_an_approved_absence_before_the_meeting_and_the_chair_is_told(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, true);
+        $this->assertSame('absent', $row->fresh()->status);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-absence-approved"', false)
+            ->call('withdrawAbsence')
+            ->assertHasNoErrors()
+            ->assertSee('data-testid="board-absence-form"', false);
+
+        $row->refresh();
+        $this->assertSame('expected', $row->status);
+        $this->assertNull($row->absence_request);
+        $this->assertNull($row->absence_reason);
+        $this->assertNull($row->absence_decided_at);
+        Notification::assertSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
+    }
+
+    public function test_an_approved_absence_stands_once_the_meeting_has_begun(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addHour()], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, true);
+
+        $this->travel(2)->hours();
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-absence-approved"', false)
+            ->call('withdrawAbsence')
+            ->assertHasErrors('absence');
+
+        $this->assertSame('approved', $row->fresh()->absence_request);
+        $this->assertSame('absent', $row->fresh()->status);
+        Notification::assertNotSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
+    }
+
+    public function test_a_declined_request_is_not_taken_back_and_nobody_is_told(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, false);
+
+        $this->assertNull($service->withdrawAbsence($meeting, $this->member->profile));
+        $this->assertSame('rejected', $row->fresh()->absence_request);
+        Notification::assertNotSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
+    }
+
     public function test_the_chair_sees_a_count_of_absence_requests_waiting_on_him(): void
     {
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);

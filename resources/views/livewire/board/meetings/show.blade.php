@@ -199,7 +199,14 @@
                 <span class="text-small text-ink-2">{{ $mine->absence_reason }}</span>
                 <x-button size="sm" variant="quiet" type="button" wire:click="withdrawAbsence">@lang('board.absence.withdraw')</x-button>
             </div>
+        @elseif($mine?->absence_request === 'approved' && $meeting->isUpcoming() && ! $meeting->isPublished())
+            <div class="flex flex-wrap items-center gap-3 rounded-surface border border-line-soft bg-soft p-4" data-testid="board-absence-approved">
+                <x-status tone="done" icon="check" :label="__('board.absence.approved')" />
+                <span class="text-small text-ink-2">{{ $mine->absence_reason }}</span>
+                <x-button size="sm" variant="quiet" type="button" wire:click="withdrawAbsence" wire:confirm="{{ __('board.absence.take-back-confirm') }}">@lang('board.absence.take-back')</x-button>
+            </div>
         @endif
+        @error('absence') <p class="text-small font-semibold text-primary" role="alert">{{ $message }}</p> @enderror
 
         @if($canWrite && ! $started)
             <p class="text-small text-ink-2">@lang('board.locks.attendance-before-start')</p>

@@ -44,6 +44,10 @@ return [
         'ask' => 'Can’t attend? Tell the chair why.', 'reason' => 'Reason', 'send' => 'Send the request',
         'reason-required' => 'Write the reason.', 'sent' => 'Your request was sent.',
         'waiting' => 'Your request waits for the chair.', 'pending' => 'Asks to be absent',
+        'approved' => 'The chair approved your absence.', 'take-back' => 'I can attend after all',
+        'take-back-confirm' => 'Take back your approved absence? You will be expected at the meeting and the chair is told.',
+        'taken-back' => 'You are expected at the meeting again; the chair is told.',
+        'too-late' => 'The meeting has begun: an approved absence can no longer be taken back.',
         'approve' => 'Approve', 'reject' => 'Decline',
     ],
     'attendance' => [

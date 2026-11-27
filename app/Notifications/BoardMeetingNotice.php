@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Everything the board hears about its meetings, in the app: a meeting opened, moved or cancelled,
- * the reminder the day before, a member's request to be absent and its answer, and the minutes.
+ * the reminder the day before, a member's request to be absent, its answer and its withdrawal, and the minutes.
  */
 class BoardMeetingNotice extends Notification
 {
@@ -25,6 +25,8 @@ class BoardMeetingNotice extends Notification
     public const ABSENCE_REQUESTED = 'absence-requested';
 
     public const ABSENCE_DECIDED = 'absence-decided';
+
+    public const ABSENCE_WITHDRAWN = 'absence-withdrawn';
 
     public const MINUTES = 'minutes';
 
@@ -83,6 +85,10 @@ class BoardMeetingNotice extends Notification
             self::ABSENCE_DECIDED => [
                 ['Your absence request', 'ردّ على طلب تغيّبك'],
                 ["Your request to miss meeting {$n}: {$d}.", "طلب تغيّبك عن اجتماع رقم {$n}: {$d}."],
+            ],
+            self::ABSENCE_WITHDRAWN => [
+                ['Absence request taken back', 'سحب طلب تغيّب'],
+                ["{$d} took back the request to miss meeting {$n} ({$en}) and is expected to attend.", "سحب {$d} طلب التغيّب عن اجتماع رقم {$n} ({$ar})، وحضوره متوقَّع."],
             ],
             self::REOPENED => [
                 ['Board minutes reopened', 'أُعيد فتح محضر اجتماع البورد'],
