@@ -76,7 +76,7 @@
                             {{-- What this step is waiting on, or how it was done. --}}
                             @switch($key)
                                 @case('account')
-                                    @if ($step['note'])
+                                    @if ($step['note'] && $canCreateLoginAccount)
                                         <p class="mt-1 text-small text-ink-2">@lang('employees.journey.account-missing')</p>
                                     @endif
                                     @break
@@ -153,7 +153,11 @@
 
                         {{-- The one action for this step, if HR has one now. --}}
                         <div class="flex flex-wrap items-start gap-2 sm:justify-end">
-                            @if ($key === 'contract')
+                            @if ($key === 'account' && $step['note'] && $canCreateLoginAccount)
+                                <x-button size="sm" wire:click="createLoginAccount" data-testid="create-login-account">
+                                    @lang('employees.journey.create-account')
+                                </x-button>
+                            @elseif ($key === 'contract')
                                 @if ($isDone && $step['data']['contract_id'] && $canViewContracts)
                                     <x-button variant="link" size="sm" :href="route('contracts.show', $step['data']['contract_id'])">@lang('employees.journey.open-contract')</x-button>
                                 @elseif ($step['state'] === OnboardingJourneys::STATE_TODO && $canCreateContracts)

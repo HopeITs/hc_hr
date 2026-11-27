@@ -1,4 +1,6 @@
 @php
+    use App\Enums\Currency;
+
     /*
      * The composer itself — identical for creating a contract and for editing
      * one. Everything that differs between the two screens arrives as a
@@ -45,6 +47,9 @@
 
     $composerConfig = [
         'locale' => app()->getLocale(),
+        'amendmentCurrencyLabels' => $isAmend
+            ? collect(Currency::getValues())->mapWithKeys(fn (int $currency) => [$currency => Currency::getLocalizedName($currency)[app()->getLocale()]])
+            : null,
         // Draft-upgrade detection (see checkForDraftContract() in
         // contract-composer.js) calls a method that exists only on the
         // create screen's component — an edit is always about a contract
@@ -111,6 +116,10 @@
             'flexible' => __('general.composer.schedule-flexible'),
             'scheduleHintDayRange' => __('general.composer.schedule-hint-day-range'),
             'closedDayRangeWarning' => __('general.composer.closed-day-range-warning'),
+            'schedulePreviewEmpty' => [
+                'en' => __('general.composer.schedule-preview-empty', [], 'en'),
+                'ar' => __('general.composer.schedule-preview-empty', [], 'ar'),
+            ],
             'scheduleHintWorkdays' => __('general.composer.schedule-hint-workdays'),
             'showWeekendClause' => __('general.composer.show-weekend-clause', ['days' => ':days']),
             'scheduleHintFirstShift' => __('general.composer.schedule-hint-first-shift'),

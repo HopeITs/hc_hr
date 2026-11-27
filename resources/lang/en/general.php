@@ -846,6 +846,7 @@ return [
         'schedule-flexible' => 'Flexible',
         'schedule-flexible-hint' => 'Tick whichever of the following apply. They can be combined.',
         'schedule-preview-title' => 'Printed wording preview',
+        'schedule-preview-empty' => 'No schedule details selected yet.',
         'schedule-hint-day-range' => 'Select a day range above to continue.',
         'closed-day-range-warning-title' => 'Work schedule overlaps center closure',
         'closed-day-range-warning' => 'The center is closed on :days. You can still continue.',

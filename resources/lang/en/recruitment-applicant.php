@@ -1070,7 +1070,7 @@ return [
         'open' => 'Hire: create employee and contract',
         'converted' => 'Hired. The employee and the contract were created.',
         'converted_next' => ':name is now an employee, with contract #:contract.',
-        'no_account' => 'They have no login account yet: open the employee page and tick ":label".',
+        'no_account' => 'They have no login account yet. Create it in the account step below.',
         'has_account' => 'They already have a login account.',
         'onboarding' => [
             'title' => 'Next steps for the new colleague',

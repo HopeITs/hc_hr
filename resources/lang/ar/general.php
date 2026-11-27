@@ -846,6 +846,7 @@ return [
         'schedule-flexible' => 'مرن',
         'schedule-flexible-hint' => 'حدّد ما ينطبق مما يلي. يمكن الجمع بين أكثر من خيار.',
         'schedule-preview-title' => 'معاينة نص العقد المطبوع',
+        'schedule-preview-empty' => 'لم يتم تحديد تفاصيل الدوام بعد.',
         'schedule-hint-day-range' => 'اختر نطاق الأيام أعلاه للمتابعة.',
         'closed-day-range-warning-title' => 'الدوام يتداخل مع أيام إغلاق المركز',
         'closed-day-range-warning' => 'المركز مغلق في الأيام التالية: :days. يمكنك المتابعة.',
