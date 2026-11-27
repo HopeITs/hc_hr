@@ -6,6 +6,7 @@ use App\Models\Checklist;
 use App\Models\ChecklistItem;
 use App\Models\DefaultDeliverable;
 use App\Models\Employee;
+use App\Services\Access\SeatSuccession;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,6 +30,8 @@ use Illuminate\Support\Collection;
 class OnboardingDeliveries
 {
     public const IT_DEPARTMENT_CODE = 'IT';
+
+    public function __construct(private readonly SeatSuccession $succession) {}
 
     /**
      * @return array{configured: bool, complete: bool, items: Collection<int, array{id: int, name: string, delivered: bool, deliverer: ?Employee}>, missing: Collection<int, array{id: int, name: string, delivered: bool, deliverer: ?Employee}>}
@@ -101,7 +104,8 @@ class OnboardingDeliveries
                 ->with('employee.account')
                 ->get()
                 ->pluck('employee')
-                ->filter(fn (?Employee $employee) => $employee !== null && $employee->is_active && $employee->id !== $volunteer->id);
+                ->map(fn (?Employee $employee) => $this->succession->current($employee))
+                ->filter(fn (?Employee $employee) => $employee !== null && $employee->id !== $volunteer->id);
 
         return $this->itStaff($volunteer)->concat($named)->unique('id')->sortBy('id')->values();
     }
@@ -203,7 +207,7 @@ class OnboardingDeliveries
         $only = $staff->count() === 1 ? $staff->first() : null;
 
         return $items->map(function (ChecklistItem $item) use ($defaults, $chosen, $only): array {
-            $named = $defaults->get($item->id)?->pluck('employee')->first(fn (?Employee $e) => $e !== null && $e->is_active);
+            $named = $defaults->get($item->id)?->pluck('employee')->map(fn (?Employee $e) => $this->succession->current($e))->first(fn (?Employee $e) => $e !== null);
 
             return ['id' => (int) $item->id, 'name' => (string) $item->name, 'deliverer' => $chosen ?? $named ?? $only];
         })->values();
@@ -213,7 +217,7 @@ class OnboardingDeliveries
     private function electronicsCandidatesFor(Employee $volunteer, Collection $staff, Collection $defaults): Collection
     {
         return $staff
-            ->concat($defaults->flatten(1)->pluck('employee')->filter(fn (?Employee $e) => $e !== null && $e->is_active && $e->id !== $volunteer->id))
+            ->concat($defaults->flatten(1)->pluck('employee')->map(fn (?Employee $e) => $this->succession->current($e))->filter(fn (?Employee $e) => $e !== null && $e->id !== $volunteer->id))
             ->unique('id')
             ->values();
     }
@@ -235,7 +239,8 @@ class OnboardingDeliveries
             ->map(fn (Collection $perItem): array => [
                 'id' => (int) $perItem->first()->item_id,
                 'name' => (string) $perItem->first()->item->name,
-                'deliverer' => $perItem->first()->employee,
+                // Someone who left is replaced by whoever holds their position now.
+                'deliverer' => $this->succession->current($perItem->first()->employee),
             ])
             ->values();
     }
