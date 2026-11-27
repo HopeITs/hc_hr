@@ -387,6 +387,48 @@ class BoardMeetingsTest extends TestCase
         $this->assertNotNull($meeting->fresh()->published_at);
     }
 
+    public function test_publishing_warns_with_the_count_and_names_of_attendees_whose_attendance_is_not_marked(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $expected = $meeting->attendees()->with('employee')->get();
+        $this->assertGreaterThan(1, $expected->count());
+        $page = fn () => Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting]);
+
+        // Nobody marked yet: the step names every one of them, and the confirmation says how many.
+        $names = $expected->sortBy(fn ($a) => mb_strtolower((string) $a->employee->name))->map(fn ($a) => (string) $a->employee->name)->values();
+        $test = $page()->assertSee('data-testid="board-unmarked-warning"', false)
+            ->assertSee(trans_choice('board.minutes.unmarked-confirm', $expected->count(), [
+                'names' => $names->implode(', '),
+            ]));
+        foreach ($names as $name) {
+            $test->assertSee($name);
+        }
+
+        // Marking all but one leaves only that one named.
+        $left = $expected->sortBy(fn ($a) => mb_strtolower((string) $a->employee->name))->last();
+        $service = app(BoardMeetingService::class);
+        $expected->except($left->id)->each(fn ($a) => $service->setAttendance($a, BoardMeetingAttendee::PRESENT));
+
+        $page()->assertSee(trans_choice('board.minutes.unmarked-warning', 1, ['names' => $left->employee->name]))
+            ->assertSee(trans_choice('board.minutes.unmarked-confirm', 1, ['names' => $left->employee->name]));
+
+        // It is a warning, not a lock: the minutes still publish.
+        $page()->call('publish')->assertHasNoErrors();
+        $this->assertNotNull($meeting->fresh()->published_at);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $left->fresh()->status);
+    }
+
+    public function test_publishing_with_everyone_marked_shows_no_attendance_warning(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $service = app(BoardMeetingService::class);
+        $meeting->attendees()->get()->each(fn ($a) => $service->setAttendance($a, BoardMeetingAttendee::ABSENT));
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-unmarked-warning"', false)
+            ->assertSee(__('board.minutes.publish-confirm'));
+    }
+
     public function test_the_chair_starts_on_the_working_page_and_publishing_turns_it_into_the_sheet(): void
     {
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
