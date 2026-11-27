@@ -96,9 +96,10 @@ class OrgRoleSync
                     });
             }
 
-            if ($changes['removed'] !== [] || $changes['suspended'] !== []) {
-                $this->keepOneRoleActive($user);
-            }
+            // Every time, not only after a removal: a role given here (or by
+            // hand, or by an import) is inactive by default, and a user left
+            // with none active has no permission until they sign in (T9).
+            $this->keepOneRoleActive($user);
         });
 
         $user->unsetRelation('roles');
@@ -180,7 +181,7 @@ class OrgRoleSync
         return false;
     }
 
-    /** After a role was taken away, make sure one of the remaining ones is the active one. */
+    /** Make sure one of the user's roles is the active one: the narrowest working role (User::defaultLoginRoleId). */
     private function keepOneRoleActive(User $user): void
     {
         $user->unsetRelation('roles');

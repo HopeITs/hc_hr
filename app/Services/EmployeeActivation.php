@@ -101,8 +101,10 @@ class EmployeeActivation
             'employee_id' => $employee->id,
         ]);
 
-        if (Role::query()->where('name', 'employee')->exists()) {
-            $user->assignRole('employee');
+        if ($role = Role::query()->where('name', 'employee')->first()) {
+            $user->assignRole($role);
+            // The pivot defaults to inactive; a new account's only role is its active one (T9).
+            $user->roles()->updateExistingPivot($role->id, ['is_active' => true]);
         }
 
         return [self::RESULT_ACCOUNT_CREATED, $email];

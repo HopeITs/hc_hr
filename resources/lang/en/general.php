@@ -131,6 +131,7 @@ return [
     'on-leave' => 'On Leave',
     'toggle-status' => 'Toggle Status',
     'confirm-status-change' => 'Are you sure you want to change the status?',
+    'deactivate-running-contract' => 'This person still has a running contract. End the contract first (with its reason and date), then deactivate.',
     'confirm-delete-item' => 'Are you sure you want to permanently delete the item?',
     'delete-item' => 'Delete Item',
     'status-updated' => 'Status updated successfully.',
