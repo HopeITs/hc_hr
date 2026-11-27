@@ -763,6 +763,30 @@ class BoardMeetingsTest extends TestCase
             ->assertDontSee('data-testid="board-earlier-follow-ups"', false);
     }
 
+    public function test_a_row_carried_into_a_meeting_that_is_then_cancelled_is_offered_to_the_next_one(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $earlier = $service->schedule(['starts_at' => now()->subWeek()], notify: false);
+        $row = $earlier->followUps()->create(['topic' => 'حساب Google', 'party' => 'قسم التكنولوجيا', 'sort' => 1]);
+        $own = $earlier->followUps()->create(['topic' => 'تقرير مالي ربعي', 'party' => 'المالية', 'sort' => 2]);
+        $earlier->update(['published_at' => now()->subDays(6)]);
+
+        $cancelled = $service->schedule(['starts_at' => now()->addWeek()], notify: false);
+        $service->carryFollowUp($row->fresh(), $cancelled);
+        $written = $cancelled->followUps()->create(['topic' => 'بند جديد', 'party' => 'الإدارة', 'sort' => 9]);
+        $service->cancel($cancelled, 'Holiday');
+
+        // The copy is gone and the source is open again; a row written in the cancelled meeting stays.
+        $this->assertSame('open', $row->fresh()->status);
+        $this->assertSame([$written->id], $cancelled->followUps()->pluck('id')->all());
+
+        $next = $service->schedule(['starts_at' => now()->addWeeks(2)], notify: false);
+        $this->assertEqualsCanonicalizing([$row->id, $own->id], $service->openFromEarlier($next)->pluck('id')->all());
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $next])
+            ->assertSee('حساب Google')->assertSee('تقرير مالي ربعي');
+    }
+
     public function test_a_started_meeting_keeps_its_date_cannot_be_cancelled_and_attendance_waits_for_its_time(): void
     {
         $service = app(BoardMeetingService::class);
