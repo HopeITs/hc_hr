@@ -115,6 +115,7 @@
             'dayRange' => __('general.composer.day-range'),
             'flexible' => __('general.composer.schedule-flexible'),
             'scheduleHintDayRange' => __('general.composer.schedule-hint-day-range'),
+            'closedDayRangeWarning' => __('general.composer.closed-day-range-warning'),
             'schedulePreviewEmpty' => [
                 'en' => __('general.composer.schedule-preview-empty', [], 'en'),
                 'ar' => __('general.composer.schedule-preview-empty', [], 'ar'),

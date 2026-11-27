@@ -25,10 +25,12 @@ class ContractComposerScheduleTest extends TestCase
     public function test_fixed_mode_computes_weekly_hours_from_the_day_and_hour_range(): void
     {
         $fixtures = $this->makeFixtures();
+        $fixtures['center']->update(['weekends' => '0,6']);
         $this->ignoreLeaveBalances();
 
         Livewire::actingAs($fixtures['hr'])
             ->test(ContractCreate::class)
+            ->assertSeeHtml('x-text="closedDayRangeWarning"')
             ->call('submit', $this->basePayload($fixtures, [
                 'scheduleMode' => ScheduleMode::Fixed,
                 'workHoursFrom' => '09:00',

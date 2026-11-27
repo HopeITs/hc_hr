@@ -1188,6 +1188,22 @@ document.addEventListener('alpine:init', () => {
             return (days ?? []).map(Number);
         },
 
+        get closedDayRangeWarning() {
+            if (this.scheduleMode !== '1' || this.dayPickMode !== 'range' || !this.fixedDaysPerWeek) {
+                return '';
+            }
+
+            const from = Number(this.workDayFrom);
+            const to = Number(this.workDayTo);
+            const closedDays = this.placeWeekend
+                .filter((day) => day >= from && day <= to)
+                .map((day) => this.dayNames[day]);
+
+            return closedDays.length
+                ? this.labels.closedDayRangeWarning.replace(':days', closedDays.join(this.locale === 'ar' ? '، ' : ', '))
+                : '';
+        },
+
         /** The picked working days, without any the place keeps closed. */
         get pickedWorkdays() {
             return this.workWeekdays
