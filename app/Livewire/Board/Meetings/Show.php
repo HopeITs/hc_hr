@@ -440,15 +440,20 @@ class Show extends Component
         ]);
     }
 
-    /** @return array<int, string> active employees' names, for the follow-up's "person or body" list */
+    /**
+     * The current board members' names, for the follow-up's "person or body" list. Only a member is linked (and told):
+     * the link opens the meeting, which nobody off the board may read. Anyone else is kept as written.
+     *
+     * @return array<int, string>
+     */
     private function employeeNames(): array
     {
-        return Employee::query()->where('is_active', true)->get()
+        return app(BoardAccess::class)->currentMembers()->get()
             ->mapWithKeys(fn (Employee $e) => [$e->id => (string) $e->name])
             ->filter()->sort()->all();
     }
 
-    /** The one active employee with exactly this name; two people sharing it link nobody (kept as written). */
+    /** The one current member with exactly this name; two people sharing it link nobody (kept as written). */
     private function employeeNamed(string $name): ?int
     {
         $ids = array_keys($this->employeeNames(), $name, true);

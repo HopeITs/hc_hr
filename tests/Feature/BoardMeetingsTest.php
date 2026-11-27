@@ -577,11 +577,11 @@ class BoardMeetingsTest extends TestCase
             ->set('sectionTitle', 'تصحيح')->call('saveSection')->assertHasNoErrors();
     }
 
-    public function test_follow_ups_link_a_picked_person_who_is_told_on_publishing_and_may_mark_it_done(): void
+    public function test_follow_ups_link_a_picked_member_who_is_told_on_publishing_and_may_mark_it_done(): void
     {
         Notification::fake();
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
-        $owner = $this->outsider; // anyone on the staff, not only the board
+        $owner = $this->member;
         Employee::query()->whereKey($owner->employee_id)->update(['first_name_en' => 'Fares', 'first_name_ar' => 'فارس', 'last_name_en' => 'Badawi', 'last_name_ar' => 'بدوي']);
         $ownerName = $owner->fresh()->profile->name;
 
@@ -597,15 +597,34 @@ class BoardMeetingsTest extends TestCase
         Notification::assertSentTo($owner, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::FOLLOW_UP);
         $this->assertNotNull($linked->fresh()->notified_at);
 
-        // The owner (not on the board) marks his own row done; a member who is not the owner may not.
-        $this->app['auth']->forgetGuards();
-        app(BoardMeetingService::class)->setFollowUpDone($linked, $owner, true);
+        // The owner marks their own row done; a member who is not the owner may not.
+        Livewire::actingAs($owner)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $linked->id, true)->assertHasNoErrors();
         $this->assertSame('done', $linked->fresh()->status);
 
         $other = $meeting->followUps()->where('topic', 'مدة الأرشفة')->firstOrFail();
-        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertForbidden();
+        Livewire::actingAs($owner)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertForbidden();
         Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertHasNoErrors();
         $this->assertSame('done', $other->fresh()->status);
+    }
+
+    public function test_a_follow_up_names_only_board_members_and_anyone_else_is_kept_as_written_and_not_told(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        Employee::query()->whereKey($this->outsider->employee_id)->update(['first_name_en' => 'Majd', 'first_name_ar' => 'مجد', 'last_name_en' => 'Zreik', 'last_name_ar' => 'زريق']);
+        $outsiderName = $this->outsider->fresh()->profile->name;
+        $memberName = $this->member->fresh()->profile->name;
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->set('mode', 'edit')
+            ->assertViewHas('employeeNames', fn (array $names) => in_array($memberName, $names, true) && ! in_array($outsiderName, $names, true))
+            ->set('followUpTopic', 'تقرير الميزانية')->set('followUpParty', $outsiderName)->call('saveFollowUp')
+            ->call('publish');
+
+        $row = $meeting->followUps()->firstOrFail();
+        $this->assertNull($row->employee_id);
+        $this->assertSame($outsiderName, $row->party);
+        Notification::assertNotSentTo($this->outsider, BoardMeetingNotice::class);
     }
 
     public function test_open_rows_from_earlier_minutes_are_offered_and_carried_into_the_next_meeting(): void
