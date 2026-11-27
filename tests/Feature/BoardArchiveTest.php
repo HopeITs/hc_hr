@@ -70,6 +70,20 @@ class BoardArchiveTest extends TestCase
         $this->assertSame('المكتب الرئيسي', $found['location']);
     }
 
+    public function test_the_reader_stops_each_field_at_the_next_label_on_a_one_paragraph_header(): void
+    {
+        $found = app(BoardArchiveReader::class)->parse(
+            'رقم الاجتماع: 047 التاريخ: 23/11/2026 المسؤول عن الاجتماع: فريدي يوسف التوقيت: من الساعة 11.00 حتى الساعة 12.30 المكان: المكتب الرئيسي الهدف من الاجتماع: مراجعة الخطة',
+        );
+
+        $this->assertSame(47, $found['number']);
+        $this->assertSame('2026-11-23', $found['date']);
+        $this->assertSame('11:00', $found['from']);
+        $this->assertSame('12:30', $found['to']);
+        $this->assertSame('فريدي يوسف', $found['led_by']);
+        $this->assertSame('المكتب الرئيسي', $found['location']);
+    }
+
     public function test_the_reader_falls_back_on_the_file_name_and_takes_day_first_dates(): void
     {
         $reader = app(BoardArchiveReader::class);

@@ -14,6 +14,9 @@ use Throwable;
  */
 class BoardArchiveReader
 {
+    /** The header's labels: a field read on a one-paragraph header stops at the next of them. */
+    private const LABELS = '(?:المسؤول\s*عن\s*الاجتماع|التوقيت|الساعة|المكان|الهدف\s*من\s*الاجتماع|رقم\s*(?:ال)?اجتماع|التاري\s*خ)';
+
     public function __construct(private readonly CvTextExtractor $extractor) {}
 
     /**
@@ -44,7 +47,7 @@ class BoardArchiveReader
             'date' => $this->date($text) ?? $this->dateFromName($fileName),
             ...$this->times($lines),
             'led_by' => $this->after($lines, '/المسؤول\s*عن\s*الاجتماع\s*:?\s*(.+)$/u'),
-            'location' => $this->after($lines, '/المكان\s*:?\s*([^:]+?)\s*$/u'),
+            'location' => $this->after($lines, '/المكان\s*:?\s*(.+)$/u'),
         ];
     }
 
@@ -150,7 +153,7 @@ class BoardArchiveReader
             // A two-column PDF line: take the part that holds the label.
             foreach (preg_split('/\s{3,}/u', trim($line)) ?: [] as $part) {
                 if (preg_match($pattern, trim($part), $m)) {
-                    $value = trim($m[1], " :-\t");
+                    $value = trim(preg_split('/'.self::LABELS.'/u', $m[1], 2)[0], " :-\t");
 
                     return $value !== '' ? mb_substr($value, 0, 255) : null;
                 }
