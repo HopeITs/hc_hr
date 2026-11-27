@@ -24,9 +24,11 @@ use Illuminate\Support\Facades\Notification;
  *                 2026-07-31; older deactivations and the June import did not.
  *                 The only case repaired here (AccessRevoker), because it is
  *                 access, not an HR decision.
- *  - ended        a contract still flagged active after its end date. The
- *                 nightly deactivate:contract (21:30) closes them; one left
- *                 here means that run did not happen.
+ *  - ended        a contract still flagged active after its end date or its
+ *                 termination date (a future-dated termination keeps the
+ *                 contract running until then, R2-3). The nightly
+ *                 deactivate:contract (21:30) closes them; one left here
+ *                 means that run did not happen.
  *  - inactive     a running contract of an inactive employee: it holds a seat
  *                 for someone who left. Deactivation is now refused while a
  *                 contract runs (EmployeeTable); older ones are reported only
@@ -100,7 +102,9 @@ class CheckEmployeeIntegrity extends Command
 
         $ended = Contract::query()
             ->where('is_active', true)
-            ->whereDate('end_date', '<', $today)
+            ->where(fn (Builder $q) => $q
+                ->whereDate('end_date', '<', $today)
+                ->orWhereDate('terminated_at', '<', $today))
             ->orderBy('id')
             ->pluck('id');
 
@@ -143,7 +147,7 @@ class CheckEmployeeIntegrity extends Command
     {
         $labels = [
             'roles' => 'Inactive employees whose account still has an active role (user ids)',
-            'ended' => 'Contracts flagged active after their end date',
+            'ended' => 'Contracts flagged active after their end or termination date',
             'inactive' => 'Running contracts of inactive employees',
             'never_contracted' => 'Active employees who never had a contract',
             'last_contract_ended' => 'Active employees whose last contract ended',
