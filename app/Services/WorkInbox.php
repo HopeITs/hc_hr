@@ -7,10 +7,12 @@ use App\Models\Checklist;
 use App\Models\LeaveRequest;
 use App\Models\ProbationReview;
 use App\Models\ProfileChangeRequest;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Inbox\JourneyInbox;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -128,6 +130,38 @@ final class WorkInbox
         ];
     }
 
+    /**
+     * What waits on the user's other roles (T11): HR Syria signs in as manager
+     * (login_role_order) and meets an empty inbox while its HR work waits.
+     * Each role is counted on an in-memory copy of the user with that role
+     * flagged active, through the same snapshot, so the number is the one the
+     * inbox would show after a switch. Nothing is written; the session keeps
+     * its role.
+     *
+     * @return list<array{id: int, name: string, count: int}>
+     */
+    public function waitingUnderOtherRoles(User $user): array
+    {
+        $active = $user->activeRole();
+        $roles = $user->roles;
+
+        if ($roles->count() < 2) {
+            return [];
+        }
+
+        return $roles
+            ->reject(fn (Role $role) => $role->is($active))
+            ->map(fn (Role $role) => [
+                'id' => (int) $role->getKey(),
+                'name' => (string) $role->name,
+                'count' => $this->snapshot($this->asRole($user, $role))['counts']['all'],
+            ])
+            ->filter(fn (array $role) => $role['count'] > 0)
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
     /** Whether the user's active role has any inbox source at all (the menu item shows then). */
     public function hasSources(User $user): bool
     {
@@ -163,7 +197,7 @@ final class WorkInbox
         return $this->leaveQuery($user)
             ->reorder()
             ->orderByDesc('leave_requests.is_exceptional')
-            ->orderByRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at)')
+            ->orderByRaw(self::decidedAtSql())
             ->orderBy('leave_requests.id')
             ->where('status', '!=', LeaveRequestStatus::Pending)
             ->where('hr_approved', false)
@@ -182,7 +216,34 @@ final class WorkInbox
     public function reviewsOlderThan(User $user, int $days): ?Builder
     {
         return $this->reviewQuery($user)
-            ?->whereRaw('COALESCE(leave_requests.approved_at, leave_requests.updated_at) < ?', [now()->subDays($days)]);
+            ?->whereRaw(self::decidedAtSql().' < ?', [now()->subDays($days)]);
+    }
+
+    /**
+     * When a review's decision was made, as SQL: wrapped by the grammar so
+     * the table prefix applies (hr_db's tables are `hchr_`; a raw
+     * `leave_requests.` name failed there while SQLite tests passed).
+     */
+    public static function decidedAtSql(): string
+    {
+        $grammar = DB::connection()->getQueryGrammar();
+
+        return 'COALESCE('.$grammar->wrap('leave_requests.approved_at').', '.$grammar->wrap('leave_requests.updated_at').')';
+    }
+
+    /** A copy of $user operating under $role, in memory only. */
+    private function asRole(User $user, Role $role): User
+    {
+        $copy = clone $user;
+        $copy->setRelation('roles', $user->roles->map(function (Role $held) use ($role) {
+            $held = clone $held;
+            $pivot = clone $held->pivot;
+            $pivot->is_active = (int) $held->is($role);
+
+            return $held->setRelation('pivot', $pivot);
+        }));
+
+        return $copy;
     }
 
     /** @return array{0: Collection<int, array<string, mixed>>, 1: int} */
