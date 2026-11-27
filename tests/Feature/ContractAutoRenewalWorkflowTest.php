@@ -259,6 +259,76 @@ class ContractAutoRenewalWorkflowTest extends TestCase
         Notification::assertSentTo($fixtures['hr'], ContractsAutoRenewedSummary::class);
     }
 
+    public function test_a_contract_is_renewed_on_its_last_night_dated_the_next_day(): void
+    {
+        Notification::fake();
+        $this->travelTo('2026-12-31 21:35:00');
+
+        $fixtures = $this->makeFixtures();
+        $employee = $this->makeEmployee($fixtures['city'], 'last-night');
+        $position = $this->makePosition($fixtures, 'Last Night Position');
+        $source = $this->makeContract($fixtures, $employee, $position, [
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'is_active' => true,
+            'auto_renew' => true,
+        ]);
+        $this->assertSame(1, (int) $position->fresh()->exist_emp);
+
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $renewal = Contract::query()->where('employee_id', $employee->id)->whereKeyNot($source->id)->sole();
+        $this->assertSame('2027-01-01', $renewal->start_date->toDateString());
+        $this->assertSame('2027-12-31', $renewal->end_date->toDateString(), 'The whole new year, not the year it was made in.');
+        $this->assertTrue($renewal->is_active);
+        $this->assertTrue($source->fresh()->is_active, 'The source runs through its last day.');
+        $this->assertSame(2, (int) $position->fresh()->exist_emp, 'Both hold a seat until the source is closed.');
+
+        // Next night: the sweep closes the source, the seat count comes back to one, nothing is made twice.
+        $this->travelTo('2027-01-01 21:30:00');
+        Artisan::call('deactivate:contract');
+        $this->travelTo('2027-01-01 21:35:00');
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $this->assertFalse($source->fresh()->is_active);
+        $this->assertTrue($renewal->fresh()->is_active);
+        $this->assertSame(1, (int) $position->fresh()->exist_emp);
+        $this->assertSame(2, Contract::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_a_contract_is_not_renewed_before_its_last_night(): void
+    {
+        Notification::fake();
+        $this->travelTo('2026-12-30 21:35:00');
+
+        $fixtures = $this->makeFixtures();
+        $running = $this->makeContract($fixtures, $this->makeEmployee($fixtures['city'], 'still-running'), $this->makePosition($fixtures, 'Running Position'), [
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'is_active' => true,
+            'auto_renew' => true,
+        ]);
+        $autumn = $this->makeContract($fixtures, $this->makeEmployee($fixtures['city'], 'autumn-ends'), $this->makePosition($fixtures, 'Autumn Position'), [
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-30',
+            'is_active' => true,
+            'auto_renew' => true,
+        ]);
+
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $this->assertSame(1, Contract::query()->where('employee_id', $running->employee_id)->count(), 'One more day to run.');
+        $this->assertSame(1, Contract::query()->where('employee_id', $autumn->employee_id)->count(), 'Ends in December: waits for 1 January.');
+
+        $this->travelTo('2026-12-31 21:30:00');
+        Artisan::call('deactivate:contract');
+        $this->travelTo('2026-12-31 21:35:00');
+        Artisan::call(ProcessContractAutoRenewals::class);
+
+        $this->assertSame(2, Contract::query()->where('employee_id', $running->employee_id)->count());
+        $this->assertSame('2027-01-01', Contract::query()->where('employee_id', $autumn->employee_id)->whereKeyNot($autumn->id)->sole()->start_date->toDateString());
+    }
+
     public function test_contracts_table_auto_renew_toggle_is_hr_only(): void
     {
         $fixtures = $this->makeFixtures();

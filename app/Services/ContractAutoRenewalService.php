@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Contract;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -55,7 +56,7 @@ class ContractAutoRenewalService
     {
         $asOf ??= today();
 
-        return $this->renewable($asOf)
+        return $this->endedBefore($asOf)
             ->with('employee.city')
             ->get()
             ->filter(fn (Contract $contract) => $contract->canAutoRenew()
@@ -134,9 +135,13 @@ class ContractAutoRenewalService
                 // A legacy row can still carry the flag from before
                 // ContractObserver::saving() forced it off for these.
                 || ! $source->canAutoRenew()
-                || $source->is_active
                 || ! $source->end_date
-                || $source->end_date->gte($asOf)
+                // Still running after tonight: nothing to renew yet.
+                || $source->end_date->toDateString() > $asOf->toDateString()
+                // Still flagged active after its end: only on its last night
+                // (tonight's deactivate:contract has not reached it yet, R2-2).
+                // A contract left active past its end is not picked up here.
+                || ($source->is_active && $source->end_date->toDateString() !== $asOf->toDateString())
                 // A deactivated employee has left: no new contract for them.
                 || ! $source->employee?->is_active
             ) {
@@ -145,8 +150,11 @@ class ContractAutoRenewalService
 
             $start = self::renewalStart($source);
 
-            // Ended in October to December: renewed on 1 January, not before.
-            if ($start->toDateString() > $asOf->toDateString()) {
+            // Made on the source's last night, dated the next day (R2-2): the
+            // renewal is in place when its first day begins, instead of the
+            // evening of that day. Ended in October to December: renewed for
+            // 1 January, so made on the night of 31 December, not before.
+            if ($start->toDateString() > $asOf->copy()->addDay()->toDateString()) {
                 return null;
             }
 
@@ -162,7 +170,9 @@ class ContractAutoRenewalService
 
             $renewal->renewalSourceId = $source->id;
             $renewal->start_date = $start->toDateString();
-            $renewal->end_date = $asOf->copy()->endOfYear()->toDateString();
+            // The year of its first day (made on 31 December, it runs the whole
+            // new year), or of tonight when a missed run catches up later.
+            $renewal->end_date = ($start->gt($asOf) ? $start : $asOf)->copy()->endOfYear()->toDateString();
             $renewal->terminated_at = null;
             $renewal->termination_reason_id = null;
             $renewal->reason_of_termination = null;
@@ -196,18 +206,39 @@ class ContractAutoRenewalService
     }
 
     /**
-     * Ended before $asOf, inactive, auto-renew on, never terminated, and the
-     * employee still active: a deactivated employee has left, so neither the
-     * renewal nor the new-year notice is for them.
+     * The renewal run's candidates: auto-renew on, never terminated, the
+     * employee still active, and either ended before $asOf (and switched off)
+     * or ending on $asOf itself, its last night, whatever its flag: the
+     * renewal is made then, dated the next day (R2-2). renewIfNeeded()
+     * re-checks every condition on the locked row.
      */
-    private function renewable(CarbonInterface $asOf): \Illuminate\Database\Eloquent\Builder
+    private function renewable(CarbonInterface $asOf): Builder
+    {
+        return $this->candidates()
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $ended) => $ended
+                    ->where('is_active', false)
+                    ->whereDate('end_date', '<', $asOf->toDateString()))
+                ->orWhereDate('end_date', $asOf->toDateString()));
+    }
+
+    /**
+     * Ended before $asOf and switched off: the contracts the new-year notice
+     * is about. A deactivated employee has left, so it is not for them.
+     */
+    private function endedBefore(CarbonInterface $asOf): Builder
+    {
+        return $this->candidates()
+            ->where('is_active', false)
+            ->whereDate('end_date', '<', $asOf->toDateString());
+    }
+
+    private function candidates(): Builder
     {
         return Contract::query()
             ->where('auto_renew', true)
-            ->where('is_active', false)
             ->whereNull('terminated_at')
             ->whereNull('termination_reason_id')
-            ->whereDate('end_date', '<', $asOf->toDateString())
             ->whereHas('employee', fn ($employee) => $employee->where('employees.is_active', true));
     }
 

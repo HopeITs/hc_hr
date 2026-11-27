@@ -64,7 +64,8 @@ class ContractLifecycleSimulationTest extends TestCase
 
         // An amendment due today lands before the contract can end tonight.
         $before('contracts:apply-amendments', 'deactivate:contract');
-        // Auto-renewal only picks up contracts deactivation has just closed.
+        // Auto-renewal runs after the sweep: it makes tomorrow's renewal of a contract ending
+        // tonight (R2-2) and catches up any closed contract a missed night left behind.
         $before('deactivate:contract', 'contracts:process-auto-renewals');
         // The journey settles on the successor the renewal just made.
         $before('contracts:process-auto-renewals', 'renewals:track-journeys');
@@ -161,7 +162,8 @@ class ContractLifecycleSimulationTest extends TestCase
             $this->assertSame(0, OffboardingJourney::query()->where('employee_id', $employee->id)->count(), "{$day}: no exit journey");
 
             $renewed = Contract::query()->where('employee_id', $employee->id)->whereKeyNot($contract->id)->exists();
-            $this->assertSame($day >= '2027-01-01', $renewed, "{$day}: renewed only on 1 January");
+            // Made on the night of 31 December, dated 1 January (R2-2).
+            $this->assertSame($day >= '2026-12-31', $renewed, "{$day}: renewed for 1 January, not before");
         });
 
         $successor = Contract::query()->where('employee_id', $employee->id)->whereKeyNot($contract->id)->sole();
@@ -181,6 +183,55 @@ class ContractLifecycleSimulationTest extends TestCase
         $this->assertSame($this->f['hr']->id, (int) $notices->sole()->notifiable_id);
         $this->assertSame('2026-11-16', $notices->sole()->created_at->toDateString());
         $this->assertSame('2027-01-01', $notices->sole()->data['renews_on']);
+    }
+
+    public function test_a_contract_ending_on_31_december_is_renewed_that_night_so_1_january_is_never_without_a_contract(): void
+    {
+        $contract = $this->contract('newyear', ['end_date' => '2026-12-31']);
+        $employee = $contract->employee;
+
+        $this->runNights('2026-12-29', '2027-01-03', function (string $day) use ($contract, $employee): void {
+            $this->assertSeatsMatchRunningContracts($day);
+            $this->assertTrue($employee->fresh()->is_active, "{$day}: the volunteer stays active");
+
+            // The day after this night starts with a contract that is active and covers it.
+            $tomorrow = \Illuminate\Support\Carbon::parse($day)->addDay()->toDateString();
+            $running = Contract::query()->where('employee_id', $employee->id)->where('is_active', true)
+                ->whereDate('start_date', '<=', $tomorrow)->whereDate('end_date', '>=', $tomorrow)->count();
+            $this->assertSame(1, $running, "{$day}: exactly one running contract for {$tomorrow}");
+
+            // The source keeps running through its last day and is closed the next night.
+            $this->assertSame($day <= '2026-12-31', (bool) $contract->fresh()->is_active, "{$day}: source active");
+        });
+
+        $successor = Contract::query()->where('employee_id', $employee->id)->whereKeyNot($contract->id)->sole();
+        $this->assertSame('2027-01-01', $successor->start_date->toDateString());
+        $this->assertSame('2027-12-31', $successor->end_date->toDateString());
+        $this->assertTrue($successor->is_active);
+        $this->assertTrue($successor->leaveBalances()->exists());
+        $this->assertSame('2026-12-31', $successor->created_at->toDateString(), 'Made on the last night of the source.');
+        $this->assertSame(1, RenewalJourney::query()->whereNotNull('completed_at')->count());
+        $this->assertSame(0, OffboardingJourney::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_a_mid_year_contract_is_renewed_on_its_last_night_dated_the_next_day(): void
+    {
+        $contract = $this->contract('midyear', ['end_date' => '2027-03-20']);
+
+        $this->runNight('2027-03-19');
+        $this->assertSame(1, Contract::query()->where('employee_id', $contract->employee_id)->count(), 'Not before its last night.');
+
+        $this->runNight('2027-03-20');
+        $successor = Contract::query()->where('employee_id', $contract->employee_id)->whereKeyNot($contract->id)->sole();
+        $this->assertSame('2027-03-21', $successor->start_date->toDateString());
+        $this->assertTrue($contract->fresh()->is_active, 'The source still runs through its last day.');
+        $this->assertSeatsMatchRunningContracts('2027-03-20');
+
+        $this->runNight('2027-03-21');
+        $this->assertFalse($contract->fresh()->is_active);
+        $this->assertTrue($successor->fresh()->is_active);
+        $this->assertSame(2, Contract::query()->where('employee_id', $contract->employee_id)->count(), 'Renewed once.');
+        $this->assertSeatsMatchRunningContracts('2027-03-21');
     }
 
     public function test_the_new_year_rule_leaves_other_months_and_the_31st_of_december_alone(): void
@@ -281,7 +332,7 @@ class ContractLifecycleSimulationTest extends TestCase
     {
         $this->nightFromHour = 0;
 
-        $this->contract('soak-auto', ['end_date' => '2026-11-20']);
+        $this->contract('soak-auto', ['end_date' => '2027-03-20']);
         $this->contract('soak-year', ['end_date' => '2026-12-31']);
         $this->contract('soak-off', ['end_date' => '2026-11-25', 'auto_renew' => false]);
         $this->contract('soak-trial', ['contract_type_id' => 3, 'start_date' => '2026-09-15', 'end_date' => '2026-12-15', 'auto_renew' => false]);
