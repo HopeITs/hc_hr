@@ -42,7 +42,7 @@
                         @else
                             <x-status tone="stop" icon="warning" :label="__('policies.status.failed')" />
                             <span class="text-ink-2">{{ __('policies.error.'.($pending->read_error ?? 'unreadable')) }}</span>
-                            <span class="ms-auto flex items-center gap-1">
+                            <span class="flex w-full flex-wrap items-center gap-1 sm:ms-auto sm:w-auto">
                                 @if ($pending->media_id)
                                     <x-button variant="quiet" size="sm" wire:click="startReplace({{ $pending->id }})" data-testid="policy-replace-{{ $pending->id }}">@lang('policies.replace')</x-button>
                                 @endif
