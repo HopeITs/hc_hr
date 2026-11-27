@@ -380,7 +380,35 @@ class Index extends Component
             // T3: the "mark all seen older than" bar, for whoever has reviews waiting.
             'reviewBacklog' => in_array($this->filter, ['all', 'review'], true) && $counts['review'] > 0,
             'showCity' => auth()->user()->activeCityIds() === null || count(auth()->user()->activeCityIds() ?? []) > 1,
+            // T11: the inbox is empty here, but another role of the user has work waiting.
+            'otherRoles' => ! $failed && $counts['all'] === 0 ? $this->waitingUnderOtherRoles() : [],
         ]);
+    }
+
+    /**
+     * T11: switch to a role the user holds, from the empty-inbox hint, and
+     * reopen the inbox under it. setActiveRole() refuses a role the user does
+     * not hold, so this grants nothing the account menu's switcher does not.
+     */
+    public function switchRole(int $roleId): void
+    {
+        $user = auth()->user();
+        $user->setActiveRole($roleId);
+        session(['active_role_id' => $roleId]);
+
+        $this->redirectRoute('inbox', navigate: true);
+    }
+
+    /** A nicety: a failure leaves the empty state standing, without the hint. */
+    private function waitingUnderOtherRoles(): array
+    {
+        try {
+            return app(WorkInbox::class)->waitingUnderOtherRoles(auth()->user());
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     /**

@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'shared-seat-report' => 'Seats with several holders',
+    'running-seat-holders' => 'Current holders',
+    'view-running-seat-holders' => 'View holders (:count)',
+    'no-running-seat-holders' => 'No current holders.',
     'first_name' => 'First Name',
     'last_name' => 'Last Name',
     'new_folder' => 'New Folder',

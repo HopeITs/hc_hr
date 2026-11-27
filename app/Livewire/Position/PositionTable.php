@@ -15,7 +15,9 @@ use App\Models\Program;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Locked;
 use Maatwebsite\Excel\Facades\Excel;
 use RamonRietdijk\LivewireTables\Columns\BooleanColumn;
 use RamonRietdijk\LivewireTables\Columns\Column;
@@ -32,6 +34,9 @@ class PositionTable extends LivewireTable
 
     public ?int $cityId = null;
 
+    #[Locked]
+    public bool $sharedSeats = false;
+
     public $itemID;
 
     protected string $model = Position::class;
@@ -40,10 +45,11 @@ class PositionTable extends LivewireTable
         'exportExcel' => 'exportExcel',
     ];
 
-    public function mount(?int $centerId = null, ?int $cityId = null): void
+    public function mount(?int $centerId = null, ?int $cityId = null, bool $sharedSeats = false): void
     {
         $this->centerId = $centerId ?? request()->get('center');
         $this->cityId = $cityId ?? request()->get('city');
+        $this->sharedSeats = $sharedSeats && auth()->user()?->activeRoleIs('HR');
     }
 
     public function confirmDelete($id)
@@ -118,10 +124,17 @@ class PositionTable extends LivewireTable
     {
         $query = $this->model()::query()->with(['city', 'program', 'center', 'jobLevel', 'department', 'directManager']);
 
-        $query->when(
-            auth()->user()?->activeCityIds(),
-            fn (Builder $query, array $cityIds) => $query->inCity($cityIds),
-        );
+        $cityIds = auth()->user()?->activeCityIds();
+        if ($cityIds !== null) {
+            $query->inCity($cityIds);
+        }
+
+        if ($this->sharedSeats) {
+            abort_unless(auth()->user()?->activeRoleIs('HR'), 403);
+            $holderCount = fn (Builder $contracts) => $contracts->select(DB::raw('count(distinct employee_id)'));
+            $query->whereHas('runningSeatContracts', $holderCount, '>', 1)
+                ->withCount(['runningSeatContracts as running_holder_count' => $holderCount]);
+        }
 
         if ($this->centerId) {
             $center = Center::query()->find($this->centerId);
@@ -167,6 +180,10 @@ class PositionTable extends LivewireTable
 
             BooleanColumn::make(__('general.is-active'), 'is_active'),
             BooleanColumn::make(__('critical-positions.critical'), 'is_critical'),
+            Column::make(__('general.running-seat-holders'), fn (Model $position): string => Blade::render(
+                '<x-button variant="quiet" size="sm" :loading="false" aria-haspopup="dialog" x-on:click="$dispatch(\'open-position-holders\', { positionId: '.$position->id.' })">{{ $label }}</x-button>',
+                ['label' => __('general.view-running-seat-holders', ['count' => $position->running_holder_count])],
+            ))->asHtml()->clickable(false)->visible($this->sharedSeats),
 
             Column::make(__('general.actions'), function (Model $m) use ($canUpdate, $canDelete, $canHire): string {
                 $isActive = $m->is_active ? 1 : 0;

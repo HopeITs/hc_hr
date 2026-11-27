@@ -148,7 +148,37 @@ class BoardMeetingsTest extends TestCase
         Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('decideAbsence', $row->id, true);
 
         $this->assertSame(BoardMeetingAttendee::ABSENT, $row->fresh()->status);
-        Notification::assertSentTo($this->member, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_DECIDED);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, function ($n) {
+            $text = $n->toArray($this->member);
+
+            // Each language gets its own wording, never both side by side.
+            return $n->kind === BoardMeetingNotice::ABSENCE_DECIDED
+                && $text['title'] === ['en' => 'Your absence request was approved', 'ar' => 'تمت الموافقة على طلب تغيّبك']
+                && ! str_contains($text['body']['en'], 'الموافقة')
+                && ! str_contains($text['body']['ar'], 'approved');
+        });
+    }
+
+    public function test_a_turned_down_absence_request_is_worded_as_not_approved_in_each_language(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'Travelling')->call('requestAbsence');
+        $row = BoardMeetingAttendee::query()->where('employee_id', $this->member->employee_id)->firstOrFail();
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('decideAbsence', $row->id, false);
+
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $row->fresh()->status);
+        Notification::assertSentTo($this->member, BoardMeetingNotice::class, function ($n) {
+            $text = $n->toArray($this->member);
+
+            return $n->kind === BoardMeetingNotice::ABSENCE_DECIDED
+                && $text['title'] === ['en' => 'Your absence request was not approved', 'ar' => 'لم تتم الموافقة على طلب تغيّبك']
+                && str_contains($text['body']['en'], 'still expected')
+                && str_contains($text['body']['ar'], 'متوقَّع');
+        });
     }
 
     public function test_only_a_current_member_can_ask_to_be_absent_and_only_before_the_meeting(): void
@@ -359,6 +389,74 @@ class BoardMeetingsTest extends TestCase
         // The service refuses too, not only the page.
         $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
         $service->setAttendance($row->fresh(), 'present');
+    }
+
+    public function test_the_minutes_of_a_meeting_not_yet_held_cannot_be_published(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addWeeks(2)], notify: false);
+
+        // The page offers no publish button before the meeting's time, and says why.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-publish-not-yet"', false)
+            ->assertDontSee(__('board.minutes.publish-confirm'))
+            // The server refuses it too: the meeting stays open, movable and cancellable, and nobody is told.
+            ->call('publish')
+            ->assertHasErrors('publish');
+
+        $this->assertNull($meeting->fresh()->published_at);
+        Notification::assertNothingSent();
+
+        // Once its time has come, the same minutes publish.
+        $this->travelTo($meeting->starts_at->addMinute());
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-publish-not-yet"', false)
+            ->call('publish')
+            ->assertHasNoErrors();
+
+        $this->assertNotNull($meeting->fresh()->published_at);
+    }
+
+    public function test_publishing_warns_with_the_count_and_names_of_attendees_whose_attendance_is_not_marked(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $expected = $meeting->attendees()->with('employee')->get();
+        $this->assertGreaterThan(1, $expected->count());
+        $page = fn () => Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting]);
+
+        // Nobody marked yet: the step names every one of them, and the confirmation says how many.
+        $names = $expected->sortBy(fn ($a) => mb_strtolower((string) $a->employee->name))->map(fn ($a) => (string) $a->employee->name)->values();
+        $test = $page()->assertSee('data-testid="board-unmarked-warning"', false)
+            ->assertSee(trans_choice('board.minutes.unmarked-confirm', $expected->count(), [
+                'names' => $names->implode(', '),
+            ]));
+        foreach ($names as $name) {
+            $test->assertSee($name);
+        }
+
+        // Marking all but one leaves only that one named.
+        $left = $expected->sortBy(fn ($a) => mb_strtolower((string) $a->employee->name))->last();
+        $service = app(BoardMeetingService::class);
+        $expected->except($left->id)->each(fn ($a) => $service->setAttendance($a, BoardMeetingAttendee::PRESENT));
+
+        $page()->assertSee(trans_choice('board.minutes.unmarked-warning', 1, ['names' => $left->employee->name]))
+            ->assertSee(trans_choice('board.minutes.unmarked-confirm', 1, ['names' => $left->employee->name]));
+
+        // It is a warning, not a lock: the minutes still publish.
+        $page()->call('publish')->assertHasNoErrors();
+        $this->assertNotNull($meeting->fresh()->published_at);
+        $this->assertSame(BoardMeetingAttendee::EXPECTED, $left->fresh()->status);
+    }
+
+    public function test_publishing_with_everyone_marked_shows_no_attendance_warning(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subHour()], notify: false);
+        $service = app(BoardMeetingService::class);
+        $meeting->attendees()->get()->each(fn ($a) => $service->setAttendance($a, BoardMeetingAttendee::ABSENT));
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-unmarked-warning"', false)
+            ->assertSee(__('board.minutes.publish-confirm'));
     }
 
     public function test_the_chair_starts_on_the_working_page_and_publishing_turns_it_into_the_sheet(): void
@@ -577,11 +675,11 @@ class BoardMeetingsTest extends TestCase
             ->set('sectionTitle', 'تصحيح')->call('saveSection')->assertHasNoErrors();
     }
 
-    public function test_follow_ups_link_a_picked_person_who_is_told_on_publishing_and_may_mark_it_done(): void
+    public function test_follow_ups_link_a_picked_board_member_who_is_told_on_publishing_and_may_mark_it_done(): void
     {
         Notification::fake();
         $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
-        $owner = $this->outsider; // anyone on the staff, not only the board
+        $owner = $this->member;
         Employee::query()->whereKey($owner->employee_id)->update(['first_name_en' => 'Fares', 'first_name_ar' => 'فارس', 'last_name_en' => 'Badawi', 'last_name_ar' => 'بدوي']);
         $ownerName = $owner->fresh()->profile->name;
 
@@ -597,15 +695,50 @@ class BoardMeetingsTest extends TestCase
         Notification::assertSentTo($owner, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::FOLLOW_UP);
         $this->assertNotNull($linked->fresh()->notified_at);
 
-        // The owner (not on the board) marks his own row done; a member who is not the owner may not.
-        $this->app['auth']->forgetGuards();
-        app(BoardMeetingService::class)->setFollowUpDone($linked, $owner, true);
+        // The owner marks their own row done from the minutes; on a row that is not theirs a member may not.
+        Livewire::actingAs($owner)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $linked->id, true)->assertHasNoErrors();
         $this->assertSame('done', $linked->fresh()->status);
 
         $other = $meeting->followUps()->where('topic', 'مدة الأرشفة')->firstOrFail();
         Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertForbidden();
         Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])->call('markFollowUp', $other->id, true)->assertHasNoErrors();
         $this->assertSame('done', $other->fresh()->status);
+    }
+
+    public function test_someone_off_the_board_is_kept_as_written_on_a_follow_up_and_not_told(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        Employee::query()->whereKey($this->outsider->employee_id)->update(['first_name_en' => 'Rami', 'first_name_ar' => 'رامي', 'last_name_en' => 'Haddad', 'last_name_ar' => 'حداد']);
+        $outsiderName = $this->outsider->fresh()->profile->name;
+
+        // The picker offers the board, not the whole staff.
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])
+            ->set('mode', 'edit')
+            ->assertViewHas('employeeNames', fn (array $names) => in_array($this->member->fresh()->profile->name, $names, true)
+                && ! in_array($outsiderName, $names, true))
+            ->set('followUpTopic', 'تحديث الموقع')->set('followUpParty', $outsiderName)->call('saveFollowUp')->assertHasNoErrors();
+
+        $row = $meeting->followUps()->firstOrFail();
+        $this->assertNull($row->employee_id);
+        $this->assertSame($outsiderName, $row->party);
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])->call('publish');
+        Notification::assertNotSentTo($this->outsider, BoardMeetingNotice::class);
+        $this->assertNull($row->fresh()->notified_at);
+    }
+
+    public function test_a_member_who_left_the_board_before_publishing_is_not_told_of_their_row(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->subDay()], notify: false);
+        $row = $meeting->followUps()->create(['topic' => 'تقرير الربع', 'employee_id' => $this->member->employee_id, 'sort' => 1]);
+        Employee::query()->whereKey($this->member->employee_id)->update(['board_member_end_at' => now()->subMinute()]);
+
+        Livewire::actingAs($this->secretary)->test(Show::class, ['meeting' => $meeting])->call('publish');
+
+        Notification::assertNotSentTo($this->member, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::FOLLOW_UP);
+        $this->assertNull($row->fresh()->notified_at);
     }
 
     public function test_open_rows_from_earlier_minutes_are_offered_and_carried_into_the_next_meeting(): void
@@ -664,6 +797,81 @@ class BoardMeetingsTest extends TestCase
         $row = $meeting->attendees()->where('employee_id', $this->member->employee_id)->firstOrFail();
         $this->assertNull($row->absence_request);
         $this->assertNull($row->absence_reason);
+    }
+
+    public function test_the_chair_is_told_when_a_pending_absence_request_is_taken_back(): void
+    {
+        Notification::fake();
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->set('absenceReason', 'سفر')->call('requestAbsence')
+            ->call('withdrawAbsence');
+
+        Notification::assertSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN
+            && $n->detail === $this->member->fresh()->profile->name);
+        Notification::assertNotSentTo($this->outsider, BoardMeetingNotice::class);
+
+        $body = (new BoardMeetingNotice(BoardMeetingNotice::ABSENCE_WITHDRAWN, $meeting->id, $meeting->number, $meeting->starts_at->toIso8601String(), 'سامر'))
+            ->toArray($this->chair)['body'];
+        $this->assertStringContainsString('سامر', $body['ar']);
+        $this->assertStringContainsString('took back', $body['en']);
+    }
+
+    public function test_a_member_takes_back_an_approved_absence_before_the_meeting_and_the_chair_is_told(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, true);
+        $this->assertSame('absent', $row->fresh()->status);
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-absence-approved"', false)
+            ->call('withdrawAbsence')
+            ->assertHasNoErrors()
+            ->assertSee('data-testid="board-absence-form"', false);
+
+        $row->refresh();
+        $this->assertSame('expected', $row->status);
+        $this->assertNull($row->absence_request);
+        $this->assertNull($row->absence_reason);
+        $this->assertNull($row->absence_decided_at);
+        Notification::assertSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
+    }
+
+    public function test_an_approved_absence_stands_once_the_meeting_has_begun(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addHour()], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, true);
+
+        $this->travel(2)->hours();
+
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-absence-approved"', false)
+            ->call('withdrawAbsence')
+            ->assertHasErrors('absence');
+
+        $this->assertSame('approved', $row->fresh()->absence_request);
+        $this->assertSame('absent', $row->fresh()->status);
+        Notification::assertNotSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
+    }
+
+    public function test_a_declined_request_is_not_taken_back_and_nobody_is_told(): void
+    {
+        Notification::fake();
+        $service = app(BoardMeetingService::class);
+        $meeting = $service->schedule(['starts_at' => now()->addDays(3)], notify: false);
+        $row = $service->requestAbsence($meeting, $this->member->profile, 'سفر');
+        $service->decideAbsence($row, false);
+
+        $this->assertNull($service->withdrawAbsence($meeting, $this->member->profile));
+        $this->assertSame('rejected', $row->fresh()->absence_request);
+        Notification::assertNotSentTo($this->chair, BoardMeetingNotice::class, fn ($n) => $n->kind === BoardMeetingNotice::ABSENCE_WITHDRAWN);
     }
 
     public function test_the_chair_sees_a_count_of_absence_requests_waiting_on_him(): void
@@ -743,6 +951,47 @@ class BoardMeetingsTest extends TestCase
 
         $secretary = Livewire::actingAs($this->secretary)->test(Index::class)->set('search', 'Google');
         $this->assertEqualsCanonicalizing([$published->id, $draft->id], $secretary->viewData('found')->pluck('id')->all());
+    }
+
+    public function test_a_meeting_whose_minutes_are_out_reads_as_held_never_as_scheduled(): void
+    {
+        $service = app(BoardMeetingService::class);
+        // Published before its clock came round (data from before publishing waited for the meeting's time).
+        $early = $service->schedule(['starts_at' => now()->addDays(2)], notify: false);
+        $early->update(['published_at' => now()]);
+
+        $list = Livewire::actingAs($this->member)->test(Index::class);
+
+        $this->assertSame([$early->id], $list->viewData('past')->pluck('id')->all());
+        $list->assertSee(__('board.minutes.published-badge'))
+            ->assertSee(__('board.status.held'))
+            ->assertDontSee(__('board.status.scheduled'));
+    }
+
+    public function test_cancelled_meetings_come_after_the_ones_still_on_in_the_coming_list(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $cancelled = $service->schedule(['starts_at' => now()->addDays(2)], notify: false);
+        $service->cancel($cancelled, 'No quorum');
+        $on = $service->schedule(['starts_at' => now()->addDays(9)], notify: false);
+        $later = $service->schedule(['starts_at' => now()->addDays(16)], notify: false);
+
+        $list = Livewire::actingAs($this->member)->test(Index::class);
+
+        $this->assertSame([$on->id, $later->id, $cancelled->id], $list->viewData('upcoming')->pluck('id')->all());
+    }
+
+    public function test_the_chair_is_not_offered_to_ask_themself_to_be_excused(): void
+    {
+        $meeting = app(BoardMeetingService::class)->schedule(['starts_at' => now()->addDays(3)], notify: false);
+
+        Livewire::actingAs($this->chair)->test(Show::class, ['meeting' => $meeting])
+            ->assertDontSee('data-testid="board-absence-form"', false)
+            ->set('absenceReason', 'Travelling')->call('requestAbsence')->assertForbidden();
+
+        // Another member still is.
+        Livewire::actingAs($this->member)->test(Show::class, ['meeting' => $meeting])
+            ->assertSee('data-testid="board-absence-form"', false);
     }
 
     public function test_the_commands_are_registered(): void

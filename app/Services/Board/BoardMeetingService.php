@@ -218,15 +218,43 @@ class BoardMeetingService
         return $attendee;
     }
 
-    /** A member takes back a request the chair has not answered yet. */
-    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): void
+    /**
+     * A member takes back their absence request: one the chair has not answered yet, or an approved one while the
+     * meeting is still ahead (they are expected again). Either way the chair is told.
+     *
+     * @return string|null the request that was taken back (pending / approved), or null when there was none
+     */
+    public function withdrawAbsence(BoardMeeting $meeting, Employee $employee): ?string
     {
         $this->assertOpen($meeting);
 
-        $meeting->attendees()
+        $attendee = $meeting->attendees()
             ->where('employee_id', $employee->id)
-            ->where('absence_request', BoardMeetingAttendee::REQUEST_PENDING)
-            ->update(['absence_request' => null, 'absence_reason' => null]);
+            ->whereIn('absence_request', [BoardMeetingAttendee::REQUEST_PENDING, BoardMeetingAttendee::REQUEST_APPROVED])
+            ->first();
+
+        if (! $attendee) {
+            return null;
+        }
+
+        $was = $attendee->absence_request;
+
+        if ($was === BoardMeetingAttendee::REQUEST_APPROVED) {
+            // Once the meeting has begun the secretary's record stands: an approved absence is taken back only before.
+            if (! $meeting->isUpcoming()) {
+                throw ValidationException::withMessages(['absence' => __('board.absence.too-late')]);
+            }
+
+            $attendee->status = BoardMeetingAttendee::EXPECTED;
+        }
+
+        $attendee->fill(['absence_request' => null, 'absence_reason' => null, 'absence_decided_at' => null])->save();
+
+        foreach ($this->access->holders(BoardAccess::MANAGE) as $chair) {
+            $chair->notify(BoardMeetingNotice::for(BoardMeetingNotice::ABSENCE_WITHDRAWN, $meeting, $employee->name));
+        }
+
+        return $was;
     }
 
     /** The chair approves (the member is listed as absent) or turns the request down. */
@@ -245,7 +273,7 @@ class BoardMeetingService
         $attendee->employee?->account?->notify(BoardMeetingNotice::for(
             BoardMeetingNotice::ABSENCE_DECIDED,
             $attendee->meeting,
-            $approve ? 'approved / تمت الموافقة' : 'not approved / لم تتم الموافقة',
+            $approve ? BoardMeetingAttendee::REQUEST_APPROVED : BoardMeetingAttendee::REQUEST_REJECTED,
         ));
     }
 
@@ -253,6 +281,12 @@ class BoardMeetingService
     public function publish(BoardMeeting $meeting, User $by, bool $email = false): void
     {
         $this->assertOpen($meeting);
+
+        // Minutes record a meeting that took place: before its time there is nothing to minute, and publishing would
+        // lock a meeting the chair may still need to move or cancel (same rule as attendance).
+        if (! $meeting->hasStarted()) {
+            throw ValidationException::withMessages(['publish' => __('board.locks.publish-before-start')]);
+        }
 
         $meeting->update([
             'published_at' => now(),
@@ -404,12 +438,18 @@ class BoardMeetingService
             ->first();
     }
 
-    /** Each person named on a follow-up row hears once, when the minutes come out, what waits on them. */
+    /** Each board member named on a follow-up row hears once, when the minutes come out, what waits on them. */
     private function tellFollowUpOwners(BoardMeeting $meeting): void
     {
         $rows = $meeting->followUps()->whereNotNull('employee_id')->whereNull('notified_at')->with('employee.account')->get();
+        $members = $this->access->currentMembers()->pluck('employees.id')->map(fn ($id) => (int) $id)->all();
 
         foreach ($rows as $row) {
+            // Linked while on the board but no longer on it: the notice would point at minutes they cannot open.
+            if (! in_array((int) $row->employee_id, $members, true)) {
+                continue;
+            }
+
             $row->employee?->account?->notify(BoardMeetingNotice::for(BoardMeetingNotice::FOLLOW_UP, $meeting, $row->topic));
             $row->update(['notified_at' => now()]);
         }

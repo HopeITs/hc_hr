@@ -138,7 +138,10 @@ class Index extends Component
 
         // A meeting is "coming up" until it starts; one that has started, or whose minutes are published, is "earlier"
         // (today's meeting must not hide among the coming ones once its minutes are out).
-        $upcoming = BoardMeeting::query()->where('starts_at', '>=', now())->whereNull('published_at')->orderBy('starts_at')->get();
+        // The meetings still on lead; a cancelled one stays listed (with its reason) but after them.
+        $upcoming = BoardMeeting::query()->where('starts_at', '>=', now())->whereNull('published_at')
+            ->orderByRaw('case when status = ? then 1 else 0 end', [BoardMeeting::CANCELLED])
+            ->orderBy('starts_at')->get();
         $past = BoardMeeting::query()
             ->where(fn ($q) => $q->where('starts_at', '<', now())->orWhereNotNull('published_at'))
             ->orderByDesc('starts_at')->limit(50)->get();

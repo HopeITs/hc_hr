@@ -36,6 +36,7 @@ use App\Notifications\ProbationRequested;
 use App\Notifications\ProfileChangeDecided;
 use App\Notifications\ProfileUpdatedByEmployee;
 use App\Notifications\RolesSuspendedForNoContract;
+use App\Notifications\SharedSeatDeparture;
 use App\Notifications\TestNotification;
 use Illuminate\Notifications\Notification;
 
@@ -87,6 +88,7 @@ enum NotificationCategory: string
         NewCenterCreated::class => self::Organization,
         CenterClosed::class => self::Organization,
         CriticalPositionNeedsReplacement::class => self::Organization,
+        SharedSeatDeparture::class => self::Organization,
         NewsApprovalRequested::class => self::Organization,
         NewsPublishedByManager::class => self::Organization,
         NewsApprovalDecided::class => self::Organization,

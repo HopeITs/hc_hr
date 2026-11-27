@@ -3,12 +3,13 @@
 namespace App\Notifications;
 
 use App\Models\BoardMeeting;
+use App\Models\BoardMeetingAttendee;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
  * Everything the board hears about its meetings, in the app: a meeting opened, moved or cancelled,
- * the reminder the day before, a member's request to be absent and its answer, and the minutes.
+ * the reminder the day before, a member's request to be absent, its answer and its withdrawal, and the minutes.
  */
 class BoardMeetingNotice extends Notification
 {
@@ -25,6 +26,8 @@ class BoardMeetingNotice extends Notification
     public const ABSENCE_REQUESTED = 'absence-requested';
 
     public const ABSENCE_DECIDED = 'absence-decided';
+
+    public const ABSENCE_WITHDRAWN = 'absence-withdrawn';
 
     public const MINUTES = 'minutes';
 
@@ -80,9 +83,19 @@ class BoardMeetingNotice extends Notification
                 ['Absence request', 'طلب تغيّب عن اجتماع'],
                 ["{$d} asks to miss meeting {$n} ({$en}).", "{$d} يطلب التغيّب عن اجتماع رقم {$n} ({$ar})."],
             ],
-            self::ABSENCE_DECIDED => [
-                ['Your absence request', 'ردّ على طلب تغيّبك'],
-                ["Your request to miss meeting {$n}: {$d}.", "طلب تغيّبك عن اجتماع رقم {$n}: {$d}."],
+            // The detail is the decision (BoardMeetingAttendee::REQUEST_APPROVED / REQUEST_REJECTED), worded here per language.
+            self::ABSENCE_DECIDED => $d === BoardMeetingAttendee::REQUEST_APPROVED
+                ? [
+                    ['Your absence request was approved', 'تمت الموافقة على طلب تغيّبك'],
+                    ["You are excused from meeting {$n} ({$en}).", "أنت معذور من حضور اجتماع رقم {$n} ({$ar})."],
+                ]
+                : [
+                    ['Your absence request was not approved', 'لم تتم الموافقة على طلب تغيّبك'],
+                    ["You are still expected at meeting {$n} ({$en}).", "حضورك لاجتماع رقم {$n} ({$ar}) ما زال متوقَّعاً."],
+                ],
+            self::ABSENCE_WITHDRAWN => [
+                ['Absence request taken back', 'سحب طلب تغيّب'],
+                ["{$d} took back the request to miss meeting {$n} ({$en}) and is expected to attend.", "سحب {$d} طلب التغيّب عن اجتماع رقم {$n} ({$ar})، وحضوره متوقَّع."],
             ],
             self::REOPENED => [
                 ['Board minutes reopened', 'أُعيد فتح محضر اجتماع البورد'],

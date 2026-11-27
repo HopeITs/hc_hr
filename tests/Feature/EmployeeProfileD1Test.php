@@ -189,6 +189,41 @@ class EmployeeProfileD1Test extends TestCase
         $this->assertStringNotContainsString('0966666666', json_encode($log->properties));
     }
 
+    public function test_a_self_edit_of_contact_alone_writes_a_redacted_entry(): void
+    {
+        $self = $this->makeUser($this->aleppo, 'employee', [], $this->lina);
+        $before = Activity::query()->where('subject_id', $this->lina->id)->where('causer_id', $self->id)->max('id') ?? 0;
+
+        $this->profileAs($self, $this->lina)->call('openSection', 'personal-contact')
+            ->set('sectionFields.personal_phone', '0966666666')
+            ->set('sectionFields.personal_email', 'lina.home@example.test')
+            ->call('saveSection')->assertHasNoErrors();
+
+        $this->profileAs($self, $this->lina->fresh())->call('openSection', 'work-contact')
+            ->set('sectionFields.telegram_work', '@lina_new')
+            ->call('saveSection')->assertHasNoErrors();
+
+        $logs = Activity::query()
+            ->where('subject_type', $this->lina->getMorphClass())->where('subject_id', $this->lina->id)
+            ->where('causer_id', $self->id)->where('id', '>', $before)
+            ->orderBy('id')->get();
+
+        $this->assertCount(2, $logs);
+
+        [$personal, $work] = $logs;
+        $this->assertSame('updated', $personal->event);
+        $this->assertSame(['personal_phone', 'personal_email'], $personal->properties['sensitive_fields_changed']);
+        $this->assertSame(['personal_phone' => '[redacted]', 'personal_email' => '[redacted]'], $personal->properties['attributes']);
+        // The old value is withheld too.
+        $this->assertSame('[redacted]', $personal->properties['old']['personal_phone']);
+        $this->assertSame(['telegram_work'], $work->properties['sensitive_fields_changed']);
+
+        $json = json_encode($logs->pluck('properties'));
+        foreach (['0966666666', '0922222222', 'lina.home@example.test', '@lina_new'] as $value) {
+            $this->assertStringNotContainsString($value, $json);
+        }
+    }
+
     public function test_who_may_edit_which_section(): void
     {
         $self = $this->makeUser($this->aleppo, 'employee', [], $this->lina);
