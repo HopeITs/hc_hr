@@ -412,6 +412,94 @@ class BoardMeetingsTest extends TestCase
         Livewire::actingAs($this->member)->test(Index::class)->call('openAdd')->assertForbidden();
     }
 
+    public function test_the_suggested_slot_skips_weeks_that_already_have_a_meeting_cancelled_ones_too(): void
+    {
+        $service = app(BoardMeetingService::class);
+        $monday = CarbonImmutable::parse('2026-12-07 09:00');
+
+        // This week's Thursday is opened by the scheduler, next week's was cancelled.
+        $service->ensureNext($monday);
+        $cancelled = $service->schedule(['starts_at' => '2026-12-17 12:00'], notify: false);
+        $service->cancel($cancelled, 'Holiday');
+
+        $s = $service->suggestion($monday);
+        $this->assertSame('2026-12-24 12:00', $s['starts_at']->format('Y-m-d H:i'));
+        $this->assertSame('2026-12-24 13:30', $s['ends_at']->format('Y-m-d H:i'));
+
+        $this->travelTo($monday);
+        Livewire::actingAs($this->chair)->test(Index::class)
+            ->call('openAdd')
+            ->assertSet('startsAt', '2026-12-24T12:00');
+    }
+
+    public function test_a_meeting_at_the_same_start_as_another_is_refused(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-07 09:00'));
+        $existing = app(BoardMeetingService::class)->schedule(['starts_at' => '2026-12-10 12:00'], notify: false);
+
+        Livewire::actingAs($this->chair)->test(Index::class)
+            ->set('startsAt', '2026-12-10T12:00')
+            ->call('saveMeeting')
+            ->assertHasErrors('startsAt')
+            ->assertSet('sameWeek', null)
+            // Not even with the extra-meeting answer: it is the same meeting typed twice.
+            ->call('confirmSameWeek')
+            ->assertHasErrors('startsAt');
+
+        $this->assertSame(1, BoardMeeting::query()->count());
+        $this->assertSame($existing->id, BoardMeeting::query()->sole()->id);
+    }
+
+    public function test_an_extra_meeting_in_a_week_that_has_one_needs_the_chairs_yes(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-07 09:00'));
+        app(BoardMeetingService::class)->schedule(['starts_at' => '2026-12-10 12:00'], notify: false);
+
+        $component = Livewire::actingAs($this->chair)->test(Index::class)
+            ->call('openAdd')
+            ->set('startsAt', '2026-12-08T10:00')
+            ->call('saveMeeting')
+            ->assertHasNoErrors()
+            ->assertSet('sameWeek.number', 1)
+            ->assertSee(__('board.same-week.confirm'));
+
+        $this->assertSame(1, BoardMeeting::query()->count(), 'nothing is added before the chair answers');
+
+        // Another date is asked about again.
+        $component->set('startsAt', '2026-12-09T10:00')
+            ->assertSet('sameWeek', null)
+            ->call('saveMeeting')
+            ->assertSet('sameWeek.number', 1)
+            ->call('confirmSameWeek')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertSame(2, BoardMeeting::query()->count());
+        $this->assertTrue(BoardMeeting::query()->where('starts_at', '2026-12-09 10:00:00')->exists());
+    }
+
+    public function test_a_cancelled_meeting_in_the_week_is_asked_about_too_and_a_free_week_is_not(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-07 09:00'));
+        $service = app(BoardMeetingService::class);
+        $service->cancel($service->schedule(['starts_at' => '2026-12-10 12:00'], notify: false), 'Holiday');
+
+        Livewire::actingAs($this->chair)->test(Index::class)
+            ->set('startsAt', '2026-12-10T12:00')
+            ->call('saveMeeting')
+            ->assertHasNoErrors()
+            ->assertSet('sameWeek.cancelled', true);
+
+        Livewire::actingAs($this->chair)->test(Index::class)
+            ->set('startsAt', '2026-12-17T12:00')
+            ->call('saveMeeting')
+            ->assertHasNoErrors()
+            ->assertSet('sameWeek', null)
+            ->assertRedirect();
+
+        $this->assertSame(2, BoardMeeting::query()->count());
+    }
+
     public function test_whoever_acts_is_not_notified_of_their_own_act(): void
     {
         Notification::fake();
