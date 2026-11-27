@@ -233,6 +233,7 @@ document.addEventListener('alpine:init', () => {
         // (ContractEdit) — they change only through another amendment now.
         // A frozen section counts as complete, so it never holds up the save.
         frozenSections: config.frozenSections ?? [],
+        legacySchedule: Boolean(config.legacySchedule),
         // True when the signed-in role may not see pay figures. The section is
         // rendered as a read-only notice in that case, the figures were never
         // sent down with the seed, and the server refuses to write them — so
@@ -485,11 +486,23 @@ document.addEventListener('alpine:init', () => {
             return Boolean(this.workHoursFrom && this.workHoursTo && this.workHoursTo > this.workHoursFrom);
         },
 
+        /**
+         * An imported contract (legacySchedule) with its day range still
+         * empty: its days are prose only, and the server accepts it as is.
+         * Hours are still checked; only the day pick is not demanded (R2-4).
+         */
+        legacyDaysUntouched() {
+            return this.legacySchedule
+                && this.dayPickMode !== 'days'
+                && this.workDayFrom === ''
+                && this.workDayTo === '';
+        },
+
         get scheduleValid() {
             if (this.scheduleMode === '1') {
-                if (this.dayPickMode === 'days'
+                if (!this.legacyDaysUntouched() && (this.dayPickMode === 'days'
                     ? this.pickedWorkdays.length === 0
-                    : (this.workDayFrom === '' || this.workDayTo === '' || Number(this.workDayTo) < Number(this.workDayFrom))) {
+                    : (this.workDayFrom === '' || this.workDayTo === '' || Number(this.workDayTo) < Number(this.workDayFrom)))) {
                     return false;
                 }
 
@@ -531,7 +544,7 @@ document.addEventListener('alpine:init', () => {
                     return this.labels.scheduleHintWorkdays;
                 }
 
-                if (this.dayPickMode !== 'days' && (this.workDayFrom === '' || this.workDayTo === '')) {
+                if (this.dayPickMode !== 'days' && !this.legacyDaysUntouched() && (this.workDayFrom === '' || this.workDayTo === '')) {
                     return this.labels.scheduleHintDayRange;
                 }
 
@@ -659,6 +672,12 @@ document.addEventListener('alpine:init', () => {
 
         /** The first earlier section that is not yet satisfied, or null. */
         blockedBy(name) {
+            // Ending a contract early does not depend on how its schedule or
+            // pay are filled in (R2-4): the section opens on its own.
+            if (name === 'termination') {
+                return null;
+            }
+
             const index = this.sections.indexOf(name);
 
             for (let i = 0; i < index; i += 1) {
