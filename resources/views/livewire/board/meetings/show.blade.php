@@ -398,7 +398,7 @@
                         </div>
                         <div>
                             <x-forms.input-label :value="__('board.minutes.follow-party')" />
-                            {{-- Pick a person from the list (they are told when the minutes come out), or type a department or body. --}}
+                            {{-- Pick a board member from the list (they are told when the minutes come out), or type a department, person or body. --}}
                             <input type="text" wire:model="followUpParty" list="board-people-{{ $meeting->id }}" autocomplete="off"
                                    class="w-full rounded-control border border-line bg-card px-3 py-2 text-ink" />
                             <datalist id="board-people-{{ $meeting->id }}">

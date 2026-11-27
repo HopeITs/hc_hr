@@ -438,12 +438,18 @@ class BoardMeetingService
             ->first();
     }
 
-    /** Each person named on a follow-up row hears once, when the minutes come out, what waits on them. */
+    /** Each board member named on a follow-up row hears once, when the minutes come out, what waits on them. */
     private function tellFollowUpOwners(BoardMeeting $meeting): void
     {
         $rows = $meeting->followUps()->whereNotNull('employee_id')->whereNull('notified_at')->with('employee.account')->get();
+        $members = $this->access->currentMembers()->pluck('employees.id')->map(fn ($id) => (int) $id)->all();
 
         foreach ($rows as $row) {
+            // Linked while on the board but no longer on it: the notice would point at minutes they cannot open.
+            if (! in_array((int) $row->employee_id, $members, true)) {
+                continue;
+            }
+
             $row->employee?->account?->notify(BoardMeetingNotice::for(BoardMeetingNotice::FOLLOW_UP, $meeting, $row->topic));
             $row->update(['notified_at' => now()]);
         }
